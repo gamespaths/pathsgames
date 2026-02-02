@@ -1,8 +1,17 @@
 # AlNao Paths Game
-*coming soon*
+
+**AlNao Paths Game**: AlNaoPathsGame is a librogame-style multiplayer story game with React frontends and Java Spring Boot backends, stored in the referenced GitHub repo.
+- Players register/login (JWT, optional Google SSO), create or join timed “matches” with selectable stories, difficulty and character choices.
+- Core mechanics: time-based turns, character stats (energy, life, sadness, experience), inventories, classes, and per-character backpacks with weight limits. World model: named locations with neighbors, movement costs affected by weather, event triggers on entry or time, and group follow mechanics. Events and choices drive narrative changes, modify registry keys/objects/stats, can trigger new events or change weather, and may have activation conditions. Game state is tracked in a comprehensive registry and many game tables (players, matches, events, choices, inventory, snapshots, logs) suggested for PostgreSQL/SQLite.
+- Tecnical information: REST APIs and WebSocket topics are defined for auth, stories, games, gameplay actions, chat, admin controls, and real-time turn/event updates. Services, scheduled jobs, and backend methods are outlined (locking, snapshots, time progression, event execution, integrity checks, notifications). Frontend component list covers login, lobby, character cards, map/grid, event/choice panels, turn UI, chat, admin tools, and card-collector UI.
+- V1: The document includes a 30-step development roadmap, many configuration parameters, and a list of features reserved for a later version. A project plan to build a playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
+
+
+
 
 ## Documentation
-- Step 1 [Project creation](./documentation/Step01_ProjectCreation.md)
+- Step 1 [Start the project](./documentation/Step01_StartProject.md) *(italian language, traslation coming soon)*
+- Step 2 [Create the repository](./documentation/Step02_CreateTheRepository.md)
 - *coming soon*
 
 
@@ -15,7 +24,7 @@
 - Ralph-AI system 
     - [Getting started with ralph](https://www.aihero.dev/getting-started-with-ralph)
     - [giuppidev](https://www.youtube.com/watch?v=KK3R7v2Rtew) *italian Language*
-        - https://github.com/giuppidev/ralph-giuppi
+        - Code example [ralph-giuppi](https://github.com/giuppidev/ralph-giuppi) 
 
 
 
