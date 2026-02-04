@@ -1,32 +1,43 @@
-# AlNao Paths Game - TODO list
+# AlNao Paths Game V1 - Todo List
 
 **AlNao Paths Game**: a project plan to build a playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
 
 The file lists a 30-step development roadmap (each with five substeps) covering repo setup, V1 scope, tech stack, backend modules, environments, CI, and naming conventions. It specifies core gameplay systems: data model, game state, turn cycle, timeouts, WebSocket sync, movement, choices, event handling, logging, snapshots, admin tools, and testing/playtest. Frontend requirements include a minimal playable UI (login, lobby, turn/status display, events and inputs) and component planning for a web client.
 
 
-1. Start the project
+### Version Control
+- First version created with AI prompt:
+    > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
+- **Document Version**: 1.1
+- **Last Updated**: February 3, 2026
+- **Status**: In progress
+
+
+# TODO List
+
+0. Start the project
     - ✅ I want to create a video game called AlNaoPathsGame; given these rules, provide them to me.
     - ✅ Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
     - ✅ Given this game, without questioning the listed game rules, list the services required (no code).
     - ✅ Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
     - ✅ Now assume I want to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-    > Check file [Start the project](./documentation/Step01_StartProject.md) *(italian language, traslation coming soon)*
+    > Check file [Start the project](./Step01_StartProject.md) *(italian language, traslation coming soon)*
 1. Create the repository
     - ✅ Choose platform (GitHub / GitLab / self-hosted)
     - ✅ Define final project name
     - ✅ Initialize an empty repository
     - ✅ Set the main branch
     - ✅ Define basic access rules
-    > Check file [Create the repository](./documentation/Step02_CreateTheRepository.md)
+    > Check file [Create the repository](./Step02_CreateTheRepository.md)
 2. Define the V1 scope
-    - List mandatory features
-    - List excluded features
-    - Define maximum complexity limit
-    - Establish what makes V1 "finished"
-    - Freeze decisions until V2
+    - ✅ List mandatory features
+    - ✅ List excluded features
+    - ✅ Define maximum complexity limit
+    - ✅ Establish what makes V1 "finished"
+    - ✅ Freeze decisions until V2
+    > Check file [Define the V1 scope](./Step03_DefineScope.md)
 3. Choose the final technology stack
-    - Select backend language
+    - Select backend language and 
     - Select backend framework
     - Select primary database
     - Select frontend technology

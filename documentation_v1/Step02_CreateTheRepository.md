@@ -8,11 +8,16 @@
     - ✅ Initialize an empty repository
         > Repository created [github.com/alnao/AlNaoPathsGame](https://github.com/alnao/AlNaoPathsGame)
     - ✅ Set the main branch
-        > Created `master` repository
+        > Created `master` brach, developers and agent will create `developer` and `relese` branch!
     - ✅ Define basic access rules
         > The project is public with GNU GPL V3 license
 
 
+### Version Control
+- First version not created with AI.
+- **Document Version**: 1.1
+- **Last Updated**: February 3, 2026
+- **Status**: Complete ✅
 
 
 # < AlNao />

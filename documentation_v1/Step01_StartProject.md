@@ -1,16 +1,20 @@
 # AlNao Paths Game V1 - Step 01: Start the project
 
-1. Start the project
-    - ✅ I want to create a video game called AlNaoPathsGame; given these rules, provide them to me.
-    - ✅ Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
-    - ✅ Given this game, without questioning the listed game rules, list the services required (no code).
-    - ✅ Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
-    - ✅ Now assume I want to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
 
+### Version Control
+- First version created with AI prompt:
+    > I want to create a game called AlNaoPathsGame; given these rules, provide them to me.
+    > Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
+    > Given this game, without questioning the listed game rules, list the services required (no code).
+    > Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
+- **Document Version**: 1.1
+- **Last Updated**: February 3, 2026
+- **Status**: In progress, traslation *coming soon*
 
----
 
 > note : document in italian language, traslation coming soon! 
+
+---
 
 
 ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
@@ -80,6 +84,7 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 		  - Il movimento di gruppo è l'unica azione che può avvenire fuori turno (giocatori si possono muovere mentre un altro giocatore sta agendo, evento e scelte rimangono al giocatore che sta agendo)
 		- un luogo può prevedere un counter_tempo_iniziale, se definito il luogo rimane attivo per quel numero di tempo, quando il counter arriva a zero il luogo scatena solo il "evento_se_bloccato" (esempio un capanno in fiamme ha un tempo per essere ispezionato)
 	- "evento": ogni evento ha un costo di energia che un personaggio deve spendere se vuole scatenare quell'evento (quelli automatici hanno sempre zero), altrimenti "l'evento termina". Ogni evento può (anche più d'uno):
+		- un evento ha un costo_ricchezza. se il personaggio non ha abbastanza ricchezza non può eseguire l'evento, la ricchezza viene poi scalata quando l'evento si verifica
 		- un evento può modificare un registro (esempi: evento "scassinare una porta" imposta nel registro "portaAperta=SI", evento "rubare dal portafoglio" imposta nel registro "Soldi = Soldi + 10").
 		- un evento può causare la fine del tempo" dove tutti i personaggi si addormentano (esempio: i giocatori mangiano cibo avvelenato, si sentono male e si addormentano)
 		- un evento può aggiungere o rimuovere un oggetto consumabile se c'è posto nell'inventario (esempio: aperto un cassetto trovano un coltello che si aggiunge nell'inventario del personaggio)
@@ -164,7 +169,7 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 	- elenco_oggetti: id, id_carta, id_storia, nome_id_testo, descrizione_id_testo, peso, is_consumabile
 	- elenco_oggetti_effetti : id, id_oggetto, id_storia, descrizione_id_testo, effetto_codice (es. "VITA"), effetto_valore (esempio 2)
 	- elenco_meteo_regole: id, id_carta, id_storia, titolo_id_testo, narrativo_id_testo, peso_probabilità, costo_movimento_luogo_sicuro, costo_movimento_luogo_non_sicuro, condizione_chiave_registro, condizione_valore, tempo_da, tempo_a, icona_url, attivo, priorità, delta_energia_tempo, id_evento_scatenato
-	- elenco_eventi: id, id_carta, id_storia, id_luogo, titolo_id_testo, narrativo_id_testo, tipo_evento (AUTOMATICO_ENTRATA_1, AUTOMATICO_ENTRATA_2, INIZIO_tempo, FACOLTATIVO, PRIMO_GIOCATORE), descrizione_testo, costo_energia, causa_fine_tempo (boolean), caratteristica_daaggiungere, caratteristica_darimuovere, registro_chiave, registro_valore, id_oggetto_da_aggiungere, meteo_causato, interrompi_successivi
+	- elenco_eventi: id, id_carta, id_storia, id_luogo, titolo_id_testo, narrativo_id_testo, tipo_evento (AUTOMATICO_ENTRATA_1, AUTOMATICO_ENTRATA_2, INIZIO_tempo, FACOLTATIVO, PRIMO_GIOCATORE), descrizione_testo, costo_energia, causa_fine_tempo (boolean), caratteristica_daaggiungere, caratteristica_darimuovere, registro_chiave, registro_valore, id_oggetto_da_aggiungere, meteo_causato, interrompi_successivi, costo_ricchezza
 	- elenco_eventi_effetti: id, id_carta, id_evento, statistica (MOVIMENTO, VITA, ENERGIA, ESPERIENZA...), valore, target (TUTTI_IN_LUOGO, CHI_HA_ATTIVATO), target_classe, target_oggetto_richiesto (esempio Entri nella stanza e il soffitto crolla con -1 vita a tutti, trappola magica colpisce solo il mago)
 	- elenco_scelte: id, id_carta, id_storia, id_evento / id_luogo, ordine_esecuzione, titolo_id_testo, narrativo_id_testo, id_evento_risultato, limite_tristezza, limite_des, limite_int, limite_cos,, is_altrimenti (boolean), is_progresso (se is progresso=true allora insert nella gioco_trama_progresso), operatore_logico_condizioni (AND/OR)
 	- elenco_scelte_condizioni: id, id_scelta, tipo_condizione (REGISTRO, OGGETTO, CLASSE, LUOGO, POSIZIONE_TUTTI, SOMMA_CARATTERISTICA, CARATTERISTICA), chiave_confronto, valore_confronto, operatore_confronto (uguale,maggiore,minore,diverso), descrizione_id_testo
@@ -414,7 +419,9 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 	- 91a eventTerminePartita: se id_evento===evento_partita_terminata imposta fine partita e continua
 	- 91b eventCostEnergia
 		- verifica il costo di energia: se non ha abbastanza energia si l'evento si ferma (si interrompe con un bel return e flag interrompi eventi successivi)
-		- incremento dell'energia (visto che c'è) e continua
+		- verifica il costo in ricchezza (se costo_ricchezza>0): se non ha abbastanza ricchezza l'evento si ferma
+		- decremento dell'energia (visto che c'è) e continua
+		- decremento della ricchezza (se costo_ricchezza>0)
 		- se causa_fine_tempo allora chiamare timeEnd che imposta a zero energia e via! flag interrompi eventi successivi
 	- 91c eventApplyEffects
 		- se in base alla elenco_eventi_effetti allora personaggioAddValues
@@ -596,13 +603,12 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 		99. WebSocketHeartbeat Mantiene viva la connessione con PING/PONG
 		100. WebSocketReconnectModal Modale di riconnessione in caso di disconnessione
 		101. WebSocketMessageQueue Coda messaggi per gestire disconnessioni temporanee
-- ora pensa che vorrei iniziare a svilupparlo, dammi 30 passi da fare, solo l'elenco dove la prima è "Creare il repository"
+- Ora pensa che vorrei iniziare a svilupparlo, dammi 30 passi da fare, solo l'elenco dove la prima è "Creare il repository", per ogni punto dammi 5 sottopunti
 	0.	Iniziare a scrivere questa analisi
 		-	voglio creare un gioco che si chiamaerà AlNaoPathsGame, di do queste regole dammi 
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco elencami le API e il WebSocket che servono, senza codice
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco elencami i service che mi servono, senza codice
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco, voglio iniziare a pensare alla parte grafica del frontend-web, dammi la lista dei component che faresti, dammi solo elenco senza pensare al codice
-		- 	Ora pensa che vorrei iniziare a svilupparlo, dammi 30 passi da fare, solo l'elenco dove la prima è "Creare il repository", per ogni punto dammi 5 sottopunti
 	1.	Creare il repository
 		-	Scegliere piattaforma (GitHub / GitLab / self-hosted)
 		-	Definire nome definitivo del progetto

@@ -9,9 +9,11 @@
 
 
 
-## Documentation
-- Step 1 [Start the project](./documentation/Step01_StartProject.md) *(italian language, traslation coming soon)*
-- Step 2 [Create the repository](./documentation/Step02_CreateTheRepository.md)
+## Documentation V1
+- [TODO list](./documentation_v1/Step00_TodoList.md)
+- Step 1 [Start the project](./documentation_v1/Step01_StartProject.md) *(italian language, traslation coming soon)*
+- Step 2 [Create the repository](./documentation_v1/Step02_CreateTheRepository.md)
+- Step 3 [Define the scope](./documentation_v1/Step03_DefineScope.md)
 - *coming soon*
 
 
