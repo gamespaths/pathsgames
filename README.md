@@ -4,16 +4,15 @@
 - Players register/login (JWT, optional Google SSO), create or join timed “matches” with selectable stories, difficulty and character choices.
 - Core mechanics: time-based turns, character stats (energy, life, sadness, experience), inventories, classes, and per-character backpacks with weight limits. World model: named locations with neighbors, movement costs affected by weather, event triggers on entry or time, and group follow mechanics. Events and choices drive narrative changes, modify registry keys/objects/stats, can trigger new events or change weather, and may have activation conditions. Game state is tracked in a comprehensive registry and many game tables (players, matches, events, choices, inventory, snapshots, logs) suggested for PostgreSQL/SQLite.
 - Tecnical information: REST APIs and WebSocket topics are defined for auth, stories, games, gameplay actions, chat, admin controls, and real-time turn/event updates. Services, scheduled jobs, and backend methods are outlined (locking, snapshots, time progression, event execution, integrity checks, notifications). Frontend component list covers login, lobby, character cards, map/grid, event/choice panels, turn UI, chat, admin tools, and card-collector UI.
-- V1: The document includes a 30-step development roadmap, many configuration parameters, and a list of features reserved for a later version. A project plan to build a playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
-
-
 
 
 ## Documentation V1
-- [TODO list](./documentation_v1/Step00_TodoList.md)
-- Step 1 [Start the project](./documentation_v1/Step01_StartProject.md) *(italian language, traslation coming soon)*
-- Step 2 [Create the repository](./documentation_v1/Step02_CreateTheRepository.md)
-- Step 3 [Define the scope](./documentation_v1/Step03_DefineScope.md)
+V1: The document includes a 30-step development roadmap, many configuration parameters, and a list of features reserved for a later version. A project plan to build a playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
+
+- [Roadmap](./documentation_v1/Step00_Roadmap.md)
+- Step 1: [Start the project](./documentation_v1/Step01_StartProject.md) *(italian language, traslation coming soon)*
+- Step 2: [Create the repository](./documentation_v1/Step02_CreateTheRepository.md)
+- Step 3: [Define the scope](./documentation_v1/Step03_DefineScope.md)
 - *coming soon*
 
 

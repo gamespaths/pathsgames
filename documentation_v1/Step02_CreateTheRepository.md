@@ -1,22 +1,32 @@
 # AlNao Paths Game V1 - Step 02: Create the repository
 
+This document defines the **create the repository** steps to build a **AlNao Paths Game**, an playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
+
+
 1. Create the repository
     - ✅ Choose platform (GitHub / GitLab / self-hosted)
         > Platform is GitHub in AlNao Repository, GitLab is backup platform, CodeCommit is deprecated
     - ✅ Define final project name
-        > AlNao Paths Game
+        > **AlNao Paths Game**
     - ✅ Initialize an empty repository
         > Repository created [github.com/alnao/AlNaoPathsGame](https://github.com/alnao/AlNaoPathsGame)
     - ✅ Set the main branch
-        > Created `master` brach, developers and agent will create `developer` and `relese` branch!
+        > Created main branch `master` used in production deployments  
+        > Developers and agent will create `developer` and `feature` branch!  
+        > Continue integration system will crate `release` and `hotfix` branch!  
+        > Development steps is defined by schema:  
+            <img src="./Step02_CreateTheRepository_git.webp" />
     - ✅ Define basic access rules
         > The project is public with GNU GPL V3 license
 
 
-### Version Control
+# Version Control
 - First version not created with AI.
-- **Document Version**: 1.1
-- **Last Updated**: February 3, 2026
+- **Document Version**: 1.2
+    - 1.0: first version of file with points list (February 2, 2026)
+    - 1.1: added licence and version control sections (February 3, 2026)
+    - 1.2: added branches image and definition (February 5, 2026)
+- **Last Updated**: February 5, 2026
 - **Status**: Complete ✅
 
 

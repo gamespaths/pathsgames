@@ -1,21 +1,10 @@
 # AlNao Paths Game V1 - Step 01: Start the project
 
-
-### Version Control
-- First version created with AI prompt:
-    > I want to create a game called AlNaoPathsGame; given these rules, provide them to me.
-    > Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
-    > Given this game, without questioning the listed game rules, list the services required (no code).
-    > Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
-- **Document Version**: 1.1
-- **Last Updated**: February 3, 2026
-- **Status**: In progress, traslation *coming soon*
-
+This document defines the **start project steps** to build a **AlNao Paths Game**, an playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
 
 > note : document in italian language, traslation coming soon! 
 
 ---
-
 
 ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 - repository https://github.com/alnao/AlNaoPathsGame 
@@ -790,6 +779,22 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 		-	Scrivere documentazione tecnica
 		-	Scrivere documentazione operativa
 		-	Preparare roadmap V2
+
+
+
+# Version Control
+- First version created with AI prompt:
+    > I want to create a game called AlNaoPathsGame; given these rules, provide them to me.
+    > Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
+    > Given this game, without questioning the listed game rules, list the services required (no code).
+    > Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
+- **Document Version**: 1.1
+	- 1.0: fist version of file in italian language (February 3, 2026)
+	- 1.1: added licence and version control sections (February 5, 2026)
+- **Last Updated**: February 5, 2026
+- **Status**: In progress, traslation *coming soon*
+
+
 
 # < AlNao />
 All source code and information in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

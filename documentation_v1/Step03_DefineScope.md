@@ -1,9 +1,7 @@
 # AlNao Paths Game V1 - Step 03: Scope Definition
 
-## Project Overview
-AlNaoPathsGame is a cooperative multiplayer game inspired by gamebooks, RPG rules, board games and card games. Players work together through narrative choices, managing resources, time, and character progression in a shared story.
+This document defines the **scope definition** steps to build a **AlNao Paths Game**, an playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
 
-This document defines the complete scope for Version 1 (V1) of AlNaoPathsGame organized into five critical sections:
 
   - ✅ **Mandatory Features**: Complete list of all features that MUST be implemented in V1. These define what the game is and how it works.
 
@@ -19,14 +17,6 @@ This document defines the complete scope for Version 1 (V1) of AlNaoPathsGame or
 
 
 This is a functional specification document. Technical implementation details (database tables, API endpoints, service methods) are documented separately in technical design documents.
-
-
-### Version Control
-- First version created with AI prompt:
-    > Take the 'StartProject' file and write this new file by separating into five sections: 1 List mandatory features, 2 List excluded features, 3 Define maximum complexity limit, 4 Establish what makes V1 finished, 5 Freeze decisions until V2. I want the new file in English. Check that everything is there, meaning that all functional information from this file is carried over to the various sections. Do not add any logic and do not modify the game logic. Optionally add a questions section at the end. In this file, eliminate all technical parts but summarize the technical components in one line per component. Proceed carefully and make multiple passes if needed, but I want it to be complete.
-- **Document Version**: 1.0
-- **Last Updated**: February 3, 2026
-- **Status**: FROZEN until V1 completion
 
 
 ## 1. List of Mandatory Features
@@ -730,4 +720,31 @@ If critical issue requires frozen decision change:
   - Recommendation: Admins can play with regular accounts
 - **Intervention logging**: How detailed should admin action logs be?
   - Recommendation: Log all admin actions with timestamp, admin ID, action type, affected match/user
+
+
+# Version Control
+- First version created with AI prompt:
+    > Take the 'StartProject' file and write this new file by separating into five sections: 1 List mandatory features, 2 List excluded features, 3 Define maximum complexity limit, 4 Establish what makes V1 finished, 5 Freeze decisions until V2. I want the new file in English. Check that everything is there, meaning that all functional information from this file is carried over to the various sections. Do not add any logic and do not modify the game logic. Optionally add a questions section at the end. In this file, eliminate all technical parts but summarize the technical components in one line per component. Proceed carefully and make multiple passes if needed, but I want it to be complete.
+- **Document Version**: 1.1
+  - 1.0: first version of documenti with points list (February 3, 2026)
+  - 1.1: added licence and version control sections (February 5, 2026)
+- **Last Updated**: February 5, 2026
+- **Status**: FROZEN until V1 completion
+
+
+# < AlNao />
+All source code and information in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+
+Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
+
+For further details, in-depth information, or requests for clarification, please visit AlNao.it.
+
+## License
+Made with ❤️ by <a href="https://www.alnao.it">AlNao</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+*Free Software!*
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.# Documentation - Step 1: Project creation
 

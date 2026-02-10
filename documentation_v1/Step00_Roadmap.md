@@ -1,19 +1,11 @@
-# AlNao Paths Game V1 - Todo List
+# AlNao Paths Game V1 - Roadmap & Todo-List
 
-**AlNao Paths Game**: a project plan to build a playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
+This document defines the **project plan** to build a **AlNao Paths Game**, an playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
 
 The file lists a 30-step development roadmap (each with five substeps) covering repo setup, V1 scope, tech stack, backend modules, environments, CI, and naming conventions. It specifies core gameplay systems: data model, game state, turn cycle, timeouts, WebSocket sync, movement, choices, event handling, logging, snapshots, admin tools, and testing/playtest. Frontend requirements include a minimal playable UI (login, lobby, turn/status display, events and inputs) and component planning for a web client.
 
 
-### Version Control
-- First version created with AI prompt:
-    > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-- **Document Version**: 1.1
-- **Last Updated**: February 3, 2026
-- **Status**: In progress
-
-
-# TODO List
+# Roadmap & Todo-List
 
 0. Start the project
     - ✅ I want to create a video game called AlNaoPathsGame; given these rules, provide them to me.
@@ -36,12 +28,13 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
     - ✅ Establish what makes V1 "finished"
     - ✅ Freeze decisions until V2
     > Check file [Define the V1 scope](./Step03_DefineScope.md)
-3. Choose the final technology stack
-    - Select backend language and 
-    - Select backend framework
-    - Select primary database
-    - Select frontend technology
-    - Select deployment system
+3. Define the technology stack
+    - ✅ Select backend language 
+    - ✅ Select backend framework
+    - ✅ Select primary database
+    - ✅ Select frontend technology
+    - ✅ Select deployment system
+    > Check file [Technology stack](./Step04_TechnologyStack.md)
 4. Define backend module structure
     - Separate domain from infrastructure
     - Define API module
@@ -205,6 +198,17 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
     - Write operational documentation
     - Prepare roadmap for V2
 
+
+
+# Version Control
+- First version created with AI prompt:
+    > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
+- **Document Version**: 1.2
+    - 1.0 first version of documenti (February 3, 2026)
+	- 1.1: added licence and version control sections, file renamed from "todolist" to "roadmap" (February 5, 2026)
+    - 1.2: update "2. Define the V1 scope" and "3. Define the technology stack" sections
+- **Last Updated**: February 10, 2026
+- **Status**: In progress
 
 
 
