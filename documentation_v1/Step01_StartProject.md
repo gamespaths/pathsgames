@@ -1,17 +1,17 @@
-# AlNao Paths Game V1 - Step 01: Start the project
+# Paths Games V1 - Step 01: Start the project
 
-This document defines the **start project steps** to build a **AlNao Paths Game**, an playable web-based game called AlNaoPathsGame, with detailed requirements and scope for a V1 release.
+This document defines the **start project steps** to build a **Paths Games**, an playable web-based game, with detailed requirements and scope for a V1 release.
 
 > note : document in italian language, traslation coming soon! 
 
 ---
 
-ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
-- repository https://github.com/alnao/AlNaoPathsGame 
+ciao, voglio creare un gioco che si chiamaerà PathsGame,
+- repository 
 	- "game-frontend-web" in react e bootstrap5 e fontawesome 7 (Free)
-	- "game-backend" in java spring boot 3.5.x, con main package "it.alnao.pathsGame", userà database PostgreSQL/SqlLite, espone API rest standard con JWT, poi vedremo se serviranno altri servizi
+	- "game-backend" in java spring boot 3.5.x, con main package "games.paths.", userà database PostgreSQL/SqlLite, espone API rest standard con JWT, poi vedremo se serviranno altri servizi
 	- "admin-web" in react e bootstrap5 e fontawesome 7 (Free)
-	- "admin-backend"  in java spring boot 3.5.x, con main package "it.alnao.pathsAdmin", userà database PostgreSQL/SqlLite, espone API rest standard con JWT, poi vedremo se serviranno altri servizi
+	- "admin-backend"  in java spring boot 3.5.x, con main package "games.paths.admin", userà database PostgreSQL/SqlLite, espone API rest standard con JWT, poi vedremo se serviranno altri servizi
 - regole di gioco di un librogame con regole prese da gdr, gameboard e giochi di carte (analisi funzionale)
 	- i giocatori devono essere registrati come utenti, eseguono login con username e password, le API di gioco sono sicurizzate con JWT, sarà da predisporre anche il single-sign-on con google
 		- questo è un gioco a "partite" dove un numero di giocatori può iscriversi alla partita se non iniziata o un giocatore può avviare la registrazione di una nuova partita, c'è un limite di partite attive come parametro1=NumeroMassimoPartiteAttiveNelloStessoMomento 
@@ -594,7 +594,7 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 		101. WebSocketMessageQueue Coda messaggi per gestire disconnessioni temporanee
 - Ora pensa che vorrei iniziare a svilupparlo, dammi 30 passi da fare, solo l'elenco dove la prima è "Creare il repository", per ogni punto dammi 5 sottopunti
 	0.	Iniziare a scrivere questa analisi
-		-	voglio creare un gioco che si chiamaerà AlNaoPathsGame, di do queste regole dammi 
+		-	voglio creare un gioco che si chiamaerà PathsGame, di do queste regole dammi 
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco elencami le API e il WebSocket che servono, senza codice
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco elencami i service che mi servono, senza codice
 		-	dato questo gioco, senza mettere in dubbio le regole di gioco, voglio iniziare a pensare alla parte grafica del frontend-web, dammi la lista dei component che faresti, dammi solo elenco senza pensare al codice
@@ -784,7 +784,7 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 
 # Version Control
 - First version created with AI prompt:
-    > I want to create a game called AlNaoPathsGame; given these rules, provide them to me.
+    > I want to create a game called PathsGame; given these rules, provide them to me.
     > Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
     > Given this game, without questioning the listed game rules, list the services required (no code).
     > Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
@@ -796,19 +796,31 @@ ciao, voglio creare un gioco che si chiamaerà AlNaoPathsGame,
 
 
 
-# < AlNao />
-All source code and information in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+# &lt; Paths Games /&gt;
+All source code and informations in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
-For further details, in-depth information, or requests for clarification, please visit AlNao.it.
+For all details, in-depth information, or requests for clarification, please visit [Paths.Games](https://paths.games/) website
+
+
 
 ## License
-Made with ❤️ by <a href="https://www.alnao.it">AlNao</a>
+Made with ❤️ by <a href="https://www.alnao.com">AlNao</a>
 &bull; 
 Public projects 
 <a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
 *Free Software!*
 
-The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.# Documentation - Step 1: Project creation
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
+
+
+
 
