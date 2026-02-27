@@ -1,0 +1,65 @@
+/* =============================================
+   PATHS GAME — variables.css
+   All design tokens as CSS custom properties
+   ============================================= */
+:root {
+  /* === COLOR PALETTE === */
+  --color-parchment:        #e8d5b0;
+  --color-parchment-light:  #f2e6c8;
+  --color-parchment-dark:   #c9b48a;
+  --color-brown-deep:       #1a0a02;
+  --color-brown-dark:       #2e1508;
+  --color-brown-mid:        #5c3317;
+  --color-brown-warm:       #7a4520;
+  --color-brown-light:      #a0622e;
+  --color-brown-tan:        #c08040;
+  --color-gold:             #c8960a;
+  --color-gold-light:       #e8b830;
+  --color-gold-shine:       #ffd700;
+  --color-gold-dark:        #9a6f08;
+  --color-ink:              #1a0f06;
+  --color-ash:              #8b7355;
+  --color-stone:            #6b5c4a;
+  --color-ember:            #d44a0a;
+
+  /* === DARK THEME (default) === */
+  --bg-page:       #100800;
+  --bg-card:       #2e1a0e;
+  --text-primary:  #e8d5b0;
+  --text-secondary:#c0a070;
+  --text-muted:    #8b7355;
+
+  /* === LIGHT THEME === */
+  --lt-bg-page:    #8b6030;
+  --lt-text-primary: #1a0f06;
+  --lt-text-secondary: #3d2410;
+  --lt-text-muted: #5c3317;
+
+  /* === FONTS === */
+  --font-display:  'Cinzel Decorative', 'Trajan Pro', serif;
+  --font-heading:  'Cinzel', 'Palatino Linotype', serif;
+  --font-body:     'Crimson Text', 'Georgia', serif;
+
+  /* === CARD SIZES (big vertical) === */
+  --card-big-v-w:   280px;
+  --card-big-v-h:   420px;
+  /* Padding inside big vertical card frame:
+     top (title area), side, bottom (description area) */
+  --card-big-v-pad-top:  22px;
+  --card-big-v-pad-side: 18px;
+  --card-big-v-pad-bot:  20px;
+
+  /* === CARD SIZES (little vertical) === */
+  --card-little-v-w:  140px;
+  --card-little-v-h:  210px;
+  --card-little-v-pad-top:  14px;
+  --card-little-v-pad-side: 10px;
+  --card-little-v-pad-bot:  12px;
+
+  /* === CARD SIZES (big horizontal) === */
+  --card-big-h-w:   640px;
+  --card-big-h-h:   196px;
+  --card-big-h-pad-top:  18px;
+  --card-big-h-pad-side: 28px;
+  --card-big-h-pad-bot:  18px;
+}

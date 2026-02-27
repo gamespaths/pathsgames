@@ -44,36 +44,35 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
     - ✅ Create backend project and first build
     > Check file [Backend structure](./Step05_BackendStructure.md)
 6. Define naming conventions (API, DB, events)
-    - Define REST endpoint naming
-    - Define WebSocket event naming
-    - Define table and column naming
-    - Define DTO and payload naming
-    - Document the conventions
+    - ✅ Define REST endpoint naming
+    - ✅ Define WebSocket event naming
+    - ✅ Define table and column naming
+    - ✅ Define DTO and payload naming
+    - ✅ Document the conventions
     > Check file [Naming conventions](./Step06_NamingConventions.md)
-6. Configure environments (dev / test / prod)
+7. Configure the website
+    - ✅ Define and buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/)
+    - ✅ Create terraform template
+    - ✅ Deploy terraform template into AWS
+    - ✅ Create first version of website
+    - ✅ Deploy first version of website
+    > Check file [Configure the website](./Step07_ConfigureWebsite.md)
+
+8. Configure environments and configure minimal CI
     - Define environment-specific configurations
     - Separate credentials and secrets
-    - Define environment variables
-    - Establish DB migration strategy
-    - Define deployment processes
-7. Configure minimal CI (build + empty tests)
     - Choose CI system
     - Define build pipeline
     - Run placeholder automated tests
     - Fail the pipeline on errors
     - Connect CI to the main branch
-8. Design the core data model
+9. Design the core data model
     - Identify main entities
     - Define relationships between entities
     - Identify persistent vs transient data
-    - Define cardinalities and dependencies
-    - Validate the model with real cases
-9. Define system invariants
     - List valid game states
     - Define rules that must never be broken
-    - Identify concurrency-critical points
-    - Define irreversible error conditions
-    - Document base assumptions
+    - Validate models with real cases
 10. Create initial DB schema
     - Translate the data model into tables
     - Define primary keys
@@ -206,17 +205,19 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
 # Version Control
 - First version created with AI prompt:
     > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-- **Document Version**: 1.2
+- **Document Version**: 1.4
     - 1.0 first version of this document (February 3, 2026)
 	- 1.1: added licence and version control sections, file renamed from "todolist" to "roadmap" (February 5, 2026)
     - 1.2: update "2. Define the V1 scope" and "3. Define the technology stack" sections
-- **Last Updated**: February 10, 2026
+    - 1.3: step 04, step 05, step 06  (February 26, 2026)
+    - 1.4: step 07 configure website  (February 5, 2026)
+- **Last Updated**: February 27, 2026
 - **Status**: In progress
 
 
 
 # &lt; Paths Games /&gt;
-All source code and informations in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
@@ -225,7 +226,7 @@ For all details, in-depth information, or requests for clarification, please vis
 
 
 ## License
-Made with ❤️ by <a href="https://www.alnao.com">AlNao</a>
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
 &bull; 
 Public projects 
 <a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>

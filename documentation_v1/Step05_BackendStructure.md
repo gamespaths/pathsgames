@@ -4,6 +4,17 @@ This document defines the **backend module structure** to build a **Paths Games*
 
 In these step we are going to create the code/backend folder and first API to check if backend started in right mode!
 
+    - ✅ Separate domain from infrastructure
+
+    - ✅ Define API module
+
+    - ✅ Define realtime module
+
+    - ✅ Define persistence module
+
+    - ✅ Define shared services module
+    
+    - ✅ Create backend project and first build
 
 ## 1. Separate domain from infrastructure
 
@@ -68,7 +79,7 @@ The shared services module provides cross-cutting functionalities used by multip
 
 
 # &lt; Paths Games /&gt;
-All source code and informations in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
@@ -77,7 +88,7 @@ For all details, in-depth information, or requests for clarification, please vis
 
 
 ## License
-Made with ❤️ by <a href="https://www.alnao.com">AlNao</a>
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
 &bull; 
 Public projects 
 <a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>

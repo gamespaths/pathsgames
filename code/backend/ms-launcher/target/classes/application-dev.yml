@@ -1,8 +1,0 @@
-# Development profile - SQLite, debug logging
-server:
-  port: 8042
-
-game:
-  server:
-    status: OK
-    env: development

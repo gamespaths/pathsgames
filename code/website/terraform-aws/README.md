@@ -59,7 +59,7 @@ CloudFront injects the following security headers on every response:
 ## Terraform State
 
 The state file is stored remotely in S3, configured via `backend.hcl`:
-- **Bucket:** `terraform-aws-alnao` (configurable)
+- **Bucket:** `terraform-aws` (configurable)
 - **Key:** `PathsGameWebsite/terraform.tfstate`
 - **Region:** `eu-central-1` (independent from the resources region)
 
@@ -67,7 +67,7 @@ The backend configuration is **parametric** — edit `backend.hcl` to change the
 
 ```hcl
 # backend.hcl
-bucket = "terraform-aws-alnao"
+bucket = "terraform-aws"
 key    = "PathsGameWebsite/terraform.tfstate"
 region = "eu-central-1"
 ```
@@ -78,7 +78,7 @@ region = "eu-central-1"
 
 1. **AWS CLI** configured with appropriate credentials
 2. **Terraform** >= 1.5 installed
-3. **S3 bucket** `terraform-aws-alnao` already created for remote state
+3. **S3 bucket** `terraform-aws` already created for remote state
 4. **Domain** `paths.games` registered and accessible via Route 53 or external DNS
 
 ## Deployment
@@ -172,7 +172,7 @@ terraform-aws/
 
 
 # &lt; Paths Games /&gt;
-All source code and informations in this repository are the result of careful and patient development work by AlNao, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
+All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
 Some content and portions of code in this repository were also produced with the support of artificial intelligence tools, whose contribution helped enrich and accelerate the creation of the material. Every piece of information and code fragment has nevertheless been carefully checked and validated with the goal of ensuring the highest quality and reliability of the provided content.
 
@@ -181,7 +181,7 @@ For all details, in-depth information, or requests for clarification, please vis
 
 
 ## License
-Made with ❤️ by <a href="https://www.alnao.com">AlNao</a>
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
 &bull; 
 Public projects 
 <a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
