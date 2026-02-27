@@ -1,9 +1,0 @@
-spring:
-  application:
-    name: paths-game-backend
-  profiles:
-    active: dev
-
-game:
-  server:
-    version: 0.5.0

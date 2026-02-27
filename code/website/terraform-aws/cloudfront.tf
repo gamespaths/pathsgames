@@ -79,7 +79,8 @@ resource "aws_cloudfront_distribution" "website" {
 
   restrictions {
     geo_restriction {
-      restriction_type = "none"
+      restriction_type = "blacklist"
+      locations        = ["RU", "BY", "CN"]
     }
   }
 
@@ -131,7 +132,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
     }
 
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+      content_security_policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'"
       override                = true
     }
   }

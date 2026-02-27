@@ -1,8 +1,0 @@
-# Production profile - PostgreSQL, optimized settings
-server:
-  port: 8080
-
-game:
-  server:
-    status: OK
-    env: production
