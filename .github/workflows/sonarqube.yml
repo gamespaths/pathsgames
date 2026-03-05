@@ -50,6 +50,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           mvn sonar:sonar \
+            -Dsonar.branch.name=${{ github.head_ref || github.ref_name }} \
             -Dsonar.projectKey=pathsgames-backend \
             -Dsonar.projectName="Paths Games - Backend" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \

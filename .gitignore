@@ -24,3 +24,14 @@ hs_err_pid*
 replay_pid*
 
 .terraform
+
+target/
+.vscode/
+
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+.alnao/

@@ -1,5 +1,5 @@
 package games.paths.auth;
 
-public class Dummy {
+public interface Dummy {
     
 }

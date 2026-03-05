@@ -1,6 +1,5 @@
 package games.paths.core.service;
 
-import games.paths.core.service.EchoService;
 import games.paths.core.port.in.EchoPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

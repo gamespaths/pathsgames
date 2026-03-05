@@ -1,5 +1,5 @@
 package games.paths.websocket;
 
-public class Dummy {
+public interface Dummy {
     
 }

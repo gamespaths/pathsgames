@@ -1,5 +1,5 @@
 package games.paths.postgres;
 
-public class Dummy {
+public interface Dummy {
     
 }

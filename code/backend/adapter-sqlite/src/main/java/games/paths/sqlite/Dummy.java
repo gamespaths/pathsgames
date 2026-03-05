@@ -1,5 +1,5 @@
 package games.paths.sqlite;
 
-public class Dummy {
+public interface Dummy {
     
 }

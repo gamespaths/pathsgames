@@ -1,5 +1,5 @@
 package games.paths.backend;
 
-public class Dummy {
+public interface Dummy {
     
 }

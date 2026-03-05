@@ -1,5 +1,5 @@
 package games.paths.kafka;
 
-public class Dummy {
+public interface Dummy {
     
 }

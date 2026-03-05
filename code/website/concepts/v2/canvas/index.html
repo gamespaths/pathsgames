@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Paths Games — Banner Concepts v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600&display=swap');
+  :root{
+    --brown-deep:#1a0a02;--brown-dark:#2e1508;--brown-mid:#5c3317;--brown-warm:#7a4520;
+    --brown-tan:#c08040;--brown-stan:#d9a060;
+    --gold-dark:#9a6f08;--gold:#c8960a;--gold-light:#e8b830;
+    --parchment:#e8d5b0;--parchment-light:#f2e6c8;--parchment-dark:#c9b48a;
+    --ash:#8b7355;--bg:#100800
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--parchment);font-family:'Crimson Text',Georgia,serif;min-height:100vh;padding:0 0 40px}
+
+  /* Navbar (replica fedele) */
+  nav{background:linear-gradient(120deg,var(--brown-deep),var(--brown-mid));border-bottom:2px solid var(--gold-dark);padding:14px 28px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+  nav .brand{font-family:'Cinzel Decorative',serif;font-size:1.8rem;color:var(--gold-light);text-shadow:0 0 20px rgba(232,184,48,.5);letter-spacing:.1em;text-decoration:none}
+  nav .brand i{display:inline-block}
+  nav .sub{margin-left:auto;font-family:'Cinzel',serif;font-size:.85rem;color:var(--parchment);letter-spacing:.08em;opacity:.6}
+  .fa-dice-d20{color:var(--gold-light)}
+
+  /* Header section */
+  header{text-align:center;padding:40px 24px 20px}
+  header h1{font-family:'Cinzel Decorative',serif;font-size:2rem;color:var(--gold-light);text-shadow:0 0 20px rgba(232,184,48,.5);letter-spacing:.08em}
+  header p{color:var(--ash);margin-top:6px;font-size:1.05rem}
+
+  /* Grid */
+  .grid{max-width:1200px;margin:20px auto;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+  .card{background:linear-gradient(135deg,var(--brown-deep),var(--brown-dark));border:2px solid rgba(200,150,10,.12);border-radius:10px;overflow:hidden;transition:transform .2s,box-shadow .2s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.5),0 0 18px rgba(200,150,10,.15)}
+  .card::before{content:'';position:absolute;inset:3px;border:1px solid rgba(200,150,10,.06);border-radius:8px;pointer-events:none}
+  .card{position:relative}
+  .thumb{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:linear-gradient(135deg,var(--brown-deep),var(--brown-warm) 50%,var(--brown-dark));border-bottom:1px solid rgba(200,150,10,.1);opacity:.3}
+  .card-body{padding:14px 16px}
+  .card-body h3{font-family:'Cinzel',serif;font-size:1.05rem;color:var(--gold-light);margin-bottom:3px;text-shadow:0 0 8px rgba(232,184,48,.2)}
+  .card-body .dim{font-size:.85rem;color:var(--ash)}
+  .card-body .desc{font-size:.92rem;margin-top:6px;color:rgba(232,213,176,.65);line-height:1.6}
+  .card-body a{display:inline-block;margin-top:10px;font-family:'Cinzel',serif;font-size:.88rem;font-weight:600;color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(200,150,10,.25);padding-bottom:2px;transition:color .2s}
+  .card-body a:hover{color:var(--gold-light)}
+
+  /* Footer (replica fedele) */
+  footer{background:linear-gradient(180deg,transparent,rgba(160,98,46,.15) 20%,var(--brown-mid) 50%,var(--brown-deep));padding:80px 24px 20px;text-align:center;margin-top:40px}
+  footer .fbrand{font-family:'Cinzel Decorative',serif;font-size:1.1rem;color:var(--gold-light);text-shadow:0 0 10px rgba(232,184,48,.4);letter-spacing:.08em}
+  footer .flinks{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin:10px 0;font-size:.88rem}
+  footer .flinks a{color:var(--parchment);text-decoration:none;display:flex;align-items:center;gap:4px;transition:color .2s}
+  footer .flinks a:hover{color:var(--gold-light)}
+  footer .fcopy{border-top:1px solid rgba(200,150,10,.1);padding-top:10px;margin-top:8px;color:var(--parchment);font-size:.8rem;opacity:.5;line-height:1.8}
+  footer .fcopy .gl{color:var(--gold-light)}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+</head>
+<body>
+
+<!-- Navbar (same as site) -->
+<nav>
+  <a class="brand" href="../../html/index.html"><i class="fas fa-dice-d20" style="margin-right:8px"></i>Paths Games</a>
+  <span class="sub">Banner Concepts v2</span>
+</nav>
+
+<header>
+  <h1>⚄ Banner Concepts v2</h1>
+  <p>Template grafici per YouTube, Instagram e TikTok — generati con Canvas API, con la grafica del sito</p>
+</header>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="thumb">📺</div>
+    <div class="card-body">
+      <h3>YouTube Channel Art</h3>
+      <div class="dim">2560 × 1440 · safe area 1546×423</div>
+      <div class="desc">Navbar in alto, crowdfunding card in parchment con ⚔️, badge e footer. Identico al sito.</div>
+      <a href="yt-channel-art.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">📷</div>
+    <div class="card-body">
+      <h3>Instagram — Post Quadrato</h3>
+      <div class="dim">1080 × 1080</div>
+      <div class="desc">Header navbar + crowdfunding card centrata con titolo, descrizione e badge pills. Stile sito.</div>
+      <a href="ig-post.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">📱</div>
+    <div class="card-body">
+      <h3>Instagram — Storia</h3>
+      <div class="dim">1080 × 1920</div>
+      <div class="desc">Navbar + crowdfunding card + CTA "Join the Quest" + footer con brand. Layout verticale completo.</div>
+      <a href="ig-story.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">👤</div>
+    <div class="card-body">
+      <h3>Instagram — Avatar</h3>
+      <div class="dim">110 × 110 (render @4x 440px)</div>
+      <div class="desc">Icona fa-dice-d20 (la stessa della navbar) su sfondo navbar gradient, con bordo dorato circolare.</div>
+      <a href="ig-avatar.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">🎵</div>
+    <div class="card-body">
+      <h3>TikTok — Copertina Video</h3>
+      <div class="dim">1080 × 1920</div>
+      <div class="desc">Navbar header + crowdfunding card su parchment con ⚔️, testi, badge pills e footer branded.</div>
+      <a href="tt-cover.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">🖼️</div>
+    <div class="card-body">
+      <h3>TikTok — Banner Profilo</h3>
+      <div class="dim">1000 × 280</div>
+      <div class="desc">Stile navbar esteso: D20 + brand + tagline + badge row. Sfondo gradient brown-deep→brown-mid.</div>
+      <a href="tt-banner.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="thumb">👤</div>
+    <div class="card-body">
+      <h3>TikTok — Avatar</h3>
+      <div class="dim">200 × 200 (render @4x 800px)</div>
+      <div class="desc">Icona fa-dice-d20 centrata, sfondo navbar, doppio bordo dorato circolare. 3 anteprime.</div>
+      <a href="tt-avatar.html">Apri &amp; Scarica →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer (same as site) -->
+<footer>
+  <div class="fbrand"><i class="fas fa-dice-d20" style="margin-right:4px"></i>Paths Games</div>
+  <div class="flinks">
+    <a href="https://github.com/gamespaths/pathsgames" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+    <a href="../../html/index.html#crowdfund"><i class="fas fa-coins"></i> Crowdfunding</a>
+    <a href="../../html/index.html"><i class="fas fa-globe"></i> Sito</a>
+  </div>
+  <div class="fcopy">
+    <span class="gl">© 2025 Paths Games</span> · All rights reserved ·
+    Crafted with <i class="fas fa-heart"></i> by the Paths Games Dev Team
+  </div>
+</footer>
+
+</body>
+</html>
