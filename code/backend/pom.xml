@@ -26,7 +26,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <sonar.organization>gamespaths</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <!--sonar command: mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN -->
+        <sonar.branch.name>develop</sonar.branch.name>
+        <!--sonar command: mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN 
+            no <sonar.projectKey>pathsgames-backend</sonar.projectKey>
+        -->
     </properties>
 
     <dependencyManagement>
