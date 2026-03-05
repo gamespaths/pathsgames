@@ -51,7 +51,8 @@ jobs:
         run: |
           mvn sonar:sonar \
             -Dsonar.branch.name=develop \
-            -Dsonar.projectKey=pathsgames-backend \
+            -Dsonar.projectKey=games.paths:paths-game-backend \
+            -Dsonar.organization=gamespaths \
             -Dsonar.projectName="Paths Games - Backend" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
