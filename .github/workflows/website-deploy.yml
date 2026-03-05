@@ -1,14 +1,14 @@
 name: Website Deploy
 
 on:
-#  push:
-#    branches: [ main, develop ]
-#    paths:
-#      - 'code/website/html/**'
-  pull_request:
-    branches: [ main ]
+  push:
+    branches: [ main] #, develop ]
     paths:
       - 'code/website/html/**'
+#  pull_request:
+#    branches: [ main ]
+#    paths:
+#      - 'code/website/html/**'
 
 jobs:
   deploy:
