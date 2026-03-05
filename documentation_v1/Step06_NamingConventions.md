@@ -2,15 +2,15 @@
 
 This document defines the **naming conventions** for all layers of the **Paths Games** backend and frontend, covering REST endpoints, WebSocket events, database objects, Java code, JSON payloads, and frontend components.
 
-    - ✅ Define REST endpoint naming
+  - ✅ Define REST endpoint naming
+  
+  - ✅ Define WebSocket event naming
     
-    - ✅ Define WebSocket event naming
+  - ✅ Define table and column naming
     
-    - ✅ Define table and column naming
+  - ✅ Define DTO and payload naming
     
-    - ✅ Define DTO and payload naming
-    
-    - ✅ Document the conventions
+  - ✅ Document the conventions
 
 ## 1. REST Endpoint Naming
 

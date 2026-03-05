@@ -5,67 +5,21 @@ This document defines the **project plan** to build a **Paths Games**, an playab
 The file lists a 30-step development roadmap (each with five substeps) covering repo setup, V1 scope, tech stack, backend modules, environments, CI, and naming conventions. It specifies core gameplay systems: data model, game state, turn cycle, timeouts, WebSocket sync, movement, choices, event handling, logging, snapshots, admin tools, and testing/playtest. Frontend requirements include a minimal playable UI (login, lobby, turn/status display, events and inputs) and component planning for a web client.
 
 
-# Roadmap & Todo-List
+# Roadmap
 
-1. Start the project
-    - ✅ I want to create a video game called Paths Games; given these rules, provide them to me.
-    - ✅ Given this game, without questioning the listed game rules, list the APIs and the WebSocket topics needed (no code).
-    - ✅ Given this game, without questioning the listed game rules, list the services required (no code).
-    - ✅ Given this game, without questioning the listed game rules, I want to start thinking about the frontend-web graphics; give me the list of components you would create, only the list and no code.
-    - ✅ Now assume I want to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-    > Check file [Start the project](./Step01_StartProject.md) *(italian language, traslation coming soon)*
-2. Create the repository
-    - ✅ Choose platform (GitHub / GitLab / self-hosted)
-    - ✅ Define final project name
-    - ✅ Initialize an empty repository
-    - ✅ Set the main branch
-    - ✅ Define basic access rules
-    > Check file [Create the repository](./Step02_CreateTheRepository.md)
-3. Define the V1 scope
-    - ✅ List mandatory features
-    - ✅ List excluded features
-    - ✅ Define maximum complexity limit
-    - ✅ Establish what makes V1 "finished"
-    - ✅ Freeze decisions until V2
-    > Check file [Define the V1 scope](./Step03_DefineScope.md)
-4. Define the technology stack
-    - ✅ Select backend language 
-    - ✅ Select backend framework
-    - ✅ Select primary database
-    - ✅ Select frontend technology
-    - ✅ Select deployment system
-    > Check file [Technology stack](./Step04_TechnologyStack.md)
-5. Define backend module structure
-    - ✅ Separate domain from infrastructure
-    - ✅ Define API module
-    - ✅ Define realtime module
-    - ✅ Define persistence module
-    - ✅ Define shared services module
-    - ✅ Create backend project and first build
-    > Check file [Backend structure](./Step05_BackendStructure.md)
-6. Define naming conventions (API, DB, events)
-    - ✅ Define REST endpoint naming
-    - ✅ Define WebSocket event naming
-    - ✅ Define table and column naming
-    - ✅ Define DTO and payload naming
-    - ✅ Document the conventions
-    > Check file [Naming conventions](./Step06_NamingConventions.md)
-7. Configure the website
-    - ✅ Define and buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/)
-    - ✅ Create terraform template
-    - ✅ Deploy terraform template into AWS
-    - ✅ Create first version of website
-    - ✅ Deploy first version of website
-    > Check file [Configure the website](./Step07_ConfigureWebsite.md)
+| Step |  | Main goals |
+| ---- | ----- | ---------- |
+| [Start the project](./Step01_StartProject.md) | ✅ | Write ideas on document, define 30 steps to execute to start the project, a simple list and for each step give 5 subpoints. <br /> *italian language, traslation coming soon* |
+| [Create the repository](./Step02_CreateTheRepository.md) | ✅ | Choose repository platform, initialize an empty repository, set the main branch and define basic access rules |
+| [Define the V1 scope](./Step03_DefineScope.md) | ✅ | Define the V1 scope, list mandatory features, list excluded features, define maximum complexity limit, establish what makes V1 "finished", freeze decisions until V2 |
+| [Technology stack](./Step04_TechnologyStack.md) | ✅ | Select backend language, select backend framework, select primary database, select frontend technology, select deployment system |
+| [Backend structure](./Step05_BackendStructure.md) | ✅ | Separate domain from infrastructure, define API module, define realtime module, define persistence module, define shared services module, create backend project and first build |
+| [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, define WebSocket event naming, define table and column naming, define DTO and payload naming |
+| [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Define and buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/), create terraform template, deploy terraform template into cloud system, create first version of website, deploy first version of website
+| [Configure CI](./Step08_ConfigureCI.md) | ✅ | Define environment-specific configurations, separate credentials and secrets, choose CI system (GitHub Actions), define build pipelines (backend Docker + website S3), run automated tests, fail pipeline on errors, connect CI to the main branch |
 
-8. Configure environments and configure minimal CI
-    - Define environment-specific configurations
-    - Separate credentials and secrets
-    - Choose CI system
-    - Define build pipeline
-    - Run placeholder automated tests
-    - Fail the pipeline on errors
-    - Connect CI to the main branch
+## Next steps
+
 9. Design the core data model
     - Identify main entities
     - Define relationships between entities
@@ -205,13 +159,14 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
 # Version Control
 - First version created with AI prompt:
     > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-- **Document Version**: 1.4
+- **Document Version**: 1.5
     - 1.0 first version of this document (February 3, 2026)
 	- 1.1: added licence and version control sections, file renamed from "todolist" to "roadmap" (February 5, 2026)
     - 1.2: update "2. Define the V1 scope" and "3. Define the technology stack" sections
-    - 1.3: step 04, step 05, step 06  (February 26, 2026)
-    - 1.4: step 07 configure website  (February 5, 2026)
-- **Last Updated**: February 27, 2026
+    - 1.3: step 04, step 05, step 06 (February 26, 2026)
+    - 1.4: step 07 configure website (February 27, 2026)
+    - 1.5: step 08 configure CI (March 5, 2026)
+- **Last Updated**: March 5, 2026
 - **Status**: In progress
 
 

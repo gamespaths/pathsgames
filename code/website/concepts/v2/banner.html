@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Banner templates — YouTube / Instagram / TikTok</title>
+  <style>
+    :root{--gap:18px;--card-bg:#111;--muted:#bbb}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.3;background:#0f1720;color:#e6eef6;padding:24px}
+    h1{margin:0 0 8px;font-size:20px}
+    p.lead{margin:0 0 20px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--gap)}
+    .card{background:#081018;padding:14px;border-radius:8px;border:1px solid rgba(255,255,255,0.03)}
+    .meta{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .meta .title{font-weight:600}
+    canvas.preview{width:100%;height:auto;border-radius:6px;background:#000;display:block}
+    .controls{margin-top:10px;display:flex;gap:8px}
+    button{background:#0ea5a4;border:none;color:#042024;padding:8px 10px;border-radius:6px;cursor:pointer;font-weight:600}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    small.desc{color:var(--muted);display:block;margin-top:6px}
+    .note{font-size:13px;color:var(--muted);margin-top:12px}
+    .safe-area{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
+    .safe-area .box{border:2px dashed rgba(255,255,255,0.6);box-shadow:0 0 0 9999px rgba(0,0,0,0.15) inset}
+    .canvas-wrap{position:relative}
+  </style>
+</head>
+<body>
+  <h1>Banner templates</h1>
+  <p class="lead">Clicca "Scarica" per ottenere un PNG nelle dimensioni corrette per ogni piattaforma.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="meta"><div><div class="title">YouTube Channel Art</div><small class="desc">2560×1440 — safe area 1546×423</small></div><div><small class="desc">PNG, max 6MB</small></div></div>
+      <div class="canvas-wrap">
+        <canvas class="preview" id="yt" data-w="2560" data-h="1440"></canvas>
+        <div class="safe-area" id="yt-safe" style="display:none;"></div>
+      </div>
+      <div class="controls">
+        <button data-target="yt" class="download">Scarica PNG</button>
+        <button data-target="yt" class="toggle-safe secondary">Mostra area sicura</button>
+      </div>
+      <div class="note">Nota: l'area tratteggiata è la zona visibile su tutti i dispositivi.</div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">Instagram — Post Quadrato</div><small class="desc">1080×1080</small></div></div>
+      <canvas class="preview" id="ig-square" data-w="1080" data-h="1080"></canvas>
+      <div class="controls"><button data-target="ig-square" class="download">Scarica PNG</button></div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">Instagram — Storia</div><small class="desc">1080×1920</small></div></div>
+      <canvas class="preview" id="ig-story" data-w="1080" data-h="1920"></canvas>
+      <div class="controls"><button data-target="ig-story" class="download">Scarica PNG</button></div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">Instagram — Immagine Profilo</div><small class="desc">110×110</small></div></div>
+      <canvas class="preview" id="ig-avatar" data-w="110" data-h="110"></canvas>
+      <div class="controls"><button data-target="ig-avatar" class="download">Scarica PNG</button></div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">TikTok — Copertina Video</div><small class="desc">1080×1920</small></div></div>
+      <canvas class="preview" id="tt-cover" data-w="1080" data-h="1920"></canvas>
+      <div class="controls"><button data-target="tt-cover" class="download">Scarica PNG</button></div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">TikTok — Banner Profilo</div><small class="desc">1000×280 (consigliato)</small></div></div>
+      <canvas class="preview" id="tt-banner" data-w="1000" data-h="280"></canvas>
+      <div class="controls"><button data-target="tt-banner" class="download">Scarica PNG</button></div>
+    </div>
+
+    <div class="card">
+      <div class="meta"><div><div class="title">TikTok — Immagine Profilo</div><small class="desc">200×200</small></div></div>
+      <canvas class="preview" id="tt-avatar" data-w="200" data-h="200"></canvas>
+      <div class="controls"><button data-target="tt-avatar" class="download">Scarica PNG</button></div>
+    </div>
+  </div>
+
+  <script>
+    // Draw a simple placeholder design for each canvas and enable downloads
+    function drawSample(ctx,w,h,label){
+      // background gradient
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0,'#0ea5a4');
+      g.addColorStop(1,'#7c3aed');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+      // decorative circles
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for(let i=0;i<8;i++) ctx.beginPath(), ctx.arc((i+1)*w/9, h*0.2 + (i%2)*h*0.5, Math.min(w,h)*0.12, 0, Math.PI*2), ctx.fill();
+      // label
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      let fontSize = Math.max(12, Math.floor(Math.min(w,h)/10));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(label, w/2, h/2 + fontSize/3);
+    }
+
+    function setupCanvas(el){
+      const w = parseInt(el.dataset.w,10);
+      const h = parseInt(el.dataset.h,10);
+      // set actual resolution to target size, style will scale it down
+      el.width = w;
+      el.height = h;
+      const ctx = el.getContext('2d');
+      drawSample(ctx,w,h, el.id.replace(/[-_]/g,' ').toUpperCase());
+    }
+
+    document.querySelectorAll('canvas.preview').forEach(setupCanvas);
+
+    // Download handler: use the canvas' full resolution
+    document.querySelectorAll('button.download').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const id = btn.dataset.target;
+        const c = document.getElementById(id);
+        if(!c) return;
+        const data = c.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = data;
+        a.download = id + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+    });
+
+    // Toggle YouTube safe area overlay
+    const ytSafeBtn = document.querySelector('button.toggle-safe');
+    if(ytSafeBtn){
+      const safeWrap = document.getElementById('yt-safe');
+      const canvas = document.getElementById('yt');
+      ytSafeBtn.addEventListener('click', ()=>{
+        if(safeWrap.style.display==='none'){
+          // create centered box sized to 1546x423 relative to canvas
+          safeWrap.innerHTML = '';
+          const box = document.createElement('div');
+          box.className = 'box';
+          // compute CSS scale to match the canvas preview size
+          const previewWidth = canvas.clientWidth;
+          const scale = previewWidth / canvas.width;
+          const boxW = 1546*scale;
+          const boxH = 423*scale;
+          box.style.width = boxW + 'px';
+          box.style.height = boxH + 'px';
+          safeWrap.appendChild(box);
+          safeWrap.style.display = 'flex';
+          ytSafeBtn.textContent = 'Nascondi area sicura';
+        } else {
+          safeWrap.style.display = 'none';
+          safeWrap.innerHTML = '';
+          ytSafeBtn.textContent = 'Mostra area sicura';
+        }
+      });
+      // adjust on resize
+      window.addEventListener('resize', ()=>{
+        if(document.getElementById('yt-safe').children.length){
+          ytSafeBtn.click();
+          ytSafeBtn.click();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

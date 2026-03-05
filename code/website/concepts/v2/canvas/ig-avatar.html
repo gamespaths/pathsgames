@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Instagram Avatar — 110×110</title>
+<style>
+  body{margin:0;background:#100800;color:#e8d5b0;font-family:'Crimson Text',Georgia,serif;display:flex;flex-direction:column;align-items:center;padding:24px}
+  h1{font-size:18px;margin:0 0 4px;color:#e8b830}
+  .info{color:#8b7355;font-size:13px;margin-bottom:12px}
+  canvas{border-radius:50%;box-shadow:0 4px 24px rgba(0,0,0,.6)}
+  .preview{display:flex;gap:20px;align-items:center}
+  .actions{margin-top:14px}
+  button{background:linear-gradient(180deg,#c08040,#d9a060);color:#5c3700;border:none;padding:10px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px}
+  .label{color:#8b7355;font-size:12px;text-align:center;margin-top:4px}
+</style>
+</head>
+<body>
+<h1>Instagram — Immagine Profilo</h1>
+<p class="info">110 × 110 (render @4x → 440px)</p>
+<div class="preview">
+  <div><canvas id="c" width="440" height="440" style="width:110px;height:110px"></canvas><div class="label">110px</div></div>
+  <div><canvas id="c2" width="440" height="440" style="width:220px;height:220px"></canvas><div class="label">220px</div></div>
+</div>
+<div class="actions"><button onclick="dl()">⬇ Scarica PNG</button></div>
+<script>
+const FONTS=Promise.all([
+  new FontFace('FA5','url(https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/webfonts/fa-solid-900.woff2)',{weight:'900'}).load()
+]).then(ff=>ff.forEach(f=>document.fonts.add(f)));
+const S=440;
+function go(){['c','c2'].forEach(id=>draw(document.getElementById(id).getContext('2d'),S))}
+FONTS.then(go,go);
+
+function draw(ctx,s){
+  ctx.save();
+  ctx.beginPath();ctx.arc(s/2,s/2,s/2,0,Math.PI*2);ctx.clip();
+  /* bg: navbar gradient */
+  const bg=ctx.createLinearGradient(0,0,s,s*0.5);
+  bg.addColorStop(0,'#1a0a02');bg.addColorStop(1,'#5c3317');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,s,s);
+  /* radial glow */
+  const gl=ctx.createRadialGradient(s/2,s/2,10,s/2,s/2,s*0.45);
+  gl.addColorStop(0,'rgba(200,150,10,0.12)');gl.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gl;ctx.fillRect(0,0,s,s);
+  /* gold border (gold-dark #9a6f08 like navbar border-bottom) */
+  ctx.strokeStyle='#9a6f08';ctx.lineWidth=12;
+  ctx.beginPath();ctx.arc(s/2,s/2,s/2-10,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle='rgba(200,150,10,0.2)';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(s/2,s/2,s/2-30,0,Math.PI*2);ctx.stroke();
+  /* D20 icon — fa-dice-d20 \uf6cf */
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='900 180px FA5';
+  ctx.fillStyle='#e8b830';
+  ctx.shadowColor='rgba(232,184,48,0.8)';ctx.shadowBlur=20;
+  ctx.fillText('\uf6cf',s/2,s/2);
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+function dl(){const a=document.createElement('a');a.download='paths-games-ig-avatar.png';a.href=document.getElementById('c').toDataURL('image/png');a.click()}
+</script>
+</body>
+</html>

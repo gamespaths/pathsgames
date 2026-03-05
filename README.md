@@ -37,7 +37,7 @@ Documents includes all steps in roadmap for example development components, conf
     | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white" /> |
 
 - **Backend** project into `code/backend`, see [README](./code/backend/README.md) for all details
-    - Hexagonal Architecture (ports & adapters)
+    - Build with Java 21, Sprinb boot with Hexagonal Architecture (ports & adapters)
     - Build project with command `cd code/backend && mvn clean install -DskipTests`
     - Execute all unit test with command `cd code/backend && mvn clean test`
     - Start service in local environment with command `cd code/backend && mvn -pl ms-launcher spring-boot:run`

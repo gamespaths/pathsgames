@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>YouTube Channel Art — 2560×1440</title>
+<style>
+  body{margin:0;background:#100800;color:#e8d5b0;font-family:'Crimson Text',Georgia,serif;display:flex;flex-direction:column;align-items:center;padding:24px}
+  h1{font-size:18px;margin:0 0 4px;color:#e8b830}
+  .info{color:#8b7355;font-size:13px;margin-bottom:12px}
+  canvas{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.6)}
+  .wrap{position:relative;display:inline-block;max-width:100%}
+  .safe{position:absolute;border:2px dashed rgba(232,184,48,.5);pointer-events:none;box-sizing:border-box}
+  .actions{margin-top:14px;display:flex;gap:10px}
+  button{background:linear-gradient(180deg,#c08040,#d9a060);color:#5c3700;border:none;padding:10px 18px;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px}
+  button.ghost{background:transparent;border:1px solid #5c3317;color:#c0a070}
+</style>
+</head>
+<body>
+<h1>YouTube Channel Art</h1>
+<p class="info">2560 × 1440 · Safe area 1546 × 423 (tratteggiata)</p>
+<div class="wrap" id="wrap"><canvas id="c" width="2560" height="1440"></canvas></div>
+<div class="actions">
+  <button onclick="dl()">⬇ Scarica PNG</button>
+  <button class="ghost" onclick="toggleSafe()">Safe area</button>
+</div>
+<script>
+const W=2560,H=1440,c=document.getElementById('c'),ctx=c.getContext('2d');
+/* ── Colors from variables.css ── */
+const C={
+  brownDeep:'#1a0a02',brownDark:'#2e1508',brownMid:'#5c3317',brownWarm:'#7a4520',
+  brownTan:'#c08040',brownSTan:'#d9a060',
+  goldDark:'#9a6f08',gold:'#c8960a',goldLight:'#e8b830',goldShine:'#ffd700',
+  parchment:'#e8d5b0',parchLight:'#f2e6c8',parchDark:'#c9b48a',
+  ink:'#1a0f06',ash:'#8b7355',ember:'#d44a0a',bgPage:'#100800'
+};
+const FONTS=Promise.all([
+  new FontFace('CinzelDec','url(https://fonts.gstatic.com/s/cinzeldecorative/v17/daaCSScvJGqLYhG8nNt8KPPswUAPni7TTMw.woff2)').load(),
+  new FontFace('Cinzel','url(https://fonts.gstatic.com/s/cinzel/v23/8vIU7ww63mVu7gtR-kwKxNvkNOjw-tbnfY3lCA.woff2)').load(),
+  new FontFace('CrimsonText','url(https://fonts.gstatic.com/s/crimsontext/v19/wlp2gwHKFkZgtmSR3NB0oRJfbwhT.woff2)').load(),
+  new FontFace('FA5','url(https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/webfonts/fa-solid-900.woff2)',{weight:'900'}).load()
+]).then(ff=>ff.forEach(f=>document.fonts.add(f)));
+FONTS.then(draw,draw);
+
+function draw(){
+  /* ═══ PAGE BACKGROUND — same as body bg ═══ */
+  ctx.fillStyle=C.bgPage;
+  ctx.fillRect(0,0,W,H);
+
+  /* ═══ NAVBAR BAR — top strip ═══ */
+  const navH=110;
+  const navG=ctx.createLinearGradient(0,0,W*0.8,0);
+  navG.addColorStop(0,C.brownDeep);navG.addColorStop(1,C.brownMid);
+  ctx.fillStyle=navG;ctx.fillRect(0,0,W,navH);
+  // navbar gold bottom border
+  ctx.fillStyle=C.goldDark;ctx.fillRect(0,navH-3,W,3);
+
+  // D20 icon + brand
+  ctx.textBaseline='middle';
+  ctx.font='900 52px FA5';ctx.fillStyle=C.goldLight;
+  ctx.shadowColor='rgba(232,184,48,0.8)';ctx.shadowBlur=20;
+  ctx.textAlign='left';
+  ctx.fillText('\uf6cf',80,navH/2);
+  ctx.font='bold 56px CinzelDec,serif';
+  ctx.fillText('Paths Games',150,navH/2);
+  ctx.shadowBlur=0;
+
+  // Navbar badges (right side)
+  const badges=['Free to Play','Gamebook RPG','Branching Stories','Multiple Paths','Multiplayer','Crowdfunding','Open Source'];
+  ctx.font='18px Cinzel,serif';ctx.fillStyle=C.parchment;ctx.textAlign='right';
+  let bx=W-80;
+  for(let i=badges.length-1;i>=0;i--){
+    const tw=ctx.measureText(badges[i]).width;
+    // badge pill
+    ctx.fillStyle='rgba(192,128,64,0.15)';
+    roundRect(ctx,bx-tw-20,navH/2-16,tw+28,32,4);ctx.fill();
+    ctx.strokeStyle='rgba(200,150,10,0.25)';ctx.lineWidth=1;
+    roundRect(ctx,bx-tw-20,navH/2-16,tw+28,32,4);ctx.stroke();
+    ctx.fillStyle=C.gold;ctx.textAlign='center';
+    ctx.fillText(badges[i],bx-tw/2-6,navH/2+1);
+    bx-=tw+40;
+  }
+
+  /* ═══ CROWDFUNDING CARD — centered ═══ */
+  const cardW=1200,cardH=600;
+  const cx=(W-cardW)/2, cy=navH+((H-navH-cardH)/2);
+
+  // Card bg: parchment gradient
+  const cbg=ctx.createLinearGradient(cx,cy,cx+cardW,cy+cardH);
+  cbg.addColorStop(0,C.parchment);cbg.addColorStop(0.4,C.parchLight);cbg.addColorStop(1,C.parchDark);
+  ctx.fillStyle=cbg;
+  roundRect(ctx,cx,cy,cardW,cardH,8);ctx.fill();
+
+  // Card border
+  ctx.strokeStyle=C.goldDark;ctx.lineWidth=3;
+  roundRect(ctx,cx,cy,cardW,cardH,8);ctx.stroke();
+  // Inner border
+  ctx.strokeStyle='rgba(200,150,10,0.1)';ctx.lineWidth=1;
+  roundRect(ctx,cx+6,cy+6,cardW-12,cardH-12,6);ctx.stroke();
+
+  // Card shadow
+  ctx.shadowColor='rgba(0,0,0,0.6)';ctx.shadowBlur=32;ctx.shadowOffsetY=8;
+  ctx.fillStyle=cbg;roundRect(ctx,cx,cy,cardW,cardH,8);ctx.fill();
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+
+  ctx.textAlign='center';
+
+  // ⚔️ icon
+  ctx.font='80px serif';ctx.fillStyle=C.brownDark;
+  ctx.fillText('⚔️',W/2,cy+80);
+
+  // Title
+  ctx.font='bold 56px CinzelDec,serif';
+  ctx.fillStyle=C.brownDark;
+  ctx.shadowColor='rgba(232,184,48,0.5)';ctx.shadowBlur=18;
+  ctx.fillText('CROWDFUNDING COMING SOON',W/2,cy+160);
+  ctx.shadowBlur=0;
+
+  // Divider
+  ctx.font='20px serif';ctx.fillStyle=C.brownMid;
+  ctx.globalAlpha=0.4;ctx.fillText('— ✦ ⚜ ✦ —',W/2,cy+200);ctx.globalAlpha=1;
+
+  // Description
+  ctx.font='26px CrimsonText,Georgia,serif';ctx.fillStyle=C.brownWarm;
+  wrapText(ctx,'A new free-to-play adventure inspired by classic gamebooks but reimagined with modern mechanics, branching narratives and a living world that reacts to every choice you make.',W/2,cy+250,cardW-160,36);
+
+  // Sub description
+  ctx.font='bold 24px CrimsonText,Georgia,serif';ctx.fillStyle=C.brownDark;
+  ctx.fillText('The campaign is launching soon. Stay tuned and be among the first to join the quest.',W/2,cy+360);
+
+  // Badges row
+  const bLabels=['🔓 Free to Play','📖 Gamebook RPG','🔀 Branching Stories','🔀 Multiple Paths','👥 Multiplayer','💰 Crowdfunding','💻 Open Source'];
+  ctx.font='20px Cinzel,serif';
+  const totalBW=bLabels.reduce((a,b)=>a+ctx.measureText(b).width+50,0);
+  let startX=W/2-totalBW/2+20;
+  const badgeY=cy+430;
+  bLabels.forEach(label=>{
+    const tw=ctx.measureText(label).width;
+    // Badge pill (same as site: brown-tan/brown-super-tan gradient bg)
+    const bpG=ctx.createLinearGradient(startX,badgeY-18,startX,badgeY+18);
+    bpG.addColorStop(0,C.brownTan);bpG.addColorStop(1,C.brownSTan);
+    ctx.fillStyle=bpG;
+    roundRect(ctx,startX-8,badgeY-18,tw+16,36,8);ctx.fill();
+    ctx.strokeStyle='rgba(200,150,10,0.3)';ctx.lineWidth=1;
+    roundRect(ctx,startX-8,badgeY-18,tw+16,36,8);ctx.stroke();
+    ctx.fillStyle='#5c3700';ctx.textAlign='left';
+    ctx.fillText(label,startX,badgeY+6);
+    startX+=tw+50;
+  });
+
+  /* ═══ FOOTER STRIP — bottom ═══ */
+  const footH=80;
+  const fg=ctx.createLinearGradient(0,H-footH,0,H);
+  fg.addColorStop(0,'rgba(16,8,0,0.8)');fg.addColorStop(1,C.brownDeep);
+  ctx.fillStyle=fg;ctx.fillRect(0,H-footH,W,footH);
+  ctx.textAlign='center';ctx.font='20px CrimsonText,serif';ctx.fillStyle='rgba(232,213,176,0.4)';
+  ctx.fillText('© 2025 Paths Games · pathsgames.com · github.com/gamespaths/pathsgames',W/2,H-footH/2);
+
+  /* ═══ SAFE AREA guide ═══ */
+  ctx.strokeStyle='rgba(232,184,48,0.12)';ctx.lineWidth=1;ctx.setLineDash([12,8]);
+  const sx=(W-1546)/2,sy=(H-423)/2;
+  ctx.strokeRect(sx,sy,1546,423);
+  ctx.setLineDash([]);
+}
+
+function wrapText(ctx,text,x,y,maxW,lineH){
+  const words=text.split(' ');let line='';
+  for(const w of words){
+    const test=line+w+' ';
+    if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line.trim(),x,y);y+=lineH;line=w+' '}
+    else line=test;
+  }
+  ctx.fillText(line.trim(),x,y);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
+function dl(){const a=document.createElement('a');a.download='paths-games-yt-banner.png';a.href=c.toDataURL('image/png');a.click()}
+
+let safeOn=false;
+function toggleSafe(){
+  const el=document.querySelector('.safe');
+  if(el){el.remove();safeOn=false;return}
+  const cv=document.getElementById('c');
+  const scale=cv.clientWidth/W;
+  const d=document.createElement('div');d.className='safe';
+  d.style.width=(1546*scale)+'px';d.style.height=(423*scale)+'px';
+  d.style.left=(((W-1546)/2)*scale)+'px';d.style.top=(((H-423)/2)*scale)+'px';
+  document.getElementById('wrap').appendChild(d);safeOn=true;
+}
+</script>
+</body>
+</html>
