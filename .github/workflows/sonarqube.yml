@@ -2,13 +2,13 @@ name: SonarQube Analysis
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ] #main, 
     paths:
       - 'code/backend/**'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'code/backend/**'
+#  pull_request:
+#    branches: [ main, develop ]
+#    paths:
+#      - 'code/backend/**'
 
 env:
   JAVA_VERSION: '21'
@@ -50,7 +50,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           mvn sonar:sonar \
-            -Dsonar.branch.name=${{ github.head_ref || github.ref_name }} \
+            -Dsonar.branch.name=develop \
             -Dsonar.projectKey=pathsgames-backend \
             -Dsonar.projectName="Paths Games - Backend" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
