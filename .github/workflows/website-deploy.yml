@@ -1,12 +1,12 @@
 name: Website Deploy
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'code/website/html/**'
+#  push:
+#    branches: [ main, develop ]
+#    paths:
+#      - 'code/website/html/**'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'code/website/html/**'
 
