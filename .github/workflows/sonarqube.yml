@@ -2,11 +2,11 @@ name: SonarQube Analysis
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
     paths:
       - 'code/backend/**'
   pull_request:
-    branches: [ master, develop ]
+    branches: [ main, develop ]
     paths:
       - 'code/backend/**'
 
