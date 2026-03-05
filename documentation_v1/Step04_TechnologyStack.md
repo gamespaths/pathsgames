@@ -64,7 +64,7 @@ This document defines the **Technology Stack** definition to build a **Paths Gam
 
 ### 5. Deployment System
 - Repository: GitHub, see [Create the repository](./Step02_CreateTheRepository.md)
-- Repository for Docker image: created into [DockerHub alnao/pathsgame](https://hub.docker.com/repository/docker/alnao/pathsgame/general)
+- Repository for Docker image: created into [DockerHub pathsgames/pathsgames](https://hub.docker.com/r/pathsgames/pathsgames)
 - CI process: managed by GitHub Action and/or AWS Code-build
 - CD process: managed by Jenkins and/or AWS Code-deploy
 - AWS & Azure integration: configured when first run will be executed using Iaac system and/or SH script (CLI)
@@ -79,7 +79,8 @@ This document defines the **Technology Stack** definition to build a **Paths Gam
     > read all documents and tell me, the number 1 is my defenitive edition so don't try to change roles, i need suggestion for file 2 e 3 e 4
 - **Document Version**: 1.0
   - 1.0: first version of document with points list (February 10, 2026)
-- **Last Updated**: February 10, 2026
+  - 1.1: configure `hub.docker.com/r/pathsgames/pathsgames` repository
+- **Last Updated**: March 5, 2026
 - **Status**: Complete ✅ , frozen until V1 completion
 
 
