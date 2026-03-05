@@ -1,14 +1,14 @@
 name: Backend CI
 
 on:
-#  push:
-#    branches: [ main, develop, 'release/*', 'feature/*' ]
-#    paths:
-#      - 'code/backend/**'
-  pull_request:
-    branches: [ main ]
+  push:
+    branches: [ main ] #, develop, 'release/*', 'feature/*' ]
     paths:
       - 'code/backend/**'
+#  pull_request:
+#    branches: [ main ]
+#    paths:
+#      - 'code/backend/**'
 
 env:
   JAVA_VERSION: '21'
