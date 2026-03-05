@@ -2,7 +2,7 @@ name: Website Deploy
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, develop ]
     paths:
       - 'code/website/html/**'
 
