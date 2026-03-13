@@ -10,4 +10,9 @@ class PathsGameApplicationTest {
     void contextLoads() {
         // Verifies the Spring application context starts correctly
     }
+
+    @Test
+    void main_shouldStartApplication() {
+        PathsGameApplication.main(new String[]{});
+    }
 }

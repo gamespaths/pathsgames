@@ -17,16 +17,10 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
 | [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, define WebSocket event naming, define table and column naming, define DTO and payload naming |
 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Define and buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/), create terraform template, deploy terraform template into cloud system, create first version of website, deploy first version of website
 | [Configure CI](./Step08_ConfigureCI.md) | ✅ | Define environment-specific configurations, separate credentials and secrets, choose CI system (GitHub Actions), define build pipelines (backend Docker + website S3), run automated tests, fail pipeline on errors, connect CI to the main branch |
+| [Design core data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, define relationships between entities, identify persistent vs transient data, list valid game states, define rules that must never be broken, validate models with real cases |
 
 ## Next steps
 
-9. Design the core data model
-    - Identify main entities
-    - Define relationships between entities
-    - Identify persistent vs transient data
-    - List valid game states
-    - Define rules that must never be broken
-    - Validate models with real cases
 10. Create initial DB schema
     - Translate the data model into tables
     - Define primary keys
@@ -159,14 +153,17 @@ The file lists a 30-step development roadmap (each with five substeps) covering 
 # Version Control
 - First version created with AI prompt:
     > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "Create the repository"; for each step give 5 subpoints.
-- **Document Version**: 1.5
-    - 1.0 first version of this document (February 3, 2026)
-	- 1.1: added licence and version control sections, file renamed from "todolist" to "roadmap" (February 5, 2026)
-    - 1.2: update "2. Define the V1 scope" and "3. Define the technology stack" sections
-    - 1.3: step 04, step 05, step 06 (February 26, 2026)
-    - 1.4: step 07 configure website (February 27, 2026)
-    - 1.5: step 08 configure CI (March 5, 2026)
-- **Last Updated**: March 5, 2026
+- **Document Version**: 1.6
+    | Version | Description | Date |
+    | --- | --- | --- |
+    | 1.0 | first version of this document | February 3, 2026 |
+	| 1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
+    | 1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
+    | 1.3 | step 04, step 05, step 06 | February 26, 2026 |
+    | 1.4 | step 07: configure website | February 27, 2026 |
+    | 1.5 | step 08: configure CI | March 5, 2026 |
+    | 1.6 | step 09: design core data model | March 9, 2026 |
+- **Last Updated**: March 9, 2026
 - **Status**: In progress
 
 

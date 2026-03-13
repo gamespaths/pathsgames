@@ -23,15 +23,15 @@ code/backend/
 
 | Module | Package | Description |
 |--------|---------|-------------|
+| **adapter-rest** | `games.paths.adapters.rest` | REST controllers exposing domain ports as HTTP endpoints. |
+| **adapter-auth** | `games.paths.adapters.auth` | JWT authentication, Google SSO, Spring Security. |
+| **adapter-admin** | `games.paths.adapters.admin` | Admin management REST endpoints. |
+| **adapter-websocket** | `games.paths.adapters.websocket` | WebSocket channels for real-time game state sync. |
+| **adapter-postgres** | `games.paths.adapters.postgres` | PostgreSQL repositories for production. |
+| **adapter-sqlite** | `games.paths.adapters.sqlite` | SQLite repositories for local development. |
+| **adapter-mongo** | `games.paths.adapters.mongo` | MongoDB adapter for document registries. |
+| **adapter-kafka** | `games.paths.adapters.kafka` | Kafka producer/consumer for async messaging. |
 | **core** | `games.paths.core` | Domain logic, ports (`EchoPort`), services (`EchoService`). No framework dependencies. |
-| **adapter-rest** | `games.paths.adapterRest` | REST controllers exposing domain ports as HTTP endpoints. |
-| **adapter-auth** | `games.paths.auth` | JWT authentication, Google SSO, Spring Security. |
-| **adapter-admin** | `games.paths.admin` | Admin management REST endpoints. |
-| **adapter-websocket** | `games.paths.websocket` | WebSocket channels for real-time game state sync. |
-| **adapter-postgres** | `games.paths.postgres` | PostgreSQL repositories for production. |
-| **adapter-sqlite** | `games.paths.sqlite` | SQLite repositories for local development. |
-| **adapter-mongo** | `games.paths.mongo` | MongoDB adapter for document registries. |
-| **adapter-kafka** | `games.paths.kafka` | Kafka producer/consumer for async messaging. |
 | **ms-launcher** | `games.paths.launcher` | Spring Boot `@SpringBootApplication`, wires all modules. |
 
 ## Profiles
@@ -94,24 +94,29 @@ Response:
 |--------|----------|-------------|
 | GET | `/api/echo/status` | Server status, timestamp, and properties |
 
+
 ## Architecture
 
 ```
-┌───────────────────────────────────────────┐
-│              ms-launcher                  │
-│   (Spring Boot App + Configuration)       │
-├───────────┬───────────┬───────────────────┤
+┌────────────────────────────────────────────┐
+│              ms-launcher                   │
+│   (Spring Boot App + Configuration)        │
+├────────────┬───────────┬───────────────────┤
 │adapter-rest│adapter-ws │ adapter-auth      │
 │ (REST API) │(WebSocket)│ (JWT/SSO)         │
-├───────────┴───────────┴───────────────────┤
-│                  core                     │
-│        (Ports + Domain Services)          │
-├───────────┬───────────┬───────────────────┤
-│adapter-pg │adapter-sql│ adapter-mongo     │
-│(PostgreSQL)│ (SQLite) │ (MongoDB)         │
-└───────────┴───────────┴───────────────────┘
+├────────────┴───────────┴───────────────────┤
+│                  core                      │
+│        (Ports + Domain Services)           │
+├────────────┬───────────┬───────────────────┤
+│adapter-pg  │adapter-sql│ adapter-mongo     │
+│(PostgreSQL)│ (SQLite)  │ (MongoDB)         │
+└────────────┴───────────┴───────────────────┘
 ```
 
+For sonar scan run command
+```bash
+mvn clean package && mvn sonar:sonar -Dsonar.login=<TOKEN>
+```
 
 
 

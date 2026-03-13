@@ -4,38 +4,28 @@ This document defines the project plan to build a Paths Games, an playable web-b
 ## Version 1: Start project *Paths Games*
 
 [Version 1 Roadmap details](./documentation_v1/Step00_Roadmap.md)
-
 - ✅ [Start the project](./documentation_v1/Step01_StartProject.md)
-
 - ✅ [Create the repository](./documentation_v1/Step02_CreateTheRepository.md)
-
 - ✅ [Define the V1 scope](./documentation_v1/Step03_DefineScope.md)
-
 - ✅ [Technology stack](./documentation_v1/Step04_TechnologyStack.md)
-
 - ✅ [Backend structure](./documentation_v1/Step05_BackendStructure.md)
-
 - ✅ [Naming conventions](./documentation_v1/Step06_NamingConventions.md)
-
 - ✅ [Configure website](./documentation_v1/Step07_ConfigureWebsite.md)
-
 - ✅ [Configure Environments & CI](./documentation_v1/Step08_ConfigureMinimalCI.md)
-
+- ✅ [Design core data model](./documentation_v1/Step09_DesignCoreDataModel.md)
 - next steps: define data models, create database schema, start develop game engine ...
 
 
 ## Future / Under Consideration
 - Version 1.1: crowfouning campaign start and Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+    - Audit Logs (log_events, log_movements): If the game scales, these tables will become huge. Consider moving old logs to a cold storage database or using an asynchronous logging system.
 
 - Version 1.2: combact system
-
+    
 - Version 2: mobile version 
-
-- Version 2.1: integration with Google play with Android App 
-
-- Version 2.2: create Steam application
-
-- Version 2.3: Debian with dedicated package
+    - Version 2.1: integration with Google play with Android App 
+    - Version 2.2: create Steam application
+    - Version 2.3: Debian with dedicated package
 
 - Version 3: graphical with advanced game-engine
 

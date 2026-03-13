@@ -1,5 +1,6 @@
 package games.paths.adapterRest.controller;
 
+import games.paths.adapters.rest.controller.EchoController;
 import games.paths.core.port.in.EchoPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
