@@ -1,0 +1,57 @@
+/* =============================================
+   Social Avatar — 110×110
+   Shows only the dice icon centered on the
+   navbar background, no text, no scroll.
+   ============================================= */
+
+/* Hide everything except the navbar */
+.page-wrap,
+.medieval-footer,
+.nav-links,
+.crowdfund-section {
+  display: none !important;
+}
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  /* width: 110px; */
+  /* height: 110px; */
+}
+
+/* Make navbar fill the entire 110×110 area */
+.navbar-medieval {
+  position: fixed;
+  top: 0; left: 0;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+}
+
+/* Show only the dice icon, hide text */
+.navbar-brand {
+  font-size: 0;          /* hide text */
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-brand i {
+  font-size: 4rem;     /* big dice icon */
+  display: block;
+}
+.navbar-brand i {
+  animation: none;
+  rotate: calc(25deg);
+}
+
+.fas.fa-dice-d20.me-2{
+    margin-right: 0 !important;
+}

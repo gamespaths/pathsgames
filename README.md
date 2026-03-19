@@ -11,16 +11,17 @@
 ## Documentation
 Documents includes all steps in roadmap for example development components, configuration parameters and lists of features reserved for futures versions.
 
-- [Version 1 Roadmap](./documentation_v1/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
-    - check [developer branch](https://github.com/gamespaths/pathsgames/tree/developer) for last updates
+- [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
+    - check [developer branch](https://github.com/gamespaths/pathsgames/) for last updates
 
-- Version 2: crowfouning campaign start and Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+- Version 1: start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
 
-- Version 3: integration with Google play with Android App and, Steam with desktop application, Debian with dedicated package
+- Version 2: game-engine features: combact system and open world
 
-- Version 4: graphical with advanced game-engine
+- Version 3: mobile version integrated with Google play with Android App and, desktop application integrated with Steam && Debian package
 
-- Version 5: to execute the game-engine on remote application
+- Version 4: update graphical system with advanced game-engine
+
 
 
 ## Tecnical components
@@ -46,8 +47,8 @@ Documents includes all steps in roadmap for example development components, conf
         - REST API versioned under `/api/v1/` (auth, stories, games, gameplay, gamechat, admin)
         - Real-time communication via STOMP over WebSocket on topic `/topic/v1/game/{id}`
     - **Docker and sonar**
-        - Image disponible on [dockerHub/pathsgames](https://hub.docker.com/r/pathsgames/pathsgames)
-        - Run docker with command
+        - Image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames)
+        - Run backend appliaction with docker image with `prod' profile using postgres database:
             ```
             docker run -d -p 8042:8080 \
                 -e SPRING_PROFILES_ACTIVE=prod   \

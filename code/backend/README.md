@@ -41,59 +41,75 @@ code/backend/
 | **dev** (default) | `application-dev.yml` | 8042 | SQLite | Local development |
 | **prod** | `application-prod.yml` | 8080 | PostgreSQL | Production environment |
 
+## Database & Flyway
+
+Both profiles use **Flyway** for automatic schema migration. Migrations run on every application startup — only new, unapplied versions are executed.
+- SQLite (dev): The database file is created automatically at startup. Default path: `~/.paths.games/database.sqlite`. Override with a JVM property:
+    ```bash
+    mvn -pl ms-launcher spring-boot:run -Dgame.database.path=/custom/path/mydb.sqlite
+    ```
+- PostgreSQL (prod): Configure via environment variables (defaults shown):
+    | Variable | Default | Description |
+    |----------|---------|-------------|
+    | `DB_HOST` | `localhost` | PostgreSQL host |
+    | `DB_PORT` | `5432` | PostgreSQL port |
+    | `DB_NAME` | `pathsgames` | Database name |
+    | `DB_USERNAME` | `pathsgames` | Database user |
+    | `DB_PASSWORD` | `pathsgames` | Database password |
+
+
 ## Quick Start
-
-### Prerequisites
-- Java 21+
-- Maven 3.9+
-
-### Build
-```bash
-cd code/backend
-mvn clean install -DskipTests
-```
-
-### Run (dev profile)
-```bash
-mvn -pl ms-launcher spring-boot:run
-```
-
-### Run (prod profile)
-```bash
-mvn -pl ms-launcher spring-boot:run -Dspring-boot.run.profiles=prod
-```
-
-### Test
-```bash
-mvn clean test
-```
-
-### Echo API
-```bash
-curl -s http://localhost:8042/api/echo/status | python3 -m json.tool
-```
-
-Response:
-```json
-{
-    "status": "OK",
-    "timestamp": 1740049200000,
-    "properties": {
-        "env": "development",
-        "version": "X.Y.Z-SNAPSHOT",
-        "applicationName": "paths-game-backend",
-        "port": "8042",
-        "javaVersion": "21.0.x"
-    }
-}
-```
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/echo/status` | Server status, timestamp, and properties |
-
+- Prerequisites: **Java 21+** & **Maven 3.9+**
+- Build
+    ```bash
+    cd code/backend
+    mvn clean install -DskipTests
+    ```
+- Run (dev profile)
+    ```bash
+    mvn -pl ms-launcher spring-boot:run
+    ```
+- Run (prod profile)
+    ```bash
+    mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod
+    ```
+    - **Note**: `-P prod` activates the Maven profile (puts `adapter-postgres` on the classpath);
+        - `-Dspring-boot.run.profiles=prod` activates the Spring profile (loads `application-prod.yml`).
+        - Both flags are required — omitting `-P prod` causes `Cannot load driver class: org.postgresql.Driver`.
+    - Run database postgres on docker:
+        ```bash
+        docker run --name pathsgames-postgres -p 5432:5432  -e POSTGRES_DB=pathsgames -e POSTGRES_USER=pathsgames -e POSTGRES_PASSWORD=pathsgames -d postgres:latest
+        ```
+- Run Tests
+    ```bash
+    mvn clean test
+    ```
+- For sonar scan run command
+    ```bash
+    mvn clean package && mvn sonar:sonar -Dsonar.login=<TOKEN>
+    ```
+- Echo API
+    ```bash
+    curl -s http://localhost:8042/api/echo/status | python3 -m json.tool
+    ```
+    - Response:
+        ```json
+        {
+            "status": "OK",
+            "timestamp": 1740049200000,
+            "properties": {
+                "env": "development",
+                "version": "X.Y.Z-SNAPSHOT",
+                "applicationName": "paths-game-backend",
+                "port": "8042",
+                "javaVersion": "21.0.x"
+            }
+        }
+        ```
+- API Endpoints
+    | Method | Endpoint | Description |
+    |--------|----------|-------------|
+    | GET | `/api/echo/status` | Server status, timestamp, and properties |
 
 ## Architecture
 
@@ -113,10 +129,7 @@ Response:
 └────────────┴───────────┴───────────────────┘
 ```
 
-For sonar scan run command
-```bash
-mvn clean package && mvn sonar:sonar -Dsonar.login=<TOKEN>
-```
+
 
 
 

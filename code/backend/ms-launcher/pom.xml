@@ -6,7 +6,7 @@
     <parent>
         <groupId>games.paths</groupId>
         <artifactId>paths-game-backend</artifactId>
-        <version>0.8.6-SNAPSHOT</version>
+        <version>0.10.12-SNAPSHOT</version>
     </parent>
 
     <artifactId>ms-launcher</artifactId>
@@ -38,6 +38,34 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
+
+    <!-- Maven profiles control which database adapter is on the classpath -->
+    <!-- Only ONE adapter at a time: prevents Flyway from mixing SQL dialects -->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>games.paths</groupId>
+                    <artifactId>adapter-sqlite</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <dependencies>
+                <dependency>
+                    <groupId>games.paths</groupId>
+                    <artifactId>adapter-postgres</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>

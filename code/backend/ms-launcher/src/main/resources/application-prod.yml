@@ -1,6 +1,20 @@
 # Production profile - PostgreSQL, optimized settings
 server:
-  port: 8080
+  port: 8042
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pathsgames}
+    username: ${DB_USERNAME:pathsgames}
+    password: ${DB_PASSWORD:pathsgames}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: "0"
+    validate-on-migrate: true
+    repair-on-migrate: false
 
 game:
   server:
