@@ -1,0 +1,91 @@
+/* =============================================
+   Social Story — 1080×1920  (9:16)
+   Navbar with centered title on top,
+   content (crowdfunding section) below.
+   ============================================= */
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Hide footer */
+.medieval-footer {
+  display: none !important;
+}
+
+/* Hide navbar side links, keep only centered brand */
+.nav-links {
+  display: none !important;
+}
+
+/* Navbar: full width, centered title */
+.navbar-medieval {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  padding-top:5rem;
+}
+
+.navbar-brand {
+  width: 100%;
+  text-align: center;
+  font-size: 3rem;
+}
+
+/* Main content fills the vertical space */
+.page-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(1920px - 80px);
+  padding: 2rem;
+}
+
+/* Crowdfunding card: larger text for story format */
+.crowdfund-section {
+  min-height: auto;
+  padding: 3rem 2rem;
+}
+
+.crowdfund-card {
+  max-width: 100%;
+}
+
+.crowdfund-title {
+  font-size: 2.5rem;
+}
+
+.crowdfund-desc {
+  font-size: 1.6rem;
+  line-height: 1.5;
+}
+
+.crowdfund-badges {
+  gap: 0.8rem;
+}
+
+.crowdfund-badge {
+  font-size: 1.1rem;
+  padding: 0.6rem 1.2rem;
+}
+
+
+.world-row{display: none !important;}
+.crowdfund-section {
+    padding: 0 1.5rem !important;
+    margin-top: 2rem !important;
+}
+.page-wrap {
+    padding: 0rem 0.5rem !important;
+    min-height: unset !important;
+}
+.crowdfund-icon{display:none;}
+
+.navbar-brand i {
+  animation: none;
+  rotate: calc(-25deg);
+}

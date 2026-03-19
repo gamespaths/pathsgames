@@ -1,0 +1,12 @@
+.navbar-medieval {
+    height: 576px;
+}
+.navbar-brand {
+    width: 100%;
+    text-align: center;
+    font-size: 5.5rem;
+}
+.navbar-brand i {
+  animation: none;
+  rotate: calc(-25deg);
+}

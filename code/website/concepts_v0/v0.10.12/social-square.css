@@ -1,0 +1,56 @@
+/* =============================================
+   Social Square Post — 1080×1080
+   Full page visible inside a 1080×1080 viewport.
+   Navbar + crowdfunding section visible.
+   ============================================= */
+
+body {
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  /* width: 1080px; */
+  /* height: 1080px; */
+}
+
+/* Footer hidden to save space in square format */
+.medieval-footer {
+  display: none !important;
+}
+
+/* Navbar centered brand */
+.navbar-medieval {
+  padding: 0.5rem 1rem;
+}
+
+.navbar-brand {
+  width: 100%;
+  text-align: center;
+  font-size: 3rem;     /* big dice icon */
+}
+
+/* Crowdfunding section fills remaining space */
+.crowdfund-section {
+  min-height: auto;
+  padding: 2rem 1.5rem;
+}
+
+.crowdfund-card {
+  max-width: 100%;
+}
+.crowdfund-title {
+  font-size: 2.5rem;
+}
+.world-row{display: none !important;}
+.crowdfund-section {
+    padding: 0 1.5rem !important;
+    margin-top: 2rem !important;
+}
+.page-wrap {
+    padding: 0rem 0.5rem !important;
+}
+
+.navbar-brand i {
+  animation: none;
+  rotate: calc(-25deg);
+}
+.crowdfund-icon{display:none;}
