@@ -46,7 +46,40 @@ CloudFront injects the following security headers on every response:
 | `X-Frame-Options` | `DENY` | Prevent clickjacking |
 | `X-XSS-Protection` | `1; mode=block` | XSS filter |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Limit referrer leakage |
-| `Content-Security-Policy` | `default-src 'self'; ...` | Restrict resource loading |
+| `Content-Security-Policy` | Built dynamically from SSM (see below) | Restrict resource loading |
+
+### Content Security Policy – Dynamic CSP via SSM (`ssm.tf`)
+
+The CSP header is **not hardcoded**. Its behaviour is controlled by the `csp_mode` variable:
+
+| `csp_mode` | CSP applied | When to use |
+|---|---|---|
+| `open` *(default)* | `default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; ...` | Development / debugging — allows all origins |
+| `restricted` | Built from SSM allowlists (see table below) | Production — strict per-directive allowlist |
+
+When `csp_mode = "restricted"`, domain allowlists are stored in AWS SSM Parameter Store as `StringList` parameters. At deploy time, Terraform reads them and builds the full CSP string automatically.
+
+For each base domain registered in SSM (e.g. `google-analytics.com`), Terraform expands it into two CSP origins:
+```
+google-analytics.com  →  https://google-analytics.com  +  https://*.google-analytics.com
+```
+
+**To add a new third-party domain**, edit the relevant list in `ssm.tf` and run `terraform apply` — no other file needs to change:
+
+| SSM Parameter | CSP Directive | Current domains |
+|---|---|---|
+| `/paths-games/csp/script-src` | `script-src` | `jsdelivr.net`, `googletagmanager.com` |
+| `/paths-games/csp/style-src` | `style-src` | `googleapis.com`, `jsdelivr.net`, `cloudflare.com` |
+| `/paths-games/csp/font-src` | `font-src` | `gstatic.com`, `cloudflare.com` |
+| `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
+| `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net`, `cookieyes.com` |
+
+> Special values (`'self'`, `'unsafe-inline'`, `data:`) are hardcoded in `cloudfront.tf` because they are not domains.
+
+**Where to verify the active CSP:**
+- AWS Console: `CloudFront → Policies → Response headers → paths-games-security-headers`
+- AWS Console: `Systems Manager → Parameter Store → /paths-games/csp/`
+- Live: `curl -sI https://paths.games | grep -i content-security-policy`
 
 ### WAF v2 – Web Application Firewall (`waf.tf`)
 - **Rate limiting:** Blocks IPs sending more than 1,000 requests in 5 minutes
@@ -110,6 +143,24 @@ terraform apply
 
 When enabled, WAF adds ~$6/month base cost plus $1 per million requests.
 
+### Switch CSP mode
+
+The CSP is **open by default** (allows all origins). Switch to the restricted SSM-driven allowlist for production:
+
+```bash
+# Option 1: pass the variable on the command line
+terraform apply -var="csp_mode=restricted"
+
+# Option 2: terraform.tfvars (recommended for production)
+echo 'csp_mode = "restricted"' >> terraform.tfvars
+terraform apply
+```
+
+| Value | Behaviour |
+|---|---|
+| `open` *(default)* | `default-src *` — no restrictions, useful for dev/debug |
+| `restricted` | Per-directive allowlist from SSM Parameter Store |
+
 ### After `terraform apply`:
 
 1. **Validate the ACM certificate:** Terraform will output the DNS CNAME records needed for certificate validation. Add them to your domain's DNS (Route 53 or your registrar's DNS panel).
@@ -148,7 +199,8 @@ terraform-aws/
 ├── backend.hcl      # Backend S3 configuration (bucket, key, region)
 ├── variables.tf     # Input variables (region, domain, bucket name, tags)
 ├── s3.tf            # S3 bucket with security settings
-├── cloudfront.tf    # CloudFront distribution, ACM certificate, security headers
+├── cloudfront.tf    # CloudFront distribution, ACM certificate, security headers, dynamic CSP
+├── ssm.tf           # SSM Parameter Store – CSP domain allowlists (script, style, font, img, connect)
 ├── waf.tf           # WAF v2 rules (rate limit, OWASP, bad inputs)
 ├── outputs.tf       # Terraform outputs
 └── README.md        # This file
@@ -169,6 +221,17 @@ terraform-aws/
 > Enabling Bot Control adds ~$10/month.
 
 
+
+
+# Version Control
+- First version created with AI prompts
+- **Document Version**: 0.10.13
+    | Version | Description | Date |
+    | --- | --- | --- |
+    | 0.7.0 | Website creation and domains configuration | March 26, 2026 |
+    | 0.10.13 | Added cookies policy and csp_mode on terraform | March 20, 2026 |
+- **Last Updated**: March 20, 2026
+- **Status**: Complete ✅
 
 
 # &lt; Paths Games /&gt;

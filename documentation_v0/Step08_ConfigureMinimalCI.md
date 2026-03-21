@@ -24,7 +24,7 @@ The project uses **Spring Boot profiles** to separate environment settings. Each
 | Environment | Profile | Port | Database | Config file |
 |-------------|---------|------|----------|-------------|
 | Development | `dev` (default) | 8042 | SQLite | `application-dev.yml` |
-| Production | `prod` | 8080 | PostgreSQL | `application-prod.yml` |
+| Production | `prod` | 8042 | PostgreSQL | `application-prod.yml` |
 
 Environment variables override properties at runtime:
 - `SPRING_PROFILES_ACTIVE` — selects the active profile
@@ -308,7 +308,7 @@ docker build -t pathsgames/pathsgames:local .
 docker run -d -p 8042:8042 -e SPRING_PROFILES_ACTIVE=dev pathsgames/pathsgames:local
 
 # Run locally with prod profile
-docker run -d -p 8080:8080 \
+docker run -d -p 8042:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/pathsgames \
   pathsgames/pathsgames:local

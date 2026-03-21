@@ -96,6 +96,46 @@ resource "aws_cloudfront_distribution" "website" {
 }
 
 # ==================================================
+# Content Security Policy – domain expansion from SSM
+# ==================================================
+#
+# Each base domain read from SSM is expanded into two origins:
+#   "example.com" → "https://example.com" + "https://*.example.com"
+# Special values ('self', 'unsafe-inline', data:) are hardcoded
+# below because they are not domains and do not belong in SSM.
+# ==================================================
+
+locals {
+  # Helper: split CSV StringList SSM → expand each base domain into https://domain + https://*.domain
+  _expand = { for k, v in {
+    script  = aws_ssm_parameter.csp_script_domains.value
+    style   = aws_ssm_parameter.csp_style_domains.value
+    font    = aws_ssm_parameter.csp_font_domains.value
+    img     = aws_ssm_parameter.csp_img_domains.value
+    connect = aws_ssm_parameter.csp_connect_domains.value
+  } : k => flatten([for d in split(",", v) : ["https://${trimspace(d)}", "https://*.${trimspace(d)}"]]) }
+
+  csp_script_src  = concat(["'self'"], local._expand["script"])
+  csp_style_src   = concat(["'self'", "'unsafe-inline'"], local._expand["style"])
+  csp_font_src    = concat(["'self'"], local._expand["font"])
+  csp_img_src     = concat(["'self'", "data:"], local._expand["img"])
+  csp_connect_src = concat(["'self'"], local._expand["connect"])
+
+  csp_header_restricted = join("; ", [
+    "default-src 'self'",
+    "script-src ${join(" ", local.csp_script_src)}",
+    "style-src ${join(" ", local.csp_style_src)}",
+    "font-src ${join(" ", local.csp_font_src)}",
+    "img-src ${join(" ", local.csp_img_src)}",
+    "connect-src ${join(" ", local.csp_connect_src)}",
+  ])
+
+  csp_header_open = "default-src *; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline'; font-src *; img-src * data:; connect-src *"
+
+  csp_header = var.csp_mode == "restricted" ? local.csp_header_restricted : local.csp_header_open
+}
+
+# ==================================================
 # CloudFront Security Headers Policy
 # ==================================================
 
@@ -132,7 +172,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
     }
 
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self'"
+      content_security_policy = local.csp_header
       override                = true
     }
   }

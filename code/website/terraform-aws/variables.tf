@@ -34,6 +34,21 @@ variable "enable_waf" {
   default     = false
 }
 
+variable "csp_mode" {
+  description = <<-EOT
+    Content Security Policy mode:
+      "open"       – allows all origins (default, useful for development/debugging)
+      "restricted" – allowlist loaded from SSM Parameter Store (/paths-games/csp/*)
+  EOT
+  type        = string
+  default     = "open"
+
+  validation {
+    condition     = contains(["open", "restricted"], var.csp_mode)
+    error_message = "csp_mode must be either \"open\" or \"restricted\"."
+  }
+}
+
 variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)

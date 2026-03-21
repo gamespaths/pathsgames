@@ -36,7 +36,6 @@
   --crowdfund-desc-strong-color: var(--color-gold-deep);
   --crowdfund-light-badge-color: var(--color-gold-dark);
   --crowdfound-button-bg-color: linear-gradient(180deg,var(--color-brown-super-tan) , var(--color-brown-extra-tan) ); 
-  --crowdfound-button-bg-color-hover: linear-gradient(360deg,var(--color-brown-super-tan) , var(--color-brown-extra-tan) ); 
          /* ex linear-gradient(180deg,rgba(255, 179, 17, 0.12) 25% ,  rgba(222, 187, 105, 0.35) 100%);  */
             /* old  linear-gradient(180deg, rgba(222, 187, 105, 0.35) 25%, rgba(255, 179, 17, 0.12) 100%);*/ 
   --crowdfound-button-color: var(--color-gold-super-deep);

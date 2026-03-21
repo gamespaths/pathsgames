@@ -1,116 +1,11 @@
 /* =============================================
    PATHS GAMES — main.js
-   Story catalog, game bar, single-location nav
+   Single-location navigation, 3D tilt, history
    ============================================= */
 (function () {
 
   /* ══════════════════════════════════════════
-     DATA — Stories (catalog)
-     ══════════════════════════════════════════ */
-  const STORIES = [
-    {
-      id: 'ironspire',
-      title: 'Ironspire Castle',
-      category: 'Fantasy',
-      emote: '🏰',
-      cover: null,
-      desc: 'A fallen king\'s fortress full of forgotten halls and dark dungeons. Your choices forge the path ahead.',
-      startLocation: 'castle'
-    },
-    {
-      id: 'frost_peaks',
-      title: 'Frost Peaks',
-      category: 'Fantasy',
-      emote: '⛰️',
-      cover: null,
-      desc: 'Treacherous mountain passes shrouded in eternal snow. Ancient dangers slumber beneath the ice.',
-      startLocation: null
-    },
-    {
-      id: 'ember_abyss',
-      title: 'The Ember Abyss',
-      category: 'Fantasy',
-      emote: '🐉',
-      cover: null,
-      desc: 'Face the great dragon Vaelthorax in the heart of the mountain. Will you fight, talk, or flee?',
-      startLocation: null
-    },
-    {
-      id: 'silver_coast',
-      title: 'The Silver Coast',
-      category: 'Adventure',
-      emote: '⛵',
-      cover: null,
-      desc: 'Pirate lords fight for control of the trade routes. You must navigate alliances and betrayals.',
-      startLocation: null
-    },
-    {
-      id: 'lost_caravan',
-      title: 'The Lost Caravan',
-      category: 'Adventure',
-      emote: '🐪',
-      cover: null,
-      desc: 'A merchant caravan vanishes in the desert. Follow the trail through sand-storms and mirages.',
-      startLocation: null
-    },
-    {
-      id: 'shadow_plague',
-      title: 'The Shadow Plague',
-      category: 'Adventure',
-      emote: '🧟',
-      cover: null,
-      desc: 'A mysterious illness turns villagers into hollow husks. Uncover the source before nightfall.',
-      startLocation: null
-    },
-    {
-      id: 'crimson_manor',
-      title: 'Crimson Manor',
-      category: 'Adventure',
-      emote: '🏚️',
-      cover: null,
-      desc: 'An old aristocratic mansion where paintings whisper and halls rearrange themselves at will.',
-      startLocation: null
-    }/*,
-    {
-      id: 'clockwork_city',
-      title: 'Clockwork City',
-      category: 'Steampunk',
-      emote: '⚙️',
-      cover: null,
-      desc: 'Mechanical wonders and steam-powered intrigue. Sabotage threatens the great automaton heart.',
-      startLocation: null
-    },
-    {
-      id: 'iron_colossus',
-      title: 'The Iron Colossus',
-      category: 'Steampunk',
-      emote: '🤖',
-      cover: null,
-      desc: 'A colossal war-machine awakens from beneath the foundry. Only you can decide its purpose.',
-      startLocation: null
-    },
-    {
-      id: 'whispering_woods',
-      title: 'Whispering Woods',
-      category: 'Mystery',
-      emote: '🌲',
-      cover: null,
-      desc: 'Children disappear in the Whispering Woods. Ancient pacts with the fae may be the cause.',
-      startLocation: null
-    },
-    {
-      id: 'mirror_court',
-      title: 'The Mirror Court',
-      category: 'Mystery',
-      emote: '🪞',
-      cover: null,
-      desc: 'A royal court where nothing is what it seems. Unmask the true conspirator before the coronation.',
-      startLocation: null
-    }*/
-  ];
-
-  /* ══════════════════════════════════════════
-     DATA — Locations (game)
+     DATA — Locations
      ══════════════════════════════════════════ */
   const LOCATIONS = [
     {
@@ -185,19 +80,10 @@
   const LOC_MAP = Object.fromEntries(LOCATIONS.map(l => [l.id, l]));
 
   /* ══════════════════════════════════════════
-     APP STATE
+     NAVIGATION STATE
      ══════════════════════════════════════════ */
-  let currentId    = null;   // current location id while playing
-  let navHistory   = [];
-  let activeStory  = null;   // the STORIES entry being played
-
-  /* DOM refs */
-  const elCatalog   = document.getElementById('story-catalog');
-  const elWorld     = document.getElementById('world');
-  const elGameBar   = document.getElementById('game-bar');
-  const elBarTitle  = document.getElementById('game-bar-title');
-  const btnMap      = document.getElementById('btn-map');
-  const btnJournal  = document.getElementById('btn-journal');
+  let currentId = 'castle';
+  let navHistory = [];
 
   /* ══════════════════════════════════════════
      MAGIC CODE GENERATOR
@@ -218,105 +104,16 @@
   }
 
   /* ══════════════════════════════════════════
-     STORY CATALOG — Netflix-style
-     ══════════════════════════════════════════ */
-  function renderCatalog() {
-    /* Group stories by category */
-    const cats = {};
-    STORIES.forEach(s => {
-      if (!cats[s.category]) cats[s.category] = [];
-      cats[s.category].push(s);
-    });
-
-    let html = ''; //<h2 class="catalog-heading"><i class="fas fa-scroll me-2"></i>Choose Your Story</h2>';
-    html += ''; //<p class="catalog-divider">— ✦ ⚜ ✦ —</p>';
-
-    for (const [cat, stories] of Object.entries(cats)) {
-      html += `<div class="catalog-category">`;
-      html += `<h3 class="catalog-cat-title">${cat}</h3>`;
-      html += `<div class="catalog-row">`;
-      stories.forEach(s => {
-        const playable = !!s.startLocation;
-        const coverHTML = s.cover
-          ? `<img src="${s.cover}" alt="${s.title}" class="catalog-card-img"/>`
-          : `<span class="catalog-card-emote">${s.emote}</span>`;
-        const btnClass  = playable ? 'catalog-play-btn' : 'catalog-play-btn catalog-play-btn-disabled';
-        const btnLabel  = playable ? '<i class="fas fa-play me-1"></i>Play' : 'Coming soon'; //<i class="fas fa-lock me-1"></i>
-        html += `
-          <div class="catalog-card" data-story="${s.id}">
-            <div class="catalog-title-plate">
-              <span>${s.title}</span>
-            </div>
-            <div class="catalog-body">
-              <div class="catalog-card-cover">${coverHTML}</div>
-              <div class="catalog-desc-area"><p>${s.desc}</p></div>
-            </div>
-            <button class="${btnClass}" ${playable ? `data-story="${s.id}"` : 'disabled'}>${btnLabel}</button>
-            <div class="catalog-magic-footer">${magicCode(12)}</div>
-          </div>`;
-      });
-      html += `</div></div>`;
-    }
-
-    elCatalog.innerHTML = html;
-
-    /* Bind play buttons */
-    elCatalog.querySelectorAll('.catalog-play-btn:not(.catalog-play-btn-disabled)').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const storyId = btn.dataset.story;
-        startStory(storyId);
-      });
-    });
-
-    /* Horizontal drag-scroll for each row */
-    elCatalog.querySelectorAll('.catalog-row').forEach(row => {
-      let isDown = false, startX, scrollLeft;
-      row.addEventListener('mousedown', e => { isDown = true; row.classList.add('grabbing'); startX = e.pageX - row.offsetLeft; scrollLeft = row.scrollLeft; });
-      row.addEventListener('mouseleave', () => { isDown = false; row.classList.remove('grabbing'); });
-      row.addEventListener('mouseup', () => { isDown = false; row.classList.remove('grabbing'); });
-      row.addEventListener('mousemove', e => { if (!isDown) return; e.preventDefault(); row.scrollLeft = scrollLeft - (e.pageX - row.offsetLeft - startX) * 1.5; });
-    });
-  }
-
-  /* ══════════════════════════════════════════
-     START / STOP STORY
-     ══════════════════════════════════════════ */
-  function startStory(storyId) {
-    const story = STORIES.find(s => s.id === storyId);
-    if (!story || !story.startLocation) return;
-    activeStory = story;
-    currentId   = story.startLocation;
-    navHistory  = [];
-
-    /* Switch UI */
-    elCatalog.style.display = 'none';
-    elWorld.style.display   = '';
-    elGameBar.style.display = '';
-    elBarTitle.textContent  = story.title;
-
-    renderLocation(currentId);
-  }
-
-  function stopStory() {
-    activeStory = null;
-    currentId   = null;
-    navHistory  = [];
-
-    elWorld.innerHTML       = '';
-    elWorld.style.display   = 'none';
-    elGameBar.style.display = 'none';
-    elCatalog.style.display = '';
-  }
-
-  /* ══════════════════════════════════════════
      RENDER — single location
      ══════════════════════════════════════════ */
   function renderLocation(id, direction) {
+    console.log(renderLocation, { id, direction });
     const loc = LOC_MAP[id];
-    if (!loc) return;
+    if (!loc) { console.log("Location not found:", id); return; }
 
-    const container = elWorld;
+    const container = document.getElementById('world');
+    if (!container) { console.log("Container not found: 'world'"); return; }
+
     const col = document.createElement('div');
     col.className = 'location-col center';
 
@@ -349,7 +146,16 @@
         </div>`;
     }).join('');
 
+    const backHTML = ''; /*navHistory.length > 0
+      ? `<div class="location-back-row">
+           <button class="location-back-btn" id="btn-back">
+             <i class="fas fa-chevron-left me-1"></i>Go back
+           </button>
+         </div>`
+      : '';*/
+
     col.innerHTML = `
+      ${backHTML}
       <div class="location-card">
         <div class="card-title-plate">
           <span>${loc.title}</span>
@@ -373,12 +179,12 @@
         container.innerHTML = '';
         container.appendChild(col);
         requestAnimationFrame(() => col.classList.remove(inClass));
-        bindGameEvents();
+        bindEvents();
       }, { once: true });
     } else {
       container.innerHTML = '';
       container.appendChild(col);
-      bindGameEvents();
+      bindEvents();
     }
   }
 
@@ -398,9 +204,9 @@
   }
 
   /* ══════════════════════════════════════════
-     BIND GAME EVENTS after each render
+     BIND EVENTS after each render
      ══════════════════════════════════════════ */
-  function bindGameEvents() {
+  function bindEvents() {
     document.querySelectorAll('.choice-card').forEach(card => {
       card.addEventListener('click', () => {
         const target = card.dataset.target;
@@ -413,28 +219,12 @@
       });
     });
 
+    const btnBack = document.getElementById('btn-back');
+    if (btnBack) btnBack.addEventListener('click', navigateBack);
+
     initCardTilt();
     initEntrance();
   }
-
-  /* ══════════════════════════════════════════
-     GAME BAR EVENTS
-     ══════════════════════════════════════════ */
-  btnMap?.addEventListener('click', () => {
-    showPopup('✦ The map is not yet available… ✦');
-  });
-
-  btnJournal?.addEventListener('click', () => {
-    showPopup('✦ The journal is not yet available… ✦');
-  });
-
-  /* Close game (click brand while playing) */
-  document.querySelector('.navbar-brand')?.addEventListener('click', e => {
-    if (activeStory) {
-      e.preventDefault();
-      stopStory();
-    }
-  });
 
   /* ══════════════════════════════════════════
      CARD 3D TILT
@@ -508,17 +298,8 @@
     }, 3000);
   }
 
-  /* ══════════════════════════════════════════
-     USER BUTTON (placeholder — no real auth)
-     ══════════════════════════════════════════ */
-  document.getElementById('btn-user')?.addEventListener('click', () => {
-    showPopup('✦ Login is not yet available — continuing as guest ✦');
-  });
-
-  /* ══════════════════════════════════════════
-     INIT
-     ══════════════════════════════════════════ */
-  renderCatalog();
+  /* ── INIT ── */
+  renderLocation(currentId);
   initBadgeCarousel();
 
 })();
