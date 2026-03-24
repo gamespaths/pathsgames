@@ -31,26 +31,6 @@
     <a class="navbar-brand" href="#">
       <i class="fas fa-dice-d20 me-2"></i>Paths Games
     </a>
-    <div class="nav-links navbar-badges-to-rotate">
-      <a href="#crowdfund" class="nav-link">
-        <!--
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-code me-1"></i>Open Source Code</span>
-      -->
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
-      </a>
-    </div>
     <!--
     <div class="nav-links align-right">
       <a href="#crowdfund" class="nav-link">Crowdfunding<br/>coming&nbsp;soon!</a>
@@ -65,13 +45,31 @@
 
   <!-- ═══════════════ GAME BAR ═══════════════ -->
   <div class="game-bar" id="game-bar" style="display:none;">
-    <button class="game-bar-btn" id="btn-map" title="Map"><i class="fas fa-map-marked-alt me-1"></i>Map</button>
     <span class="game-bar-title" id="game-bar-title">—</span>
+    <button class="game-bar-btn" id="btn-map" title="Map"><i class="fas fa-map-marked-alt me-1"></i>Map</button>
     <button class="game-bar-btn" id="btn-journal" title="Journal"><i class="fas fa-book me-1"></i>Journal</button>
   </div>
 
+
   <!-- ═══════════════ MAIN ═══════════════ -->
   <main class="page-wrap">
+
+    <!-- ══════════════════════════════════════════
+         CROWDFUNDING BANNER — home only
+         ══════════════════════════════════════════ -->
+    <section class="crowdfund-section" id="crowdfund">
+      <h2 class="crowdfund-title">Crowdfunding Coming Soon</h2>
+      <p class="crowdfund-desc">A new <strong>free-to-play</strong> adventure inspired by classic gamebooks but reimagined with modern mechanics and branching narratives.</p>
+      <div class="crowdfund-badges navbar-badges-to-rotate">
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-random me-1"></i>Multiple Paths</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
+        <span class="crowdfund-badge navbar-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
+      </div>
+    </section>
 
     <!-- ══════════════════════════════════════════
          STORY CATALOG — Netflix-style rows
@@ -85,36 +83,18 @@
          ══════════════════════════════════════════ -->
     <div class="world-row" id="world" style="display:none;">
       <!-- Cards rendered dynamically by main.js -->
+      <!-- ═══════════════ PLAYER BAR (inside game view) ═══════════════ -->
+      <div class="player-bar" id="player-bar">
+        <span class="player-bar-name"><i class="fas fa-user me-1"></i>Guest</span>
+        <div class="player-bar-stats">
+          <span class="player-stat"><i class="fas fa-heart me-1"></i><span class="player-stat-val" id="stat-hp">100</span>&nbsp;HP</span>
+          <span class="player-stat"><i class="fas fa-bolt me-1"></i><span class="player-stat-val" id="stat-energy">80</span>&nbsp;Energy</span>
+          <span class="player-stat"><i class="fas fa-shield-alt me-1"></i><span class="player-stat-val" id="stat-armor">60</span>&nbsp;Armor</span>
+        </div>
+        <button class="game-bar-btn" id="btn-inventory"><i class="fas fa-box-open me-1"></i>Inventory</button>
+      </div>
     </div>
 
-    <!-- ══════════════════════════════════════════
-         CROWDFUNDING COMING SOON
-         ══════════════════════════════════════════ -->
-    <section class="crowdfund-section" id="crowdfund">
-      <div class="crowdfund-card">
-        <div class="crowdfund-icon">⚔️</div>
-        <h2 class="crowdfund-title">Crowdfunding Coming Soon</h2>
-        <p class="crowdfund-divider">— ✦ ⚜ ✦ —</p>
-        <p class="crowdfund-desc">
-          A new <strong>free-to-play</strong> adventure inspired by classic gamebooks but reimagined with modern mechanics, branching narratives and a living worlds that reacts to every choice you make.
-        </p>
-        <!--<p class="crowdfund-desc">
-          Explore fantastic and modern stories, forge alliances, face moral dilemmas, and shape your own legend. No paywalls — just pure adventure, for everyone.
-        </p>-->
-        <p class="crowdfund-desc crowdfund-desc-2">
-          <strong>The campaign is launching soon.</strong> Stay tuned and be among the first to join the quest.
-        </p>
-        <div class="crowdfund-badges">
-          <span class="crowdfund-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="crowdfund-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="crowdfund-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="crowdfund-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
-        </div>
-      </div>
-    </section>
 
   </main>
 
@@ -145,14 +125,45 @@
         </a>
       </div>
       <div class="footer-copy">
-        <span class="gold-light">Paths Games v<span>0.10.13</span></span> © 2026 All rights reserved ·
+        <span class="gold-light">Paths Games v<span>0.11.1</span></span> © 2026 All rights reserved ·
         Crafted with <i class="fas fa-heart"  ></i> by the Paths Games Dev Team ·
-        <a href="#" class="footer-link-inline">Privacy Policy</a> ·
-        <a href="#" class="footer-link-inline">Terms of Service</a> ·
+        <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">Privacy Policy</a> ·
+        <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#termsModal">Terms of Service</a> ·
         <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#cookiePolicyModal">Cookies Policy</a> 
       </div>
     </div>
   </footer>
+
+  <!-- ═══════════════ STORY PREVIEW MODAL ═══════════════ -->
+  <div class="modal fade story-preview-modal" id="storyPreviewModal" tabindex="-1" aria-labelledby="storyPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="storyPreviewModalLabel">
+            <i class="fas fa-scroll me-2"></i><span id="preview-modal-title">Story</span>
+          </h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body story-preview-body" id="story-preview-body">
+          <!-- Rendered dynamically by main.js -->
+        </div>
+        <div class="modal-footer story-preview-footer">
+          <button class="story-preview-play-btn" id="btn-preview-play">
+            <i class="fas fa-play me-2"></i>Start Adventure
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CARD DETAIL MODAL ═══════════════ -->
+  <div class="modal fade" id="cardDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div id="card-detail-inner"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══════════════ COOKIES POLICY MODAL ═══════════════ -->
   <div class="modal fade" id="cookiePolicyModal" tabindex="-1" aria-labelledby="cookiePolicyModalLabel" aria-hidden="true">
@@ -162,7 +173,7 @@
           <h5 class="modal-title" id="cookiePolicyModalLabel">
             <i class="fas fa-cookie-bite me-2"></i>Cookies Policy
           </h5>
-          <button type="button" class="btn-close btn-cookies-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
           <!-- CookieYes injects the cookie table into this element -->
@@ -179,7 +190,71 @@
     </div>
   </div>
 
+  <!-- ═══════════════ PRIVACY POLICY MODAL ═══════════════ -->
+  <div class="modal fade" id="privacyPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>This Privacy Policy describes how <strong>Paths Games</strong> (© paths.games) collects, uses and protects your personal information when you use our website and game services.</p>
+          <p>We may collect basic usage data (page views, session duration) through anonymised analytics. No personal data is sold to third parties.</p>
+          <p>For any privacy-related inquiries, contact us via our <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener">GitHub repository</a>.</p>
+          <p class="text-muted" style="font-size:0.8rem;">Last updated: March 2026</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TERMS OF SERVICE MODAL ═══════════════ -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-scroll me-2"></i>Terms of Service</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>By accessing and using <strong>Paths Games</strong> (© paths.games) you agree to the following terms.</p>
+          <p><strong>Use of Content:</strong> All game content, stories, artwork and code are the intellectual property of Paths Games unless otherwise stated. Reproduction without permission is prohibited.</p>
+          <p><strong>User Conduct:</strong> You agree not to misuse the service, attempt unauthorised access, or violate any applicable laws.</p>
+          <p><strong>Disclaimer:</strong> The game is provided “as-is” during the development phase. Features may change without notice.</p>
+          <p class="text-muted" style="font-size:0.8rem;">Last updated: March 2026</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ COPYRIGHT INFO MODAL ═══════════════ -->
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Copyright Info</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+          <p style="font-size:2.5rem;">&#9760;</p>
+          <p>All stories, artwork and game content are<br/><strong>&copy; paths.games 2026</strong><br/>All rights reserved.</p>
+          <p style="font-size:0.82rem;">Paths Games is an independent project. Redistribution or reproduction of any content without written permission is prohibited.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="story-preview-play-btn" data-bs-dismiss="modal"><i class="fas fa-arrow-left me-2"></i>Go Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./stories.js"></script>
   <script src="./main.js"></script>
 
 </body>

@@ -12,16 +12,40 @@
 Documents includes all steps in roadmap for example development components, configuration parameters and lists of features reserved for futures versions.
 
 - [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
+    - ✅ [Start the project](./documentation_v0/Step01_StartProject.md)
+    - ✅ [Create the repository](./documentation_v0/Step02_CreateTheRepository.md)
+    - ✅ [Define the V1 scope](./documentation_v0/Step03_DefineScope.md)
+    - ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md)
+    - ✅ [Backend structure](./documentation_v0/Step05_BackendStructure.md)
+    - ✅ [Naming conventions](./documentation_v0/Step06_NamingConventions.md)
+    - ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md)
+    - ✅ [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md)
+    - ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md)
+    - ✅ [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md)
+    - ✅ [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md)
+    - Next steps: Develop game engine, Performance and load testing, Launch the game with V1 version,...
     - check [developer branch](https://github.com/gamespaths/pathsgames/) for last updates
 
-- Version 1: start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+- Version 1: 
+    - start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+    - use GraphQL protocol in new versions
+    - game-engine feature: multiplayer system
 
-- Version 2: game-engine features: combact system and open world
+- Version 2: 
+    - game-engine feature: combact system 
+    - game-engine feature: open world system
 
-- Version 3: mobile version integrated with Google play with Android App and, desktop application integrated with Steam && Debian package
+- Version 3: 
+    - mobile version integrated with Google play with Android App and
+    - desktop application integrated with Steam 
+    - create and distribute the free Debian package
 
-- Version 4: update graphical system with advanced game-engine
+- Version 4
+    - update graphical system with advanced game-engine
 
+- Version 42:
+    - *Life, the Universe and Everything*
+    - *To Boldly Go Where No Man Has Gone Before*
 
 
 ## Tecnical components

@@ -6,7 +6,9 @@
   /* === COLOR PALETTE === */
   --color-parchment:        #e8d5b0;
   --color-parchment-light:  #f2e6c8;
+  --color-parchment-medium: #f5e9c2;
   --color-parchment-dark:   #c9b48a;
+  
   --color-brown-deep:       #1a0a02;
   --color-brown-dark:       #2e1508;
   --color-brown-mid:        #5c3317;
@@ -60,7 +62,7 @@
             /*ex linear-gradient(180deg, transparent 0%, rgba(6,3,0,0.4) 15%, rgba(6,3,0,0.75) 35%, #060300 55%, #040200 100%);*/
 
   /* === DARK THEME (default) === */
-  --bg-page:       #100800;
+  --bg-page:       var(--color-parchment-dark); /* #100800; */ 
   --bg-card:       #2e1a0e;
   --text-primary:  #e8d5b0;
   --text-secondary:#c0a070;

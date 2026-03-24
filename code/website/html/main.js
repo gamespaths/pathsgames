@@ -1,195 +1,17 @@
 /* =============================================
    PATHS GAMES — main.js
-   Story catalog, game bar, single-location nav
+   Story catalog, game bar, location navigator
+   Stories and world data: stories.js
    ============================================= */
 (function () {
 
   /* ══════════════════════════════════════════
-     DATA — Stories (catalog)
-     ══════════════════════════════════════════ */
-  const STORIES = [
-    {
-      id: 'ironspire',
-      title: 'Ironspire Castle',
-      category: 'Fantasy',
-      emote: '🏰',
-      cover: null,
-      desc: 'A fallen king\'s fortress full of forgotten halls and dark dungeons. Your choices forge the path ahead.',
-      startLocation: 'castle'
-    },
-    {
-      id: 'frost_peaks',
-      title: 'Frost Peaks',
-      category: 'Fantasy',
-      emote: '⛰️',
-      cover: null,
-      desc: 'Treacherous mountain passes shrouded in eternal snow. Ancient dangers slumber beneath the ice.',
-      startLocation: null
-    },
-    {
-      id: 'ember_abyss',
-      title: 'The Ember Abyss',
-      category: 'Fantasy',
-      emote: '🐉',
-      cover: null,
-      desc: 'Face the great dragon Vaelthorax in the heart of the mountain. Will you fight, talk, or flee?',
-      startLocation: null
-    },
-    {
-      id: 'silver_coast',
-      title: 'The Silver Coast',
-      category: 'Adventure',
-      emote: '⛵',
-      cover: null,
-      desc: 'Pirate lords fight for control of the trade routes. You must navigate alliances and betrayals.',
-      startLocation: null
-    },
-    {
-      id: 'lost_caravan',
-      title: 'The Lost Caravan',
-      category: 'Adventure',
-      emote: '🐪',
-      cover: null,
-      desc: 'A merchant caravan vanishes in the desert. Follow the trail through sand-storms and mirages.',
-      startLocation: null
-    },
-    {
-      id: 'shadow_plague',
-      title: 'The Shadow Plague',
-      category: 'Adventure',
-      emote: '🧟',
-      cover: null,
-      desc: 'A mysterious illness turns villagers into hollow husks. Uncover the source before nightfall.',
-      startLocation: null
-    },
-    {
-      id: 'crimson_manor',
-      title: 'Crimson Manor',
-      category: 'Adventure',
-      emote: '🏚️',
-      cover: null,
-      desc: 'An old aristocratic mansion where paintings whisper and halls rearrange themselves at will.',
-      startLocation: null
-    }/*,
-    {
-      id: 'clockwork_city',
-      title: 'Clockwork City',
-      category: 'Steampunk',
-      emote: '⚙️',
-      cover: null,
-      desc: 'Mechanical wonders and steam-powered intrigue. Sabotage threatens the great automaton heart.',
-      startLocation: null
-    },
-    {
-      id: 'iron_colossus',
-      title: 'The Iron Colossus',
-      category: 'Steampunk',
-      emote: '🤖',
-      cover: null,
-      desc: 'A colossal war-machine awakens from beneath the foundry. Only you can decide its purpose.',
-      startLocation: null
-    },
-    {
-      id: 'whispering_woods',
-      title: 'Whispering Woods',
-      category: 'Mystery',
-      emote: '🌲',
-      cover: null,
-      desc: 'Children disappear in the Whispering Woods. Ancient pacts with the fae may be the cause.',
-      startLocation: null
-    },
-    {
-      id: 'mirror_court',
-      title: 'The Mirror Court',
-      category: 'Mystery',
-      emote: '🪞',
-      cover: null,
-      desc: 'A royal court where nothing is what it seems. Unmask the true conspirator before the coronation.',
-      startLocation: null
-    }*/
-  ];
-
-  /* ══════════════════════════════════════════
-     DATA — Locations (game)
-     ══════════════════════════════════════════ */
-  const LOCATIONS = [
-    {
-      id: 'castle',
-      title: 'Ironspire Castle',
-      icon: 'fas fa-chess-rook',
-      iconColor: null,
-      emote: '🏰',
-      image: null,
-      desc: 'The ancient seat of the fallen king. Torchlight flickers in forgotten halls where echoes speak louder than the living.',
-      choices: [
-        { emote: '🕯️', icon: 'fas fa-code-branch', title: 'Enter the Dungeon',      desc: 'Descend into the castle depths.',  rotate: -9, ty: -4, target: 'dungeon'   },
-        { emote: '⛰️', icon: 'fas fa-random',       title: 'Travel to Mountains',   desc: 'The cold peaks call.',            rotate:  9, ty: -4, target: 'mountains' }
-      ]
-    },
-    {
-      id: 'dungeon',
-      title: 'Castle Dungeon',
-      icon: 'fas fa-dungeon',
-      iconColor: '#9a6f08',
-      emote: '🗝️',
-      image: null,
-      desc: 'Dripping stone walls and rusted chains. Something moves in the shadows beyond the last torch.',
-      choices: [
-        { emote: '🏰', icon: 'fas fa-arrow-up',   title: 'Return Upstairs',    desc: 'Back to the castle hall.',  rotate: -9, ty: -4, target: 'castle' },
-        { emote: '👻', icon: 'fas fa-ghost',      title: 'Follow the Shadow',  desc: 'Into the unknown dark.',    rotate:  9, ty: -4, target: null     }
-      ]
-    },
-    {
-      id: 'mountains',
-      title: 'Frost Mountains',
-      icon: 'fas fa-mountain',
-      iconColor: null,
-      emote: '⛰️',
-      image: null,
-      desc: 'Treacherous passes through eternal snow. The wind carries whispers of something ancient sleeping beneath the glacier.',
-      choices: [
-        { emote: '🏰', icon: 'fas fa-code-branch',     title: 'Back to Castle',     desc: 'Retreat to safer walls.',      rotate: -10, ty:  -2, target: 'castle'    },
-        { emote: '🕳️', icon: 'fas fa-project-diagram', title: 'Enter the Cave',     desc: 'Descend into darkness.',       rotate:   0, ty: -18, behind: true, target: 'dragon'    },
-        { emote: '🐺', icon: 'fas fa-paw',             title: 'Hunt the Wolves',    desc: 'Track beasts in the snow.',    rotate:  10, ty:  -2, target: 'wolf_camp' }
-      ]
-    },
-    {
-      id: 'wolf_camp',
-      title: 'Wolf Territory',
-      icon: 'fas fa-paw',
-      iconColor: '#c08040',
-      emote: '🐺',
-      image: null,
-      desc: 'A circle of bones and fresh tracks in the snow. The wolves are close — and they know you are here.',
-      choices: [
-        { emote: '⛰️', icon: 'fas fa-random',      title: 'Retreat to Mountains', desc: 'Live to fight another day.', rotate: -9, ty: -4, target: 'mountains' },
-        { emote: '⚔️', icon: 'fas fa-fist-raised', title: 'Stand and Fight',      desc: 'Draw your blade.',          rotate:  9, ty: -4, target: null       }
-      ]
-    },
-    {
-      id: 'dragon',
-      title: 'The Ember Abyss',
-      icon: 'fas fa-dragon',
-      iconColor: '#d44a0a',
-      emote: '🐉',
-      image: null,
-      desc: 'The great dragon Vaelthorax rests here atop centuries of plunder. Every heartbeat shakes the stone.',
-      choices: [
-        { emote: '🗣️', icon: 'fas fa-project-diagram', title: 'Speak to the Dragon',   desc: 'Seek wisdom in flame.',     rotate: -10, ty:  -2, target: null        },
-        { emote: '⚔️', icon: 'fas fa-code-branch',     title: 'Attack the Dragon',     desc: 'Steel against scales.',     rotate:   0, ty: -18, behind: true, target: null        },
-        { emote: '⛰️', icon: 'fas fa-random',          title: 'Flee to the Mountains', desc: 'Run while you still can.',  rotate:  10, ty:  -2, target: 'mountains' }
-      ]
-    }
-  ];
-
-  const LOC_MAP = Object.fromEntries(LOCATIONS.map(l => [l.id, l]));
-
-  /* ══════════════════════════════════════════
      APP STATE
      ══════════════════════════════════════════ */
-  let currentId    = null;   // current location id while playing
+  // (story catalog and world data are in stories.js)
+  let currentId    = null;
   let navHistory   = [];
-  let activeStory  = null;   // the STORIES entry being played
+  let activeStory  = null;
 
   /* DOM refs */
   const elCatalog   = document.getElementById('story-catalog');
@@ -198,6 +20,7 @@
   const elBarTitle  = document.getElementById('game-bar-title');
   const btnMap      = document.getElementById('btn-map');
   const btnJournal  = document.getElementById('btn-journal');
+  const elCrowdfund = document.getElementById('crowdfund');
 
   /* ══════════════════════════════════════════
      MAGIC CODE GENERATOR
@@ -252,7 +75,7 @@
               <div class="catalog-desc-area"><p>${s.desc}</p></div>
             </div>
             <button class="${btnClass}" ${playable ? `data-story="${s.id}"` : 'disabled'}>${btnLabel}</button>
-            <div class="catalog-magic-footer">${magicCode(12)}</div>
+            <div class="catalog-magic-footer"><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
           </div>`;
       });
       html += `</div></div>`;
@@ -265,7 +88,7 @@
       btn.addEventListener('click', e => {
         e.stopPropagation();
         const storyId = btn.dataset.story;
-        startStory(storyId);
+        showStoryPreview(storyId);
       });
     });
 
@@ -278,6 +101,76 @@
       row.addEventListener('mousemove', e => { if (!isDown) return; e.preventDefault(); row.scrollLeft = scrollLeft - (e.pageX - row.offsetLeft - startX) * 1.5; });
     });
   }
+
+  /* ══════════════════════════════════════════
+     STORY PREVIEW MODAL
+     ══════════════════════════════════════════ */
+  const STORY_INFO_CARDS = [
+    { icon: 'fas fa-user',          label: 'Type',       value: 'Singleplayer' },
+    { icon: 'fas fa-clock',         label: 'Duration',   value: '5 minutes'    },
+    { icon: 'fas fa-hat-wizard',    label: 'Category',   value: 'Fantasy'      },
+    { icon: 'fas fa-shield-alt',    label: 'Level',      value: 'Easy'         },
+    { icon: 'fas fa-feather-alt',   label: 'Written by', value: 'alnao'        },
+    { icon: 'fas fa-unlock-alt',    label: 'Price',      value: 'Free to Play' }
+  ];
+
+  let pendingStoryId = null;
+
+  function showStoryPreview(storyId) {
+    const story = STORIES.find(s => s.id === storyId);
+    if (!story) return;
+    pendingStoryId = storyId;
+
+    /* Modal title */
+    document.getElementById('preview-modal-title').textContent = story.title;
+
+    /* Build body */
+    const body = document.getElementById('story-preview-body');
+    const coverHTML = story.cover
+      ? `<img src="${story.cover}" alt="${story.title}" class="preview-visual-img" style="width:100%;height:100%;object-fit:cover;" />`
+      : `<span class="preview-visual-emote">${story.emote}</span>`;
+
+    const infoCardsHTML = STORY_INFO_CARDS.map(c => `
+      <div class="preview-info-card">
+        <span class="info-card-label">${c.label}</span>
+        <div class="info-card-icon"><i class="${c.icon}"></i></div>
+        <span class="info-card-value">${c.value}</span>
+      </div>`).join('');
+
+    body.innerHTML = `
+      <div class="story-preview-main">
+        <div class="preview-title-plate"><span>${story.title}</span></div>
+        <div class="preview-visual">${coverHTML}</div>
+        <div class="preview-desc"><p>${story.desc}</p><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
+        <div class="preview-magic">${magicCode(24)}</div>
+      </div>
+      <div class="story-preview-info">${infoCardsHTML}</div>`;
+
+    /* Disable/enable Play button */
+    const playBtn = document.getElementById('btn-preview-play');
+    if (story.startLocation) {
+      playBtn.disabled = false;
+      playBtn.style.opacity = '';
+      playBtn.style.cursor = '';
+    } else {
+      playBtn.disabled = true;
+      playBtn.style.opacity = '0.5';
+      playBtn.style.cursor = 'not-allowed';
+    }
+
+    /* Show modal via Bootstrap */
+    const modal = new bootstrap.Modal(document.getElementById('storyPreviewModal'));
+    modal.show();
+  }
+
+  /* Modal Play button */
+  document.getElementById('btn-preview-play')?.addEventListener('click', () => {
+    if (!pendingStoryId) return;
+    const modal = bootstrap.Modal.getInstance(document.getElementById('storyPreviewModal'));
+    if (modal) modal.hide();
+    startStory(pendingStoryId);
+    pendingStoryId = null;
+  });
 
   /* ══════════════════════════════════════════
      START / STOP STORY
@@ -293,6 +186,7 @@
     elCatalog.style.display = 'none';
     elWorld.style.display   = '';
     elGameBar.style.display = '';
+    elCrowdfund.style.display = 'none';
     elBarTitle.textContent  = story.title;
 
     renderLocation(currentId);
@@ -303,8 +197,9 @@
     currentId   = null;
     navHistory  = [];
 
-    elWorld.innerHTML       = '';
+    Array.from(elWorld.children).forEach(c => { if (c.id !== 'player-bar') c.remove(); });
     elWorld.style.display   = 'none';
+    elCrowdfund.style.display = '';
     elGameBar.style.display = 'none';
     elCatalog.style.display = '';
   }
@@ -313,71 +208,98 @@
      RENDER — single location
      ══════════════════════════════════════════ */
   function renderLocation(id, direction) {
-    const loc = LOC_MAP[id];
+    if (!activeStory) return;
+    const locMap = STORIES_LOCATIONS[activeStory.id] || {};
+    const loc    = locMap[id];
     if (!loc) return;
+    currentId = id;
 
-    const container = elWorld;
-    const col = document.createElement('div');
-    col.className = 'location-col center';
-
+    /* ── Active location card (left panel) ── */
     const visualHTML = loc.image
       ? `<img src="${loc.image}" alt="${loc.title}" class="card-visual-img" />`
       : `<span class="card-visual-emote">${loc.emote}</span>`;
 
-    const choicesHTML = loc.choices.map((ch, ci) => {
-      const choiceVisual = ch.image
-        ? `<img src="${ch.image}" alt="${ch.title}" class="choice-visual-img" />`
-        : `<span class="choice-visual-emote">${ch.emote}</span>`;
-      const choiceIcon = ch.icon || 'fas fa-code-branch';
-      const rot = ch.rotate || 0;
-      const ty  = ch.ty || 0;
-      const behindCls  = ch.behind ? ' choice-behind' : '';
-      const targetAttr = ch.target ? `data-target="${ch.target}"` : '';
-      return `
-        <div class="choice-card${behindCls}"
-             data-rotate="${rot}" ${targetAttr}
-             style="transform:rotate(${rot}deg) translateY(${ty}px);animation-delay:${0.2 + ci * 0.1}s">
-          <div class="choice-title-plate">
-            <span>${ch.title}</span>
-            <i class="${choiceIcon} choice-plate-icon"></i>
-          </div>
-          <div class="choice-body-left">
-            <div class="choice-visual">${choiceVisual}</div>
-            <div class="choice-desc-area"><p>${ch.desc}</p></div>
-          </div>
-          <div class="choice-magic-footer">${magicCode(12)}</div>
-        </div>`;
-    }).join('');
-
-    col.innerHTML = `
+    const locationCardHTML = `
       <div class="location-card">
         <div class="card-title-plate">
           <span>${loc.title}</span>
-          <i class="${loc.icon} card-plate-icon"${loc.iconColor ? ` style="color:${loc.iconColor}"` : ''}></i>
+          <i class="${loc.icon} card-plate-icon"${ loc.iconColor ? ` style="color:${loc.iconColor}"` : ''}></i>
         </div>
         <div class="card-body-left">
           <div class="card-visual">${visualHTML}</div>
-          <div class="card-desc-area"><p>${loc.desc}</p></div>
+          <div class="card-desc-area"><p>${loc.desc}</p><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
         </div>
-        <div class="card-magic-footer">${magicCode(24)}</div>
-      </div>
-      <div class="choice-row choice-below">${choicesHTML}</div>`;
+        <div class="card-magic-footer"><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
+      </div>`;
 
+    /* ── Neighbor (go) cards — Row 1 ── */
+    const goCardsHTML = (loc.neighbors || []).map(nid => {
+      const n = locMap[nid];
+      if (!n) return '';
+      return `
+        <div class="choice-card go-card" data-target="${n.id}">
+          <div class="choice-title-plate">
+            <span>${n.title}</span>
+            <i class="${n.icon} choice-plate-icon"${ n.iconColor ? ` style="color:${n.iconColor}"` : ''}></i>
+          </div>
+          <div class="choice-body-left">
+            <div class="choice-visual"><span class="choice-visual-emote">${n.emote}</span></div>
+            <div class="choice-desc-area"><p>${n.desc}</p></div>
+          </div>
+          <div class="choice-magic-footer"><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
+        </div>`;
+    }).join('');
+
+    /* ── Action cards — Row 2 ── */
+    const actionCardsHTML = (loc.actions || []).map(a => `
+      <div class="choice-card action-card" data-action="${a.id}">
+        <div class="choice-title-plate">
+          <span>${a.title}</span>
+          <i class="${a.icon} choice-plate-icon"></i>
+        </div>
+        <div class="choice-body-left">
+          <div class="choice-visual"><span class="choice-visual-emote">${a.emote}</span></div>
+          <div class="choice-desc-area"><p>${a.desc}</p></div>
+        </div>
+        <div class="choice-magic-footer"><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
+      </div>`).join('');
+
+    /* ── Build full scene ── */
+    const scene = document.createElement('div');
+    scene.className = 'game-scene';
+    scene.innerHTML = `
+      <div class="game-location-panel">${locationCardHTML}</div>
+      <div class="game-right-panel">
+        <div class="game-row">
+          <h3 class="game-row-title"><i class="fas fa-compass me-2"></i>Nearby Locations</h3>
+          <div class="game-row-scroll go-cards-scroll">${goCardsHTML || '<span class="game-row-empty">No paths lead further.</span>'}</div>
+        </div>
+        <div class="game-row">
+          <h3 class="game-row-title"><i class="fas fa-scroll me-2"></i>Available Actions</h3>
+          <div class="game-row-scroll action-cards-scroll">${actionCardsHTML || '<span class="game-row-empty">Nothing to do here.</span>'}</div>
+        </div>
+      </div>`;
+
+    const container = elWorld;
     if (container.children.length > 0 && direction) {
       const old      = container.children[0];
       const outClass = direction === 'back' ? 'slide-out-right' : 'slide-out-left';
       const inClass  = direction === 'back' ? 'slide-in-left'   : 'slide-in-right';
-      col.classList.add(inClass);
+      scene.classList.add(inClass);
       old.classList.add(outClass);
       old.addEventListener('animationend', () => {
-        container.innerHTML = '';
-        container.appendChild(col);
-        requestAnimationFrame(() => col.classList.remove(inClass));
+        const elPlayerBar = document.getElementById('player-bar');
+        Array.from(container.children).forEach(c => { if (c.id !== 'player-bar') c.remove(); });
+        if (elPlayerBar) container.insertBefore(scene, elPlayerBar);
+        else container.appendChild(scene);
+        requestAnimationFrame(() => scene.classList.remove(inClass));
         bindGameEvents();
       }, { once: true });
     } else {
-      container.innerHTML = '';
-      container.appendChild(col);
+      const elPlayerBar = document.getElementById('player-bar');
+      Array.from(container.children).forEach(c => { if (c.id !== 'player-bar') c.remove(); });
+      if (elPlayerBar) container.insertBefore(scene, elPlayerBar);
+      else container.appendChild(scene);
       bindGameEvents();
     }
   }
@@ -401,20 +323,86 @@
      BIND GAME EVENTS after each render
      ══════════════════════════════════════════ */
   function bindGameEvents() {
-    document.querySelectorAll('.choice-card').forEach(card => {
+    /* Go-cards: show card detail modal, confirm → navigate */
+    document.querySelectorAll('.go-card[data-target]').forEach(card => {
       card.addEventListener('click', () => {
-        const target = card.dataset.target;
-        if (target) {
-          navigateTo(target);
-        } else {
-          const title = card.querySelector('.choice-title-plate span')?.textContent?.trim() || 'this path';
-          showPopup(`✦ ${title}: this path is not yet forged… ✦`);
-        }
+        const locMap = STORIES_LOCATIONS[activeStory?.id] || {};
+        const n = locMap[card.dataset.target];
+        if (!n) return;
+        showCardModal(n, 'go', card.dataset.target);
       });
+    });
+
+    /* Action-cards: show card detail modal, confirm → action */
+    document.querySelectorAll('.action-card[data-action]').forEach(card => {
+      card.addEventListener('click', () => {
+        const locMap = STORIES_LOCATIONS[activeStory?.id] || {};
+        const loc    = locMap[currentId];
+        const action = (loc?.actions || []).find(a => a.id === card.dataset.action);
+        if (!action) return;
+        showCardModal(action, 'action', card.dataset.action);
+      });
+    });
+
+    /* Horizontal drag-scroll for each game row */
+    document.querySelectorAll('.game-row-scroll').forEach(row => {
+      let isDown = false, startX, scrollLeft;
+      row.addEventListener('mousedown', e => { isDown = true; row.classList.add('grabbing'); startX = e.pageX - row.offsetLeft; scrollLeft = row.scrollLeft; });
+      row.addEventListener('mouseleave', () => { isDown = false; row.classList.remove('grabbing'); });
+      row.addEventListener('mouseup',    () => { isDown = false; row.classList.remove('grabbing'); });
+      row.addEventListener('mousemove',  e => { if (!isDown) return; e.preventDefault(); row.scrollLeft = scrollLeft - (e.pageX - row.offsetLeft - startX) * 1.5; });
     });
 
     initCardTilt();
     initEntrance();
+  }
+
+  /* ══════════════════════════════════════════
+     CARD DETAIL MODAL
+     ══════════════════════════════════════════ */
+  function showCardModal(data, type, id) {
+    const isGo   = type === 'go';
+    const visual = data.image
+      ? `<img src="${data.image}" alt="${data.title}" style="width:100%;height:100%;object-fit:cover;" />`
+      : `<span class="card-visual-emote">${data.emote}</span>`;
+    const confirmLabel = isGo
+      ? '<i class="fas fa-shoe-prints me-2"></i>Move'
+      : '<i class="fas fa-scroll me-2"></i>Proceed';
+    const iconAttr = data.icon
+      ? `<i class="${data.icon} card-plate-icon"${ data.iconColor ? ` style="color:${data.iconColor}"` : ''}></i>`
+      : '';
+
+    document.getElementById('card-detail-inner').innerHTML = `
+      <div class="card-detail-wrapper">
+        <button class="card-detail-close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="card-detail-card">
+          <div class="card-title-plate">
+            <span>${data.title}</span>${iconAttr}
+          </div>
+          <div class="card-body-left">
+            <div class="card-visual">${visual}</div>
+            <div class="card-desc-area"><p>${data.desc}</p></div>
+          </div>
+          <div class="card-detail-footer">
+            <button class="story-preview-play-btn" id="btn-card-confirm">${confirmLabel}</button>
+            <button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button>
+          </div>
+          <div class="card-magic-footer"><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
+        </div>
+      </div>`;
+
+    document.getElementById('btn-card-confirm').addEventListener('click', () => {
+      bootstrap.Modal.getInstance(document.getElementById('cardDetailModal'))?.hide();
+      if (isGo) {
+        navigateTo(id);
+      } else {
+        showPopup(`✦ ${data.title}: coming soon… ✦`);
+      }
+    });
+
+    new bootstrap.Modal(document.getElementById('cardDetailModal')).show();
   }
 
   /* ══════════════════════════════════════════
@@ -426,6 +414,19 @@
 
   btnJournal?.addEventListener('click', () => {
     showPopup('✦ The journal is not yet available… ✦');
+  });
+
+  document.getElementById('btn-inventory')?.addEventListener('click', () => {
+    showPopup('✦ The inventory is not yet available… ✦');
+  });
+
+  /* Global (i) info button — shows copyright modal from any card */
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.card-info-btn');
+    if (btn) {
+      e.stopPropagation();
+      new bootstrap.Modal(document.getElementById('infoModal')).show();
+    }
   });
 
   /* Close game (click brand while playing) */
@@ -440,19 +441,16 @@
      CARD 3D TILT
      ══════════════════════════════════════════ */
   function initCardTilt() {
-    document.querySelectorAll('.location-card, .choice-card').forEach(card => {
-      const isChoice   = card.classList.contains('choice-card');
-      const baseRotate = parseFloat(card.dataset.rotate) || 0;
-
+    document.querySelectorAll('.location-card, .go-card, .action-card').forEach(card => {
+      const isSmall = card.classList.contains('go-card') || card.classList.contains('action-card');
       card.addEventListener('mousemove', e => {
         const r  = card.getBoundingClientRect();
         const dx = (e.clientX - (r.left + r.width  / 2)) / (r.width  / 2);
         const dy = (e.clientY - (r.top  + r.height / 2)) / (r.height / 2);
-        const tz = isChoice ? 4 : 8;
+        const tz = isSmall ? 4 : 8;
         card.style.transform =
-          `perspective(900px) rotateX(${-dy * 8}deg) rotateY(${dx * 8 + baseRotate}deg) translateY(-${tz}px) scale(1.04)`;
+          `perspective(900px) rotateX(${-dy * 8}deg) rotateY(${dx * 8}deg) translateY(-${tz}px) scale(1.04)`;
       });
-
       card.addEventListener('mouseleave', () => { card.style.transform = ''; });
     });
   }
@@ -476,7 +474,7 @@
     const observer = new IntersectionObserver(entries => {
       entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
-          const delay = (i * 0.1) + (parseFloat(entry.target.style.animationDelay) || 0);
+          const delay = i * 0.08;
           entry.target.style.animationDelay = `${delay}s`;
           entry.target.style.animationPlayState = 'running';
           observer.unobserve(entry.target);
@@ -484,7 +482,7 @@
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.location-card, .choice-card').forEach(card => {
+    document.querySelectorAll('.location-card, .go-card, .action-card').forEach(card => {
       card.style.animationPlayState = 'paused';
       observer.observe(card);
     });
