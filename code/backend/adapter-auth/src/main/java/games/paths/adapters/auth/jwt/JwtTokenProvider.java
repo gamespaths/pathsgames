@@ -25,8 +25,8 @@ public class JwtTokenProvider implements JwtPort {
     private final long accessTokenMinutes;
     private final long refreshTokenDays;
 
-    public JwtTokenProvider(
-            @Value("${game.auth.jwt.secret}") String secret,
+        public JwtTokenProvider(
+            @Value("${game.auth.jwt.secret:0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF}") String secret,
             @Value("${game.auth.jwt.access-token-minutes:30}") long accessTokenMinutes,
             @Value("${game.auth.jwt.refresh-token-days:7}") long refreshTokenDays) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
