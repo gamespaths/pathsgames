@@ -6,7 +6,7 @@
     <parent>
         <groupId>games.paths</groupId>
         <artifactId>paths-game-backend</artifactId>
-        <version>0.11.1-SNAPSHOT</version>
+        <version>0.12.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ms-launcher</artifactId>
@@ -22,6 +22,16 @@
         <dependency>
             <groupId>games.paths</groupId>
             <artifactId>adapter-rest</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>games.paths</groupId>
+            <artifactId>adapter-auth</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>games.paths</groupId>
+            <artifactId>adapter-admin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

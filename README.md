@@ -2,11 +2,11 @@
 
 **Paths Games** is a multiplayer game inspired by classic gamebooks, adapted to modern gaming mechanics.
 
-- Visit [paths.games](http://paths.games) website.
-
 - ✅ Paths games is free-to-play game, all code will be released with GNU-GPL3 licence
 
-- crowdfunding campaign *coming soon*
+- Visit [paths.games](http://paths.games) website, crowdfunding campaign *coming soon*
+
+
 
 ## Documentation
 Documents includes all steps in roadmap for example development components, configuration parameters and lists of features reserved for futures versions.
@@ -23,8 +23,9 @@ Documents includes all steps in roadmap for example development components, conf
     - ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md)
     - ✅ [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md)
     - ✅ [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md)
+    - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md)
     - Next steps: Develop game engine, Performance and load testing, Launch the game with V1 version,...
-    - check [developer branch](https://github.com/gamespaths/pathsgames/) for last updates
+        - check [developer branch](https://github.com/gamespaths/pathsgames/) for all updates
 
 - Version 1: 
     - start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
@@ -62,17 +63,15 @@ Documents includes all steps in roadmap for example development components, conf
     | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white" /> |
 
 - **Backend** project into `code/backend`, see [README](./code/backend/README.md) for all details
-    - **Java**
-        - Build with Java 21, Sprinb boot with Hexagonal Architecture (ports & adapters)
-        - Build project with command `mvn clean install -DskipTests`
-        - Execute all unit test with command `mvn clean test`
-        - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
-        - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-        - REST API versioned under `/api/v1/` (auth, stories, games, gameplay, gamechat, admin)
-        - Real-time communication via STOMP over WebSocket on topic `/topic/v1/game/{id}`
+    - **Java**: Build with Java 21, Spring boot with Hexagonal Architecture (ports & adapters)
+        - Run application on developer environment 
+            - Build project with command `mvn clean install -DskipTests`
+            - Execute all unit test with command `mvn clean test`
+            - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
+            - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
     - **Docker and sonar**
-        - Image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames)
-        - Run backend appliaction with docker image with `prod' profile using postgres database:
+        - The application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames)
+        - Run backend application with docker image with `prod' profile using *extenal* postgres database:
             ```
             docker run -d -p 8042:8080 \
                 -e SPRING_PROFILES_ACTIVE=prod   \
@@ -81,9 +80,9 @@ Documents includes all steps in roadmap for example development components, conf
                 -e SPRING_DATASOURCE_PASSWORD=dbpass   \
                 pathsgames/pathsgames:latest
             ```
-        - Run sonar-qube scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+        - Run **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
 
-- **Website** project into `code/website`
+- **Website** project into `code/website` define all website components:
     - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
     - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)
     - `code/website/concepts` — design exploration assets (mockups, card concepts, logo, screenshots)

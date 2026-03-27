@@ -1,0 +1,45 @@
+/* =============================================
+   PATHS GAMES — variables.css (v0.12.0)
+   All design tokens as CSS custom properties
+   ============================================= */
+:root {
+  /* === COLOR PALETTE === */
+  --color-parchment:        #e8d5b0;
+  --color-parchment-light:  #f2e6c8;
+  --color-parchment-dark:   #c9b48a;
+  --color-brown-deep:       #1a0a02;
+  --color-brown-dark:       #2e1508;
+  --color-brown-mid:        #5c3317;
+  --color-brown-warm:       #7a4520;
+  --color-brown-light:      #a0622e;
+  --color-brown-tan:        #c08040;
+  --color-brown-super-tan:  #d9a060;
+  --color-brown-extra-tan:  #e0b080;
+  --color-gold:             #c8960a;
+  --color-gold-light:       #e8b830;
+  --color-gold-shine:       #ffd700;
+  --color-gold-dark:        #9a6f08;
+  --color-gold-deep:        #7a4e00;
+  --color-gold-super-deep:  #5c3700;
+  --color-ink:              #1a0f06;
+  --color-ash:              #8b7355;
+  --color-stone:            #6b5c4a;
+  --color-ember:            #d44a0a;
+
+  --color-success:          #2e7d32;
+  --color-success-light:    #4caf50;
+  --color-error:            #c62828;
+  --color-error-light:      #ef5350;
+  --color-info:             #1565c0;
+
+  /* === TYPOGRAPHY === */
+  --font-display:   'Cinzel Decorative', serif;
+  --font-heading:   'Cinzel', serif;
+  --font-body:      'Crimson Text', Georgia, serif;
+  --font-mono:      'Fira Code', 'Consolas', monospace;
+
+  /* === LAYOUT === */
+  --navbar-bg: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  --card-bg:   linear-gradient(135deg, var(--color-brown-deep) 0%, var(--color-brown-warm) 40%, var(--color-brown-dark) 100%);
+  --card-border: var(--color-gold-dark);
+}

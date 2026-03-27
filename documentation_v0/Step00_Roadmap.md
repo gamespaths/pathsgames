@@ -20,6 +20,8 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 | 9 | [Design core data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, define relationships between entities, identify persistent vs transient data, list valid game states, define rules that must never be broken, validate models with real cases |
 | 10 | [Create initial DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |
 | 11 | [Define API versioning](./Step11_DefineAPIVersioning.md) | ✅ | Establish the API versioning scheme, Decide backward compatibility policy, Prepare structure for future versions |
+| 12 | [Implement guest login](Step12_GuestLoginMethod.md) | ✅ | Define guest identity model, ceate guest session endpoint, store guest sessions in database | 
+
 
 | Steps | Phase |
 | -- | -- |
@@ -34,16 +36,12 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 | 35-38	| Profile management, admin tools, test story, in-game chat
 | 39-41	| End-to-end playtest, load testing, documentation
 | 42	| Launch the game with V1 version
-| -- | -- |
+
 
 ## Next steps
+For next steps use this prompt 
+> read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder. 
 
-12. Implement guest login method
-    - Define guest identity model (anonymous UUID)
-    - Create guest session endpoint
-    - Issue JWT token for guest users
-    - Store guest session in database
-    - Handle guest session expiration and cleanup
 13. Implement session and token management
     - Define JWT structure and claims
     - Implement token validation middleware
@@ -232,7 +230,7 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
     > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "start the project"; for each step give 5 subpoints.
 - Second version created with AI prompt:
     > next step must be from 12 to 42, number 12 should be start develop login method to guess users, number 33 should be registrazion user, 34 single sign on with google, 42 is launch the game with v1 version. rewrite all point fron 12 to 42.
-- **Document Version**: 0.11.0
+- **Document Version**: 0.11.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -243,10 +241,9 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
     | 0.8 | step 08: configure CI | March 5, 2026 |
     | 0.9 | step 09: design core data model | March 9, 2026 |
     | 0.10.12 | step 10: create initial DB schema | March 19, 2026 |
-    | 0.11.1 | expanded roadmap from 30 to 42 steps (guest auth, registration, Google), Version 1 launch at 42 | March 24, 2026 |
+    | 0.11.1 | expanded roadmap from 30 to 42 steps, Version 1 launch at step number 42 | March 24, 2026 |
 - **Last Updated**: March 24, 2026
 - **Status**: In progress
-
 
 
 # &lt; Paths Games /&gt;

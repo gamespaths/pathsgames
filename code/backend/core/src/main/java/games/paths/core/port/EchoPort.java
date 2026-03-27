@@ -1,4 +1,4 @@
-package games.paths.core.port.in;
+package games.paths.core.port;
 
 import java.util.Map;
 

@@ -1,7 +1,8 @@
-package games.paths.adapterRest.controller;
+package games.paths.adapters.rest.controller;
 
 import games.paths.adapters.rest.controller.EchoController;
-import games.paths.core.port.in.EchoPort;
+import games.paths.core.port.EchoPort;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;

@@ -6,8 +6,19 @@ spring:
 
 game:
   server:
-    version: 0.11.1
-    # manually change this version if needed >0.11.1 
+    version: 0.12.0
+    # manually change this version if needed >0.12.0 
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
     path: ${user.home}/.paths.games/database.sqlite
+  auth:
+    jwt:
+      # HMAC-SHA256 secret key (min 32 chars). Override in production via env variable or -D option.
+      secret: ${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
+      access-token-minutes: 30
+      refresh-token-days: 7
+  admin:
+    auth:
+      guest:
+        cleanup:
+          cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler

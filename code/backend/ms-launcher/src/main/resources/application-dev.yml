@@ -6,6 +6,12 @@ spring:
   datasource:
     url: jdbc:sqlite:${game.database.path}
     driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -18,3 +24,10 @@ game:
   server:
     status: OK
     env: development
+  auth:
+    cors:
+      allowed-origins: #http://localhost:3000,http://localhost:8042,http://127.0.0.1:5500
+        - "http://localhost:3000"
+        - "http://localhost:8042"
+        - "http://127.0.0.1:5500"
+        - "null" # Necessario per le richieste effettuate da file:///

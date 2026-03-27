@@ -1,9 +1,10 @@
 package games.paths.launcher.config;
 
-import games.paths.core.port.in.EchoPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import games.paths.core.port.EchoPort;
 
 import static org.junit.jupiter.api.Assertions.*;
 

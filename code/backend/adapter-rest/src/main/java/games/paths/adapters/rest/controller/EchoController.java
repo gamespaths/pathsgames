@@ -1,9 +1,10 @@
 package games.paths.adapters.rest.controller;
 
-import games.paths.core.port.in.EchoPort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import games.paths.core.port.EchoPort;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

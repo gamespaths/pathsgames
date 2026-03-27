@@ -1,10 +1,19 @@
 package games.paths.launcher.config;
 
-import games.paths.core.port.in.EchoPort;
+import games.paths.core.port.EchoPort;
+import games.paths.core.port.auth.GuestAdminPersistencePort;
+import games.paths.core.port.auth.GuestPersistencePort;
+import games.paths.core.port.auth.JwtPort;
+import games.paths.core.port.auth.GuestAdminPort;
+import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.service.EchoService;
+import games.paths.core.service.auth.GuestAdminService;
+import games.paths.core.service.auth.GuestAuthService;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,6 +23,7 @@ import java.util.Map;
  * Injects profile-specific properties into pure-Java domain services.
  */
 @Configuration
+@EnableScheduling
 public class CoreConfig {
 
     @Value("${game.server.status:UNKNOWN}")
@@ -40,5 +50,15 @@ public class CoreConfig {
         properties.put("port", serverPort);
         properties.put("javaVersion", System.getProperty("java.version"));
         return new EchoService(serverStatus, properties);
+    }
+
+    @Bean
+    public GuestAuthPort guestAuthPort(JwtPort jwtPort, GuestPersistencePort persistencePort) {
+        return new GuestAuthService(jwtPort, persistencePort);
+    }
+
+    @Bean
+    public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort) {
+        return new GuestAdminService(persistencePort);
     }
 }

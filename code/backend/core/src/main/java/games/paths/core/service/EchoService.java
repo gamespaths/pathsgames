@@ -1,9 +1,9 @@
 package games.paths.core.service;
 
-import games.paths.core.port.in.EchoPort;
-
 import java.util.Collections;
 import java.util.Map;
+
+import games.paths.core.port.EchoPort;
 
 /**
  * EchoService - Domain service implementing the EchoPort.
