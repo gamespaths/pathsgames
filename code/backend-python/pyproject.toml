@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "paths-games-backend-python"
+version = "0.12.3"  # version check >0.12.3
+description = "FastAPI Hexagonal Backend for Paths Games"
+authors = ["Paths Games Dev Team <dev@paths.games>"]
+license = "GPL-3.0"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.110.0"
+uvicorn = "^0.27.0"
+sqlalchemy = "^2.0.25"
+pydantic = "^2.6.1"
+pydantic-settings = "^2.1.0"
+pyjwt = "^2.8.0"
+psycopg2-binary = "^2.9.9"
+python-multipart = "^0.0.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+httpx = "^0.27.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
