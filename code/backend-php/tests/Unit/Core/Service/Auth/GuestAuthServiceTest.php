@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Games\Paths\Tests\Unit\Core\Service;
+namespace Games\Paths\Tests\Unit\Core\Service\Auth;
 
 use DateTimeImmutable;
-use Games\Paths\Core\Domain\GuestSession;
-use Games\Paths\Core\Port\GuestRepositoryPort;
-use Games\Paths\Core\Port\JwtPort;
-use Games\Paths\Core\Service\GuestAuthService;
+use Games\Paths\Core\Domain\Auth\GuestSession;
+use Games\Paths\Core\Port\Auth\GuestRepositoryPort;
+use Games\Paths\Core\Port\Auth\JwtPort;
+use Games\Paths\Core\Service\Auth\GuestAuthService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

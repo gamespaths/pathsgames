@@ -6,7 +6,10 @@ class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
     port: int = 8042
-    version: str = "0.12.4"  # >0.12.4 change version here
+    version: str = "0.12.5"  
+    
+
+    # >0.12.5 change version here
 
     # Auth
     jwt_secret: str = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"

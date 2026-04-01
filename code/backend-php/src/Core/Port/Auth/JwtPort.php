@@ -1,6 +1,6 @@
 <?php
 
-namespace Games\Paths\Core\Port;
+namespace Games\Paths\Core\Port\Auth;
 
 /**
  * Port for JWT token generation — matches Python JwtPort exactly.

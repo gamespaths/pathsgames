@@ -1,11 +1,11 @@
 <?php
 
-namespace Games\Paths\Core\Service;
+namespace Games\Paths\Core\Service\Auth;
 
-use Games\Paths\Core\Domain\GuestSession;
-use Games\Paths\Core\Port\GuestAuthPort;
-use Games\Paths\Core\Port\GuestRepositoryPort;
-use Games\Paths\Core\Port\JwtPort;
+use Games\Paths\Core\Domain\Auth\GuestSession;
+use Games\Paths\Core\Port\Auth\GuestAuthPort;
+use Games\Paths\Core\Port\Auth\GuestRepositoryPort;
+use Games\Paths\Core\Port\Auth\JwtPort;
 use Ramsey\Uuid\Uuid;
 
 /**

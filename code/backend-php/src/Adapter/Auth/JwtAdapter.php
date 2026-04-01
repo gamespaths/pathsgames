@@ -2,7 +2,7 @@
 
 namespace Games\Paths\Adapter\Auth;
 
-use Games\Paths\Core\Port\JwtPort;
+use Games\Paths\Core\Port\Auth\JwtPort;
 use Firebase\JWT\JWT;
 
 /**

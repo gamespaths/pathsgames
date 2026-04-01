@@ -14,7 +14,9 @@ code/backend-python/
 │   ├── adapters/       # Infrastructure: REST, Auth, Persistence
 │   ├── config.py       # Configuration loading
 │   └── launcher.py     # Application entry point & DI wiring
-├── tests/              # Unit and integration tests
+├── tests/              # Unit tests
+├── Dockerfile          # Container image definition
+├── .env.example        # Environment variables template
 ├── pyproject.toml      # Dependency management
 └── README.md
 ```
@@ -33,8 +35,72 @@ code/backend-python/
     ```
 - Run (production):
     ```bash
-    uvicorn app.launcher:app --host 0.0.0.0 --port 8080
+    uvicorn app.launcher:app --host 0.0.0.0 --port 8042
     ```
+
+## Run with Docker
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) installed.
+- A `.env` file created from `.env.example` (copy and edit it):
+    ```bash
+    cp .env.example .env
+    ```
+
+### Development mode (SQLite, no external DB needed)
+
+```bash
+# Build the image
+docker build -t pathsgames-backend-python .
+
+# Run with SQLite (default ENV=development)
+docker run --rm \
+  -p 8042:8042 \
+  -e ENV=development \
+  -e JWT_SECRET=PathsGamesDevSecret2026_MustBeAtLeast32Chars! \
+  -v "$(pwd)/database.sqlite:/app/database.sqlite" \
+  pathsgames-backend-python
+```
+
+> The `-v` mount persists the SQLite database across container restarts.
+
+### Production mode (PostgreSQL)
+
+```bash
+docker run --rm \
+  -p 8042:8042 \
+  -e ENV=production \
+  -e JWT_SECRET=<your-strong-secret> \
+  -e CORS_ALLOWED_ORIGINS=https://paths.games,https://www.paths.games \
+  -e DB_HOST=<postgres-host> \
+  -e DB_PORT=5432 \
+  -e DB_NAME=pathsgames \
+  -e DB_USER=pathsgames \
+  -e DB_PASSWORD=<db-password> \
+  pathsgames-backend-python
+```
+
+### Using an `.env` file
+
+```bash
+docker run --rm -p 8042:8042 --env-file .env pathsgames-backend-python
+```
+
+### Useful Docker commands
+
+```bash
+# Check running containers
+docker ps
+
+# View logs
+docker logs <container-id>
+
+# Stop a running container
+docker stop <container-id>
+
+# Remove the image
+docker rmi pathsgames-backend-python
+```
 
 ## API Endpoints
 
@@ -97,7 +163,7 @@ curl -X DELETE -s http://localhost:8042/api/admin/guests/<UUID> | python3 -m jso
 
 ### 7. Running Automated Tests
 ```bash
-PYTHONPATH=. pytest -v tests/test_echo_service.py tests/test_guest_auth_service.py tests/test_guest_admin_service.py
+PYTHONPATH=. pytest -v tests/
 ```
 
 
@@ -110,11 +176,12 @@ PYTHONPATH=. pytest -v tests/test_echo_service.py tests/test_guest_auth_service.
 
     > add into readme file a "test" section with all curl calls
 
-- **Document Version**: 0.12.3
+- **Document Version**: 0.12.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.3 | First version of this document | March 31, 2026 |
-- **Last Updated**: March 31, 2026
+    | 0.12.5 | Add Docker section, fix production port, update project structure | April 1, 2026 |
+- **Last Updated**: April 1, 2026
 - **Status**: In progress
 
 

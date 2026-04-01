@@ -1,8 +1,8 @@
 <?php
 
-namespace Games\Paths\Core\Port;
+namespace Games\Paths\Core\Port\Auth;
 
-use Games\Paths\Core\Domain\GuestSession;
+use Games\Paths\Core\Domain\Auth\GuestSession;
 
 interface GuestAuthPort
 {

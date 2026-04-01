@@ -1,9 +1,9 @@
 <?php
 
-namespace Games\Paths\Adapter\Persistence\Mysql;
+namespace Games\Paths\Adapter\Auth\Persistence\Mysql;
 
-use Games\Paths\Core\Domain\GuestSession;
-use Games\Paths\Core\Port\GuestRepositoryPort;
+use Games\Paths\Core\Domain\Auth\GuestSession;
+use Games\Paths\Core\Port\Auth\GuestRepositoryPort;
 use PDO;
 
 class GuestMysqlRepository implements GuestRepositoryPort

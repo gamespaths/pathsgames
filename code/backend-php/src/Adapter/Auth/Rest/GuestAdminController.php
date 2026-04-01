@@ -1,8 +1,8 @@
 <?php
 
-namespace Games\Paths\Adapter\Rest;
+namespace Games\Paths\Adapter\Auth\Rest;
 
-use Games\Paths\Core\Port\GuestAdminPort;
+use Games\Paths\Core\Port\Auth\GuestAdminPort;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 

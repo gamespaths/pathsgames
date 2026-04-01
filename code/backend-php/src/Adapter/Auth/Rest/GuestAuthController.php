@@ -1,10 +1,10 @@
 <?php
 
-namespace Games\Paths\Adapter\Rest;
+namespace Games\Paths\Adapter\Auth\Rest;
 
-use Games\Paths\Core\Port\GuestAuthPort;
-use Games\Paths\Core\Port\JwtPort;
-use Games\Paths\Core\Domain\GuestSession;
+use Games\Paths\Core\Port\Auth\GuestAuthPort;
+use Games\Paths\Core\Port\Auth\JwtPort;
+use Games\Paths\Core\Domain\Auth\GuestSession;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 

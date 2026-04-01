@@ -1,10 +1,10 @@
 <?php
 
-namespace Games\Paths\Core\Service;
+namespace Games\Paths\Core\Service\Auth;
 
-use Games\Paths\Core\Domain\GuestSession;
-use Games\Paths\Core\Port\GuestAdminPort;
-use Games\Paths\Core\Port\GuestRepositoryPort;
+use Games\Paths\Core\Domain\Auth\GuestSession;
+use Games\Paths\Core\Port\Auth\GuestAdminPort;
+use Games\Paths\Core\Port\Auth\GuestRepositoryPort;
 
 /**
  * Matches the Python GuestAdminService logic exactly.

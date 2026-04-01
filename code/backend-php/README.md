@@ -15,6 +15,10 @@ code/backend-php/
 │   └── Adapter/        # Infrastructure: REST (Slim Controllers), Persistence (PDO)
 ├── public/
 │   └── index.php       # Application entry point & manual DI wiring
+├── tests/              # Unit tests (PHPUnit)
+├── Dockerfile          # Container image definition
+├── .env.example        # Environment variables template
+├── phpunit.xml         # PHPUnit configuration
 ├── composer.json       # Dependency management
 └── README.md
 ```
@@ -47,7 +51,58 @@ code/backend-php/
 - Run (development using PHP built-in server):
     ```bash
     # Ensure you are in the code/backend-php directory
-    php -S localhost:8042 -t public
+    php -S localhost:8042 -t public 
+    ```
+
+## Run with Docker
+- **Prerequisites**
+    - [Docker](https://docs.docker.com/get-docker/) installed.
+    - A running **MySQL 8** instance (or spin one up with Docker — see below).
+    - A `.env` file created from `.env.example` (copy and edit it):
+        ```bash
+        cp .env.example .env
+        ```
+- Step 1 — Start MySQL with Docker (if you don't have one) or on *normal* server
+- Step 2 — Build and run the PHP backend
+    ```bash
+    # Build the image
+    docker build -t pathsgames-backend-php .
+    # Run connecting to the MySQL container above
+    docker run --rm \
+        -p 8042:8042 \
+        -e APP_ENV=development \
+        -e JWT_SECRET=PathsGamesDevSecret2026_MustBeAtLeast32Chars! \
+        -e DB_HOST=127.0.0.1 \
+        -e DB_PORT=3306 \
+        -e DB_NAME=pathsgames \
+        -e DB_USER=pathsgames \
+        -e DB_PASS=pathsgames \
+         --network host \
+        pathsgames-backend-php
+    ```
+    - Note: use `--network host` in Gnu Linux system if MySql server runs outside docker server.
+    - Note: use `host.docker.internal` in Windows system, needed when MySQL runs outside the container network.
+    - Note: add `-e APP_VERSION=0.12.5 ` to change server app version
+
+- Production mode
+    ```bash
+    docker run --rm \
+    -p 8042:8042 \
+    -e APP_ENV=production \
+    -e APP_VERSION=0.12.4 \
+    -e JWT_SECRET=<your-strong-secret> \
+    -e CORS_ALLOWED_ORIGINS=https://paths.games,https://www.paths.games \
+    -e DB_HOST=<mysql-host> \
+    -e DB_PORT=3306 \
+    -e DB_NAME=pathsgames \
+    -e DB_USER=pathsgames \
+    -e DB_PASS=<db-password> \
+    pathsgames-backend-php
+    ```
+- Using an `.env` file
+
+    ```bash
+    docker run --rm -p 8042:8042 --env-file .env pathsgames-backend-php
     ```
 
 ## API Endpoints
@@ -109,6 +164,33 @@ curl -s http://localhost:8042/api/admin/guests/stats | python3 -m json.tool
 curl -X DELETE -s http://localhost:8042/api/admin/guests/<UUID> | python3 -m json.tool
 ```
 
+### 7. Running Automated Tests
+```bash
+# Install dev dependencies first (if not already installed)
+composer install
+
+# Run the test suite
+composer test
+# or directly:
+vendor/bin/phpunit --configuration phpunit.xml
+```
+
+
+# Version Control
+- Starting from 0.12.4 version, code is created with AI prompt:
+    > read all "documentation_v0" and "code/backend-python" content, now i wanna create "code/backend-php" project, let's go!
+
+- **Document Version**: 0.12.5
+    | Version | Description | Date |
+    | --- | --- | --- |
+    | 0.12.4 | First version of this document | April 1, 2026 |
+    | 0.12.5 | Add Docker section, tests section, project structure update | April 1, 2026 |
+- **Last Updated**: April 1, 2026
+- **Status**: In progress
+
+
+
+
 # < Paths Games />
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.
 
@@ -124,35 +206,3 @@ Public projects
 *Free Software!*
 
 The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
-
-
-
-{
-    "uuid": "1b85b58d-6e3f-4841-9687-8b092a5748fb",
-    "guestCookieToken": "de59a57c0ef9bf5f4c972a43dd9b67dd7db7aa942f26356a489b52022e3e891f",
-    "tsInsert": "2026-04-01T15:12:07+00:00",
-    "expiresAt": "2026-04-02T15:12:07+00:00"
-}
-
-{
-    "userUuid": "9e9bdb1b-77f6-4c1d-86d3-3947c48be05c",
-    "username": "guest_9e9bdb1b",
-    "accessToken": "xxxxx",
-    "refreshToken": "xxxx",
-    "accessTokenExpiresAt": 1775058438000,
-    "refreshTokenExpiresAt": 1775661438000,
-    "guestCookieToken": "4aa11b14-daa6-4f0b-8407-262893d32878"
-}
-
-
-{
-    "status": "OK",
-    "timestamp": 1775056574460,
-    "properties": {
-        "env": "development",
-        "version": "0.12.4",
-        "applicationName": "paths-game-backend-python",
-        "port": "8042",
-        "pythonVersion": "3.12.x"
-    }
-}

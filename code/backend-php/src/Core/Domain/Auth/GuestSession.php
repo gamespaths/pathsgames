@@ -1,6 +1,6 @@
 <?php
 
-namespace Games\Paths\Core\Domain;
+namespace Games\Paths\Core\Domain\Auth;
 
 class GuestSession
 {

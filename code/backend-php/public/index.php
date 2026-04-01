@@ -4,13 +4,13 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use Games\Paths\Core\Service\EchoService;
-use Games\Paths\Core\Service\GuestAuthService;
-use Games\Paths\Core\Service\GuestAdminService;
+use Games\Paths\Core\Service\Auth\GuestAuthService;
+use Games\Paths\Core\Service\Auth\GuestAdminService;
 use Games\Paths\Adapter\Auth\JwtAdapter;
-use Games\Paths\Adapter\Persistence\Mysql\GuestMysqlRepository;
+use Games\Paths\Adapter\Auth\Persistence\Mysql\GuestMysqlRepository;
 use Games\Paths\Adapter\Rest\EchoController;
-use Games\Paths\Adapter\Rest\GuestAuthController;
-use Games\Paths\Adapter\Rest\GuestAdminController;
+use Games\Paths\Adapter\Auth\Rest\GuestAuthController;
+use Games\Paths\Adapter\Auth\Rest\GuestAdminController;
 
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
