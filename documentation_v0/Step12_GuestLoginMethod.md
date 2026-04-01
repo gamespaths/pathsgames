@@ -20,7 +20,7 @@ This document describes the implementation of **Step 12: Implement Guest Login M
 | # | Sub-step | Description |
 |---|----------|-------------|
 | 12.1 | Define guest identity model | `GuestSession` domain model with UUID, tokens, expiration |
-| 12.2 | Create guest session endpoint | `POST /api/v1/auth/guest` to create, `POST /api/v1/auth/guest/resume` to resume |
+| 12.2 | Create guest session endpoint | `POST /api/auth/guest` to create, `POST /api/auth/guest/resume` to resume |
 | 12.3 | Issue JWT token for guest users | HMAC-SHA256 signed access (30min) and refresh (7 days) tokens |
 | 12.4 | Store guest session in database | Uses existing `users` table (state=6) and `users_tokens` table |
 | 12.5 | Handle guest session expiration and cleanup | Scheduled task every 6 hours + `guest_expires_at` field |
@@ -58,7 +58,7 @@ Following the project's **Hexagonal Architecture**:
 
 ## API Endpoints
 
-### POST `/api/v1/auth/guest` — Create Guest Session
+### POST `/api/auth/guest` — Create Guest Session
 
 Creates a new anonymous guest user and returns JWT tokens.
 
@@ -77,7 +77,7 @@ Creates a new anonymous guest user and returns JWT tokens.
 }
 ```
 
-### POST `/api/v1/auth/guest/resume` — Resume Guest Session
+### POST `/api/auth/guest/resume` — Resume Guest Session
 
 Resumes an existing guest session using the cookie token.
 
@@ -209,18 +209,17 @@ game:
 All **28 tests** pass (18 core + 10 adapter-rest).
 
 
-## Frontend Concept (v0.12.0)
+## Frontend Concept (v0.12.0 and v0.12.3)
 
-A standalone JavaScript frontend demo is available at:
-`code/website/concepts_v0/v0.12.0/`
+- A standalone JavaScript frontend demo is available at: `code/website/concepts_v0/v0.12.0/`
+  - Guest login button → calls `POST /api/auth/guest`
+  - Session view with tokens, UUID, expiration times
+  - Resume session → calls `POST /api/auth/guest/resume`
+  - Logout (clears localStorage)
+  - Server status indicator (calls `/api/echo/status`)
+  - Medieval theme consistent with the project's design language
+- A standalone Javasript frontend demo for admin is available at: `code/website/concepts_v0/v0.12.0-admin/`
 
-Features:
-- Guest login button → calls `POST /api/v1/auth/guest`
-- Session view with tokens, UUID, expiration times
-- Resume session → calls `POST /api/v1/auth/guest/resume`
-- Logout (clears localStorage)
-- Server status indicator (calls `/api/echo/status`)
-- Medieval theme consistent with the project's design language
 
 
 ## Version Control
@@ -231,11 +230,13 @@ Features:
 
     > now create the admin sections: admin backend code to manage all guest users and v0.12.0-admin example pages  
 
-- **Document Version**: 0.12.0
+- **Document Version**: 0.12.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
-- **Last Updated**: March 27, 2026
+    | 0.12.3 | Create backend python code | March 31, 2026 |
+    | 0.12.4 | Create backend php code | April 1, 2026 |
+- **Last Updated**: April 1, 2026
 - **Status**: ✅ Complete
 
 

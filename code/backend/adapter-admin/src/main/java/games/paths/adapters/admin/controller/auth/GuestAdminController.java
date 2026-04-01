@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 
 /**
  * GuestAdminController - REST adapter for guest user administration.
- * GET    /api/v1/admin/guests          → list all guest users
- * GET    /api/v1/admin/guests/stats    → guest statistics
- * GET    /api/v1/admin/guests/{uuid}   → get a single guest
- * DELETE /api/v1/admin/guests/{uuid}   → delete a single guest
- * DELETE /api/v1/admin/guests/expired  → cleanup expired guests
+ * GET /api/admin/guests → list all guest users
+ * GET /api/admin/guests/stats → guest statistics
+ * GET /api/admin/guests/{uuid} → get a single guest
+ * DELETE /api/admin/guests/{uuid} → delete a single guest
+ * DELETE /api/admin/guests/expired → cleanup expired guests
  */
 @RestController
-@RequestMapping("/api/v1/admin/guests")
+@RequestMapping("/api/admin/guests")
 public class GuestAdminController {
 
     private final GuestAdminPort guestAdminPort;
@@ -33,7 +33,7 @@ public class GuestAdminController {
     }
 
     /**
-     * GET /api/v1/admin/guests
+     * GET /api/admin/guests
      * Lists all guest users ordered by registration date.
      */
     @GetMapping
@@ -46,7 +46,7 @@ public class GuestAdminController {
     }
 
     /**
-     * GET /api/v1/admin/guests/stats
+     * GET /api/admin/guests/stats
      * Returns aggregate guest statistics (total, active, expired).
      */
     @GetMapping("/stats")
@@ -55,13 +55,12 @@ public class GuestAdminController {
         GuestStatsResponse response = new GuestStatsResponse(
                 stats.getTotalGuests(),
                 stats.getActiveGuests(),
-                stats.getExpiredGuests()
-        );
+                stats.getExpiredGuests());
         return ResponseEntity.ok(response);
     }
 
     /**
-     * GET /api/v1/admin/guests/{uuid}
+     * GET /api/admin/guests/{uuid}
      * Returns details of a single guest user.
      */
     @GetMapping("/{uuid}")
@@ -77,7 +76,7 @@ public class GuestAdminController {
     }
 
     /**
-     * DELETE /api/v1/admin/guests/{uuid}
+     * DELETE /api/admin/guests/{uuid}
      * Deletes a single guest user and all associated tokens.
      */
     @DeleteMapping("/{uuid}")
@@ -96,7 +95,7 @@ public class GuestAdminController {
     }
 
     /**
-     * DELETE /api/v1/admin/guests/expired
+     * DELETE /api/admin/guests/expired
      * Removes all expired guest sessions and their tokens.
      */
     @DeleteMapping("/expired")
@@ -120,7 +119,6 @@ public class GuestAdminController {
                 guest.getLanguage(),
                 guest.getTsRegistration(),
                 guest.getTsLastAccess(),
-                guest.isExpired()
-        );
+                guest.isExpired());
     }
 }

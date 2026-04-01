@@ -11,11 +11,11 @@
      ══════════════════════════════════════════ */
   const API_BASE = 'http://localhost:8042';
   const ENDPOINTS = {
-    guests:       API_BASE + '/api/v1/admin/guests',
-    guestStats:   API_BASE + '/api/v1/admin/guests/stats',
-    guestExpired: API_BASE + '/api/v1/admin/guests/expired',
-    guestLogin:   API_BASE + '/api/v1/auth/guest',
-    echoStatus:   API_BASE + '/api/echo/status'
+    guests: API_BASE + '/api/admin/guests',
+    guestStats: API_BASE + '/api/admin/guests/stats',
+    guestExpired: API_BASE + '/api/admin/guests/expired',
+    guestLogin: API_BASE + '/api/auth/guest',
+    echoStatus: API_BASE + '/api/echo/status'
   };
 
   let currentModalUuid = null;
@@ -23,15 +23,15 @@
   /* ══════════════════════════════════════════
      DOM REFERENCES
      ══════════════════════════════════════════ */
-  const statusDot      = document.getElementById('statusDot');
-  const statusText     = document.getElementById('statusText');
-  const statTotal      = document.getElementById('statTotal');
-  const statActive     = document.getElementById('statActive');
-  const statExpired    = document.getElementById('statExpired');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const statTotal = document.getElementById('statTotal');
+  const statActive = document.getElementById('statActive');
+  const statExpired = document.getElementById('statExpired');
   const guestTableBody = document.getElementById('guestTableBody');
-  const notification   = document.getElementById('notification');
-  const modalOverlay   = document.getElementById('modalOverlay');
-  const modalBody      = document.getElementById('modalBody');
+  const notification = document.getElementById('notification');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalBody = document.getElementById('modalBody');
 
   /* ══════════════════════════════════════════
      INITIALIZATION

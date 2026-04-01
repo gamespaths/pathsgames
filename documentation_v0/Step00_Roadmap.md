@@ -31,8 +31,7 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 | 23-27 | Game mechanics (movement, choices, events, inventory, trade) |
 | 28-30 | Logging, snapshots, error handling
 | 31-32	| Frontend (minimal playable UI + gameplay UI)
-| 33    | User registration
-| 34    | Single sign-on with Google
+| 33-34 | User registration, Single sign-on with Google
 | 35-38	| Profile management, admin tools, test story, in-game chat
 | 39-41	| End-to-end playtest, load testing, documentation
 | 42	| Launch the game with V1 version

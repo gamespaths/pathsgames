@@ -167,9 +167,9 @@ Every table includes a `uuid` column — a randomly generated UUID v4 value, cre
 
 **Usage pattern in REST API**:
 ```
-GET  /api/v1/matches/{uuid}          → lookup by uuid
-POST /api/v1/matches                  → returns uuid in response
-GET  /api/v1/users/{uuid}/profile     → user identified by uuid
+GET  /api/matches/{uuid}          → lookup by uuid
+POST /api/matches                  → returns uuid in response
+GET  /api/users/{uuid}/profile     → user identified by uuid
 ```
 
 **Internal queries** continue to use `id` for JOINs and foreign keys (best performance). The `uuid` is only used at the API boundary layer (controllers/adapters) for external communication.

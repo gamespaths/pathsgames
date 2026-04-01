@@ -43,7 +43,7 @@ Five common API versioning strategies were evaluated:
 | Strategy | Example | Pros | Cons |
 |----------|---------|------|------|
 | **DNS / subdomain** | `api.v1.paths.games/api/stories` | Clean paths, full isolation, zero app-level version logic | DNS configuration required per version |
-| URL path | `/api/v1/stories` | Simple, visible | Pollutes URLs, forces versioned code in Java packages |
+| URL path | `/api/stories` | Simple, visible | Pollutes URLs, forces versioned code in Java packages |
 | Header | `Accept: application/vnd.paths.v1+json` | Clean URLs | Hidden, harder to test/debug |
 | Query parameter | `/api/stories?version=1` | Easy to add | Messy, poor caching |
 | Content negotiation | `Accept: application/json; version=1` | RESTful purist | Complex, poor tooling support |

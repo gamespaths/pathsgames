@@ -35,3 +35,15 @@ target/
 .env.production
 
 .alnao/
+
+# Backend python!
+database.sqlite
+.pytest_cache
+**/__pycache__/
+**/*.pyc
+
+
+# Backend php
+code/backend-php/vendor
+code/backend-php/composer.lock
+

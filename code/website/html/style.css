@@ -334,9 +334,7 @@ body {
 
 /* individual story card — choice-card style, slightly bigger */
 .catalog-card {
-  flex: 0 0 190px;
-  min-width: 190px;
-  height: 270px;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   border: 2px solid var(--color-brown-tan);
@@ -507,6 +505,23 @@ body {
   margin: 0.4rem 0 2.5rem; opacity: 0.42;
 }
 
+/* ================== CARD DIMENSION CLASSES ================== */
+.card-dimension-little {
+  width: 130px;
+  min-width: 130px;
+  height: 185px;
+}
+.card-dimension-normal {
+  width: 175px;
+  min-width: 175px;
+  height: 250px;
+}
+.card-dimension-large {
+  width: 340px;
+  min-width: 340px;
+  min-height: 460px;
+}
+
 /* ═══════════════════════════════════════════
    CROWDFUNDING SECTION
    ═══════════════════════════════════════════ */
@@ -602,8 +617,6 @@ body {
    Fixed aspect ratio: 340 × 460
    ═══════════════════════════════════════════ */
 .location-card {
-  width: 340px;
-  height: 460px;
   display: flex;
   flex-direction: column;     /* vertical: plate top, body, footer bottom */
   border: 3px solid var(--color-brown-dark);
@@ -772,8 +785,6 @@ body {
    Fixed aspect ratio: 140 × 190  (same proportions)
    ═══════════════════════════════════════════ */
 .choice-card {
-  width: 140px;
-  height: 190px;
   display: flex;
   flex-direction: column;     /* vertical: plate top, body, footer bottom */
   border: 2px solid var(--color-brown-tan);
@@ -1192,7 +1203,7 @@ footer.medieval-footer::before { display: none; }
 
 @media (max-width: 1200px) {
   .section-title { font-size: 2.4rem; }
-  .location-card { width: 340px; height: 410px; }
+  .card-dimension-large { min-height: 410px; }
 }
 
 @media (max-width: 1150px) {
@@ -1228,10 +1239,10 @@ footer.medieval-footer::before { display: none; }
 
   /* Catalog responsive */
   .catalog-heading { font-size: 2rem; }
-  .catalog-card { flex: 0 0 170px; min-width: 170px; height: 240px; }
+  .card-dimension-normal { width: 170px; min-width: 170px; height: 240px; }
 
   /* Game bar responsive */
-  .game-bar { padding: 0.4rem 1rem; top: 48px; }
+  .game-bar { padding: 0.4rem 1rem; top: 48px;  margin-left: 0.25rem; margin-right: 0.25rem; }
   .game-bar-title { font-size: 0.95rem; }
 }
 
@@ -1285,9 +1296,9 @@ footer.medieval-footer::before { display: none; }
     letter-spacing: 0.06em;
     text-align: center;
   }
-  .page-wrap { padding: 0 0.5rem; }
-  .location-card { width: 300px; height: 400px; }
-  .choice-card { width: 140px; height: 200px; }
+  .page-wrap { padding: 0 0 2rem; }
+  .card-dimension-large { width: 300px; min-width: 300px; min-height: 400px; }
+  /*.card-dimension-little { width: 100px; min-width: 100px; height: 145px; }*/
   .card-title-plate span { font-size: 0.85rem; }
   .choice-title-plate span { font-size: 0.5rem; }
   .crowdfund-card { padding: 2rem 1rem; }
@@ -1304,7 +1315,8 @@ footer.medieval-footer::before { display: none; }
   .story-catalog { padding: 0.1rem 0.1rem; }
   .catalog-heading { font-size: 1.5rem; }
   .catalog-cat-title { font-size: 1.1rem; }
-  .catalog-card { flex: 0 0 155px; min-width: 155px; height: 225px; }
+  .catalog-card { flex: 0 0 auto; }
+  .card-dimension-normal { width: 155px; min-width: 155px; height: 225px; }
   .catalog-card-emote { font-size: 3rem; }
   .catalog-title-plate span { font-size: 0.65rem; }
   .catalog-desc-area p { font-size: 0.65rem; }
@@ -1421,7 +1433,7 @@ footer.medieval-footer::before { display: none; }
    STORY PREVIEW MODAL
    ═══════════════════════════════════════════ */
 .story-preview-modal .modal-dialog {
-  max-width: 820px;
+  max-width: 920px;
 }
 .story-preview-body {
   display: flex;
@@ -1431,7 +1443,7 @@ footer.medieval-footer::before { display: none; }
 }
 /* Left side — main card (reuses location-card look) */
 .story-preview-main {
-  flex: 0 0 300px;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   border: 3px solid var(--color-brown-dark);
@@ -1440,7 +1452,6 @@ footer.medieval-footer::before { display: none; }
   background: linear-gradient(160deg, #2a1508 0%, #1e0f04 50%, #150a02 100%);
   box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(200,150,10,0.12);
   position: relative;
-  min-height: 460px;
 }
 .story-preview-main::before {
   content: '';
@@ -1508,6 +1519,196 @@ footer.medieval-footer::before { display: none; }
   display: none;
 }
 
+/* ═════════════════════════════════════════
+   STORY OPTIONS — right side of preview modal
+   ═════════════════════════════════════════ */
+.story-preview-options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+.options-step-title {
+  font-family: var(--font-heading);
+  color: var(--color-gold-super-deep);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  margin-top: 0;
+}
+.options-cards-row {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+/* Option card — uses card-dimension-little */
+.option-card {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--color-brown-tan);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: var(--card-choice-body-background);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(200,150,10,0.1);
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.option-card::before {
+  content: '';
+  position: absolute; inset: 3px;
+  border: 1px solid rgba(200,150,10,0.1);
+  border-radius: 6px;
+  pointer-events: none; z-index: 2;
+}
+.option-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 18%; right: 18%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-dark), transparent);
+  pointer-events: none; z-index: 3;
+}
+.option-card:hover:not(.option-disabled) {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 14px rgba(200,150,10,0.25);
+}
+.option-title-plate {
+  background: var(--card-choice-title-background);
+  border-bottom: 1px solid var(--color-gold-dark);
+  padding: 0.3rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative; z-index: 4;
+}
+.option-title-plate span {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  color: var(--color-gold-light);
+  text-shadow: 0 0 8px rgba(232,184,48,0.25);
+  text-align: center;
+}
+.option-visual {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-choice-header-background);
+  border-bottom: 1px solid rgba(200,150,10,0.08);
+  min-height: 0;
+}
+.option-visual i {
+  font-size: 3rem;
+  color: var(--color-gold-light);
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+}
+.option-visual .terms-link {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  color: var(--color-gold-light);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.option-select-btn {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: var(--navbar-bg);
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+  margin: 0.25rem 0.4rem;
+  cursor: pointer;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(232,184,48,0.4);
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+.option-select-btn:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(232,184,48,0.5);
+  color: var(--color-gold-shine);
+  background: linear-gradient(120deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);
+}
+.option-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.option-disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+}
+.option-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Options summary badges */
+.options-summary {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.option-summary-badge {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: var(--navbar-bg);
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  text-shadow: 0 0 10px rgba(232,184,48,0.4);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.option-summary-badge i {
+  color: var(--color-gold);
+}
+/* Terms info icon inside option card */
+.option-terms-info {
+/*  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  z-index: 10;*/
+  background: transparent;
+  border: none;
+  color: rgba(200,150,10,0.5);
+  /* font-size: 0.75rem; */
+  cursor: pointer;
+  padding: 0.1rem 0.25rem;
+  line-height: 1;
+  transition: color 0.2s, transform 0.15s;
+}
+.option-terms-info:hover {
+  color: var(--color-gold);
+  /* transform: scale(1.3); */
+}
+.option-terms-notice {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1.10rem;
+  line-height: 1.25;
+  color: var(--color-parchment-light);
+  text-align: center;
+  padding: 0.3rem 0.4rem;
+  display: block;
+}
+
 /* Right side — 6 info mini-cards in 2×3 grid */
 .story-preview-info {
   flex: 1;
@@ -1531,7 +1732,6 @@ footer.medieval-footer::before { display: none; }
   box-shadow: 0 3px 12px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(200,150,10,0.1);
   position: relative;
   padding: 0;
-  min-height: 140px;
 }
 .preview-info-card::before {
   content: '';
@@ -1598,8 +1798,6 @@ footer.medieval-footer::before { display: none; }
   position: relative;
 }
 .card-detail-card {
-  width: 340px;
-  min-height: 480px;
   display: flex;
   flex-direction: column;
   border: 3px solid var(--color-brown-tan);
@@ -1704,12 +1902,12 @@ footer.medieval-footer::before { display: none; }
   box-shadow: 0 0 8px rgba(232,184,48,0.4);
 }
 
-/* Story preview footer with Play button */
+/* Story preview footer with Play button — hidden, replaced by options flow */
 .story-preview-footer {
   background: var(--card-title-background);
   border-top: 2px solid var(--color-gold-dark);
   padding: 0.6rem 1.5rem;
-  display: flex; justify-content: center;
+  display: none; /* hidden — replaced by options flow */
 }
 .story-preview-play-btn {
   font-family: var(--font-heading);
@@ -1736,10 +1934,17 @@ footer.medieval-footer::before { display: none; }
 @media (max-width: 800px) {
   .story-preview-modal .modal-dialog { max-width: 95%; }
   .story-preview-body { flex-direction: column; gap: 1.2rem; padding: 1rem; align-items: center; }
-  .story-preview-main { flex: 0 0 300px; width: 300px; min-height: 460px; margin: 0 auto; }
+  .story-preview-main { flex: 0 0 auto; margin: 0 auto; }
   .story-preview-info { width: 100%; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .story-preview-options { width: 100%; }
+  .options-cards-row { justify-content: center; }
 }
 @media (max-width: 500px) {
   .story-preview-info { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
   .story-preview-main .preview-visual-emote { font-size: 5rem; }
+  /* .card-dimension-little { width: 95px; min-width: 95px; height: 140px; } */
+  .options-cards-row { gap: 0.4rem; }
+  .option-title-plate span { font-size: 0.6rem; }
+  .option-visual i { font-size: 3rem; }
+  .option-select-btn { font-size: 0.6rem; }
 }

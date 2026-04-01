@@ -11,8 +11,8 @@
      ══════════════════════════════════════════ */
   const API_BASE = 'http://localhost:8042';
   const ENDPOINTS = {
-    guestLogin:   API_BASE + '/api/v1/auth/guest',
-    guestResume:  API_BASE + '/api/v1/auth/guest/resume',
+    guestLogin:   API_BASE + '/api/auth/guest',
+    guestResume:  API_BASE + '/api/auth/guest/resume',
     echoStatus:   API_BASE + '/api/echo/status'
   };
 
@@ -61,7 +61,7 @@
   }
 
   /* ══════════════════════════════════════════
-     GUEST LOGIN — POST /api/v1/auth/guest
+     GUEST LOGIN — POST /api/auth/guest
      ══════════════════════════════════════════ */
   window.guestLogin = async function () {
     btnGuestLogin.disabled = true;
@@ -97,7 +97,7 @@
   };
 
   /* ══════════════════════════════════════════
-     RESUME SESSION — POST /api/v1/auth/guest/resume
+     RESUME SESSION — POST /api/auth/guest/resume
      ══════════════════════════════════════════ */
   window.resumeSession = async function () {
     sessionMsg.innerHTML = '';

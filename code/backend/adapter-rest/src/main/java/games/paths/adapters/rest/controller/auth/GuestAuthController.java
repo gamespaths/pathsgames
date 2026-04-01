@@ -12,11 +12,12 @@ import java.util.Map;
 
 /**
  * GuestAuthController - REST adapter for guest authentication.
- * POST /api/v1/auth/guest       → creates a new guest session
- * POST /api/v1/auth/guest/resume → resumes an existing guest session via cookie token
+ * POST /api/auth/guest → creates a new guest session
+ * POST /api/auth/guest/resume → resumes an existing guest session via cookie
+ * token
  */
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/auth")
 public class GuestAuthController {
 
     private final GuestAuthPort guestAuthPort;
@@ -26,7 +27,7 @@ public class GuestAuthController {
     }
 
     /**
-     * POST /api/v1/auth/guest
+     * POST /api/auth/guest
      * Creates a new anonymous guest session.
      * No request body required — the server generates the identity.
      */
@@ -41,14 +42,13 @@ public class GuestAuthController {
                 session.getRefreshToken(),
                 session.getAccessTokenExpiresAt(),
                 session.getRefreshTokenExpiresAt(),
-                session.getGuestCookieToken()
-        );
+                session.getGuestCookieToken());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
-     * POST /api/v1/auth/guest/resume
+     * POST /api/auth/guest/resume
      * Resumes an existing guest session using the guest cookie token.
      * Request body: { "guestCookieToken": "..." }
      */
@@ -79,8 +79,7 @@ public class GuestAuthController {
                 session.getRefreshToken(),
                 session.getAccessTokenExpiresAt(),
                 session.getRefreshTokenExpiresAt(),
-                session.getGuestCookieToken()
-        );
+                session.getGuestCookieToken());
 
         return ResponseEntity.ok(response);
     }

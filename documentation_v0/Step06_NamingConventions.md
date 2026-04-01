@@ -16,7 +16,7 @@ This document defines the **naming conventions** for all layers of the **Paths G
 
 ### 1.1 General Rules
 - All endpoints are prefixed with `/api/{version}/` where `{version}` follows the format `v1`, `v2`, `v1beta1`, etc.
-- Current production version: **`v1`** — all V1 endpoints live under `/api/v1/`
+- Current production version: **`v1`** — all V1 endpoints live under `/api/`
 - Path segments use **kebab-case** (lowercase, words separated by hyphens)
 - Resource names are **plural nouns** (e.g., `/games`, `/stories`, `/players`)
 - Identifiers appear as path variables: `/{id}` or `/{id_game}`, `/{id_player}`
@@ -28,7 +28,7 @@ This document defines the **naming conventions** for all layers of the **Paths G
   - `DELETE` → delete/cancel
 
 ### 1.2 API Versioning
-- Version segment is **mandatory** immediately after `/api/`: `/api/v1/...`
+- Version segment is **mandatory** immediately after `/api/`: `/api/...`
 - Version format: `v` + major number, optionally followed by stability label
   - Stable releases: `v1`, `v2`, `v3`
   - Beta / preview: `v1beta1`, `v2beta1`
@@ -38,99 +38,99 @@ This document defines the **naming conventions** for all layers of the **Paths G
 - The echo/health endpoint is the only exception: `/api/echo/status` (unversioned, always available)
 
 ### 1.3 Context Prefixes
-Endpoints are grouped by functional context immediately after `/api/v1/`:
+Endpoints are grouped by functional context immediately after `/api/`:
 
 | Context prefix | Purpose |
 |---|---|
-| `/api/v1/auth/...` | Authentication & user management |
-| `/api/v1/stories/...` | Story catalog (read-only reference data) |
-| `/api/v1/games/...` | Match management (create, join, list) |
-| `/api/v1/game/{id}/...` | In-match state access (read-heavy) |
-| `/api/v1/gameplay/{id_game}/...` | In-match player actions (write-heavy, turn-locked) |
-| `/api/v1/gamechat/{id_game}/...` | In-match chat and notifications |
-| `/api/v1/admin/...` | Admin tools (restricted access) |
+| `/api/auth/...` | Authentication & user management |
+| `/api/stories/...` | Story catalog (read-only reference data) |
+| `/api/games/...` | Match management (create, join, list) |
+| `/api/game/{id}/...` | In-match state access (read-heavy) |
+| `/api/gameplay/{id_game}/...` | In-match player actions (write-heavy, turn-locked) |
+| `/api/gamechat/{id_game}/...` | In-match chat and notifications |
+| `/api/admin/...` | Admin tools (restricted access) |
 | `/api/echo/...` | Health check / internal diagnostics (unversioned) |
 
 ### 1.4 Endpoint Patterns by Context
 
-**Authentication** (`/api/v1/auth/`)
+**Authentication** (`/api/auth/`)
 ```
-POST   /api/v1/auth/register
-POST   /api/v1/auth/login
-POST   /api/v1/auth/google
-GET    /api/v1/auth/me
-POST   /api/v1/auth/me/change-password
-POST   /api/v1/auth/me/change-data
-```
-
-**Stories / Reference data** (`/api/v1/stories/`)
-```
-GET    /api/v1/stories
-GET    /api/v1/stories/{id}/characters
-GET    /api/v1/stories/{id}/lingua/{lingua}/testo/{id_testo}
-GET    /api/v1/stories/{id}/lingua/{lingua}/carta/{id_immagine}
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/google
+GET    /api/auth/me
+POST   /api/auth/me/change-password
+POST   /api/auth/me/change-data
 ```
 
-**Match management** (`/api/v1/games/`)
+**Stories / Reference data** (`/api/stories/`)
 ```
-GET    /api/v1/games/active
-POST   /api/v1/games
-POST   /api/v1/games/{id}/join
-POST   /api/v1/games/{id}/start
-POST   /api/v1/games/{id}/leave
-GET    /api/v1/games/{id}/state
-POST   /api/v1/games/{id}/select-character
-DELETE /api/v1/games/{id}
+GET    /api/stories
+GET    /api/stories/{id}/characters
+GET    /api/stories/{id}/lingua/{lingua}/testo/{id_testo}
+GET    /api/stories/{id}/lingua/{lingua}/carta/{id_immagine}
 ```
 
-**In-match state** (`/api/v1/game/{id}/`)
+**Match management** (`/api/games/`)
 ```
-GET    /api/v1/game/{id}/players
-GET    /api/v1/game/{id}/players/{playerId}/stats
-GET    /api/v1/game/{id}/characters/{id}
-GET    /api/v1/game/{id}/locations
-GET    /api/v1/game/{id}/locations/{locationId}
-GET    /api/v1/game/{id}/missions/active
-GET    /api/v1/game/{id}/missions/{missionId}/progress
-GET    /api/v1/game/{id}/turn-order
-GET    /api/v1/game/{id}/events/history
-GET    /api/v1/game/{id}/notifications
-GET    /api/v1/game/{id}/notifications/unread
-POST   /api/v1/game/{id}/notifications/{notificationId}/mark-read
+GET    /api/games/active
+POST   /api/games
+POST   /api/games/{id}/join
+POST   /api/games/{id}/start
+POST   /api/games/{id}/leave
+GET    /api/games/{id}/state
+POST   /api/games/{id}/select-character
+DELETE /api/games/{id}
 ```
 
-**Gameplay actions** (`/api/v1/gameplay/{id_game}/`) — all turn-locked actions
+**In-match state** (`/api/game/{id}/`)
 ```
-POST   /api/v1/gameplay/{id_game}/movements/start
-GET    /api/v1/gameplay/{id_game}/movements/pending
-POST   /api/v1/gameplay/{id_game}/movements/confirm-movement-invite
-GET    /api/v1/gameplay/{id_game}/inventory
-POST   /api/v1/gameplay/{id_game}/inventory/use-item
-POST   /api/v1/gameplay/{id_game}/inventory/send-drop-item
-POST   /api/v1/gameplay/{id_game}/inventory/trade
-DELETE /api/v1/gameplay/{id_game}/inventory/trade/{tradeId}
-GET    /api/v1/gameplay/{id_game}/inventory/trades/pending
-POST   /api/v1/gameplay/{id_game}/inventory/trade/{tradeId}/accept-reject
-POST   /api/v1/gameplay/{id_game}/action/interact
-POST   /api/v1/gameplay/{id_game}/action/choice
-POST   /api/v1/gameplay/{id_game}/action/sleep
-POST   /api/v1/gameplay/{id_game}/action/pass
-POST   /api/v1/gameplay/{id_game}/action/ask-help
-POST   /api/v1/gameplay/{id_game}/action/help-player
-POST   /api/v1/gameplay/{id_game}/character/use-exp
-GET    /api/v1/gameplay/{id_game}/events/{eventId}/details
+GET    /api/game/{id}/players
+GET    /api/game/{id}/players/{playerId}/stats
+GET    /api/game/{id}/characters/{id}
+GET    /api/game/{id}/locations
+GET    /api/game/{id}/locations/{locationId}
+GET    /api/game/{id}/missions/active
+GET    /api/game/{id}/missions/{missionId}/progress
+GET    /api/game/{id}/turn-order
+GET    /api/game/{id}/events/history
+GET    /api/game/{id}/notifications
+GET    /api/game/{id}/notifications/unread
+POST   /api/game/{id}/notifications/{notificationId}/mark-read
 ```
 
-**Admin** (`/api/v1/admin/`)
+**Gameplay actions** (`/api/gameplay/{id_game}/`) — all turn-locked actions
 ```
-GET    /api/v1/admin/params
-GET    /api/v1/admin/game/{id_game}/log
-GET    /api/v1/admin/game/{id_game}/snapshot
-PUT    /api/v1/admin/game/{id_game}/snapshot/{id}
-GET    /api/v1/admin/game/{id_game}/replay
-POST   /api/v1/admin/game/{id_game}/register
-POST   /api/v1/admin/game/{id_game}/force-unlock
-POST   /api/v1/admin/game/{id_game}/kick/{user_id}
+POST   /api/gameplay/{id_game}/movements/start
+GET    /api/gameplay/{id_game}/movements/pending
+POST   /api/gameplay/{id_game}/movements/confirm-movement-invite
+GET    /api/gameplay/{id_game}/inventory
+POST   /api/gameplay/{id_game}/inventory/use-item
+POST   /api/gameplay/{id_game}/inventory/send-drop-item
+POST   /api/gameplay/{id_game}/inventory/trade
+DELETE /api/gameplay/{id_game}/inventory/trade/{tradeId}
+GET    /api/gameplay/{id_game}/inventory/trades/pending
+POST   /api/gameplay/{id_game}/inventory/trade/{tradeId}/accept-reject
+POST   /api/gameplay/{id_game}/action/interact
+POST   /api/gameplay/{id_game}/action/choice
+POST   /api/gameplay/{id_game}/action/sleep
+POST   /api/gameplay/{id_game}/action/pass
+POST   /api/gameplay/{id_game}/action/ask-help
+POST   /api/gameplay/{id_game}/action/help-player
+POST   /api/gameplay/{id_game}/character/use-exp
+GET    /api/gameplay/{id_game}/events/{eventId}/details
+```
+
+**Admin** (`/api/admin/`)
+```
+GET    /api/admin/params
+GET    /api/admin/game/{id_game}/log
+GET    /api/admin/game/{id_game}/snapshot
+PUT    /api/admin/game/{id_game}/snapshot/{id}
+GET    /api/admin/game/{id_game}/replay
+POST   /api/admin/game/{id_game}/register
+POST   /api/admin/game/{id_game}/force-unlock
+POST   /api/admin/game/{id_game}/kick/{user_id}
 ```
 
 **Health check** (unversioned)
@@ -609,7 +609,7 @@ JWT_SECRET=...
 
 | Layer | Convention | Example |
 |---|---|---|
-| REST endpoints | `/api/v1/{context}/{resource}/{id}` kebab-case | `/api/v1/gameplay/{id}/action/pass` |
+| REST endpoints | `/api/{context}/{resource}/{id}` kebab-case | `/api/gameplay/{id}/action/pass` |
 | WebSocket message type | SCREAMING_SNAKE_CASE | `TURN_UPDATE` |
 | WebSocket topic | `/topic/v1/game/{id_game}` | `/topic/v1/game/42` |
 | DB table name | snake_case with prefix (English) | `gaming_turn_queue` |
