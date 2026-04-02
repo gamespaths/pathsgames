@@ -53,7 +53,7 @@ public final class CookieHelper {
     public static final int GUEST_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;  // 2 592 000
 
     /** Applied cookie policy — overridden at startup by CookiePolicyInitializer. */
-    private static boolean secure  = false;
+    //private static boolean secure  = false;
     private static String sameSite = "None";
 
     private CookieHelper() { /* static utility */ }
@@ -65,8 +65,7 @@ public final class CookieHelper {
      * @param secure   {@code true} to set the Secure flag (required for HTTPS production)
      * @param sameSite SameSite attribute value: {@code "None"}, {@code "Lax"}, or {@code "Strict"}
      */
-    public static void configure(boolean secure, String sameSite) {
-        CookieHelper.secure   = secure;
+    public static void configure(String sameSite) {
         CookieHelper.sameSite = sameSite;
     }
 
@@ -126,7 +125,7 @@ public final class CookieHelper {
                                   String value, int maxAgeSeconds) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(secure)
+                .secure(true) // Secure flag is required for SameSite=None in modern browsers
                 .path(COOKIE_PATH)
                 .maxAge(Duration.ofSeconds(maxAgeSeconds))
                 .sameSite(sameSite)

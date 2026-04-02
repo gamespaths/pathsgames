@@ -27,15 +27,15 @@ public class CookiePolicyInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(CookiePolicyInitializer.class);
 
-    @Value("${game.auth.cookie.secure:false}")
-    private boolean secure;
+    //@Value("${game.auth.cookie.secure:false}")
+    //private boolean secure;
 
     @Value("${game.auth.cookie.same-site:None}")
     private String sameSite;
 
     @PostConstruct
     public void init() {
-        CookieHelper.configure(secure, sameSite);
-        log.info("Cookie policy: Secure={}, SameSite={}", secure, sameSite);
+        CookieHelper.configure(sameSite);
+        log.info("Cookie policy SameSite={}", sameSite);
     }
 }

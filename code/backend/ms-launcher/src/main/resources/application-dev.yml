@@ -38,5 +38,4 @@ game:
       # SameSite=None REQUIRES Secure=true — Chrome enforces this since v80.
       # Chrome treats localhost as a "secure context", so Secure cookies work over
       # plain HTTP on http://localhost:8042 without HTTPS.
-      secure: true
       same-site: None

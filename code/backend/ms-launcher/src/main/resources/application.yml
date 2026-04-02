@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.13.1
+    version: 0.13.2
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -21,7 +21,6 @@ game:
     admin-path-prefix: /api/admin/
     public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
-      secure: true
       same-site: Lax
   admin:
     auth:
