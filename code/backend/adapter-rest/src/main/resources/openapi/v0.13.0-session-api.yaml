@@ -1,0 +1,323 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Session & Token Management API
+  description: |
+    OpenAPI specification for Step 13: Session and Token Management.
+    Covers token refresh (with rotation), logout, logout-all, and user identity endpoints.
+    Also documents the JWT authentication filter behavior.
+  version: 0.13.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Session
+    description: Session and token management endpoints
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Step 13: Session & Token Management
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/auth/refresh:
+    post:
+      tags: [Session]
+      summary: Refresh tokens (with rotation)
+      description: |
+        Exchanges a valid refresh token for a new access + refresh token pair.
+        **Token rotation policy:** ALL previous tokens for the user are revoked.
+        This is a public endpoint (no Bearer token required).
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          description: Missing or blank refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: MISSING_REFRESH_TOKEN
+                message: refreshToken is required
+                timestamp: 1711533600000
+        '401':
+          description: Refresh token is invalid, expired, or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: INVALID_REFRESH_TOKEN
+                message: "Refresh token is invalid, expired, or revoked. Please login again."
+                timestamp: 1711533600000
+
+  /api/auth/logout:
+    post:
+      tags: [Session]
+      summary: Logout (single token)
+      description: |
+        Revokes a single refresh token (logout from one device/channel).
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token to revoke
+                  example: "eyJhbGciOiJIUzI1NiJ9..."
+      responses:
+        '200':
+          description: Token revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                status: OK
+                message: Token revoked successfully
+                timestamp: 1711533600000
+        '400':
+          description: Missing or blank refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Refresh token not found or already revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: TOKEN_NOT_FOUND
+                message: Refresh token not found or already revoked
+                timestamp: 1711533600000
+
+  /api/auth/logout/all:
+    post:
+      tags: [Session]
+      summary: Logout all sessions
+      description: |
+        Revokes all active sessions (refresh tokens) for the authenticated user.
+        The user UUID is extracted from the JWT access token by the authentication filter.
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: logoutAll
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All sessions revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                status: OK
+                message: All sessions revoked successfully
+                timestamp: 1711533600000
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: USER_NOT_FOUND
+                message: User not found
+                timestamp: 1711533600000
+
+  /api/auth/me:
+    get:
+      tags: [Session]
+      summary: Get current user info
+      description: |
+        Returns the authenticated user's identity from the valid access token.
+        User information is set by the JWT authentication filter.
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User identity information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: UNAUTHORIZED
+                message: Valid access token required
+                timestamp: 1711533600000
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained from `/api/auth/guest` or `/api/auth/refresh`.
+        Include in the `Authorization` header as `Bearer <token>`.
+
+  schemas:
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: The refresh token to exchange for a new token pair
+          example: "eyJhbGciOiJIUzI1NiJ9..."
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          description: The user's public UUID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          description: The user's display name
+          example: "guest_550e8400"
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+          description: The user's role
+          example: "PLAYER"
+        accessToken:
+          type: string
+          description: New JWT access token
+          example: "eyJhbGciOiJIUzI1NiJ9...(new)"
+        refreshToken:
+          type: string
+          description: New JWT refresh token
+          example: "eyJhbGciOiJIUzI1NiJ9...(new)"
+        accessTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Access token expiration (epoch milliseconds)
+          example: 1711533600000
+        refreshTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Refresh token expiration (epoch milliseconds)
+          example: 1712138400000
+
+    UserInfo:
+      type: object
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: "guest_550e8400"
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+          example: "PLAYER"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "OK"
+        message:
+          type: string
+          example: "Operation completed successfully"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: "INVALID_TOKEN"
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Access token is invalid, expired, or malformed"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    GuestLoginResponse:
+      type: object
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+        username:
+          type: string
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        accessTokenExpiresAt:
+          type: integer
+          format: int64
+        refreshTokenExpiresAt:
+          type: integer
+          format: int64
+        guestCookieToken:
+          type: string

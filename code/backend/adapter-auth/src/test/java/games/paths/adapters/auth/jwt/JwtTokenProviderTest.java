@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -124,6 +125,109 @@ class JwtTokenProviderTest {
 
             // Delta di 2 secondi per tolleranza esecuzione
             assertEquals(expectedMs, durationMs, 2000, "Refresh duration should match configured days");
+        }
+    }
+
+    // --- SEZIONE: PARSING TOKEN (Step 13) ---
+
+    @Nested
+    @DisplayName("Token Parsing Tests (Step 13)")
+    class ParseTokenTests {
+
+        @Test
+        @DisplayName("Should parse valid access token and return expected claims")
+        void parseToken_accessToken() {
+            String token = provider.generateAccessToken("u-1", "guest_1", "PLAYER");
+            Map<String, Object> claims = provider.parseToken(token);
+
+            assertNotNull(claims);
+            assertAll(
+                () -> assertEquals("u-1", claims.get("sub")),
+                () -> assertEquals("guest_1", claims.get("username")),
+                () -> assertEquals("PLAYER", claims.get("role")),
+                () -> assertEquals("access", claims.get("type")),
+                () -> assertNotNull(claims.get("jti")),
+                () -> assertNotNull(claims.get("iat")),
+                () -> assertNotNull(claims.get("exp"))
+            );
+        }
+
+        @Test
+        @DisplayName("Should parse valid refresh token (username and role are null)")
+        void parseToken_refreshToken() {
+            String token = provider.generateRefreshToken("u-2");
+            Map<String, Object> claims = provider.parseToken(token);
+
+            assertNotNull(claims);
+            assertAll(
+                () -> assertEquals("u-2", claims.get("sub")),
+                () -> assertEquals("refresh", claims.get("type")),
+                () -> assertNull(claims.get("username")),
+                () -> assertNull(claims.get("role"))
+            );
+        }
+
+        @Test
+        @DisplayName("Should return null for invalid/tampered token")
+        void parseToken_invalidToken() {
+            assertNull(provider.parseToken("not.a.valid.jwt"));
+        }
+
+        @Test
+        @DisplayName("Should return null for null token")
+        void parseToken_nullToken() {
+            assertNull(provider.parseToken(null));
+        }
+
+        @Test
+        @DisplayName("Should return null for token signed with different key")
+        void parseToken_wrongKey() {
+            JwtTokenProvider otherProvider = new JwtTokenProvider(
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345", ACCESS_MINUTES, REFRESH_DAYS);
+            String token = otherProvider.generateAccessToken("u-1", "guest", "PLAYER");
+            assertNull(provider.parseToken(token));
+        }
+    }
+
+    // --- SEZIONE: VALIDAZIONE TOKEN (Step 13) ---
+
+    @Nested
+    @DisplayName("Token Validation Tests (Step 13)")
+    class ValidateTokenTests {
+
+        @Test
+        @DisplayName("Should return true for valid access token")
+        void validateToken_validAccess() {
+            String token = provider.generateAccessToken("u-1", "guest_1", "PLAYER");
+            assertTrue(provider.validateToken(token));
+        }
+
+        @Test
+        @DisplayName("Should return true for valid refresh token")
+        void validateToken_validRefresh() {
+            String token = provider.generateRefreshToken("u-1");
+            assertTrue(provider.validateToken(token));
+        }
+
+        @Test
+        @DisplayName("Should return false for invalid/tampered token")
+        void validateToken_invalidToken() {
+            assertFalse(provider.validateToken("invalid.jwt.token"));
+        }
+
+        @Test
+        @DisplayName("Should return false for null token")
+        void validateToken_nullToken() {
+            assertFalse(provider.validateToken(null));
+        }
+
+        @Test
+        @DisplayName("Should return false for token signed with different key")
+        void validateToken_wrongKey() {
+            JwtTokenProvider otherProvider = new JwtTokenProvider(
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345", ACCESS_MINUTES, REFRESH_DAYS);
+            String token = otherProvider.generateAccessToken("u-1", "guest", "PLAYER");
+            assertFalse(provider.validateToken(token));
         }
     }
 }

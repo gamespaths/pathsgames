@@ -58,4 +58,11 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
      */
     @Query("SELECT COUNT(u) FROM UserEntity u WHERE u.state = :state AND u.guestExpiresAt < :now")
     long countExpiredGuests(@Param("state") Integer state, @Param("now") String now);
+
+    // === Step 13: Session & Token Management ===
+
+    /**
+     * Find any user by UUID (any state).
+     */
+    Optional<UserEntity> findByUuid(String uuid);
 }

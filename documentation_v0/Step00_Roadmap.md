@@ -9,7 +9,7 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 
 |  | Step |  | Main goals |
 | ---- | -- | ----- | ---------- |
-| 1 | [Start the project](./Step01_StartProject.md) | ✅ | Write ideas on document, define 30 steps to execute to start the project, a simple list and for each step give 5 subpoints. <br /> *italian language, traslation coming soon* |
+| 1 | [Start the project](./Step01_StartProject.md) | ✅ | Write ideas on document and initial concepts, define steps to execute to start the project, a simple list and for each step give 5 subpoints. |
 | 2 | [Create the repository](./Step02_CreateTheRepository.md) | ✅ | Choose repository platform, initialize an empty repository, set the main branch and define basic access rules |
 | 3 | [Define the V1 scope](./Step03_DefineScope.md) | ✅ | Define the V1 scope, list mandatory features, list excluded features, define maximum complexity limit, establish what makes V1 "finished", freeze decisions until V2 |
 | 4 | [Technology stack](./Step04_TechnologyStack.md) | ✅ | Select backend language, select backend framework, select primary database, select frontend technology, select deployment system |
@@ -21,11 +21,11 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 | 10 | [Create initial DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |
 | 11 | [Define API versioning](./Step11_DefineAPIVersioning.md) | ✅ | Establish the API versioning scheme, Decide backward compatibility policy, Prepare structure for future versions |
 | 12 | [Implement guest login](Step12_GuestLoginMethod.md) | ✅ | Define guest identity model, ceate guest session endpoint, store guest sessions in database | 
+| 13 | [Session & token management](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
 
 
 | Steps | Phase |
 | -- | -- |
-| 12-13	| Guest authentication & JWT session management |
 | 14-17	| Match lifecycle (create, join, character select, start) |
 | 18-22	| Core gameplay engine (turns, WebSocket, reconnect, timeouts) |
 | 23-27 | Game mechanics (movement, choices, events, inventory, trade) |
@@ -39,14 +39,8 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 
 ## Next steps
 For next steps use this prompt 
-> read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder. 
+> read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder, read code/website/html folder for last version of public website. don't look and don't change backend-python and backend-php. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
 
-13. Implement session and token management
-    - Define JWT structure and claims
-    - Implement token validation middleware
-    - Handle token refresh flow
-    - Implement logout and token revocation
-    - Protect API endpoints with authentication filter
 14. Implement match creation endpoint
     - Create REST endpoint to create a match
     - Validate story and difficulty selection
@@ -229,6 +223,9 @@ For next steps use this prompt
     > Read "Start project" file and assume I want to create and to start developing it: give me 30 steps to follow, a simple list where the first is "start the project"; for each step give 5 subpoints.
 - Second version created with AI prompt:
     > next step must be from 12 to 42, number 12 should be start develop login method to guess users, number 33 should be registrazion user, 34 single sign on with google, 42 is launch the game with v1 version. rewrite all point fron 12 to 42.
+- Steps are developed with prompt:
+    > read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder, read code/website/html folder for last version of public website. don't look and don't change backend-python and backend-php. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
+
 - **Document Version**: 0.11.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |

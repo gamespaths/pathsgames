@@ -1,0 +1,566 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Guest Authentication API
+  description: |
+    OpenAPI specification for Step 12: Guest Login Method.
+    Covers guest session creation, session resumption via cookie token,
+    and admin endpoints for guest user management.
+  version: 0.12.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Guest Auth
+    description: Guest authentication — create and resume anonymous sessions
+  - name: Guest Admin
+    description: Admin endpoints for guest user management (requires ADMIN role)
+  - name: Echo
+    description: Health-check and status endpoint (public)
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guest Authentication
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/auth/guest:
+    post:
+      tags: [Guest Auth]
+      summary: Create a new guest session
+      description: |
+        Creates a new anonymous guest user and issues JWT tokens (access + refresh).
+        No request body is required — the server generates a UUID-based identity.
+        The guest user is created with `state=6` and `role=PLAYER`.
+        A `guestCookieToken` is returned for session resumption.
+      operationId: createGuestSession
+      responses:
+        '201':
+          description: Guest session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestLoginResponse'
+              example:
+                userUuid: "550e8400-e29b-41d4-a716-446655440000"
+                username: "guest_550e8400"
+                accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiJ9..."
+                accessTokenExpiresAt: 1711533600000
+                refreshTokenExpiresAt: 1712138400000
+                guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+
+  /api/auth/guest/resume:
+    post:
+      tags: [Guest Auth]
+      summary: Resume an existing guest session
+      description: |
+        Resumes an existing guest session using the `guestCookieToken`
+        previously returned by the create endpoint. If the session is still valid
+        (not expired), new JWT tokens are issued and the same cookie token is returned.
+      operationId: resumeGuestSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestResumeRequest'
+            example:
+              guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+      responses:
+        '200':
+          description: Guest session resumed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestLoginResponse'
+              example:
+                userUuid: "550e8400-e29b-41d4-a716-446655440000"
+                username: "guest_550e8400"
+                accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiJ9..."
+                accessTokenExpiresAt: 1711533600000
+                refreshTokenExpiresAt: 1712138400000
+                guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+        '400':
+          description: Missing or blank guestCookieToken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "MISSING_COOKIE_TOKEN"
+                message: "guestCookieToken is required"
+        '401':
+          description: Session expired or not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "SESSION_EXPIRED_OR_NOT_FOUND"
+                message: "Guest session is expired or does not exist. Please create a new guest session."
+
+  # ═══════════════════════════════════════════════════════════════
+  # Guest Admin
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/admin/guests:
+    get:
+      tags: [Guest Admin]
+      summary: List all guest users
+      description: |
+        Returns a list of all guest users ordered by registration date.
+        Requires ADMIN role.
+      operationId: listAllGuests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of guest users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GuestInfoResponse'
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guests/stats:
+    get:
+      tags: [Guest Admin]
+      summary: Get guest statistics
+      description: |
+        Returns aggregate statistics about guest users: total, active, and expired counts.
+        Requires ADMIN role.
+      operationId: getGuestStats
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Guest statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestStatsResponse'
+              example:
+                totalGuests: 42
+                activeGuests: 35
+                expiredGuests: 7
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guests/{uuid}:
+    get:
+      tags: [Guest Admin]
+      summary: Get a single guest by UUID
+      description: |
+        Returns the details of a single guest user identified by UUID.
+        Requires ADMIN role.
+      operationId: getGuestByUuid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: The UUID of the guest user
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Guest user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestInfoResponse'
+        '404':
+          description: Guest not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "GUEST_NOT_FOUND"
+                message: "No guest user found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Guest Admin]
+      summary: Delete a single guest by UUID
+      description: |
+        Deletes a guest user and all associated tokens.
+        Requires ADMIN role.
+      operationId: deleteGuest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: The UUID of the guest user to delete
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Guest deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteGuestResponse'
+              example:
+                status: "DELETED"
+                uuid: "550e8400-e29b-41d4-a716-446655440000"
+        '404':
+          description: Guest not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "GUEST_NOT_FOUND"
+                message: "No guest user found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/guests/expired:
+    delete:
+      tags: [Guest Admin]
+      summary: Cleanup expired guest sessions
+      description: |
+        Removes all expired guest sessions and their associated tokens.
+        Returns the number of deleted guests. Requires ADMIN role.
+      operationId: deleteExpiredGuests
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cleanup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+              example:
+                status: "CLEANUP_COMPLETE"
+                deletedCount: 7
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ═══════════════════════════════════════════════════════════════
+  # Echo (public health-check, referenced from Step 12 frontend)
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/echo/status:
+    get:
+      tags: [Echo]
+      summary: Server status and health check
+      description: |
+        Returns the current server status, timestamp, and server properties.
+        This is a public endpoint — no authentication required.
+      operationId: getStatus
+      responses:
+        '200':
+          description: Server status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EchoStatusResponse'
+              example:
+                status: "UP"
+                timestamp: "2026-04-02T10:00:00Z"
+                properties:
+                  version: "0.12.0-SNAPSHOT"
+                  name: "Paths Games"
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from guest login or token refresh
+
+  schemas:
+
+    # ── Guest Auth DTOs ──────────────────────────────────────────
+
+    GuestLoginResponse:
+      type: object
+      description: Response returned on guest session creation or resumption
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the guest user
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          description: Auto-generated guest username (guest_ + first 8 chars of UUID)
+          example: "guest_550e8400"
+        accessToken:
+          type: string
+          description: JWT access token (short-lived, default 30 minutes)
+          example: "eyJhbGciOiJIUzI1NiJ9..."
+        refreshToken:
+          type: string
+          description: JWT refresh token (long-lived, default 7 days)
+          example: "eyJhbGciOiJIUzI1NiJ9..."
+        accessTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Access token expiration as Unix epoch milliseconds
+          example: 1711533600000
+        refreshTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Refresh token expiration as Unix epoch milliseconds
+          example: 1712138400000
+        guestCookieToken:
+          type: string
+          format: uuid
+          description: Cookie token for session resumption
+          example: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+      required:
+        - userUuid
+        - username
+        - accessToken
+        - refreshToken
+        - accessTokenExpiresAt
+        - refreshTokenExpiresAt
+        - guestCookieToken
+
+    GuestResumeRequest:
+      type: object
+      description: Request body for resuming a guest session
+      properties:
+        guestCookieToken:
+          type: string
+          format: uuid
+          description: The cookie token received during guest session creation
+          example: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+      required:
+        - guestCookieToken
+
+    # ── Guest Admin DTOs ─────────────────────────────────────────
+
+    GuestInfoResponse:
+      type: object
+      description: Detailed information about a guest user (admin view)
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          description: Guest user UUID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          description: Guest username
+          example: "guest_550e8400"
+        nickname:
+          type: string
+          nullable: true
+          description: Optional nickname
+          example: null
+        role:
+          type: string
+          description: User role
+          example: "PLAYER"
+        state:
+          type: integer
+          description: User state (6 = guest)
+          example: 6
+        guestCookieToken:
+          type: string
+          format: uuid
+          description: Cookie token for session resumption
+          example: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+        guestExpiresAt:
+          type: string
+          nullable: true
+          description: Guest session expiration timestamp (ISO 8601)
+          example: "2026-05-02T10:00:00Z"
+        language:
+          type: string
+          nullable: true
+          description: Preferred language
+          example: "en"
+        tsRegistration:
+          type: string
+          description: Registration timestamp (ISO 8601)
+          example: "2026-04-02T10:00:00Z"
+        tsLastAccess:
+          type: string
+          nullable: true
+          description: Last access timestamp (ISO 8601)
+          example: "2026-04-02T12:30:00Z"
+        expired:
+          type: boolean
+          description: Whether the guest session has expired
+          example: false
+      required:
+        - userUuid
+        - username
+        - role
+        - state
+        - guestCookieToken
+        - tsRegistration
+        - expired
+
+    GuestStatsResponse:
+      type: object
+      description: Aggregate statistics about guest users
+      properties:
+        totalGuests:
+          type: integer
+          format: int64
+          description: Total number of guest users
+          example: 42
+        activeGuests:
+          type: integer
+          format: int64
+          description: Number of active (non-expired) guest users
+          example: 35
+        expiredGuests:
+          type: integer
+          format: int64
+          description: Number of expired guest users
+          example: 7
+      required:
+        - totalGuests
+        - activeGuests
+        - expiredGuests
+
+    DeleteGuestResponse:
+      type: object
+      description: Response after deleting a guest user
+      properties:
+        status:
+          type: string
+          description: Operation status
+          example: "DELETED"
+        uuid:
+          type: string
+          format: uuid
+          description: UUID of the deleted guest
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      required:
+        - status
+        - uuid
+
+    CleanupResponse:
+      type: object
+      description: Response after cleaning up expired guest sessions
+      properties:
+        status:
+          type: string
+          description: Operation status
+          example: "CLEANUP_COMPLETE"
+        deletedCount:
+          type: integer
+          description: Number of expired guest sessions deleted
+          example: 7
+      required:
+        - status
+        - deletedCount
+
+    # ── Echo ─────────────────────────────────────────────────────
+
+    EchoStatusResponse:
+      type: object
+      description: Server status and properties
+      properties:
+        status:
+          type: string
+          description: Server status
+          example: "UP"
+        timestamp:
+          type: string
+          description: Current server timestamp
+          example: "2026-04-02T10:00:00Z"
+        properties:
+          type: object
+          description: Server properties (name, version, etc.)
+          additionalProperties:
+            type: string
+
+    # ── Shared ───────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "MISSING_COOKIE_TOKEN"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "guestCookieToken is required"
+      required:
+        - error
+        - message

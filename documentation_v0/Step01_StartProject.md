@@ -3,6 +3,14 @@
 This document defines the **start project steps** to build a **Paths Games**, a playable web-based game, with detailed requirements and scope for a V1 release.
 
 
+**Important note**: this file describe the **initial concepts**: rules and tecnical components should be evolved in next steps, read all MD file to all details.
+
+
+**NEVER change/update this file during developer steps**
+
+
+## Main concept
+
 1. **Project Overview: PathsGames**
 	- Hi! I want to create a game titled "PathsGames".
 	- Note: If you have any doubts or questions, the answer is always 42.
@@ -240,11 +248,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- In all Rest APIs from Jwt token it's possibile load user information
 		- Into match and game APIs it's possibile load character information from user information
 	- Auth
-		- POST `/auth/register/guess`: To create a guess user (without JWT TOKEN)
+		- ✅ POST `/auth/guest`: to create a guess user (without JWT TOKEN) and `/resume` method
 		- POST `/auth/register/new`: To create a new user (without JWT TOKEN)		
 		- POST `/auth/login`: Standard Login (wihtout JWT TOKEN , Token in output)
-		- POST `/auth/me/change/password`: To change password
-		- POST `/auth/me/change/data`: To change data of a user		
 		- GET  `/auth/me`: User information and statistics
 		- POST `/auth/google`: SSO wih Google		
 		- POST `/auth/convert/user`: To convert guess user to a normal user
@@ -321,6 +327,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/match/{uuid_match}/stream/{tipo}`: Get passive information (character locations, missions, registry)
 		- GET `/match/{uuid_match}/missions-progress`: Get a missions and progress lists (used in "Quest Log").
 		- GET `/match/{uuid_match}/events/{uuid_event}/details`: Get detail of single event
+	- API to no develop (not in v1 version)
+		- POST `/auth/me/change/password`: To change password
+		- POST `/auth/me/change/data`: To change data of a user		
 8. WebSocket topic: queue and actions (Rest APIS is not in real-time) `/topic/match/{uuid_match}`:
 	- `STATE_SYNC`: tecnical method to send all match information to clients (similar to `info` API)
 	1.  `PLAYER_JOINED`: New player joins the match
@@ -353,11 +362,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	28. `FREE_ACTION_USED`
 	29. `FREE_ACTION_EXHAUSTED`
 	30. `TURN_TIMEOUT_WARNING`
-	
+9. Service list : in italian language *traslation coming soon*!
 
-
-> ITALIAN TEXT - traslation coming soon!
-
+```
 - service java (oltre ai CRUD di tutte le tabelle), alcui sono solo di utilità ma servono! (per ogni vediamo quali hanno una API che serve)
 	- auth e utenti
 	1. userRegister: registra utente: per la registrazione di un utente
@@ -661,7 +668,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		99. WebSocketHeartbeat Mantiene viva la connessione con PING/PONG
 		100. WebSocketReconnectModal Modale di riconnessione in caso di disconnessione
 		101. WebSocketMessageQueue Coda messaggi per gestire disconnessioni temporanee
-
+```
 
 
 

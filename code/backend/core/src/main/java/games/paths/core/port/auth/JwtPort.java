@@ -1,5 +1,7 @@
 package games.paths.core.port.auth;
 
+import java.util.Map;
+
 /**
  * JwtPort - Outbound port for JWT token operations.
  * Implemented by the auth adapter to generate and validate JWT tokens.
@@ -37,4 +39,21 @@ public interface JwtPort {
      * @return expiration timestamp in epoch milliseconds
      */
     long getRefreshTokenExpirationMs();
+
+    /**
+     * Parses a JWT token and returns its claims as a map.
+     * Returns null if the token is invalid, expired, or malformed.
+     *
+     * @param token the JWT token string
+     * @return a map of claims {sub, username, role, type, jti, iat, exp} or null
+     */
+    Map<String, Object> parseToken(String token);
+
+    /**
+     * Validates a JWT token's signature and expiration.
+     *
+     * @param token the JWT token string
+     * @return true if the token is valid (correct signature and not expired)
+     */
+    boolean validateToken(String token);
 }

@@ -2,26 +2,26 @@
 
 **Paths Games** is a multiplayer game inspired by classic gamebooks, adapted to modern gaming mechanics.
 
-- ✅ Paths games is free-to-play game, all code will be released with GNU-GPL3 licence
+- ✅ Paths games is **free-to-play** game, all code will be **open source** released with GNU-GPL3 licence
 
-- Visit [paths.games](http://paths.games) website, crowdfunding campaign *coming soon*
-
+- Visit [paths.games](http://paths.games) website, crowdfunding campaign *coming soon*.
 
 
 ## Documentation
-Documents includes all steps in roadmap for example development components, configuration parameters and lists of features reserved for futures versions.
+Documents includes all steps and the roadmap for create paths.games components, configuration parameters and lists of features reserved for futures versions.
 
 - [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
-    - ✅ [Start the project](./documentation_v0/Step01_StartProject.md), [Create the repository](./documentation_v0/Step02_CreateTheRepository.md), [Define the V1 scope](./documentation_v0/Step03_DefineScope.md)
-    - ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md), [Backend structure](./documentation_v0/Step05_BackendStructure.md), [Naming conventions](./documentation_v0/Step06_NamingConventions.md)
-    - ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md), [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md), 
-    - ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md), [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md), [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md)
-    - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md)
-    - Next steps: Develop game engine, Performance and load testing, Launch the game with V1 version,...
+    - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md)
+    - ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md)
+    - ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md)
+    - ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md)
+    - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md)
+    - Next steps: To develop game engine, Performance and load testing, Launch the game with V1 version,...
         - check [developer branch](https://github.com/gamespaths/pathsgames/) for all updates
 
 - Version 1: 
-    - start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+    - start the crowfouning campaign 
+    - use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
     - use GraphQL protocol in new versions
     - game-engine feature: multiplayer system
 
@@ -74,7 +74,8 @@ Documents includes all steps in roadmap for example development components, conf
                 pathsgames/pathsgames:latest
             ```
         - Run **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
-    - **Python**: dev-team are creating an alternative version developed with python, see [README](./code/backend-python/README.md) for all details.
+    - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend-python/README.md) for all details.
+    - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend-php/README.md) for all details.
 
 - **Website** project into `code/website` define all website components:
     - `code/website/html` — source code of [Paths.Games](https://paths.games/) website

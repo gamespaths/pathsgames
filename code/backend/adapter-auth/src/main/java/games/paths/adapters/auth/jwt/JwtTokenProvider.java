@@ -1,5 +1,6 @@
 package games.paths.adapters.auth.jwt;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,10 +13,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * JwtTokenProvider - Adapter implementing JWT token generation.
+ * JwtTokenProvider - Adapter implementing JWT token generation, parsing, and validation.
  * Uses HMAC-SHA256 signing with a configurable secret key.
  */
 @Component
@@ -74,5 +77,47 @@ public class JwtTokenProvider implements JwtPort {
     @Override
     public long getRefreshTokenExpirationMs() {
         return Instant.now().plus(refreshTokenDays, ChronoUnit.DAYS).toEpochMilli();
+    }
+
+    @Override
+    public Map<String, Object> parseToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("sub", claims.getSubject());
+            result.put("jti", claims.getId());
+            result.put("username", claims.get("username", String.class));
+            result.put("role", claims.get("role", String.class));
+            result.put("type", claims.get("type", String.class));
+
+            if (claims.getIssuedAt() != null) {
+                result.put("iat", claims.getIssuedAt().getTime());
+            }
+            if (claims.getExpiration() != null) {
+                result.put("exp", claims.getExpiration().getTime());
+            }
+
+            return result;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

@@ -6,9 +6,12 @@ import games.paths.core.port.auth.GuestPersistencePort;
 import games.paths.core.port.auth.JwtPort;
 import games.paths.core.port.auth.GuestAdminPort;
 import games.paths.core.port.auth.GuestAuthPort;
+import games.paths.core.port.auth.SessionPort;
+import games.paths.core.port.auth.TokenPersistencePort;
 import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
+import games.paths.core.service.auth.SessionService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +44,9 @@ public class CoreConfig {
     @Value("${server.port:8080}")
     private String serverPort;
 
+    @Value("${game.auth.max-tokens-per-user:5}")
+    private int maxTokensPerUser;
+
     @Bean
     public EchoPort echoPort() {
         Map<String, String> properties = new LinkedHashMap<>();
@@ -60,5 +66,10 @@ public class CoreConfig {
     @Bean
     public GuestAdminPort guestAdminPort(GuestAdminPersistencePort persistencePort) {
         return new GuestAdminService(persistencePort);
+    }
+
+    @Bean
+    public SessionPort sessionPort(JwtPort jwtPort, TokenPersistencePort tokenPersistencePort) {
+        return new SessionService(jwtPort, tokenPersistencePort, maxTokensPerUser);
     }
 }

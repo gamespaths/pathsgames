@@ -89,7 +89,7 @@ code/backend-php/
     docker run --rm \
     -p 8042:8042 \
     -e APP_ENV=production \
-    -e APP_VERSION=0.12.4 \
+    -e APP_VERSION=X.Y.Z \
     -e JWT_SECRET=<your-strong-secret> \
     -e CORS_ALLOWED_ORIGINS=https://paths.games,https://www.paths.games \
     -e DB_HOST=<mysql-host> \
