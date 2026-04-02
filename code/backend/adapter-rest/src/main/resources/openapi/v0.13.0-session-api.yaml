@@ -5,7 +5,13 @@ info:
     OpenAPI specification for Step 13: Session and Token Management.
     Covers token refresh (with rotation), logout, logout-all, and user identity endpoints.
     Also documents the JWT authentication filter behavior.
-  version: 0.13.0
+
+    **HttpOnly cookie security model:**
+    - `refreshToken` is stored as an HttpOnly cookie (`pathsgames.refreshToken`), invisible to JavaScript.
+    - Refresh and logout endpoints read the cookie automatically — no request body required.
+    - The server responds with `Set-Cookie` headers to issue/rotate/delete cookies.
+    - Clients must use `credentials: 'include'` so the browser sends cookies on every request.
+  version: 0.13.1
   contact:
     name: Paths Games
     url: https://paths.games
@@ -32,35 +38,37 @@ paths:
       tags: [Session]
       summary: Refresh tokens (with rotation)
       description: |
-        Exchanges a valid refresh token for a new access + refresh token pair.
+        Exchanges the `pathsgames.refreshToken` HttpOnly cookie for a new access token.
         **Token rotation policy:** ALL previous tokens for the user are revoked.
-        This is a public endpoint (no Bearer token required).
+
+        No request body is required — the browser sends the HttpOnly cookie automatically
+        when the request is made with `credentials: 'include'`.
+
+        The server responds with a new `Set-Cookie: pathsgames.refreshToken` (rotated).
       operationId: refreshToken
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RefreshTokenRequest'
+      parameters:
+        - name: pathsgames.refreshToken
+          in: cookie
+          required: true
+          description: JWT refresh token (HttpOnly cookie set by the server on login)
+          schema:
+            type: string
       responses:
         '200':
           description: Tokens refreshed successfully
+          headers:
+            Set-Cookie:
+              description: |
+                Rotated refresh token cookie:
+                `pathsgames.refreshToken=<jwt>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=604800`
+              schema:
+                type: string
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/RefreshTokenResponse'
-        '400':
-          description: Missing or blank refresh token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: MISSING_REFRESH_TOKEN
-                message: refreshToken is required
-                timestamp: 1711533600000
         '401':
-          description: Refresh token is invalid, expired, or revoked
+          description: Refresh token cookie is missing, invalid, expired, or revoked
           content:
             application/json:
               schema:
@@ -75,26 +83,32 @@ paths:
       tags: [Session]
       summary: Logout (single token)
       description: |
-        Revokes a single refresh token (logout from one device/channel).
+        Revokes the refresh token from the `pathsgames.refreshToken` HttpOnly cookie
+        (logout from one device/channel). The server clears both HttpOnly cookies in the response.
+
+        No request body is required — the browser sends the cookie automatically.
         Requires a valid access token in the `Authorization: Bearer <token>` header.
       operationId: logout
       security:
         - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [refreshToken]
-              properties:
-                refreshToken:
-                  type: string
-                  description: The refresh token to revoke
-                  example: "eyJhbGciOiJIUzI1NiJ9..."
+      parameters:
+        - name: pathsgames.refreshToken
+          in: cookie
+          required: true
+          description: JWT refresh token (HttpOnly cookie) to revoke
+          schema:
+            type: string
       responses:
         '200':
-          description: Token revoked successfully
+          description: Token revoked and cookies cleared
+          headers:
+            Set-Cookie:
+              description: |
+                Both HttpOnly cookies are deleted (Max-Age=0):
+                - `pathsgames.refreshToken=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+                - `pathsgames.guestcookie=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -103,12 +117,6 @@ paths:
                 status: OK
                 message: Token revoked successfully
                 timestamp: 1711533600000
-        '400':
-          description: Missing or blank refresh token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Missing or invalid access token
           content:
@@ -133,13 +141,22 @@ paths:
       description: |
         Revokes all active sessions (refresh tokens) for the authenticated user.
         The user UUID is extracted from the JWT access token by the authentication filter.
+        The server clears both HttpOnly cookies in the response.
         Requires a valid access token in the `Authorization: Bearer <token>` header.
       operationId: logoutAll
       security:
         - BearerAuth: []
       responses:
         '200':
-          description: All sessions revoked successfully
+          description: All sessions revoked and cookies cleared
+          headers:
+            Set-Cookie:
+              description: |
+                Both HttpOnly cookies are deleted (Max-Age=0):
+                - `pathsgames.refreshToken=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+                - `pathsgames.guestcookie=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -207,17 +224,11 @@ components:
 
   schemas:
 
-    RefreshTokenRequest:
-      type: object
-      required: [refreshToken]
-      properties:
-        refreshToken:
-          type: string
-          description: The refresh token to exchange for a new token pair
-          example: "eyJhbGciOiJIUzI1NiJ9..."
-
     RefreshTokenResponse:
       type: object
+      description: |
+        Response returned after a successful token refresh.
+        The new refresh token is delivered via `Set-Cookie` (HttpOnly) — not in this body.
       properties:
         userUuid:
           type: string
@@ -235,11 +246,7 @@ components:
           example: "PLAYER"
         accessToken:
           type: string
-          description: New JWT access token
-          example: "eyJhbGciOiJIUzI1NiJ9...(new)"
-        refreshToken:
-          type: string
-          description: New JWT refresh token
+          description: New JWT access token (short-lived, keep in memory only)
           example: "eyJhbGciOiJIUzI1NiJ9...(new)"
         accessTokenExpiresAt:
           type: integer
@@ -249,7 +256,7 @@ components:
         refreshTokenExpiresAt:
           type: integer
           format: int64
-          description: Refresh token expiration (epoch milliseconds)
+          description: Refresh token expiration (epoch milliseconds, informational only)
           example: 1712138400000
 
     UserInfo:
@@ -303,6 +310,10 @@ components:
 
     GuestLoginResponse:
       type: object
+      description: |
+        Minimal reference schema for guest login responses.
+        Full definition with cookie documentation is in v0.12.0-guest-auth-api.yaml.
+        `refreshToken` and `guestCookieToken` are delivered as HttpOnly `Set-Cookie` headers.
       properties:
         userUuid:
           type: string
@@ -311,13 +322,9 @@ components:
           type: string
         accessToken:
           type: string
-        refreshToken:
-          type: string
         accessTokenExpiresAt:
           type: integer
           format: int64
         refreshTokenExpiresAt:
           type: integer
           format: int64
-        guestCookieToken:
-          type: string

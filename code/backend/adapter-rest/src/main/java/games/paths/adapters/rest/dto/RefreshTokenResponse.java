@@ -2,7 +2,10 @@ package games.paths.adapters.rest.dto;
 
 /**
  * RefreshTokenResponse - DTO returned after a successful token refresh.
- * Contains the new access and refresh tokens with their expiration timestamps.
+ *
+ * <p>Since v0.13.0-httponly, the new refresh token is delivered as an HttpOnly
+ * cookie (set by the controller). Only the new access token and metadata are
+ * returned in the JSON body.</p>
  */
 public class RefreshTokenResponse {
 
@@ -10,7 +13,6 @@ public class RefreshTokenResponse {
     private String username;
     private String role;
     private String accessToken;
-    private String refreshToken;
     private long accessTokenExpiresAt;
     private long refreshTokenExpiresAt;
 
@@ -18,13 +20,12 @@ public class RefreshTokenResponse {
     }
 
     public RefreshTokenResponse(String userUuid, String username, String role,
-                                 String accessToken, String refreshToken,
+                                 String accessToken,
                                  long accessTokenExpiresAt, long refreshTokenExpiresAt) {
         this.userUuid = userUuid;
         this.username = username;
         this.role = role;
         this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
         this.accessTokenExpiresAt = accessTokenExpiresAt;
         this.refreshTokenExpiresAt = refreshTokenExpiresAt;
     }
@@ -59,14 +60,6 @@ public class RefreshTokenResponse {
 
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
     }
 
     public long getAccessTokenExpiresAt() {

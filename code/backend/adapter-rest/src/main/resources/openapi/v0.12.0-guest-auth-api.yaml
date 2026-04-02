@@ -3,8 +3,14 @@ info:
   title: Paths Games — Guest Authentication API
   description: |
     OpenAPI specification for Step 12: Guest Login Method.
-    Covers guest session creation, session resumption via cookie token,
+    Covers guest session creation, session resumption via HttpOnly cookie,
     and admin endpoints for guest user management.
+
+    **HttpOnly cookie security model (updated in 0.13.x):**
+    - `refreshToken` and `guestCookieToken` are no longer returned in the JSON response body.
+    - They are set by the server as `Set-Cookie` response headers with `HttpOnly; SameSite=Lax`.
+    - The browser sends them automatically on subsequent requests (`credentials: 'include'`).
+    - Only `accessToken` is visible to JavaScript, minimising the XSS blast radius.
   version: 0.12.0
   contact:
     name: Paths Games
@@ -39,11 +45,25 @@ paths:
         Creates a new anonymous guest user and issues JWT tokens (access + refresh).
         No request body is required — the server generates a UUID-based identity.
         The guest user is created with `state=6` and `role=PLAYER`.
-        A `guestCookieToken` is returned for session resumption.
+
+        **HttpOnly cookies set in the response:**
+        - `pathsgames.refreshToken` — JWT refresh token (HttpOnly, SameSite=Lax, Path=/api/auth, 7 days)
+        - `pathsgames.guestcookie` — Guest resumption token (HttpOnly, SameSite=Lax, Path=/api/auth, 30 days)
+
+        Clients must use `credentials: 'include'` on subsequent requests so the browser
+        sends these cookies automatically.
       operationId: createGuestSession
       responses:
         '201':
           description: Guest session created successfully
+          headers:
+            Set-Cookie:
+              description: |
+                Two HttpOnly cookies are set:
+                - `pathsgames.refreshToken=<jwt>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=604800`
+                - `pathsgames.guestcookie=<uuid>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=2592000`
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -52,31 +72,40 @@ paths:
                 userUuid: "550e8400-e29b-41d4-a716-446655440000"
                 username: "guest_550e8400"
                 accessToken: "eyJhbGciOiJIUzI1NiJ9..."
-                refreshToken: "eyJhbGciOiJIUzI1NiJ9..."
                 accessTokenExpiresAt: 1711533600000
                 refreshTokenExpiresAt: 1712138400000
-                guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
 
   /api/auth/guest/resume:
     post:
       tags: [Guest Auth]
       summary: Resume an existing guest session
       description: |
-        Resumes an existing guest session using the `guestCookieToken`
-        previously returned by the create endpoint. If the session is still valid
-        (not expired), new JWT tokens are issued and the same cookie token is returned.
+        Resumes an existing guest session using the `pathsgames.guestcookie` HttpOnly cookie
+        set during session creation. No request body is needed — the browser sends the cookie
+        automatically when the request is made with `credentials: 'include'`.
+
+        If the session is still valid, new JWT tokens are issued and both HttpOnly cookies
+        are refreshed (rotation).
       operationId: resumeGuestSession
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GuestResumeRequest'
-            example:
-              guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
+      parameters:
+        - name: pathsgames.guestcookie
+          in: cookie
+          required: true
+          description: Guest resumption token set as an HttpOnly cookie during session creation
+          schema:
+            type: string
+            format: uuid
       responses:
         '200':
           description: Guest session resumed successfully
+          headers:
+            Set-Cookie:
+              description: |
+                Both HttpOnly cookies are refreshed:
+                - `pathsgames.refreshToken=<jwt>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=604800`
+                - `pathsgames.guestcookie=<uuid>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=2592000`
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -85,21 +114,10 @@ paths:
                 userUuid: "550e8400-e29b-41d4-a716-446655440000"
                 username: "guest_550e8400"
                 accessToken: "eyJhbGciOiJIUzI1NiJ9..."
-                refreshToken: "eyJhbGciOiJIUzI1NiJ9..."
                 accessTokenExpiresAt: 1711533600000
                 refreshTokenExpiresAt: 1712138400000
-                guestCookieToken: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
-        '400':
-          description: Missing or blank guestCookieToken
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "MISSING_COOKIE_TOKEN"
-                message: "guestCookieToken is required"
         '401':
-          description: Session expired or not found
+          description: Session expired, not found, or cookie missing
           content:
             application/json:
               schema:
@@ -350,7 +368,10 @@ components:
 
     GuestLoginResponse:
       type: object
-      description: Response returned on guest session creation or resumption
+      description: |
+        Response returned on guest session creation or resumption.
+        `refreshToken` and `guestCookieToken` are no longer in this body — they are
+        delivered as `Set-Cookie` response headers with `HttpOnly; SameSite=Lax`.
       properties:
         userUuid:
           type: string
@@ -363,11 +384,7 @@ components:
           example: "guest_550e8400"
         accessToken:
           type: string
-          description: JWT access token (short-lived, default 30 minutes)
-          example: "eyJhbGciOiJIUzI1NiJ9..."
-        refreshToken:
-          type: string
-          description: JWT refresh token (long-lived, default 7 days)
+          description: JWT access token (short-lived, default 30 minutes). Keep in memory only.
           example: "eyJhbGciOiJIUzI1NiJ9..."
         accessTokenExpiresAt:
           type: integer
@@ -377,33 +394,14 @@ components:
         refreshTokenExpiresAt:
           type: integer
           format: int64
-          description: Refresh token expiration as Unix epoch milliseconds
+          description: Refresh token expiration as Unix epoch milliseconds (informational only)
           example: 1712138400000
-        guestCookieToken:
-          type: string
-          format: uuid
-          description: Cookie token for session resumption
-          example: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
       required:
         - userUuid
         - username
         - accessToken
-        - refreshToken
         - accessTokenExpiresAt
         - refreshTokenExpiresAt
-        - guestCookieToken
-
-    GuestResumeRequest:
-      type: object
-      description: Request body for resuming a guest session
-      properties:
-        guestCookieToken:
-          type: string
-          format: uuid
-          description: The cookie token received during guest session creation
-          example: "a3b2c1d0-e5f6-7890-abcd-ef1234567890"
-      required:
-        - guestCookieToken
 
     # ── Guest Admin DTOs ─────────────────────────────────────────
 

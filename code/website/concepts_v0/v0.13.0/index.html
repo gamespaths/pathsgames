@@ -47,8 +47,9 @@
       <div id="resumeHint" class="resume-hint" style="display:none;"></div>
       <p class="cookie-note">
         <i class="fas fa-cookie-bite"></i>
-        Your session is remembered via the <code>pathsgames.guestcookie</code> cookie
-        and restored automatically when you reopen the browser.
+        Your session uses <strong>HttpOnly cookies</strong> for refresh &amp; guest tokens
+        — they are set by the server and <em>invisible to JavaScript</em> (XSS-safe).
+        Only the short-lived access token is kept in memory.
       </p>
       <div id="loginError"></div>
     </div>
@@ -86,8 +87,8 @@
       <div class="token-section">
         <h3><i class="fas fa-key"></i> Access Token (JWT)</h3>
         <div class="token-box" id="sessAccessToken">—</div>
-        <h3><i class="fas fa-sync-alt"></i> Refresh Token (JWT)</h3>
-        <div class="token-box" id="sessRefreshToken">—</div>
+        <h3><i class="fas fa-lock"></i> Refresh Token</h3>
+        <div class="token-box httponly" id="sessRefreshToken">(HttpOnly cookie — not accessible from JavaScript)</div>
       </div>
 
       <div class="session-actions">

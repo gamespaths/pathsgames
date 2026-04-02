@@ -1,38 +1,39 @@
 package games.paths.adapters.rest.controller.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import games.paths.adapters.rest.dto.RefreshTokenRequest;
+import games.paths.adapters.rest.cookie.CookieHelper;
 import games.paths.core.model.auth.RefreshedSession;
 import games.paths.core.port.auth.SessionPort;
+
+import jakarta.servlet.http.Cookie;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Map;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Unit tests for {@link SessionController}.
- * Uses MockMvc standalone setup with a mocked SessionPort.
+ * Since v0.13.0-httponly, refresh tokens are read from / written to HttpOnly cookies.
  */
 class SessionControllerTest {
 
     private MockMvc mockMvc;
     private SessionPort sessionPort;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setup() {
         sessionPort = mock(SessionPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(new SessionController(sessionPort)).build();
-        objectMapper = new ObjectMapper();
     }
 
     // ==========================================================================
@@ -44,7 +45,7 @@ class SessionControllerTest {
     class RefreshTests {
 
         @Test
-        @DisplayName("Should return 200 with new tokens on success")
+        @DisplayName("Should return 200 with new access token and set HttpOnly cookie on success")
         void refresh_success() throws Exception {
             RefreshedSession session = RefreshedSession.builder()
                     .userUuid("u-1")
@@ -58,35 +59,37 @@ class SessionControllerTest {
 
             when(sessionPort.refreshToken("old-refresh")).thenReturn(session);
 
-            mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"old-refresh\"}"))
+            MvcResult result = mockMvc.perform(post("/api/auth/refresh")
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "old-refresh")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.userUuid").value("u-1"))
                     .andExpect(jsonPath("$.username").value("guest_u1"))
                     .andExpect(jsonPath("$.role").value("PLAYER"))
                     .andExpect(jsonPath("$.accessToken").value("new-access"))
-                    .andExpect(jsonPath("$.refreshToken").value("new-refresh"))
+                    .andExpect(jsonPath("$.refreshToken").doesNotExist())
                     .andExpect(jsonPath("$.accessTokenExpiresAt").value(1000))
-                    .andExpect(jsonPath("$.refreshTokenExpiresAt").value(2000));
+                    .andExpect(jsonPath("$.refreshTokenExpiresAt").value(2000))
+                    .andReturn();
+
+            List<String> setCookies = result.getResponse().getHeaders("Set-Cookie");
+            assertTrue(setCookies.stream().anyMatch(h ->
+                    h.contains("pathsgames.refreshToken=new-refresh") && h.contains("HttpOnly")),
+                    "New refresh token should be set as HttpOnly cookie");
         }
 
         @Test
-        @DisplayName("Should return 400 when refreshToken is missing")
+        @DisplayName("Should return 400 when refresh cookie is missing")
         void refresh_missingToken() throws Exception {
-            mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{}"))
+            mockMvc.perform(post("/api/auth/refresh"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("MISSING_REFRESH_TOKEN"));
         }
 
         @Test
-        @DisplayName("Should return 400 when refreshToken is blank")
+        @DisplayName("Should return 400 when refresh cookie is blank")
         void refresh_blankToken() throws Exception {
             mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"   \"}"))
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "   ")))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("MISSING_REFRESH_TOKEN"));
         }
@@ -97,8 +100,7 @@ class SessionControllerTest {
             when(sessionPort.refreshToken("expired")).thenReturn(null);
 
             mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"expired\"}"))
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "expired")))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.error").value("INVALID_REFRESH_TOKEN"));
         }
@@ -113,34 +115,36 @@ class SessionControllerTest {
     class LogoutTests {
 
         @Test
-        @DisplayName("Should return 200 on successful revocation")
+        @DisplayName("Should return 200 on successful revocation and delete cookies")
         void logout_success() throws Exception {
             when(sessionPort.logout("ref-tok")).thenReturn(true);
 
-            mockMvc.perform(post("/api/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"ref-tok\"}"))
+            MvcResult result = mockMvc.perform(post("/api/auth/logout")
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "ref-tok")))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.status").value("OK"))
-                    .andExpect(jsonPath("$.message").value("Token revoked successfully"));
+                    .andExpect(jsonPath("$.message").value("Token revoked successfully"))
+                    .andReturn();
+
+            List<String> setCookies = result.getResponse().getHeaders("Set-Cookie");
+            assertTrue(setCookies.stream().anyMatch(h ->
+                    h.contains("pathsgames.refreshToken=") && h.contains("Max-Age=0")),
+                    "refreshToken cookie should be deleted on logout");
         }
 
         @Test
-        @DisplayName("Should return 400 when refreshToken is missing")
+        @DisplayName("Should return 400 when refresh cookie is missing")
         void logout_missingToken() throws Exception {
-            mockMvc.perform(post("/api/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{}"))
+            mockMvc.perform(post("/api/auth/logout"))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("MISSING_REFRESH_TOKEN"));
         }
 
         @Test
-        @DisplayName("Should return 400 when refreshToken is blank")
+        @DisplayName("Should return 400 when refresh cookie is blank")
         void logout_blankToken() throws Exception {
             mockMvc.perform(post("/api/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"   \"}"))
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "   ")))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("MISSING_REFRESH_TOKEN"));
         }
@@ -151,8 +155,7 @@ class SessionControllerTest {
             when(sessionPort.logout("unknown")).thenReturn(false);
 
             mockMvc.perform(post("/api/auth/logout")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"refreshToken\": \"unknown\"}"))
+                            .cookie(new Cookie(CookieHelper.REFRESH_TOKEN_COOKIE, "unknown")))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("TOKEN_NOT_FOUND"));
         }

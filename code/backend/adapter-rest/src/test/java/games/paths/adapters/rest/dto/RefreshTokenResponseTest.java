@@ -18,7 +18,7 @@ class RefreshTokenResponseTest {
         assertNull(resp.getUsername());
         assertNull(resp.getRole());
         assertNull(resp.getAccessToken());
-        assertNull(resp.getRefreshToken());
+        // refreshToken no longer in response body (HttpOnly cookie since v0.13.0)
         assertEquals(0L, resp.getAccessTokenExpiresAt());
         assertEquals(0L, resp.getRefreshTokenExpiresAt());
     }
@@ -27,14 +27,13 @@ class RefreshTokenResponseTest {
     @DisplayName("Should create with parameterized constructor")
     void paramConstructor() {
         RefreshTokenResponse resp = new RefreshTokenResponse(
-                "u-1", "guest_u1", "PLAYER", "acc-tok", "ref-tok", 1000L, 2000L);
+                "u-1", "guest_u1", "PLAYER", "acc-tok", 1000L, 2000L);
 
         assertAll(
             () -> assertEquals("u-1", resp.getUserUuid()),
             () -> assertEquals("guest_u1", resp.getUsername()),
             () -> assertEquals("PLAYER", resp.getRole()),
             () -> assertEquals("acc-tok", resp.getAccessToken()),
-            () -> assertEquals("ref-tok", resp.getRefreshToken()),
             () -> assertEquals(1000L, resp.getAccessTokenExpiresAt()),
             () -> assertEquals(2000L, resp.getRefreshTokenExpiresAt())
         );
@@ -48,7 +47,6 @@ class RefreshTokenResponseTest {
         resp.setUsername("testuser");
         resp.setRole("ADMIN");
         resp.setAccessToken("a-tok");
-        resp.setRefreshToken("r-tok");
         resp.setAccessTokenExpiresAt(5000L);
         resp.setRefreshTokenExpiresAt(9000L);
 
@@ -57,7 +55,6 @@ class RefreshTokenResponseTest {
             () -> assertEquals("testuser", resp.getUsername()),
             () -> assertEquals("ADMIN", resp.getRole()),
             () -> assertEquals("a-tok", resp.getAccessToken()),
-            () -> assertEquals("r-tok", resp.getRefreshToken()),
             () -> assertEquals(5000L, resp.getAccessTokenExpiresAt()),
             () -> assertEquals(9000L, resp.getRefreshTokenExpiresAt())
         );

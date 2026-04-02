@@ -2,31 +2,30 @@ package games.paths.adapters.rest.dto;
 
 /**
  * GuestLoginResponse - DTO for the guest login API response.
- * Contains the JWT tokens, user identity, and session metadata.
+ *
+ * <p>Since v0.13.0-httponly, the response body only contains the access token
+ * and session metadata. The refresh token and guest-cookie-token are delivered
+ * as HttpOnly cookies (set by the controller), keeping them out of reach of
+ * any JavaScript running in the browser (XSS blast-radius reduction).</p>
  */
 public class GuestLoginResponse {
 
     private String userUuid;
     private String username;
     private String accessToken;
-    private String refreshToken;
     private long accessTokenExpiresAt;
     private long refreshTokenExpiresAt;
-    private String guestCookieToken;
 
     public GuestLoginResponse() {
     }
 
     public GuestLoginResponse(String userUuid, String username, String accessToken,
-                              String refreshToken, long accessTokenExpiresAt,
-                              long refreshTokenExpiresAt, String guestCookieToken) {
+                              long accessTokenExpiresAt, long refreshTokenExpiresAt) {
         this.userUuid = userUuid;
         this.username = username;
         this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
         this.accessTokenExpiresAt = accessTokenExpiresAt;
         this.refreshTokenExpiresAt = refreshTokenExpiresAt;
-        this.guestCookieToken = guestCookieToken;
     }
 
     public String getUserUuid() {
@@ -53,14 +52,6 @@ public class GuestLoginResponse {
         this.accessToken = accessToken;
     }
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
     public long getAccessTokenExpiresAt() {
         return accessTokenExpiresAt;
     }
@@ -75,13 +66,5 @@ public class GuestLoginResponse {
 
     public void setRefreshTokenExpiresAt(long refreshTokenExpiresAt) {
         this.refreshTokenExpiresAt = refreshTokenExpiresAt;
-    }
-
-    public String getGuestCookieToken() {
-        return guestCookieToken;
-    }
-
-    public void setGuestCookieToken(String guestCookieToken) {
-        this.guestCookieToken = guestCookieToken;
     }
 }

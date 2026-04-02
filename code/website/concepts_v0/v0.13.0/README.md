@@ -1,36 +1,43 @@
 # Paths Games — Concept v0.13.0
-## Session & Token Management Demo
+## Session & Token Management Demo — HttpOnly Cookie Edition
 
 This is a standalone browser demo for **Step 13** of the Paths Games backend —
 session and token management with **JWT token rotation**, single/all-device logout,
-and **persistent guest session resumption via cookie**.
+and **persistent guest session resumption**.
+
+### Security model — HttpOnly cookies
+
+The **refreshToken** and **guestCookieToken** are transported as **HttpOnly cookies**
+set by the server. JavaScript **cannot** read, modify, or delete them — the browser
+sends them automatically on every request to `/api/auth/**` and the server
+manages their lifecycle (creation, rotation, expiry, deletion on logout).
+
+Only the short-lived **accessToken** (30 min) is kept in JavaScript memory /
+`localStorage` so it can be attached as a `Bearer` header to protected endpoints.
+
+> This eliminates the *XSS blast radius* for long-lived credentials: even if an
+> attacker injects script into the page, they can steal only the access token
+> (which expires in 30 minutes) but **never** the refresh or guest-cookie token.
 
 ---
 
 ## How the Session Persistence Works
 
-### The Problem
+### Cookie Details
 
-JWT access tokens are short-lived (30 minutes by default).  
-Refresh tokens are longer-lived (7 days), but they are stored in `localStorage`,  
-which is **cleared when the user closes the browser tab** in some environments,  
-or simply lost if the user opens the page in a new tab.
+The backend sets two HttpOnly cookies on successful auth operations:
 
-### The Solution — `pathsgames.guestcookie`
+| Cookie name | Value | HttpOnly | Secure | SameSite | Path | Max-Age |
+|-------------|-------|----------|--------|----------|------|---------|
+| `pathsgames.refreshToken` | JWT (7-day) | ✅ | `false` (dev) / `true` (prod) | `Lax` | `/api/auth` | 7 days |
+| `pathsgames.guestcookie` | UUID (opaque) | ✅ | `false` (dev) / `true` (prod) | `Lax` | `/api/auth` | 30 days |
 
-When a guest session is created (or refreshed), the backend returns a
-`guestCookieToken` — a separate, long-lived UUID stored in the `users` table
-alongside the user record. This token is **not a JWT** and has no cryptographic
-claims; it is simply an opaque resumption key.
-
-The frontend saves it as a browser cookie named **`pathsgames.guestcookie`**:
-
-```
-pathsgames.guestcookie=<uuid>; expires=<30 days>; path=/; SameSite=Lax
-```
-
-Cookies **survive the browser being closed**, so this token is still available
-the next time the user opens the page.
+- **`Path=/api/auth`** — cookies are only sent for auth-related API calls, not for
+  every request to the server.
+- **`SameSite=Lax`** — cookies are sent on top-level navigations and same-origin
+  requests, preventing CSRF from third-party sites.
+- **`Secure=false`** in dev mode so `http://localhost` works; must be `true` in
+  production (HTTPS only).
 
 ### Resumption Flow (step by step)
 
@@ -39,46 +46,59 @@ Browser opens / page loads
         │
         ▼
 Is there a valid session in localStorage?
-    ├── YES → restore tokens directly, show session view
+    ├── YES → restore accessToken, show session view
     └── NO  ─────────────────────────────────────────────┐
                                                          ▼
-                              Does cookie 'pathsgames.guestcookie' exist?
-                                  ├── NO  → show login screen (new session)
-                                  └── YES ───────────────┐
-                                                         ▼
                                                 POST /api/auth/guest/resume
-                                                { guestCookieToken: "<uuid>" }
+                                                credentials: 'include'
+                                                (browser sends HttpOnly cookie
+                                                 automatically — no JS body)
                                                          │
                                          ┌────────────── ┤
                                          │               │
-                                     200 OK             401/expired
+                                     200 OK          401 / no cookie
                                          │               │
-                                  new JWT pair          delete cookie
-                                  save to localStorage  show login screen
-                                  refresh cookie expiry
+                                  new accessToken    show login screen
+                                  server rotates     (user creates new session)
+                                  HttpOnly cookies
+                                  save to localStorage
                                   show session view
 ```
 
 ### What Gets Saved Where
 
-| Data | Storage | Lifetime |
-|------|---------|----------|
-| `accessToken` (JWT) | `localStorage` only | 30 minutes |
-| `refreshToken` (JWT) | `localStorage` only | 7 days |
-| `guestCookieToken` (UUID) | **`pathsgames.guestcookie`** cookie | 30 days |
-| Full session JSON | `localStorage` key `paths_session_v013` | Until cleared or browser data wiped |
+| Data | Storage | Managed by | Lifetime |
+|------|---------|-----------|----------|
+| `accessToken` (JWT) | `localStorage` + JS memory | **Frontend** | 30 minutes |
+| `refreshToken` (JWT) | **HttpOnly cookie** | **Server** | 7 days |
+| `guestCookieToken` (UUID) | **HttpOnly cookie** | **Server** | 30 days |
+| Session metadata (uuid, username, expiry) | `localStorage` key `paths_session_v013` | **Frontend** | Until cleared |
 
-> **Note:** `localStorage` is typically cleared when the user closes the browser
-> in private/incognito mode. The cookie is still set but `SameSite=Lax` prevents
-> it from being sent cross-site.
+> **Note:** In private/incognito mode, `localStorage` is cleared when the browser
+> closes, but the HttpOnly cookies may also be cleared depending on the browser.
+> The `SameSite=Lax` policy prevents cross-site cookie sending.
 
 ### On Logout
 
-Both `clearSession()` calls (single logout and logout-all) remove:
-- The `paths_session_v013` key from `localStorage`
-- The `pathsgames.guestcookie` browser cookie
+The server response to `/api/auth/logout` and `/api/auth/logout/all` includes
+`Set-Cookie` headers that set both cookies to empty values with `Max-Age=0`,
+effectively deleting them from the browser.
+
+The frontend also clears the `paths_session_v013` key from `localStorage`.
 
 This ensures the user cannot silently resume an intentionally terminated session.
+
+### What Changed from the Previous (pre-HttpOnly) Version
+
+| Before (body-based) | After (HttpOnly cookies) |
+|---------------------|--------------------------|
+| `refreshToken` returned in JSON body | `refreshToken` set as HttpOnly cookie by server |
+| `guestCookieToken` returned in JSON body, saved as JS-accessible cookie | `guestCookieToken` set as HttpOnly cookie by server |
+| `POST /api/auth/refresh` sends `{ refreshToken: "..." }` in body | `POST /api/auth/refresh` sends no body — cookie is automatic |
+| `POST /api/auth/guest/resume` sends `{ guestCookieToken: "..." }` in body | `POST /api/auth/guest/resume` sends no body — cookie is automatic |
+| `POST /api/auth/logout` sends `{ refreshToken: "..." }` in body | `POST /api/auth/logout` sends no body — cookie is automatic |
+| JS cookie helpers (`setCookie`/`getCookie`/`deleteCookie`) needed | No JS cookie helpers — server manages everything |
+| XSS can steal refreshToken from localStorage/memory | XSS **cannot** access refreshToken (HttpOnly) |
 
 ---
 
@@ -87,7 +107,7 @@ This ensures the user cannot silently resume an intentionally terminated session
 | File | Purpose |
 |------|---------|
 | `index.html` | Main page — login card + session panel |
-| `session-manager.js` | All JS logic: guest login, token refresh, resume, logout |
+| `session-manager.js` | All JS logic: guest login, token refresh, resume, logout (HttpOnly edition) |
 | `style.css` | Styles for the demo page |
 | `variables.css` | CSS custom properties (design tokens) |
 | `README.md` | This file |
@@ -96,16 +116,59 @@ This ensures the user cannot silently resume an intentionally terminated session
 
 ## API Endpoints Used
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/auth/guest` | — | Create a new guest session |
-| `POST` | `/api/auth/guest/resume` | — | Resume session via cookie token |
-| `POST` | `/api/auth/refresh` | — | Rotate tokens (old pair revoked) |
-| `GET`  | `/api/auth/me` | Bearer | Get current user info |
-| `POST` | `/api/auth/logout` | Bearer | Revoke a single refresh token |
-| `POST` | `/api/auth/logout/all` | Bearer | Revoke all sessions for user |
-| `GET`  | `/api/admin/guests` | Bearer (ADMIN) | Admin: list guests (403 for guests) |
-| `GET`  | `/api/echo/status` | — | Server health check |
+All `fetch()` calls use **`credentials: 'include'`** so the browser automatically
+sends and receives HttpOnly cookies.
+
+| Method | Path | Auth | Body | Description |
+|--------|------|------|------|-------------|
+| `POST` | `/api/auth/guest` | — | — | Create guest session (sets cookies) |
+| `POST` | `/api/auth/guest/resume` | — | — | Resume session via HttpOnly cookie |
+| `POST` | `/api/auth/refresh` | — | — | Rotate tokens via HttpOnly cookie |
+| `GET`  | `/api/auth/me` | Bearer | — | Get current user info |
+| `POST` | `/api/auth/logout` | Bearer | — | Revoke refresh token (clears cookies) |
+| `POST` | `/api/auth/logout/all` | Bearer | — | Revoke all sessions (clears cookies) |
+| `GET`  | `/api/admin/guests` | Bearer (ADMIN) | — | Admin: list guests (403 for guests) |
+| `GET`  | `/api/echo/status` | — | — | Server health check |
+
+### Response JSON (guest login / resume / refresh)
+
+```json
+{
+  "userUuid": "...",
+  "username": "guest_abc123",
+  "accessToken": "<JWT>",
+  "accessTokenExpiresAt": 1719000000000,
+  "refreshTokenExpiresAt": 1719500000000
+}
+```
+
+> **Note:** `refreshToken` and `guestCookieToken` are **not** in the JSON body —
+> they are in `Set-Cookie` response headers (HttpOnly).
+
+---
+
+## Backend Changes (CookieHelper)
+
+A new utility class `CookieHelper` in `adapter-rest` manages all cookie operations:
+
+```
+games.paths.adapters.rest.cookie.CookieHelper
+```
+
+Key constants:
+- `REFRESH_TOKEN_COOKIE = "pathsgames.refreshToken"`
+- `GUEST_COOKIE_TOKEN = "pathsgames.guestcookie"`
+- `COOKIE_PATH = "/api/auth"`
+
+The `application.yml` now includes:
+
+```yaml
+game:
+  auth:
+    cookie:
+      secure: false      # set to true in production
+      same-site: Lax
+```
 
 ---
 
@@ -120,7 +183,12 @@ mvn spring-boot:run
 ```
 
 Then open `index.html` directly in a browser (via `file://`) or through a local
-HTTP server. The dev CORS config already allows `"null"` origins for `file://` access.
+HTTP server. The dev CORS config already allows `"null"` origins for `file://` access
+and has `allowCredentials: true` for cookie support.
+
+> **Important:** `credentials: 'include'` requires the server's CORS config to
+> specify explicit allowed origins (not `*`) and `allowCredentials: true`.
+> The backend's `WebConfig.java` is already configured for this.
 
 ---
 
@@ -130,28 +198,3 @@ HTTP server. The dev CORS config already allows `"null"` origins for `file://` a
 - [Step 13 — Session & Token Management](../../../documentation_v0/Step13_SessionTokenManagement.md)
 - [OpenAPI — Guest Auth API](../../backend/adapter-rest/src/main/resources/openapi/v0.12.0-guest-auth-api.yaml)
 - [OpenAPI — Session API](../../backend/adapter-rest/src/main/resources/openapi/v0.13.0-session-api.yaml)
-
-
----
-
-- Come lo abbiamo gestito nel progetto nel `session-manager.js` / `index.html`. Scelta pratica per concept demo:
-    - JWT (accessToken, refreshToken) sono salvati in localStorage (usati dalle chiamate fetch con Authorization: Bearer ...) — facilita demo e controllo JS.
-    - Il campo guestCookieToken (UUID di resumption) viene salvato anche come cookie chiamato pathsgames.guestcookie (persistente 30 giorni). Questo permette il resume automatico quando l'utente riapre il browser.
-- Motivo della scelta: vogliamo che la sessione guest sopravviva alla chiusura del browser senza richiesta di login; il cookie fornisce il "collegamento" al record DB. I JWT restano in localStorage per essere inviati dal codice frontend alle API.
-    - Cosa succede al logout / scadenza:
-        - clearSession() elimina sia il localStorage che il cookie pathsgames.guestcookie — impedisce resume.
-    - Se la cookie esiste ma il server ha già scaduto o rimosso la sessione, la chiamata POST /api/auth/guest/resume ritorna 401 → frontend elimina il cookie e richiede nuova sessione.
-- Mitigazioni:
-    - Token rotation (Step 13): quando si usa refresh si revocano i token precedenti — riduce rischio da token rubati.
-    - Non usare cookie HttpOnly per guestCookieToken nella demo perché il client deve leggerlo per mostrare lo stato; in produzione si potrebbe rendere la meccanica più sicura spostando più logica lato server (es. usare cookie HttpOnly per refresh).
-- Se vuoi, posso:
-    - Cambiare il design per usare cookie HttpOnly (richiede adattamenti backend: leggere cookie sul server e restituire user info senza che JS legga il cookie);
-    - Spostare refreshToken in cookie HttpOnly e lasciare solo accessToken in memoria per ridurre XSS blast radius;
-    - Aggiungere note nel README.md con le raccomandazioni di sicurezza per produzione.
-
---- 
-
-procedi con 
-- Cambiare il design per usare cookie HttpOnly (richiede adattamenti backend: leggere cookie sul server e restituire user info senza che JS legga il cookie);
-- Spostare refreshToken in cookie HttpOnly e lasciare solo accessToken in memoria per ridurre XSS blast radius;
-- Aggiungere note nel README.md con le raccomandazioni di sicurezza per produzione.

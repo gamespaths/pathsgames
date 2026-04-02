@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Admin Panel (v0.13.1)</title>
+  <meta name="description" content="Paths Games: Admin panel — session &amp; guest management" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="variables.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       LOGIN SCREEN
+       ═══════════════════════════════════════════════ -->
+  <div id="loginScreen">
+    <div class="login-card">
+
+      <!-- logo -->
+      <div class="login-logo">
+        <i class="fas fa-dice-d20 logo-icon"></i>
+        <h1>Paths Games</h1>
+        <p class="login-subtitle"><i class="fas fa-crown"></i> Admin Panel — v0.13.1</p>
+      </div>
+
+      <!-- server status -->
+      <div class="login-status">
+        <span class="status-dot" id="loginStatusDot"></span>
+        <span id="loginStatusText">Checking server…</span>
+      </div>
+
+      <!-- token form -->
+      <form class="login-form" onsubmit="return false;">
+        <label for="tokenInput">
+          <i class="fas fa-key"></i> Paste your Admin access token
+        </label>
+        <textarea id="tokenInput" class="token-textarea"
+                  placeholder="eyJhbGciOiJIUzI1NiJ9…"
+                  autocomplete="off" spellcheck="false" rows="4"></textarea>
+        <p class="login-hint">
+          Need a token? First
+          <a href="#" onclick="loginAsGuest()">create a guest session</a>
+          (PLAYER role — admin calls will return 403, useful for testing the auth filter).
+        </p>
+
+        <div class="login-actions">
+          <button class="btn-login" id="btnLoginToken" onclick="loginWithToken()">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+          </button>
+          <button class="btn-demo" id="btnLoginGuest" onclick="loginAsGuest()">
+            <i class="fas fa-ghost"></i> Guest demo
+          </button>
+        </div>
+
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       APP SCREEN
+       ═══════════════════════════════════════════════ -->
+  <div id="appScreen">
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <a class="navbar-brand" href="#">
+        <i class="fas fa-dice-d20"></i> Paths Games
+      </a>
+      <div class="navbar-title">
+        <i class="fas fa-crown"></i> Admin Panel
+      </div>
+      <div class="navbar-user" id="navUser">
+        <span id="navUsername">—</span>
+        <span class="user-badge" id="navRole">—</span>
+      </div>
+      <div class="navbar-server">
+        <span class="status-dot" id="appStatusDot"></span>
+        <span id="appStatusText">—</span>
+      </div>
+    </nav>
+
+    <main class="page-wrap">
+
+      <!-- ── DASHBOARD TOP: session + stats ── -->
+      <div class="dashboard-top">
+
+        <!-- Session card -->
+        <div class="session-card">
+          <h2 class="section-title"><i class="fas fa-id-badge"></i> Your Session</h2>
+          <div class="session-info-grid">
+            <div>
+              <div class="info-label">UUID</div>
+              <div class="info-value uuid" id="sesUuid">—</div>
+            </div>
+            <div>
+              <div class="info-label">Username</div>
+              <div class="info-value" id="sesUsername">—</div>
+            </div>
+            <div>
+              <div class="info-label">Role</div>
+              <div class="info-value" id="sesRole">—</div>
+            </div>
+            <div>
+              <div class="info-label">Token expires</div>
+              <div class="info-value" id="sesExpiry">—</div>
+            </div>
+          </div>
+          <div class="token-expiry-bar">
+            <div class="token-expiry-fill" id="tokenExpiryFill" style="width:100%"></div>
+          </div>
+          <div class="token-expiry-label" id="tokenExpiryLabel">&nbsp;</div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn-action btn-refresh-tok" onclick="refreshMyToken()" id="btnRefreshTok">
+              <i class="fas fa-sync-alt"></i> Refresh token
+            </button>
+            <button class="btn-action btn-logout-self" onclick="revokeAllMySessions()">
+              <i class="fas fa-door-open"></i> Revoke ALL my sessions
+            </button>
+            <button class="btn-action btn-revoke-all" onclick="doLogout()">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats card -->
+        <div class="stats-card">
+          <h2 class="section-title"><i class="fas fa-chart-bar"></i> Guest Statistics</h2>
+          <div class="stats-grid">
+            <div class="stat-item stat-total">
+              <div class="stat-value" id="statTotal">—</div>
+              <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item stat-active">
+              <div class="stat-value" id="statActive">—</div>
+              <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-item stat-expired">
+              <div class="stat-value" id="statExpired">—</div>
+              <div class="stat-label">Expired</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn-action btn-refresh" onclick="loadData()">
+              <i class="fas fa-sync-alt"></i> Refresh all
+            </button>
+            <button class="btn-action btn-cleanup" onclick="cleanupExpired()">
+              <i class="fas fa-broom"></i> Cleanup expired
+            </button>
+            <button class="btn-action btn-create" onclick="createTestGuest()">
+              <i class="fas fa-user-plus"></i> Create test guest
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── GUEST TABLE ── -->
+      <section class="table-panel">
+        <h2 class="section-title"><i class="fas fa-users"></i> Guest Users</h2>
+        <div class="table-wrapper">
+          <table class="guest-table" id="guestTable">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>UUID</th>
+                <th>Status</th>
+                <th>Registered</th>
+                <th>Last Access</th>
+                <th>Expires</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="guestTableBody">
+              <tr><td colspan="7" class="loading-row">
+                <i class="fas fa-spinner fa-spin"></i> Loading…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── ACTIVITY LOG ── -->
+      <section class="log-panel">
+        <h2 class="section-title"><i class="fas fa-scroll"></i> Activity Log</h2>
+        <div class="log-area" id="logArea"></div>
+      </section>
+
+    </main>
+
+    <footer class="page-footer">
+      &copy; 2026 Paths Games — Admin Panel — v0.13.1-admin
+    </footer>
+  </div>
+
+  <!-- ════════════════════════════
+       GUEST DETAIL MODAL
+       ════════════════════════════ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-user-shield"></i> Guest Details</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"><!-- filled by JS --></div>
+      <div class="modal-footer">
+        <button class="btn-action btn-delete" id="modalDeleteBtn" onclick="deleteFromModal()">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+        <button class="btn-action btn-close" onclick="closeModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- notifications -->
+  <div class="notification" id="notification"></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

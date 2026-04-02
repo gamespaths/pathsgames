@@ -30,4 +30,13 @@ game:
         - "http://localhost:3000"
         - "http://localhost:8042"
         - "http://127.0.0.1:5500"
-        - "null" # Necessario per le richieste effettuate da file:///
+        - "http://localhost:5500"
+        - "null" # for file:///
+    cookie:
+      # SameSite=None allows cookies to be sent in cross-origin requests during development
+      # (e.g. from http://127.0.0.1:5500 or file:// to http://localhost:8042).
+      # SameSite=None REQUIRES Secure=true — Chrome enforces this since v80.
+      # Chrome treats localhost as a "secure context", so Secure cookies work over
+      # plain HTTP on http://localhost:8042 without HTTPS.
+      secure: true
+      same-site: None

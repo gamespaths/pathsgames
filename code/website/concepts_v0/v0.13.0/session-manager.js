@@ -1,6 +1,12 @@
 /* =============================================
    PATHS GAMES — session-manager.js (v0.13.0)
    Session & Token Management — Step 13 concept
+
+   HttpOnly cookie edition:
+   - refreshToken → HttpOnly cookie (set by server, invisible to JS)
+   - guestCookieToken → HttpOnly cookie (set by server, invisible to JS)
+   - accessToken → kept in memory + localStorage (short-lived, needed for Bearer header)
+   - All fetch() calls use credentials:'include' so cookies are sent automatically
    ============================================= */
 
 (function () {
@@ -21,9 +27,7 @@
     adminGuests:  API_BASE + '/api/admin/guests'
   };
 
-  const STORAGE_KEY      = 'paths_session_v013';
-  const GUEST_COOKIE_NAME = 'pathsgames.guestcookie';
-  const COOKIE_DAYS       = 30;   // matches guest session lifetime
+  const STORAGE_KEY = 'paths_session_v013';
 
   /* ══════════════════════════════════════════
      DOM REFERENCES
@@ -82,6 +86,9 @@
 
   /* ══════════════════════════════════════════
      GUEST LOGIN — POST /api/auth/guest
+     Server sets refreshToken + guestCookieToken
+     as HttpOnly cookies in the response.
+     Only accessToken comes back in the JSON body.
      ══════════════════════════════════════════ */
   window.guestLogin = async function () {
     btnGuestLogin.disabled = true;
@@ -91,6 +98,7 @@
     try {
       const res = await fetch(ENDPOINTS.guestLogin, {
         method: 'POST',
+        credentials: 'include',   // ← receive HttpOnly cookies
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -103,6 +111,7 @@
       saveSession(session);
       showSessionView(session);
       log('Guest session created: ' + session.username, 'success');
+      log('refreshToken + guestCookieToken set as HttpOnly cookies (invisible to JS)', 'info');
 
     } catch (err) {
       loginError.innerHTML = '<div class="msg-error"><i class="fas fa-exclamation-triangle"></i> ' +
@@ -115,23 +124,22 @@
 
   /* ══════════════════════════════════════════
      TOKEN REFRESH — POST /api/auth/refresh
-     Token rotation: old tokens revoked,
-     brand-new access + refresh issued.
+     No body needed — the server reads the
+     refreshToken from the HttpOnly cookie.
      ══════════════════════════════════════════ */
   window.refreshTokens = async function () {
     const stored = loadSession();
-    if (!stored || !stored.refreshToken) {
-      log('No refresh token available', 'error');
+    if (!stored) {
+      log('No session available', 'error');
       return;
     }
 
-    log('Requesting token refresh (rotation)...', 'info');
+    log('Requesting token refresh (rotation) — cookie sent automatically...', 'info');
 
     try {
       const res = await fetch(ENDPOINTS.refresh, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: stored.refreshToken })
+        credentials: 'include'    // ← send + receive HttpOnly cookies
       });
 
       if (!res.ok) {
@@ -147,10 +155,9 @@
 
       const data = await res.json();
 
-      // Update stored session with new tokens
+      // Update stored session with new access token (refresh token is in cookie)
       const updated = Object.assign({}, stored, {
         accessToken:           data.accessToken,
-        refreshToken:          data.refreshToken,
         accessTokenExpiresAt:  data.accessTokenExpiresAt,
         refreshTokenExpiresAt: data.refreshTokenExpiresAt
       });
@@ -179,6 +186,7 @@
     try {
       const res = await fetch(ENDPOINTS.me, {
         method: 'GET',
+        credentials: 'include',
         headers: { 'Authorization': 'Bearer ' + stored.accessToken }
       });
 
@@ -213,6 +221,7 @@
     try {
       const res = await fetch(ENDPOINTS.adminGuests, {
         method: 'GET',
+        credentials: 'include',
         headers: { 'Authorization': 'Bearer ' + stored.accessToken }
       });
 
@@ -234,33 +243,32 @@
 
   /* ══════════════════════════════════════════
      LOGOUT — POST /api/auth/logout
-     Revokes a single refresh token
+     No body needed — server reads refreshToken
+     from the HttpOnly cookie, then deletes both cookies.
      ══════════════════════════════════════════ */
   window.logoutSingle = async function () {
     const stored = loadSession();
-    if (!stored || !stored.refreshToken) {
-      log('No refresh token to revoke', 'error');
+    if (!stored) {
       clearSession();
       showLoginView();
       return;
     }
 
-    log('Logging out (revoking single refresh token)...', 'info');
+    log('Logging out (revoking single refresh token via cookie)...', 'info');
 
     try {
       const res = await fetch(ENDPOINTS.logout, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + stored.accessToken
-        },
-        body: JSON.stringify({ refreshToken: stored.refreshToken })
+        }
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
-        log('Logout successful — token revoked', 'success');
+        log('Logout successful — token revoked, cookies cleared by server', 'success');
       } else {
         log('Logout response (' + res.status + '): ' + (data.message || 'Unknown'), 'warn');
       }
@@ -274,7 +282,8 @@
 
   /* ══════════════════════════════════════════
      LOGOUT ALL — POST /api/auth/logout/all
-     Revokes all sessions for the user
+     Revokes all sessions for the user.
+     Server deletes cookies in the response.
      ══════════════════════════════════════════ */
   window.logoutAll = async function () {
     const stored = loadSession();
@@ -290,8 +299,8 @@
     try {
       const res = await fetch(ENDPOINTS.logoutAll, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + stored.accessToken
         }
       });
@@ -324,7 +333,7 @@
     sessAccessExp.textContent  = formatTimestamp(session.accessTokenExpiresAt);
     sessRefreshExp.textContent = formatTimestamp(session.refreshTokenExpiresAt);
     sessAccessToken.textContent  = session.accessToken || '—';
-    sessRefreshToken.textContent = session.refreshToken || '—';
+    sessRefreshToken.textContent = '(HttpOnly cookie — not accessible from JavaScript)';
   }
 
   function showLoginView() {
@@ -334,39 +343,18 @@
   }
 
   /* ══════════════════════════════════════════
-     COOKIE HELPERS
-     ══════════════════════════════════════════ */
-  function setCookie(name, value, days) {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) +
-      '; expires=' + expires + '; path=/; SameSite=Lax';
-  }
-
-  function getCookie(name) {
-    const key = encodeURIComponent(name) + '=';
-    for (const part of document.cookie.split(';')) {
-      const t = part.trim();
-      if (t.startsWith(key)) {
-        return decodeURIComponent(t.slice(key.length));
-      }
-    }
-    return null;
-  }
-
-  function deleteCookie(name) {
-    document.cookie = encodeURIComponent(name) + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
-  }
-
-  /* ══════════════════════════════════════════
-     LOCAL STORAGE + COOKIE
+     LOCAL STORAGE (accessToken + metadata only)
+     refreshToken is in HttpOnly cookie — not stored here.
      ══════════════════════════════════════════ */
   function saveSession(session) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    // Persist the guestCookieToken in a long-lived cookie so the
-    // session can be resumed even after the browser is fully closed.
-    if (session.guestCookieToken) {
-      setCookie(GUEST_COOKIE_NAME, session.guestCookieToken, COOKIE_DAYS);
-    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      userUuid:             session.userUuid,
+      username:             session.username,
+      role:                 session.role,
+      accessToken:          session.accessToken,
+      accessTokenExpiresAt: session.accessTokenExpiresAt,
+      refreshTokenExpiresAt:session.refreshTokenExpiresAt
+    }));
   }
 
   function loadSession() {
@@ -378,7 +366,7 @@
 
   function clearSession() {
     localStorage.removeItem(STORAGE_KEY);
-    deleteCookie(GUEST_COOKIE_NAME);
+    // HttpOnly cookies are cleared by the server on logout responses
   }
 
   /* ══════════════════════════════════════════
@@ -396,38 +384,33 @@
   }
 
   /* ══════════════════════════════════════════
-     RESUME SESSION VIA COOKIE
+     RESUME SESSION VIA HttpOnly COOKIE
      Called when localStorage is empty but the
-     'pathsgames.guestcookie' cookie still exists.
+     guestCookieToken HttpOnly cookie may still
+     exist.  We POST to /api/auth/guest/resume
+     with credentials:'include' — the browser
+     sends the HttpOnly cookie automatically.
      ══════════════════════════════════════════ */
   async function tryResumeFromCookie() {
-    const cookieToken = getCookie(GUEST_COOKIE_NAME);
-    if (!cookieToken) {
-      showLoginView();
-      return;
-    }
-
     // Show a non-blocking "Resuming…" hint in the login card
     const resumeHint = document.getElementById('resumeHint');
     if (resumeHint) {
       resumeHint.style.display = 'block';
-      resumeHint.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resuming your session…';
+      resumeHint.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Attempting session resume…';
     }
     if (btnGuestLogin) btnGuestLogin.disabled = true;
 
-    log('Cookie detected — attempting session resume…', 'info');
+    log('Attempting session resume via HttpOnly cookie…', 'info');
 
     try {
       const res = await fetch(ENDPOINTS.guestResume, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ guestCookieToken: cookieToken })
+        credentials: 'include'    // ← browser sends HttpOnly cookie
       });
 
       if (!res.ok) {
-        // Cookie is stale (session expired server-side)
-        deleteCookie(GUEST_COOKIE_NAME);
-        log('Saved session expired — please start a new one', 'warn');
+        // Cookie is stale or missing
+        log('No valid session cookie — please start a new session', 'warn');
         if (resumeHint) resumeHint.style.display = 'none';
         if (btnGuestLogin) btnGuestLogin.disabled = false;
         showLoginView();
@@ -435,9 +418,9 @@
       }
 
       const session = await res.json();
-      saveSession(session);   // refreshes both localStorage and the cookie expiry
+      saveSession(session);
       showSessionView(session);
-      log('Session resumed from cookie (' + GUEST_COOKIE_NAME + ')', 'success');
+      log('Session resumed from HttpOnly cookie', 'success');
 
     } catch (err) {
       log('Resume error: ' + err.message, 'error');
@@ -459,7 +442,7 @@
       showSessionView(stored);
       log('Session restored from localStorage', 'info');
     } else {
-      // localStorage is empty (e.g. browser was closed): try the cookie
+      // localStorage is empty — try the HttpOnly cookie
       tryResumeFromCookie();
     }
   }
