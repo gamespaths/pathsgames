@@ -30,8 +30,11 @@ CREATE TABLE IF NOT EXISTS users_tokens (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_user BIGINT NOT NULL,
     token TEXT NOT NULL,
+    jti VARCHAR(255) DEFAULT NULL,
+    revoked TINYINT(1) NOT NULL DEFAULT 0,
     expires_at DATETIME NOT NULL,
     ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_user_token (id_user),
+    INDEX idx_token_jti (jti),
     FOREIGN KEY (id_user) REFERENCES gaming_user_sessions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

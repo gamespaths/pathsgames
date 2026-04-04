@@ -8,9 +8,13 @@ use Games\Paths\Core\Service\Auth\GuestAuthService;
 use Games\Paths\Core\Service\Auth\GuestAdminService;
 use Games\Paths\Adapter\Auth\JwtAdapter;
 use Games\Paths\Adapter\Auth\Persistence\Mysql\GuestMysqlRepository;
+use Games\Paths\Adapter\Auth\Persistence\Mysql\TokenMysqlRepository;
 use Games\Paths\Adapter\Rest\EchoController;
 use Games\Paths\Adapter\Auth\Rest\GuestAuthController;
 use Games\Paths\Adapter\Auth\Rest\GuestAdminController;
+use Games\Paths\Adapter\Auth\Rest\SessionController;
+use Games\Paths\Adapter\Rest\Middleware\JwtAuthenticationMiddleware;
+use Games\Paths\Core\Service\Auth\SessionService;
 
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
@@ -71,7 +75,7 @@ $app->add(function (\Psr\Http\Message\ServerRequestInterface $request, \Psr\Http
     $allowed = false;
 
     if ($allowAllOrigins) {
-        $allowed = '*';
+        $allowed = $origin ?: '*';
     } elseif ($origin && in_array($origin, $allowedOriginsList, true)) {
         $allowed = $origin;
     }
@@ -99,33 +103,51 @@ $app->addErrorMiddleware($isDebug, $isDebug, $isDebug);
 // ─── Initialize Adapters (Hexagonal Architecture wiring) ───
 $jwtAdapter = new JwtAdapter($jwtSecret, $accessTokenMinutes, $refreshTokenDays);
 $guestRepo = new GuestMysqlRepository($pdo);
+$tokenRepo = new TokenMysqlRepository($pdo);
 
 // ─── Initialize Core Services ───
 $echoService = new EchoService();
+$sessionService = new SessionService($jwtAdapter, $tokenRepo, 5);
 $guestAuthService = new GuestAuthService($guestRepo, $jwtAdapter);
 $guestAdminService = new GuestAdminService($guestRepo);
 
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
-$guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter);
+$guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $tokenRepo);
 $guestAdminController = new GuestAdminController($guestAdminService);
+$sessionController = new SessionController($sessionService);
+
+// ─── Authentication Middleware ───
+$publicPaths = [
+    '/api/echo/status',
+    '/api/auth/guest',
+    '/api/auth/guest/resume',
+    '/api/auth/refresh'
+];
+$authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths);
 
 // ─── Define Routes ───
-$app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use ($echoController, $guestAuthController, $guestAdminController) {
+$app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use ($echoController, $guestAuthController, $guestAdminController, $sessionController) {
     
-    // Echo
+    // Echo (Public)
     $group->get('/echo/status', [$echoController, 'getStatus']);
     
-    // Auth - Guest
+    // Auth - Guest (Public)
     $group->post('/auth/guest', [$guestAuthController, 'createGuest']);
     $group->post('/auth/guest/resume', [$guestAuthController, 'resumeGuest']);
     
-    // Admin - Guest
+    // Session Management (Mostly Public or protected by their own logic)
+    $group->post('/auth/refresh', [$sessionController, 'refresh']); // Public (reads cookie)
+    $group->get('/auth/me', [$sessionController, 'me']);          // Protected (via middleware)
+    $group->post('/auth/logout', [$sessionController, 'logout']);     // Protected (via middleware)
+    $group->post('/auth/logout/all', [$sessionController, 'logoutAll']); // Protected (via middleware)
+
+    // Admin - Guest (Protected)
     $group->get('/admin/guests', [$guestAdminController, 'listGuests']);
     $group->get('/admin/guests/stats', [$guestAdminController, 'getGuestStats']);
     $group->delete('/admin/guests/expired', [$guestAdminController, 'cleanupExpired']);
     $group->get('/admin/guests/{uuid}', [$guestAdminController, 'getGuest']);
     $group->delete('/admin/guests/{uuid}', [$guestAdminController, 'deleteGuest']);
-});
+})->add($authMiddleware);
 
 $app->run();

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
 from datetime import datetime, timezone
 
@@ -29,6 +29,9 @@ class UserToken(Base):
     id = Column(Integer, primary_key=True)
     id_user = Column(Integer, ForeignKey('users.id'), nullable=False)
     refresh_token = Column(String(500), nullable=False)
+    jti = Column(String(255), index=True)
+    revoked = Column(Boolean, default=False, nullable=False)
     expires_at = Column(String(50), nullable=False)
+    ts_insert = Column(DateTime, server_default=func.now())
     
     user = relationship("User", back_populates="tokens")

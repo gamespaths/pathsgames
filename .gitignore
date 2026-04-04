@@ -41,7 +41,7 @@ database.sqlite
 .pytest_cache
 **/__pycache__/
 **/*.pyc
-
+.venv
 
 # Backend php
 code/backend-php/vendor

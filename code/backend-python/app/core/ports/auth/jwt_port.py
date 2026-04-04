@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from app.core.models.auth.token_info import TokenInfo
 
 class JwtPort(ABC):
     @abstractmethod
@@ -15,4 +16,12 @@ class JwtPort(ABC):
 
     @abstractmethod
     def get_refresh_token_expiration_ms(self) -> int:
+        pass
+
+    @abstractmethod
+    def parse_token(self, token: str) -> TokenInfo:
+        pass
+
+    @abstractmethod
+    def validate_token(self, token: str) -> bool:
         pass

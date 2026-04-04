@@ -23,12 +23,13 @@ code/backend-python/
 
 ## Quick Start
 
-- Prerequisites: **Python 3.12+**
+- Prerequisites: **Python 3.13+** and `apt install libpq-dev`
 - Install dependencies:
     ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
     pip install -r requirements.txt
     ```
-    (Or use `poetry install`)
 - Run (development):
     ```bash
     python3 -m app.launcher
