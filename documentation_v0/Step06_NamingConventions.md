@@ -377,7 +377,7 @@ Root package: `games.paths`
 |---|---|---|
 | `Port` | Inbound port (interface) | `EchoPort`, `MatchPort`, `PlayerActionPort` |
 | `OutPort` | Outbound port (interface) | `MatchRepositoryOutPort`, `NotificationOutPort` |
-| `Service` | Domain service (implements Port) | `EchoService`, `MatchService`, `TurnService` |
+| `Service` | Domain service (implements Port) | `EchoService`, `Matcheservice`, `TurnService` |
 | `Controller` | REST adapter | `EchoController`, `MatchController`, `GameplayController` |
 | `Handler` | WebSocket adapter | `GameWebSocketHandler`, `NotificationHandler` |
 | `Repository` | Persistence adapter | `MatchPostgresRepository`, `RegistrySqliteRepository` |
@@ -385,7 +385,7 @@ Root package: `games.paths`
 | `Config` | Spring configuration | `CoreConfig`, `SecurityConfig`, `WebSocketConfig` |
 | `DTO` | Data Transfer Object (generic) | `CharacterDTO`, `LocationDTO` |
 | `Request` | Inbound REST body | `CreateMatchRequest`, `JoinMatchRequest` |
-| `Response` | Outbound REST body | `MatchStateResponse`, `TurnUpdateResponse` |
+| `Response` | Outbound REST body | `MatchestateResponse`, `TurnUpdateResponse` |
 | `Message` | WebSocket outbound envelope | `TurnUpdateMessage`, `GameEventMessage` |
 | `Test` | JUnit test class | `EchoServiceTest`, `MatchControllerTest` |
 
@@ -412,7 +412,7 @@ Examples from the service catalog:
 // Match services
 matchCreate(id_story, difficult, id_user_creator)
 matchAddPlayer(id_match, id_character_type, id_character_class)
-matchStart(id_match)
+matcheStart(id_match)
 matchAcquireLock(id_match, id_character)
 matchReleaseLock(id_match, id_character)
 matchPass(id_match, id_character)
@@ -506,7 +506,7 @@ Enum-like string constants in JSON use **SCREAMING_SNAKE_CASE**:
 | Purpose | Suffix | Example |
 |---|---|---|
 | REST request body | `Request` | `CreateMatchRequest`, `JoinMatchRequest` |
-| REST response body | `Response` | `MatchStateResponse`, `CharacterStatsResponse` |
+| REST response body | `Response` | `MatchestateResponse`, `CharacterStatsResponse` |
 | Internal data transfer | `DTO` | `CharacterDTO`, `LocationDTO`, `WeatherDTO` |
 | WebSocket outbound | `Message` | `TurnUpdateMessage`, `TradeMessage` |
 
@@ -530,7 +530,7 @@ Direction values: NORTH | SOUTH | EAST | WEST | UP | DOWN | SKY
 - React component files: **PascalCase** with `.jsx` or `.tsx` extension
 - Component names: **PascalCase** matching the file name
 - Custom hooks: **camelCase** starting with `use`
-- Redux slices / stores: **camelCase** file names, e.g., `matchSlice.js`
+- Redux slices / stores: **camelCase** file names, e.g., `matcheSlice.js`
 - CSS module files: `ComponentName.module.css`
 - Utility/helper files: **camelCase**, e.g., `dateUtils.js`, `apiClient.js`
 
@@ -552,7 +552,7 @@ Components follow a descriptive noun + optional modifier pattern:
 ### 6.3 Custom Hooks
 ```js
 useWebSocket(gameId)       // Manages WebSocket connection and dispatch
-useMatchState(gameId)      // Polls or subscribes to match state
+useMatchestate(gameId)      // Polls or subscribes to match state
 useCharacterStats()        // Current character statistics
 useTurnQueue()             // Subscribes to turn order updates
 useNotifications()         // Reads notification queue
@@ -618,7 +618,7 @@ JWT_SECRET=...
 | DB FK column | `id_` prefix | `id_match` |
 | DB timestamp column | `_timestamp` / `_ts` suffix | `lock_expiration_timestamp` |
 | Java package | lowercase dot-separated | `games.paths.core.service` |
-| Java class | PascalCase + role suffix | `MatchService`, `GameplayController` |
+| Java class | PascalCase + role suffix | `Matcheservice`, `GameplayController` |
 | Java method | camelCase + verb prefix | `calcTurnOrder()`, `execEvent()` |
 | Java constant | SCREAMING_SNAKE_CASE | `STATUS_IN_PROGRESS` |
 | Maven module | kebab-case | `adapter-rest`, `ms-launcher` |

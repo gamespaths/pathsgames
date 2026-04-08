@@ -28,7 +28,7 @@ https://api.{version}.paths.games/api/{context}/{resource}/{id}
 
 Examples:
   GET  https://api.v1.paths.games/api/stories
-  POST https://api.v1.paths.games/api/games
+  POST https://api.v1.paths.games/api/matches
   POST https://api.v1.paths.games/api/gameplay/{id_game}/action/pass
   GET  https://api.v2beta1.paths.games/api/game/{id}/players
 ```
@@ -92,9 +92,9 @@ api.v2beta1.paths.games   → v2 beta deployment
 DNS records point each subdomain to the corresponding deployment (e.g., CloudFront distribution, ALB target group, or Kubernetes service). The application behind each subdomain serves all endpoints under `/api/`:
 
 ```
-GET  /api/echo/status          — health check
+GET  /api/echo/status           — health check
 GET  /api/stories               — story catalog
-POST /api/games                 — create match
+POST /api/matches                — create match
 GET  /api/versions              — version discovery
 ```
 
@@ -122,15 +122,15 @@ A change is **breaking** if it can cause existing clients to fail. The following
 
 | Change Type | Breaking? | Example |
 |-------------|-----------|---------|
-| Remove an endpoint | ✅ Yes | Removing `GET /api/games/active` |
-| Rename an endpoint path | ✅ Yes | `/api/games` → `/api/matches` |
+| Remove an endpoint | ✅ Yes | Removing `GET /api/matches/active` |
+| Rename an endpoint path | ✅ Yes | `/api/matches` → `/api/matches` |
 | Remove a response field | ✅ Yes | Removing `characterName` from turn updates |
 | Change a field type | ✅ Yes | `characterId: number` → `characterId: string` |
 | Change an enum value | ✅ Yes | `"SLEEPING"` → `"ASLEEP"` |
 | Make an optional request field required | ✅ Yes | Adding mandatory `difficulty` to join request |
 | Change error code format | ✅ Yes | `"ERROR_CODE"` → `{ code: "ERROR_CODE", ... }` |
 | Add a new optional response field | ❌ No | Adding `avatarUrl` to player response |
-| Add a new endpoint | ❌ No | Adding `GET /api/games/{id}/summary` |
+| Add a new endpoint | ❌ No | Adding `GET /api/matches/{id}/summary` |
 | Add a new optional request field | ❌ No | Adding optional `nickname` to join request |
 | Add a new enum value | ❌ No | Adding `"FROZEN"` to match states |
 | Change internal behavior (same contract) | ❌ No | Optimizing turn calculation algorithm |
@@ -310,7 +310,7 @@ adapter-rest/
     │   ├── VersionController.java           @RequestMapping("/api/versions")
     │   ├── AuthController.java              @RequestMapping("/api/auth")
     │   ├── StoryController.java             @RequestMapping("/api/stories")
-    │   ├── MatchController.java             @RequestMapping("/api/games")
+    │   ├── MatchController.java             @RequestMapping("/api/matches")
     │   ├── GameStateController.java         @RequestMapping("/api/game")
     │   ├── GameplayController.java          @RequestMapping("/api/gameplay")
     │   └── GameChatController.java          @RequestMapping("/api/gamechat")
@@ -320,7 +320,7 @@ adapter-rest/
     │   │   ├── JoinMatchRequest.java
     │   │   └── ...
     │   └── response/
-    │       ├── MatchStateResponse.java
+    │       ├── MatchestateResponse.java
     │       ├── TurnUpdateResponse.java
     │       └── ...
     └── config/
@@ -354,7 +354,7 @@ Both deployments have identical package structure — the only difference is the
 |------------|------|---------|
 | Class name | Plain name, **no version suffix** | `MatchController`, `AuthController` |
 | Package | `games.paths.adapters.rest.controller` | **No version sub-package** |
-| Base mapping | `@RequestMapping("/api/{context}")` | `/api/games`, `/api/stories` |
+| Base mapping | `@RequestMapping("/api/{context}")` | `/api/matches`, `/api/stories` |
 | Port injection | All controllers inject **core ports** (version-agnostic) | `MatchPort`, `AuthPort` |
 | DTO package | `games.paths.adapters.rest.dto.request` / `.response` | **No version sub-package** |
 
@@ -365,11 +365,11 @@ package games.paths.adapters.rest.controller;
 
 import games.paths.core.port.in.MatchPort;
 import games.paths.adapters.rest.dto.request.CreateMatchRequest;
-import games.paths.adapters.rest.dto.response.MatchStateResponse;
+import games.paths.adapters.rest.dto.response.MatchestateResponse;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/games")
+@RequestMapping("/api/matches")
 public class MatchController {
 
     private final MatchPort matchPort;
@@ -379,19 +379,19 @@ public class MatchController {
     }
 
     @PostMapping
-    public MatchStateResponse createMatch(@RequestBody CreateMatchRequest request) {
+    public MatchestateResponse createMatch(@RequestBody CreateMatchRequest request) {
         // delegate to core port
         return matchPort.createMatch(request.getStoryId(), request.getDifficultyId());
     }
 
     @GetMapping("/active")
-    public List<MatchStateResponse> listActiveMatches() {
+    public List<MatchestateResponse> listActiveMatches() {
         return matchPort.listActiveMatches();
     }
 }
 ```
 
-> Notice: no `V1` suffix, no `/v1/` in the path, no versioned package. This controller serves `https://api.v1.paths.games/api/games` (or any future subdomain).
+> Notice: no `V1` suffix, no `/v1/` in the path, no versioned package. This controller serves `https://api.v1.paths.games/api/matches` (or any future subdomain).
 
 
 ### 5.3 Version Metadata Configuration

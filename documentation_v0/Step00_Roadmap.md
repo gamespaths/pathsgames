@@ -39,15 +39,19 @@ The file lists a 42-step development roadmap (each with five substeps) covering 
 
 ## Next steps
 For next steps use this prompt 
-> read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder, read code/website/html folder for last version of public website. don't look and don't change backend-python and backend-php. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
+> read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business locig). read code/website/html folder for last version of public website. don't look and don't change backend-python and backend-php. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
 
 14. Implement match creation endpoint
-    - Create REST endpoint to create a match
+    - Create REST endpoint to get all stories (/stories/.../ apis, root api method /stories/ is deprecated)
+    - Create REST endpoint to create a match (with character select)
     - Validate story and difficulty selection
     - Generate match UUID and initial state
-    - Persist match to database
+    - Persist match to database (creating all tables: _match, _state_registry, _state_locations, _user_sessions... )
     - Return match details to creator
+    - Business validation (check story exist, diffult corret, version compatiblity, users not banned, system not in manteinance)
+    - Create endpoint to start the match (for singleplayer )
 15. Implement match joining and lobby
+    - Create endpoint to get all existing match not started
     - Create endpoint to join an existing match
     - Validate match state allows joining
     - Enforce maximum player count
@@ -59,8 +63,9 @@ For next steps use this prompt
     - Prevent duplicate character selection
     - Lock selections when all players have chosen
     - Broadcast selection updates to lobby
+    - Business validation (check story exist, diffult corret, version compatiblity, users not banned, system not in manteinance)
 17. Implement match start and initial state
-    - Create endpoint to start the match
+    - Create endpoint to start the match (for multiplayer matches)
     - Validate all players have selected characters
     - Initialize game state (positions, inventories, turn order)
     - Persist initial state snapshot

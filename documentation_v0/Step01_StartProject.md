@@ -145,7 +145,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Returning to the quest-giver (the merchant) triggers a conditional Event: if the registry status is RESCUED, the characters receive a reward, such as a consumable item.
 		- Mission Definition (list_missions): Defines the global quest, its associated registry key, and the success/failure condition values.
 		- Mission Steps (list_missions_steps): An ordered sequence of milestones linked to registry values. Each step includes a description and an optional image to track narrative progression.
-4. **Out of Scope** (V2 - Future Enhancements) The following features are planned for future versions and must not be taken into consideration for the current implementation:
+4. **Out of Scope** (Future Enhancements) The following features are planned for future versions and must not be taken into consideration for the current implementation:
 	- NPCs & Entities: Implementation of wandering or static NPCs (e.g., a permanent Merchant in a Location or a mobile Character NPC).
 	- Permadeath & Game Over: Advanced Game Over logic. Currently, only the "Group Coma" triggers a specific end-game event.
 	- Anti-Spam Logic (Fatigue): An internal variable that tracks high action density per Time Unit to penalize probability or energy (hidden from the player).
@@ -256,23 +256,23 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- POST `/auth/convert/user`: To convert guess user to a normal user
 		- POST `/auth/convert/google`: To convert guess user to google user with SSO
 	- Stories
-		- *REMOVED* GET `/stories/`: Stories list
-		- GET `/stories/category/{category}`: Stories list filtered by category
+		- *REMOVED* GET `/stories/`: Stories list - removed to no implement
+		- GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
 		- GET `/stories/categories`: Category list
-		- GET `/stories/group/{group}`: Stories list filtered by group
-		- GET `/stories/groups`: Groups list
-		- GET `/stories/{uuid_story}`: Story details and characters list
+		- GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
+		- GET `/stories/groups`: Groups list 
+		- GET `/stories/{uuid_story}`: All information about a stori (characters list, difficulties, ...)
 	- Contents
 		- GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
 		- GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
 		- GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
-	- Matchs
-		- GET  `/matchs/active`: Matchs list in status "wait for others players"
-		- GET  `/matchs/list/{uuid_user}/{status}`: Matchs list filtered by status and by user
-		- POST `/matchs/{uuid_match}/leave`: Leave a matchs if not started
-		- POST `/matchs`: To create a new match
-		- POST `/matchs/{uuid_match}/join`: To join into a new match (and select the character)
-		- POST `/matchs/{uuid_match}/start`: Creator wanna to start a match until max capacity.
+	- Matches
+		- GET  `/matches/active`: Matches list in status "wait for others players"
+		- GET  `/matches/list/{uuid_user}/{status}`: Matches list filtered by status and by user
+		- POST `/matches/{uuid_match}/leave`: Leave a matches if not started
+		- POST `/matches`: To create a new match (and creator character select)
+		- POST `/matches/{uuid_match}/join`: To join into a new match (and select the character)
+		- POST `/matches/{uuid_match}/start`: Creator wanna to start a match until max capacity.
 	- Match
 		- GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
 			- Note: The method *info* returns so many informations (location, events, choices, registry), in future if the frontend is making too many REST calls to compose a single view, you could consider GraphQL for future versions. 
@@ -311,8 +311,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET  `/gamechat/{uuid_match}/notifications/unread`: Get all unred notification
 		- POST `/gamechat/{uuid_match}/notifications/{uuid_notification}/mark-read`: Mark as a read a notification
 	- Admin
-		- GET   `/admin/matchs/`: Load all matchs informations
-		- PATCH `/admin/matchs/{uuid_match}`: Delete/terminate a match
+		- GET   `/admin/matches/`: Load all matches informations
+		- PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
 		- GET 	`/admin/params`: Get all parameter values
 		- GET 	`/admin/match/{uuid_match}/replay` Get all match logs
 		- GET 	`/admin/match/{uuid_match}/log/{filter}`: Get all logs with a filter (character, item, ...)
@@ -335,7 +335,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	1.  `PLAYER_JOINED`: New player joins the match
 	2.  `PLAYER_LEFT`: A player left the meatch (after starting)
 	3.  `MATCH_STARTED`: THe match is stared
-	4.  `MATCH_ENDED`: Matchs ends (good or game over)
+	4.  `MATCH_ENDED`: Matches ends (good or game over)
 	5.  `CLOCK_STARTED`: New clock begins (ended previous)
 	6.  `TURN_STARTED`:	New turn begins (ended previous) with  "consecutive passes counter" 
 	7.	`PLAYER_MOVED`	Player moves to location
@@ -386,7 +386,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	- match
 	12. matchCreate inizia partita: per creare riga in gioco_partite e aspettare che vengano create i characters
 	13. matchAddPlayer aggiungi character a partita (id_character_tipo_possibile, classe) che influsce IM
-	14. matchStart avvia partita e inizio primo tempo e primo evento!
+	14. matcheStart avvia partita e inizio primo tempo e primo evento!
 	15. matchListNonStared : ritorna la lista delle partite CREATA ma non in CORSO ( anche le altre?)
 	16. matchListUtente(id_utente, stato) tutte le partite di un utente	 con filtro per stato
 	17. matchChageStatus(id_match, stato) la IA propone un metodo per mettere in pausa o far partire/ripartire una partita
@@ -418,12 +418,12 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	40. inventoryCheckSufficientCapacity(id_match,id_character,id_oggetto) solo di verifica se oggetto prendibile da character
 	- matchRunning
 	41. matchAddBonusInizioTempo(id_match,id_character,id_meteo,tempo) non serve id_classe perchè se la prende da solo
-	42. matchSpleep(id_match,id_character) un character scegliere di addormentarsi (o ha finito energia)
+	42. matcheSpleep(id_match,id_character) un character scegliere di addormentarsi (o ha finito energia)
 	43. matchCheckSleep(id_match) verifica se ci sono characters con energia<=0 allora li addormenta
 	44. matchGetcharacterAttivo(id_match) per il websocket , ricalcola chi è attivo, se senza energia passa al successivo
 	45. matchPass(id_match, id_character) usato per un giocatore che passa, aggiorna il numero_pass e aggiorna prossimo giocatore con timestamp_inizio_turno, timestamp_fine_turno=timestamp_inizio_turno + TimeoutPlayerPass + TimeoutPlayerEveryPass*numero_pass
 	46. matchAllEventDisponibile(id_match) in base alla posizione dei characters ritornare l'elenco degli eventi disponibili e l'elenco dei luoghi vicini possibili (e magari anche quelli non disponibili)
-	47. matchSecondarie(id_match) ritorna tutte le missioni attive con i le varie descrizioni e gli stati
+	47. matcheSecondarie(id_match) ritorna tutte le missioni attive con i le varie descrizioni e gli stati
 	- time
 	48. timeStart(id_match,meteo_new) metodo che modifica le tabelle
 	49. timeCalculateNewWeather(id_match,giorno_nuovo) calcola un nuovo meteo senza salvare nulla e ritorna meteo_new
@@ -468,7 +468,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	82. @Scheduled utilsCleanOrphanSessions: Cancella gioco_movimenti_inviti con tempo_validita < tempo_corrente
 	83. @Scheduled matchCheckLockExpiration: Controlla se lock_expiration_timestamp è scaduto senza azioni, sblocca la partita forzatamente e logga in gioco_lock_history.
 	84. @Scheduled utilsCleanOrphanWebSocketSessions: Rimuove record da gioco_utente_sessioni se la connessione WebSocket non esiste più o il client_id non corrisponde a nessuna sessione attiva.
-	85. @Scheduled matchSendPendingNotifications: Preleva notifiche da gioco_notification_queue, le ordina per priority, deduplica per hash_deduplica, le invia via WebSocket SYSTEM_MESSAGE e le marca come inviate.
+	85. @Scheduled matcheSendPendingNotifications: Preleva notifiche da gioco_notification_queue, le ordina per priority, deduplica per hash_deduplica, le invia via WebSocket SYSTEM_MESSAGE e le marca come inviate.
 	86. @Scheduled matchCleanExpiredMovementInvites: Cancella gioco_movimenti_inviti oltre tempo_validita in base al TimemoutMovementFollow
 	87. @Scheduled timeDailyGameProgression: processo tempo di avanzamento = "inizio tempo", analizzare se serve veramente!
 	88. @Scheduled checkTimeoutChoise: in caso di timeout di una scelta nella partita si sceglie l'opzione "altrimenti" se presente, altrimenti non si sceglie nulla e l'evento termina

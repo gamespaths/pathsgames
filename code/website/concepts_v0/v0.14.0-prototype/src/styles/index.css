@@ -1,0 +1,44 @@
+/* =============================================
+   PATHS GAMES — index.css
+   Master stylesheet: Tailwind + theme + overrides
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+@import "tailwindcss";
+@import "./theme.css";
+
+/* ── Bootstrap color-scheme override ── */
+.modal-backdrop {
+  --bs-backdrop-opacity: 0.7;
+}
+
+/* ── Additional Tailwind @theme for custom tokens ── */
+@theme {
+  --color-parchment: #e8d5b0;
+  --color-parchment-light: #f2e6c8;
+  --color-parchment-medium: #f5e9c2;
+  --color-parchment-dark: #c9b48a;
+  --color-brown-deep: #1a0a02;
+  --color-brown-dark: #2e1508;
+  --color-brown-mid: #5c3317;
+  --color-brown-warm: #7a4520;
+  --color-brown-light: #a0622e;
+  --color-brown-tan: #c08040;
+  --color-brown-super-tan: #d9a060;
+  --color-brown-extra-tan: #e0b080;
+  --color-gold: #c8960a;
+  --color-gold-light: #e8b830;
+  --color-gold-shine: #ffd700;
+  --color-gold-dark: #9a6f08;
+  --color-gold-deep: #7a4e00;
+  --color-gold-super-deep: #5c3700;
+  --color-ink: #1a0f06;
+  --color-ash: #8b7355;
+  --color-stone: #6b5c4a;
+  --color-ember: #d44a0a;
+
+  --font-display: 'Cinzel Decorative', 'Trajan Pro', serif;
+  --font-heading: 'Cinzel', 'Palatino Linotype', serif;
+  --font-body: 'Crimson Text', 'Georgia', serif;
+}

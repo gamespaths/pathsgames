@@ -296,7 +296,7 @@ All `list_` tables also carry `id_card` (FK to `list_cards.id`) for visual card 
 | **Active trades** | `gaming_trades` | `TimeoutTradesExpire` seconds | Cleaned by `@Scheduled cleanExpiredTrades` |
 | **Movement invites** | `gaming_movement_invites` | `TimeoutMovementFollow` seconds | Cleaned by `@Scheduled matchCleanExpiredMovementInvites` |
 | **Active choices** | `gaming_active_choices` | `TimeoutChoice` seconds | Cleaned by `@Scheduled checkTimeoutChoise` — defaults to "otherwise" option |
-| **Notification queue** | `gaming_notification_queue` | Until delivered via WebSocket | Cleaned by `@Scheduled matchSendPendingNotifications` after delivery |
+| **Notification queue** | `gaming_notification_queue` | Until delivered via WebSocket | Cleaned by `@Scheduled matcheSendPendingNotifications` after delivery |
 | **User sessions** | `gaming_user_sessions` | Until disconnect + grace period | Stale sessions cleaned by `@Scheduled checkTimeCleanUpAFKPlayers` |
 | **Concurrency locks** | `log_lock_history` (active record) | `timestamp_lock_expiration` on `gaming_match` | Released by action completion or `@Scheduled matchCheckLockExpiration` |
 | **WebSocket connections** | In-memory (Spring WebSocket session map) | Connection lifetime | Not persisted; reconnect triggers `STATE_SYNC` |
@@ -337,7 +337,7 @@ As defined in `gaming_match.status`:
          ┌──────────┐
          │ CREATED  │
          └────┬─────┘
-              │ matchStart()
+              │ matcheStart()
               ▼
       ┌───────────────┐ ◄───── matchChangeStatus()
       │   RUNNING     │◄──────────────┐
