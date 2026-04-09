@@ -33,7 +33,6 @@ class SessionServiceTest extends TestCase
         $oldInfo = new TokenInfo($userUuid, $username, 'PLAYER', 'refresh', time(), time() + 3600, 'jti-1');
         
         $this->jwtPort->method('validateToken')->with($oldToken)->willReturn(true);
-        $this->jwtPort->method('parseToken')->willReturn($oldInfo);
         $this->tokenPersistence->method('isRefreshTokenValid')->with($oldToken)->willReturn(true);
         $this->tokenPersistence->method('findUserIdByUuid')->with($userUuid)->willReturn(1);
         
