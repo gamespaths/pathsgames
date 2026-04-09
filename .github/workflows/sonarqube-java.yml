@@ -1,4 +1,4 @@
-name: SonarQube Analysis
+name: SonarQube Analysis - Java Backend
 
 on:
   push:
@@ -51,9 +51,9 @@ jobs:
         run: |
           mvn sonar:sonar \
             -Dsonar.branch.name=develop \
-            -Dsonar.projectKey=games.paths:paths-game-backend \
+            -Dsonar.projectKey=paths-game-backend-java \
             -Dsonar.organization=gamespaths \
-            -Dsonar.projectName="Paths Games - Backend" \
+            -Dsonar.projectName="Backend Java" \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.java.source=21 \

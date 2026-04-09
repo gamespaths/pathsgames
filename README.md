@@ -67,7 +67,7 @@ php img
         - Execute all unit test with command `mvn clean test`
         - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
         - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-        - Run **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+        - [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=games.paths%3Apaths-game-backend&metric=alert_status&token=4e4b1d5c76aa53c1ef0e9a61e73786016a16d807)](https://sonarcloud.io/summary/new_code?id=games.paths%3Apaths-game-backend) **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
     - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
         ```
         docker run -d -p 8042:8080 \
