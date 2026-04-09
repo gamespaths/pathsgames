@@ -1,5 +1,5 @@
 {
-    "name": "pathsgames/backend/php",
+    "name": "pathsgames/backend-php",
     "description": "Paths Games PHP Backend Version",
     "type": "project",
     "require": {

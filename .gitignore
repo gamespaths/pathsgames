@@ -42,8 +42,10 @@ database.sqlite
 **/__pycache__/
 **/*.pyc
 .venv
+code/backend/python/coverage.xml
 
 # Backend php
 code/backend/php/vendor
 code/backend/php/composer.lock
+
 
