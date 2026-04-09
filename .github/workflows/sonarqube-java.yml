@@ -15,7 +15,7 @@ env:
 
 jobs:
   sonarqube:
-    name: SonarQube Scan
+    name: SonarQube Scan - Java
     runs-on: ubuntu-latest
     defaults:
       run:
