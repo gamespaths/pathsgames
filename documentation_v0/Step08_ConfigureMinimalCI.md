@@ -40,7 +40,7 @@ Build the docker image and push to DockerHub
 docker login -u utente
 
 # Build the image
-cd code/backend
+cd code/backend/java
 docker build -t pathsgames/pathsgames:latest .
 
 # Tag with version (match POM version)
@@ -122,9 +122,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 
 | Workflow file | Trigger | Purpose |
 |---------------|---------|---------|
-| `backend-ci.yml` | Push/PR on `code/backend/**` | Build, test, and publish Docker image |
+| `backend-ci.yml` | Push/PR on `code/backend/java/**` | Build, test, and publish Docker image |
 | `website-deploy.yml` | Push on `code/website/html/**` | Deploy static website to S3 + invalidate CloudFront |
-| `sonarqube.yml` | Push/PR on `code/backend/**` | Code quality analysis, coverage, and security scan |
+| `sonarqube.yml` | Push/PR on `code/backend/java/**` | Code quality analysis, coverage, and security scan |
 | `frontend-deploy.yml` | *(future)* Push on `code/frontend/**` | Build React app and deploy to S3 |
 
 ### 3.3 Branch Strategy for CI
@@ -152,9 +152,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 **Steps:**
 1. **Checkout** — clone the repository
 2. **Set up Java 21** — install JDK 21 with Maven cache
-3. **Build** — `mvn clean install -DskipTests` in `code/backend/`
-4. **Test** — `mvn test` in `code/backend/`
-5. **Docker Build & Push** — build the Docker image from `code/backend/Dockerfile` and push to DockerHub `pathsgames/pathsgames`
+3. **Build** — `mvn clean install -DskipTests` in `code/backend/java/`
+4. **Test** — `mvn test` in `code/backend/java/`
+5. **Docker Build & Push** — build the Docker image from `code/backend/java/Dockerfile` and push to DockerHub `pathsgames/pathsgames`
 
 **Docker tagging strategy:**
 
@@ -267,7 +267,7 @@ For the `master` branch on GitHub:
 
 ## 8. Dockerfile
 
-The backend Dockerfile is located at `code/backend/Dockerfile` and uses a **multi-stage build** for minimal image size:
+The backend Dockerfile is located at `code/backend/java/Dockerfile` and uses a **multi-stage build** for minimal image size:
 
 ```dockerfile
 # Stage 1: Build
@@ -301,7 +301,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ```bash
 # Build image locally
-cd code/backend
+cd code/backend/java
 docker build -t pathsgames/pathsgames:local .
 
 # Run locally with dev profile
@@ -326,7 +326,7 @@ After this step, the following files are added to the repository:
     ├── website-deploy.yml       ← Website S3 sync and CloudFront invalidation
     └── sonarqube.yml            ← SonarCloud code quality and coverage analysis
 code/
-└── backend/
+└── backend/java
     └── Dockerfile               ← Multi-stage Docker build for the backend JAR
 ```
 
@@ -336,11 +336,12 @@ code/
     > check repository files, i wanna create documentation_v0/Step08_ConfigureMinimalCI. I use GitHub and i wanna create gitHub actions. website deployed on s3 bucket and backend i wanna create jar will be deployed on dockerhub image repository. in future we'll create a react project "frontend" will be deployed on another S3 bucket  
     
     > added SonarQube workflow and updated secrets/triggers
-- **Document Version**: 0.8.3
+- **Document Version**: 0.14.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.8 | first version of document | March 5, 2026 |
     | 0.8.3 | added SonarQube workflow and updated secrets/triggers | March 5, 2026 |
+    | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
 - **Last Updated**: March 5, 2026
 - **Status**: Complete ✅
 

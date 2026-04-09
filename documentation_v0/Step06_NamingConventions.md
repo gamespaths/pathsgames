@@ -459,7 +459,7 @@ private final Map<String, String> serverProperties;
 ```
 
 ### 4.5 Maven Module Naming
-All modules in `code/backend/` follow **kebab-case**:
+All modules in `code/backend/java/` follow **kebab-case**:
 
 ```
 core                  – Pure domain logic
@@ -637,12 +637,13 @@ JWT_SECRET=...
     > hi, read all files into documentation_v0 and complete the step06 file with naming convention you find in others documents and complete with your suggestions  
     
     > add api and websocket endpoint the software versione "v1" / "v2" / "v1beta1"..., change reference table from italian language to english language (example "lista" to "list")
-- **Document Version**: 0.6.1
+- **Document Version**: 0.14.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.6 | first version of document | February 26, 2026 |
     | 0.6.1 | added API versioning (v1/v2/v1beta1), renamed tables to list_, gaming_, match_, ... | February 26, 2026 |
-- **Last Updated**: February 26, 2026
+    | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
+- **Last Updated**: April 09, 2026
 - **Status**: Complete ✅
 
 

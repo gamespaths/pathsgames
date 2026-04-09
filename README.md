@@ -10,14 +10,13 @@
 ## Documentation
 Documents includes all steps and the roadmap for create paths.games components, configuration parameters and lists of features reserved for futures versions.
 
-- [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
-    - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md)
-    - ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md)
-    - ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md)
-    - ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md)
-    - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md)
-    - Next steps: To develop game engine, Performance and load testing, Launch the game with V1 version,...
-        - check [developer branch](https://github.com/gamespaths/pathsgames/) for all updates
+- [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*, check [developer branch](https://github.com/gamespaths/pathsgames/) for all updates:
+    | Steps | Focus | 
+    | --- | --- |
+    | **Start project** <br /> Steps 1-13| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) <br />- ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) |
+    | **Single player** <br /> Steps 14-42 | Guest login, story management, start match, ... |
+    | **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
+    | **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 
 - Version 1: 
     - start the crowfouning campaign 
@@ -44,44 +43,53 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 ## Tecnical components
 
+<img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" />
+php img 
+
 - **Main tecnical stack**
     | Category | Components |
     |---|:---:|
-    | Systems | <img src="https://img.shields.io/badge/Linux-BBCCEE?style=for-the-badge&logo=linux&logoColor=black" /> <img src="https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white" /> <img src="https://img.shields.io/badge/GNU-4E9A06?style=for-the-badge&logo=gnu&logoColor=white" /> |
+    | Main systems | <img src="https://img.shields.io/badge/Linux-BBCCEE?style=for-the-badge&logo=linux&logoColor=black" /> <img src="https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white" /> <img src="https://img.shields.io/badge/GNU-4E9A06?style=for-the-badge&logo=gnu&logoColor=white" /> |
     | Developer tools | <img src="https://img.shields.io/badge/GitHub-000000?style=for-the-badge&logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" /> <img src="https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white" /> |
-    | Cloud infrastructure | <img src="https://img.shields.io/badge/AWS-%23FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" />  <img src="https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" />  <img src="https://img.shields.io/badge/Python-3766AB?style=for-the-badge&logo=python&logoColor=white" />  |
+    | Cloud infrastructures | <img src="https://img.shields.io/badge/AWS-%23FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" />  <img src="https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" />  <img src="https://img.shields.io/badge/Python-3766AB?style=for-the-badge&logo=python&logoColor=white" />  |
     | Infra tooling (IaC) | <img src="https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white" /> <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" /> <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" /> |
     | Main backend technologies | <img src="https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=black" /> <img src="https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" /> <img src="https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white" />|
+    | Alternative backend | <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" /> <img src="https://img.shields.io/badge/php-474A8A?style=for-the-badge&logo=php&logoColor=white" />
     | Databases & storage | <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" /> <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" /> <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" /> |
     | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white" /> |
+    | Backend tecnologies | <img src="https://img.shields.io/badge/React-61DBFB?style=for-the-badge&logo=react&logoColor=black" /> <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" />
 
-- **Backend** project into `code/backend`, see [README](./code/backend/README.md) for all details
-    - **Java**: Build with Java 21, Spring boot with Hexagonal Architecture (ports & adapters)
-        - Run application on developer environment 
-            - Build project with command `mvn clean install -DskipTests`
-            - Execute all unit test with command `mvn clean test`
-            - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
-            - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-    - **Docker and sonar**
-        - The application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames)
-        - Run backend application with docker image with `prod' profile using *extenal* postgres database:
-            ```
-            docker run -d -p 8042:8080 \
-                -e SPRING_PROFILES_ACTIVE=prod   \
-                -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
-                -e SPRING_DATASOURCE_USERNAME=dbuser   \
-                -e SPRING_DATASOURCE_PASSWORD=dbpass   \
-                pathsgames/pathsgames:latest
-            ```
+
+
+- **Backend** projects into `code/backend` folder:
+    - **Java**: main backend project, see [README](./code/backend/java/README.md) for all details, build with Java 21, Spring boot with Hexagonal Architecture. Run application on developer environment with commands:
+        - Build project with command `mvn clean install -DskipTests`
+        - Execute all unit test with command `mvn clean test`
+        - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
+        - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
         - Run **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
-    - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend-python/README.md) for all details.
-    - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend-php/README.md) for all details.
+    - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
+        ```
+        docker run -d -p 8042:8080 \
+            -e SPRING_PROFILES_ACTIVE=prod   \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
+            -e SPRING_DATASOURCE_USERNAME=dbuser   \
+            -e SPRING_DATASOURCE_PASSWORD=dbpass   \
+            pathsgames/pathsgames:latest
+        ```
+    - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend/python/README.md) for all details.
+        - Start service into virtual environment `python3 -m app.launcher`
+    - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
+        - Start service into configured environment `php -S localhost:8042 -t public `
 
 - **Website** project into `code/website` define all website components:
     - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
     - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)
     - `code/website/concepts` — design exploration assets (mockups, card concepts, logo, screenshots)
     
+- **Frontend**: projects about backend builded with React, Vite and Node.js
+    - **React-admin**: *coming soon*
+    - **React-game**: *coming soon*
 
 
 ## References

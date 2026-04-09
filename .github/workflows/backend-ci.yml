@@ -4,11 +4,11 @@ on:
   push:
     branches: [ main ] #, develop, 'release/*', 'feature/*' ]
     paths:
-      - 'code/backend/**'
+      - 'code/backend/java/**'
 #  pull_request:
 #    branches: [ main ]
 #    paths:
-#      - 'code/backend/**'
+#      - 'code/backend/java/**'
 
 env:
   JAVA_VERSION: '21'
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/backend
+        working-directory: code/backend/java
 
     steps:
       - name: Checkout repository
@@ -88,8 +88,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: code/backend
-          file: code/backend/Dockerfile
+          context: code/backend/java
+          file: code/backend/java/Dockerfile
           push: true
           tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha

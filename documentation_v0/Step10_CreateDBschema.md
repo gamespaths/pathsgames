@@ -46,7 +46,7 @@ The 52 entities defined in Step 09 have been translated into SQL `CREATE TABLE` 
 ### 1.2 Directory Structure
 
 ```
-code/backend/
+code/backend/java/
 ├── adapter-postgres/
 │   └── src/main/resources/
 │       └── db/migration/
@@ -582,7 +582,7 @@ The following dependencies are required in `ms-launcher/pom.xml`:
 ### 9.1 Development (SQLite)
 
 ```bash
-cd code/backend
+cd code/backend/java
 mvn spring-boot:run -pl ms-launcher -Dspring-boot.run.profiles=dev
 ```
 
@@ -620,12 +620,13 @@ ORDER BY installed_rank;
     > Read all files into documentation_v0 folder to have project overview. Create SQL files for PostgreSQL and SQLite, one file per table category. Write Step10_CreateDBschema.md documentation with Flyway description and usage guide.
 
     > Now i wanna add uuid item in all tables , the value will be a generated with a randon value when a row is added in a table, the uuid value will be used in API method (to avoid use ID value in public http api)
-- **Document Version**: 0.10.12
+- **Document Version**: 0.14.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.10.0 | Initial version: 52 tables, 13 migration files per dialect, indexes, seed data, Flyway guide | March 19, 2026 |
     | 0.10.12 | Added UUID column to all 52 tables for public API identifiers (gen_random_uuid / randomblob) | March 19, 2026 |
-- **Last Updated**: March 19, 2026
+    | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
+- **Last Updated**: April 09, 2026
 - **Status**: Complete ✅
 
 

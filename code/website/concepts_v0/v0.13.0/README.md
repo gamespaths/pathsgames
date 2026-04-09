@@ -177,7 +177,7 @@ game:
 Start the Java backend:
 
 ```bash
-cd code/backend
+cd code/backend/java
 mvn spring-boot:run
 # Server starts on http://localhost:8042
 ```
@@ -196,5 +196,5 @@ and has `allowCredentials: true` for cookie support.
 
 - [Step 12 — Guest Login Method](../../../documentation_v0/Step12_GuestLoginMethod.md)
 - [Step 13 — Session & Token Management](../../../documentation_v0/Step13_SessionTokenManagement.md)
-- [OpenAPI — Guest Auth API](../../backend/adapter-rest/src/main/resources/openapi/v0.12.0-guest-auth-api.yaml)
-- [OpenAPI — Session API](../../backend/adapter-rest/src/main/resources/openapi/v0.13.0-session-api.yaml)
+- [OpenAPI — Guest Auth API](../../backend/java/adapter-rest/src/main/resources/openapi/v0.12.0-guest-auth-api.yaml)
+- [OpenAPI — Session API](../../backend/java/adapter-rest/src/main/resources/openapi/v0.13.0-session-api.yaml)

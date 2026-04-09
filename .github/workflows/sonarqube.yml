@@ -4,12 +4,12 @@ on:
   push:
     branches: [ develop ] #main, 
     paths:
-      - 'code/backend/**'
+      - 'code/backend/java/**'
 #  pull_request:
 #    branches: [ main, develop ]
 #    paths:
-#      - 'code/backend/**'
-
+#      - 'code/backend/java/**'
+  
 env:
   JAVA_VERSION: '21'
 
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: code/backend
+        working-directory: code/backend/java
 
     steps:
       - name: Checkout repository

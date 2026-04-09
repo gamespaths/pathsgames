@@ -230,16 +230,17 @@ All **28 tests** pass (18 core + 10 adapter-rest).
 
     > now create the admin sections: admin backend code to manage all guest users and v0.12.0-admin example pages  
 
-    > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
+    > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/java/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
 
-- **Document Version**: 0.13.0
+- **Document Version**: 0.14.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
     | 0.12.3 | Create backend python code | March 31, 2026 |
     | 0.12.4 | Create backend php code | April 1, 2026 |
     | 0.13.0 | Write OpenAPI file | April 2, 2026 |
-- **Last Updated**: April 2, 2026
+    | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
+- **Last Updated**: April 9, 2026
 - **Status**: ✅ Complete
 
 

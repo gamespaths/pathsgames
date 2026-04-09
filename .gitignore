@@ -44,6 +44,6 @@ database.sqlite
 .venv
 
 # Backend php
-code/backend-php/vendor
-code/backend-php/composer.lock
+code/backend/php/vendor
+code/backend/php/composer.lock
 
