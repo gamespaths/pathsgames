@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.14.1
+    version: 0.14.2
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -19,7 +19,7 @@ game:
       refresh-token-days: 7
     max-tokens-per-user: 5
     admin-path-prefix: /api/admin/
-    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions
+    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
       same-site: Lax
   admin:

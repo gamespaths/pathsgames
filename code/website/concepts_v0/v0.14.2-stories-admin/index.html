@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Story Admin (v0.14.0)</title>
+  <meta name="description" content="Paths Games: Story admin panel — import, manage &amp; delete stories" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="variables.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       LOGIN SCREEN
+       ═══════════════════════════════════════════════ -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="fas fa-dice-d20 logo-icon"></i>
+        <h1>Paths Games</h1>
+        <p class="login-subtitle"><i class="fas fa-book-dead"></i> Story Admin — v0.14.0</p>
+      </div>
+
+      <div class="login-status">
+        <span class="status-dot" id="loginStatusDot"></span>
+        <span id="loginStatusText">Checking server…</span>
+      </div>
+
+      <form class="login-form" onsubmit="return false;">
+        <label for="tokenInput">
+          <i class="fas fa-key"></i> Paste your Admin access token
+        </label>
+        <textarea id="tokenInput" class="token-textarea"
+                  placeholder="eyJhbGciOiJIUzI1NiJ9…"
+                  autocomplete="off" spellcheck="false" rows="4"></textarea>
+        <p class="login-hint">
+          Requires ADMIN role. Use the
+          <a href="../v0.13.1-admin/">session admin panel</a>
+          to obtain a token.
+        </p>
+        <div class="login-actions">
+          <button class="btn-login" id="btnLogin" onclick="loginWithToken()">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+          </button>
+        </div>
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       APP SCREEN
+       ═══════════════════════════════════════════════ -->
+  <div id="appScreen">
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <a class="navbar-brand" href="#">
+        <i class="fas fa-dice-d20"></i> Paths Games
+      </a>
+      <div class="navbar-title">
+        <i class="fas fa-book-dead"></i> Story Admin
+      </div>
+      <div class="navbar-controls">
+        <select class="lang-select" id="langSelect" onchange="changeLang()">
+          <option value="en">EN</option>
+          <option value="it">IT</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+          <option value="de">DE</option>
+        </select>
+        <div class="navbar-server">
+          <span class="status-dot" id="appStatusDot"></span>
+          <span id="appStatusText">—</span>
+        </div>
+        <button class="btn-action btn-logout" onclick="doLogout()" style="margin-left:var(--space-sm);">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </nav>
+
+    <main class="page-wrap">
+
+      <!-- ── IMPORT SECTION ── -->
+      <section class="import-card">
+        <h2 class="section-title"><i class="fas fa-file-import"></i> Import Story</h2>
+
+        <div class="import-tabs">
+          <button class="import-tab active" id="tabPaste" onclick="switchTab('paste')">
+            <i class="fas fa-paste"></i> Paste JSON
+          </button>
+          <button class="import-tab" id="tabFile" onclick="switchTab('file')">
+            <i class="fas fa-file-upload"></i> Upload File
+          </button>
+        </div>
+
+        <!-- Paste JSON -->
+        <div class="import-area" id="areaPaste">
+          <textarea class="json-textarea" id="jsonInput"
+                    placeholder='{ "title": "The Lost Kingdom", "author": "PathsMaster", ... }'></textarea>
+        </div>
+
+        <!-- File Upload -->
+        <div class="import-area" id="areaFile" style="display:none;">
+          <div class="file-drop-zone" id="dropZone"
+               onclick="document.getElementById('fileInput').click()">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drop a JSON file here or click to browse</p>
+            <div class="file-name" id="fileName"></div>
+          </div>
+          <input type="file" id="fileInput" accept=".json,application/json" style="display:none;" onchange="handleFile(event)" />
+        </div>
+
+        <div class="import-actions">
+          <button class="btn-action btn-import" id="btnImport" onclick="importStory()">
+            <i class="fas fa-file-import"></i> Import Story
+          </button>
+          <button class="btn-action btn-sample" onclick="loadSample()">
+            <i class="fas fa-magic"></i> Load Sample
+          </button>
+          <button class="btn-action btn-clear" onclick="clearImport()">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+        </div>
+
+        <div class="import-result" id="importResult"></div>
+      </section>
+
+      <!-- ── STORY TABLE ── -->
+      <section class="table-panel">
+        <div class="table-header">
+          <h2 class="section-title" style="margin-bottom:0;"><i class="fas fa-list"></i> Stories</h2>
+          <button class="btn-action btn-refresh" onclick="loadStories()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+        <div class="table-wrapper">
+          <table class="story-table" id="storyTable">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>UUID</th>
+                <th>Visibility</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="storyTableBody">
+              <tr><td colspan="7" class="loading-row">
+                <i class="fas fa-spinner fa-spin"></i> Loading…
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── ACTIVITY LOG ── -->
+      <section class="log-panel">
+        <h2 class="section-title"><i class="fas fa-scroll"></i> Activity Log</h2>
+        <div class="log-area" id="logArea"></div>
+      </section>
+
+    </main>
+
+    <footer class="page-footer">
+      &copy; 2026 Paths Games — Story Admin — v0.14.0-admin
+    </footer>
+  </div>
+
+  <!-- notifications -->
+  <div class="notification" id="notification"></div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

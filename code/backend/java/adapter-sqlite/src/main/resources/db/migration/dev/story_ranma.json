@@ -1,0 +1,219 @@
+{
+  "uuid": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  "author": "PathsMaster",
+  "versionMin": "0.14.0",
+  "clockSingularDescription": "day",
+  "clockPluralDescription": "days",
+  "category": "comedy",
+  "group": "main",
+  "visibility": "PUBLIC",
+  "priority": 7,
+  "peghi": 3,
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+
+  "texts": [
+    {"idText": 1, "lang": "en", "shortText": "Ranma ½ — The Chaos of Nerima", "longText": "Welcome to Nerima, Tokyo — a seemingly ordinary neighborhood hiding an extraordinary secret. Cursed springs, martial arts rivals, unwanted fiancées, and magical transformations await. Everything is a challenge, and nothing stays normal for long!"},
+    {"idText": 1, "lang": "it", "shortText": "Ranma ½ — Il Caos di Nerima", "longText": "Benvenuti a Nerima, Tokyo — un quartiere apparentemente ordinario che nasconde un segreto straordinario. Sorgenti maledette, rivali di arti marziali, fidanzate indesiderate e trasformazioni magiche attendono. Tutto è una sfida e niente resta normale a lungo!"},
+    {"idText": 2, "lang": "en", "shortText": "The Chaos of Nerima", "longText": "Train in martial arts, avoid cold water, survive rival encounters, and navigate a tangled web of engagements in the most chaotic neighborhood in Japan. Will you master the Anything-Goes style?"},
+    {"idText": 2, "lang": "it", "shortText": "Il Caos di Nerima", "longText": "Allenati nelle arti marziali, evita l'acqua fredda, sopravvivi agli incontri con i rivali e naviga un intricato groviglio di fidanzamenti nel quartiere più caotico del Giappone. Riuscirai a padroneggiare lo stile Tutto Va?"},
+
+    {"idText": 100, "lang": "en", "shortText": "Tendo Dojo", "longText": "The Tendo family dojo — home of the Anything-Goes School of Martial Arts. The training hall is spacious, the koi pond is cursed, and panda attacks are frequent."},
+    {"idText": 100, "lang": "it", "shortText": "Dojo Tendo", "longText": "Il dojo della famiglia Tendo — sede della Scuola Tutto Va di Arti Marziali. La sala d'allenamento è spaziosa, il laghetto delle carpe è maledetto e gli attacchi di panda sono frequenti."},
+    {"idText": 101, "lang": "en", "shortText": "Furinkan High School", "longText": "A seemingly normal high school where martial arts battles erupt daily. The morning gauntlet of challengers is a beloved institution."},
+    {"idText": 101, "lang": "it", "shortText": "Liceo Furinkan", "longText": "Un liceo apparentemente normale dove battaglie di arti marziali scoppiano quotidianamente. La sfida mattutina dei pretendenti è un'amata istituzione."},
+    {"idText": 102, "lang": "en", "shortText": "Nekohanten (Cat Café)", "longText": "A Chinese restaurant run by an Amazon elder and her great-granddaughter. The ramen is delicious, and the staff may try to kill —  or marry — you."},
+    {"idText": 102, "lang": "it", "shortText": "Nekohanten (Caffè del Gatto)", "longText": "Un ristorante cinese gestito da un'anziana delle Amazzoni e dalla sua pronipote. Il ramen è delizioso e il personale potrebbe cercare di ucciderti — o sposarti."},
+    {"idText": 103, "lang": "en", "shortText": "Ucchan's Okonomiyaki", "longText": "An okonomiyaki restaurant run by a childhood friend. The food is amazing, and the proprietor has a giant spatula that doubles as a weapon."},
+    {"idText": 103, "lang": "it", "shortText": "Okonomiyaki di Ucchan", "longText": "Un ristorante di okonomiyaki gestito da un'amica d'infanzia. Il cibo è fantastico e la proprietaria ha una spatola gigante che funge anche da arma."},
+    {"idText": 104, "lang": "en", "shortText": "Kuno Estate", "longText": "The vast estate of the Kuno family. Rose petals drift through the air, samurai swords adorn the walls, and madness runs in the family."},
+    {"idText": 104, "lang": "it", "shortText": "Tenuta Kuno", "longText": "La vasta tenuta della famiglia Kuno. Petali di rosa fluttuano nell'aria, spade da samurai adornano le pareti e la follia è ereditaria."},
+    {"idText": 105, "lang": "en", "shortText": "Cursed Training Grounds", "longText": "The legendary Jusenkyo — hundreds of cursed springs in a misty valley in China. Every spring holds the tragic story of something that drowned there."},
+    {"idText": 105, "lang": "it", "shortText": "Campi di Allenamento Maledetti", "longText": "Il leggendario Jusenkyo — centinaia di sorgenti maledette in una valle nebbiosa in Cina. Ogni sorgente custodisce la tragica storia di qualcosa che vi è annegato."},
+    {"idText": 106, "lang": "en", "shortText": "Public Bathhouse", "longText": "A traditional Japanese bathhouse. The perfect place to relax — unless someone throws cold water on you. Hot water is your best friend here."},
+    {"idText": 106, "lang": "it", "shortText": "Bagno Pubblico", "longText": "Un tradizionale bagno pubblico giapponese. Il posto perfetto per rilassarsi — a meno che qualcuno non ti butti acqua fredda addosso. L'acqua calda è la tua migliore amica qui."},
+    {"idText": 107, "lang": "en", "shortText": "Nerima Shopping District", "longText": "A vibrant commercial street where martial artists and normal citizens coexist. Property damage from fights is factored into the rent."},
+    {"idText": 107, "lang": "it", "shortText": "Quartiere Commerciale di Nerima", "longText": "Una vivace strada commerciale dove artisti marziali e cittadini normali coesistono. I danni alla proprietà causati dai combattimenti sono già calcolati nell'affitto."},
+    {"idText": 108, "lang": "en", "shortText": "Ryugenzawa Forest", "longText": "A remote forest inhabited by impossibly large animals — giant mice, enormous birds, and a colossal platypus. The spring water here has unusual properties."},
+    {"idText": 108, "lang": "it", "shortText": "Foresta di Ryugenzawa", "longText": "Una foresta remota abitata da animali impossibilmente grandi — topi giganti, uccelli enormi e un ornitorinco colossale. L'acqua sorgiva qui ha proprietà insolite."},
+    {"idText": 109, "lang": "en", "shortText": "Mount Phoenix", "longText": "The hidden kingdom of the Phoenix People — a winged race guarding an ancient artifact of immense power. The altitude alone is deadly."},
+    {"idText": 109, "lang": "it", "shortText": "Monte Fenice", "longText": "Il regno nascosto del Popolo della Fenice — una razza alata che custodisce un antico artefatto di immensa potenza. Solo l'altitudine è letale."},
+    {"idText": 110, "lang": "en", "shortText": "Happosai's Lair", "longText": "The hidden den of the grandmaster of Anything-Goes Martial Arts — a perverted old man with terrifying power. Stolen undergarments are everywhere."},
+    {"idText": 110, "lang": "it", "shortText": "Tana di Happosai", "longText": "La tana nascosta del gran maestro delle Arti Marziali Tutto Va — un vecchio pervertito con un potere terrificante. Biancheria intima rubata è ovunque."},
+    {"idText": 111, "lang": "en", "shortText": "Jusenkyo Guide's Hut", "longText": "The small hut of the portly Jusenkyo guide who warns visitors about the springs — always too late. He knows the cure for every curse."},
+    {"idText": 111, "lang": "it", "shortText": "Capanna della Guida di Jusenkyo", "longText": "La piccola capanna della corpulenta guida di Jusenkyo che avverte i visitatori riguardo le sorgenti — sempre troppo tardi. Conosce la cura per ogni maledizione."},
+
+    {"idText": 200, "lang": "en", "shortText": "Anything-Goes Fighter", "longText": "A practitioner of Musabetsu Kakutō Ryū — the Anything-Goes School. Adaptable, creative, and utterly unpredictable in combat."},
+    {"idText": 200, "lang": "it", "shortText": "Combattente Tutto Va", "longText": "Un praticante del Musabetsu Kakutō Ryū — la Scuola Tutto Va. Adattabile, creativo e totalmente imprevedibile in combattimento."},
+    {"idText": 201, "lang": "en", "shortText": "Amazon Warrior", "longText": "A fighter from the Chinese Amazon village, trained in 3,000 years of martial arts tradition and equipped with exotic weapons and techniques."},
+    {"idText": 201, "lang": "it", "shortText": "Guerriera delle Amazzoni", "longText": "Una combattente del villaggio delle Amazzoni cinesi, addestrata in 3.000 anni di tradizione marziale e dotata di armi e tecniche esotiche."},
+    {"idText": 202, "lang": "en", "shortText": "Kendoist", "longText": "A practitioner of the way of the sword. Fights with a bokken and unwavering confidence — though judgment may be lacking."},
+    {"idText": 202, "lang": "it", "shortText": "Kendoka", "longText": "Un praticante della via della spada. Combatte con un bokken e un'incrollabile fiducia — anche se il giudizio potrebbe mancare."},
+
+    {"idText": 300, "lang": "en", "shortText": "Slice of Life", "longText": "Few enemies, lots of comedy. Enjoy the chaos of daily life in Nerima without too much danger."},
+    {"idText": 300, "lang": "it", "shortText": "Vita Quotidiana", "longText": "Pochi nemici, tanta commedia. Goditi il caos della vita quotidiana a Nerima senza troppo pericolo."},
+    {"idText": 301, "lang": "en", "shortText": "Martial Mayhem", "longText": "Standard difficulty. Rivals are strong, transformations are inconvenient, and fiancées are persistent."},
+    {"idText": 301, "lang": "it", "shortText": "Caos Marziale", "longText": "Difficoltà standard. I rivali sono forti, le trasformazioni sono scomode e le fidanzate sono insistenti."},
+    {"idText": 302, "lang": "en", "shortText": "Final Battle Arc", "longText": "Extreme difficulty. Powerful enemies, scarce resources, and a cure for the curse that may be just out of reach."},
+    {"idText": 302, "lang": "it", "shortText": "Arco della Battaglia Finale", "longText": "Difficoltà estrema. Nemici potenti, risorse scarse e una cura per la maledizione che potrebbe essere appena fuori portata."},
+
+    {"idText": 400, "lang": "en", "shortText": "Hot Water Thermos", "longText": "A thermos filled with hot water. The most important item for any Jusenkyo curse victim. One splash and you're back to normal — temporarily."},
+    {"idText": 400, "lang": "it", "shortText": "Thermos di Acqua Calda", "longText": "Un thermos pieno di acqua calda. L'oggetto più importante per ogni vittima della maledizione di Jusenkyo. Uno spruzzo e torni normale — temporaneamente."},
+    {"idText": 401, "lang": "en", "shortText": "Martial Arts Manual", "longText": "A scroll containing a secret technique. Study carefully — some of these techniques have devastating side effects."},
+    {"idText": 401, "lang": "it", "shortText": "Manuale di Arti Marziali", "longText": "Un rotolo contenente una tecnica segreta. Studia attentamente — alcune di queste tecniche hanno effetti collaterali devastanti."},
+    {"idText": 402, "lang": "en", "shortText": "Battle Spatula", "longText": "An oversized spatula that serves as both cooking utensil and lethal weapon. Heavy but effective."},
+    {"idText": 402, "lang": "it", "shortText": "Spatola da Battaglia", "longText": "Una spatola sovradimensionata che funge sia da utensile da cucina che da arma letale. Pesante ma efficace."},
+    {"idText": 403, "lang": "en", "shortText": "Koi Rod of Doom", "longText": "A fishing rod cursed with the Spring of Drowned Love. Anyone hooked by it falls helplessly in love with the wielder."},
+    {"idText": 403, "lang": "it", "shortText": "Canna da Pesca del Destino", "longText": "Una canna da pesca maledetta con la Sorgente dell'Amore Annegato. Chiunque venga agganciato si innamora perdutamente dell'utilizzatore."},
+    {"idText": 404, "lang": "en", "shortText": "Phoenix Pill", "longText": "A rare medicine from Mount Phoenix that makes the user resistant to temperature changes. Highly sought after by curse victims."},
+    {"idText": 404, "lang": "it", "shortText": "Pillola della Fenice", "longText": "Una rara medicina del Monte Fenice che rende l'utente resistente ai cambi di temperatura. Molto ricercata dalle vittime delle maledizioni."},
+
+    {"idText": 500, "lang": "en", "shortText": "Cold Water Splash!", "longText": "A random old lady is watering her plants — directly at you! Cold water triggers your Jusenkyo curse!"},
+    {"idText": 500, "lang": "it", "shortText": "Schizzo d'Acqua Fredda!", "longText": "Una vecchietta a caso sta annaffiando le piante — direttamente su di te! L'acqua fredda attiva la tua maledizione di Jusenkyo!"},
+    {"idText": 501, "lang": "en", "shortText": "Rival Appears!", "longText": "A martial arts rival jumps out of nowhere shouting your name. They have been training for this moment — you'd better be ready."},
+    {"idText": 501, "lang": "it", "shortText": "Appare un Rivale!", "longText": "Un rivale di arti marziali salta fuori dal nulla gridando il tuo nome. Si è allenato per questo momento — è meglio che tu sia pronto."},
+    {"idText": 502, "lang": "en", "shortText": "Fiancée Ambush", "longText": "Three different girls — each claiming to be your fiancée — converge on your location simultaneously. Things escalate quickly."},
+    {"idText": 502, "lang": "it", "shortText": "Agguato delle Fidanzate", "longText": "Tre ragazze diverse — ciascuna sostenendo di essere la tua fidanzata — convergono sulla tua posizione simultaneamente. Le cose degenerano in fretta."},
+    {"idText": 503, "lang": "en", "shortText": "Happosai's Rampage", "longText": "The perverse grandmaster is on a rampage through Nerima, stealing undergarments and causing chaos. Someone must stop him!"},
+    {"idText": 503, "lang": "it", "shortText": "Scorreria di Happosai", "longText": "Il perverso gran maestro è in una scorribanda per Nerima, rubando biancheria intima e causando il caos. Qualcuno deve fermarlo!"},
+    {"idText": 504, "lang": "en", "shortText": "The Cure Is Found!", "longText": "A cure for the Jusenkyo curse has been discovered — but there's only enough for one person, and everyone cursed is racing to get it!"},
+    {"idText": 504, "lang": "it", "shortText": "La Cura È Stata Trovata!", "longText": "Una cura per la maledizione di Jusenkyo è stata scoperta — ma ce n'è abbastanza solo per una persona, e tutti i maledetti corrono per ottenerla!"},
+
+    {"idText": 600, "lang": "en", "shortText": "Dodge the Splash", "longText": "Try to avoid the cold water with your martial arts reflexes — easier said than done!"},
+    {"idText": 600, "lang": "it", "shortText": "Schiva lo Schizzo", "longText": "Prova a evitare l'acqua fredda con i tuoi riflessi marziali — più facile a dirsi che a farsi!"},
+    {"idText": 601, "lang": "en", "shortText": "Accept the Transformation", "longText": "Let the cold water hit you. Sometimes it's easier to just roll with it and find hot water later."},
+    {"idText": 601, "lang": "it", "shortText": "Accetta la Trasformazione", "longText": "Lascia che l'acqua fredda ti colpisca. A volte è più facile accettarlo e cercare acqua calda dopo."},
+    {"idText": 602, "lang": "en", "shortText": "Challenge the Rival", "longText": "Accept the challenge head-on! A true martial artist never backs down!"},
+    {"idText": 602, "lang": "it", "shortText": "Sfida il Rivale", "longText": "Accetta la sfida a viso aperto! Un vero artista marziale non si tira mai indietro!"},
+    {"idText": 603, "lang": "en", "shortText": "Run Away!", "longText": "Strategic retreat is a valid martial arts technique! Flee before the fiancées catch you!"},
+    {"idText": 603, "lang": "it", "shortText": "Scappa!", "longText": "La ritirata strategica è una tecnica marziale valida! Fuggi prima che le fidanzate ti raggiungano!"},
+    {"idText": 604, "lang": "en", "shortText": "Race for the Cure", "longText": "Sprint to Jusenkyo and claim the cure before anyone else can reach it!"},
+    {"idText": 604, "lang": "it", "shortText": "Corsa per la Cura", "longText": "Scatta verso Jusenkyo e reclama la cura prima che chiunque altro possa raggiungerla!"},
+
+    {"idText": 700, "lang": "en", "shortText": "Jusenkyo Curse", "longText": "You fell into one of the cursed springs. Cold water triggers your transformation, hot water reverses it. Life will never be simple again."},
+    {"idText": 700, "lang": "it", "shortText": "Maledizione di Jusenkyo", "longText": "Sei caduto in una delle sorgenti maledette. L'acqua fredda attiva la tua trasformazione, l'acqua calda la inverte. La vita non sarà mai più semplice."},
+    {"idText": 701, "lang": "en", "shortText": "Iron Fist", "longText": "Years of training have hardened your fists to the strength of steel. Your punches can shatter concrete."},
+    {"idText": 701, "lang": "it", "shortText": "Pugno di Ferro", "longText": "Anni di allenamento hanno indurito i tuoi pugni alla resistenza dell'acciaio. I tuoi pugni possono frantumare il cemento."},
+    {"idText": 702, "lang": "en", "shortText": "Cat Fist", "longText": "A terrifying technique learned through traumatic exposure to cats. Incredibly powerful but triggers uncontrollable feline behavior."},
+    {"idText": 702, "lang": "it", "shortText": "Pugno del Gatto", "longText": "Una tecnica terrificante appresa attraverso un'esposizione traumatica ai gatti. Incredibilmente potente ma scatena un comportamento felino incontrollabile."},
+
+    {"idText": 800, "lang": "en", "shortText": "Sudden Rainstorm", "longText": "Dark clouds gather and rain pours down. Every Jusenkyo curse victim in the area transforms simultaneously. Chaos ensues."},
+    {"idText": 800, "lang": "it", "shortText": "Temporale Improvviso", "longText": "Nuvole scure si raccolgono e la pioggia si riversa. Ogni vittima della maledizione di Jusenkyo nell'area si trasforma simultaneamente. Ne consegue il caos."},
+    {"idText": 801, "lang": "en", "shortText": "Heat Wave", "longText": "A scorching summer day. Everyone seeks cold drinks and cold water — dangerous for curse victims but great for hot springs."},
+    {"idText": 801, "lang": "it", "shortText": "Ondata di Calore", "longText": "Una torrida giornata estiva. Tutti cercano bevande fresche e acqua fredda — pericoloso per le vittime della maledizione ma ottimo per le sorgenti calde."},
+    {"idText": 802, "lang": "en", "shortText": "Festival Day", "longText": "A local festival brings out the whole neighborhood. Increased encounters with rivals, fiancées, and street food vendors."},
+    {"idText": 802, "lang": "it", "shortText": "Giorno di Festival", "longText": "Un festival locale fa uscire tutto il quartiere. Aumentano gli incontri con rivali, fidanzate e venditori ambulanti."},
+
+    {"idText": 900, "lang": "en", "shortText": "Master the Technique", "longText": "Learn and perfect the secret Anything-Goes final technique before the tournament."},
+    {"idText": 900, "lang": "it", "shortText": "Padroneggia la Tecnica", "longText": "Impara e perfeziona la tecnica finale segreta dello Tutto Va prima del torneo."},
+    {"idText": 901, "lang": "en", "shortText": "Settle the Engagement", "longText": "Resolve the tangled web of engagements once and for all — without making everyone hate you."},
+    {"idText": 901, "lang": "it", "shortText": "Risolvi il Fidanzamento", "longText": "Risolvi l'intricata rete di fidanzamenti una volta per tutte — senza farti odiare da tutti."},
+    {"idText": 902, "lang": "en", "shortText": "Find the Cure", "longText": "Discover the permanent cure for the Jusenkyo curse and return to your true form — forever."},
+    {"idText": 902, "lang": "it", "shortText": "Trova la Cura", "longText": "Scopri la cura permanente per la maledizione di Jusenkyo e torna alla tua vera forma — per sempre."},
+
+    {"idText": 210, "lang": "en", "shortText": "Cursed Martial Artist", "longText": "A young martial artist cursed to transform with cold water. Incredibly skilled but constantly inconvenienced."},
+    {"idText": 211, "lang": "en", "shortText": "Tomboy Fighter", "longText": "A fiery-tempered martial artist with a heart of gold and a mallet of steel. Training to surpass all rivals."},
+    {"idText": 212, "lang": "en", "shortText": "Lost Warrior", "longText": "A powerful martial artist with an absolutely terrible sense of direction. May end up in another country while walking home."},
+
+    {"idText": 950, "lang": "en", "shortText": "Jusenkyo Map", "longText": "A detailed map of the cursed springs marking which spring holds which curse. Handle with extreme care."},
+    {"idText": 951, "lang": "en", "shortText": "Amazon Tribe Seal", "longText": "An official seal from the Joketsuzoku village. Grants passage and recognition among the Chinese Amazons."},
+    {"idText": 952, "lang": "en", "shortText": "Love Potion Recipe", "longText": "A recipe for a potion with unpredictable romantic effects. Use at your own risk."}
+  ],
+
+  "difficulties": [
+    {"idTextDescription": 300, "expCost": 2, "maxWeight": 15, "minCharacter": 1, "maxCharacter": 5, "costHelpComa": 1, "costMaxCharacteristics": 2, "numberMaxFreeAction": 3},
+    {"idTextDescription": 301, "expCost": 4, "maxWeight": 10, "minCharacter": 1, "maxCharacter": 4, "costHelpComa": 2, "costMaxCharacteristics": 3, "numberMaxFreeAction": 1},
+    {"idTextDescription": 302, "expCost": 7, "maxWeight": 7,  "minCharacter": 2, "maxCharacter": 3, "costHelpComa": 4, "costMaxCharacteristics": 4, "numberMaxFreeAction": 0}
+  ],
+
+  "classes": [
+    {"idTextName": 200, "idTextDescription": 200, "weightMax": 10, "dexterityBase": 4, "intelligenceBase": 2, "constitutionBase": 3},
+    {"idTextName": 201, "idTextDescription": 201, "weightMax": 8,  "dexterityBase": 5, "intelligenceBase": 1, "constitutionBase": 3},
+    {"idTextName": 202, "idTextDescription": 202, "weightMax": 9,  "dexterityBase": 3, "intelligenceBase": 1, "constitutionBase": 4}
+  ],
+
+  "locations": [
+    {"idTextName": 100, "idTextDescription": 100, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 101, "idTextDescription": 101, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 20},
+    {"idTextName": 102, "idTextDescription": 102, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 8},
+    {"idTextName": 103, "idTextDescription": 103, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 8},
+    {"idTextName": 104, "idTextDescription": 104, "isSafe": 0, "costEnergyEnter": 1, "maxCharacters": 6},
+    {"idTextName": 105, "idTextDescription": 105, "isSafe": 0, "costEnergyEnter": 3, "maxCharacters": 4},
+    {"idTextName": 106, "idTextDescription": 106, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 107, "idTextDescription": 107, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 15},
+    {"idTextName": 108, "idTextDescription": 108, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 5},
+    {"idTextName": 109, "idTextDescription": 109, "isSafe": 0, "costEnergyEnter": 3, "maxCharacters": 4},
+    {"idTextName": 110, "idTextDescription": 110, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 3},
+    {"idTextName": 111, "idTextDescription": 111, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 4}
+  ],
+
+  "events": [
+    {"idTextName": 500, "idTextDescription": 500, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 501, "idTextDescription": 501, "type": "NORMAL",    "costEnery": 2, "flagEndTime": 0},
+    {"idTextName": 502, "idTextDescription": 502, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 503, "idTextDescription": 503, "type": "NORMAL",    "costEnery": 3, "flagEndTime": 0},
+    {"idTextName": 504, "idTextDescription": 504, "type": "AUTOMATIC", "costEnery": 0, "flagEndTime": 1, "keyToAdd": "cure_status", "keyValueToAdd": "found"}
+  ],
+
+  "items": [
+    {"idTextName": 400, "idTextDescription": 400, "weight": 1, "isConsumabile": 1},
+    {"idTextName": 401, "idTextDescription": 401, "weight": 1, "isConsumabile": 0},
+    {"idTextName": 402, "idTextDescription": 402, "weight": 3, "isConsumabile": 0},
+    {"idTextName": 403, "idTextDescription": 403, "weight": 2, "isConsumabile": 0},
+    {"idTextName": 404, "idTextDescription": 404, "weight": 1, "isConsumabile": 1}
+  ],
+
+  "choices": [
+    {"idTextName": 600, "idTextDescription": 600, "priority": 1, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+    {"idTextName": 601, "idTextDescription": 601, "priority": 2, "otherwiseFlag": 1, "isProgress": 0, "logicOperator": "AND"},
+    {"idTextName": 602, "idTextDescription": 602, "priority": 1, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+    {"idTextName": 603, "idTextDescription": 603, "priority": 1, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+    {"idTextName": 604, "idTextDescription": 604, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"}
+  ],
+
+  "creators": [
+    {"link": "PathsMaster", "url": "https://paths.games", "urlImage": "https://paths.games/assets/logo.png"}
+  ],
+
+  "cards": [
+    {"awesomeIcon": "fas fa-fist-raised",  "styleMain": "martial"},
+    {"awesomeIcon": "fas fa-tint",         "styleMain": "cursed"},
+    {"awesomeIcon": "fas fa-heart",        "styleMain": "comedy"}
+  ],
+
+  "keys": [
+    {"name": "jusenkyo_map",      "value": "false", "idTextDescription": 950, "group": "quest",    "priority": 1, "visibility": "PUBLIC"},
+    {"name": "amazon_seal",       "value": "false", "idTextDescription": 951, "group": "faction",  "priority": 2, "visibility": "PUBLIC"},
+    {"name": "love_potion_recipe","value": "false", "idTextDescription": 952, "group": "items",    "priority": 3, "visibility": "PUBLIC"}
+  ],
+
+  "traits": [
+    {"idTextName": 700, "idTextDescription": 700, "costPositive": 0, "costNegative": 3},
+    {"idTextName": 701, "idTextDescription": 701, "costPositive": 3, "costNegative": 0},
+    {"idTextName": 702, "idTextDescription": 702, "costPositive": 5, "costNegative": 2}
+  ],
+
+  "characterTemplates": [
+    {"idTextName": 210, "idTextDescription": 210, "lifeMax": 14, "energyMax": 12, "sadMax": 6,  "dexterityStart": 5, "intelligenceStart": 2, "constitutionStart": 3},
+    {"idTextName": 211, "idTextDescription": 211, "lifeMax": 12, "energyMax": 10, "sadMax": 8,  "dexterityStart": 3, "intelligenceStart": 2, "constitutionStart": 3},
+    {"idTextName": 212, "idTextDescription": 212, "lifeMax": 15, "energyMax": 8,  "sadMax": 10, "dexterityStart": 2, "intelligenceStart": 1, "constitutionStart": 5}
+  ],
+
+  "weatherRules": [
+    {"idTextName": 800, "idTextDescription": 800, "probability": 25, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1, "active": 1, "priority": 1, "deltaEnergy": -1},
+    {"idTextName": 801, "idTextDescription": 801, "probability": 15, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 0, "active": 1, "priority": 2, "deltaEnergy":  0},
+    {"idTextName": 802, "idTextDescription": 802, "probability": 20, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 0, "active": 1, "priority": 3, "deltaEnergy":  1}
+  ],
+
+  "globalRandomEvents": [
+    {"conditionKey": null,        "conditionValue": null,       "probability": 20},
+    {"conditionKey": "cursed",    "conditionValue": "true",     "probability": 35},
+    {"conditionKey": "location",  "conditionValue": "nerima",   "probability": 25}
+  ],
+
+  "missions": [
+    {"conditionKey": "technique_mastered",  "conditionValueFrom": null, "conditionValueTo": "true",     "idTextName": 900, "idTextDescription": 900},
+    {"conditionKey": "engagement_resolved", "conditionValueFrom": null, "conditionValueTo": "true",     "idTextName": 901, "idTextDescription": 901},
+    {"conditionKey": "cure_status",         "conditionValueFrom": null, "conditionValueTo": "permanent","idTextName": 902, "idTextDescription": 902}
+  ]
+}

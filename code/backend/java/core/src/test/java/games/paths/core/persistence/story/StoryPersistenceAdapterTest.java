@@ -1,0 +1,326 @@
+package games.paths.core.persistence.story;
+
+import games.paths.core.entity.story.*;
+import games.paths.core.repository.story.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for {@link StoryPersistenceAdapter}.
+ * Verifies delegation to the correct JPA repositories.
+ */
+@ExtendWith(MockitoExtension.class)
+class StoryPersistenceAdapterTest {
+
+    @Mock private StoryRepository storyRepository;
+    @Mock private TextRepository textRepository;
+    @Mock private StoryDifficultyRepository difficultyRepository;
+    @Mock private CreatorRepository creatorRepository;
+    @Mock private CardRepository cardRepository;
+    @Mock private KeyRepository keyRepository;
+    @Mock private ClassRepository classRepository;
+    @Mock private ClassBonusRepository classBonusRepository;
+    @Mock private TraitRepository traitRepository;
+    @Mock private CharacterTemplateRepository characterTemplateRepository;
+    @Mock private LocationRepository locationRepository;
+    @Mock private LocationNeighborRepository locationNeighborRepository;
+    @Mock private ItemRepository itemRepository;
+    @Mock private ItemEffectRepository itemEffectRepository;
+    @Mock private WeatherRuleRepository weatherRuleRepository;
+    @Mock private EventRepository eventRepository;
+    @Mock private EventEffectRepository eventEffectRepository;
+    @Mock private ChoiceRepository choiceRepository;
+    @Mock private ChoiceConditionRepository choiceConditionRepository;
+    @Mock private ChoiceEffectRepository choiceEffectRepository;
+    @Mock private GlobalRandomEventRepository globalRandomEventRepository;
+    @Mock private MissionRepository missionRepository;
+    @Mock private MissionStepRepository missionStepRepository;
+
+    @InjectMocks
+    private StoryPersistenceAdapter adapter;
+
+    @Nested
+    @DisplayName("Save Operations")
+    class SaveOperations {
+
+        @Test
+        @DisplayName("saveStory should delegate to storyRepository.save")
+        void saveStory() {
+            StoryEntity entity = new StoryEntity();
+            entity.setUuid("test-uuid");
+            when(storyRepository.save(entity)).thenReturn(entity);
+
+            StoryEntity result = adapter.saveStory(entity);
+
+            assertEquals("test-uuid", result.getUuid());
+            verify(storyRepository).save(entity);
+        }
+
+        @Test
+        @DisplayName("saveTexts should delegate to textRepository.saveAll")
+        void saveTexts() {
+            List<TextEntity> texts = List.of(new TextEntity());
+            when(textRepository.saveAll(texts)).thenReturn(texts);
+
+            assertEquals(1, adapter.saveTexts(texts).size());
+            verify(textRepository).saveAll(texts);
+        }
+
+        @Test
+        @DisplayName("saveDifficulties should delegate to difficultyRepository.saveAll")
+        void saveDifficulties() {
+            List<StoryDifficultyEntity> diffs = List.of(new StoryDifficultyEntity());
+            when(difficultyRepository.saveAll(diffs)).thenReturn(diffs);
+
+            assertEquals(1, adapter.saveDifficulties(diffs).size());
+        }
+
+        @Test
+        @DisplayName("saveCreators should delegate to creatorRepository.saveAll")
+        void saveCreators() {
+            List<CreatorEntity> list = List.of(new CreatorEntity());
+            when(creatorRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveCreators(list).size());
+        }
+
+        @Test
+        @DisplayName("saveCards should delegate to cardRepository.saveAll")
+        void saveCards() {
+            List<CardEntity> list = List.of(new CardEntity());
+            when(cardRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveCards(list).size());
+        }
+
+        @Test
+        @DisplayName("saveKeys should delegate to keyRepository.saveAll")
+        void saveKeys() {
+            List<KeyEntity> list = List.of(new KeyEntity());
+            when(keyRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveKeys(list).size());
+        }
+
+        @Test
+        @DisplayName("saveClasses should delegate to classRepository.saveAll")
+        void saveClasses() {
+            List<ClassEntity> list = List.of(new ClassEntity());
+            when(classRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveClasses(list).size());
+        }
+
+        @Test
+        @DisplayName("saveClassBonuses should delegate to classBonusRepository.saveAll")
+        void saveClassBonuses() {
+            List<ClassBonusEntity> list = List.of(new ClassBonusEntity());
+            when(classBonusRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveClassBonuses(list).size());
+        }
+
+        @Test
+        @DisplayName("saveTraits should delegate to traitRepository.saveAll")
+        void saveTraits() {
+            List<TraitEntity> list = List.of(new TraitEntity());
+            when(traitRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveTraits(list).size());
+        }
+
+        @Test
+        @DisplayName("saveCharacterTemplates should delegate to characterTemplateRepository.saveAll")
+        void saveCharacterTemplates() {
+            List<CharacterTemplateEntity> list = List.of(new CharacterTemplateEntity());
+            when(characterTemplateRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveCharacterTemplates(list).size());
+        }
+
+        @Test
+        @DisplayName("saveLocations should delegate to locationRepository.saveAll")
+        void saveLocations() {
+            List<LocationEntity> list = List.of(new LocationEntity());
+            when(locationRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveLocations(list).size());
+        }
+
+        @Test
+        @DisplayName("saveLocationNeighbors should delegate to locationNeighborRepository.saveAll")
+        void saveLocationNeighbors() {
+            List<LocationNeighborEntity> list = List.of(new LocationNeighborEntity());
+            when(locationNeighborRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveLocationNeighbors(list).size());
+        }
+
+        @Test
+        @DisplayName("saveItems should delegate to itemRepository.saveAll")
+        void saveItems() {
+            List<ItemEntity> list = List.of(new ItemEntity());
+            when(itemRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveItems(list).size());
+        }
+
+        @Test
+        @DisplayName("saveItemEffects should delegate to itemEffectRepository.saveAll")
+        void saveItemEffects() {
+            List<ItemEffectEntity> list = List.of(new ItemEffectEntity());
+            when(itemEffectRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveItemEffects(list).size());
+        }
+
+        @Test
+        @DisplayName("saveWeatherRules should delegate to weatherRuleRepository.saveAll")
+        void saveWeatherRules() {
+            List<WeatherRuleEntity> list = List.of(new WeatherRuleEntity());
+            when(weatherRuleRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveWeatherRules(list).size());
+        }
+
+        @Test
+        @DisplayName("saveEvents should delegate to eventRepository.saveAll")
+        void saveEvents() {
+            List<EventEntity> list = List.of(new EventEntity());
+            when(eventRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveEvents(list).size());
+        }
+
+        @Test
+        @DisplayName("saveEventEffects should delegate to eventEffectRepository.saveAll")
+        void saveEventEffects() {
+            List<EventEffectEntity> list = List.of(new EventEffectEntity());
+            when(eventEffectRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveEventEffects(list).size());
+        }
+
+        @Test
+        @DisplayName("saveChoices should delegate to choiceRepository.saveAll")
+        void saveChoices() {
+            List<ChoiceEntity> list = List.of(new ChoiceEntity());
+            when(choiceRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveChoices(list).size());
+        }
+
+        @Test
+        @DisplayName("saveChoiceConditions should delegate to choiceConditionRepository.saveAll")
+        void saveChoiceConditions() {
+            List<ChoiceConditionEntity> list = List.of(new ChoiceConditionEntity());
+            when(choiceConditionRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveChoiceConditions(list).size());
+        }
+
+        @Test
+        @DisplayName("saveChoiceEffects should delegate to choiceEffectRepository.saveAll")
+        void saveChoiceEffects() {
+            List<ChoiceEffectEntity> list = List.of(new ChoiceEffectEntity());
+            when(choiceEffectRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveChoiceEffects(list).size());
+        }
+
+        @Test
+        @DisplayName("saveGlobalRandomEvents should delegate to globalRandomEventRepository.saveAll")
+        void saveGlobalRandomEvents() {
+            List<GlobalRandomEventEntity> list = List.of(new GlobalRandomEventEntity());
+            when(globalRandomEventRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveGlobalRandomEvents(list).size());
+        }
+
+        @Test
+        @DisplayName("saveMissions should delegate to missionRepository.saveAll")
+        void saveMissions() {
+            List<MissionEntity> list = List.of(new MissionEntity());
+            when(missionRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveMissions(list).size());
+        }
+
+        @Test
+        @DisplayName("saveMissionSteps should delegate to missionStepRepository.saveAll")
+        void saveMissionSteps() {
+            List<MissionStepEntity> list = List.of(new MissionStepEntity());
+            when(missionStepRepository.saveAll(list)).thenReturn(list);
+            assertEquals(1, adapter.saveMissionSteps(list).size());
+        }
+    }
+
+    @Nested
+    @DisplayName("Find Operations")
+    class FindOperations {
+
+        @Test
+        @DisplayName("findStoryByUuid should delegate to storyRepository.findByUuid")
+        void findStoryByUuid() {
+            StoryEntity entity = new StoryEntity();
+            entity.setUuid("uuid-1");
+            when(storyRepository.findByUuid("uuid-1")).thenReturn(Optional.of(entity));
+
+            Optional<StoryEntity> result = adapter.findStoryByUuid("uuid-1");
+
+            assertTrue(result.isPresent());
+            assertEquals("uuid-1", result.get().getUuid());
+        }
+
+        @Test
+        @DisplayName("findStoryByUuid should return empty for unknown UUID")
+        void findStoryByUuid_notFound() {
+            when(storyRepository.findByUuid("unknown")).thenReturn(Optional.empty());
+
+            assertTrue(adapter.findStoryByUuid("unknown").isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Delete Operations")
+    class DeleteOperations {
+
+        @Test
+        @DisplayName("deleteStoryData should delete all sub-tables in reverse dependency order")
+        void deleteStoryData() {
+            adapter.deleteStoryData(1L);
+
+            // Verify deletions happen in reverse dependency order
+            var inOrder = inOrder(
+                    missionStepRepository, missionRepository,
+                    globalRandomEventRepository,
+                    choiceEffectRepository, choiceConditionRepository, choiceRepository,
+                    eventEffectRepository, eventRepository,
+                    weatherRuleRepository,
+                    itemEffectRepository, itemRepository,
+                    locationNeighborRepository, locationRepository,
+                    characterTemplateRepository, traitRepository,
+                    classBonusRepository, classRepository,
+                    keyRepository, cardRepository, creatorRepository,
+                    textRepository, difficultyRepository, storyRepository
+            );
+
+            inOrder.verify(missionStepRepository).deleteByIdStory(1L);
+            inOrder.verify(missionRepository).deleteByIdStory(1L);
+            inOrder.verify(globalRandomEventRepository).deleteByIdStory(1L);
+            inOrder.verify(choiceEffectRepository).deleteByIdStory(1L);
+            inOrder.verify(choiceConditionRepository).deleteByIdStory(1L);
+            inOrder.verify(choiceRepository).deleteByIdStory(1L);
+            inOrder.verify(eventEffectRepository).deleteByIdStory(1L);
+            inOrder.verify(eventRepository).deleteByIdStory(1L);
+            inOrder.verify(weatherRuleRepository).deleteByIdStory(1L);
+            inOrder.verify(itemEffectRepository).deleteByIdStory(1L);
+            inOrder.verify(itemRepository).deleteByIdStory(1L);
+            inOrder.verify(locationNeighborRepository).deleteByIdStory(1L);
+            inOrder.verify(locationRepository).deleteByIdStory(1L);
+            inOrder.verify(characterTemplateRepository).deleteByIdStory(1L);
+            inOrder.verify(traitRepository).deleteByIdStory(1L);
+            inOrder.verify(classBonusRepository).deleteByIdStory(1L);
+            inOrder.verify(classRepository).deleteByIdStory(1L);
+            inOrder.verify(keyRepository).deleteByIdStory(1L);
+            inOrder.verify(cardRepository).deleteByIdStory(1L);
+            inOrder.verify(creatorRepository).deleteByIdStory(1L);
+            inOrder.verify(textRepository).deleteByIdStory(1L);
+            inOrder.verify(difficultyRepository).deleteByIdStory(1L);
+            inOrder.verify(storyRepository).deleteById(1L);
+        }
+    }
+}

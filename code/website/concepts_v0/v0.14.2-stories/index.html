@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Story Catalog (v0.14.0)</title>
+  <meta name="description" content="Paths Games: Story catalog browser — Step 14 implementation demo" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="variables.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar">
+    <div style="display:flex;align-items:center;gap:var(--space-md);">
+      <a class="navbar-brand" href="#">
+        <i class="fas fa-dice-d20"></i> Paths Games
+      </a>
+      <div class="navbar-title">
+        <i class="fas fa-book-open"></i> Story Catalog
+      </div>
+    </div>
+    <div class="navbar-controls">
+      <select class="lang-select" id="langSelect" onchange="changeLang()">
+        <option value="en">EN</option>
+        <option value="it">IT</option>
+        <option value="es">ES</option>
+        <option value="fr">FR</option>
+        <option value="de">DE</option>
+      </select>
+      <div class="navbar-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Connecting…</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="page-wrap">
+
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-scroll"></i> Available Stories
+      </h2>
+      <span class="story-count" id="storyCount">—</span>
+    </div>
+
+    <div id="storiesContainer">
+      <div class="loading-state">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading stories…</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════ DETAIL MODAL ═══════════════ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modalTitle"><i class="fas fa-book-open"></i> Story Details</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"><!-- filled by JS --></div>
+      <div class="modal-footer">
+        <button class="btn-action btn-close" onclick="closeModal()">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="page-footer">
+    Paths Games — Concept v0.14.0 — Step 14: Story Import &amp; Catalog
+    &bull; <a href="https://github.com/gamespaths/pathsgames">GitHub</a>
+    &bull; <a href="https://paths.games">paths.games</a>
+  </footer>
+
+  <script src="stories.js"></script>
+</body>
+</html>

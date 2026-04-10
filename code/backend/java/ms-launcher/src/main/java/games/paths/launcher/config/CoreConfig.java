@@ -8,10 +8,16 @@ import games.paths.core.port.auth.GuestAdminPort;
 import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
+import games.paths.core.port.story.StoryImportPort;
+import games.paths.core.port.story.StoryPersistencePort;
+import games.paths.core.port.story.StoryQueryPort;
+import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
+import games.paths.core.service.story.StoryImportService;
+import games.paths.core.service.story.StoryQueryService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -71,5 +77,15 @@ public class CoreConfig {
     @Bean
     public SessionPort sessionPort(JwtPort jwtPort, TokenPersistencePort tokenPersistencePort) {
         return new SessionService(jwtPort, tokenPersistencePort, maxTokensPerUser);
+    }
+
+    @Bean
+    public StoryQueryPort storyQueryPort(StoryReadPort storyReadPort) {
+        return new StoryQueryService(storyReadPort);
+    }
+
+    @Bean
+    public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort) {
+        return new StoryImportService(storyPersistencePort);
     }
 }

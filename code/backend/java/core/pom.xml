@@ -6,14 +6,20 @@
     <parent>
         <groupId>games.paths</groupId>
         <artifactId>paths-game-backend</artifactId>
-        <version>0.14.1-SNAPSHOT</version>
+        <version>0.14.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>core</artifactId>
     <name>Paths Games - Core Domain</name>
-    <description>Pure domain logic, ports, and services (no framework dependencies)</description>
+    <description>Domain logic, ports, services, JPA entities and repositories</description>
 
     <dependencies>
+        <!-- Spring Data JPA (entities, repositories, @Transactional) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

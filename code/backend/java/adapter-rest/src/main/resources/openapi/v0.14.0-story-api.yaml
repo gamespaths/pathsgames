@@ -1,0 +1,755 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Story Import & Query API
+  description: |
+    OpenAPI specification for Step 14: Story Import System and Data Seeding.
+    Covers public story listing and detail retrieval, and admin endpoints for
+    story import, listing, and deletion.
+
+    **Public endpoints** (no authentication required):
+    - `GET /api/stories` — list publicly visible stories
+    - `GET /api/stories/{uuid}` — get full story details
+
+    **Admin endpoints** (require ADMIN role):
+    - `POST /api/admin/stories/import` — import a story from JSON
+    - `GET /api/admin/stories` — list all stories (any visibility)
+    - `DELETE /api/admin/stories/{uuid}` — delete a story and all related data
+
+    **Text resolution**: Story titles, descriptions, and other text fields are stored
+    in a multi-language `list_texts` table. The `lang` query parameter selects the
+    preferred language; English (`en`) is the fallback when the requested language
+    is not available.
+  version: 0.14.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Stories
+    description: Public story catalogue — list and detail endpoints
+  - name: Story Admin
+    description: Admin endpoints for story import and management (requires ADMIN role)
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Public Story Endpoints
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/stories:
+    get:
+      tags: [Stories]
+      summary: List publicly visible stories
+      description: |
+        Returns all stories with `visibility=PUBLIC`, ordered by `priority` descending.
+        Text fields (title, description) are resolved in the requested language
+        with English fallback.
+      operationId: listStories
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+            example: en
+      responses:
+        '200':
+          description: List of public story summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorySummaryResponse'
+              example:
+                - uuid: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "The Lost Kingdom"
+                  description: "An adventure in a forgotten realm"
+                  author: "GameMaster"
+                  category: "adventure"
+                  group: "fantasy"
+                  visibility: "PUBLIC"
+                  priority: 5
+                  peghi: 2
+                  difficultyCount: 3
+                - uuid: "660e8400-e29b-41d4-a716-446655440001"
+                  title: "Dark Secrets"
+                  description: "A horror mystery"
+                  author: "StoryTeller"
+                  category: "horror"
+                  group: "dark"
+                  visibility: "PUBLIC"
+                  priority: 3
+                  peghi: 1
+                  difficultyCount: 1
+
+  /api/stories/{uuid}:
+    get:
+      tags: [Stories]
+      summary: Get full story details
+      description: |
+        Returns the complete detail of a single story identified by UUID.
+        Includes difficulty levels, entity counts (locations, events, items),
+        and resolved text fields.
+      operationId: getStory
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: The UUID of the story
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+      responses:
+        '200':
+          description: Full story details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryDetailResponse'
+              example:
+                uuid: "550e8400-e29b-41d4-a716-446655440000"
+                title: "The Lost Kingdom"
+                description: "An adventure in a forgotten realm"
+                author: "GameMaster"
+                category: "adventure"
+                group: "fantasy"
+                visibility: "PUBLIC"
+                priority: 5
+                peghi: 2
+                versionMin: "0.10"
+                versionMax: "1.0"
+                clockSingularDescription: "hour"
+                clockPluralDescription: "hours"
+                copyrightText: "© 2025 GameMaster"
+                linkCopyright: "https://example.com"
+                locationCount: 15
+                eventCount: 42
+                itemCount: 8
+                difficulties:
+                  - uuid: "diff-easy-uuid"
+                    description: "Easy mode"
+                    expCost: 5
+                    maxWeight: 10
+                    minCharacter: 1
+                    maxCharacter: 4
+                    costHelpComa: 3
+                    costMaxCharacteristics: 3
+                    numberMaxFreeAction: 1
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "STORY_NOT_FOUND"
+                message: "No story found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Admin Story Endpoints
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/admin/stories/import:
+    post:
+      tags: [Story Admin]
+      summary: Import a complete story from JSON
+      description: |
+        Imports a complete story from a structured JSON body containing the story header
+        and nested arrays for all sub-entities (texts, difficulties, locations, events,
+        items, choices, classes, creators, cards, keys, traits, character templates,
+        weather rules, global random events, and missions).
+
+        **Replace-on-conflict**: If a story with the same UUID already exists, it will
+        be completely deleted and re-imported.
+
+        **Auto-UUID**: If the `uuid` field is null, blank, or missing, a new UUID is generated.
+      operationId: importStory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryImportRequest'
+            example:
+              uuid: "550e8400-e29b-41d4-a716-446655440000"
+              author: "GameMaster"
+              category: "adventure"
+              group: "fantasy"
+              visibility: "PUBLIC"
+              priority: 5
+              peghi: 2
+              versionMin: "0.10"
+              versionMax: "1.0"
+              clockSingularDescription: "hour"
+              clockPluralDescription: "hours"
+              linkCopyright: "https://example.com"
+              idTextTitle: 1
+              idTextDescription: 2
+              idTextCopyright: 3
+              texts:
+                - idText: 1
+                  lang: "en"
+                  shortText: "The Lost Kingdom"
+                - idText: 2
+                  lang: "en"
+                  shortText: "An adventure in a forgotten realm"
+              difficulties:
+                - idTextDescription: 10
+                  expCost: 5
+                  maxWeight: 10
+                  minCharacter: 1
+                  maxCharacter: 4
+              locations:
+                - idTextName: 100
+                  idTextDescription: 101
+                  isSafe: 1
+              events:
+                - idTextName: 200
+                  type: "NORMAL"
+              items:
+                - idTextName: 300
+                  weight: 2
+      responses:
+        '201':
+          description: Story imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryImportResponse'
+              example:
+                storyUuid: "550e8400-e29b-41d4-a716-446655440000"
+                status: "IMPORTED"
+                textsImported: 2
+                locationsImported: 1
+                eventsImported: 1
+                itemsImported: 1
+                difficultiesImported: 1
+                classesImported: 0
+                choicesImported: 0
+        '400':
+          description: Empty or invalid import data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                empty:
+                  value:
+                    error: "EMPTY_IMPORT_DATA"
+                    message: "Request body must contain story data"
+                invalid:
+                  value:
+                    error: "INVALID_IMPORT_DATA"
+                    message: "storyData must not be null or empty"
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/stories:
+    get:
+      tags: [Story Admin]
+      summary: List all stories (any visibility)
+      description: |
+        Returns all stories regardless of visibility, for admin management.
+        Text fields are resolved in the requested language with English fallback.
+      operationId: listAllStories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+      responses:
+        '200':
+          description: List of all story summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorySummaryResponse'
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/stories/{uuid}:
+    delete:
+      tags: [Story Admin]
+      summary: Delete a story and all related data
+      description: |
+        Deletes a story and all its associated data (texts, difficulties, locations,
+        events, items, choices, classes, etc.) in a cascading fashion.
+        Requires ADMIN role.
+      operationId: deleteStory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: The UUID of the story to delete
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Story deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteStoryResponse'
+              example:
+                status: "DELETED"
+                uuid: "550e8400-e29b-41d4-a716-446655440000"
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "STORY_NOT_FOUND"
+                message: "No story found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient permissions (ADMIN role required)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from guest login or token refresh
+
+  schemas:
+
+    StorySummaryResponse:
+      type: object
+      description: Lightweight story listing entry for catalogue views
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique story identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          nullable: true
+          description: Resolved story title (language-dependent)
+          example: "The Lost Kingdom"
+        description:
+          type: string
+          nullable: true
+          description: Resolved story description
+          example: "An adventure in a forgotten realm"
+        author:
+          type: string
+          nullable: true
+          description: Story author name
+          example: "GameMaster"
+        category:
+          type: string
+          nullable: true
+          description: Story category
+          example: "adventure"
+        group:
+          type: string
+          nullable: true
+          description: Story group
+          example: "fantasy"
+        visibility:
+          type: string
+          nullable: true
+          description: Story visibility (PUBLIC, PRIVATE, DRAFT)
+          example: "PUBLIC"
+        priority:
+          type: integer
+          description: Display priority (higher = first)
+          example: 5
+        peghi:
+          type: integer
+          description: PEGHI age rating
+          example: 2
+        difficultyCount:
+          type: integer
+          description: Number of available difficulty levels
+          example: 3
+      required:
+        - uuid
+
+    StoryDetailResponse:
+      type: object
+      description: Full story details including difficulties and entity counts
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        author:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        group:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          nullable: true
+        priority:
+          type: integer
+          example: 5
+        peghi:
+          type: integer
+          example: 2
+        versionMin:
+          type: string
+          nullable: true
+          description: Minimum supported game version
+          example: "0.10"
+        versionMax:
+          type: string
+          nullable: true
+          description: Maximum supported game version
+          example: "1.0"
+        clockSingularDescription:
+          type: string
+          nullable: true
+          description: Singular label for the in-game clock
+          example: "hour"
+        clockPluralDescription:
+          type: string
+          nullable: true
+          description: Plural label for the in-game clock
+          example: "hours"
+        copyrightText:
+          type: string
+          nullable: true
+          description: Resolved copyright text
+        linkCopyright:
+          type: string
+          nullable: true
+          description: Copyright URL
+        locationCount:
+          type: integer
+          description: Total number of locations
+          example: 15
+        eventCount:
+          type: integer
+          description: Total number of events
+          example: 42
+        itemCount:
+          type: integer
+          description: Total number of items
+          example: 8
+        difficulties:
+          type: array
+          description: Available difficulty levels
+          items:
+            $ref: '#/components/schemas/DifficultyResponse'
+      required:
+        - uuid
+
+    DifficultyResponse:
+      type: object
+      description: Difficulty level details
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "diff-easy-uuid"
+        description:
+          type: string
+          nullable: true
+          example: "Easy mode"
+        expCost:
+          type: integer
+          description: Experience cost per skill point
+          example: 5
+        maxWeight:
+          type: integer
+          description: Maximum carry weight
+          example: 10
+        minCharacter:
+          type: integer
+          description: Minimum characters per party
+          example: 1
+        maxCharacter:
+          type: integer
+          description: Maximum characters per party
+          example: 4
+        costHelpComa:
+          type: integer
+          description: Cost to revive a comatose character
+          example: 3
+        costMaxCharacteristics:
+          type: integer
+          description: Cost to maximise characteristics
+          example: 3
+        numberMaxFreeAction:
+          type: integer
+          description: Maximum free actions per turn
+          example: 1
+
+    StoryImportRequest:
+      type: object
+      description: |
+        Structured data for importing a complete story. Contains the story header
+        fields plus nested arrays for all sub-entity types.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: Story UUID (auto-generated if null/blank)
+        author:
+          type: string
+        category:
+          type: string
+        group:
+          type: string
+        visibility:
+          type: string
+          enum: [PUBLIC, PRIVATE, DRAFT]
+        priority:
+          type: integer
+        peghi:
+          type: integer
+        versionMin:
+          type: string
+        versionMax:
+          type: string
+        clockSingularDescription:
+          type: string
+        clockPluralDescription:
+          type: string
+        linkCopyright:
+          type: string
+        idTextTitle:
+          type: integer
+          description: ID reference into the texts array for the title
+        idTextDescription:
+          type: integer
+          description: ID reference into the texts array for the description
+        idTextCopyright:
+          type: integer
+          description: ID reference into the texts array for the copyright
+        texts:
+          type: array
+          items:
+            type: object
+            properties:
+              idText:
+                type: integer
+              lang:
+                type: string
+                default: en
+              shortText:
+                type: string
+              longText:
+                type: string
+        difficulties:
+          type: array
+          items:
+            type: object
+            properties:
+              idTextDescription:
+                type: integer
+              expCost:
+                type: integer
+              maxWeight:
+                type: integer
+              minCharacter:
+                type: integer
+              maxCharacter:
+                type: integer
+              costHelpComa:
+                type: integer
+              costMaxCharacteristics:
+                type: integer
+              numberMaxFreeAction:
+                type: integer
+        locations:
+          type: array
+          items:
+            type: object
+        events:
+          type: array
+          items:
+            type: object
+        items:
+          type: array
+          items:
+            type: object
+        choices:
+          type: array
+          items:
+            type: object
+        classes:
+          type: array
+          items:
+            type: object
+        creators:
+          type: array
+          items:
+            type: object
+        cards:
+          type: array
+          items:
+            type: object
+        keys:
+          type: array
+          items:
+            type: object
+        traits:
+          type: array
+          items:
+            type: object
+        characterTemplates:
+          type: array
+          items:
+            type: object
+        weatherRules:
+          type: array
+          items:
+            type: object
+        globalRandomEvents:
+          type: array
+          items:
+            type: object
+        missions:
+          type: array
+          items:
+            type: object
+
+    StoryImportResponse:
+      type: object
+      description: Result of a story import operation with entity counts
+      properties:
+        storyUuid:
+          type: string
+          format: uuid
+          description: UUID of the imported story
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          description: Import status
+          example: "IMPORTED"
+        textsImported:
+          type: integer
+          example: 25
+        locationsImported:
+          type: integer
+          example: 15
+        eventsImported:
+          type: integer
+          example: 42
+        itemsImported:
+          type: integer
+          example: 8
+        difficultiesImported:
+          type: integer
+          example: 3
+        classesImported:
+          type: integer
+          example: 5
+        choicesImported:
+          type: integer
+          example: 20
+      required:
+        - storyUuid
+        - status
+
+    DeleteStoryResponse:
+      type: object
+      description: Response after deleting a story
+      properties:
+        status:
+          type: string
+          description: Operation status
+          example: "DELETED"
+        uuid:
+          type: string
+          format: uuid
+          description: UUID of the deleted story
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      required:
+        - status
+        - uuid
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: "STORY_NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "No story found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+      required:
+        - error
+        - message
