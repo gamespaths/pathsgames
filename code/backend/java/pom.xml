@@ -6,7 +6,7 @@
 
     <groupId>games.paths</groupId>
     <artifactId>paths-game-backend</artifactId>
-    <version>0.14.2-SNAPSHOT</version>
+    <version>0.14.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Paths Games - Backend</name>
     <description>Backend for Paths Games - Hexagonal Architecture</description>
@@ -27,7 +27,7 @@
         <sonar.organization>gamespaths</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.branch.name>develop</sonar.branch.name>
-        <sonar.projectKey>games.paths:paths-game-backend</sonar.projectKey>
+        <sonar.projectKey>paths-game-backend-java</sonar.projectKey>
         <!--sonar command: mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN 
             no <sonar.projectKey>pathsgames-backend</sonar.projectKey>
         -->

@@ -26,6 +26,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 11 | [Define API versioning](./Step11_DefineAPIVersioning.md) | ✅ | Establish the API versioning scheme, Decide backward compatibility policy, Prepare structure for future versions |
 | 12 | [Implement guest login](Step12_GuestLoginMethod.md) | ✅ | Define guest identity model, ceate guest session endpoint, store guest sessions in database | 
 | 13 | [Session & token management](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
+| 14 | [Stories management & import](Step14_StoriesImportSystem.md) | ✅ | Story import system and data seeding. Start test robot framework. |
 
 
 | Steps | Phase |
@@ -57,13 +58,11 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## Next steps
 For next steps use this prompt
 > read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000: write all java backend code into code/backend/java project using JPA and use core module, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). update/write openapi documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder with new/changed api. 
-create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, use "code/website/concepts_v0/v0.XX.0-admin/" folder for admin sections, for websites use componentes by code/website/html folder for last version of public website. don't look and don't change "backend/python" , "backend/php" and others concepts folder into "website".   
+create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, use "code/website/concepts_v0/v0.XX.0-admin/" folder for admin sections, for websites use componentes by code/website/html folder for last version of public website. complete the robot-test inside "code/tests/robot" folder anche check all test are ok (launcing java backend with sqlite profile to test all). don't look and don't change "backend/python" , "backend/php" and others concepts folder into "website".
 
 > read all documentation md files inside documentation_v0 folder to have all project context. and read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX=000 for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects.
 
 > read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using react tecnologies defined into README.md file inside projects. I wanna open-api into java is used for php and pythons versions too. 
-
-
 
 
 ---

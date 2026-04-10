@@ -14,7 +14,7 @@ Documents includes all steps and the roadmap for create paths.games components, 
     | Steps | Focus | 
     | --- | --- |
     | **Start project** <br /> Steps 1-13| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) <br />- ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) |
-    | **Single player** <br /> Steps 14-42 | Guest login, story management, start match, ... |
+    | **Single player** <br /> Steps 14-42 |- ✅ [Stories magement and import](./documentation_v0/Step14_StoriesImportSystem.md) <br />Guest login, story management, start match, ... |
     | **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
     | **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 
@@ -43,21 +43,21 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 ## Tecnical components
 
-<img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" />
+<img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" />
 php img 
 
 - **Main tecnical stack**
     | Category | Components |
     |---|:---:|
-    | Main systems | <img src="https://img.shields.io/badge/Linux-BBCCEE?style=for-the-badge&logo=linux&logoColor=black" /> <img src="https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white" /> <img src="https://img.shields.io/badge/GNU-4E9A06?style=for-the-badge&logo=gnu&logoColor=white" /> |
-    | Developer tools | <img src="https://img.shields.io/badge/GitHub-000000?style=for-the-badge&logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" /> <img src="https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white" /> |
-    | Cloud infrastructures | <img src="https://img.shields.io/badge/AWS-%23FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" />  <img src="https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" />  <img src="https://img.shields.io/badge/Python-3766AB?style=for-the-badge&logo=python&logoColor=white" />  |
-    | Infra tooling (IaC) | <img src="https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white" /> <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" /> <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" /> |
-    | Main backend technologies | <img src="https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=black" /> <img src="https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" /> <img src="https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white" />|
-    | Alternative backend | <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" /> <img src="https://img.shields.io/badge/php-474A8A?style=for-the-badge&logo=php&logoColor=white" />
-    | Databases & storage | <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" /> <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" /> <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" /> |
-    | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white" /> |
-    | Backend tecnologies | <img src="https://img.shields.io/badge/React-61DBFB?style=for-the-badge&logo=react&logoColor=black" /> <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" />
+    | Main systems | <img src="https://img.shields.io/badge/Linux-BBCCEE?logo=linux&logoColor=black" height=30 /> <img src="https://img.shields.io/badge/Debian-A81D33?logo=debian&logoColor=white" height=30/> <img src="https://img.shields.io/badge/GNU-4E9A06?logo=gnu&logoColor=white" height=30/> |
+    | Developer tools | <img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=white" height=30/> <img src="https://img.shields.io/badge/VS%20Code-007ACC?logo=visualstudiocode&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/Maven-C71A36?logo=apachemaven&logoColor=white" height=30/> |
+    | Cloud infrastructures | <img src="https://img.shields.io/badge/AWS-%23FF9900?logo=amazonaws&logoColor=white" height=30/>  <img src="https://img.shields.io/badge/Azure-0078D4?logo=microsoftazure&logoColor=white" height=30/>  <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" height=30 />  |
+    | Infra tooling (IaC) | <img src="https://img.shields.io/badge/Terraform-623CE4?logo=terraform&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" height=30 /> |
+    | Main backend technologies | <img src="https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=black" height=30/> <img src="https://img.shields.io/badge/SpringBoot-6DB33F?logo=springboot&logoColor=white" height=30/> <img src="https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status" height=30 />|
+    | Alternative backend | <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" height=30/> <img src="https://img.shields.io/badge/php-474A8A?logo=php&logoColor=white" height=30/>
+    | Databases & storage | <img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/MongoDB-4EA94B?logo=mongodb&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/SQLite-07405E?logo=sqlite&logoColor=white" height=30/> |
+    | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white" height=30 /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?logo=bootstrap&logoColor=white" height=30/> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?logo=fontawesome&logoColor=white" height=30/> |
+    | Backend tecnologies | <img src="https://img.shields.io/badge/React-61DBFB?logo=react&logoColor=black" height=30 /> <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" height=30/> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" height=30/>
 
 
 
@@ -67,7 +67,9 @@ php img
         - Execute all unit test with command `mvn clean test`
         - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
         - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-        - [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+        -  **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+            - [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
+            
     - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
         ```
         docker run -d -p 8042:8080 \
@@ -81,7 +83,9 @@ php img
         - Start service into virtual environment `python3 -m app.launcher`
     - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
         - Start service into configured environment `php -S localhost:8042 -t public `
-
+- **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
+    - To execute all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+    - Report is created into `code/tests/robot/reports/report.html` folder.
 - **Website** project into `code/website` define all website components:
     - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
     - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)

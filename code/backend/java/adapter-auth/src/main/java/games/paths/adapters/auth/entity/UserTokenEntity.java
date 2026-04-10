@@ -9,14 +9,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "users_tokens")
-public class UserTokenEntity {
+public class UserTokenEntity extends BaseAuthEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
 
     @Column(name = "id_user", nullable = false)
     private Long idUser;
@@ -30,23 +27,12 @@ public class UserTokenEntity {
     @Column(nullable = false)
     private Boolean revoked = false;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
         String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
+        if (getUuid() == null) setUuid(java.util.UUID.randomUUID().toString());
+        if (getTsInsert() == null) setTsInsert(now);
+        if (getTsUpdate() == null) setTsUpdate(now);
     }
 
     // === Getters & Setters ===
@@ -57,14 +43,6 @@ public class UserTokenEntity {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
     }
 
     public Long getIdUser() {
@@ -97,13 +75,5 @@ public class UserTokenEntity {
 
     public void setRevoked(Boolean revoked) {
         this.revoked = revoked;
-    }
-
-    public String getTsInsert() {
-        return tsInsert;
-    }
-
-    public String getTsUpdate() {
-        return tsUpdate;
     }
 }

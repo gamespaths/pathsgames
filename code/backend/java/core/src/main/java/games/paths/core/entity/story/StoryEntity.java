@@ -8,23 +8,14 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_stories")
-public class StoryEntity {
+public class StoryEntity extends BaseStoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String uuid;
-
-    @Column(name = "id_card")
-    private Integer idCard;
-
     @Column(name = "id_text_title")
     private Integer idTextTitle;
-
-    @Column(name = "id_text_description")
-    private Integer idTextDescription;
 
     private String author;
 
@@ -75,18 +66,8 @@ public class StoryEntity {
 
     private Integer peghi;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
-        String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
         if (visibility == null) visibility = "PUBLIC";
         if (priority == null) priority = 0;
         if (peghi == null) peghi = 0;
@@ -94,27 +75,15 @@ public class StoryEntity {
         if (clockPluralDescription == null) clockPluralDescription = "hours";
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
-    }
-
     // === Getters & Setters ===
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public Integer getIdCard() { return idCard; }
-    public void setIdCard(Integer idCard) { this.idCard = idCard; }
 
     public Integer getIdTextTitle() { return idTextTitle; }
     public void setIdTextTitle(Integer idTextTitle) { this.idTextTitle = idTextTitle; }
 
-    public Integer getIdTextDescription() { return idTextDescription; }
-    public void setIdTextDescription(Integer idTextDescription) { this.idTextDescription = idTextDescription; }
 
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
@@ -170,6 +139,4 @@ public class StoryEntity {
     public Integer getPeghi() { return peghi; }
     public void setPeghi(Integer peghi) { this.peghi = peghi; }
 
-    public String getTsInsert() { return tsInsert; }
-    public String getTsUpdate() { return tsUpdate; }
 }

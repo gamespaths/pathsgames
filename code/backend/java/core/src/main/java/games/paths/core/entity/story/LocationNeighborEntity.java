@@ -7,17 +7,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_locations_neighbors")
-public class LocationNeighborEntity {
+public class LocationNeighborEntity extends BaseStoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
-
-    @Column(name = "id_story", nullable = false)
-    private Long idStory;
 
     @Column(name = "id_location_from", nullable = false)
     private Integer idLocationFrom;
@@ -46,25 +40,10 @@ public class LocationNeighborEntity {
     @Column(name = "id_text_back")
     private Integer idTextBack;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
-        String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
         if (flagBack == null) flagBack = 0;
         if (energyCost == null) energyCost = 0;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
     }
 
     // === Getters & Setters ===
@@ -72,11 +51,6 @@ public class LocationNeighborEntity {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public Long getIdStory() { return idStory; }
-    public void setIdStory(Long idStory) { this.idStory = idStory; }
 
     public Integer getIdLocationFrom() { return idLocationFrom; }
     public void setIdLocationFrom(Integer idLocationFrom) { this.idLocationFrom = idLocationFrom; }
@@ -105,6 +79,4 @@ public class LocationNeighborEntity {
     public Integer getIdTextBack() { return idTextBack; }
     public void setIdTextBack(Integer idTextBack) { this.idTextBack = idTextBack; }
 
-    public String getTsInsert() { return tsInsert; }
-    public String getTsUpdate() { return tsUpdate; }
 }

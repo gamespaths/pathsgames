@@ -7,17 +7,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_texts", uniqueConstraints = @UniqueConstraint(columnNames = {"id_story", "id_text", "lang"}))
-public class TextEntity {
+public class TextEntity extends BaseStoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
-
-    @Column(name = "id_story", nullable = false)
-    private Long idStory;
 
     @Column(name = "id_text", nullable = false)
     private Integer idText;
@@ -40,24 +34,9 @@ public class TextEntity {
     @Column(name = "id_creator")
     private Integer idCreator;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
-        String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
         if (lang == null) lang = "en";
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
     }
 
     // === Getters & Setters ===
@@ -65,11 +44,6 @@ public class TextEntity {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public Long getIdStory() { return idStory; }
-    public void setIdStory(Long idStory) { this.idStory = idStory; }
 
     public Integer getIdText() { return idText; }
     public void setIdText(Integer idText) { this.idText = idText; }
@@ -92,6 +66,4 @@ public class TextEntity {
     public Integer getIdCreator() { return idCreator; }
     public void setIdCreator(Integer idCreator) { this.idCreator = idCreator; }
 
-    public String getTsInsert() { return tsInsert; }
-    public String getTsUpdate() { return tsUpdate; }
 }

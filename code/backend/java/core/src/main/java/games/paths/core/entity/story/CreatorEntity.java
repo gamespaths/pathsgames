@@ -7,17 +7,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_creator")
-public class CreatorEntity {
+public class CreatorEntity extends BaseStoryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
-
-    @Column(name = "id_story")
-    private Long idStory;
 
     @Column(name = "id_text")
     private Integer idText;
@@ -35,35 +29,11 @@ public class CreatorEntity {
     @Column(name = "url_instagram")
     private String urlInstagram;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
-    @PrePersist
-    protected void onCreate() {
-        String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
-    }
-
     // === Getters & Setters ===
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public Long getIdStory() { return idStory; }
-    public void setIdStory(Long idStory) { this.idStory = idStory; }
 
     public Integer getIdText() { return idText; }
     public void setIdText(Integer idText) { this.idText = idText; }
@@ -83,6 +53,4 @@ public class CreatorEntity {
     public String getUrlInstagram() { return urlInstagram; }
     public void setUrlInstagram(String urlInstagram) { this.urlInstagram = urlInstagram; }
 
-    public String getTsInsert() { return tsInsert; }
-    public String getTsUpdate() { return tsUpdate; }
 }

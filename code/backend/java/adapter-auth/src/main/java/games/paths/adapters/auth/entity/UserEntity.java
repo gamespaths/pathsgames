@@ -10,14 +10,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserEntity extends BaseAuthEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -56,23 +53,12 @@ public class UserEntity {
     @Column(name = "ts_last_access")
     private String tsLastAccess;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
         String now = java.time.Instant.now().toString();
         if (tsRegistration == null) tsRegistration = now;
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
+        if (getTsInsert() == null) setTsInsert(now);
+        if (getTsUpdate() == null) setTsUpdate(now);
     }
 
     // === Getters & Setters ===
@@ -83,14 +69,6 @@ public class UserEntity {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getUuid() {
-        return uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
     }
 
     public String getUsername() {
@@ -191,13 +169,5 @@ public class UserEntity {
 
     public void setTsLastAccess(String tsLastAccess) {
         this.tsLastAccess = tsLastAccess;
-    }
-
-    public String getTsInsert() {
-        return tsInsert;
-    }
-
-    public String getTsUpdate() {
-        return tsUpdate;
     }
 }

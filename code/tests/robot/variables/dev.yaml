@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# Robot Framework variable file — local dev environment
+# Usage: robot --variablefile variables/dev.yaml tests/
+#
+# ADMIN_TOKEN: paste a valid admin JWT access token here before running
+#              admin-protected tests, or override via env:
+#              ROBOT_VAR_ADMIN_TOKEN=... robot --variablefile variables/dev.yaml tests/
+# ---------------------------------------------------------------------------
+
+BASE_URL: "http://localhost:8042"
+
+# Admin Bearer token — replace with a real token from the admin panel
+ADMIN_TOKEN: "ADMIN_TOKEN"
+
+# Seed story UUIDs (from R__insert_story_seed_data.sql)
+WITCHER_UUID:   "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+ONE_PIECE_UUID: "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+
+# Import story UUIDs (JSON files in adapter-sqlite/src/main/resources/db/migration/dev/)
+STAR_TREK_UUID: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
+RANMA_UUID:     "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
+
+# Used to verify a 404 response for unknown resources
+UNKNOWN_UUID: "00000000-0000-0000-0000-000000000000"
+
+# Default language for public story endpoints
+DEFAULT_LANG: "en"
