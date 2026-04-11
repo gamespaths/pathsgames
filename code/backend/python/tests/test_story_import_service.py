@@ -72,3 +72,28 @@ def test_import_story_with_sub_entities(mock_persistence_port):
     # Check that a difficulty missing a UUID got one
     diffs_saved_arg = mock_persistence_port.save_difficulties.call_args[0][1]
     assert diffs_saved_arg[0].get("uuid") is not None
+
+def test_import_story_full_coverage(mock_persistence_port):
+    service = StoryImportService(mock_persistence_port)
+    data = {
+        "uuid": "u-full",
+        "keys": [{"name": "k1"}],
+        "traits": [{"idTextName": 1}],
+        "characterTemplates": [{"idTextName": 2}],
+        "weatherRules": [{"idTextName": 3}],
+        "globalRandomEvents": [{"probability": 0.5}],
+        "missions": [{"idTextName": 10, "steps": [{"stepOrder": 1}]}],
+        "creators": [{"creator_name": "C1"}],
+        "cards": [{"card_type": "T1"}]
+    }
+
+    service.import_story(data)
+
+    mock_persistence_port.save_keys.assert_called_once()
+    mock_persistence_port.save_traits.assert_called_once()
+    mock_persistence_port.save_character_templates.assert_called_once()
+    mock_persistence_port.save_weather_rules.assert_called_once()
+    mock_persistence_port.save_global_random_events.assert_called_once()
+    mock_persistence_port.save_creators.assert_called_once()
+    mock_persistence_port.save_cards.assert_called_once()
+    mock_persistence_port.save_missions.assert_called_once()

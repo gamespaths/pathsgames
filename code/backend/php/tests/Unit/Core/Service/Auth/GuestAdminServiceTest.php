@@ -58,9 +58,9 @@ class GuestAdminServiceTest extends TestCase
 
         $stats = $this->service->getGuestStats();
 
-        $this->assertSame(10, $stats['total_guests']);
-        $this->assertSame(7, $stats['active_guests']);
-        $this->assertSame(3, $stats['expired_guests']);
+        $this->assertSame(10, $stats['totalGuests']);
+        $this->assertSame(7, $stats['activeGuests']);
+        $this->assertSame(3, $stats['expiredGuests']);
     }
 
     public function testGetGuestByUuidReturnsSession(): void

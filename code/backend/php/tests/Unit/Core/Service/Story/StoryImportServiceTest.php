@@ -90,4 +90,30 @@ class StoryImportServiceTest extends TestCase
         $this->assertSame(1, $result->eventsImported);
         $this->assertSame(1, $result->difficultiesImported);
     }
+
+    public function testImportStoryFullCoverage(): void
+    {
+        $data = [
+            'uuid' => 'u-full',
+            'keys' => [['name' => 'k1']],
+            'traits' => [['idTextName' => 1]],
+            'characterTemplates' => [['idTextName' => 2]],
+            'weatherRules' => [['idTextName' => 3]],
+            'globalRandomEvents' => [['probability' => 0.5]],
+            'missions' => [['idTextName' => 10, 'steps' => [['stepOrder' => 1]]]],
+            'creators' => [['creator_name' => 'C1']],
+            'cards' => [['card_type' => 'T1']]
+        ];
+
+        $this->persistencePort->expects($this->once())->method('saveKeys');
+        $this->persistencePort->expects($this->once())->method('saveTraits');
+        $this->persistencePort->expects($this->once())->method('saveCharacterTemplates');
+        $this->persistencePort->expects($this->once())->method('saveWeatherRules');
+        $this->persistencePort->expects($this->once())->method('saveGlobalRandomEvents');
+        $this->persistencePort->expects($this->once())->method('saveMissions');
+        $this->persistencePort->expects($this->once())->method('saveCreators');
+        $this->persistencePort->expects($this->once())->method('saveCards');
+
+        $this->service->importStory($data);
+    }
 }

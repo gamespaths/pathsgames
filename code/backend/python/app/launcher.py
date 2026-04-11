@@ -81,7 +81,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"error": "VALIDATION_ERROR", "message": "Request validation failed"}
     )
 
-# CORS
+# Auth Middleware (Step 13)
+public_paths = [
+    "/api/stories",
+    "/api/stories/**",
+    "/api/echo/status",
+    "/api/auth/guest",
+    "/api/auth/guest/resume",
+    "/api/auth/refresh"
+]
+app.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
+
+# CORS (Added LAST to be OUTERMOST)
 if settings.cors_allowed_origins == "*":
     app.add_middleware(
         CORSMiddleware,
@@ -98,17 +109,6 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-# Auth Middleware (Step 13)
-public_paths = [
-    "/api/stories",
-    "/api/stories/**",
-    "/api/echo/status",
-    "/api/auth/guest",
-    "/api/auth/guest/resume",
-    "/api/auth/refresh"
-]
-app.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
 
 # Include Routers
 app.include_router(echo_controller.router)
