@@ -1,0 +1,520 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Games\Paths\Adapter\Persistence\Story;
+
+use Games\Paths\Core\Port\Story\StoryPersistencePort;
+use PDO;
+
+class StoryMysqlPersistenceRepository implements StoryPersistencePort
+{
+    private PDO $pdo;
+
+    public function __construct(PDO $pdo)
+    {
+        $this->pdo = $pdo;
+    }
+
+    public function findStoryIdByUuid(string $uuid): ?int
+    {
+        $stmt = $this->pdo->prepare("SELECT id FROM list_stories WHERE uuid = :uuid LIMIT 1");
+        $stmt->execute([':uuid' => $uuid]);
+        $id = $stmt->fetchColumn();
+        return $id === false ? null : (int)$id;
+    }
+
+    public function deleteStoryById(int $storyId): void
+    {
+        // Because we set up the tables with ON DELETE CASCADE in the schema,
+        // deleting the story will auto-delete all related records.
+        $stmt = $this->pdo->prepare("DELETE FROM list_stories WHERE id = :id");
+        $stmt->execute([':id' => $storyId]);
+    }
+
+    public function saveStory(array $data): int
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_stories (
+                uuid, author, category, group_name, visibility, priority, peghi, 
+                version_min, version_max, clock_singular, clock_plural, link_copyright,
+                id_text_title, id_text_description, id_text_copyright
+            ) VALUES (
+                :uuid, :author, :category, :group_name, :visibility, :priority, :peghi,
+                :version_min, :version_max, :clock_singular, :clock_plural, :link_copyright,
+                :id_text_title, :id_text_description, :id_text_copyright
+            )
+        ");
+        $stmt->execute([
+            ':uuid' => $data['uuid'],
+            ':author' => $data['author'] ?? null,
+            ':category' => $data['category'] ?? null,
+            ':group_name' => $data['group'] ?? null,
+            ':visibility' => $data['visibility'] ?? 'DRAFT',
+            ':priority' => $data['priority'] ?? 0,
+            ':peghi' => $data['peghi'] ?? 0,
+            ':version_min' => $data['versionMin'] ?? null,
+            ':version_max' => $data['versionMax'] ?? null,
+            ':clock_singular' => $data['clockSingularDescription'] ?? null,
+            ':clock_plural' => $data['clockPluralDescription'] ?? null,
+            ':link_copyright' => $data['linkCopyright'] ?? null,
+            ':id_text_title' => $data['idTextTitle'] ?? null,
+            ':id_text_description' => $data['idTextDescription'] ?? null,
+            ':id_text_copyright' => $data['idTextCopyright'] ?? null,
+        ]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function saveTexts(int $storyId, array $texts): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_texts (id_story, id_text, lang, short_text, long_text) 
+            VALUES (:id_story, :id_text, :lang, :short_text, :long_text)
+        ");
+        foreach ($texts as $t) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':id_text' => $t['idText'] ?? null,
+                ':lang' => $t['lang'] ?? 'en',
+                ':short_text' => $t['shortText'] ?? null,
+                ':long_text' => $t['longText'] ?? null,
+            ]);
+        }
+    }
+
+    public function saveDifficulties(int $storyId, array $difficulties): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_stories_difficulty (
+                id_story, uuid, id_text_description, exp_cost, max_weight, 
+                min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
+            ) VALUES (
+                :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
+                :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
+            )
+        ");
+        foreach ($difficulties as $d) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':uuid' => $d['uuid'] ?? null,
+                ':id_text_description' => $d['idTextDescription'] ?? null,
+                ':exp_cost' => $d['expCost'] ?? null,
+                ':max_weight' => $d['maxWeight'] ?? null,
+                ':min_character' => $d['minCharacter'] ?? null,
+                ':max_character' => $d['maxCharacter'] ?? null,
+                ':cost_help_coma' => $d['costHelpComa'] ?? null,
+                ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
+                ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
+            ]);
+        }
+    }
+
+    public function saveLocations(int $storyId, array $locations): void
+    {
+        $stmtLoc = $this->pdo->prepare("
+            INSERT INTO list_locations (
+                id_story, id_text_name, id_text_description, is_safe, max_characters,
+                id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
+            ) VALUES (
+                :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
+                :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
+            )
+        ");
+        $stmtNei = $this->pdo->prepare("
+            INSERT INTO list_locations_neighbors (
+                id_story, id_location_from, id_location_to, direction, energy_cost, condition_key, condition_value
+            ) VALUES (
+                :id_story, :id_location_from, :id_location_to, :direction, :energy_cost, :condition_key, :condition_value
+            )
+        ");
+
+        foreach ($locations as $loc) {
+            $stmtLoc->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $loc['idTextName'] ?? null,
+                ':id_text_description' => $loc['idTextDescription'] ?? null,
+                ':is_safe' => $loc['isSafe'] ?? 0,
+                ':max_characters' => $loc['maxCharacters'] ?? null,
+                ':id_event_on_enter' => $loc['idEventOnEnter'] ?? null,
+                ':id_event_if_counter_zero' => $loc['idEventIfCounterZero'] ?? null,
+                ':counter_start' => $loc['counterStart'] ?? null,
+                ':id_card' => $loc['idCard'] ?? null,
+            ]);
+            $locId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($loc['neighbors'])) {
+                foreach ($loc['neighbors'] as $n) {
+                    $stmtNei->execute([
+                        ':id_story' => $storyId,
+                        ':id_location_from' => $locId,
+                        ':id_location_to' => $n['idLocationTo'] ?? null,
+                        ':direction' => $n['direction'] ?? null,
+                        ':energy_cost' => $n['energyCost'] ?? 1,
+                        ':condition_key' => $n['conditionKey'] ?? null,
+                        ':condition_value' => $n['conditionValue'] ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveEvents(int $storyId, array $events): void
+    {
+        $stmtEv = $this->pdo->prepare("
+            INSERT INTO list_events (
+                id_story, id_text_name, id_text_description, event_type, trigger_type,
+                energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
+            ) VALUES (
+                :id_story, :id_text_name, :id_text_description, :event_type, :trigger_type,
+                :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
+            )
+        ");
+        $stmtEf = $this->pdo->prepare("
+            INSERT INTO list_events_effects (
+                id_story, id_event, effect_type, effect_value, flag_group
+            ) VALUES (
+                :id_story, :id_event, :effect_type, :effect_value, :flag_group
+            )
+        ");
+
+        foreach ($events as $ev) {
+            $stmtEv->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $ev['idTextName'] ?? null,
+                ':id_text_description' => $ev['idTextDescription'] ?? null,
+                ':event_type' => $ev['eventType'] ?? $ev['type'] ?? null,
+                ':trigger_type' => $ev['triggerType'] ?? null,
+                ':energy_cost' => $ev['energyCost'] ?? 0,
+                ':coin_cost' => $ev['coinCost'] ?? 0,
+                ':id_event_next' => $ev['idEventNext'] ?? null,
+                ':flag_interrupt' => $ev['flagInterrupt'] ?? 0,
+                ':flag_end_time' => $ev['flagEndTime'] ?? 0,
+                ':id_location' => $ev['idLocation'] ?? null,
+            ]);
+            $evId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($ev['effects'])) {
+                foreach ($ev['effects'] as $ef) {
+                    $stmtEf->execute([
+                        ':id_story' => $storyId,
+                        ':id_event' => $evId,
+                        ':effect_type' => $ef['effectType'] ?? $ef['type'] ?? null,
+                        ':effect_value' => $ef['effectValue'] ?? $ef['value'] ?? null,
+                        ':flag_group' => $ef['flagGroup'] ?? 0,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveItems(int $storyId, array $items): void
+    {
+        $stmtIt = $this->pdo->prepare("
+            INSERT INTO list_items (id_story, id_text_name, id_text_description, weight, id_class)
+            VALUES (:id_story, :id_text_name, :id_text_description, :weight, :id_class)
+        ");
+        $stmtEf = $this->pdo->prepare("
+            INSERT INTO list_items_effects (id_story, id_item, effect_type, effect_value)
+            VALUES (:id_story, :id_item, :effect_type, :effect_value)
+        ");
+
+        foreach ($items as $it) {
+            $stmtIt->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $it['idTextName'] ?? null,
+                ':id_text_description' => $it['idTextDescription'] ?? null,
+                ':weight' => $it['weight'] ?? 0,
+                ':id_class' => $it['idClass'] ?? null,
+            ]);
+            $itId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($it['effects'])) {
+                foreach ($it['effects'] as $ef) {
+                    $stmtEf->execute([
+                        ':id_story' => $storyId,
+                        ':id_item' => $itId,
+                        ':effect_type' => $ef['effectType'] ?? $ef['type'] ?? null,
+                        ':effect_value' => $ef['effectValue'] ?? $ef['value'] ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveClasses(int $storyId, array $classes): void
+    {
+        $stmtCls = $this->pdo->prepare("
+            INSERT INTO list_classes (id_story, id_text_name, id_text_description)
+            VALUES (:id_story, :id_text_name, :id_text_description)
+        ");
+        $stmtBon = $this->pdo->prepare("
+            INSERT INTO list_classes_bonus (id_story, id_class, bonus_type, bonus_value)
+            VALUES (:id_story, :id_class, :bonus_type, :bonus_value)
+        ");
+
+        foreach ($classes as $cls) {
+            $stmtCls->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $cls['idTextName'] ?? null,
+                ':id_text_description' => $cls['idTextDescription'] ?? null,
+            ]);
+            $clsId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($cls['bonuses'])) {
+                foreach ($cls['bonuses'] as $b) {
+                    $stmtBon->execute([
+                        ':id_story' => $storyId,
+                        ':id_class' => $clsId,
+                        ':bonus_type' => $b['bonusType'] ?? $b['type'] ?? null,
+                        ':bonus_value' => $b['bonusValue'] ?? $b['value'] ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveChoices(int $storyId, array $choices): void
+    {
+        $stmtCh = $this->pdo->prepare("
+            INSERT INTO list_choices (
+                id_story, id_event, id_text_name, id_text_description, priority, is_otherwise, is_progress, id_event_torun
+            ) VALUES (
+                :id_story, :id_event, :id_text_name, :id_text_description, :priority, :is_otherwise, :is_progress, :id_event_torun
+            )
+        ");
+        $stmtCo = $this->pdo->prepare("
+            INSERT INTO list_choices_conditions (
+                id_story, id_choice, condition_type, condition_key, condition_value, condition_operator
+            ) VALUES (
+                :id_story, :id_choice, :condition_type, :condition_key, :condition_value, :condition_operator
+            )
+        ");
+        $stmtEf = $this->pdo->prepare("
+            INSERT INTO list_choices_effects (
+                id_story, id_choice, effect_type, effect_value, flag_group
+            ) VALUES (
+                :id_story, :id_choice, :effect_type, :effect_value, :flag_group
+            )
+        ");
+
+        foreach ($choices as $ch) {
+            $stmtCh->execute([
+                ':id_story' => $storyId,
+                ':id_event' => $ch['idEvent'] ?? null,
+                ':id_text_name' => $ch['idTextName'] ?? null,
+                ':id_text_description' => $ch['idTextDescription'] ?? null,
+                ':priority' => $ch['priority'] ?? 0,
+                ':is_otherwise' => $ch['isOtherwise'] ?? 0,
+                ':is_progress' => $ch['isProgress'] ?? 0,
+                ':id_event_torun' => $ch['idEventToRun'] ?? null,
+            ]);
+            $chId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($ch['conditions'])) {
+                foreach ($ch['conditions'] as $co) {
+                    $stmtCo->execute([
+                        ':id_story' => $storyId,
+                        ':id_choice' => $chId,
+                        ':condition_type' => $co['conditionType'] ?? $co['type'] ?? null,
+                        ':condition_key' => $co['conditionKey'] ?? null,
+                        ':condition_value' => $co['conditionValue'] ?? null,
+                        ':condition_operator' => $co['conditionOperator'] ?? 'AND',
+                    ]);
+                }
+            }
+
+            if (!empty($ch['effects'])) {
+                foreach ($ch['effects'] as $ef) {
+                    $stmtEf->execute([
+                        ':id_story' => $storyId,
+                        ':id_choice' => $chId,
+                        ':effect_type' => $ef['effectType'] ?? $ef['type'] ?? null,
+                        ':effect_value' => $ef['effectValue'] ?? $ef['value'] ?? null,
+                        ':flag_group' => $ef['flagGroup'] ?? 0,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveCards(int $storyId, array $cards): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_cards (id_story, card_type, id_text_name, image_url, id_reference)
+            VALUES (:id_story, :card_type, :id_text_name, :image_url, :id_reference)
+        ");
+        foreach ($cards as $c) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':card_type' => $c['cardType'] ?? null,
+                ':id_text_name' => $c['idTextName'] ?? null,
+                ':image_url' => $c['imageUrl'] ?? null,
+                ':id_reference' => $c['idReference'] ?? null,
+            ]);
+        }
+    }
+
+    public function saveKeys(int $storyId, array $keys): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_keys (id_story, key_name, key_value, key_group, is_visible)
+            VALUES (:id_story, :key_name, :key_value, :key_group, :is_visible)
+        ");
+        foreach ($keys as $k) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':key_name' => $k['keyName'] ?? null,
+                ':key_value' => $k['keyValue'] ?? null,
+                ':key_group' => $k['keyGroup'] ?? null,
+                ':is_visible' => $k['isVisible'] ?? 0,
+            ]);
+        }
+    }
+
+    public function saveTraits(int $storyId, array $traits): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_traits (id_story, id_text_name, id_text_description, cost, id_class)
+            VALUES (:id_story, :id_text_name, :id_text_description, :cost, :id_class)
+        ");
+        foreach ($traits as $t) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $t['idTextName'] ?? null,
+                ':id_text_description' => $t['idTextDescription'] ?? null,
+                ':cost' => $t['cost'] ?? null,
+                ':id_class' => $t['idClass'] ?? null,
+            ]);
+        }
+    }
+
+    public function saveCharacterTemplates(int $storyId, array $templates): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_character_templates (
+                id_story, id_tipo, id_text_name, id_text_description, base_des, base_int, base_cos, base_energy, base_life
+            ) VALUES (
+                :id_story, :id_tipo, :id_text_name, :id_text_description, :base_des, :base_int, :base_cos, :base_energy, :base_life
+            )
+        ");
+        foreach ($templates as $t) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':id_tipo' => $t['idTipo'] ?? null,
+                ':id_text_name' => $t['idTextName'] ?? null,
+                ':id_text_description' => $t['idTextDescription'] ?? null,
+                ':base_des' => $t['baseDes'] ?? 0,
+                ':base_int' => $t['baseInt'] ?? 0,
+                ':base_cos' => $t['baseCos'] ?? 0,
+                ':base_energy' => $t['baseEnergy'] ?? 0,
+                ':base_life' => $t['baseLife'] ?? 0,
+            ]);
+        }
+    }
+
+    public function saveWeatherRules(int $storyId, array $rules): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_weather_rules (
+                id_story, id_text_name, probability, delta_energy, id_event, condition_key, condition_value, time_start, time_end, is_active
+            ) VALUES (
+                :id_story, :id_text_name, :probability, :delta_energy, :id_event, :condition_key, :condition_value, :time_start, :time_end, :is_active
+            )
+        ");
+        foreach ($rules as $r) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $r['idTextName'] ?? null,
+                ':probability' => $r['probability'] ?? null,
+                ':delta_energy' => $r['deltaEnergy'] ?? 0,
+                ':id_event' => $r['idEvent'] ?? null,
+                ':condition_key' => $r['conditionKey'] ?? null,
+                ':condition_value' => $r['conditionValue'] ?? null,
+                ':time_start' => $r['timeStart'] ?? null,
+                ':time_end' => $r['timeEnd'] ?? null,
+                ':is_active' => $r['isActive'] ?? 1,
+            ]);
+        }
+    }
+
+    public function saveGlobalRandomEvents(int $storyId, array $events): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_global_random_events (
+                id_story, id_event, probability, condition_key, condition_value
+            ) VALUES (
+                :id_story, :id_event, :probability, :condition_key, :condition_value
+            )
+        ");
+        foreach ($events as $e) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':id_event' => $e['idEvent'] ?? null,
+                ':probability' => $e['probability'] ?? null,
+                ':condition_key' => $e['conditionKey'] ?? null,
+                ':condition_value' => $e['conditionValue'] ?? null,
+            ]);
+        }
+    }
+
+    public function saveMissions(int $storyId, array $missions): void
+    {
+        $stmtM = $this->pdo->prepare("
+            INSERT INTO list_missions (
+                id_story, id_text_name, id_text_description, condition_key, condition_value_from, condition_value_to, id_event_completed
+            ) VALUES (
+                :id_story, :id_text_name, :id_text_description, :condition_key, :condition_value_from, :condition_value_to, :id_event_completed
+            )
+        ");
+        $stmtS = $this->pdo->prepare("
+            INSERT INTO list_missions_steps (
+                id_story, id_mission, step_order, id_text_description, condition_key, condition_value, id_event_completed
+            ) VALUES (
+                :id_story, :id_mission, :step_order, :id_text_description, :condition_key, :condition_value, :id_event_completed
+            )
+        ");
+
+        foreach ($missions as $m) {
+            $stmtM->execute([
+                ':id_story' => $storyId,
+                ':id_text_name' => $m['idTextName'] ?? null,
+                ':id_text_description' => $m['idTextDescription'] ?? null,
+                ':condition_key' => $m['conditionKey'] ?? null,
+                ':condition_value_from' => $m['conditionValueFrom'] ?? null,
+                ':condition_value_to' => $m['conditionValueTo'] ?? null,
+                ':id_event_completed' => $m['idEventCompleted'] ?? null,
+            ]);
+            $mId = (int)$this->pdo->lastInsertId();
+
+            if (!empty($m['steps'])) {
+                foreach ($m['steps'] as $idx => $s) {
+                    $stmtS->execute([
+                        ':id_story' => $storyId,
+                        ':id_mission' => $mId,
+                        ':step_order' => $s['stepOrder'] ?? ($idx + 1),
+                        ':id_text_description' => $s['idTextDescription'] ?? null,
+                        ':condition_key' => $s['conditionKey'] ?? null,
+                        ':condition_value' => $s['conditionValue'] ?? null,
+                        ':id_event_completed' => $s['idEventCompleted'] ?? null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function saveCreators(int $storyId, array $creators): void
+    {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO list_creator (id_story, creator_name, creator_role, link)
+            VALUES (:id_story, :creator_name, :creator_role, :link)
+        ");
+        foreach ($creators as $c) {
+            $stmt->execute([
+                ':id_story' => $storyId,
+                ':creator_name' => $c['creatorName'] ?? null,
+                ':creator_role' => $c['creatorRole'] ?? null,
+                ':link' => $c['link'] ?? null,
+            ]);
+        }
+    }
+}

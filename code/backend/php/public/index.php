@@ -16,6 +16,13 @@ use Games\Paths\Adapter\Auth\Rest\SessionController;
 use Games\Paths\Adapter\Rest\Middleware\JwtAuthenticationMiddleware;
 use Games\Paths\Core\Service\Auth\SessionService;
 
+use Games\Paths\Adapter\Persistence\Story\StoryMysqlReadRepository;
+use Games\Paths\Adapter\Persistence\Story\StoryMysqlPersistenceRepository;
+use Games\Paths\Core\Service\Story\StoryQueryService;
+use Games\Paths\Core\Service\Story\StoryImportService;
+use Games\Paths\Adapter\Rest\Story\StoryController;
+use Games\Paths\Adapter\Rest\Story\StoryAdminController;
+
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
 if ($appEnv === 'development') {
@@ -62,9 +69,10 @@ try {
 }
 
 // ─── Instantiate App ───
-$app = AppFactory::create();
+$app = \Slim\Factory\AppFactory::create();
 
 // Add default middleware (Routing & Error Handling)
+$app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
 // Add CORS Middleware
@@ -104,30 +112,41 @@ $app->addErrorMiddleware($isDebug, $isDebug, $isDebug);
 $jwtAdapter = new JwtAdapter($jwtSecret, $accessTokenMinutes, $refreshTokenDays);
 $guestRepo = new GuestMysqlRepository($pdo);
 $tokenRepo = new TokenMysqlRepository($pdo);
+$storyReadRepo = new StoryMysqlReadRepository($pdo);
+$storyPersistRepo = new StoryMysqlPersistenceRepository($pdo);
 
 // ─── Initialize Core Services ───
 $echoService = new EchoService();
 $sessionService = new SessionService($jwtAdapter, $tokenRepo, 5);
 $guestAuthService = new GuestAuthService($guestRepo, $jwtAdapter);
 $guestAdminService = new GuestAdminService($guestRepo);
+$storyQueryService = new StoryQueryService($storyReadRepo);
+$storyImportService = new StoryImportService($storyPersistRepo);
 
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
 $guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $tokenRepo);
 $guestAdminController = new GuestAdminController($guestAdminService);
 $sessionController = new SessionController($sessionService);
+$storyController = new StoryController($storyQueryService);
+$storyAdminController = new StoryAdminController($storyQueryService, $storyImportService);
 
 // ─── Authentication Middleware ───
 $publicPaths = [
     '/api/echo/status',
     '/api/auth/guest',
     '/api/auth/guest/resume',
-    '/api/auth/refresh'
+    '/api/auth/refresh',
+    '/api/stories',
+    '/api/stories/**'
 ];
 $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths);
 
 // ─── Define Routes ───
-$app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use ($echoController, $guestAuthController, $guestAdminController, $sessionController) {
+$app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
+    $echoController, $guestAuthController, $guestAdminController, $sessionController,
+    $storyController, $storyAdminController
+) {
     
     // Echo (Public)
     $group->get('/echo/status', [$echoController, 'getStatus']);
@@ -148,6 +167,16 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use ($ec
     $group->delete('/admin/guests/expired', [$guestAdminController, 'cleanupExpired']);
     $group->get('/admin/guests/{uuid}', [$guestAdminController, 'getGuest']);
     $group->delete('/admin/guests/{uuid}', [$guestAdminController, 'deleteGuest']);
+
+    // Stories (Public)
+    $group->get('/stories', [$storyController, 'listStories']);
+    $group->get('/stories/{uuid}', [$storyController, 'getStory']);
+
+    // Admin - Stories (Protected)
+    $group->get('/admin/stories', [$storyAdminController, 'listAllStories']);
+    $group->post('/admin/stories/import', [$storyAdminController, 'importStory']);
+    $group->delete('/admin/stories/{uuid}', [$storyAdminController, 'deleteStory']);
+
 })->add($authMiddleware);
 
 $app->run();

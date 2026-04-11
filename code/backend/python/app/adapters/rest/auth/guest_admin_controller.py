@@ -9,9 +9,9 @@ class GuestAdminController:
         
         self.router.add_api_route("", self.list_all_guests, methods=["GET"])
         self.router.add_api_route("/stats", self.get_guest_stats, methods=["GET"])
+        self.router.add_api_route("/expired", self.delete_expired_guests, methods=["DELETE"])
         self.router.add_api_route("/{uuid}", self.get_guest_by_uuid, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_guest, methods=["DELETE"])
-        self.router.add_api_route("/expired", self.delete_expired_guests, methods=["DELETE"])
 
     async def list_all_guests(self):
         guests = self.guest_admin_port.list_all_guests()
@@ -19,7 +19,7 @@ class GuestAdminController:
 
     async def get_guest_stats(self):
         stats = self.guest_admin_port.get_guest_stats()
-        return stats.model_dump()
+        return stats.model_dump(by_alias=True)
 
     async def get_guest_by_uuid(self, uuid: str):
         guest = self.guest_admin_port.get_guest_by_uuid(uuid)

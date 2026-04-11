@@ -29,9 +29,9 @@ class GuestAdminService implements GuestAdminPort
     public function getGuestStats(): array
     {
         return [
-            'total_guests' => $this->guestRepository->countAll(),
-            'active_guests' => $this->guestRepository->countActive(),
-            'expired_guests' => $this->guestRepository->countExpired(),
+            'totalGuests' => $this->guestRepository->countAll(),
+            'activeGuests' => $this->guestRepository->countActive(),
+            'expiredGuests' => $this->guestRepository->countExpired(),
         ];
     }
 

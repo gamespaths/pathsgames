@@ -117,6 +117,11 @@ code/backend/php/
 | GET | `/api/admin/guests/{uuid}` | Get guest by UUID |
 | DELETE | `/api/admin/guests/{uuid}` | Delete guest by UUID |
 | DELETE | `/api/admin/guests/expired` | Cleanup expired guests |
+| GET | `/api/stories` | List stories (can filter by language `?lang=en`) |
+| GET | `/api/stories/{uuid}` | Get story details |
+| GET | `/api/admin/stories` | List all stories (including non-public) |
+| POST | `/api/admin/stories/import` | Import a JSON story tree |
+| DELETE | `/api/admin/stories/{uuid}` | Delete story by UUID |
 
 ## Architecture
 

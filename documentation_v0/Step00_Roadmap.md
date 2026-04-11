@@ -62,21 +62,13 @@ create a simple web example to use new interfaces inside new code/website/concep
 
 > read all documentation md files inside documentation_v0 folder to have all project context. and read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX=000 for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects.
 
-> read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using react tecnologies defined into README.md file inside projects. I wanna open-api into java is used for php and pythons versions too. 
+> read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using react tecnologies defined into README.md file inside projects. I wanna open-api into java is used for php and pythons versions too. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. 
 
 
 ---
 
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-14. Story import system and data seeding
-    - Design JSON and SQL import format covering all story entities: stories, difficulties, locations, events, choices, items, weather, missions, characters, texts, cards (backend)
-    - Implement story file parser service to validate and transform import data into domain entities (backend)
-    - Implement batch importer service to persist parsed story data with transactional integrity (backend)
-    - Create Flyway seed migrations with test story data for development environment (backend)
-    - Implement GET /api/v1/stories endpoint to list available stories with pagination and filtering (backend)
-    - Implement GET /api/v1/stories/{uuid} endpoint to return full story details including difficulty options (backend)
-    - Write backend unit tests for import parser, importer service, and story list/detail endpoints with 100% branch coverage (backend tests)
 15. Story content APIs — locations, neighbors, and cards
     - Implement GET /api/v1/stories/{uuid}/locations endpoint to list all locations for a story with card details (backend)
     - Implement GET /api/v1/stories/{uuid}/locations/{uuid} endpoint to return location detail with neighbors, events, and capacity (backend)
