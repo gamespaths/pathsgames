@@ -398,6 +398,8 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     
     > sonar tell me Coverage at 72.4% and Duplications at 15.9%, please check and resolve!
 
+    > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
+
 
 - **Document Version**: 0.14.3
     | Version | Description | Date |

@@ -12,8 +12,11 @@
 
   /* ══════════════════════════════════════════
      CONFIGURATION
+     API_BASE is set by config.js (window.PG_API_BASE).
+     Supports 'local' (http://localhost:8042) or 'remote'
+     (AWS Lambda — configured in config.js).
      ══════════════════════════════════════════ */
-  const API_BASE = 'http://localhost:8042';
+  const API_BASE = window.PG_API_BASE || 'http://localhost:8042';
   const ENDPOINTS = {
     echoStatus: API_BASE + '/api/echo/status',
     stories:    API_BASE + '/api/stories'

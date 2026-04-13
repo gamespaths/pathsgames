@@ -18,6 +18,14 @@
     <a class="navbar-brand" href="#">
       <i class="fas fa-dice-d20"></i> Paths Games
     </a>
+    <div class="navbar-server-mode" style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;">
+      <i class="fas fa-server" style="opacity:0.7;"></i>
+      <select id="serverModeSelect" onchange="window.PG_setServer(this.value)"
+              style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:inherit;border-radius:4px;padding:2px 6px;font-size:0.78rem;cursor:pointer;">
+        <option value="local">Local</option>
+        <option value="remote">AWS Lambda</option>
+      </select>
+    </div>
     <div class="navbar-status" id="serverStatus">
       <span class="status-dot" id="statusDot"></span>
       <span id="statusText">Connecting...</span>
@@ -127,6 +135,7 @@
     &bull; <a href="https://paths.games">paths.games</a>
   </footer>
 
+  <script src="config.js"></script>
   <script src="session-manager.js"></script>
 </body>
 </html>

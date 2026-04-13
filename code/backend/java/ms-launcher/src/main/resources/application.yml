@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.14.4
+    version: 0.14.5
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path

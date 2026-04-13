@@ -62,8 +62,9 @@ create a simple web example to use new interfaces inside new code/website/concep
 
 > read all documentation md files inside documentation_v0 folder to have all project context. and read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX=000 for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects.
 
-> read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using react tecnologies defined into README.md file inside projects. I wanna open-api into java is used for php and pythons versions too. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. 
+> read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using react tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files into java and documentation_v0 folders.
 
+> read all documentation md files inside documentation_v0 folder to have all project context. i wanna to run step XX=000 for aws (code/backend/aws). please read all changes about step XX and write into aws project new code using tecnologies defined into README.md file inside projects and previus code. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. never change files into java and documentation_v0 folders.
 
 ---
 
@@ -806,6 +807,8 @@ create a simple web example to use new interfaces inside new code/website/concep
     | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
 - **Last Updated**: April 9, 2026
 - **Status**: In progress
+
+
 
 
 # &lt; Paths Games /&gt;

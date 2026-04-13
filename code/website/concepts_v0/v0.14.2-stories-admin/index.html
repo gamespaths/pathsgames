@@ -26,6 +26,14 @@
         <span class="status-dot" id="loginStatusDot"></span>
         <span id="loginStatusText">Checking server…</span>
       </div>
+      <div class="navbar-server-mode" style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;margin-top:0.6rem;justify-content:center;">
+        <i class="fas fa-server" style="opacity:0.7;"></i>
+        <select id="serverModeSelect" onchange="window.PG_setServer(this.value)"
+                style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:inherit;border-radius:4px;padding:2px 6px;font-size:0.78rem;cursor:pointer;">
+          <option value="local">Local</option>
+          <option value="remote">AWS Lambda</option>
+        </select>
+      </div>
 
       <form class="login-form" onsubmit="return false;">
         <label for="tokenInput">
@@ -73,6 +81,14 @@
         <div class="navbar-server">
           <span class="status-dot" id="appStatusDot"></span>
           <span id="appStatusText">—</span>
+        </div>
+        <div class="navbar-server-mode" style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;">
+          <i class="fas fa-server" style="opacity:0.7;"></i>
+          <select id="serverModeSelect" onchange="window.PG_setServer(this.value)"
+                  style="background:transparent;border:1px solid rgba(255,255,255,0.3);color:inherit;border-radius:4px;padding:2px 6px;font-size:0.78rem;cursor:pointer;">
+            <option value="local">Local</option>
+            <option value="remote">AWS Lambda</option>
+          </select>
         </div>
         <button class="btn-action btn-logout" onclick="doLogout()" style="margin-left:var(--space-sm);">
           <i class="fas fa-sign-out-alt"></i> Logout
@@ -173,6 +189,7 @@
   <!-- notifications -->
   <div class="notification" id="notification"></div>
 
+  <script src="config.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -43,9 +43,6 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 ## Tecnical components
 
-<img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" />
-php img 
-
 - **Main tecnical stack**
     | Category | Components |
     |---|:---:|
@@ -85,6 +82,7 @@ php img
     - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
         - Start service into configured environment `php -S localhost:8042 -t public `
         - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-php): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php)
+    - **AWS Serverless**: an alternative backend based on AWS API Gateway, Lambda and DynamoDB, see [README](./code/backend/aws/README.md) for architecture and deployment details.
 - **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
     - To execute all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
     - Report is created into `code/tests/robot/reports/report.html` folder.
