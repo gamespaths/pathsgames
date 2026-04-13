@@ -36,6 +36,11 @@ target/
 
 .alnao/
 
+#AWSù
+.aws-sam/
+.aws-sam-cli-managed-default/
+.aws-sam-cli-managed-default.toml
+
 # Backend python!
 database.sqlite
 .pytest_cache
@@ -48,4 +53,8 @@ code/backend/python/coverage.xml
 code/backend/php/vendor
 code/backend/php/composer.lock
 
-
+# Robot
+code/tests/robot/reports-aws/
+code/tests/robot/reports-local-java/
+code/tests/robot/reports-local-python/
+code/tests/robot/reports-local-php

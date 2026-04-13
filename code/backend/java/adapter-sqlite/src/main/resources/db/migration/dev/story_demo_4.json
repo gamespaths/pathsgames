@@ -1,0 +1,219 @@
+{
+  "uuid": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+  "author": "PathsMaster",
+  "versionMin": "0.14.0",
+  "clockSingularDescription": "giorno",
+  "clockPluralDescription": "giorni",
+  "category": "historical",
+  "group": "main",
+  "visibility": "PUBLIC",
+  "priority": 10,
+  "peghi": 5,
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+
+  "texts": [
+    {"idText": 1, "lang": "en", "shortText": "The Valvassore of Marca — The Shadow of Ezzelino", "longText": "The year is 1244. The war between Guelphs and Ghibellines engulfs the Veneto. Ezzelino III da Romano, cruel lord of the Marca Trevigiana, tightens his iron grip on every fief. The valvassore must journey to Venice and Verona to seek allies powerful enough to challenge the tyrant — or submit forever."},
+    {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca — L'Ombra di Ezzelino", "longText": "È il 1244. La guerra tra Guelfi e Ghibellini travolge il Veneto. Ezzelino III da Romano, crudele signore della Marca Trevigiana, stringe la sua morsa di ferro su ogni feudo. Il valvassore deve viaggiare fino a Venezia e Verona per cercare alleati abbastanza potenti da sfidare il tiranno — o sottomettersi per sempre."},
+    {"idText": 2, "lang": "en", "shortText": "The Shadow of Ezzelino", "longText": "Cross the Veneto in a desperate quest for freedom. From the canals of Venice to the arena of Verona, forge alliances with doge and pope alike while Ezzelino's spies hunt you at every turn."},
+    {"idText": 2, "lang": "it", "shortText": "L'Ombra di Ezzelino", "longText": "Attraversa il Veneto in una disperata ricerca di libertà. Dai canali di Venezia all'arena di Verona, forgia alleanze con dogi e papi mentre le spie di Ezzelino ti danno la caccia ad ogni passo."},
+
+    {"idText": 100, "lang": "en", "shortText": "Castelfranco — The Ruins", "longText": "What remains of Castelfranco after the lord of Marostica's raids. The walls are patched, the market is sparse, but the people endure. This is what the valvassore fights to protect."},
+    {"idText": 100, "lang": "it", "shortText": "Castelfranco — Le Rovine", "longText": "Ciò che resta di Castelfranco dopo le incursioni del signore di Marostica. Le mura sono rattoppate, il mercato è scarno, ma la gente resiste. È questo ciò per cui il valvassore combatte."},
+    {"idText": 101, "lang": "en", "shortText": "Venezia — The Doge's Palace", "longText": "The magnificent Palazzo Ducale of Venice, seat of the Serene Republic. The Doge and his council weigh profit and power — Ezzelino threatens their trade routes, and that is unforgivable."},
+    {"idText": 101, "lang": "it", "shortText": "Venezia — Il Palazzo Ducale", "longText": "Il magnifico Palazzo Ducale di Venezia, sede della Serenissima Repubblica. Il Doge e il suo consiglio soppesano profitto e potere — Ezzelino minaccia le loro rotte commerciali, e questo è imperdonabile."},
+    {"idText": 102, "lang": "en", "shortText": "Venezia — The Arsenal", "longText": "The great shipyard of the Venetian Republic, where hundreds of galleys are built and armed. The smell of pitch and the ring of hammers fill the air. Military power incarnate."},
+    {"idText": 102, "lang": "it", "shortText": "Venezia — L'Arsenale", "longText": "Il grande cantiere navale della Repubblica Veneziana, dove centinaia di galee vengono costruite e armate. L'odore di pece e il suono dei martelli riempiono l'aria. Potere militare incarnato."},
+    {"idText": 103, "lang": "en", "shortText": "Verona — The Arena", "longText": "The ancient Roman amphitheatre of Verona, now used for public gatherings and the occasional tournament. In its shadow, the Scaligeri family plots against Ezzelino."},
+    {"idText": 103, "lang": "it", "shortText": "Verona — L'Arena", "longText": "L'antico anfiteatro romano di Verona, ora usato per assemblee pubbliche e occasionali tornei. Nella sua ombra, la famiglia degli Scaligeri complotta contro Ezzelino."},
+    {"idText": 104, "lang": "en", "shortText": "Padova — The Basilica of Sant'Antonio", "longText": "The great basilica dedicated to Saint Anthony, recently built. Pilgrims and spies alike kneel in its nave. The papal legate resides here, and his word carries the weight of Rome."},
+    {"idText": 104, "lang": "it", "shortText": "Padova — La Basilica di Sant'Antonio", "longText": "La grande basilica dedicata a Sant'Antonio, costruita di recente. Pellegrini e spie si inginocchiano nella sua navata. Il legato papale risiede qui, e la sua parola porta il peso di Roma."},
+    {"idText": 105, "lang": "en", "shortText": "Ezzelino's Citadel — Romano d'Ezzelino", "longText": "The hilltop fortress where Ezzelino III holds court. A place of terror — prisoners languish in its dungeons, and none who enter uninvited leave alive."},
+    {"idText": 105, "lang": "it", "shortText": "La Cittadella di Ezzelino — Romano d'Ezzelino", "longText": "La fortezza sulla collina dove Ezzelino III tiene corte. Un luogo di terrore — i prigionieri languono nelle sue segrete, e nessuno che entri senza invito ne esce vivo."},
+    {"idText": 106, "lang": "en", "shortText": "Treviso — The Market", "longText": "The lively market of Treviso along the canals. Despite the war, merchants still trade in salt, cloth, and grain. Information is the most valuable commodity here."},
+    {"idText": 106, "lang": "it", "shortText": "Treviso — Il Mercato", "longText": "Il vivace mercato di Treviso lungo i canali. Nonostante la guerra, i mercanti commerciano ancora sale, stoffe e grano. L'informazione è la merce più preziosa qui."},
+    {"idText": 107, "lang": "en", "shortText": "Bassano — The War Camp", "longText": "A military encampment outside Bassano where rebel forces are secretly gathering. Knights, free communes, and papal supporters unite against the tyrant."},
+    {"idText": 107, "lang": "it", "shortText": "Bassano — L'Accampamento di Guerra", "longText": "Un accampamento militare fuori Bassano dove le forze ribelli si radunano in segreto. Cavalieri, comuni liberi e sostenitori del Papa si uniscono contro il tiranno."},
+    {"idText": 108, "lang": "en", "shortText": "Asolo — The Ruins of the Countess's Tower", "longText": "The once-proud tower of Asolo, damaged in Ezzelino's reprisal. The Countess has fled, but her network of informants remains active in the shadows."},
+    {"idText": 108, "lang": "it", "shortText": "Asolo — Le Rovine della Torre della Contessa", "longText": "La torre un tempo orgogliosa di Asolo, danneggiata nella rappresaglia di Ezzelino. La Contessa è fuggita, ma la sua rete di informatori rimane attiva nell'ombra."},
+    {"idText": 109, "lang": "en", "shortText": "The River Brenta — The Escape Route", "longText": "The winding course of the Brenta river from the mountains to the lagoon. By boat, one can travel from the Marca to Venice unseen — if the river patrols don't catch you."},
+    {"idText": 109, "lang": "it", "shortText": "Il Fiume Brenta — La Via di Fuga", "longText": "Il corso sinuoso del fiume Brenta dalle montagne alla laguna. In barca, si può viaggiare dalla Marca a Venezia senza essere visti — se le pattuglie fluviali non vi scoprono."},
+    {"idText": 110, "lang": "en", "shortText": "Monte Grappa — The Mountain Pass", "longText": "The high mountain pass of Monte Grappa. A harsh and cold route, but the only path that Ezzelino's patrols cannot easily monitor. Shepherds and smugglers know its secrets."},
+    {"idText": 110, "lang": "it", "shortText": "Monte Grappa — Il Passo di Montagna", "longText": "L'alto passo di montagna del Monte Grappa. Un percorso aspro e freddo, ma l'unica via che le pattuglie di Ezzelino non possono sorvegliare facilmente. Pastori e contrabbandieri ne conoscono i segreti."},
+    {"idText": 111, "lang": "en", "shortText": "Cittadella — The Prison", "longText": "The circular fortress-city of Cittadella has become Ezzelino's largest prison. Hundreds of political enemies are held within its walls. Freeing them could swell the rebellion's ranks."},
+    {"idText": 111, "lang": "it", "shortText": "Cittadella — La Prigione", "longText": "La città-fortezza circolare di Cittadella è diventata la più grande prigione di Ezzelino. Centinaia di nemici politici sono detenuti tra le sue mura. Liberarli potrebbe ingrossare le file della ribellione."},
+
+    {"idText": 200, "lang": "en", "shortText": "Knight", "longText": "A hardened warrior noble who has seen real battle. Expert with sword and horse, he rallies men with his presence and fights at the vanguard."},
+    {"idText": 200, "lang": "it", "shortText": "Cavaliere", "longText": "Un nobile guerriero temprato dalla vera battaglia. Esperto con spada e cavallo, raduna gli uomini con la sua presenza e combatte in prima linea."},
+    {"idText": 201, "lang": "en", "shortText": "Diplomat", "longText": "A silver-tongued negotiator who knows the courts of Venice, Verona, and Rome. Treaties are his weapons, and words are his armor."},
+    {"idText": 201, "lang": "it", "shortText": "Diplomatico", "longText": "Un abile negoziatore che conosce le corti di Venezia, Verona e Roma. I trattati sono le sue armi, e le parole la sua armatura."},
+    {"idText": 202, "lang": "en", "shortText": "Scout", "longText": "A quick and silent traveller who knows every trail, ford, and hidden path across the Veneto. The eyes and ears of the rebellion."},
+    {"idText": 202, "lang": "it", "shortText": "Esploratore", "longText": "Un viaggiatore veloce e silenzioso che conosce ogni sentiero, guado e percorso nascosto del Veneto. Gli occhi e le orecchie della ribellione."},
+
+    {"idText": 300, "lang": "en", "shortText": "Minor Skirmish", "longText": "Enemies are few, supplies are adequate. Take your time to explore the Veneto and build alliances."},
+    {"idText": 300, "lang": "it", "shortText": "Scaramuccia Minore", "longText": "I nemici sono pochi, le provviste adeguate. Prenditi il tuo tempo per esplorare il Veneto e costruire alleanze."},
+    {"idText": 301, "lang": "en", "shortText": "Open War", "longText": "Standard difficulty. Ezzelino's forces are numerous, supplies are scarce, and every town could be a trap."},
+    {"idText": 301, "lang": "it", "shortText": "Guerra Aperta", "longText": "Difficoltà standard. Le forze di Ezzelino sono numerose, le provviste scarse, e ogni città potrebbe essere una trappola."},
+    {"idText": 302, "lang": "en", "shortText": "The Tyrant's Hunt", "longText": "The ultimate challenge. Ezzelino has declared you an outlaw. His best hunters track you. Every ally risks death, and betrayal lurks everywhere."},
+    {"idText": 302, "lang": "it", "shortText": "La Caccia del Tiranno", "longText": "La sfida definitiva. Ezzelino ti ha dichiarato fuorilegge. I suoi migliori cacciatori ti seguono. Ogni alleato rischia la morte, e il tradimento è ovunque."},
+
+    {"idText": 400, "lang": "en", "shortText": "War Hammer", "longText": "A heavy flanged mace designed to crush armour. Martino forged it from the iron of broken chains — a symbol of rebellion."},
+    {"idText": 400, "lang": "it", "shortText": "Martello da Guerra", "longText": "Una pesante mazza flangiata progettata per sfondare le armature. Martino l'ha forgiata dal ferro di catene spezzate — un simbolo di ribellione."},
+    {"idText": 401, "lang": "en", "shortText": "Venetian Safe-Conduct", "longText": "A document signed by the Doge himself, granting the bearer safe passage through all Venetian territories and waters."},
+    {"idText": 401, "lang": "it", "shortText": "Salvacondotto Veneziano", "longText": "Un documento firmato dal Doge in persona, che garantisce al portatore un passaggio sicuro attraverso tutti i territori e le acque veneziane."},
+    {"idText": 402, "lang": "en", "shortText": "Antidote Vial", "longText": "A small glass vial containing an antidote prepared by a Venetian apothecary. Ezzelino's agents are known to use poison."},
+    {"idText": 402, "lang": "it", "shortText": "Fiala di Antidoto", "longText": "Una piccola fiala di vetro contenente un antidoto preparato da uno speziale veneziano. Gli agenti di Ezzelino sono noti per usare il veleno."},
+    {"idText": 403, "lang": "en", "shortText": "Papal Bull", "longText": "A sealed decree from Pope Innocent IV excommunicating Ezzelino and calling for a crusade against the tyrant. Its power could unite all of northern Italy."},
+    {"idText": 403, "lang": "it", "shortText": "Bolla Papale", "longText": "Un decreto sigillato di Papa Innocenzo IV che scomunica Ezzelino e invoca una crociata contro il tiranno. Il suo potere potrebbe unire tutta l'Italia settentrionale."},
+    {"idText": 404, "lang": "en", "shortText": "Map of Secret Passages", "longText": "A hand-drawn map showing hidden tunnels beneath Cittadella's walls. The key to freeing the political prisoners — if the map is accurate."},
+    {"idText": 404, "lang": "it", "shortText": "Mappa dei Passaggi Segreti", "longText": "Una mappa disegnata a mano che mostra tunnel nascosti sotto le mura di Cittadella. La chiave per liberare i prigionieri politici — se la mappa è accurata."},
+
+    {"idText": 500, "lang": "en", "shortText": "Ezzelino's Decree", "longText": "A herald reads Ezzelino's decree in the public square: the valvassore is declared a rebel and outlaw. A bounty is placed on his head."},
+    {"idText": 500, "lang": "it", "shortText": "Il Decreto di Ezzelino", "longText": "Un araldo legge il decreto di Ezzelino nella piazza pubblica: il valvassore è dichiarato ribelle e fuorilegge. Una taglia è posta sulla sua testa."},
+    {"idText": 501, "lang": "en", "shortText": "Venetian Fleet Arrives", "longText": "Venetian war galleys appear at the mouth of the Brenta. The Republic has decided — it will support the rebellion with ships and soldiers."},
+    {"idText": 501, "lang": "it", "shortText": "Arriva la Flotta Veneziana", "longText": "Galee da guerra veneziane appaiono alla foce del Brenta. La Repubblica ha deciso — sosterrà la ribellione con navi e soldati."},
+    {"idText": 502, "lang": "en", "shortText": "The Countess Returns", "longText": "The Countess of Asolo emerges from hiding with a band of loyal fighters. She has been gathering support in secret and is ready to join the cause."},
+    {"idText": 502, "lang": "it", "shortText": "La Contessa Ritorna", "longText": "La Contessa di Asolo emerge dal nascondiglio con una banda di guerrieri fedeli. Ha raccolto supporto in segreto ed è pronta a unirsi alla causa."},
+    {"idText": 503, "lang": "en", "shortText": "Poison in the Wine", "longText": "At a banquet, a servant warns you — the wine has been poisoned! One of Ezzelino's agents has infiltrated the gathering."},
+    {"idText": 503, "lang": "it", "shortText": "Veleno nel Vino", "longText": "A un banchetto, un servo ti avverte — il vino è stato avvelenato! Uno degli agenti di Ezzelino si è infiltrato nella riunione."},
+    {"idText": 504, "lang": "en", "shortText": "The Prison Break", "longText": "Chaos erupts inside Cittadella. The prisoners have started a revolt — if the valvassore acts now, hundreds could be freed to join the rebellion!"},
+    {"idText": 504, "lang": "it", "shortText": "L'Evasione dalla Prigione", "longText": "Il caos esplode dentro Cittadella. I prigionieri hanno iniziato una rivolta — se il valvassore agisce ora, centinaia potrebbero essere liberati per unirsi alla ribellione!"},
+
+    {"idText": 600, "lang": "en", "shortText": "Negotiate with Venice", "longText": "Travel to the Doge's Palace and present your case. Offer trade concessions in exchange for military support against Ezzelino."},
+    {"idText": 600, "lang": "it", "shortText": "Negoziare con Venezia", "longText": "Recarsi al Palazzo Ducale e presentare la propria causa. Offrire concessioni commerciali in cambio di supporto militare contro Ezzelino."},
+    {"idText": 601, "lang": "en", "shortText": "Seek the Papal Legate", "longText": "Meet the papal legate in Padova and request the Church's support. A papal excommunication could turn Ezzelino's own allies against him."},
+    {"idText": 601, "lang": "it", "shortText": "Cercare il Legato Papale", "longText": "Incontrare il legato papale a Padova e chiedere il supporto della Chiesa. Una scomunica papale potrebbe rivoltare gli stessi alleati di Ezzelino contro di lui."},
+    {"idText": 602, "lang": "en", "shortText": "Storm Cittadella", "longText": "Lead a daring assault on Cittadella to free the political prisoners and deal a devastating blow to Ezzelino's power."},
+    {"idText": 602, "lang": "it", "shortText": "Assaltare Cittadella", "longText": "Guidare un audace assalto a Cittadella per liberare i prigionieri politici e infliggere un colpo devastante al potere di Ezzelino."},
+    {"idText": 603, "lang": "en", "shortText": "Unite the Rebels", "longText": "Travel to the war camp at Bassano and unite the scattered rebel factions under a single banner before Ezzelino picks them off one by one."},
+    {"idText": 603, "lang": "it", "shortText": "Unire i Ribelli", "longText": "Recarsi all'accampamento di guerra a Bassano e unire le fazioni ribelli disperse sotto un unico stendardo prima che Ezzelino le elimini una per una."},
+    {"idText": 604, "lang": "en", "shortText": "Cross the Mountain Pass", "longText": "Take the dangerous route over Monte Grappa to reach Verona unseen and forge an alliance with the Scaligeri."},
+    {"idText": 604, "lang": "it", "shortText": "Attraversare il Passo", "longText": "Prendere la pericolosa via sul Monte Grappa per raggiungere Verona di nascosto e forgiare un'alleanza con gli Scaligeri."},
+
+    {"idText": 700, "lang": "en", "shortText": "Rebel's Courage", "longText": "The fire of rebellion burns in your heart. You refuse to kneel before tyrants, no matter the cost."},
+    {"idText": 700, "lang": "it", "shortText": "Coraggio del Ribelle", "longText": "Il fuoco della ribellione arde nel tuo cuore. Rifiuti di inginocchiarti davanti ai tiranni, a qualunque costo."},
+    {"idText": 701, "lang": "en", "shortText": "Diplomatic Grace", "longText": "Years of navigating feudal courts have taught you the art of persuasion. You can charm a doge and negotiate with a pope."},
+    {"idText": 701, "lang": "it", "shortText": "Grazia Diplomatica", "longText": "Anni di navigazione nelle corti feudali ti hanno insegnato l'arte della persuasione. Puoi affascinare un doge e negoziare con un papa."},
+    {"idText": 702, "lang": "en", "shortText": "Mountain Endurance", "longText": "Hardened by life in the foothills of the Alps. You can march for days, withstand cold, and survive where city-dwellers would perish."},
+    {"idText": 702, "lang": "it", "shortText": "Resistenza Montanara", "longText": "Temprato dalla vita ai piedi delle Alpi. Puoi marciare per giorni, resistere al freddo e sopravvivere dove i cittadini perirebbero."},
+
+    {"idText": 800, "lang": "en", "shortText": "Winter Storm", "longText": "A fierce winter storm sweeps across the Veneto. Snow blocks mountain passes, rivers freeze, and travel becomes a battle against nature itself."},
+    {"idText": 800, "lang": "it", "shortText": "Tempesta Invernale", "longText": "Una feroce tempesta invernale attraversa il Veneto. La neve blocca i passi montani, i fiumi gelano e viaggiare diventa una battaglia contro la natura stessa."},
+    {"idText": 801, "lang": "en", "shortText": "Acqua Alta", "longText": "Exceptional high tides flood the Venetian lagoon and the lower Brenta valley. Streets become canals, and coastal travel is disrupted."},
+    {"idText": 801, "lang": "it", "shortText": "Acqua Alta", "longText": "Maree eccezionalmente alte allagano la laguna veneziana e la bassa valle del Brenta. Le strade diventano canali e i viaggi costieri sono interrotti."},
+    {"idText": 802, "lang": "en", "shortText": "Clear Skies", "longText": "A rare day of clear skies and mild weather. Excellent for travel and reconnaissance — but your movements are also easier to spot."},
+    {"idText": 802, "lang": "it", "shortText": "Cielo Sereno", "longText": "Una rara giornata di cielo sereno e tempo mite. Eccellente per viaggiare e per la ricognizione — ma anche i vostri movimenti sono più facili da individuare."},
+
+    {"idText": 900, "lang": "en", "shortText": "Secure Venice's Support", "longText": "Convince the Doge and the Venetian Council to commit military forces against Ezzelino."},
+    {"idText": 900, "lang": "it", "shortText": "Ottenere il Supporto di Venezia", "longText": "Convincere il Doge e il Consiglio Veneziano a impegnare forze militari contro Ezzelino."},
+    {"idText": 901, "lang": "en", "shortText": "Free the Prisoners", "longText": "Liberate the political prisoners from Cittadella's dungeons and rally them to the rebellion."},
+    {"idText": 901, "lang": "it", "shortText": "Liberare i Prigionieri", "longText": "Liberare i prigionieri politici dalle segrete di Cittadella e radunarli per la ribellione."},
+    {"idText": 902, "lang": "en", "shortText": "Defeat Ezzelino", "longText": "Lead the combined forces of Venice, Padova, Verona, and the free communes in a decisive battle against Ezzelino III da Romano."},
+    {"idText": 902, "lang": "it", "shortText": "Sconfiggere Ezzelino", "longText": "Guidare le forze congiunte di Venezia, Padova, Verona e i comuni liberi in una battaglia decisiva contro Ezzelino III da Romano."},
+
+    {"idText": 210, "lang": "en", "shortText": "The Valvassore — Rebel Lord", "longText": "Battle-scarred and resolute, the valvassore has evolved from a minor feudal lord into the leader of the rebellion against Ezzelino. His lands may be ruined, but his spirit is unbroken."},
+    {"idText": 211, "lang": "en", "shortText": "The Countess of Asolo", "longText": "A noblewoman of fierce intellect and iron will. Driven from her fortress by Ezzelino, she now operates from the shadows, weaving a web of alliances across the Veneto."},
+    {"idText": 212, "lang": "en", "shortText": "Martino — Captain of the Rebel Guard", "longText": "The blacksmith has become a soldier. Martino now commands a band of freed prisoners and commoners who fight with the fury of those who have nothing left to lose."},
+
+    {"idText": 950, "lang": "en", "shortText": "Doge's Promise", "longText": "A sealed letter from the Doge of Venice pledging Venetian naval and military support for the anti-Ezzelino coalition."},
+    {"idText": 951, "lang": "en", "shortText": "Key to Cittadella", "longText": "A heavy iron key that opens the main gate of Cittadella. Stolen from one of Ezzelino's jailers by a brave infiltrator."},
+    {"idText": 952, "lang": "en", "shortText": "Scaligeri Alliance Pact", "longText": "A formal treaty signed by the Scaligeri of Verona, committing their forces to the coalition against Ezzelino III."}
+  ],
+
+  "difficulties": [
+    {"idTextDescription": 300, "expCost": 2, "maxWeight": 16, "minCharacter": 1, "maxCharacter": 5, "costHelpComa": 1, "costMaxCharacteristics": 2, "numberMaxFreeAction": 3},
+    {"idTextDescription": 301, "expCost": 5, "maxWeight": 10, "minCharacter": 2, "maxCharacter": 4, "costHelpComa": 3, "costMaxCharacteristics": 4, "numberMaxFreeAction": 1},
+    {"idTextDescription": 302, "expCost": 9, "maxWeight": 6,  "minCharacter": 3, "maxCharacter": 3, "costHelpComa": 5, "costMaxCharacteristics": 5, "numberMaxFreeAction": 0}
+  ],
+
+  "classes": [
+    {"idTextName": 200, "idTextDescription": 200, "weightMax": 12, "dexterityBase": 3, "intelligenceBase": 2, "constitutionBase": 5},
+    {"idTextName": 201, "idTextDescription": 201, "weightMax": 7,  "dexterityBase": 2, "intelligenceBase": 5, "constitutionBase": 1},
+    {"idTextName": 202, "idTextDescription": 202, "weightMax": 9,  "dexterityBase": 5, "intelligenceBase": 2, "constitutionBase": 3}
+  ],
+
+  "locations": [
+    {"idTextName": 100, "idTextDescription": 100, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 101, "idTextDescription": 101, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 8},
+    {"idTextName": 102, "idTextDescription": 102, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 103, "idTextDescription": 103, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 8},
+    {"idTextName": 104, "idTextDescription": 104, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 6},
+    {"idTextName": 105, "idTextDescription": 105, "isSafe": 0, "costEnergyEnter": 3, "maxCharacters": 4},
+    {"idTextName": 106, "idTextDescription": 106, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 12},
+    {"idTextName": 107, "idTextDescription": 107, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 8},
+    {"idTextName": 108, "idTextDescription": 108, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 4},
+    {"idTextName": 109, "idTextDescription": 109, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 6},
+    {"idTextName": 110, "idTextDescription": 110, "isSafe": 0, "costEnergyEnter": 3, "maxCharacters": 4},
+    {"idTextName": 111, "idTextDescription": 111, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 6}
+  ],
+
+  "events": [
+    {"idTextName": 500, "idTextDescription": 500, "type": "FIRST",     "costEnery": 0, "flagEndTime": 0},
+    {"idTextName": 501, "idTextDescription": 501, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 502, "idTextDescription": 502, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 503, "idTextDescription": 503, "type": "NORMAL",    "costEnery": 2, "flagEndTime": 0},
+    {"idTextName": 504, "idTextDescription": 504, "type": "AUTOMATIC", "costEnery": 0, "flagEndTime": 1, "keyToAdd": "prison_revolt", "keyValueToAdd": "triggered"}
+  ],
+
+  "items": [
+    {"idTextName": 400, "idTextDescription": 400, "weight": 3, "isConsumabile": 0},
+    {"idTextName": 401, "idTextDescription": 401, "weight": 1, "isConsumabile": 0},
+    {"idTextName": 402, "idTextDescription": 402, "weight": 1, "isConsumabile": 1},
+    {"idTextName": 403, "idTextDescription": 403, "weight": 1, "isConsumabile": 0},
+    {"idTextName": 404, "idTextDescription": 404, "weight": 1, "isConsumabile": 0}
+  ],
+
+  "choices": [
+    {"idTextName": 600, "idTextDescription": 600, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 601, "idTextDescription": 601, "priority": 2, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 602, "idTextDescription": 602, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 603, "idTextDescription": 603, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 604, "idTextDescription": 604, "priority": 2, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "OR"}
+  ],
+
+  "creators": [
+    {"link": "PathsMaster", "url": "https://paths.games", "urlImage": "https://paths.games/assets/logo.png"}
+  ],
+
+  "cards": [
+    {"awesomeIcon": "fas fa-fist-raised",  "styleMain": "rebellion"},
+    {"awesomeIcon": "fas fa-crown",        "styleMain": "medieval"},
+    {"awesomeIcon": "fas fa-flag",         "styleMain": "war"}
+  ],
+
+  "keys": [
+    {"name": "doges_promise",      "value": "false", "idTextDescription": 950, "group": "alliances",  "priority": 1, "visibility": "PUBLIC"},
+    {"name": "cittadella_key",     "value": "false", "idTextDescription": 951, "group": "quest",      "priority": 2, "visibility": "PUBLIC"},
+    {"name": "scaligeri_pact",     "value": "false", "idTextDescription": 952, "group": "alliances",  "priority": 3, "visibility": "PUBLIC"}
+  ],
+
+  "traits": [
+    {"idTextName": 700, "idTextDescription": 700, "costPositive": 4, "costNegative": 0},
+    {"idTextName": 701, "idTextDescription": 701, "costPositive": 4, "costNegative": 0},
+    {"idTextName": 702, "idTextDescription": 702, "costPositive": 3, "costNegative": 0}
+  ],
+
+  "characterTemplates": [
+    {"idTextName": 210, "idTextDescription": 210, "lifeMax": 14, "energyMax": 10, "sadMax": 10, "dexterityStart": 3, "intelligenceStart": 3, "constitutionStart": 4},
+    {"idTextName": 211, "idTextDescription": 211, "lifeMax": 10, "energyMax": 12, "sadMax": 6,  "dexterityStart": 2, "intelligenceStart": 5, "constitutionStart": 2},
+    {"idTextName": 212, "idTextDescription": 212, "lifeMax": 12, "energyMax": 10, "sadMax": 8,  "dexterityStart": 3, "intelligenceStart": 2, "constitutionStart": 4}
+  ],
+
+  "weatherRules": [
+    {"idTextName": 800, "idTextDescription": 800, "probability": 20, "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3, "active": 1, "priority": 1, "deltaEnergy": -2},
+    {"idTextName": 801, "idTextDescription": 801, "probability": 15, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1, "active": 1, "priority": 2, "deltaEnergy": -1},
+    {"idTextName": 802, "idTextDescription": 802, "probability": 25, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 0, "active": 1, "priority": 3, "deltaEnergy":  1}
+  ],
+
+  "globalRandomEvents": [
+    {"conditionKey": null,             "conditionValue": null,          "probability": 15},
+    {"conditionKey": "territory",      "conditionValue": "ezzelino",    "probability": 35},
+    {"conditionKey": "rebellion_state", "conditionValue": "active",     "probability": 25}
+  ],
+
+  "missions": [
+    {"conditionKey": "venice_alliance",   "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 900, "idTextDescription": 900},
+    {"conditionKey": "prisoners_freed",   "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 901, "idTextDescription": 901},
+    {"conditionKey": "ezzelino_defeated", "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 902, "idTextDescription": 902}
+  ]
+}

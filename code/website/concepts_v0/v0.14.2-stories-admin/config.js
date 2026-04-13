@@ -11,7 +11,7 @@
   'use strict';
 
   const LOCAL_BASE  = 'http://localhost:8042';
-  const REMOTE_BASE = 'https://9tjqoklq11.execute-api.us-east-2.amazonaws.com/dev';
+  const REMOTE_BASE = 'https://400mpibw7l.execute-api.us-east-2.amazonaws.com/dev';
   const STORAGE_KEY = 'pg_server_mode';
 
   function getMode() {

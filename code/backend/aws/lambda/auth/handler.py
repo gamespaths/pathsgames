@@ -251,8 +251,8 @@ def create_guest(event):
 def resume_guest(event):
     guest_tok = _get_cookie(event, 'pathsgames.guestcookie')
     if not guest_tok:
-        return _err(401, 'SESSION_EXPIRED_OR_NOT_FOUND',
-                    'Guest session is expired or does not exist. Please create a new guest session.')
+        return _err(400, 'MISSING_GUEST_COOKIE',
+                    'Missing required guestToken cookie. Please create a new guest session.')
 
     items = db_utils.query_gsi('GSI1', f'GUEST_TOKEN#{guest_tok}')
     if not items:

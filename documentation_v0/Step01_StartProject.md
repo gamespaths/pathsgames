@@ -258,10 +258,10 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	- Stories
 		- *REMOVED* GET `/stories/`: Stories list - removed to no implement
 		- GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
-		- GET `/stories/categories`: Category list
+		- GET `/stories/categories`: Category list 
 		- GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
 		- GET `/stories/groups`: Groups list 
-		- GET `/stories/{uuid_story}`: All information about a stori (characters list, difficulties, ...)
+		- GET `/stories/{uuid_story}`: All information about a single story (characters list, difficulties, ...)
 	- Contents
 		- GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
 		- GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text

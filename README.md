@@ -60,11 +60,11 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 - **Backend** projects into `code/backend` folder:
     - **Java**: main backend project, see [README](./code/backend/java/README.md) for all details, build with Java 21, Spring boot with Hexagonal Architecture. Run application on developer environment with commands:
-        - Build project with command `mvn clean install -DskipTests`
-        - Execute all unit test with command `mvn clean test`
-        - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
+        - Build project without run unit-test `mvn clean install -DskipTests`
+        - Execute all unit test `mvn clean test`
+        - Start service in local environment `mvn -pl ms-launcher spring-boot:run`
         - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-        -  **sonar-qube** scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+        -  **sonar-qube** scanner with `/code/script/dev/run_sonar_scanner_java.sh`
             - [SonarCloud](https://sonarcloud.io/project/overview?id=paths-game-backend-java): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
             
     - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
@@ -83,8 +83,12 @@ Documents includes all steps and the roadmap for create paths.games components, 
         - Start service into configured environment `php -S localhost:8042 -t public `
         - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-php): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php)
     - **AWS Serverless**: an alternative backend based on AWS API Gateway, Lambda and DynamoDB, see [README](./code/backend/aws/README.md) for architecture and deployment details.
+        - To deploy all components into cloud run `/code/script/dev/aws_backend_deploy.sh`
+        - To test all components with robot run `code/script/dev/run_robot_with_aws_serverless.sh`
+        - TO remove all component run `/code/script/dev/aws_backend_remove.sh`
 - **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
-    - To execute all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+    - To execute all test run script: `/code/script/dev/run_robot_with_local_server.sh`
+        - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
     - Report is created into `code/tests/robot/reports/report.html` folder.
 - **Website** project into `code/website` define all website components:
     - `code/website/html` — source code of [Paths.Games](https://paths.games/) website

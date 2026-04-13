@@ -11,23 +11,32 @@
 #
 # JSON import files (dev migration folder, relative to this file):
 #   ../../../backend/java/adapter-sqlite/src/main/resources/db/migration/dev/
-#     story_star_trek.json   uuid: c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f
-#     story_ranma.json       uuid: d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
+#     story_demo_3.json   uuid: c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f
+#     story_demo_4.json       uuid: d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
 #
 # Tags: admin, step14
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    OperatingSystem
 Library    Collections
+Library    ../../resources/JwtHelper.py
 Resource   ../../resources/common.resource
 Resource   ../../resources/stories.resource
 
-Suite Setup      Create Public Session
+Suite Setup      Initialize Admin Suite
+
+*** Keywords ***
+
+Initialize Admin Suite
+    [Documentation]    Create public session and generate a dynamic admin JWT.
+    Create Public Session
+    ${token}=    Generate Admin Token
+    Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
 *** Variables ***
 ${MIGRATION_DIR}    ${CURDIR}/../../../../backend/java/adapter-sqlite/src/main/resources/db/migration/dev
-${STAR_TREK_FILE}   ${MIGRATION_DIR}/story_star_trek.json
-${RANMA_FILE}       ${MIGRATION_DIR}/story_ranma.json
+${DEMO_3_FILE}   ${MIGRATION_DIR}/story_demo_3.json
+${DEMO_4_FILE}       ${MIGRATION_DIR}/story_demo_4.json
 
 
 *** Test Cases ***
@@ -52,7 +61,7 @@ Admin Stories List Without Token Returns 401
 Delete Story Without Token Returns 401
     [Documentation]    DELETE /api/admin/stories/{uuid} without auth returns 401.
     [Tags]    admin    step14
-    ${response}=    DELETE On Session    public_session    /api/admin/stories/${WITCHER_UUID}
+    ${response}=    DELETE On Session    public_session    /api/admin/stories/${DEMO_1_UUID}
     ...    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 
@@ -68,16 +77,16 @@ Import With Empty Body Returns 400
 
 # ---- import tests -----------------------------------------------------------
 
-Import Star Trek Story Returns 201
-    [Documentation]    POST /api/admin/stories/import with story_star_trek.json returns 201.
+Import Demo 3 Story Returns 201
+    [Documentation]    POST /api/admin/stories/import with story_demo_3.json returns 201.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${STAR_TREK_FILE}
+    ${response}=    Import Story From File    ${DEMO_3_FILE}
     Status Should Be    ${response}    201
 
-Star Trek Import Response Has Required Fields
-    [Documentation]    The StoryImportResponse body for Star Trek has all documented fields.
+Demo 3 Import Response Has Required Fields
+    [Documentation]    The StoryImportResponse body for Demo 3 has all documented fields.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${STAR_TREK_FILE}
+    ${response}=    Import Story From File    ${DEMO_3_FILE}
     ${body}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${body}    storyUuid
     Dictionary Should Contain Key    ${body}    status
@@ -89,39 +98,39 @@ Star Trek Import Response Has Required Fields
     Dictionary Should Contain Key    ${body}    classesImported
     Dictionary Should Contain Key    ${body}    choicesImported
 
-Star Trek Import Response Status Is IMPORTED
+Demo 3 Import Response Status Is IMPORTED
     [Documentation]    The status field must be 'IMPORTED'.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${STAR_TREK_FILE}
+    ${response}=    Import Story From File    ${DEMO_3_FILE}
     ${body}=    Set Variable    ${response.json()}
     Should Be Equal As Strings    ${body}[status]    IMPORTED
 
-Star Trek Import UUID Matches
+Demo 3 Import UUID Matches
     [Documentation]    The storyUuid in the response matches the UUID in the JSON file.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${STAR_TREK_FILE}
+    ${response}=    Import Story From File    ${DEMO_3_FILE}
     ${body}=    Set Variable    ${response.json()}
-    Should Be Equal As Strings    ${body}[storyUuid]    ${STAR_TREK_UUID}
+    Should Be Equal As Strings    ${body}[storyUuid]    ${DEMO_3_UUID}
 
-Import Star Trek Again Is Idempotent
+Import Demo 3 Again Is Idempotent
     [Documentation]    Re-importing the same UUID returns 201 again (upsert / replace behaviour).
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
-    ${response}=    Import Story From File    ${STAR_TREK_FILE}
+    Import Story From File    ${DEMO_3_FILE}
+    ${response}=    Import Story From File    ${DEMO_3_FILE}
     Status Should Be    ${response}    201
 
-Import Ranma Story Returns 201
-    [Documentation]    POST /api/admin/stories/import with story_ranma.json returns 201.
+Import Demo 4 Story Returns 201
+    [Documentation]    POST /api/admin/stories/import with story_demo_4.json returns 201.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${RANMA_FILE}
+    ${response}=    Import Story From File    ${DEMO_4_FILE}
     Status Should Be    ${response}    201
 
-Ranma Import UUID Matches
-    [Documentation]    The Ranma import response storyUuid matches the expected UUID.
+Demo 4 Import UUID Matches
+    [Documentation]    The Demo 4 import response storyUuid matches the expected UUID.
     [Tags]    admin    step14
-    ${response}=    Import Story From File    ${RANMA_FILE}
+    ${response}=    Import Story From File    ${DEMO_4_FILE}
     ${body}=    Set Variable    ${response.json()}
-    Should Be Equal As Strings    ${body}[storyUuid]    ${RANMA_UUID}
+    Should Be Equal As Strings    ${body}[storyUuid]    ${DEMO_4_UUID}
 
 # ---- admin list tests -------------------------------------------------------
 
@@ -132,43 +141,43 @@ Admin Stories List Returns 200
     Status Should Be    ${response}    200
 
 Admin Stories List Is Not Empty
-    [Documentation]    The admin list includes at least the seed Witcher and One Piece stories.
+    [Documentation]    The admin list includes at least the seed Tutorial and Demo 1 stories.
     [Tags]    admin    step14
     ${response}=    Get Admin Stories
     List Response Should Not Be Empty    ${response}
 
 Admin Stories List Contains Seed Stories
-    [Documentation]    Witcher and One Piece UUIDs are present in the admin story list.
+    [Documentation]    Tutorial and Demo 1 UUIDs are present in the admin story list.
     [Tags]    admin    step14
     ${response}=    Get Admin Stories
     ${body}=    Set Variable    ${response.json()}
     ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
-    Should Contain    ${uuids}    ${WITCHER_UUID}
-    Should Contain    ${uuids}    ${ONE_PIECE_UUID}
+    Should Contain    ${uuids}    ${DEMO_1_UUID}
+    Should Contain    ${uuids}    ${DEMO_2_UUID}
 
-Admin List Contains Star Trek After Import
-    [Documentation]    After import, the Star Trek UUID appears in the admin list.
+Admin List Contains Demo 3 After Import
+    [Documentation]    After import, the Demo 3 UUID appears in the admin list.
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
+    Import Story From File    ${DEMO_3_FILE}
     ${response}=    Get Admin Stories
     ${body}=    Set Variable    ${response.json()}
     ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
-    Should Contain    ${uuids}    ${STAR_TREK_UUID}
+    Should Contain    ${uuids}    ${DEMO_3_UUID}
 
 # ---- delete tests -----------------------------------------------------------
 
-Delete Imported Star Trek Story Returns 200
-    [Documentation]    DELETE /api/admin/stories/{star_trek_uuid} returns 200 after import.
+Delete Imported Demo 3 Story Returns 200
+    [Documentation]    DELETE /api/admin/stories/{demo_3} returns 200 after import.
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
-    ${response}=    Delete Admin Story    ${STAR_TREK_UUID}
+    Import Story From File    ${DEMO_3_FILE}
+    ${response}=    Delete Admin Story    ${DEMO_3_UUID}
     Status Should Be    ${response}    200
 
 Delete Response Has Status DELETED
     [Documentation]    The delete response body contains {status:"DELETED", uuid:...}.
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
-    ${response}=    Delete Admin Story    ${STAR_TREK_UUID}
+    Import Story From File    ${DEMO_3_FILE}
+    ${response}=    Delete Admin Story    ${DEMO_3_UUID}
     ${body}=    Set Variable    ${response.json()}
     Dictionary Should Contain Key    ${body}    status
     Should Be Equal As Strings    ${body}[status]    DELETED
@@ -177,10 +186,10 @@ Delete Response Has Status DELETED
 Delete Response UUID Matches
     [Documentation]    The uuid in the delete response matches what was deleted.
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
-    ${response}=    Delete Admin Story    ${STAR_TREK_UUID}
+    Import Story From File    ${DEMO_3_FILE}
+    ${response}=    Delete Admin Story    ${DEMO_3_UUID}
     ${body}=    Set Variable    ${response.json()}
-    Should Be Equal As Strings    ${body}[uuid]    ${STAR_TREK_UUID}
+    Should Be Equal As Strings    ${body}[uuid]    ${DEMO_3_UUID}
 
 Delete Unknown UUID Returns 404
     [Documentation]    DELETE /api/admin/stories/00000000-... returns 404.
@@ -188,19 +197,19 @@ Delete Unknown UUID Returns 404
     ${response}=    Delete Admin Story    ${UNKNOWN_UUID}
     Status Should Be    ${response}    404
 
-Delete Ranma Story Returns 200
-    [Documentation]    Import and then delete the Ranma story.
+Delete Demo 4 Story Returns 200
+    [Documentation]    Import and then delete the Demo 4 story.
     [Tags]    admin    step14
-    Import Story From File    ${RANMA_FILE}
-    ${response}=    Delete Admin Story    ${RANMA_UUID}
+    Import Story From File    ${DEMO_4_FILE}
+    ${response}=    Delete Admin Story    ${DEMO_4_UUID}
     Status Should Be    ${response}    200
 
 Deleted Story No Longer In Admin List
     [Documentation]    After deleting, the UUID is no longer in GET /api/admin/stories.
     [Tags]    admin    step14
-    Import Story From File    ${STAR_TREK_FILE}
-    Delete Admin Story    ${STAR_TREK_UUID}
+    Import Story From File    ${DEMO_3_FILE}
+    Delete Admin Story    ${DEMO_3_UUID}
     ${response}=    Get Admin Stories
     ${body}=    Set Variable    ${response.json()}
     ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
-    Should Not Contain    ${uuids}    ${STAR_TREK_UUID}
+    Should Not Contain    ${uuids}    ${DEMO_3_UUID}

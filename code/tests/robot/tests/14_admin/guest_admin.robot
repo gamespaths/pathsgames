@@ -15,10 +15,11 @@
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
+Library    ../../resources/JwtHelper.py
 Resource   ../../resources/common.resource
 Resource   ../../resources/auth.resource
 
-Suite Setup    Create Public Session
+Suite Setup    Initialize Admin Suite
 
 *** Variables ***
 ${GUESTS_PATH}          /api/admin/guests
@@ -27,6 +28,12 @@ ${GUESTS_EXPIRED_PATH}  /api/admin/guests/expired
 
 
 *** Keywords ***
+
+Initialize Admin Suite
+    [Documentation]    Create public session and generate a dynamic admin JWT.
+    Create Public Session
+    ${token}=    Generate Admin Token
+    Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
 Get Admin Headers
     [Documentation]    Returns a headers dict with the admin Bearer token.

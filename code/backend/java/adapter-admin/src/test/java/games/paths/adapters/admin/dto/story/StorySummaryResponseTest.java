@@ -15,14 +15,14 @@ class StorySummaryResponseTest {
     @DisplayName("All-args constructor sets all fields correctly")
     void allArgsConstructor() {
         StorySummaryResponse r = new StorySummaryResponse(
-                "uuid-1", "The Witcher", "A dark fantasy", "CD Projekt",
+                "uuid-1", "The Fantasy", "A dark fantasy", "Paths Games",
                 "RPG", "Fantasy", "PUBLIC", 5, 100, 3);
 
         assertAll("StorySummaryResponse fields",
             () -> assertEquals("uuid-1",      r.getUuid()),
-            () -> assertEquals("The Witcher", r.getTitle()),
+            () -> assertEquals("The Fantasy", r.getTitle()),
             () -> assertEquals("A dark fantasy", r.getDescription()),
-            () -> assertEquals("CD Projekt",  r.getAuthor()),
+            () -> assertEquals("Paths Games",  r.getAuthor()),
             () -> assertEquals("RPG",         r.getCategory()),
             () -> assertEquals("Fantasy",     r.getGroup()),
             () -> assertEquals("PUBLIC",      r.getVisibility()),

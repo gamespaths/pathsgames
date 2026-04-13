@@ -1,0 +1,216 @@
+{
+  "uuid": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+  "author": "PathsMaster",
+  "versionMin": "0.14.0",
+  "clockSingularDescription": "giorno",
+  "clockPluralDescription": "giorni",
+  "category": "historical",
+  "group": "main",
+  "visibility": "PUBLIC",
+  "priority": 9,
+  "peghi": 5,
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+
+  "texts": [
+    {"idText": 1, "lang": "en", "shortText": "The Valvassore of Marca — The Lord of Marostica's Revenge", "longText": "After saving his vassal Martino from the false heresy charges, the valvassore has earned powerful enemies. The lord of Marostica, humiliated at the Bishop's tribunal, conspires with Ezzelino III's agents to seize the valvassore's lands. Alliances must be forged, or everything will be lost."},
+    {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca — La Vendetta del Signore di Marostica", "longText": "Dopo aver salvato il suo vassallo Martino dalle false accuse di eresia, il valvassore si è guadagnato nemici potenti. Il signore di Marostica, umiliato al tribunale del Vescovo, cospira con gli agenti di Ezzelino III per impadronirsi delle terre del valvassore. Alleanze devono essere forgiate, o tutto sarà perduto."},
+    {"idText": 2, "lang": "en", "shortText": "The Lord of Marostica's Revenge", "longText": "The Marca Trevigiana trembles under the shadow of revenge. Guide the valvassore through political intrigue, military confrontations, and feudal diplomacy to protect your lands and your people from ruin."},
+    {"idText": 2, "lang": "it", "shortText": "La Vendetta del Signore di Marostica", "longText": "La Marca Trevigiana trema sotto l'ombra della vendetta. Guida il valvassore attraverso intrighi politici, scontri militari e diplomazia feudale per proteggere le tue terre e la tua gente dalla rovina."},
+
+    {"idText": 100, "lang": "en", "shortText": "Castelfranco — The Castle", "longText": "The fortified town of Castelfranco Veneto, surrounded by crenellated walls. The valvassore's seat of power, where loyal retainers gather in the great hall to plan their defense."},
+    {"idText": 100, "lang": "it", "shortText": "Castelfranco — Il Castello", "longText": "La città fortificata di Castelfranco Veneto, circondata da mura merlate. La sede del potere del valvassore, dove i fedeli si radunano nella grande sala per pianificare la difesa."},
+    {"idText": 101, "lang": "en", "shortText": "Treviso — The Bishop's Palace", "longText": "The episcopal seat of Treviso, where Bishop Giacomo holds court. Stone corridors echo with whispered alliances and veiled threats. The Bishop remembers the tribunal well."},
+    {"idText": 101, "lang": "it", "shortText": "Treviso — Il Palazzo Vescovile", "longText": "La sede episcopale di Treviso, dove il Vescovo Giacomo tiene corte. Corridoi di pietra echeggiano di alleanze sussurrate e minacce velate. Il Vescovo ricorda bene il tribunale."},
+    {"idText": 102, "lang": "en", "shortText": "Padova — The University", "longText": "The renowned Studium of Padova, where scholars debate law and theology. Here the valvassore may find legal counsel to challenge the lord of Marostica's claims."},
+    {"idText": 102, "lang": "it", "shortText": "Padova — L'Università", "longText": "Il rinomato Studium di Padova, dove gli studiosi dibattono di diritto e teologia. Qui il valvassore può trovare un consiglio legale per contestare le pretese del signore di Marostica."},
+    {"idText": 103, "lang": "en", "shortText": "Bassano — The Bridge", "longText": "The old wooden bridge over the Brenta at Bassano. A crossroads where merchants, soldiers, and spies mingle. News from all corners of the Marca arrives here first."},
+    {"idText": 103, "lang": "it", "shortText": "Bassano — Il Ponte", "longText": "Il vecchio ponte di legno sul Brenta a Bassano. Un crocevia dove mercanti, soldati e spie si mescolano. Le notizie da ogni angolo della Marca arrivano qui per prime."},
+    {"idText": 104, "lang": "en", "shortText": "Asolo — The Countess's Court", "longText": "The hilltop fortress of Asolo, domain of the Countess. She wields influence that even Ezzelino respects. Her support could turn the tide, but her price is always high."},
+    {"idText": 104, "lang": "it", "shortText": "Asolo — La Corte della Contessa", "longText": "La fortezza in cima alla collina di Asolo, dominio della Contessa. Esercita un'influenza che persino Ezzelino rispetta. Il suo appoggio potrebbe cambiare le sorti, ma il suo prezzo è sempre alto."},
+    {"idText": 105, "lang": "en", "shortText": "Marostica — The Enemy Stronghold", "longText": "The walled town of Marostica, seat of the rival lord. Two castles dominate the hill and the plain — the upper and lower fortresses bristle with men-at-arms loyal to your enemy."},
+    {"idText": 105, "lang": "it", "shortText": "Marostica — La Roccaforte Nemica", "longText": "La città murata di Marostica, sede del signore rivale. Due castelli dominano la collina e la pianura — le fortezze superiore e inferiore brulicano di uomini d'arme fedeli al vostro nemico."},
+    {"idText": 106, "lang": "en", "shortText": "Monastero di Campese", "longText": "A secluded monastery nestled at the foot of Monte Grappa. Brother Anselmo and the monks may offer sanctuary and ancient knowledge hidden in their library."},
+    {"idText": 106, "lang": "it", "shortText": "Monastero di Campese", "longText": "Un monastero appartato ai piedi del Monte Grappa. Frate Anselmo e i monaci possono offrire rifugio e conoscenze antiche custodite nella loro biblioteca."},
+    {"idText": 107, "lang": "en", "shortText": "Cittadella — The Fortress", "longText": "The perfectly circular walled city of Cittadella. A strategic military outpost where Ezzelino III's garrison watches all movement between Padova and the northern Marca."},
+    {"idText": 107, "lang": "it", "shortText": "Cittadella — La Fortezza", "longText": "La città murata perfettamente circolare di Cittadella. Un avamposto militare strategico dove la guarnigione di Ezzelino III sorveglia ogni movimento tra Padova e la Marca settentrionale."},
+    {"idText": 108, "lang": "en", "shortText": "Paludi del Sile", "longText": "The misty marshlands along the river Sile. A treacherous landscape where fugitives hide and secret meetings take place far from prying eyes."},
+    {"idText": 108, "lang": "it", "shortText": "Paludi del Sile", "longText": "Le paludi nebbiose lungo il fiume Sile. Un paesaggio insidioso dove i fuggitivi si nascondono e gli incontri segreti avvengono lontano da occhi indiscreti."},
+    {"idText": 109, "lang": "en", "shortText": "Vicenza — The Market Square", "longText": "The bustling market square of Vicenza, where merchants from Venice, Verona, and the German lands trade. Here gold speaks louder than swords, and mercenaries can be hired."},
+    {"idText": 109, "lang": "it", "shortText": "Vicenza — La Piazza del Mercato", "longText": "La vivace piazza del mercato di Vicenza, dove mercanti da Venezia, Verona e le terre germaniche commerciano. Qui l'oro parla più forte delle spade, e mercenari possono essere assoldati."},
+    {"idText": 110, "lang": "en", "shortText": "Bosco del Montello", "longText": "The dense oak forest of Montello, stretching along the Piave. Outlaws lurk among the trees, but so do allies who have fled Ezzelino's justice."},
+    {"idText": 110, "lang": "it", "shortText": "Bosco del Montello", "longText": "La fitta foresta di querce del Montello, che si estende lungo il Piave. Fuorilegge si nascondono tra gli alberi, ma anche alleati che sono fuggiti dalla giustizia di Ezzelino."},
+    {"idText": 111, "lang": "en", "shortText": "Ponte di Piave — The Ford", "longText": "The strategic ford on the river Piave. Whoever controls this crossing controls the road between Treviso and the eastern Marca. The bridge has been fortified with wooden palisades."},
+    {"idText": 111, "lang": "it", "shortText": "Ponte di Piave — Il Guado", "longText": "Il guado strategico sul fiume Piave. Chi controlla questo passaggio controlla la strada tra Treviso e la Marca orientale. Il ponte è stato fortificato con palizzate di legno."},
+
+    {"idText": 200, "lang": "en", "shortText": "Knight", "longText": "A mounted warrior of noble blood, trained in lance, sword, and the code of chivalry. Strong in combat and respected at court."},
+    {"idText": 200, "lang": "it", "shortText": "Cavaliere", "longText": "Un guerriero a cavallo di sangue nobile, addestrato con lancia, spada e il codice cavalleresco. Forte in combattimento e rispettato a corte."},
+    {"idText": 201, "lang": "en", "shortText": "Cleric", "longText": "A man of the Church, learned in Latin, theology, and canon law. His words carry the weight of divine authority, and his connections reach Rome itself."},
+    {"idText": 201, "lang": "it", "shortText": "Chierico", "longText": "Un uomo di Chiesa, dotto in latino, teologia e diritto canonico. Le sue parole portano il peso dell'autorità divina, e le sue connessioni arrivano fino a Roma."},
+    {"idText": 202, "lang": "en", "shortText": "Merchant", "longText": "A shrewd trader who knows every road, every market, and every debtor in the Marca. Gold opens doors that swords cannot."},
+    {"idText": 202, "lang": "it", "shortText": "Mercante", "longText": "Un astuto commerciante che conosce ogni strada, ogni mercato e ogni debitore della Marca. L'oro apre porte che le spade non possono."},
+
+    {"idText": 300, "lang": "en", "shortText": "Squire's Trial", "longText": "Enemies are merciful, alliances come easily. Explore the story of the Marca at a relaxed pace."},
+    {"idText": 300, "lang": "it", "shortText": "Prova dello Scudiero", "longText": "I nemici sono clementi, le alleanze vengono facilmente. Esplora la storia della Marca con calma."},
+    {"idText": 301, "lang": "en", "shortText": "Feudal Conflict", "longText": "Standard difficulty. Enemies are cunning, resources are limited, and alliances are fragile."},
+    {"idText": 301, "lang": "it", "shortText": "Conflitto Feudale", "longText": "Difficoltà standard. I nemici sono astuti, le risorse sono limitate e le alleanze sono fragili."},
+    {"idText": 302, "lang": "en", "shortText": "Ezzelino's Wrath", "longText": "The hardest challenge. Ezzelino himself takes notice. Every move is watched, every ally is a potential traitor, and mercy is a luxury."},
+    {"idText": 302, "lang": "it", "shortText": "L'Ira di Ezzelino", "longText": "La sfida più dura. Ezzelino in persona prende nota. Ogni mossa è sorvegliata, ogni alleato è un potenziale traditore, e la pietà è un lusso."},
+
+    {"idText": 400, "lang": "en", "shortText": "Bastard Sword", "longText": "A hand-and-a-half sword forged by Martino himself. Its blade bears the mark of Castelfranco."},
+    {"idText": 400, "lang": "it", "shortText": "Spada Bastarda", "longText": "Una spada a una mano e mezza forgiata da Martino in persona. La sua lama porta il marchio di Castelfranco."},
+    {"idText": 401, "lang": "en", "shortText": "Sealed Letter", "longText": "A letter bearing the seal of the Countess of Asolo. It grants safe passage through her lands and the promise of an audience."},
+    {"idText": 401, "lang": "it", "shortText": "Lettera Sigillata", "longText": "Una lettera con il sigillo della Contessa di Asolo. Garantisce un salvacondotto attraverso le sue terre e la promessa di un'udienza."},
+    {"idText": 402, "lang": "en", "shortText": "Healing Herbs", "longText": "A pouch of medicinal herbs gathered by the monks of Campese. They can cure wounds and fevers when no physician is near."},
+    {"idText": 402, "lang": "it", "shortText": "Erbe Curative", "longText": "Una borsa di erbe medicinali raccolte dai monaci di Campese. Possono curare ferite e febbri quando nessun medico è vicino."},
+    {"idText": 403, "lang": "en", "shortText": "Forged Document", "longText": "A skillfully forged document that could implicate the lord of Marostica in treachery against Ezzelino — if anyone believes it."},
+    {"idText": 403, "lang": "it", "shortText": "Documento Falsificato", "longText": "Un documento abilmente falsificato che potrebbe implicare il signore di Marostica in un tradimento contro Ezzelino — se qualcuno ci crede."},
+
+    {"idText": 500, "lang": "en", "shortText": "Ambush on the Road", "longText": "Armed men wearing no insignia block the road. It's an ambush arranged by the lord of Marostica — fight or flee!"},
+    {"idText": 500, "lang": "it", "shortText": "Imboscata sulla Strada", "longText": "Uomini armati senza insegne bloccano la strada. È un'imboscata organizzata dal signore di Marostica — combatti o fuggi!"},
+    {"idText": 501, "lang": "en", "shortText": "Ezzelino's Messenger", "longText": "A rider bearing Ezzelino III's black eagle banner arrives at Castelfranco. He brings a summons — the tyrant demands an explanation."},
+    {"idText": 501, "lang": "it", "shortText": "Il Messaggero di Ezzelino", "longText": "Un cavaliere con lo stendardo dell'aquila nera di Ezzelino III arriva a Castelfranco. Porta una convocazione — il tiranno esige una spiegazione."},
+    {"idText": 502, "lang": "en", "shortText": "Martino's Warning", "longText": "Martino the blacksmith arrives breathless at night. He has overheard the enemy's plans — an attack is coming within days."},
+    {"idText": 502, "lang": "it", "shortText": "L'Avvertimento di Martino", "longText": "Martino il fabbro arriva senza fiato nella notte. Ha origliato i piani del nemico — un attacco è imminente entro pochi giorni."},
+    {"idText": 503, "lang": "en", "shortText": "The Countess's Proposal", "longText": "The Countess of Asolo sends an emissary with a proposal: she will support the valvassore, but demands a marriage alliance in return."},
+    {"idText": 503, "lang": "it", "shortText": "La Proposta della Contessa", "longText": "La Contessa di Asolo invia un emissario con una proposta: sosterrà il valvassore, ma in cambio esige un'alleanza matrimoniale."},
+    {"idText": 504, "lang": "en", "shortText": "The Monastery Burns", "longText": "Smoke rises from the direction of Campese. The lord of Marostica's men have set fire to the monastery — Brother Anselmo and his knowledge are in danger!"},
+    {"idText": 504, "lang": "it", "shortText": "Il Monastero Brucia", "longText": "Il fumo si alza dalla direzione di Campese. Gli uomini del signore di Marostica hanno dato fuoco al monastero — Frate Anselmo e le sue conoscenze sono in pericolo!"},
+
+    {"idText": 600, "lang": "en", "shortText": "Fortify Castelfranco", "longText": "Strengthen the walls and recruit men to defend the town against the coming assault."},
+    {"idText": 600, "lang": "it", "shortText": "Fortificare Castelfranco", "longText": "Rafforzare le mura e reclutare uomini per difendere la città dall'assalto imminente."},
+    {"idText": 601, "lang": "en", "shortText": "Seek the Countess's Aid", "longText": "Travel to Asolo and negotiate an alliance with the powerful Countess, accepting her terms if necessary."},
+    {"idText": 601, "lang": "it", "shortText": "Chiedere Aiuto alla Contessa", "longText": "Recarsi ad Asolo e negoziare un'alleanza con la potente Contessa, accettando le sue condizioni se necessario."},
+    {"idText": 602, "lang": "en", "shortText": "Expose the Conspiracy", "longText": "Gather evidence linking the lord of Marostica to treachery against Ezzelino and present it to the tyrant's court."},
+    {"idText": 602, "lang": "it", "shortText": "Smascherare la Cospirazione", "longText": "Raccogliere prove che collegano il signore di Marostica a un tradimento contro Ezzelino e presentarle alla corte del tiranno."},
+    {"idText": 603, "lang": "en", "shortText": "Rescue Brother Anselmo", "longText": "Rush to the burning monastery to save the monks and the irreplaceable manuscripts in their library."},
+    {"idText": 603, "lang": "it", "shortText": "Salvare Frate Anselmo", "longText": "Correre al monastero in fiamme per salvare i monaci e i manoscritti insostituibili della loro biblioteca."},
+    {"idText": 604, "lang": "en", "shortText": "Challenge the Lord", "longText": "Invoke the ancient right of trial by combat and challenge the lord of Marostica to settle the dispute with swords."},
+    {"idText": 604, "lang": "it", "shortText": "Sfidare il Signore", "longText": "Invocare l'antico diritto del duello giudiziario e sfidare il signore di Marostica a risolvere la disputa con le spade."},
+
+    {"idText": 700, "lang": "en", "shortText": "Feudal Loyalty", "longText": "An unshakable bond of duty towards vassals and liege lord. Your word is your honor, and your honor is your life."},
+    {"idText": 700, "lang": "it", "shortText": "Lealtà Feudale", "longText": "Un legame di dovere incrollabile verso vassalli e signore. La tua parola è il tuo onore, e il tuo onore è la tua vita."},
+    {"idText": 701, "lang": "en", "shortText": "Cunning Strategist", "longText": "A sharp mind for tactics and deception. You see three moves ahead and know how to turn an enemy's strength into weakness."},
+    {"idText": 701, "lang": "it", "shortText": "Stratega Astuto", "longText": "Una mente acuta per la tattica e l'inganno. Vedi tre mosse avanti e sai come trasformare la forza del nemico in debolezza."},
+    {"idText": 702, "lang": "en", "shortText": "Pious Heart", "longText": "Deep faith and devotion that inspires trust in clergy and common folk alike. The Church looks kindly upon the devout."},
+    {"idText": 702, "lang": "it", "shortText": "Cuore Pio", "longText": "Fede profonda e devozione che ispirano fiducia sia nel clero che nella gente comune. La Chiesa guarda con favore i devoti."},
+
+    {"idText": 800, "lang": "en", "shortText": "Autumn Rain", "longText": "Heavy autumn rains turn roads into mud and rivers into torrents. Travel is slow and treacherous, especially through the marshes."},
+    {"idText": 800, "lang": "it", "shortText": "Pioggia Autunnale", "longText": "Le forti piogge autunnali trasformano le strade in fango e i fiumi in torrenti. Il viaggio è lento e insidioso, specialmente attraverso le paludi."},
+    {"idText": 801, "lang": "en", "shortText": "Morning Fog", "longText": "A thick fog rolls in from the marshes of the Sile, blanketing the Marca in white silence. Visibility is poor — perfect for ambushes and escapes."},
+    {"idText": 801, "lang": "it", "shortText": "Nebbia Mattutina", "longText": "Una fitta nebbia avanza dalle paludi del Sile, avvolgendo la Marca in un bianco silenzio. La visibilità è scarsa — perfetta per imboscate e fughe."},
+    {"idText": 802, "lang": "en", "shortText": "Early Frost", "longText": "An unseasonable frost grips the land. Crops suffer, tempers rise, and the cold makes camping in the open a dangerous proposition."},
+    {"idText": 802, "lang": "it", "shortText": "Gelo Precoce", "longText": "Un gelo fuori stagione attanaglia la terra. I raccolti soffrono, gli animi si scaldano e il freddo rende pericoloso accamparsi all'aperto."},
+
+    {"idText": 900, "lang": "en", "shortText": "Defend the Lands", "longText": "Protect the valvassore's lands from the lord of Marostica's military campaign."},
+    {"idText": 900, "lang": "it", "shortText": "Difendere le Terre", "longText": "Proteggere le terre del valvassore dalla campagna militare del signore di Marostica."},
+    {"idText": 901, "lang": "en", "shortText": "Forge the Alliance", "longText": "Secure a lasting alliance with the Countess of Asolo to ensure the safety of Castelfranco."},
+    {"idText": 901, "lang": "it", "shortText": "Forgiare l'Alleanza", "longText": "Assicurare un'alleanza duratura con la Contessa di Asolo per garantire la sicurezza di Castelfranco."},
+    {"idText": 902, "lang": "en", "shortText": "Unmask the Traitor", "longText": "Discover and expose the spy within your court who feeds information to the lord of Marostica."},
+    {"idText": 902, "lang": "it", "shortText": "Smascherare il Traditore", "longText": "Scoprire e smascherare la spia nella vostra corte che fornisce informazioni al signore di Marostica."},
+
+    {"idText": 210, "lang": "en", "shortText": "The Valvassore", "longText": "A minor feudal lord of the Marca Trevigiana, hardened by the trial that saved Martino. He leads with conviction and a sense of justice."},
+    {"idText": 211, "lang": "en", "shortText": "Martino the Blacksmith", "longText": "Once accused of heresy, now the valvassore's most loyal ally. His strong arms forge weapons, and his sharp ears gather rumours from the common folk."},
+    {"idText": 212, "lang": "en", "shortText": "Brother Giacomo", "longText": "A Franciscan friar who served as the valvassore's advocate at the bishop's tribunal. His knowledge of canon law is formidable."},
+
+    {"idText": 950, "lang": "en", "shortText": "Bishop's Writ", "longText": "An official document from the Bishop of Treviso granting ecclesiastical protection to the valvassore's lands."},
+    {"idText": 951, "lang": "en", "shortText": "Marostica Battle Plans", "longText": "Stolen plans detailing the lord of Marostica's military strategy for his campaign against Castelfranco."},
+    {"idText": 952, "lang": "en", "shortText": "Ezzelino's Seal Ring", "longText": "A signet ring bearing Ezzelino III's personal seal. Whoever carries it speaks with the tyrant's authority — or so it appears."}
+  ],
+
+  "difficulties": [
+    {"idTextDescription": 300, "expCost": 2, "maxWeight": 18, "minCharacter": 1, "maxCharacter": 5, "costHelpComa": 1, "costMaxCharacteristics": 2, "numberMaxFreeAction": 3},
+    {"idTextDescription": 301, "expCost": 5, "maxWeight": 12, "minCharacter": 2, "maxCharacter": 4, "costHelpComa": 3, "costMaxCharacteristics": 3, "numberMaxFreeAction": 1},
+    {"idTextDescription": 302, "expCost": 8, "maxWeight": 7,  "minCharacter": 3, "maxCharacter": 3, "costHelpComa": 5, "costMaxCharacteristics": 5, "numberMaxFreeAction": 0}
+  ],
+
+  "classes": [
+    {"idTextName": 200, "idTextDescription": 200, "weightMax": 12, "dexterityBase": 3, "intelligenceBase": 2, "constitutionBase": 4},
+    {"idTextName": 201, "idTextDescription": 201, "weightMax": 7,  "dexterityBase": 1, "intelligenceBase": 5, "constitutionBase": 1},
+    {"idTextName": 202, "idTextDescription": 202, "weightMax": 10, "dexterityBase": 3, "intelligenceBase": 4, "constitutionBase": 2}
+  ],
+
+  "locations": [
+    {"idTextName": 100, "idTextDescription": 100, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 15},
+    {"idTextName": 101, "idTextDescription": 101, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 102, "idTextDescription": 102, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 10},
+    {"idTextName": 103, "idTextDescription": 103, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 8},
+    {"idTextName": 104, "idTextDescription": 104, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 6},
+    {"idTextName": 105, "idTextDescription": 105, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 6},
+    {"idTextName": 106, "idTextDescription": 106, "isSafe": 1, "costEnergyEnter": 1, "maxCharacters": 4},
+    {"idTextName": 107, "idTextDescription": 107, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 8},
+    {"idTextName": 108, "idTextDescription": 108, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 5},
+    {"idTextName": 109, "idTextDescription": 109, "isSafe": 1, "costEnergyEnter": 0, "maxCharacters": 15},
+    {"idTextName": 110, "idTextDescription": 110, "isSafe": 0, "costEnergyEnter": 2, "maxCharacters": 6},
+    {"idTextName": 111, "idTextDescription": 111, "isSafe": 0, "costEnergyEnter": 1, "maxCharacters": 8}
+  ],
+
+  "events": [
+    {"idTextName": 500, "idTextDescription": 500, "type": "NORMAL",    "costEnery": 2, "flagEndTime": 0},
+    {"idTextName": 501, "idTextDescription": 501, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 502, "idTextDescription": 502, "type": "FIRST",     "costEnery": 0, "flagEndTime": 0},
+    {"idTextName": 503, "idTextDescription": 503, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"idTextName": 504, "idTextDescription": 504, "type": "AUTOMATIC", "costEnery": 0, "flagEndTime": 1, "keyToAdd": "monastery_fate", "keyValueToAdd": "saved"}
+  ],
+
+  "items": [
+    {"idTextName": 400, "idTextDescription": 400, "weight": 2, "isConsumabile": 0},
+    {"idTextName": 401, "idTextDescription": 401, "weight": 1, "isConsumabile": 0},
+    {"idTextName": 402, "idTextDescription": 402, "weight": 1, "isConsumabile": 1},
+    {"idTextName": 403, "idTextDescription": 403, "weight": 1, "isConsumabile": 0}
+  ],
+
+  "choices": [
+    {"idTextName": 600, "idTextDescription": 600, "priority": 1, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+    {"idTextName": 601, "idTextDescription": 601, "priority": 2, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 602, "idTextDescription": 602, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 603, "idTextDescription": 603, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"idTextName": 604, "idTextDescription": 604, "priority": 2, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "OR"}
+  ],
+
+  "creators": [
+    {"link": "PathsMaster", "url": "https://paths.games", "urlImage": "https://paths.games/assets/logo.png"}
+  ],
+
+  "cards": [
+    {"awesomeIcon": "fas fa-shield-alt",   "styleMain": "feudal"},
+    {"awesomeIcon": "fas fa-chess-rook",    "styleMain": "medieval"},
+    {"awesomeIcon": "fas fa-scroll",        "styleMain": "intrigue"}
+  ],
+
+  "keys": [
+    {"name": "bishops_writ",       "value": "false", "idTextDescription": 950, "group": "documents", "priority": 1, "visibility": "PUBLIC"},
+    {"name": "battle_plans",       "value": "false", "idTextDescription": 951, "group": "intel",     "priority": 2, "visibility": "PUBLIC"},
+    {"name": "ezzelino_seal",      "value": "false", "idTextDescription": 952, "group": "artifacts", "priority": 3, "visibility": "PUBLIC"}
+  ],
+
+  "traits": [
+    {"idTextName": 700, "idTextDescription": 700, "costPositive": 3, "costNegative": 0},
+    {"idTextName": 701, "idTextDescription": 701, "costPositive": 4, "costNegative": 0},
+    {"idTextName": 702, "idTextDescription": 702, "costPositive": 3, "costNegative": 0}
+  ],
+
+  "characterTemplates": [
+    {"idTextName": 210, "idTextDescription": 210, "lifeMax": 14, "energyMax": 10, "sadMax": 8,  "dexterityStart": 3, "intelligenceStart": 3, "constitutionStart": 4},
+    {"idTextName": 211, "idTextDescription": 211, "lifeMax": 10, "energyMax": 12, "sadMax": 6,  "dexterityStart": 2, "intelligenceStart": 2, "constitutionStart": 4},
+    {"idTextName": 212, "idTextDescription": 212, "lifeMax": 10, "energyMax": 10, "sadMax": 10, "dexterityStart": 1, "intelligenceStart": 5, "constitutionStart": 2}
+  ],
+
+  "weatherRules": [
+    {"idTextName": 800, "idTextDescription": 800, "probability": 25, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 2, "active": 1, "priority": 1, "deltaEnergy": -1},
+    {"idTextName": 801, "idTextDescription": 801, "probability": 20, "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1, "active": 1, "priority": 2, "deltaEnergy": -1},
+    {"idTextName": 802, "idTextDescription": 802, "probability": 10, "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 2, "active": 1, "priority": 3, "deltaEnergy": -2}
+  ],
+
+  "globalRandomEvents": [
+    {"conditionKey": null,          "conditionValue": null,           "probability": 15},
+    {"conditionKey": "territory",   "conditionValue": "enemy_lands",  "probability": 30},
+    {"conditionKey": "alert_level", "conditionValue": "siege",        "probability": 25}
+  ],
+
+  "missions": [
+    {"conditionKey": "lands_defended",   "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 900, "idTextDescription": 900},
+    {"conditionKey": "alliance_forged",  "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 901, "idTextDescription": 901},
+    {"conditionKey": "traitor_exposed",  "conditionValueFrom": null, "conditionValueTo": "true",   "idTextName": 902, "idTextDescription": 902}
+  ]
+}

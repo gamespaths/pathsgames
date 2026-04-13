@@ -107,15 +107,15 @@ The dev database (`R__insert_story_seed_data.sql`) contains:
 
 | Story       | UUID                                   | Visibility |
 |-------------|----------------------------------------|------------|
-| The Witcher | `a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d` | PUBLIC     |
-| One Piece   | `b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e` | PUBLIC     |
+| Tutorial | `a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d` | PUBLIC     |
+| Demo 1   | `b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e` | PUBLIC     |
 
 Import-only stories (JSON files in `adapter-sqlite/.../dev/`):
 
 | Story      | UUID                                   |
 |------------|----------------------------------------|
-| Star Trek  | `c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f` |
-| Ranma ½    | `d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a` |
+| Demo 3    | `c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f` |
+| Demo 4    | `d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a` |
 
 
 

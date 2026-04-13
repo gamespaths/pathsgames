@@ -61,7 +61,7 @@ This document defines the **Technology Stack** definition to build a **Paths Gam
 - I wanna book and card style. 
     - A book style card collector book
     - Cards represent all part of game (players, locations, caratteristics, actions, ...)
-- Multi-style system: stories could have specific style (medieval, modern, fantasy, star trek, ... )
+- Multi-style system: stories could have specific style (medieval, modern, fantasy, ... )
 - Main graphics game page is divided in sections:
     - on top left: game logo
     - on top center: weather, timing and players/characters list (with card style) with marker to show active player

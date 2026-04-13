@@ -5,6 +5,7 @@
 Library    RequestsLibrary
 Library    Collections
 Library    String
+Library    ../resources/JwtHelper.py
 
 
 *** Keywords ***
@@ -14,7 +15,10 @@ Create Public Session
     Create Session    public_session    ${BASE_URL}    verify=false
 
 Create Admin Session
-    [Documentation]    Opens a RequestsLibrary HTTP session with the admin Bearer token.
+    [Documentation]    Opens a RequestsLibrary HTTP session with a dynamically generated
+    ...                admin Bearer token (signed with the dev JWT secret).
+    ${token}=    Generate Admin Token
+    Set Suite Variable    ${ADMIN_TOKEN}    ${token}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}    Content-Type=application/json
     Create Session    admin_session    ${BASE_URL}    headers=${headers}    verify=false
 
