@@ -19,22 +19,24 @@ Documents includes all steps and the roadmap for create paths.games components, 
     | **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 
 - Version 1: 
-    - start the crowfouning campaign 
-    - use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
-    - use GraphQL protocol in new versions
-    - game-engine feature: multiplayer system
+    - Start the crowfouning campaign  & Tutorial & Hints
+    - Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
+    - Campains: implents multiple-stories connection and global registry
 
 - Version 2: 
-    - game-engine feature: combact system 
-    - game-engine feature: open world system
+    - NPCs & Entities & Group Rituals 
+    - Anti-Spam Logic (Fatigue)
+    - Game-engine feature: combact system & open world system
 
 - Version 3: 
-    - mobile version integrated with Google play with Android App and
-    - desktop application integrated with Steam 
-    - create and distribute the free Debian package
+    - Permadeath & Game Over & Silent Events
+    - Mobile version integrated with Google play with Android App and
+    - Desktop application integrated with Steam & Debian package
 
 - Version 4
-    - update graphical system with advanced game-engine
+    - Timed Missions & Voting System
+    - Noise & Stealth & Multi-Value Registry
+    - Update graphical system with advanced game-engine
 
 - Version 42:
     - *Life, the Universe and Everything*

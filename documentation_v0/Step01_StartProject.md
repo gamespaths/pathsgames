@@ -146,6 +146,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Mission Definition (list_missions): Defines the global quest, its associated registry key, and the success/failure condition values.
 		- Mission Steps (list_missions_steps): An ordered sequence of milestones linked to registry values. Each step includes a description and an optional image to track narrative progression.
 4. **Out of Scope** (Future Enhancements) The following features are planned for future versions and must not be taken into consideration for the current implementation:
+	- Campains: implents multiple-stories connection and global registry
 	- NPCs & Entities: Implementation of wandering or static NPCs (e.g., a permanent Merchant in a Location or a mobile Character NPC).
 	- Permadeath & Game Over: Advanced Game Over logic. Currently, only the "Group Coma" triggers a specific end-game event.
 	- Anti-Spam Logic (Fatigue): An internal variable that tracks high action density per Time Unit to penalize probability or energy (hidden from the player).
@@ -159,8 +160,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	- Timed Missions: Quests that expire after a specific number of Time Units (beyond simple registry tracking).
 	- Voting System: A consensus mechanic for critical events where players in the same location vote on a choice.
 	- Location Depletion (Sterility): Locations visited too frequently become "sterile," offering fewer useful events and more "empty" events.
-	- Anti-Stall Mechanic: If no actions occur for $N$ minutes, the server generates a micro-event (e.g., "You grow bored... lose 1 energy").
-	- Infinite Loop Prevention: Logic to prevent situations where all characters continuously "Pass" despite having energy.
+	- Anti-Stall Mechanic: If no actions occur for $N$ minutes, the server generates a micro-event (e.g., "You grow bored... lose 1 energy"). Infinite Loop Prevention: Logic to prevent situations where all characters continuously "Pass" despite having energy.
 	- Stalemate Warning: If everyone passes except the last player, a notification triggers: "If you pass as well, everyone will lose energy!".
 	- Character Equipment: Advanced equipment slots. Currently, all items are considered equipped and usable without restrictions (e.g. only two hands means only two items).
 		- Inventory Hands & Free Actions: * A "Hands" system for managing active items and a "Free Action" to swap them.
@@ -247,21 +247,27 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- All Rest APIs must have the JWT Token in request
 		- In all Rest APIs from Jwt token it's possibile load user information
 		- Into match and game APIs it's possibile load character information from user information
+		- ✅ GET		`/api/echo/status`
+		- GET `/admin/websocket/status`
 	- Auth
 		- ✅ POST `/auth/guest`: to create a guess user (without JWT TOKEN) and `/resume` method
+		- ✅ POST `/auth/guest/resume`
 		- POST `/auth/register/new`: To create a new user (without JWT TOKEN)		
 		- POST `/auth/login`: Standard Login (wihtout JWT TOKEN , Token in output)
-		- GET  `/auth/me`: User information and statistics
+		- ✅ GET  `/auth/me`: User information and statistics
 		- POST `/auth/google`: SSO wih Google		
 		- POST `/auth/convert/user`: To convert guess user to a normal user
 		- POST `/auth/convert/google`: To convert guess user to google user with SSO
+		- ✅ POST `/auth/refresh`
+		- ✅ POST `/auth/logout`
+		- ✅ POST `/auth/logout/all`
 	- Stories
-		- *REMOVED* GET `/stories/`: Stories list - removed to no implement
-		- GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
+		- ✅ GET `/stories/`: Stories list - removed to no implement
 		- GET `/stories/categories`: Category list 
+		- GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
+		- GET `/stories/groups`: Groups list S
 		- GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
-		- GET `/stories/groups`: Groups list 
-		- GET `/stories/{uuid_story}`: All information about a single story (characters list, difficulties, ...)
+		- ✅ GET `/stories/{uuid_story}`: All information about a single story (characters list, difficulties, ...)
 	- Contents
 		- GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
 		- GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
@@ -273,6 +279,12 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- POST `/matches`: To create a new match (and creator character select)
 		- POST `/matches/{uuid_match}/join`: To join into a new match (and select the character)
 		- POST `/matches/{uuid_match}/start`: Creator wanna to start a match until max capacity.
+	- Matches added by AI
+		- GET `/matches/{uuid}/characters/templates`
+		- GET `/matches/{uuid}/characters/classes`
+		- GET `/matches/{uuid}/characters/traits`
+		- GET `/matches/{uuid}/weather`
+		- GET `/matches/{uuid}/characters/{uuid}/resources `
 	- Match
 		- GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
 			- Note: The method *info* returns so many informations (location, events, choices, registry), in future if the frontend is making too many REST calls to compose a single view, you could consider GraphQL for future versions. 
@@ -311,6 +323,14 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET  `/gamechat/{uuid_match}/notifications/unread`: Get all unred notification
 		- POST `/gamechat/{uuid_match}/notifications/{uuid_notification}/mark-read`: Mark as a read a notification
 	- Admin
+		- ✅ GET		`/api/admin/guests`
+		- ✅ GET		`/api/admin/guests/stats`
+		- ✅ GET		`/api/admin/guests/{uuid}`
+		- ✅ DELETE	`/api/admin/guests/{uuid}`
+		- ✅ DELETE	`/api/admin/guests/expired`
+		- ✅ POST	`/api/admin/stories/import`
+		- ✅ GET 	`/api/admin/stories`
+		- ✅ DELETE	`/api/admin/stories/{uuid}`
 		- GET   `/admin/matches/`: Load all matches informations
 		- PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
 		- GET 	`/admin/params`: Get all parameter values
