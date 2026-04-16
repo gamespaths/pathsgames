@@ -126,6 +126,105 @@ class StoryDetailTest {
                 () -> assertNull(d.getCopyrightText())
             );
         }
+
+        // --- Step 15: Character templates, classes, traits, card, counts ---
+
+        @Test
+        @DisplayName("Should build with characterTemplates, classes, traits, card, and counts")
+        void build_step15Fields() {
+            CharacterTemplateInfo ct = CharacterTemplateInfo.builder()
+                    .uuid("ct-1").name("Warrior").build();
+            ClassInfo ci = ClassInfo.builder()
+                    .uuid("class-1").name("Knight").build();
+            TraitInfo ti = TraitInfo.builder()
+                    .uuid("trait-1").name("Brave").build();
+            CardInfo card = CardInfo.builder()
+                    .uuid("card-1").imageUrl("https://example.com/card.png").build();
+
+            StoryDetail d = validBuilder()
+                    .classCount(1)
+                    .characterTemplateCount(1)
+                    .traitCount(1)
+                    .characterTemplates(List.of(ct))
+                    .classes(List.of(ci))
+                    .traits(List.of(ti))
+                    .card(card)
+                    .build();
+
+            assertAll("Step 15 fields",
+                () -> assertEquals(1, d.getClassCount()),
+                () -> assertEquals(1, d.getCharacterTemplateCount()),
+                () -> assertEquals(1, d.getTraitCount()),
+                () -> assertEquals(1, d.getCharacterTemplates().size()),
+                () -> assertEquals("ct-1", d.getCharacterTemplates().get(0).getUuid()),
+                () -> assertEquals(1, d.getClasses().size()),
+                () -> assertEquals("class-1", d.getClasses().get(0).getUuid()),
+                () -> assertEquals(1, d.getTraits().size()),
+                () -> assertEquals("trait-1", d.getTraits().get(0).getUuid()),
+                () -> assertNotNull(d.getCard()),
+                () -> assertEquals("card-1", d.getCard().getUuid())
+            );
+        }
+
+        @Test
+        @DisplayName("Should default new lists to empty when null")
+        void build_nullStep15Lists() {
+            StoryDetail d = validBuilder()
+                    .characterTemplates(null)
+                    .classes(null)
+                    .traits(null)
+                    .card(null)
+                    .build();
+
+            assertAll("Null Step 15 lists default to empty",
+                () -> assertNotNull(d.getCharacterTemplates()),
+                () -> assertTrue(d.getCharacterTemplates().isEmpty()),
+                () -> assertNotNull(d.getClasses()),
+                () -> assertTrue(d.getClasses().isEmpty()),
+                () -> assertNotNull(d.getTraits()),
+                () -> assertTrue(d.getTraits().isEmpty()),
+                () -> assertNull(d.getCard())
+            );
+        }
+
+        @Test
+        @DisplayName("Character templates list should be immutable")
+        void build_immutableCharacterTemplates() {
+            StoryDetail d = validBuilder().characterTemplates(List.of()).build();
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                    d.getCharacterTemplates().add(CharacterTemplateInfo.builder().uuid("x").build()));
+        }
+
+        @Test
+        @DisplayName("Classes list should be immutable")
+        void build_immutableClasses() {
+            StoryDetail d = validBuilder().classes(List.of()).build();
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                    d.getClasses().add(ClassInfo.builder().uuid("x").build()));
+        }
+
+        @Test
+        @DisplayName("Traits list should be immutable")
+        void build_immutableTraits() {
+            StoryDetail d = validBuilder().traits(List.of()).build();
+
+            assertThrows(UnsupportedOperationException.class, () ->
+                    d.getTraits().add(TraitInfo.builder().uuid("x").build()));
+        }
+
+        @Test
+        @DisplayName("Should default count fields to 0 when not set")
+        void build_defaultCounts() {
+            StoryDetail d = validBuilder().build();
+
+            assertAll("Default counts",
+                () -> assertEquals(0, d.getClassCount()),
+                () -> assertEquals(0, d.getCharacterTemplateCount()),
+                () -> assertEquals(0, d.getTraitCount())
+            );
+        }
     }
 
     @Nested

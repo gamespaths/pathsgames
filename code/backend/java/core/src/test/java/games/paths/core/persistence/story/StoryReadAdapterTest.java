@@ -29,6 +29,10 @@ class StoryReadAdapterTest {
     @Mock private LocationRepository locationRepository;
     @Mock private EventRepository eventRepository;
     @Mock private ItemRepository itemRepository;
+    @Mock private CharacterTemplateRepository characterTemplateRepository;
+    @Mock private ClassRepository classRepository;
+    @Mock private TraitRepository traitRepository;
+    @Mock private CardRepository cardRepository;
 
     @InjectMocks
     private StoryReadAdapter adapter;
@@ -152,6 +156,118 @@ class StoryReadAdapterTest {
             when(itemRepository.findByIdStory(1L)).thenReturn(List.of());
 
             assertEquals(0, adapter.countItemsByStoryId(1L));
+        }
+    }
+
+    // === Step 15: Category/Group queries and new entity lookups ===
+
+    @Nested
+    @DisplayName("Category and Group Queries")
+    class CategoryGroupQueries {
+
+        @Test
+        @DisplayName("findDistinctCategoriesByVisibility should delegate to repository")
+        void findDistinctCategories() {
+            when(storyRepository.findDistinctCategoriesByVisibility("PUBLIC"))
+                    .thenReturn(List.of("adventure", "horror"));
+
+            List<String> result = adapter.findDistinctCategoriesByVisibility("PUBLIC");
+
+            assertEquals(2, result.size());
+            assertEquals("adventure", result.get(0));
+        }
+
+        @Test
+        @DisplayName("findDistinctGroupsByVisibility should delegate to repository")
+        void findDistinctGroups() {
+            when(storyRepository.findDistinctGroupsByVisibility("PUBLIC"))
+                    .thenReturn(List.of("fantasy"));
+
+            List<String> result = adapter.findDistinctGroupsByVisibility("PUBLIC");
+
+            assertEquals(1, result.size());
+            assertEquals("fantasy", result.get(0));
+        }
+
+        @Test
+        @DisplayName("findStoriesByCategoryAndVisibility should delegate to repository")
+        void findByCategory() {
+            StoryEntity s = new StoryEntity();
+            s.setUuid("uuid-1");
+            when(storyRepository.findByCategoryAndVisibilityOrderByPriorityDesc("adventure", "PUBLIC"))
+                    .thenReturn(List.of(s));
+
+            List<StoryEntity> result = adapter.findStoriesByCategoryAndVisibility("adventure", "PUBLIC");
+
+            assertEquals(1, result.size());
+            assertEquals("uuid-1", result.get(0).getUuid());
+        }
+
+        @Test
+        @DisplayName("findStoriesByGroupAndVisibility should delegate to repository")
+        void findByGroup() {
+            StoryEntity s = new StoryEntity();
+            s.setUuid("uuid-2");
+            when(storyRepository.findByGroupAndVisibilityOrderByPriorityDesc("fantasy", "PUBLIC"))
+                    .thenReturn(List.of(s));
+
+            List<StoryEntity> result = adapter.findStoriesByGroupAndVisibility("fantasy", "PUBLIC");
+
+            assertEquals(1, result.size());
+            assertEquals("uuid-2", result.get(0).getUuid());
+        }
+    }
+
+    @Nested
+    @DisplayName("Step 15 Entity Lookups")
+    class Step15EntityLookups {
+
+        @Test
+        @DisplayName("findCharacterTemplatesByStoryId should delegate to repository")
+        void findCharacterTemplates() {
+            when(characterTemplateRepository.findByIdStory(1L))
+                    .thenReturn(List.of(new CharacterTemplateEntity()));
+
+            assertEquals(1, adapter.findCharacterTemplatesByStoryId(1L).size());
+        }
+
+        @Test
+        @DisplayName("findClassesByStoryId should delegate to repository")
+        void findClasses() {
+            when(classRepository.findByIdStory(1L))
+                    .thenReturn(List.of(new ClassEntity(), new ClassEntity()));
+
+            assertEquals(2, adapter.findClassesByStoryId(1L).size());
+        }
+
+        @Test
+        @DisplayName("findTraitsByStoryId should delegate to repository")
+        void findTraits() {
+            when(traitRepository.findByIdStory(1L))
+                    .thenReturn(List.of(new TraitEntity()));
+
+            assertEquals(1, adapter.findTraitsByStoryId(1L).size());
+        }
+
+        @Test
+        @DisplayName("findCardByStoryIdAndCardId should return Optional when found")
+        void findCard_found() {
+            CardEntity c = new CardEntity();
+            c.setUuid("card-uuid");
+            when(cardRepository.findByIdStoryAndId(1L, 10L)).thenReturn(Optional.of(c));
+
+            Optional<CardEntity> result = adapter.findCardByStoryIdAndCardId(1L, 10L);
+
+            assertTrue(result.isPresent());
+            assertEquals("card-uuid", result.get().getUuid());
+        }
+
+        @Test
+        @DisplayName("findCardByStoryIdAndCardId should return empty when not found")
+        void findCard_notFound() {
+            when(cardRepository.findByIdStoryAndId(1L, 99L)).thenReturn(Optional.empty());
+
+            assertTrue(adapter.findCardByStoryIdAndCardId(1L, 99L).isEmpty());
         }
     }
 }

@@ -49,6 +49,24 @@ class BaseStoryEntityTest {
         }
 
         @Test
+        @DisplayName("baseOnCreate() does NOT overwrite existing tsInsert and tsUpdate")
+        void baseOnCreate_doesNotOverwriteExistingTimestamps() {
+            StoryEntity entity = new StoryEntity();
+            entity.baseOnCreate();
+            String originalTsInsert = entity.getTsInsert();
+            String originalTsUpdate = entity.getTsUpdate();
+
+            // Call again — should not change existing timestamps
+            entity.baseOnCreate();
+            assertAll(
+                () -> assertEquals(originalTsInsert, entity.getTsInsert(),
+                        "tsInsert must not be overwritten"),
+                () -> assertEquals(originalTsUpdate, entity.getTsUpdate(),
+                        "tsUpdate must not be overwritten")
+            );
+        }
+
+        @Test
         @DisplayName("Generated uuid has UUID format (8-4-4-4-12 hex)")
         void baseOnCreate_generatesValidUuidFormat() {
             StoryEntity entity = new StoryEntity();

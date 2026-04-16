@@ -87,9 +87,19 @@ class StoryEntitiesTest {
             CharacterTemplateEntity e = new CharacterTemplateEntity();
             e.setLifeMax(20);
             e.setEnergyMax(30);
+            e.setSadMax(15);
+            e.setDexterityStart(5);
+            e.setIntelligenceStart(4);
+            e.setConstitutionStart(3);
             e.onCreate();
-            assertEquals(20, e.getLifeMax());
-            assertEquals(30, e.getEnergyMax());
+            assertAll(
+                () -> assertEquals(20, e.getLifeMax()),
+                () -> assertEquals(30, e.getEnergyMax()),
+                () -> assertEquals(15, e.getSadMax()),
+                () -> assertEquals(5, e.getDexterityStart()),
+                () -> assertEquals(4, e.getIntelligenceStart()),
+                () -> assertEquals(3, e.getConstitutionStart())
+            );
         }
 
         @Test
@@ -139,6 +149,15 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set operator")
+        void prePersist_doesNotOverwrite() {
+            ChoiceConditionEntity e = new ChoiceConditionEntity();
+            e.setOperator("!=");
+            e.onCreate();
+            assertEquals("!=", e.getOperator());
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             ChoiceConditionEntity e = new ChoiceConditionEntity();
@@ -180,6 +199,19 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(0, e.getFlagGroup()),
                 () -> assertEquals(0, e.getValue())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            ChoiceEffectEntity e = new ChoiceEffectEntity();
+            e.setFlagGroup(1);
+            e.setValue(5);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(1, e.getFlagGroup()),
+                () -> assertEquals(5, e.getValue())
             );
         }
 
@@ -235,6 +267,23 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            ChoiceEntity e = new ChoiceEntity();
+            e.setPriority(3);
+            e.setOtherwiseFlag(1);
+            e.setIsProgress(1);
+            e.setLogicOperator("OR");
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(3, e.getPriority()),
+                () -> assertEquals(1, e.getOtherwiseFlag()),
+                () -> assertEquals(1, e.getIsProgress()),
+                () -> assertEquals("OR", e.getLogicOperator())
+            );
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             ChoiceEntity e = new ChoiceEntity();
@@ -286,6 +335,15 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set value")
+        void prePersist_doesNotOverwrite() {
+            ClassBonusEntity e = new ClassBonusEntity();
+            e.setValue(7);
+            e.onCreate();
+            assertEquals(7, e.getValue());
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             ClassBonusEntity e = new ClassBonusEntity();
@@ -323,6 +381,23 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getDexterityBase()),
                 () -> assertEquals(1, e.getIntelligenceBase()),
                 () -> assertEquals(1, e.getConstitutionBase())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            ClassEntity e = new ClassEntity();
+            e.setWeightMax(20);
+            e.setDexterityBase(3);
+            e.setIntelligenceBase(4);
+            e.setConstitutionBase(5);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(20, e.getWeightMax()),
+                () -> assertEquals(3, e.getDexterityBase()),
+                () -> assertEquals(4, e.getIntelligenceBase()),
+                () -> assertEquals(5, e.getConstitutionBase())
             );
         }
 
@@ -400,6 +475,19 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            EventEffectEntity e = new EventEffectEntity();
+            e.setTarget("PLAYER");
+            e.setValue(10);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals("PLAYER", e.getTarget()),
+                () -> assertEquals(10, e.getValue())
+            );
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             EventEffectEntity e = new EventEffectEntity();
@@ -446,6 +534,23 @@ class StoryEntitiesTest {
                 () -> assertEquals(0, e.getCostEnery()),
                 () -> assertEquals(0, e.getFlagEndTime()),
                 () -> assertEquals(0, e.getCoinCost())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            EventEntity e = new EventEntity();
+            e.setType("BATTLE");
+            e.setCostEnery(5);
+            e.setFlagEndTime(1);
+            e.setCoinCost(10);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals("BATTLE", e.getType()),
+                () -> assertEquals(5, e.getCostEnery()),
+                () -> assertEquals(1, e.getFlagEndTime()),
+                () -> assertEquals(10, e.getCoinCost())
             );
         }
 
@@ -504,6 +609,15 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set probability")
+        void prePersist_doesNotOverwrite() {
+            GlobalRandomEventEntity e = new GlobalRandomEventEntity();
+            e.setProbability(50);
+            e.onCreate();
+            assertEquals(50, e.getProbability());
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             GlobalRandomEventEntity e = new GlobalRandomEventEntity();
@@ -539,6 +653,15 @@ class StoryEntitiesTest {
             ItemEffectEntity e = new ItemEffectEntity();
             e.onCreate();
             assertEquals(0, e.getEffectValue());
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set effectValue")
+        void prePersist_doesNotOverwrite() {
+            ItemEffectEntity e = new ItemEffectEntity();
+            e.setEffectValue(25);
+            e.onCreate();
+            assertEquals(25, e.getEffectValue());
         }
 
         @Test
@@ -578,6 +701,19 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(1, e.getWeight()),
                 () -> assertEquals(1, e.getIsConsumabile())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            ItemEntity e = new ItemEntity();
+            e.setWeight(5);
+            e.setIsConsumabile(0);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(5, e.getWeight()),
+                () -> assertEquals(0, e.getIsConsumabile())
             );
         }
 
@@ -623,6 +759,19 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            KeyEntity e = new KeyEntity();
+            e.setPriority(2);
+            e.setVisibility("PRIVATE");
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(2, e.getPriority()),
+                () -> assertEquals("PRIVATE", e.getVisibility())
+            );
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             KeyEntity e = new KeyEntity();
@@ -664,6 +813,42 @@ class StoryEntitiesTest {
                 () -> assertEquals(0, e.getSecureParam()),
                 () -> assertEquals(0, e.getPriorityAutomaticEvent()),
                 () -> assertEquals(100, e.getMaxCharacters())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            LocationEntity e = new LocationEntity();
+            e.setIsSafe(1);
+            e.setCostEnergyEnter(5);
+            e.setSecureParam(1);
+            e.setPriorityAutomaticEvent(3);
+            e.setMaxCharacters(50);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(1, e.getIsSafe()),
+                () -> assertEquals(5, e.getCostEnergyEnter()),
+                () -> assertEquals(1, e.getSecureParam()),
+                () -> assertEquals(3, e.getPriorityAutomaticEvent()),
+                () -> assertEquals(50, e.getMaxCharacters())
+            );
+        }
+
+        @Test
+        @DisplayName("Getters for event-related fields round-trip correctly")
+        void eventFieldGetters() {
+            LocationEntity e = new LocationEntity();
+            e.setIdEventIfCharacterStartTime(10);
+            e.setIdEventIfCharacterEnterFirstTime(11);
+            e.setIdEventIfFirstTime(12);
+            e.setIdEventNotFirstTime(13);
+
+            assertAll(
+                () -> assertEquals(10, e.getIdEventIfCharacterStartTime()),
+                () -> assertEquals(11, e.getIdEventIfCharacterEnterFirstTime()),
+                () -> assertEquals(12, e.getIdEventIfFirstTime()),
+                () -> assertEquals(13, e.getIdEventNotFirstTime())
             );
         }
 
@@ -714,6 +899,19 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(0, e.getFlagBack()),
                 () -> assertEquals(0, e.getEnergyCost())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            LocationNeighborEntity e = new LocationNeighborEntity();
+            e.setFlagBack(1);
+            e.setEnergyCost(5);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(1, e.getFlagBack()),
+                () -> assertEquals(5, e.getEnergyCost())
             );
         }
 
@@ -833,6 +1031,29 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            StoryDifficultyEntity e = new StoryDifficultyEntity();
+            e.setExpCost(100);
+            e.setMaxWeight(50);
+            e.setMinCharacter(2);
+            e.setMaxCharacter(8);
+            e.setCostHelpComa(10);
+            e.setCostMaxCharacteristics(5);
+            e.setNumberMaxFreeAction(3);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(100, e.getExpCost()),
+                () -> assertEquals(50, e.getMaxWeight()),
+                () -> assertEquals(2, e.getMinCharacter()),
+                () -> assertEquals(8, e.getMaxCharacter()),
+                () -> assertEquals(10, e.getCostHelpComa()),
+                () -> assertEquals(5, e.getCostMaxCharacteristics()),
+                () -> assertEquals(3, e.getNumberMaxFreeAction())
+            );
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             StoryDifficultyEntity e = new StoryDifficultyEntity();
@@ -888,9 +1109,17 @@ class StoryEntitiesTest {
             StoryEntity e = new StoryEntity();
             e.setVisibility("PRIVATE");
             e.setPriority(5);
+            e.setPeghi(200);
+            e.setClockSingularDescription("minute");
+            e.setClockPluralDescription("minutes");
             e.onCreate();
-            assertEquals("PRIVATE", e.getVisibility());
-            assertEquals(5, e.getPriority());
+            assertAll(
+                () -> assertEquals("PRIVATE", e.getVisibility()),
+                () -> assertEquals(5, e.getPriority()),
+                () -> assertEquals(200, e.getPeghi()),
+                () -> assertEquals("minute", e.getClockSingularDescription()),
+                () -> assertEquals("minutes", e.getClockPluralDescription())
+            );
         }
 
         @Test
@@ -951,6 +1180,15 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set lang")
+        void prePersist_doesNotOverwrite() {
+            TextEntity e = new TextEntity();
+            e.setLang("it");
+            e.onCreate();
+            assertEquals("it", e.getLang());
+        }
+
+        @Test
         @DisplayName("Getters and setters round-trip correctly")
         void gettersSetters() {
             TextEntity e = new TextEntity();
@@ -991,6 +1229,19 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(0, e.getCostPositive()),
                 () -> assertEquals(0, e.getCostNegative())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            TraitEntity e = new TraitEntity();
+            e.setCostPositive(10);
+            e.setCostNegative(5);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(10, e.getCostPositive()),
+                () -> assertEquals(5, e.getCostNegative())
             );
         }
 
@@ -1036,6 +1287,27 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getActive()),
                 () -> assertEquals(0, e.getPriority()),
                 () -> assertEquals(0, e.getDeltaEnergy())
+            );
+        }
+
+        @Test
+        @DisplayName("@PrePersist does NOT overwrite explicitly set values")
+        void prePersist_doesNotOverwrite() {
+            WeatherRuleEntity e = new WeatherRuleEntity();
+            e.setProbability(30);
+            e.setCostMoveSafeLocation(1);
+            e.setCostMoveNotSafeLocation(3);
+            e.setActive(0);
+            e.setPriority(2);
+            e.setDeltaEnergy(-5);
+            e.onCreate();
+            assertAll(
+                () -> assertEquals(30, e.getProbability()),
+                () -> assertEquals(1, e.getCostMoveSafeLocation()),
+                () -> assertEquals(3, e.getCostMoveNotSafeLocation()),
+                () -> assertEquals(0, e.getActive()),
+                () -> assertEquals(2, e.getPriority()),
+                () -> assertEquals(-5, e.getDeltaEnergy())
             );
         }
 

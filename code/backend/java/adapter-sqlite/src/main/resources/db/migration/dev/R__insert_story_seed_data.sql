@@ -54,10 +54,10 @@ VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', '
 -- ── Texts ───────────────────────────────────────────────────────
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
 -- Title & Description
-(90001, 9001, 1, 'en', 'TUTORIAL — Learn to Play', 'Welcome to Paths Games! This guided tutorial will teach you every mechanic step by step: moving between locations, managing energy and life, using items, making choices, checking the weather, and completing missions. No experience required — just curiosity!'),
-(90002, 9001, 1, 'it', 'TUTORIAL — Impara a Giocare', 'Benvenuto in Paths Games! Questo tutorial guidato ti insegnerà ogni meccanica passo dopo passo: muoversi tra le locazioni, gestire energia e vita, usare oggetti, fare scelte, controllare il meteo e completare missioni. Non serve esperienza — solo curiosità!'),
-(90003, 9001, 2, 'en', 'TUTORIAL — Learn to Play', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment. Perfect for new players.'),
-(90004, 9001, 2, 'it', 'TUTORIAL — Impara a Giocare', 'Una breve avventura di addestramento nell''Accademia di Paths. Impara movimento, energia, oggetti, scelte e missioni in un ambiente sicuro. Perfetta per i nuovi giocatori.'),
+(90001, 9001, 1, 'en', 'TUTORIAL', 'Welcome to Paths Games! This guided tutorial will teach you every mechanic step by step: moving between locations, managing energy and life, using items, making choices, checking the weather, and completing missions. No experience required — just curiosity!'),
+(90002, 9001, 1, 'it', 'TUTORIAL', 'Benvenuto in Paths Games! Questo tutorial guidato ti insegnerà ogni meccanica passo dopo passo: muoversi tra le locazioni, gestire energia e vita, usare oggetti, fare scelte, controllare il meteo e completare missioni. Non serve esperienza — solo curiosità!'),
+(90003, 9001, 2, 'en', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment.', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment. Perfect for new players.'),
+(90004, 9001, 2, 'it', 'Una breve avventura di addestramento nell''Accademia di Paths.', 'Una breve avventura di addestramento nell''Accademia di Paths. Impara movimento, energia, oggetti, scelte e missioni in un ambiente sicuro. Perfetta per i nuovi giocatori.'),
 -- Location texts (8 tutorial rooms)
 (90005, 9001, 100, 'en', 'Welcome Hall', 'A bright, welcoming hall with banners explaining the basics of Paths Games. A friendly guide stands at the center, ready to explain how the game works. "Welcome, adventurer! Let''s start your training."'),
 (90006, 9001, 100, 'it', 'Sala di Benvenuto', 'Una sala luminosa e accogliente con stendardi che spiegano le basi di Paths Games. Una guida amichevole sta al centro, pronta a spiegare come funziona il gioco. "Benvenuto, avventuriero! Iniziamo il tuo addestramento."'),
@@ -146,7 +146,7 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90094, 9001, 930, 'en', 'Enter the Choice Arena', 'Go to the Choice Arena to face your first choice.'),
 (90095, 9001, 931, 'en', 'Pick a Door', 'Choose either the gold or red door to experience the choice system.'),
 -- Character template texts
-(90096, 9001, 210, 'en', 'The Balanced Student', 'A well-rounded student with equal stats. The default template for learning the game.'),
+(90096, 9001, 210, 'en', 'The Student', 'A well-rounded student with equal stats. The default template for learning the game.'),
 (90097, 9001, 211, 'en', 'The Bookworm', 'A studious character with high intelligence. Great at solving puzzles and making smart choices.'),
 (90098, 9001, 212, 'en', 'The Gym Star', 'An athletic character with high dexterity. Fast and agile, perfect for movement-heavy gameplay.'),
 -- Key texts
@@ -311,7 +311,7 @@ INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main) VALU
 INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
     category, "group", visibility, priority, peghi, id_text_title, id_text_description)
 VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
-    'historical', 'main', 'PUBLIC', 10, 5, 1, 2);
+    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2);
 
 -- ── Texts ───────────────────────────────────────────────────────
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES

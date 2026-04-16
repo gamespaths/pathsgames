@@ -1,11 +1,19 @@
 package games.paths.core.service.story;
 
+import games.paths.core.entity.story.CardEntity;
+import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.entity.story.TextEntity;
+import games.paths.core.entity.story.TraitEntity;
+import games.paths.core.model.story.CardInfo;
+import games.paths.core.model.story.CharacterTemplateInfo;
+import games.paths.core.model.story.ClassInfo;
 import games.paths.core.model.story.DifficultyInfo;
 import games.paths.core.model.story.StoryDetail;
 import games.paths.core.model.story.StorySummary;
+import games.paths.core.model.story.TraitInfo;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
@@ -17,6 +25,9 @@ import java.util.Optional;
  * StoryQueryService - Domain service implementing story querying.
  * Reads story data from the persistence layer and maps it to domain models.
  * Ports are injected via constructor by the launcher configuration.
+ *
+ * <p>Enhanced in Step 15 with category/group listing, filtering,
+ * and enriched story detail with character templates, classes, traits, and card info.</p>
  */
 public class StoryQueryService implements StoryQueryPort {
 
@@ -75,6 +86,60 @@ public class StoryQueryService implements StoryQueryPort {
         long eventCount = readPort.countEventsByStoryId(story.getId());
         long itemCount = readPort.countItemsByStoryId(story.getId());
 
+        // Step 15: Character templates, classes, and traits
+        List<CharacterTemplateEntity> ctEntities = readPort.findCharacterTemplatesByStoryId(story.getId());
+        List<CharacterTemplateInfo> characterTemplates = new ArrayList<>();
+        for (CharacterTemplateEntity ct : ctEntities) {
+            String ctName = resolveText(story.getId(), ct.getIdTextName(), lang);
+            String ctDesc = resolveText(story.getId(), ct.getIdTextDescription(), lang);
+            characterTemplates.add(CharacterTemplateInfo.builder()
+                    .uuid(ct.getUuid())
+                    .name(ctName)
+                    .description(ctDesc)
+                    .lifeMax(ct.getLifeMax() != null ? ct.getLifeMax() : 10)
+                    .energyMax(ct.getEnergyMax() != null ? ct.getEnergyMax() : 10)
+                    .sadMax(ct.getSadMax() != null ? ct.getSadMax() : 10)
+                    .dexterityStart(ct.getDexterityStart() != null ? ct.getDexterityStart() : 1)
+                    .intelligenceStart(ct.getIntelligenceStart() != null ? ct.getIntelligenceStart() : 1)
+                    .constitutionStart(ct.getConstitutionStart() != null ? ct.getConstitutionStart() : 1)
+                    .build());
+        }
+
+        List<ClassEntity> classEntities = readPort.findClassesByStoryId(story.getId());
+        List<ClassInfo> classes = new ArrayList<>();
+        for (ClassEntity cl : classEntities) {
+            String clName = resolveText(story.getId(), cl.getIdTextName(), lang);
+            String clDesc = resolveText(story.getId(), cl.getIdTextDescription(), lang);
+            classes.add(ClassInfo.builder()
+                    .uuid(cl.getUuid())
+                    .name(clName)
+                    .description(clDesc)
+                    .weightMax(cl.getWeightMax() != null ? cl.getWeightMax() : 10)
+                    .dexterityBase(cl.getDexterityBase() != null ? cl.getDexterityBase() : 1)
+                    .intelligenceBase(cl.getIntelligenceBase() != null ? cl.getIntelligenceBase() : 1)
+                    .constitutionBase(cl.getConstitutionBase() != null ? cl.getConstitutionBase() : 1)
+                    .build());
+        }
+
+        List<TraitEntity> traitEntities = readPort.findTraitsByStoryId(story.getId());
+        List<TraitInfo> traits = new ArrayList<>();
+        for (TraitEntity tr : traitEntities) {
+            String trName = resolveText(story.getId(), tr.getIdTextName(), lang);
+            String trDesc = resolveText(story.getId(), tr.getIdTextDescription(), lang);
+            traits.add(TraitInfo.builder()
+                    .uuid(tr.getUuid())
+                    .name(trName)
+                    .description(trDesc)
+                    .costPositive(tr.getCostPositive() != null ? tr.getCostPositive() : 0)
+                    .costNegative(tr.getCostNegative() != null ? tr.getCostNegative() : 0)
+                    .idClassPermitted(tr.getIdClassPermitted())
+                    .idClassProhibited(tr.getIdClassProhibited())
+                    .build());
+        }
+
+        // Step 15: Resolve card info
+        CardInfo cardInfo = resolveCardInfo(story.getId(), story.getIdCard(), lang);
+
         return StoryDetail.builder()
                 .uuid(story.getUuid())
                 .title(title)
@@ -94,9 +159,48 @@ public class StoryQueryService implements StoryQueryPort {
                 .locationCount((int) locationCount)
                 .eventCount((int) eventCount)
                 .itemCount((int) itemCount)
+                .classCount(classes.size())
+                .characterTemplateCount(characterTemplates.size())
+                .traitCount(traits.size())
                 .difficulties(difficulties)
+                .characterTemplates(characterTemplates)
+                .classes(classes)
+                .traits(traits)
+                .card(cardInfo)
                 .build();
     }
+
+    // === Step 15: Category and Group queries ===
+
+    @Override
+    public List<String> listCategories() {
+        return readPort.findDistinctCategoriesByVisibility("PUBLIC");
+    }
+
+    @Override
+    public List<StorySummary> listStoriesByCategory(String category, String lang) {
+        if (category == null || category.isBlank()) {
+            return List.of();
+        }
+        List<StoryEntity> stories = readPort.findStoriesByCategoryAndVisibility(category, "PUBLIC");
+        return mapToSummaries(stories, lang);
+    }
+
+    @Override
+    public List<String> listGroups() {
+        return readPort.findDistinctGroupsByVisibility("PUBLIC");
+    }
+
+    @Override
+    public List<StorySummary> listStoriesByGroup(String group, String lang) {
+        if (group == null || group.isBlank()) {
+            return List.of();
+        }
+        List<StoryEntity> stories = readPort.findStoriesByGroupAndVisibility(group, "PUBLIC");
+        return mapToSummaries(stories, lang);
+    }
+
+    // === Private helpers ===
 
     private List<StorySummary> mapToSummaries(List<StoryEntity> stories, String lang) {
         List<StorySummary> summaries = new ArrayList<>();
@@ -146,5 +250,29 @@ public class StoryQueryService implements StoryQueryPort {
             }
         }
         return null;
+    }
+
+    /**
+     * Resolves card info from card entity, including text resolution for card title.
+     */
+    private CardInfo resolveCardInfo(Long storyId, Integer idCard, String lang) {
+        if (idCard == null) {
+            return null;
+        }
+        Optional<CardEntity> cardOpt = readPort.findCardByStoryIdAndCardId(storyId, idCard.longValue());
+        if (cardOpt.isEmpty()) {
+            return null;
+        }
+        CardEntity card = cardOpt.get();
+        String cardTitle = resolveText(storyId, card.getIdTextTitle(), lang);
+        return CardInfo.builder()
+                .uuid(card.getUuid())
+                .imageUrl(card.getUrlImmage())
+                .alternativeImage(card.getAlternativeImage())
+                .awesomeIcon(card.getAwesomeIcon())
+                .styleMain(card.getStyleMain())
+                .styleDetail(card.getStyleDetail())
+                .title(cardTitle)
+                .build();
     }
 }

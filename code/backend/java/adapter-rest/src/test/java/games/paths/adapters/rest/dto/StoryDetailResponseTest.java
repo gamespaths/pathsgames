@@ -38,7 +38,27 @@ class StoryDetailResponseTest {
         r.setLocationCount(10);
         r.setEventCount(20);
         r.setItemCount(5);
+        r.setClassCount(3);
+        r.setCharacterTemplateCount(2);
+        r.setTraitCount(4);
         r.setDifficulties(List.of(diff));
+
+        CharacterTemplateResponse ct = new CharacterTemplateResponse(
+                "ct-1", "Warrior", "Fighter", 20, 15, 10, 3, 2, 4);
+        r.setCharacterTemplates(List.of(ct));
+
+        ClassInfoResponse cl = new ClassInfoResponse(
+                "class-1", "Knight", "Noble", 20, 3, 2, 4);
+        r.setClasses(List.of(cl));
+
+        TraitInfoResponse tr = new TraitInfoResponse(
+                "trait-1", "Brave", "Fearless", 5, 3, null, null);
+        r.setTraits(List.of(tr));
+
+        CardInfoResponse card = new CardInfoResponse(
+                "card-1", "https://img.com/card.png", "alt.jpg",
+                "fa-star", "bg-dark", "text-light", "Card Title");
+        r.setCard(card);
 
         assertAll("StoryDetailResponse fields",
             () -> assertEquals("uuid-1", r.getUuid()),
@@ -59,8 +79,19 @@ class StoryDetailResponseTest {
             () -> assertEquals(10, r.getLocationCount()),
             () -> assertEquals(20, r.getEventCount()),
             () -> assertEquals(5, r.getItemCount()),
+            () -> assertEquals(3, r.getClassCount()),
+            () -> assertEquals(2, r.getCharacterTemplateCount()),
+            () -> assertEquals(4, r.getTraitCount()),
             () -> assertEquals(1, r.getDifficulties().size()),
-            () -> assertEquals("diff-1", r.getDifficulties().get(0).getUuid())
+            () -> assertEquals("diff-1", r.getDifficulties().get(0).getUuid()),
+            () -> assertEquals(1, r.getCharacterTemplates().size()),
+            () -> assertEquals("ct-1", r.getCharacterTemplates().get(0).getUuid()),
+            () -> assertEquals(1, r.getClasses().size()),
+            () -> assertEquals("class-1", r.getClasses().get(0).getUuid()),
+            () -> assertEquals(1, r.getTraits().size()),
+            () -> assertEquals("trait-1", r.getTraits().get(0).getUuid()),
+            () -> assertNotNull(r.getCard()),
+            () -> assertEquals("card-1", r.getCard().getUuid())
         );
     }
 
@@ -73,8 +104,15 @@ class StoryDetailResponseTest {
             () -> assertNull(r.getUuid()),
             () -> assertNull(r.getTitle()),
             () -> assertNull(r.getDifficulties()),
+            () -> assertNull(r.getCharacterTemplates()),
+            () -> assertNull(r.getClasses()),
+            () -> assertNull(r.getTraits()),
+            () -> assertNull(r.getCard()),
             () -> assertEquals(0, r.getPriority()),
-            () -> assertEquals(0, r.getLocationCount())
+            () -> assertEquals(0, r.getLocationCount()),
+            () -> assertEquals(0, r.getClassCount()),
+            () -> assertEquals(0, r.getCharacterTemplateCount()),
+            () -> assertEquals(0, r.getTraitCount())
         );
     }
 }

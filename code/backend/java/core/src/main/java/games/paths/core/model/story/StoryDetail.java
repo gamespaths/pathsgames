@@ -3,8 +3,12 @@ package games.paths.core.model.story;
 import java.util.List;
 
 /**
- * StoryDetail - Domain model for a full story view including difficulty levels.
+ * StoryDetail - Domain model for a full story view including difficulty levels,
+ * character templates, classes, and traits.
  * Returned when fetching a single story by UUID.
+ *
+ * <p>Enhanced in Step 15 to include character templates, classes, traits,
+ * and additional entity counts for the story content APIs.</p>
  */
 public class StoryDetail {
 
@@ -26,7 +30,14 @@ public class StoryDetail {
     private final int locationCount;
     private final int eventCount;
     private final int itemCount;
+    private final int classCount;
+    private final int characterTemplateCount;
+    private final int traitCount;
     private final List<DifficultyInfo> difficulties;
+    private final List<CharacterTemplateInfo> characterTemplates;
+    private final List<ClassInfo> classes;
+    private final List<TraitInfo> traits;
+    private final CardInfo card;
 
     private StoryDetail(Builder builder) {
         this.uuid = builder.uuid;
@@ -47,7 +58,14 @@ public class StoryDetail {
         this.locationCount = builder.locationCount;
         this.eventCount = builder.eventCount;
         this.itemCount = builder.itemCount;
+        this.classCount = builder.classCount;
+        this.characterTemplateCount = builder.characterTemplateCount;
+        this.traitCount = builder.traitCount;
         this.difficulties = builder.difficulties != null ? List.copyOf(builder.difficulties) : List.of();
+        this.characterTemplates = builder.characterTemplates != null ? List.copyOf(builder.characterTemplates) : List.of();
+        this.classes = builder.classes != null ? List.copyOf(builder.classes) : List.of();
+        this.traits = builder.traits != null ? List.copyOf(builder.traits) : List.of();
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -68,7 +86,14 @@ public class StoryDetail {
     public int getLocationCount() { return locationCount; }
     public int getEventCount() { return eventCount; }
     public int getItemCount() { return itemCount; }
+    public int getClassCount() { return classCount; }
+    public int getCharacterTemplateCount() { return characterTemplateCount; }
+    public int getTraitCount() { return traitCount; }
     public List<DifficultyInfo> getDifficulties() { return difficulties; }
+    public List<CharacterTemplateInfo> getCharacterTemplates() { return characterTemplates; }
+    public List<ClassInfo> getClasses() { return classes; }
+    public List<TraitInfo> getTraits() { return traits; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -91,7 +116,14 @@ public class StoryDetail {
         private int locationCount;
         private int eventCount;
         private int itemCount;
+        private int classCount;
+        private int characterTemplateCount;
+        private int traitCount;
         private List<DifficultyInfo> difficulties;
+        private List<CharacterTemplateInfo> characterTemplates;
+        private List<ClassInfo> classes;
+        private List<TraitInfo> traits;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -112,6 +144,13 @@ public class StoryDetail {
         public Builder eventCount(int eventCount) { this.eventCount = eventCount; return this; }
         public Builder itemCount(int itemCount) { this.itemCount = itemCount; return this; }
         public Builder difficulties(List<DifficultyInfo> difficulties) { this.difficulties = difficulties; return this; }
+        public Builder characterTemplates(List<CharacterTemplateInfo> characterTemplates) { this.characterTemplates = characterTemplates; return this; }
+        public Builder classes(List<ClassInfo> classes) { this.classes = classes; return this; }
+        public Builder traits(List<TraitInfo> traits) { this.traits = traits; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
+        public Builder classCount(int classCount) { this.classCount = classCount; return this; }
+        public Builder characterTemplateCount(int characterTemplateCount) { this.characterTemplateCount = characterTemplateCount; return this; }
+        public Builder traitCount(int traitCount) { this.traitCount = traitCount; return this; }
 
         public StoryDetail build() {
             if (uuid == null || uuid.isBlank()) {

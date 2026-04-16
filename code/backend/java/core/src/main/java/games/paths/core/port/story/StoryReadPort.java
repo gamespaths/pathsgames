@@ -6,6 +6,10 @@ import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ClassEntity;
+import games.paths.core.entity.story.TraitEntity;
+import games.paths.core.entity.story.CardEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +17,9 @@ import java.util.Optional;
 /**
  * StoryReadPort - Outbound port for story persistence read operations.
  * Implemented by the persistence adapter to handle database reads.
+ *
+ * <p>Enhanced in Step 15 with category/group listing, filtering,
+ * and entity retrieval methods for character templates, classes, traits, and cards.</p>
  */
 public interface StoryReadPort {
 
@@ -60,4 +67,46 @@ public interface StoryReadPort {
      * Counts items for a story.
      */
     long countItemsByStoryId(Long storyId);
+
+    // === Step 15: Category and Group queries ===
+
+    /**
+     * Returns distinct category values for stories with the given visibility.
+     */
+    List<String> findDistinctCategoriesByVisibility(String visibility);
+
+    /**
+     * Returns distinct group values for stories with the given visibility.
+     */
+    List<String> findDistinctGroupsByVisibility(String visibility);
+
+    /**
+     * Finds stories filtered by category and visibility, ordered by priority descending.
+     */
+    List<StoryEntity> findStoriesByCategoryAndVisibility(String category, String visibility);
+
+    /**
+     * Finds stories filtered by group and visibility, ordered by priority descending.
+     */
+    List<StoryEntity> findStoriesByGroupAndVisibility(String group, String visibility);
+
+    /**
+     * Finds character templates for a story.
+     */
+    List<CharacterTemplateEntity> findCharacterTemplatesByStoryId(Long storyId);
+
+    /**
+     * Finds classes for a story.
+     */
+    List<ClassEntity> findClassesByStoryId(Long storyId);
+
+    /**
+     * Finds traits for a story.
+     */
+    List<TraitEntity> findTraitsByStoryId(Long storyId);
+
+    /**
+     * Finds a card by story ID and card primary key.
+     */
+    Optional<CardEntity> findCardByStoryIdAndCardId(Long storyId, Long cardId);
 }

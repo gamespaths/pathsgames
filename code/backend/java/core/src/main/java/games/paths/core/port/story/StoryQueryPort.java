@@ -9,6 +9,8 @@ import java.util.List;
  * StoryQueryPort - Inbound port for querying stories.
  * Part of the Hexagonal Architecture: this is a domain port
  * that the adapter-rest module will call to retrieve story data.
+ *
+ * <p>Enhanced in Step 15 with category/group listing and filtering methods.</p>
  */
 public interface StoryQueryPort {
 
@@ -36,4 +38,38 @@ public interface StoryQueryPort {
      * @return the story detail, or null if not found
      */
     StoryDetail getStoryByUuid(String uuid, String lang);
+
+    // === Step 15: Category and Group queries ===
+
+    /**
+     * Lists distinct categories of publicly visible stories.
+     *
+     * @return a list of category strings
+     */
+    List<String> listCategories();
+
+    /**
+     * Lists publicly visible stories filtered by category.
+     *
+     * @param category the category to filter by
+     * @param lang the language code for text resolution
+     * @return a list of matching story summaries
+     */
+    List<StorySummary> listStoriesByCategory(String category, String lang);
+
+    /**
+     * Lists distinct groups of publicly visible stories.
+     *
+     * @return a list of group strings
+     */
+    List<String> listGroups();
+
+    /**
+     * Lists publicly visible stories filtered by group.
+     *
+     * @param group the group to filter by
+     * @param lang the language code for text resolution
+     * @return a list of matching story summaries
+     */
+    List<StorySummary> listStoriesByGroup(String group, String lang);
 }

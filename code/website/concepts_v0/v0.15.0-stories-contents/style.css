@@ -1,0 +1,236 @@
+/* =============================================
+   PATHS GAMES — v0.15.0 — style.css
+   Medieval dark theme for story browser
+   ============================================= */
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-card: #0f3460;
+  --gold: #d4a437;
+  --gold-light: #f0d68a;
+  --text-primary: #e0e0e0;
+  --text-muted: #a0a0b0;
+  --accent: #e94560;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+}
+
+/* ══════ NAVBAR ══════ */
+.navbar-medieval {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 1.5rem;
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border-bottom: 2px solid var(--gold);
+}
+
+.navbar-brand {
+  color: var(--gold);
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.navbar-brand:hover { color: var(--gold-light); }
+
+.nav-info {
+  margin-left: auto;
+}
+
+/* ══════ CONFIG BAR ══════ */
+.config-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.config-bar label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.config-bar .form-control,
+.config-bar .form-select {
+  background: var(--bg-secondary);
+  border-color: var(--gold);
+  color: var(--text-primary);
+  max-width: 300px;
+}
+
+.config-bar .form-select { max-width: 120px; }
+
+/* ══════ TABS ══════ */
+.nav-tabs-medieval {
+  border-bottom-color: var(--gold);
+}
+
+.nav-tabs-medieval .nav-link {
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.nav-tabs-medieval .nav-link:hover {
+  color: var(--gold-light);
+  border-color: var(--gold) var(--gold) transparent;
+}
+
+.nav-tabs-medieval .nav-link.active {
+  color: var(--gold);
+  background: var(--bg-secondary);
+  border-color: var(--gold) var(--gold) var(--bg-secondary);
+  font-weight: 600;
+}
+
+/* ══════ PAGE ══════ */
+.page-wrap {
+  padding: 1rem 1.5rem;
+}
+
+.section-title {
+  color: var(--gold);
+  border-bottom: 1px solid var(--gold);
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.8rem;
+  font-size: 1rem;
+}
+
+/* ══════ SIDEBAR LIST ══════ */
+.list-group-item {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: rgba(212, 164, 55, 0.2);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.list-group-item:hover {
+  background: var(--bg-card);
+  color: var(--gold-light);
+}
+
+.list-group-item.active {
+  background: var(--bg-card);
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* ══════ STORY CARDS ══════ */
+.story-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(212, 164, 55, 0.3);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.story-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--gold);
+}
+
+.story-card .card-title {
+  color: var(--gold-light);
+  font-size: 0.95rem;
+}
+
+.story-card .card-text {
+  font-size: 0.8rem;
+  max-height: 3em;
+  overflow: hidden;
+}
+
+/* ══════ MODAL ══════ */
+.modal-medieval {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--gold);
+}
+
+.modal-medieval .modal-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--gold);
+}
+
+.modal-medieval .modal-title {
+  color: var(--gold);
+}
+
+.modal-medieval .modal-body {
+  background: var(--bg-primary);
+}
+
+/* ══════ DETAIL SECTIONS ══════ */
+.stat-box {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(212, 164, 55, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.8rem;
+}
+
+.stat-box .stat {
+  padding: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+.stat-box .stat i {
+  color: var(--gold);
+  width: 1.5rem;
+  text-align: center;
+}
+
+.detail-section {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(212, 164, 55, 0.2);
+}
+
+.detail-section h6 {
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.card-info-box {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  background: var(--bg-secondary);
+  padding: 0.8rem;
+  border-radius: 0.4rem;
+}
+
+.card-img-preview {
+  max-width: 120px;
+  max-height: 80px;
+  border-radius: 0.3rem;
+  object-fit: cover;
+}
+
+/* ══════ DARK TABLE OVERRIDES ══════ */
+.table-dark {
+  --bs-table-bg: var(--bg-secondary);
+  --bs-table-border-color: rgba(212, 164, 55, 0.2);
+}
+
+.table-dark th {
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.table-dark td {
+  font-size: 0.85rem;
+}

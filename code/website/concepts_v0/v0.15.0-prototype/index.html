@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — v0.15.0 Prototype (API Stories)</title>
+  <meta name="description" content="Paths Games v0.15.0 prototype: story catalog loaded from backend API, locations/actions/choices from static JSON." />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Reuse main site styles -->
+  <link rel="stylesheet" href="../../html/variables.css" />
+  <link rel="stylesheet" href="../../html/style.css" />
+  <!-- Prototype-specific overrides -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar-medieval">
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-dice-d20 me-2"></i>Paths Games
+    </a>
+    <div class="nav-links align-right">
+      <button class="nav-user-btn" id="btn-prototype" title="This is only a prototype!">
+        <i class="fas fa-flask"></i>
+        <span class="nav-user-label">v0.15 Prototype</span>
+      </button>
+    </div>
+    <div class="nav-user">
+
+
+      <button class="nav-user-btn" id="btn-user" title="Login or continue as guest">
+        <i class="fas fa-user-circle"></i>
+        <span class="nav-user-label">Guest</span>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- ═══════════════ GAME BAR ═══════════════ -->
+  <div class="game-bar" id="game-bar" style="display:none;">
+    <span class="game-bar-title" id="game-bar-title">—</span>
+    <button class="game-bar-btn" id="btn-map" title="Map"><i class="fas fa-map-marked-alt me-1"></i>Map</button>
+    <button class="game-bar-btn" id="btn-journal" title="Journal"><i class="fas fa-book me-1"></i>Journal</button>
+  </div>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="page-wrap">
+
+    <!-- CROWDFUNDING BANNER -->
+    <section class="crowdfund-section" id="crowdfund">
+      <h2 class="crowdfund-title">Crowdfunding Coming Soon</h2>
+      <p class="crowdfund-desc">A new <strong>free-to-play</strong> adventure inspired by classic gamebooks but reimagined with modern mechanics and branching narratives.</p>
+      <div class="crowdfund-badges">
+        <span class="crowdfund-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
+        <span class="crowdfund-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
+      </div>
+    </section>
+
+    <!-- STORY CATALOG -->
+    <section class="story-catalog" id="story-catalog">
+      <div class="catalog-loading" id="catalog-loading">
+        <i class="fas fa-spinner fa-spin fa-2x"></i>
+        <p>Loading stories from API…</p>
+      </div>
+    </section>
+
+    <!-- WORLD SECTION — Active game area -->
+    <div class="world-row" id="world" style="display:none;">
+      <!-- Cards rendered dynamically by main.js -->
+      <div class="player-bar" id="player-bar">
+        <span class="player-bar-name"><i class="fas fa-user me-1"></i>Guest</span>
+        <div class="player-bar-stats">
+          <span class="player-stat"><i class="fas fa-heart me-1"></i><span class="player-stat-val" id="stat-hp">100</span>&nbsp;HP</span>
+          <span class="player-stat"><i class="fas fa-bolt me-1"></i><span class="player-stat-val" id="stat-energy">80</span>&nbsp;Energy</span>
+          <span class="player-stat"><i class="fas fa-shield-alt me-1"></i><span class="player-stat-val" id="stat-armor">60</span>&nbsp;Armor</span>
+        </div>
+        <button class="game-bar-btn" id="btn-inventory"><i class="fas fa-box-open me-1"></i>Inventory</button>
+      </div>
+    </div>
+
+  </main>
+
+
+  
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="medieval-footer" id="footer">
+    <div class="footer-inner">
+      <div class="footer-links-row">
+        <span class="footer-brand-sm"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
+      </div>
+      <div class="footer-links-row">
+        <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="footer-icon-link" title="GitHub">
+          <i class="fab fa-github"></i><span>GitHub</span>
+        </a>
+        <a href="https://github.com/gamespaths/pathsgames/blob/main/ROADMAP.md" class="footer-icon-link" title="Roadmap">
+          <i class="fas fa-scroll"></i><span>Roadmap</span>
+        </a>
+      </div>
+      <div class="footer-copy">
+        <span class="gold-light">Paths Games v<span>0.15.0-prototype</span></span> © 2026 All rights reserved ·
+        Crafted with <i class="fas fa-heart"></i> by the Paths Games Dev Team
+      </div>
+    </div>
+
+
+  </footer>
+  <!-- ═══════════════ API CONFIG BAR ═══════════════ -->
+  <div class="api-config-bar" id="api-config-bar">
+    <div class="api-config-inner">
+      <button class="api-config-toggle" id="btn-toggle-config" title="Toggle API Config">
+        <i class="fas fa-cog me-1"></i>API Config
+      </button>
+      <div class="api-config-fields" id="api-config-fields" style="display:none;">
+        <label for="api-base">Base URL:</label>
+        <input type="text" id="api-base" value="http://localhost:8042/api" class="api-config-input" />
+        <label for="lang-select">Lang:</label>
+        <select id="lang-select" class="api-config-select">
+          <option value="en" selected>EN</option>
+          <option value="it">IT</option>
+          <option value="fr">FR</option>
+        </select>
+        <button class="api-config-btn" id="btn-reload-api" title="Reload stories from API">
+          <i class="fas fa-sync-alt me-1"></i>Reload
+        </button>
+        <span class="api-status" id="api-status">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ STORY PREVIEW MODAL ═══════════════ -->
+  <div class="modal fade story-preview-modal" id="storyPreviewModal" tabindex="-1" aria-labelledby="storyPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="storyPreviewModalLabel">
+            <i class="fas fa-scroll me-2"></i><span id="preview-modal-title">Story</span>
+          </h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body story-preview-body" id="story-preview-body">
+          <!-- Rendered dynamically by main.js -->
+        </div>
+        <div class="modal-footer story-preview-footer">
+          <button class="story-preview-play-btn" id="btn-preview-play">
+            <i class="fas fa-play me-2"></i>Start Adventure
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CARD DETAIL MODAL ═══════════════ -->
+  <div class="modal fade" id="cardDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div id="card-detail-inner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TERMS OF SERVICE MODAL ═══════════════ -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-scroll me-2"></i>Terms of Service</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>By accessing and using <strong>Paths Games</strong> (© paths.games) you agree to the following terms.</p>
+          <p><strong>Use of Content:</strong> All game content, stories, artwork and code are the intellectual property of Paths Games unless otherwise stated.</p>
+          <p><strong>Disclaimer:</strong> The game is provided "as-is" during the development phase. Features may change without notice.</p>
+          <p class="text-muted" style="font-size:0.8rem;">Last updated: April 2026</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ COPYRIGHT INFO MODAL ═══════════════ -->
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>Copyright Info</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+          <p style="font-size:2.5rem;">&#9760;</p>
+          <p>All stories, artwork and game content are<br/><strong>&copy; paths.games 2026</strong><br/>All rights reserved.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="story-preview-play-btn" data-bs-dismiss="modal"><i class="fas fa-arrow-left me-2"></i>Go Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./stories.js"></script>
+  <script src="./main.js"></script>
+
+</body>
+</html>

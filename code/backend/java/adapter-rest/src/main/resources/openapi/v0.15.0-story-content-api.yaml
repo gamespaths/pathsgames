@@ -1,0 +1,670 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Story Content API (Categories & Groups)
+  description: |
+    OpenAPI specification for Step 15: Story Content APIs — Categories and Groups.
+
+    Adds four new public endpoints for browsing stories by category and group,
+    and enriches the existing story detail endpoint with character templates,
+    classes, traits, entity counts, and card information.
+
+    **New public endpoints** (no authentication required):
+    - `GET /api/stories/categories` — list distinct story categories
+    - `GET /api/stories/category/{category}` — list stories filtered by category
+    - `GET /api/stories/groups` — list distinct story groups
+    - `GET /api/stories/group/{group}` — list stories filtered by group
+
+    **Enhanced endpoint**:
+    - `GET /api/stories/{uuid}` — now includes character templates, classes,
+      traits, entity counts, and card info in the response
+
+    **Text resolution**: Story titles, descriptions, and other text fields are stored
+    in a multi-language `list_texts` table. The `lang` query parameter selects the
+    preferred language; English (`en`) is the fallback when the requested language
+    is not available.
+  version: 0.15.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Story Categories
+    description: Browse stories by category
+  - name: Story Groups
+    description: Browse stories by group
+  - name: Stories
+    description: Public story catalogue — list and detail endpoints
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Category Endpoints
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/stories/categories:
+    get:
+      tags: [Story Categories]
+      summary: List distinct story categories
+      description: |
+        Returns a sorted list of distinct category values from all publicly
+        visible stories. Categories with `null` values are excluded.
+      operationId: listCategories
+      responses:
+        '200':
+          description: List of category strings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - "adventure"
+                - "horror"
+                - "mystery"
+                - "sci-fi"
+
+  /api/stories/category/{category}:
+    get:
+      tags: [Story Categories]
+      summary: List stories by category
+      description: |
+        Returns all publicly visible stories that match the given category,
+        ordered by priority descending. Text fields are resolved in the
+        requested language with English fallback.
+      operationId: listStoriesByCategory
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: The category to filter by
+          schema:
+            type: string
+            example: "adventure"
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+            example: en
+      responses:
+        '200':
+          description: List of story summaries matching the category
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorySummaryResponse'
+              example:
+                - uuid: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "The Lost Kingdom"
+                  description: "An adventure in a forgotten realm"
+                  author: "GameMaster"
+                  category: "adventure"
+                  group: "fantasy"
+                  visibility: "PUBLIC"
+                  priority: 5
+                  peghi: 2
+                  difficultyCount: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # Group Endpoints
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/stories/groups:
+    get:
+      tags: [Story Groups]
+      summary: List distinct story groups
+      description: |
+        Returns a sorted list of distinct group values from all publicly
+        visible stories. Groups with `null` values are excluded.
+      operationId: listGroups
+      responses:
+        '200':
+          description: List of group strings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - "dark"
+                - "fantasy"
+                - "future"
+
+  /api/stories/group/{group}:
+    get:
+      tags: [Story Groups]
+      summary: List stories by group
+      description: |
+        Returns all publicly visible stories that match the given group,
+        ordered by priority descending. Text fields are resolved in the
+        requested language with English fallback.
+      operationId: listStoriesByGroup
+      parameters:
+        - name: group
+          in: path
+          required: true
+          description: The group to filter by
+          schema:
+            type: string
+            example: "fantasy"
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+            example: en
+      responses:
+        '200':
+          description: List of story summaries matching the group
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StorySummaryResponse'
+              example:
+                - uuid: "550e8400-e29b-41d4-a716-446655440000"
+                  title: "The Lost Kingdom"
+                  description: "An adventure in a forgotten realm"
+                  author: "GameMaster"
+                  category: "adventure"
+                  group: "fantasy"
+                  visibility: "PUBLIC"
+                  priority: 5
+                  peghi: 2
+                  difficultyCount: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # Enhanced Story Detail Endpoint
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/stories/{uuid}:
+    get:
+      tags: [Stories]
+      summary: Get full story details (enhanced)
+      description: |
+        Returns the complete detail of a single story identified by UUID.
+        Enhanced in v0.15.0 to include character templates, classes, traits,
+        additional entity counts, and card information.
+      operationId: getStory
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: The UUID of the story
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: lang
+          in: query
+          required: false
+          description: Language code for text resolution (default "en")
+          schema:
+            type: string
+            default: en
+      responses:
+        '200':
+          description: Full story details with character templates, classes, traits, and card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryDetailResponse'
+              example:
+                uuid: "550e8400-e29b-41d4-a716-446655440000"
+                title: "The Lost Kingdom"
+                description: "An adventure in a forgotten realm"
+                author: "GameMaster"
+                category: "adventure"
+                group: "fantasy"
+                visibility: "PUBLIC"
+                priority: 5
+                peghi: 2
+                versionMin: "0.10"
+                versionMax: "1.0"
+                clockSingularDescription: "hour"
+                clockPluralDescription: "hours"
+                copyrightText: "© 2025 GameMaster"
+                linkCopyright: "https://example.com"
+                locationCount: 15
+                eventCount: 42
+                itemCount: 8
+                classCount: 3
+                characterTemplateCount: 2
+                traitCount: 5
+                difficulties:
+                  - uuid: "diff-easy-uuid"
+                    description: "Easy mode"
+                    expCost: 5
+                    maxWeight: 10
+                    minCharacter: 1
+                    maxCharacter: 4
+                    costHelpComa: 3
+                    costMaxCharacteristics: 3
+                    numberMaxFreeAction: 1
+                characterTemplates:
+                  - uuid: "ct-warrior-uuid"
+                    name: "Warrior"
+                    description: "A strong fighter"
+                    lifeMax: 20
+                    energyMax: 10
+                    sadMax: 5
+                    dexterityStart: 2
+                    intelligenceStart: 1
+                    constitutionStart: 3
+                classes:
+                  - uuid: "class-knight-uuid"
+                    name: "Knight"
+                    description: "A noble warrior"
+                    weightMax: 15
+                    dexterityBase: 2
+                    intelligenceBase: 1
+                    constitutionBase: 3
+                traits:
+                  - uuid: "trait-brave-uuid"
+                    name: "Brave"
+                    description: "Fearless in battle"
+                    costPositive: 2
+                    costNegative: 0
+                    idClassPermitted: null
+                    idClassProhibited: null
+                card:
+                  uuid: "card-main-uuid"
+                  imageUrl: "https://example.com/card.png"
+                  alternativeImage: "kingdom-icon"
+                  awesomeIcon: "fa-castle"
+                  styleMain: "bg-primary"
+                  styleDetail: "text-light"
+                  title: "The Lost Kingdom"
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "STORY_NOT_FOUND"
+                message: "No story found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+
+components:
+
+  schemas:
+
+    StorySummaryResponse:
+      type: object
+      description: Lightweight story listing entry for catalogue views
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique story identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          nullable: true
+          description: Resolved story title (language-dependent)
+          example: "The Lost Kingdom"
+        description:
+          type: string
+          nullable: true
+          description: Resolved story description
+          example: "An adventure in a forgotten realm"
+        author:
+          type: string
+          nullable: true
+          description: Story author name
+          example: "GameMaster"
+        category:
+          type: string
+          nullable: true
+          description: Story category
+          example: "adventure"
+        group:
+          type: string
+          nullable: true
+          description: Story group
+          example: "fantasy"
+        visibility:
+          type: string
+          nullable: true
+          description: Story visibility (PUBLIC, PRIVATE, DRAFT)
+          example: "PUBLIC"
+        priority:
+          type: integer
+          description: Display priority (higher = first)
+          example: 5
+        peghi:
+          type: integer
+          description: PEGHI age rating
+          example: 2
+        difficultyCount:
+          type: integer
+          description: Number of available difficulty levels
+          example: 3
+      required:
+        - uuid
+
+    StoryDetailResponse:
+      type: object
+      description: Full story details including difficulties, character templates, classes, traits, entity counts, and card
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        author:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        group:
+          type: string
+          nullable: true
+        visibility:
+          type: string
+          nullable: true
+        priority:
+          type: integer
+          example: 5
+        peghi:
+          type: integer
+          example: 2
+        versionMin:
+          type: string
+          nullable: true
+          description: Minimum supported game version
+          example: "0.10"
+        versionMax:
+          type: string
+          nullable: true
+          description: Maximum supported game version
+          example: "1.0"
+        clockSingularDescription:
+          type: string
+          nullable: true
+          example: "hour"
+        clockPluralDescription:
+          type: string
+          nullable: true
+          example: "hours"
+        copyrightText:
+          type: string
+          nullable: true
+        linkCopyright:
+          type: string
+          nullable: true
+        locationCount:
+          type: integer
+          description: Total number of locations
+          example: 15
+        eventCount:
+          type: integer
+          description: Total number of events
+          example: 42
+        itemCount:
+          type: integer
+          description: Total number of items
+          example: 8
+        classCount:
+          type: integer
+          description: Total number of classes
+          example: 3
+        characterTemplateCount:
+          type: integer
+          description: Total number of character templates
+          example: 2
+        traitCount:
+          type: integer
+          description: Total number of traits
+          example: 5
+        difficulties:
+          type: array
+          description: Available difficulty levels
+          items:
+            $ref: '#/components/schemas/DifficultyResponse'
+        characterTemplates:
+          type: array
+          description: Character templates available in the story
+          items:
+            $ref: '#/components/schemas/CharacterTemplateResponse'
+        classes:
+          type: array
+          description: Character classes available in the story
+          items:
+            $ref: '#/components/schemas/ClassInfoResponse'
+        traits:
+          type: array
+          description: Character traits available in the story
+          items:
+            $ref: '#/components/schemas/TraitInfoResponse'
+        card:
+          nullable: true
+          description: Visual card for the story
+          allOf:
+            - $ref: '#/components/schemas/CardInfoResponse'
+      required:
+        - uuid
+
+    DifficultyResponse:
+      type: object
+      description: Difficulty level details
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "diff-easy-uuid"
+        description:
+          type: string
+          nullable: true
+          example: "Easy mode"
+        expCost:
+          type: integer
+          example: 5
+        maxWeight:
+          type: integer
+          example: 10
+        minCharacter:
+          type: integer
+          example: 1
+        maxCharacter:
+          type: integer
+          example: 4
+        costHelpComa:
+          type: integer
+          example: 3
+        costMaxCharacteristics:
+          type: integer
+          example: 3
+        numberMaxFreeAction:
+          type: integer
+          example: 1
+
+    CharacterTemplateResponse:
+      type: object
+      description: Character template details
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "ct-warrior-uuid"
+        name:
+          type: string
+          nullable: true
+          description: Resolved template name
+          example: "Warrior"
+        description:
+          type: string
+          nullable: true
+          description: Resolved template description
+          example: "A strong fighter"
+        lifeMax:
+          type: integer
+          description: Maximum life points
+          example: 20
+        energyMax:
+          type: integer
+          description: Maximum energy points
+          example: 10
+        sadMax:
+          type: integer
+          description: Maximum sadness threshold
+          example: 5
+        dexterityStart:
+          type: integer
+          description: Starting dexterity value
+          example: 2
+        intelligenceStart:
+          type: integer
+          description: Starting intelligence value
+          example: 1
+        constitutionStart:
+          type: integer
+          description: Starting constitution value
+          example: 3
+
+    ClassInfoResponse:
+      type: object
+      description: Character class details
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "class-knight-uuid"
+        name:
+          type: string
+          nullable: true
+          description: Resolved class name
+          example: "Knight"
+        description:
+          type: string
+          nullable: true
+          description: Resolved class description
+          example: "A noble warrior"
+        weightMax:
+          type: integer
+          description: Maximum carry weight
+          example: 15
+        dexterityBase:
+          type: integer
+          description: Base dexterity modifier
+          example: 2
+        intelligenceBase:
+          type: integer
+          description: Base intelligence modifier
+          example: 1
+        constitutionBase:
+          type: integer
+          description: Base constitution modifier
+          example: 3
+
+    TraitInfoResponse:
+      type: object
+      description: Character trait details
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "trait-brave-uuid"
+        name:
+          type: string
+          nullable: true
+          description: Resolved trait name
+          example: "Brave"
+        description:
+          type: string
+          nullable: true
+          description: Resolved trait description
+          example: "Fearless in battle"
+        costPositive:
+          type: integer
+          description: Cost when trait is positive
+          example: 2
+        costNegative:
+          type: integer
+          description: Cost when trait is negative
+          example: 0
+        idClassPermitted:
+          type: integer
+          nullable: true
+          description: Class that is permitted to use this trait
+        idClassProhibited:
+          type: integer
+          nullable: true
+          description: Class that is prohibited from using this trait
+
+    CardInfoResponse:
+      type: object
+      description: Visual card information
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "card-main-uuid"
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to the card image
+          example: "https://example.com/card.png"
+        alternativeImage:
+          type: string
+          nullable: true
+          description: Alternative image identifier
+          example: "kingdom-icon"
+        awesomeIcon:
+          type: string
+          nullable: true
+          description: FontAwesome icon class
+          example: "fa-castle"
+        styleMain:
+          type: string
+          nullable: true
+          description: CSS style for the main card view
+          example: "bg-primary"
+        styleDetail:
+          type: string
+          nullable: true
+          description: CSS style for the detail card view
+          example: "text-light"
+        title:
+          type: string
+          nullable: true
+          description: Resolved card title
+          example: "The Lost Kingdom"
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: "STORY_NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "No story found with UUID: 550e8400-e29b-41d4-a716-446655440000"
+      required:
+        - error
+        - message

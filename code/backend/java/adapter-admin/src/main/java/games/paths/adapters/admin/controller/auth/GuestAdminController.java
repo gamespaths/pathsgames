@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.auth;
 
+import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.auth.GuestInfoResponse;
 import games.paths.adapters.admin.dto.auth.GuestStatsResponse;
 import games.paths.core.model.auth.GuestInfo;
@@ -68,8 +69,8 @@ public class GuestAdminController {
         GuestInfo guest = guestAdminPort.getGuestByUuid(uuid);
         if (guest == null) {
             Map<String, String> error = new LinkedHashMap<>();
-            error.put("error", "GUEST_NOT_FOUND");
-            error.put("message", "No guest user found with UUID: " + uuid);
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.GUEST_NOT_FOUND);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.GUEST_NOT_FOUND_WITH_UUID + uuid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
         return ResponseEntity.ok(toResponse(guest));
@@ -84,13 +85,13 @@ public class GuestAdminController {
         boolean deleted = guestAdminPort.deleteGuest(uuid);
         if (!deleted) {
             Map<String, String> error = new LinkedHashMap<>();
-            error.put("error", "GUEST_NOT_FOUND");
-            error.put("message", "No guest user found with UUID: " + uuid);
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.GUEST_NOT_FOUND);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.GUEST_NOT_FOUND_WITH_UUID + uuid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
         Map<String, String> result = new LinkedHashMap<>();
-        result.put("status", "DELETED");
-        result.put("uuid", uuid);
+        result.put(AdminConstant.KEY_STATUS, "DELETED");
+        result.put(AdminConstant.KEY_UUID, uuid);
         return ResponseEntity.ok(result);
     }
 
@@ -102,8 +103,8 @@ public class GuestAdminController {
     public ResponseEntity<Map<String, Object>> deleteExpiredGuests() {
         int deletedCount = guestAdminPort.deleteExpiredGuests();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", "CLEANUP_COMPLETE");
-        result.put("deletedCount", deletedCount);
+        result.put(AdminConstant.KEY_STATUS, "CLEANUP_COMPLETE");
+        result.put(AdminConstant.KEY_DELETED_COUNT, deletedCount);
         return ResponseEntity.ok(result);
     }
 

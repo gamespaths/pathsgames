@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Story Browser (v0.15.0)</title>
+  <meta name="description" content="Paths Games: browse stories by category and group" />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar-medieval">
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-dice-d20 me-2"></i>Paths Games
+    </a>
+    <div class="nav-info">
+      <span class="badge bg-secondary">v0.15.0 — Category &amp; Group Browser</span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="container-fluid page-wrap">
+
+    <!-- CONFIG BAR -->
+    <div class="config-bar">
+      <label for="api-base">API Base URL:</label>
+      <input type="text" id="api-base" value="http://localhost:8042/api" class="form-control form-control-sm" />
+      <label for="lang-select">Language:</label>
+      <select id="lang-select" class="form-select form-select-sm">
+        <option value="en" selected>English</option>
+        <option value="it">Italiano</option>
+        <option value="fr">Français</option>
+      </select>
+      <button class="btn btn-sm btn-outline-light" id="btn-refresh" title="Reload data">
+        <i class="fas fa-sync-alt"></i> Reload
+      </button>
+    </div>
+
+    <!-- TABS -->
+    <ul class="nav nav-tabs nav-tabs-medieval" id="mainTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-categories" data-bs-toggle="tab" data-bs-target="#pane-categories" type="button" role="tab">
+          <i class="fas fa-th-large me-1"></i>Categories
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-groups" data-bs-toggle="tab" data-bs-target="#pane-groups" type="button" role="tab">
+          <i class="fas fa-layer-group me-1"></i>Groups
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-all" data-bs-toggle="tab" data-bs-target="#pane-all" type="button" role="tab">
+          <i class="fas fa-scroll me-1"></i>All Stories
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+      <!-- CATEGORIES TAB -->
+      <div class="tab-pane fade show active" id="pane-categories" role="tabpanel">
+        <div class="row mt-3">
+          <div class="col-md-3">
+            <h5 class="section-title"><i class="fas fa-th-large me-1"></i>Categories</h5>
+            <div id="category-list" class="list-group list-group-flush"></div>
+          </div>
+          <div class="col-md-9">
+            <h5 class="section-title" id="category-stories-title">Select a category</h5>
+            <div id="category-stories" class="row g-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUPS TAB -->
+      <div class="tab-pane fade" id="pane-groups" role="tabpanel">
+        <div class="row mt-3">
+          <div class="col-md-3">
+            <h5 class="section-title"><i class="fas fa-layer-group me-1"></i>Groups</h5>
+            <div id="group-list" class="list-group list-group-flush"></div>
+          </div>
+          <div class="col-md-9">
+            <h5 class="section-title" id="group-stories-title">Select a group</h5>
+            <div id="group-stories" class="row g-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL STORIES TAB -->
+      <div class="tab-pane fade" id="pane-all" role="tabpanel">
+        <div class="row mt-3">
+          <div class="col-12">
+            <h5 class="section-title"><i class="fas fa-scroll me-1"></i>All Public Stories</h5>
+            <div id="all-stories" class="row g-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORY DETAIL MODAL -->
+    <div class="modal fade" id="storyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content modal-medieval">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal-title">Story Detail</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="modal-body">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

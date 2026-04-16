@@ -10,37 +10,23 @@
 ## Documentation
 Documents includes all steps and the roadmap for create paths.games components, configuration parameters and lists of features reserved for futures versions.
 
-- [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*, check [developer branch](https://github.com/gamespaths/pathsgames/) for all updates:
-    | Steps | Focus | 
-    | --- | --- |
-    | **Start project** <br /> Steps 1-13| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) <br />- ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) |
-    | **Single player** <br /> Steps 14-42 |- ✅ [Stories magement and import](./documentation_v0/Step14_StoriesImportSystem.md) <br />Guest login, story management, start match, ... |
-    | **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
-    | **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 
-- Version 1: 
-    - Start the crowfouning campaign  & Tutorial & Hints
-    - Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
-    - Campains: implents multiple-stories connection and global registry
 
-- Version 2: 
-    - NPCs & Entities & Group Rituals 
-    - Anti-Spam Logic (Fatigue)
-    - Game-engine feature: combact system & open world system
-
-- Version 3: 
-    - Permadeath & Game Over & Silent Events
-    - Mobile version integrated with Google play with Android App and
-    - Desktop application integrated with Steam & Debian package
-
-- Version 4
-    - Timed Missions & Voting System
-    - Noise & Stealth & Multi-Value Registry
-    - Update graphical system with advanced game-engine
-
-- Version 42:
-    - *Life, the Universe and Everything*
-    - *To Boldly Go Where No Man Has Gone Before*
+| Version | Steps | Focus | 
+| --- | --- | --- |
+| 0 | 📝 **Start project** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) & [Technology stack](./documentation_v0/Step04_TechnologyStack.md) <br />- ✅ [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) & [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design core data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB schema](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
+| 0.15 | 🛠️ **Current version** | - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) <br />- ✅ [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) & [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
+| 0.42 | 🧑‍🔬 **Single player** <br /> Steps 12-42 |  Single player game engine and website prototype |
+| 0.84 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
+| 1 | 🏁 **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
+| 1.1 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
+| 1.2 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
+| 2 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
+| 3 | 🤖 Game engine | Permadeath & Game Over & Silent Events | 
+| 4 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
+| 5 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
+| 42 | 📡 | *Life, the Universe and Everything*| 
+| 84 | 🛰️ | *To Boldly Go Where No Man Has Gone Before* |
 
 
 ## Tecnical components
@@ -75,7 +61,7 @@ Documents includes all steps and the roadmap for create paths.games components, 
             -e SPRING_PROFILES_ACTIVE=prod   \
             -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
             -e SPRING_DATASOURCE_USERNAME=dbuser   \
-            -e SPRING_DATASOURCE_PASSWORD=dbpass   \
+            -e SPRING_DATASOURCE_PASSWORD=dbpass   \    
             pathsgames/pathsgames:latest
         ```
     - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend/python/README.md) for all details.

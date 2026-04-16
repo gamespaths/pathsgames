@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.story;
 
+import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
 import games.paths.core.model.story.StoryImportResult;
@@ -47,8 +48,8 @@ public class StoryAdminController {
     public ResponseEntity<Object> importStory(@RequestBody Map<String, Object> storyData) {
         if (storyData == null || storyData.isEmpty()) {
             Map<String, String> error = new LinkedHashMap<>();
-            error.put("error", "EMPTY_IMPORT_DATA");
-            error.put("message", "Request body must contain story data");
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.EMPTY_IMPORT_DATA);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.EMPTY_IMPORT_DATA_MESSAGE);
             return ResponseEntity.badRequest().body(error);
         }
 
@@ -67,8 +68,8 @@ public class StoryAdminController {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new LinkedHashMap<>();
-            error.put("error", "INVALID_IMPORT_DATA");
-            error.put("message", e.getMessage());
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.INVALID_IMPORT_DATA);
+            error.put(AdminConstant.KEY_MESSAGE, e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }
@@ -100,13 +101,13 @@ public class StoryAdminController {
         boolean deleted = storyImportPort.deleteStory(uuid);
         if (!deleted) {
             Map<String, String> error = new LinkedHashMap<>();
-            error.put("error", "STORY_NOT_FOUND");
-            error.put("message", "No story found with UUID: " + uuid);
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.STORY_NOT_FOUND);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.STORY_NOT_FOUND_WITH_UUID + uuid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
         Map<String, String> result = new LinkedHashMap<>();
-        result.put("status", "DELETED");
-        result.put("uuid", uuid);
+        result.put(AdminConstant.KEY_STATUS, "DELETED");
+        result.put(AdminConstant.KEY_UUID, uuid);
         return ResponseEntity.ok(result);
     }
 }

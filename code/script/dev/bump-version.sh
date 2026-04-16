@@ -8,10 +8,16 @@
 set -e
 
 # ── Calcola la root del workspace (la cartella sopra .alnao)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(dirname "$SCRIPT_DIR")"
+#SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-PARENT_POM="$ROOT/code/backend/java/pom.xml"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+echo "Project root folder: $PROJECT_ROOT"
+
+ROOT="$(dirname "$PROJECT_ROOT")"
+ROOT=$PROJECT_ROOT          # <------------------ TODO Rivedere se serve o se è più chiaro usare PROJECT_ROOT direttamente, visto che è già la root del workspace
+echo "Workspace root: $ROOT"
+
+PARENT_POM="$PROJECT_ROOT/code/backend/java/pom.xml"
 
 # ── Legge la versione corrente dal pom.xml padre (rimuove il suffisso -SNAPSHOT)
 CURRENT=$(grep -m1 '<version>' "$PARENT_POM" | sed 's|.*<version>\(.*\)-SNAPSHOT</version>.*|\1|')

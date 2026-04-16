@@ -1,0 +1,288 @@
+.source-tag {display: none !important;}
+.option-stats{display: none !important;}
+/* =============================================
+   PATHS GAMES — v0.15.0-prototype — style.css
+   Prototype-specific overrides.
+   Base styles imported from ../../html/variables.css
+   and ../../html/style.css via index.html.
+   ============================================= */
+
+/* ═══════════════════════════════════════════
+   API CONFIG BAR
+   ═══════════════════════════════════════════ */
+.api-config-bar {
+  background: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  border-bottom: 1px solid var(--color-gold-dark);
+  padding: 0.4rem 1.5rem;
+  position: sticky;
+  top: 56px;
+  z-index: 998;
+}
+.api-config-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.api-config-toggle {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(200,150,10,0.3);
+  border-radius: 5px;
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+.api-config-toggle:hover {
+  background: rgba(0,0,0,0.45);
+  color: var(--color-gold-shine);
+}
+.api-config-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.api-config-fields label {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  white-space: nowrap;
+}
+.api-config-input {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--color-gold-light);
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(200,150,10,0.3);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  width: 280px;
+}
+.api-config-input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 0 0 6px rgba(232,184,48,0.3);
+}
+.api-config-select {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  color: var(--color-gold-light);
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(200,150,10,0.3);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+}
+.api-config-select option {
+  background: #1a0a02;
+  color: var(--color-gold-light);
+}
+.api-config-btn {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(200,150,10,0.3);
+  border-radius: 5px;
+  padding: 0.25rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+.api-config-btn:hover {
+  background: rgba(0,0,0,0.45);
+  color: var(--color-gold-shine);
+  box-shadow: 0 0 8px rgba(232,184,48,0.3);
+}
+.api-status {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.api-ok {
+  color: #2ecc71;
+  background: rgba(46,204,113,0.12);
+  border: 1px solid rgba(46,204,113,0.3);
+}
+.api-err {
+  color: #e74c3c;
+  background: rgba(231,76,60,0.12);
+  border: 1px solid rgba(231,76,60,0.3);
+}
+
+/* ═══════════════════════════════════════════
+   DATA SOURCE BADGE
+   ═══════════════════════════════════════════ */
+.data-source-badge {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--color-gold);
+  padding: 0.5rem 0 0.2rem;
+  opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════════
+   SOURCE TAGS ON CATALOG CARDS
+   ═══════════════════════════════════════════ */
+.source-tag {
+  display: block;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-top: 1px solid rgba(200,150,10,0.1);
+}
+.source-api {
+  color: #2ecc71;
+  background: rgba(46,204,113,0.08);
+}
+.source-static {
+  color: #e67e22;
+  background: rgba(230,126,34,0.08);
+}
+
+/* ═══════════════════════════════════════════
+   CATALOG LOADING SPINNER
+   ═══════════════════════════════════════════ */
+.catalog-loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+.catalog-loading i {
+  color: var(--color-gold-light);
+  margin-bottom: 0.5rem;
+}
+.catalog-loading p {
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════
+   API DETAIL BADGES (in story preview)
+   ═══════════════════════════════════════════ */
+.api-detail-loading {
+  text-align: center;
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  padding: 1rem 0;
+  opacity: 0.7;
+}
+.api-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-top: 1.2rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(200,150,10,0.15);
+}
+.api-detail-title {
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2ecc71;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.2rem;
+}
+.api-badge {
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(200,150,10,0.25);
+  border-radius: 4px;
+  padding: 0.18rem 0.5rem;
+  white-space: nowrap;
+}
+.api-badge i {
+  color: var(--color-gold);
+  font-size: 0.6rem;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE — API config bar
+   ═══════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   OPTION CARD SUBTITLE & STATS (API data)
+   ═══════════════════════════════════════════ */
+.option-subtitle {
+  font-family: var(--font-body, sans-serif);
+  font-size: 0.68rem;
+  color: var(--color-gold, #d4a84a);
+  text-align: center;
+  padding: 0.15rem 0.5rem;
+  line-height: 1.3;
+  opacity: 0.85;
+  max-height: 2.8em;
+  overflow: hidden;
+}
+.option-stats {
+  font-family: 'Courier New', monospace;
+  font-size: 0.58rem;
+  color: var(--color-gold-light, #f5e2a0);
+  text-align: center;
+  padding: 0.1rem 0.4rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+  margin: 0.15rem 0.4rem;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .api-config-bar {
+    top: 48px;
+  }
+  .api-config-input {
+    width: 180px;
+  }
+}
+@media (max-width: 600px) {
+  .api-config-bar {
+    top: 42px;
+    padding: 0.3rem 0.6rem;
+  }
+  .api-config-fields {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  .api-config-input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+    .crowdfund-badge:has(.fa-code-branch) {display: none !important;}
+}

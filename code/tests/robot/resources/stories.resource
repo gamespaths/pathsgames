@@ -66,6 +66,39 @@ Story Detail Should Have Required Fields
     Dictionary Should Contain Key    ${body}    locationCount
     Dictionary Should Contain Key    ${body}    eventCount
     Dictionary Should Contain Key    ${body}    itemCount
+    # Step 15 additions
+    Dictionary Should Contain Key    ${body}    classCount
+    Dictionary Should Contain Key    ${body}    characterTemplateCount
+    Dictionary Should Contain Key    ${body}    traitCount
+    Dictionary Should Contain Key    ${body}    characterTemplates
+    Dictionary Should Contain Key    ${body}    classes
+    Dictionary Should Contain Key    ${body}    traits
+
+Get Story Categories
+    [Documentation]    Calls GET /api/stories/categories. Returns the response.
+    ${response}=    GET On Session    public_session    /api/stories/categories
+    RETURN    ${response}
+
+Get Stories By Category
+    [Documentation]    Calls GET /api/stories/category/{category}. Returns the response.
+    [Arguments]    ${category}    ${lang}=${DEFAULT_LANG}
+    ${params}=    Create Dictionary    lang=${lang}
+    ${response}=    GET On Session    public_session    /api/stories/category/${category}
+    ...    params=${params}    expected_status=any
+    RETURN    ${response}
+
+Get Story Groups
+    [Documentation]    Calls GET /api/stories/groups. Returns the response.
+    ${response}=    GET On Session    public_session    /api/stories/groups
+    RETURN    ${response}
+
+Get Stories By Group
+    [Documentation]    Calls GET /api/stories/group/{group}. Returns the response.
+    [Arguments]    ${group}    ${lang}=${DEFAULT_LANG}
+    ${params}=    Create Dictionary    lang=${lang}
+    ${response}=    GET On Session    public_session    /api/stories/group/${group}
+    ...    params=${params}    expected_status=any
+    RETURN    ${response}
 
 Import Story From File
     [Documentation]    Calls POST /api/admin/stories/import with the given JSON file content.

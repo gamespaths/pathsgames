@@ -4,6 +4,9 @@ import java.util.List;
 
 /**
  * StoryDetailResponse - REST response DTO for full story details.
+ *
+ * <p>Enhanced in Step 15 with character templates, classes, traits,
+ * entity counts, and card info.</p>
  */
 public class StoryDetailResponse {
 
@@ -25,7 +28,14 @@ public class StoryDetailResponse {
     private int locationCount;
     private int eventCount;
     private int itemCount;
+    private int classCount;
+    private int characterTemplateCount;
+    private int traitCount;
     private List<DifficultyResponse> difficulties;
+    private List<CharacterTemplateResponse> characterTemplates;
+    private List<ClassInfoResponse> classes;
+    private List<TraitInfoResponse> traits;
+    private CardInfoResponse card;
 
     public StoryDetailResponse() {}
 
@@ -83,6 +93,27 @@ public class StoryDetailResponse {
     public int getItemCount() { return itemCount; }
     public void setItemCount(int itemCount) { this.itemCount = itemCount; }
 
+    public int getClassCount() { return classCount; }
+    public void setClassCount(int classCount) { this.classCount = classCount; }
+
+    public int getCharacterTemplateCount() { return characterTemplateCount; }
+    public void setCharacterTemplateCount(int characterTemplateCount) { this.characterTemplateCount = characterTemplateCount; }
+
+    public int getTraitCount() { return traitCount; }
+    public void setTraitCount(int traitCount) { this.traitCount = traitCount; }
+
     public List<DifficultyResponse> getDifficulties() { return difficulties; }
     public void setDifficulties(List<DifficultyResponse> difficulties) { this.difficulties = difficulties; }
+
+    public List<CharacterTemplateResponse> getCharacterTemplates() { return characterTemplates; }
+    public void setCharacterTemplates(List<CharacterTemplateResponse> characterTemplates) { this.characterTemplates = characterTemplates; }
+
+    public List<ClassInfoResponse> getClasses() { return classes; }
+    public void setClasses(List<ClassInfoResponse> classes) { this.classes = classes; }
+
+    public List<TraitInfoResponse> getTraits() { return traits; }
+    public void setTraits(List<TraitInfoResponse> traits) { this.traits = traits; }
+
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
 }

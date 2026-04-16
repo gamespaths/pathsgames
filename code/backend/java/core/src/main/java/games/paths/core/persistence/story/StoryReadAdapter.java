@@ -13,6 +13,9 @@ import java.util.Optional;
 /**
  * StoryReadAdapter - Database adapter for story read operations.
  * Uses Spring Data JPA repositories for all persistence reads.
+ *
+ * <p>Enhanced in Step 15 with category/group listing, filtering,
+ * and entity retrieval for character templates, classes, traits, and cards.</p>
  */
 @Repository
 @Transactional(readOnly = true)
@@ -24,6 +27,10 @@ public class StoryReadAdapter implements StoryReadPort {
     private final LocationRepository locationRepository;
     private final EventRepository eventRepository;
     private final ItemRepository itemRepository;
+    private final CharacterTemplateRepository characterTemplateRepository;
+    private final ClassRepository classRepository;
+    private final TraitRepository traitRepository;
+    private final CardRepository cardRepository;
 
     public StoryReadAdapter(
             StoryRepository storyRepository,
@@ -31,13 +38,21 @@ public class StoryReadAdapter implements StoryReadPort {
             TextRepository textRepository,
             LocationRepository locationRepository,
             EventRepository eventRepository,
-            ItemRepository itemRepository) {
+            ItemRepository itemRepository,
+            CharacterTemplateRepository characterTemplateRepository,
+            ClassRepository classRepository,
+            TraitRepository traitRepository,
+            CardRepository cardRepository) {
         this.storyRepository = storyRepository;
         this.difficultyRepository = difficultyRepository;
         this.textRepository = textRepository;
         this.locationRepository = locationRepository;
         this.eventRepository = eventRepository;
         this.itemRepository = itemRepository;
+        this.characterTemplateRepository = characterTemplateRepository;
+        this.classRepository = classRepository;
+        this.traitRepository = traitRepository;
+        this.cardRepository = cardRepository;
     }
 
     @Override
@@ -84,5 +99,47 @@ public class StoryReadAdapter implements StoryReadPort {
     @Override
     public long countItemsByStoryId(Long storyId) {
         return itemRepository.findByIdStory(storyId).size();
+    }
+
+    // === Step 15: Category and Group queries ===
+
+    @Override
+    public List<String> findDistinctCategoriesByVisibility(String visibility) {
+        return storyRepository.findDistinctCategoriesByVisibility(visibility);
+    }
+
+    @Override
+    public List<String> findDistinctGroupsByVisibility(String visibility) {
+        return storyRepository.findDistinctGroupsByVisibility(visibility);
+    }
+
+    @Override
+    public List<StoryEntity> findStoriesByCategoryAndVisibility(String category, String visibility) {
+        return storyRepository.findByCategoryAndVisibilityOrderByPriorityDesc(category, visibility);
+    }
+
+    @Override
+    public List<StoryEntity> findStoriesByGroupAndVisibility(String group, String visibility) {
+        return storyRepository.findByGroupAndVisibilityOrderByPriorityDesc(group, visibility);
+    }
+
+    @Override
+    public List<CharacterTemplateEntity> findCharacterTemplatesByStoryId(Long storyId) {
+        return characterTemplateRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public List<ClassEntity> findClassesByStoryId(Long storyId) {
+        return classRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public List<TraitEntity> findTraitsByStoryId(Long storyId) {
+        return traitRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<CardEntity> findCardByStoryIdAndCardId(Long storyId, Long cardId) {
+        return cardRepository.findByIdStoryAndId(storyId, cardId);
     }
 }
