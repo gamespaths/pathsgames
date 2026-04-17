@@ -1,6 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional
 from app.core.models.story.difficulty_info import DifficultyInfo
+from app.core.models.story.character_template_info import CharacterTemplateInfo
+from app.core.models.story.class_info import ClassInfo
+from app.core.models.story.trait_info import TraitInfo
+from app.core.models.story.card_info import CardInfo
 
 @dataclass
 class StoryDetail:
@@ -26,6 +30,7 @@ class StoryDetail:
     characterTemplateCount: int = 0
     traitCount: int = 0
     difficulties: List[DifficultyInfo] = field(default_factory=list)
-    characterTemplates: list = field(default_factory=list)
-    classes: list = field(default_factory=list)
-    traits: list = field(default_factory=list)
+    characterTemplates: List[CharacterTemplateInfo] = field(default_factory=list)
+    classes: List[ClassInfo] = field(default_factory=list)
+    traits: List[TraitInfo] = field(default_factory=list)
+    card: Optional[CardInfo] = None

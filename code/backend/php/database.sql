@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS list_stories (
     clock_plural VARCHAR(100) DEFAULT NULL,
     link_copyright VARCHAR(500) DEFAULT NULL,
     id_story BIGINT DEFAULT NULL,
+    id_card BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_title BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
@@ -170,9 +171,14 @@ CREATE TABLE IF NOT EXISTS list_items_effects (
 
 CREATE TABLE IF NOT EXISTS list_classes (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
+    weight_max INT DEFAULT 10,
+    dexterity_base INT DEFAULT 1,
+    intelligence_base INT DEFAULT 1,
+    constitution_base INT DEFAULT 1,
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -225,11 +231,17 @@ CREATE TABLE IF NOT EXISTS list_choices_effects (
 
 CREATE TABLE IF NOT EXISTS list_cards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
     card_type VARCHAR(50) DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
+    id_text_title BIGINT DEFAULT NULL,
     image_url VARCHAR(500) DEFAULT NULL,
+    alternative_image TEXT DEFAULT NULL,
+    awesome_icon VARCHAR(100) DEFAULT NULL,
+    style_main VARCHAR(100) DEFAULT NULL,
+    style_detail VARCHAR(100) DEFAULT NULL,
     id_reference BIGINT DEFAULT NULL,
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -247,25 +259,30 @@ CREATE TABLE IF NOT EXISTS list_keys (
 
 CREATE TABLE IF NOT EXISTS list_traits (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
-    cost INT DEFAULT NULL,
-    id_class BIGINT DEFAULT NULL,
+    cost_positive INT DEFAULT 0,
+    cost_negative INT DEFAULT 0,
+    id_class_permitted BIGINT DEFAULT NULL,
+    id_class_prohibited BIGINT DEFAULT NULL,
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_character_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_tipo BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
-    base_des INT DEFAULT 0,
-    base_int INT DEFAULT 0,
-    base_cos INT DEFAULT 0,
-    base_energy INT DEFAULT 0,
-    base_life INT DEFAULT 0,
+    life_max INT DEFAULT 10,
+    energy_max INT DEFAULT 10,
+    sad_max INT DEFAULT 10,
+    dexterity_start INT DEFAULT 1,
+    intelligence_start INT DEFAULT 1,
+    constitution_start INT DEFAULT 1,
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

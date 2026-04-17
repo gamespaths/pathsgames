@@ -61,3 +61,7 @@ class StoryReadPort(ABC):
     @abstractmethod
     def find_traits_for_story(self, story_id: int) -> List[Dict[str, Any]]:
         pass
+
+    @abstractmethod
+    def find_card_for_story(self, story_id: int, card_id: int) -> Optional[Dict[str, Any]]:
+        pass

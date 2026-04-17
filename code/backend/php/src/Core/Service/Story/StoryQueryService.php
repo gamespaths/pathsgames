@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Games\Paths\Core\Service\Story;
 
+use Games\Paths\Core\Domain\Story\CardInfo;
+use Games\Paths\Core\Domain\Story\CharacterTemplateInfo;
+use Games\Paths\Core\Domain\Story\ClassInfo;
 use Games\Paths\Core\Domain\Story\DifficultyInfo;
 use Games\Paths\Core\Domain\Story\StoryDetail;
 use Games\Paths\Core\Domain\Story\StorySummary;
+use Games\Paths\Core\Domain\Story\TraitInfo;
 use Games\Paths\Core\Port\Story\StoryQueryPort;
 use Games\Paths\Core\Port\Story\StoryReadPort;
 
@@ -28,6 +32,28 @@ class StoryQueryService implements StoryQueryPort
     public function listAllStories(string $lang = 'en'): array
     {
         $rawStories = $this->readPort->findAllStories();
+        return array_map(fn($r) => $this->mapToSummary($r, $lang), $rawStories);
+    }
+
+    public function listCategories(): array
+    {
+        return $this->readPort->findUniqueCategories();
+    }
+
+    public function listGroups(): array
+    {
+        return $this->readPort->findUniqueGroups();
+    }
+
+    public function listStoriesByCategory(string $category, string $lang = 'en'): array
+    {
+        $rawStories = $this->readPort->findStoriesByCategory($category);
+        return array_map(fn($r) => $this->mapToSummary($r, $lang), $rawStories);
+    }
+
+    public function listStoriesByGroup(string $group, string $lang = 'en'): array
+    {
+        $rawStories = $this->readPort->findStoriesByGroup($group);
         return array_map(fn($r) => $this->mapToSummary($r, $lang), $rawStories);
     }
 
@@ -66,6 +92,79 @@ class StoryQueryService implements StoryQueryPort
         $desc = $this->resolveText($texts, isset($rawStory['id_text_description']) ? (int)$rawStory['id_text_description'] : null, $lang);
         $copyrightTxt = $this->resolveText($texts, isset($rawStory['id_text_copyright']) ? (int)$rawStory['id_text_copyright'] : null, $lang);
 
+        // Step 15: Classes, Templates, Traits
+        $rawClasses = $this->readPort->findClassesForStory($storyId);
+        $rawTemplates = $this->readPort->findCharacterTemplatesForStory($storyId);
+        $rawTraits = $this->readPort->findTraitsForStory($storyId);
+
+        $classes = [];
+        foreach ($rawClasses as $c) {
+            $clsName = $this->resolveText($texts, isset($c['id_text_name']) ? (int)$c['id_text_name'] : null, $lang);
+            $clsDesc = $this->resolveText($texts, isset($c['id_text_description']) ? (int)$c['id_text_description'] : null, $lang);
+            $classes[] = new ClassInfo(
+                $c['uuid'] ?? (string)($c['id'] ?? ''),
+                $clsName,
+                $clsDesc,
+                isset($c['weight_max']) ? (int)$c['weight_max'] : 0,
+                isset($c['dexterity_base']) ? (int)$c['dexterity_base'] : 0,
+                isset($c['intelligence_base']) ? (int)$c['intelligence_base'] : 0,
+                isset($c['constitution_base']) ? (int)$c['constitution_base'] : 0
+            );
+        }
+
+        $characterTemplates = [];
+        foreach ($rawTemplates as $t) {
+            $tplName = $this->resolveText($texts, isset($t['id_text_name']) ? (int)$t['id_text_name'] : null, $lang);
+            $tplDesc = $this->resolveText($texts, isset($t['id_text_description']) ? (int)$t['id_text_description'] : null, $lang);
+            $characterTemplates[] = new CharacterTemplateInfo(
+                $t['uuid'] ?? (string)($t['id'] ?? ''),
+                $tplName,
+                $tplDesc,
+                isset($t['life_max']) ? (int)$t['life_max'] : 0,
+                isset($t['energy_max']) ? (int)$t['energy_max'] : 0,
+                isset($t['sad_max']) ? (int)$t['sad_max'] : 0,
+                isset($t['dexterity_start']) ? (int)$t['dexterity_start'] : 0,
+                isset($t['intelligence_start']) ? (int)$t['intelligence_start'] : 0,
+                isset($t['constitution_start']) ? (int)$t['constitution_start'] : 0
+            );
+        }
+
+        $traits = [];
+        foreach ($rawTraits as $tr) {
+            $trName = $this->resolveText($texts, isset($tr['id_text_name']) ? (int)$tr['id_text_name'] : null, $lang);
+            $trDesc = $this->resolveText($texts, isset($tr['id_text_description']) ? (int)$tr['id_text_description'] : null, $lang);
+            $traits[] = new TraitInfo(
+                $tr['uuid'] ?? (string)($tr['id'] ?? ''),
+                $trName,
+                $trDesc,
+                isset($tr['cost_positive']) ? (int)$tr['cost_positive'] : 0,
+                isset($tr['cost_negative']) ? (int)$tr['cost_negative'] : 0,
+                isset($tr['id_class_permitted']) ? (int)$tr['id_class_permitted'] : null,
+                isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null
+            );
+        }
+
+        // Step 15: Card
+        $card = null;
+        $storyIdCard = $rawStory['id_card'] ?? null;
+        if ($storyIdCard !== null) {
+            $rawCard = $this->readPort->findCardForStory($storyId, (int)$storyIdCard);
+            if ($rawCard) {
+                $cardTitleTextId = isset($rawCard['id_text_title']) ? (int)$rawCard['id_text_title']
+                    : (isset($rawCard['id_text_name']) ? (int)$rawCard['id_text_name'] : null);
+                $cardTitle = $this->resolveText($texts, $cardTitleTextId, $lang);
+                $card = new CardInfo(
+                    $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+                    $rawCard['image_url'] ?? null,
+                    $rawCard['alternative_image'] ?? null,
+                    $rawCard['awesome_icon'] ?? null,
+                    $rawCard['style_main'] ?? null,
+                    $rawCard['style_detail'] ?? null,
+                    $cardTitle
+                );
+            }
+        }
+
         return new StoryDetail(
             $rawStory['uuid'],
             $title,
@@ -85,10 +184,14 @@ class StoryQueryService implements StoryQueryPort
             $locCount,
             $eventCount,
             $itemCount,
-            0,
-            0,
-            0,
-            $difficulties
+            count($rawClasses),
+            count($rawTemplates),
+            count($rawTraits),
+            $difficulties,
+            $characterTemplates,
+            $classes,
+            $traits,
+            $card
         );
     }
 

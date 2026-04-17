@@ -8,6 +8,9 @@ class StoryDetail
 {
     /**
      * @param DifficultyInfo[] $difficulties
+     * @param CharacterTemplateInfo[] $characterTemplates
+     * @param ClassInfo[] $classes
+     * @param TraitInfo[] $traits
      */
     public function __construct(
         public string $uuid,
@@ -34,7 +37,8 @@ class StoryDetail
         public array $difficulties = [],
         public array $characterTemplates = [],
         public array $classes = [],
-        public array $traits = []
+        public array $traits = [],
+        public ?CardInfo $card = null
     ) {
     }
 }

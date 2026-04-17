@@ -13,6 +13,16 @@
 -- =============================================
 -- Clean previous story seed data (id_story 9001, 9002)
 -- =============================================
+
+-- =============================================
+-- Important note from dev-team: when you edit this file, 
+-- make sure to update the corresponding file in the PHP backend and Python backend 
+-- (database_seed_dev_data.sql and seed_stories.py respectively) as well, to keep them in sync.
+-- The two files should have identical content, just adapted to their respective SQL dialects.
+-- Without alling the three files, the story seed data will not work correctly in all environments.
+-- ROBOT tests rely on this data being present and consistent across backends, so please be careful when editing!
+-- =============================================
+
 DELETE FROM list_missions_steps       WHERE id_story IN (9001, 9002);
 DELETE FROM list_missions             WHERE id_story IN (9001, 9002);
 DELETE FROM list_global_random_events WHERE id_story IN (9001, 9002);

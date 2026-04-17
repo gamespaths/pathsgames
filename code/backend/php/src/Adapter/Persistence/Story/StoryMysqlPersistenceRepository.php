@@ -38,11 +38,11 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             INSERT INTO list_stories (
                 uuid, author, category, group_name, visibility, priority, peghi, 
                 version_min, version_max, clock_singular, clock_plural, link_copyright,
-                id_text_title, id_text_description, id_text_copyright
+                id_text_title, id_text_description, id_text_copyright, id_card
             ) VALUES (
                 :uuid, :author, :category, :group_name, :visibility, :priority, :peghi,
                 :version_min, :version_max, :clock_singular, :clock_plural, :link_copyright,
-                :id_text_title, :id_text_description, :id_text_copyright
+                :id_text_title, :id_text_description, :id_text_copyright, :id_card
             )
         ");
         $stmt->execute([
@@ -61,6 +61,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             ':id_text_title' => $data['idTextTitle'] ?? null,
             ':id_text_description' => $data['idTextDescription'] ?? null,
             ':id_text_copyright' => $data['idTextCopyright'] ?? null,
+            ':id_card' => $data['idCard'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -244,8 +245,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveClasses(int $storyId, array $classes): void
     {
         $stmtCls = $this->pdo->prepare("
-            INSERT INTO list_classes (id_story, id_text_name, id_text_description)
-            VALUES (:id_story, :id_text_name, :id_text_description)
+            INSERT INTO list_classes (
+                id_story, uuid, id_text_name, id_text_description,
+                weight_max, dexterity_base, intelligence_base, constitution_base
+            ) VALUES (
+                :id_story, :uuid, :id_text_name, :id_text_description,
+                :weight_max, :dexterity_base, :intelligence_base, :constitution_base
+            )
         ");
         $stmtBon = $this->pdo->prepare("
             INSERT INTO list_classes_bonus (id_story, id_class, bonus_type, bonus_value)
@@ -253,10 +259,16 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         ");
 
         foreach ($classes as $cls) {
+            $uuid = $cls['uuid'] ?? $this->generateUuid();
             $stmtCls->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_text_name' => $cls['idTextName'] ?? null,
                 ':id_text_description' => $cls['idTextDescription'] ?? null,
+                ':weight_max' => $cls['weightMax'] ?? 0,
+                ':dexterity_base' => $cls['dexterityBase'] ?? 0,
+                ':intelligence_base' => $cls['intelligenceBase'] ?? 0,
+                ':constitution_base' => $cls['constitutionBase'] ?? 0,
             ]);
             $clsId = (int)$this->pdo->lastInsertId();
 
@@ -340,16 +352,28 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveCards(int $storyId, array $cards): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO list_cards (id_story, card_type, id_text_name, image_url, id_reference)
-            VALUES (:id_story, :card_type, :id_text_name, :image_url, :id_reference)
+            INSERT INTO list_cards (
+                id_story, uuid, card_type, id_text_name, id_text_title, image_url, id_reference,
+                alternative_image, awesome_icon, style_main, style_detail
+            ) VALUES (
+                :id_story, :uuid, :card_type, :id_text_name, :id_text_title, :image_url, :id_reference,
+                :alternative_image, :awesome_icon, :style_main, :style_detail
+            )
         ");
         foreach ($cards as $c) {
+            $uuid = $c['uuid'] ?? $this->generateUuid();
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':card_type' => $c['cardType'] ?? null,
                 ':id_text_name' => $c['idTextName'] ?? null,
+                ':id_text_title' => $c['idTextTitle'] ?? null,
                 ':image_url' => $c['imageUrl'] ?? null,
                 ':id_reference' => $c['idReference'] ?? null,
+                ':alternative_image' => $c['alternativeImage'] ?? null,
+                ':awesome_icon' => $c['awesomeIcon'] ?? null,
+                ':style_main' => $c['styleMain'] ?? null,
+                ':style_detail' => $c['styleDetail'] ?? null,
             ]);
         }
     }
@@ -374,16 +398,25 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveTraits(int $storyId, array $traits): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO list_traits (id_story, id_text_name, id_text_description, cost, id_class)
-            VALUES (:id_story, :id_text_name, :id_text_description, :cost, :id_class)
+            INSERT INTO list_traits (
+                id_story, uuid, id_text_name, id_text_description,
+                cost_positive, cost_negative, id_class_permitted, id_class_prohibited
+            ) VALUES (
+                :id_story, :uuid, :id_text_name, :id_text_description,
+                :cost_positive, :cost_negative, :id_class_permitted, :id_class_prohibited
+            )
         ");
         foreach ($traits as $t) {
+            $uuid = $t['uuid'] ?? $this->generateUuid();
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_text_name' => $t['idTextName'] ?? null,
                 ':id_text_description' => $t['idTextDescription'] ?? null,
-                ':cost' => $t['cost'] ?? null,
-                ':id_class' => $t['idClass'] ?? null,
+                ':cost_positive' => $t['costPositive'] ?? 0,
+                ':cost_negative' => $t['costNegative'] ?? 0,
+                ':id_class_permitted' => $t['idClassPermitted'] ?? null,
+                ':id_class_prohibited' => $t['idClassProhibited'] ?? null,
             ]);
         }
     }
@@ -392,22 +425,27 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_character_templates (
-                id_story, id_tipo, id_text_name, id_text_description, base_des, base_int, base_cos, base_energy, base_life
+                id_story, uuid, id_tipo, id_text_name, id_text_description,
+                life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start
             ) VALUES (
-                :id_story, :id_tipo, :id_text_name, :id_text_description, :base_des, :base_int, :base_cos, :base_energy, :base_life
+                :id_story, :uuid, :id_tipo, :id_text_name, :id_text_description,
+                :life_max, :energy_max, :sad_max, :dexterity_start, :intelligence_start, :constitution_start
             )
         ");
         foreach ($templates as $t) {
+            $uuid = $t['uuid'] ?? $this->generateUuid();
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_tipo' => $t['idTipo'] ?? null,
                 ':id_text_name' => $t['idTextName'] ?? null,
                 ':id_text_description' => $t['idTextDescription'] ?? null,
-                ':base_des' => $t['baseDes'] ?? 0,
-                ':base_int' => $t['baseInt'] ?? 0,
-                ':base_cos' => $t['baseCos'] ?? 0,
-                ':base_energy' => $t['baseEnergy'] ?? 0,
-                ':base_life' => $t['baseLife'] ?? 0,
+                ':life_max' => $t['lifeMax'] ?? 0,
+                ':energy_max' => $t['energyMax'] ?? 0,
+                ':sad_max' => $t['sadMax'] ?? 0,
+                ':dexterity_start' => $t['dexterityStart'] ?? 0,
+                ':intelligence_start' => $t['intelligenceStart'] ?? 0,
+                ':constitution_start' => $t['constitutionStart'] ?? 0,
             ]);
         }
     }
@@ -516,5 +554,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':link' => $c['link'] ?? null,
             ]);
         }
+    }
+
+    private function generateUuid(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 }

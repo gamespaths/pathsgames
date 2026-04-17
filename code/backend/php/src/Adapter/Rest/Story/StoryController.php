@@ -45,4 +45,36 @@ class StoryController
         $response->getBody()->write(json_encode($story));
         return $response->withHeader('Content-Type', 'application/json');
     }
+
+    public function listCategories(Request $request, Response $response, array $args): Response
+    {
+        $categories = $this->queryPort->listCategories();
+        $response->getBody()->write(json_encode($categories));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function listGroups(Request $request, Response $response, array $args): Response
+    {
+        $groups = $this->queryPort->listGroups();
+        $response->getBody()->write(json_encode($groups));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function listStoriesByCategory(Request $request, Response $response, array $args): Response
+    {
+        $category = $args['category'];
+        $lang = $request->getQueryParams()['lang'] ?? 'en';
+        $stories = $this->queryPort->listStoriesByCategory($category, $lang);
+        $response->getBody()->write(json_encode($stories));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    public function listStoriesByGroup(Request $request, Response $response, array $args): Response
+    {
+        $group = $args['group'];
+        $lang = $request->getQueryParams()['lang'] ?? 'en';
+        $stories = $this->queryPort->listStoriesByGroup($group, $lang);
+        $response->getBody()->write(json_encode($stories));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 }

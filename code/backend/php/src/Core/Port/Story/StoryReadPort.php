@@ -21,4 +21,20 @@ interface StoryReadPort
     public function countEventsForStory(int $storyId): int;
 
     public function countItemsForStory(int $storyId): int;
+
+    public function findUniqueCategories(): array;
+
+    public function findUniqueGroups(): array;
+
+    public function findStoriesByCategory(string $category): array;
+
+    public function findStoriesByGroup(string $group): array;
+
+    public function findClassesForStory(int $storyId): array;
+
+    public function findCharacterTemplatesForStory(int $storyId): array;
+
+    public function findTraitsForStory(int $storyId): array;
+
+    public function findCardForStory(int $storyId, int $cardId): ?array;
 }

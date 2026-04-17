@@ -3,8 +3,8 @@ import os
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-# Add app to path
-sys.path.append(os.path.join(os.getcwd(), "code/backend/python"))
+# Add app to path (script is run from inside code/backend/python)
+sys.path.insert(0, os.getcwd())
 
 from app.adapters.persistence.database import SessionLocal, init_db
 from app.adapters.persistence.story.story_persistence_adapter import StoryPersistenceAdapter

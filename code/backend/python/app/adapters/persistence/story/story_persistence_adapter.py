@@ -187,8 +187,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 cls = ClassEntity(
                     id_story=story_id,
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_text_name=item.get("idTextName"),
-                    id_text_description=item.get("idTextDescription")
+                    id_text_description=item.get("idTextDescription"),
+                    weight_max=item.get("weightMax", 10),
+                    dexterity_base=item.get("dexterityBase", 1),
+                    intelligence_base=item.get("intelligenceBase", 1),
+                    constitution_base=item.get("constitutionBase", 1)
                 )
                 session.add(cls)
                 session.flush()
@@ -249,8 +254,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_cards(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CardEntity, story_id, items, {
-            "card_type": "cardType", "id_text_name": "idTextName",
-            "image_url": "imageUrl", "id_reference": "idReference"
+            "uuid": "uuid", "id_card": "idCard", "card_type": "cardType",
+            "id_text_name": "idTextName", "id_text_title": "idTextTitle",
+            "image_url": "imageUrl", "alternative_image": "alternativeImage",
+            "awesome_icon": "awesomeIcon", "style_main": "styleMain",
+            "style_detail": "styleDetail", "id_reference": "idReference"
         })
 
     def save_keys(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -261,15 +269,18 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_traits(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(TraitEntity, story_id, items, {
-            "id_text_name": "idTextName", "id_text_description": "idTextDescription",
-            "cost": "cost", "id_class": "idClass"
+            "uuid": "uuid", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
+            "cost_positive": "costPositive", "cost_negative": "costNegative",
+            "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited"
         })
 
     def save_character_templates(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CharacterTemplateEntity, story_id, items, {
-            "id_tipo": "idTipo", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
-            "base_des": "baseDes", "base_int": "baseInt", "base_cos": "baseCos", 
-            "base_energy": "baseEnergy", "base_life": "baseLife"
+            "uuid": "uuid", "id_tipo": "idTipo",
+            "id_text_name": "idTextName", "id_text_description": "idTextDescription",
+            "life_max": "lifeMax", "energy_max": "energyMax", "sad_max": "sadMax",
+            "dexterity_start": "dexterityStart", "intelligence_start": "intelligenceStart",
+            "constitution_start": "constitutionStart"
         })
 
     def save_weather_rules(self, story_id: int, items: List[Dict[str, Any]]) -> None:

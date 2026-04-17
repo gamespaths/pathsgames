@@ -19,10 +19,10 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 fi
 
 echo "Uccido qualunque processo occupi la porta 8042"
-fuser -k 8042/tcp
+fuser -k 8042/tcp || true
 
-#echo "Rimuovo il file database.sqlite"
-#rm "$PROJECT_ROOT/code/backend/python/database.sqlite"
+echo "Rimuovo il file database.sqlite"
+rm "$PROJECT_ROOT/code/backend/python/database.sqlite" || true
 
 # start local server
 cd "$PROJECT_ROOT/code/backend/python" && \
@@ -35,10 +35,13 @@ SERVER_PID=$!
 # Funzione per terminare l'applicazione in caso di errore
 cleanup() {
     echo "-------------- Cleanup"
-	echo "Fermo il server"
+	echo "Stopping the server"
     kill $SERVER_PID
 }
 trap cleanup EXIT
+
+echo "Execute script to seed stories in database"
+cd "$PROJECT_ROOT/code/backend/python" && .venv/bin/python scripts/seed_stories.py
 
 echo "Starting local Python server with PID $SERVER_PID..."
 
@@ -50,7 +53,7 @@ curl -s http://localhost:8042/api/echo/status > /dev/null || {
 }	
 
 # run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.\
-echo "Eseguo i robot!"
+echo "Running Robot tests!"
 
 cd $PROJECT_ROOT && \
 python3 -m venv .venv && \

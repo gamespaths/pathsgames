@@ -18,3 +18,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    #if settings.env == "development":
+    #    from app.adapters.persistence.seed_dev_data import seed_dev_data
+    #    seed_dev_data(engine)

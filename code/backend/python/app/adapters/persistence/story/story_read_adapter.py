@@ -4,7 +4,7 @@ from app.core.ports.story.story_read_port import StoryReadPort
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
     LocationEntity, EventEntity, ItemEntity,
-    ClassEntity, CharacterTemplateEntity, TraitEntity
+    ClassEntity, CharacterTemplateEntity, TraitEntity, CardEntity
 )
 
 class StoryReadAdapter(StoryReadPort):
@@ -106,6 +106,14 @@ class StoryReadAdapter(StoryReadPort):
         with self.session_factory() as session:
             traits = session.query(TraitEntity).filter(TraitEntity.id_story == story_id).all()
             return [self._to_dict(t) for t in traits]
+
+    def find_card_for_story(self, story_id: int, card_id: int) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            card = session.query(CardEntity).filter(
+                CardEntity.id_story == story_id,
+                CardEntity.id == card_id
+            ).first()
+            return self._to_dict(card) if card else None
 
     def _to_dict(self, obj) -> Dict[str, Any]:
         result = {}

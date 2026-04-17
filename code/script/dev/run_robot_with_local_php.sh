@@ -24,16 +24,25 @@ cd $PROJECT_ROOT && \
 python3 -m venv .venv && \
 source .venv/bin/activate
 
-
+echo "Resetting database..."
+mysql -u pathsgames -ppathsgames -h 127.0.0.1 -e "DROP DATABASE IF EXISTS pathsgames;"
+sleep 1
+mysql -u pathsgames -ppathsgames -h 127.0.0.1 -e "CREATE DATABASE pathsgames;"
+sleep 1
+# execute database.sql on database
+mysql -u pathsgames -ppathsgames -h 127.0.0.1 -D pathsgames < "$PROJECT_ROOT/code/backend/php/database.sql"
+sleep 1
+mysql -u pathsgames -ppathsgames -h 127.0.0.1 -D pathsgames < "$PROJECT_ROOT/code/backend/php/database_seed_dev_data.sql"
+sleep 1
 
 # start local server
 php -S localhost:8042 -t "$PROJECT_ROOT/code/backend/php/public" &
 SERVER_PID=$!
 
-# Funzione per terminare l'applicazione in caso di errore
+# Function to terminate the application in case of error
 cleanup() {
     echo "-------------- Cleanup"
-	echo "Fermo il server"
+	echo "Stopping the server"
     kill $SERVER_PID
 }
 trap cleanup EXIT
@@ -51,7 +60,7 @@ pip install -r requirements.txt && \
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variables/dev.yaml --outputdir reports-local-php/ tests/
 
 # stop local server
-echo "Fermo il server"
+echo "Stopping the server"
 kill $SERVER_PID
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-php/"

@@ -23,6 +23,7 @@ class StoryEntity(Base):
     clock_plural = Column(String(100))
     link_copyright = Column(String(500))
     id_story = Column(Integer)
+    id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
@@ -76,9 +77,14 @@ class ClassEntity(Base):
     __tablename__ = "list_classes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
+    weight_max = Column(Integer, default=10)
+    dexterity_base = Column(Integer, default=1)
+    intelligence_base = Column(Integer, default=1)
+    constitution_base = Column(Integer, default=1)
 
 
 class ClassBonusEntity(Base):
@@ -95,26 +101,31 @@ class TraitEntity(Base):
     __tablename__ = "list_traits"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    cost = Column(Integer)
-    id_class = Column(Integer)
+    cost_positive = Column(Integer, default=0)
+    cost_negative = Column(Integer, default=0)
+    id_class_permitted = Column(Integer)
+    id_class_prohibited = Column(Integer)
 
 
 class CharacterTemplateEntity(Base):
     __tablename__ = "list_character_templates"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_tipo = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    base_des = Column(Integer, default=0)
-    base_int = Column(Integer, default=0)
-    base_cos = Column(Integer, default=0)
-    base_energy = Column(Integer, default=0)
-    base_life = Column(Integer, default=0)
+    life_max = Column(Integer, default=10)
+    energy_max = Column(Integer, default=10)
+    sad_max = Column(Integer, default=10)
+    dexterity_start = Column(Integer, default=1)
+    intelligence_start = Column(Integer, default=1)
+    constitution_start = Column(Integer, default=1)
 
 
 class LocationEntity(Base):
@@ -313,9 +324,15 @@ class CardEntity(Base):
     __tablename__ = "list_cards"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     card_type = Column(String(50))
     id_text_name = Column(Integer)
+    id_text_title = Column(Integer)
     image_url = Column(String(500))
+    alternative_image = Column(Text)
+    awesome_icon = Column(String(100))
+    style_main = Column(String(100))
+    style_detail = Column(String(100))
     id_reference = Column(Integer)

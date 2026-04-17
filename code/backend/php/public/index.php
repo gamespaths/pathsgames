@@ -170,6 +170,10 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
 
     // Stories (Public)
     $group->get('/stories', [$storyController, 'listStories']);
+    $group->get('/stories/categories', [$storyController, 'listCategories']);
+    $group->get('/stories/groups', [$storyController, 'listGroups']);
+    $group->get('/stories/category/{category}', [$storyController, 'listStoriesByCategory']);
+    $group->get('/stories/group/{group}', [$storyController, 'listStoriesByGroup']);
     $group->get('/stories/{uuid}', [$storyController, 'getStory']);
 
     // Admin - Stories (Protected)

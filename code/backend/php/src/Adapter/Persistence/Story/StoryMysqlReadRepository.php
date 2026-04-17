@@ -70,4 +70,67 @@ class StoryMysqlReadRepository implements StoryReadPort
         $stmt->execute([':id_story' => $storyId]);
         return (int) $stmt->fetchColumn();
     }
+
+    public function findUniqueCategories(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT DISTINCT category FROM list_stories WHERE visibility = 'PUBLIC' AND category IS NOT NULL ORDER BY category ASC"
+        );
+        return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'category');
+    }
+
+    public function findUniqueGroups(): array
+    {
+        $stmt = $this->pdo->query(
+            "SELECT DISTINCT group_name FROM list_stories WHERE visibility = 'PUBLIC' AND group_name IS NOT NULL ORDER BY group_name ASC"
+        );
+        return array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'group_name');
+    }
+
+    public function findStoriesByCategory(string $category): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM list_stories WHERE visibility = 'PUBLIC' AND category = :category ORDER BY priority DESC"
+        );
+        $stmt->execute([':category' => $category]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findStoriesByGroup(string $group): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM list_stories WHERE visibility = 'PUBLIC' AND group_name = :group_name ORDER BY priority DESC"
+        );
+        $stmt->execute([':group_name' => $group]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findClassesForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_classes WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findCharacterTemplatesForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_character_templates WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findTraitsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_traits WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findCardForStory(int $storyId, int $cardId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_cards WHERE id_story = :id_story AND id = :id LIMIT 1");
+        $stmt->execute([':id_story' => $storyId, ':id' => $cardId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
 }

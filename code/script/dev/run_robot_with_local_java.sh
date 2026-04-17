@@ -24,14 +24,17 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true
+
 # start local server
 java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
 SERVER_PID=$!
 
-# Funzione per terminare l'applicazione in caso di errore
+# Function to terminate the application in case of error
 cleanup() {
     echo "-------------- Cleanup"
-	echo "Fermo il server"
+	echo "Stopping the server"
     kill $SERVER_PID
 }
 trap cleanup EXIT
