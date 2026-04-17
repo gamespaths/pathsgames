@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.core.ports.story.story_read_port import StoryReadPort
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
-    LocationEntity, EventEntity, ItemEntity
+    LocationEntity, EventEntity, ItemEntity,
+    ClassEntity, CharacterTemplateEntity, TraitEntity
 )
 
 class StoryReadAdapter(StoryReadPort):
@@ -62,6 +63,49 @@ class StoryReadAdapter(StoryReadPort):
     def count_items_for_story(self, story_id: int) -> int:
         with self.session_factory() as session:
             return session.query(ItemEntity).filter(ItemEntity.id_story == story_id).count()
+
+    def find_unique_categories(self) -> List[str]:
+        with self.session_factory() as session:
+            rows = session.query(StoryEntity.category).filter(StoryEntity.visibility == "PUBLIC").distinct().all()
+            return [str(r[0]) for r in rows if r[0]]
+
+    def find_unique_groups(self) -> List[str]:
+        with self.session_factory() as session:
+            rows = session.query(StoryEntity.group_name).filter(StoryEntity.visibility == "PUBLIC").distinct().all()
+            return [str(r[0]) for r in rows if r[0]]
+
+    def find_stories_by_category(self, category: str) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            stories = session.query(StoryEntity)\
+                .filter(StoryEntity.visibility == "PUBLIC")\
+                .filter(StoryEntity.category == category)\
+                .order_by(StoryEntity.priority.desc())\
+                .all()
+            return [self._to_dict(s) for s in stories]
+
+    def find_stories_by_group(self, group: str) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            stories = session.query(StoryEntity)\
+                .filter(StoryEntity.visibility == "PUBLIC")\
+                .filter(StoryEntity.group_name == group)\
+                .order_by(StoryEntity.priority.desc())\
+                .all()
+            return [self._to_dict(s) for s in stories]
+
+    def find_classes_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            classes = session.query(ClassEntity).filter(ClassEntity.id_story == story_id).all()
+            return [self._to_dict(c) for c in classes]
+
+    def find_character_templates_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            tmps = session.query(CharacterTemplateEntity).filter(CharacterTemplateEntity.id_story == story_id).all()
+            return [self._to_dict(t) for t in tmps]
+
+    def find_traits_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            traits = session.query(TraitEntity).filter(TraitEntity.id_story == story_id).all()
+            return [self._to_dict(t) for t in traits]
 
     def _to_dict(self, obj) -> Dict[str, Any]:
         result = {}

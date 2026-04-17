@@ -85,6 +85,9 @@ class StoryQueryService implements StoryQueryPort
             $locCount,
             $eventCount,
             $itemCount,
+            0,
+            0,
+            0,
             $difficulties
         );
     }

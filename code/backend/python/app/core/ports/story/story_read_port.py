@@ -33,3 +33,31 @@ class StoryReadPort(ABC):
     @abstractmethod
     def count_items_for_story(self, story_id: int) -> int:
         pass
+
+    @abstractmethod
+    def find_unique_categories(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def find_unique_groups(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def find_stories_by_category(self, category: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_stories_by_group(self, group: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_classes_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_character_templates_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_traits_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass

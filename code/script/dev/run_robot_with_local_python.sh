@@ -18,6 +18,12 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
+echo "Uccido qualunque processo occupi la porta 8042"
+fuser -k 8042/tcp
+
+#echo "Rimuovo il file database.sqlite"
+#rm "$PROJECT_ROOT/code/backend/python/database.sqlite"
+
 # start local server
 cd "$PROJECT_ROOT/code/backend/python" && \
 python3 -m venv .venv && \
@@ -25,6 +31,14 @@ source .venv/bin/activate && \
 pip install -r requirements.txt && \
 python3 -m app.launcher & # python -m flask --app api --debug run --port 8042 &
 SERVER_PID=$!		
+
+# Funzione per terminare l'applicazione in caso di errore
+cleanup() {
+    echo "-------------- Cleanup"
+	echo "Fermo il server"
+    kill $SERVER_PID
+}
+trap cleanup EXIT
 
 echo "Starting local Python server with PID $SERVER_PID..."
 
@@ -35,7 +49,14 @@ curl -s http://localhost:8042/api/echo/status > /dev/null || {
 	exit 1
 }	
 
-# run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
+# run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.\
+echo "Eseguo i robot!"
+
+cd $PROJECT_ROOT && \
+python3 -m venv .venv && \
+source .venv/bin/activate
+
+
 cd "$PROJECT_ROOT/code/tests/robot" && \
 pip install -r requirements.txt && \
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/

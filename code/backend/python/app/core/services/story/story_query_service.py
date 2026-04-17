@@ -19,6 +19,22 @@ class StoryQueryService(StoryQueryPort):
         raw_stories = self.read_port.find_all_stories()
         return [self._map_to_summary(r, lang) for r in raw_stories]
 
+    def list_categories(self) -> List[str]:
+        return self.read_port.find_unique_categories()
+
+    def list_groups(self) -> List[str]:
+        return self.read_port.find_unique_groups()
+
+    def list_stories_by_category(self, category: str, lang: str = "en") -> List[StorySummary]:
+        lang = lang or "en"
+        raw_stories = self.read_port.find_stories_by_category(category)
+        return [self._map_to_summary(r, lang) for r in raw_stories]
+
+    def list_stories_by_group(self, group: str, lang: str = "en") -> List[StorySummary]:
+        lang = lang or "en"
+        raw_stories = self.read_port.find_stories_by_group(group)
+        return [self._map_to_summary(r, lang) for r in raw_stories]
+
     def get_story_detail(self, uuid: str, lang: str = "en") -> Optional[StoryDetail]:
         lang = lang or "en"
         raw_story = self.read_port.find_story_by_uuid(uuid)
@@ -54,6 +70,17 @@ class StoryQueryService(StoryQueryPort):
         desc = self._resolve_text(texts, raw_story.get("id_text_description"), lang)
         copyright_txt = self._resolve_text(texts, raw_story.get("id_text_copyright"), lang)
 
+        # Step 15: Classes, Templates, Traits
+        raw_classes = self.read_port.find_classes_for_story(story_id)
+        raw_templates = self.read_port.find_character_templates_for_story(story_id)
+        raw_traits = self.read_port.find_traits_for_story(story_id)
+        
+        # Mapping to simple dicts for now as requested by the model/test
+        # We might need better models later if tests require them
+        classes = [{"uuid": str(c.get("id")), "name": self._resolve_text(texts, c.get("id_text_name"), lang)} for c in raw_classes]
+        templates = [{"uuid": str(t.get("id")), "name": self._resolve_text(texts, t.get("id_text_name"), lang)} for t in raw_templates]
+        traits = [{"uuid": str(t.get("id")), "name": self._resolve_text(texts, t.get("id_text_name"), lang)} for t in raw_traits]
+
         return StoryDetail(
             uuid=raw_story.get("uuid"),
             title=title,
@@ -73,7 +100,13 @@ class StoryQueryService(StoryQueryPort):
             locationCount=loc_count,
             eventCount=event_count,
             itemCount=item_count,
-            difficulties=difficulties
+            classCount=len(raw_classes),
+            characterTemplateCount=len(raw_templates),
+            traitCount=len(raw_traits),
+            difficulties=difficulties,
+            classes=classes,
+            characterTemplates=templates,
+            traits=traits
         )
 
     def _map_to_summary(self, raw_story: Dict[str, Any], lang: str) -> StorySummary:

@@ -22,4 +22,10 @@ class StoryDetail:
     locationCount: int = 0
     eventCount: int = 0
     itemCount: int = 0
+    classCount: int = 0
+    characterTemplateCount: int = 0
+    traitCount: int = 0
     difficulties: List[DifficultyInfo] = field(default_factory=list)
+    characterTemplates: list = field(default_factory=list)
+    classes: list = field(default_factory=list)
+    traits: list = field(default_factory=list)

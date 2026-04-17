@@ -28,7 +28,13 @@ class StoryDetail
         public int $locationCount = 0,
         public int $eventCount = 0,
         public int $itemCount = 0,
-        public array $difficulties = []
+        public int $classCount = 0,
+        public int $characterTemplateCount = 0,
+        public int $traitCount = 0,
+        public array $difficulties = [],
+        public array $characterTemplates = [],
+        public array $classes = [],
+        public array $traits = []
     ) {
     }
 }

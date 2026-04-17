@@ -15,3 +15,19 @@ class StoryQueryPort(ABC):
     @abstractmethod
     def get_story_detail(self, uuid: str, lang: str = "en") -> Optional[StoryDetail]:
         pass
+
+    @abstractmethod
+    def list_categories(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def list_groups(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def list_stories_by_category(self, category: str, lang: str = "en") -> List[StorySummary]:
+        pass
+
+    @abstractmethod
+    def list_stories_by_group(self, group: str, lang: str = "en") -> List[StorySummary]:
+        pass

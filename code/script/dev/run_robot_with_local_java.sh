@@ -13,6 +13,11 @@ if [ -f "$ENV_FILE" ]; then
 	. "$ENV_FILE"
 fi
 
+cd $PROJECT_ROOT && \
+python3 -m venv .venv && \
+source .venv/bin/activate
+
+
 # If not present in .env, ROBOT_VAR_ADMIN_TOKEN must be set in the environment before running the script
 if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	echo "Error: ROBOT_VAR_ADMIN_TOKEN must be set in the environment or .env file."
@@ -23,11 +28,20 @@ fi
 java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
 SERVER_PID=$!
 
+# Funzione per terminare l'applicazione in caso di errore
+cleanup() {
+    echo "-------------- Cleanup"
+	echo "Fermo il server"
+    kill $SERVER_PID
+}
+trap cleanup EXIT
+
 sleep 30 # wait for the server to start
 curl -s http://localhost:8042/api/echo/status > /dev/null || { echo "Server not started correctly"; kill $SERVER_PID; exit 1; }
 
 # run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
 cd "$PROJECT_ROOT/code/tests/robot" && \
+pip install -r requirements.txt && \
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variables/dev.yaml --outputdir reports-local-java/ tests/
 
 # stop local server

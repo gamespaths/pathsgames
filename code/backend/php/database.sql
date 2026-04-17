@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS list_stories (
     clock_singular VARCHAR(100) DEFAULT NULL,
     clock_plural VARCHAR(100) DEFAULT NULL,
     link_copyright VARCHAR(500) DEFAULT NULL,
+    id_story BIGINT DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
     id_text_title BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
     id_text_copyright BIGINT DEFAULT NULL
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
     uuid VARCHAR(36) DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
     exp_cost INT DEFAULT NULL,
     max_weight INT DEFAULT NULL,
@@ -79,6 +82,9 @@ CREATE TABLE IF NOT EXISTS list_texts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
     id_text BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     lang VARCHAR(10) DEFAULT 'en',
     short_text TEXT DEFAULT NULL,
     long_text TEXT DEFAULT NULL,
@@ -102,6 +108,9 @@ CREATE TABLE IF NOT EXISTS list_locations (
 CREATE TABLE IF NOT EXISTS list_locations_neighbors (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     id_location_from BIGINT DEFAULT NULL,
     id_location_to BIGINT DEFAULT NULL,
     direction VARCHAR(20) DEFAULT NULL,
@@ -130,6 +139,8 @@ CREATE TABLE IF NOT EXISTS list_events (
 CREATE TABLE IF NOT EXISTS list_events_effects (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     id_event BIGINT DEFAULT NULL,
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
@@ -150,6 +161,7 @@ CREATE TABLE IF NOT EXISTS list_items (
 CREATE TABLE IF NOT EXISTS list_items_effects (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
     id_item BIGINT DEFAULT NULL,
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
@@ -189,6 +201,7 @@ CREATE TABLE IF NOT EXISTS list_choices (
 CREATE TABLE IF NOT EXISTS list_choices_conditions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
     id_choice BIGINT DEFAULT NULL,
     condition_type VARCHAR(50) DEFAULT NULL,
     condition_key VARCHAR(255) DEFAULT NULL,
@@ -200,6 +213,9 @@ CREATE TABLE IF NOT EXISTS list_choices_conditions (
 CREATE TABLE IF NOT EXISTS list_choices_effects (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     id_choice BIGINT DEFAULT NULL,
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
@@ -210,6 +226,7 @@ CREATE TABLE IF NOT EXISTS list_choices_effects (
 CREATE TABLE IF NOT EXISTS list_cards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
     card_type VARCHAR(50) DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
     image_url VARCHAR(500) DEFAULT NULL,
@@ -220,6 +237,7 @@ CREATE TABLE IF NOT EXISTS list_cards (
 CREATE TABLE IF NOT EXISTS list_keys (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_text_name BIGINT DEFAULT NULL,
     key_name VARCHAR(255) DEFAULT NULL,
     key_value VARCHAR(255) DEFAULT NULL,
     key_group VARCHAR(100) DEFAULT NULL,
@@ -269,6 +287,8 @@ CREATE TABLE IF NOT EXISTS list_weather_rules (
 CREATE TABLE IF NOT EXISTS list_global_random_events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     id_event BIGINT DEFAULT NULL,
     probability FLOAT DEFAULT NULL,
     condition_key VARCHAR(255) DEFAULT NULL,
@@ -303,6 +323,9 @@ CREATE TABLE IF NOT EXISTS list_missions_steps (
 CREATE TABLE IF NOT EXISTS list_creator (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_story BIGINT NOT NULL,
+    id_card BIGINT DEFAULT NULL,
+    id_text_name BIGINT DEFAULT NULL,
+    id_text_description BIGINT DEFAULT NULL,
     creator_name VARCHAR(255) DEFAULT NULL,
     creator_role VARCHAR(100) DEFAULT NULL,
     link VARCHAR(500) DEFAULT NULL,

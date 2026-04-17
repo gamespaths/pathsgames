@@ -22,6 +22,8 @@ class StoryEntity(Base):
     clock_singular = Column(String(100))
     clock_plural = Column(String(100))
     link_copyright = Column(String(500))
+    id_story = Column(Integer)
+    id_text_name = Column(Integer)
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
     id_text_copyright = Column(Integer)
@@ -33,6 +35,7 @@ class StoryDifficultyEntity(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     uuid = Column(String(36))
+    id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     exp_cost = Column(Integer)
     max_weight = Column(Integer)
@@ -48,6 +51,9 @@ class TextEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     id_text = Column(Integer, nullable=False)
     lang = Column(String(10), default="en")
     short_text = Column(String(1000))
@@ -59,6 +65,7 @@ class KeyEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_text_name = Column(Integer)
     key_name = Column(String(255))
     key_value = Column(String(255))
     key_group = Column(String(100))
@@ -130,6 +137,9 @@ class LocationNeighborEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     id_location_from = Column(Integer)
     id_location_to = Column(Integer)
     direction = Column(String(20))
@@ -154,6 +164,7 @@ class ItemEffectEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
     id_item = Column(Integer)
     effect_type = Column(String(50))
     effect_value = Column(Integer)
@@ -197,6 +208,8 @@ class EventEffectEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     id_event = Column(Integer)
     effect_type = Column(String(50))
     effect_value = Column(Integer)
@@ -222,6 +235,7 @@ class ChoiceConditionEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
     id_choice = Column(Integer)
     condition_type = Column(String(50))
     condition_key = Column(String(255))
@@ -234,6 +248,9 @@ class ChoiceEffectEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     id_choice = Column(Integer)
     effect_type = Column(String(50))
     effect_value = Column(Integer)
@@ -245,6 +262,8 @@ class GlobalRandomEventEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     id_event = Column(Integer)
     probability = Column(Float)
     condition_key = Column(String(255))
@@ -282,6 +301,9 @@ class CreatorEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
+    id_text_name = Column(Integer)
+    id_text_description = Column(Integer)
     creator_name = Column(String(255))
     creator_role = Column(String(100))
     link = Column(String(500))
@@ -292,6 +314,7 @@ class CardEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id_card = Column(Integer)
     card_type = Column(String(50))
     id_text_name = Column(Integer)
     image_url = Column(String(500))

@@ -19,11 +19,26 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
+
+cd $PROJECT_ROOT && \
+python3 -m venv .venv && \
+source .venv/bin/activate
+
+
+
 # start local server
 php -S localhost:8042 -t "$PROJECT_ROOT/code/backend/php/public" &
 SERVER_PID=$!
 
-sleep 30 # wait for the server to start
+# Funzione per terminare l'applicazione in caso di errore
+cleanup() {
+    echo "-------------- Cleanup"
+	echo "Fermo il server"
+    kill $SERVER_PID
+}
+trap cleanup EXIT
+
+sleep 3 # wait for the server to start
 curl -s http://localhost:8042/api/echo/status > /dev/null || {
     echo "Server not started correctly"
     kill $SERVER_PID
@@ -32,9 +47,11 @@ curl -s http://localhost:8042/api/echo/status > /dev/null || {
 
 # run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
 cd "$PROJECT_ROOT/code/tests/robot" && \
+pip install -r requirements.txt && \
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variables/dev.yaml --outputdir reports-local-php/ tests/
 
 # stop local server
-kill $SERVER_PID || true
+echo "Fermo il server"
+kill $SERVER_PID
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-php/"
