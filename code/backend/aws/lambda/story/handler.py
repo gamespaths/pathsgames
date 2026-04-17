@@ -3,15 +3,19 @@ story/handler.py — Paths Games AWS Lambda
 Handles every route registered for StoryFunction in template.yaml.
 
 Routes (API contracts match Java OpenAPI specs):
-  GET    /api/stories                     → list_stories      (public)
-  GET    /api/stories/{uuid}              → get_story         (public)
-  POST   /api/admin/stories/import        → import_story      (ADMIN)
-  GET    /api/admin/stories               → list_all_stories  (ADMIN)
-  DELETE /api/admin/stories/{uuid}        → delete_story      (ADMIN)
+  GET    /api/stories                     → list_stories           (public)
+  GET    /api/stories/{uuid}              → get_story              (public)
+  GET    /api/stories/categories          → list_categories        (public)  [Step 15]
+  GET    /api/stories/category/{category} → list_stories_by_cat    (public)  [Step 15]
+  GET    /api/stories/groups              → list_groups            (public)  [Step 15]
+  GET    /api/stories/group/{group}       → list_stories_by_group  (public)  [Step 15]
+  POST   /api/admin/stories/import        → import_story           (ADMIN)
+  GET    /api/admin/stories               → list_all_stories       (ADMIN)
+  DELETE /api/admin/stories/{uuid}        → delete_story           (ADMIN)
 
 Response shapes follow:
-  StorySummaryResponse  (v0.14.0-story-api.yaml)
-  StoryDetailResponse   (v0.14.0-story-api.yaml)
+  StorySummaryResponse  (v0.15.0-story-content-api.yaml)
+  StoryDetailResponse   (v0.15.0-story-content-api.yaml)
   StoryImportResponse   (v0.14.0-story-api.yaml)
   DeleteStoryResponse   (v0.14.0-story-api.yaml)
   ErrorResponse         (shared)
@@ -19,7 +23,8 @@ Response shapes follow:
 DynamoDB layout for stories
   PK = STORY#{uuid}, SK = METADATA
     All story fields + texts dict + difficulties list + GSI keys.
-  GSI: GSI1_PK = STORY_LIST, GSI1_SK = PRIORITY#{priority:010}#{uuid}
+    Step 15: + characterTemplates, classes, traits, card (inline).
+  GSI: GSI1_PK = STORY_LIST, GSI1_SK = STORY#{uuid}
 """
 
 import json
@@ -107,6 +112,18 @@ def _resolve_text(texts_dict, lang, field):
     t = texts_dict.get(lang) or texts_dict.get('en') or {}
     return t.get(field)
 
+def _safe_int(val, default=0):
+    """Safely convert a value to int, returning default on None/error."""
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
+# ─── response builders ────────────────────────────────────────────────────────
+
 def _story_summary(item, lang):
     """Build StorySummaryResponse from a DynamoDB story item."""
     texts = item.get('texts', {})
@@ -118,49 +135,122 @@ def _story_summary(item, lang):
         'category':        item.get('category'),
         'group':           item.get('group'),
         'visibility':      item.get('visibility'),
-        'priority':        int(item.get('priority') or 0),
-        'peghi':           int(item.get('peghi') or 0),
-        'difficultyCount': int(item.get('difficulty_count') or 0),
+        'priority':        _safe_int(item.get('priority')),
+        'peghi':           _safe_int(item.get('peghi')),
+        'difficultyCount': _safe_int(item.get('difficulty_count')),
     }
 
 def _story_detail(item, lang):
-    """Build StoryDetailResponse from a DynamoDB story item."""
+    """Build StoryDetailResponse from a DynamoDB story item.
+
+    Includes Step 15 enrichments: characterTemplates, classes, traits,
+    card, classCount, characterTemplateCount, traitCount.
+    """
     texts = item.get('texts', {})
+
+    # Difficulties
     raw_diffs = item.get('difficulties', [])
     difficulties = []
     for d in raw_diffs:
         difficulties.append({
             'uuid':                  d.get('uuid'),
             'description':           _resolve_text(d.get('texts', {}), lang, 'title'),
-            'expCost':               int(d.get('expCost') or 0),
-            'maxWeight':             int(d.get('maxWeight') or 0),
-            'minCharacter':          int(d.get('minCharacter') or 0),
-            'maxCharacter':          int(d.get('maxCharacter') or 0),
-            'costHelpComa':          int(d.get('costHelpComa') or 0),
-            'costMaxCharacteristics':int(d.get('costMaxCharacteristics') or 0),
-            'numberMaxFreeAction':   int(d.get('numberMaxFreeAction') or 0),
+            'expCost':               _safe_int(d.get('expCost')),
+            'maxWeight':             _safe_int(d.get('maxWeight')),
+            'minCharacter':          _safe_int(d.get('minCharacter')),
+            'maxCharacter':          _safe_int(d.get('maxCharacter')),
+            'costHelpComa':          _safe_int(d.get('costHelpComa')),
+            'costMaxCharacteristics':_safe_int(d.get('costMaxCharacteristics')),
+            'numberMaxFreeAction':   _safe_int(d.get('numberMaxFreeAction')),
         })
+
+    # Step 15: Character Templates
+    raw_templates = item.get('characterTemplates', [])
+    character_templates = []
+    for ct in raw_templates:
+        character_templates.append({
+            'uuid':              ct.get('uuid'),
+            'name':              _resolve_text(ct.get('texts', {}), lang, 'name'),
+            'description':       _resolve_text(ct.get('texts', {}), lang, 'description'),
+            'lifeMax':           _safe_int(ct.get('lifeMax')),
+            'energyMax':         _safe_int(ct.get('energyMax')),
+            'sadMax':            _safe_int(ct.get('sadMax')),
+            'dexterityStart':    _safe_int(ct.get('dexterityStart')),
+            'intelligenceStart': _safe_int(ct.get('intelligenceStart')),
+            'constitutionStart': _safe_int(ct.get('constitutionStart')),
+        })
+
+    # Step 15: Classes
+    raw_classes = item.get('classes', [])
+    classes = []
+    for cl in raw_classes:
+        classes.append({
+            'uuid':             cl.get('uuid'),
+            'name':             _resolve_text(cl.get('texts', {}), lang, 'name'),
+            'description':      _resolve_text(cl.get('texts', {}), lang, 'description'),
+            'weightMax':        _safe_int(cl.get('weightMax')),
+            'dexterityBase':    _safe_int(cl.get('dexterityBase')),
+            'intelligenceBase': _safe_int(cl.get('intelligenceBase')),
+            'constitutionBase': _safe_int(cl.get('constitutionBase')),
+        })
+
+    # Step 15: Traits
+    raw_traits = item.get('traits', [])
+    traits = []
+    for tr in raw_traits:
+        traits.append({
+            'uuid':              tr.get('uuid'),
+            'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
+            'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
+            'costPositive':      _safe_int(tr.get('costPositive')),
+            'costNegative':      _safe_int(tr.get('costNegative')),
+            'idClassPermitted':  tr.get('idClassPermitted'),
+            'idClassProhibited': tr.get('idClassProhibited'),
+        })
+
+    # Step 15: Card
+    raw_card = item.get('card')
+    card = None
+    if raw_card:
+        card = {
+            'uuid':             raw_card.get('uuid'),
+            'imageUrl':         raw_card.get('imageUrl'),
+            'alternativeImage': raw_card.get('alternativeImage'),
+            'awesomeIcon':      raw_card.get('awesomeIcon'),
+            'styleMain':        raw_card.get('styleMain'),
+            'styleDetail':      raw_card.get('styleDetail'),
+            'title':            _resolve_text(raw_card.get('texts', {}), lang, 'title'),
+        }
+
     return {
-        'uuid':                   item.get('uuid'),
-        'title':                  _resolve_text(texts, lang, 'title'),
-        'description':            _resolve_text(texts, lang, 'description'),
-        'author':                 item.get('author'),
-        'category':               item.get('category'),
-        'group':                  item.get('group'),
-        'visibility':             item.get('visibility'),
-        'priority':               int(item.get('priority') or 0),
-        'peghi':                  int(item.get('peghi') or 0),
-        'versionMin':             item.get('versionMin'),
-        'versionMax':             item.get('versionMax'),
-        'clockSingularDescription': item.get('clockSingularDescription'),
-        'clockPluralDescription':   item.get('clockPluralDescription'),
-        'copyrightText':          None,  # stored in texts if needed
-        'linkCopyright':          item.get('linkCopyright'),
-        'locationCount':          int(item.get('location_count') or 0),
-        'eventCount':             int(item.get('event_count') or 0),
-        'itemCount':              int(item.get('item_count') or 0),
-        'difficulties':           difficulties,
+        'uuid':                       item.get('uuid'),
+        'title':                      _resolve_text(texts, lang, 'title'),
+        'description':                _resolve_text(texts, lang, 'description'),
+        'author':                     item.get('author'),
+        'category':                   item.get('category'),
+        'group':                      item.get('group'),
+        'visibility':                 item.get('visibility'),
+        'priority':                   _safe_int(item.get('priority')),
+        'peghi':                      _safe_int(item.get('peghi')),
+        'versionMin':                 item.get('versionMin'),
+        'versionMax':                 item.get('versionMax'),
+        'clockSingularDescription':   item.get('clockSingularDescription'),
+        'clockPluralDescription':     item.get('clockPluralDescription'),
+        'copyrightText':              None,  # stored in texts if needed
+        'linkCopyright':              item.get('linkCopyright'),
+        'locationCount':              _safe_int(item.get('location_count')),
+        'eventCount':                 _safe_int(item.get('event_count')),
+        'itemCount':                  _safe_int(item.get('item_count')),
+        'classCount':                 _safe_int(item.get('class_count')),
+        'characterTemplateCount':     _safe_int(item.get('template_count')),
+        'traitCount':                 _safe_int(item.get('trait_count')),
+        'difficulties':               difficulties,
+        'characterTemplates':         character_templates,
+        'classes':                    classes,
+        'traits':                     traits,
+        'card':                       card,
     }
+
 
 # ─── router ───────────────────────────────────────────────────────────────────
 
@@ -170,6 +260,18 @@ def lambda_handler(event, context):
                    .get('http', {})
                    .get('method', event.get('httpMethod', '')))
     params = event.get('pathParameters') or {}
+
+    # Step 15: category/group endpoints — MUST be checked before /api/stories/{uuid}
+    if path == '/api/stories/categories' and method == 'GET':
+        return list_categories(event)
+    if path.startswith('/api/stories/category/') and method == 'GET':
+        cat = params.get('category') or path.split('/')[-1]
+        return list_stories_by_category(event, cat)
+    if path == '/api/stories/groups' and method == 'GET':
+        return list_groups(event)
+    if path.startswith('/api/stories/group/') and method == 'GET':
+        grp = params.get('group') or path.split('/')[-1]
+        return list_stories_by_group(event, grp)
 
     # public
     if path == '/api/stories' and method == 'GET':
@@ -197,7 +299,7 @@ def list_stories(event):
     # only PUBLIC stories
     public = [i for i in items if i.get('visibility') == 'PUBLIC']
     # sort by priority descending
-    public.sort(key=lambda x: int(x.get('priority') or 0), reverse=True)
+    public.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
     return _ok([_story_summary(i, lang) for i in public])
 
 
@@ -209,6 +311,54 @@ def get_story(event, story_uuid):
                     f'No story found with UUID: {story_uuid}')
     return _ok(_story_detail(item, lang))
 
+
+# ─── Step 15: Category and Group endpoints ────────────────────────────────────
+
+def list_categories(event):
+    """GET /api/stories/categories — distinct categories from PUBLIC stories."""
+    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    public = [i for i in items if i.get('visibility') == 'PUBLIC']
+    categories = set()
+    for i in public:
+        cat = i.get('category')
+        if cat:
+            categories.add(cat)
+    return _ok(sorted(categories))
+
+
+def list_stories_by_category(event, category):
+    """GET /api/stories/category/{category} — PUBLIC stories matching category."""
+    lang = _get_lang(event)
+    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    matches = [i for i in items
+               if i.get('visibility') == 'PUBLIC' and i.get('category') == category]
+    matches.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
+    return _ok([_story_summary(i, lang) for i in matches])
+
+
+def list_groups(event):
+    """GET /api/stories/groups — distinct groups from PUBLIC stories."""
+    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    public = [i for i in items if i.get('visibility') == 'PUBLIC']
+    groups = set()
+    for i in public:
+        grp = i.get('group')
+        if grp:
+            groups.add(grp)
+    return _ok(sorted(groups))
+
+
+def list_stories_by_group(event, group):
+    """GET /api/stories/group/{group} — PUBLIC stories matching group."""
+    lang = _get_lang(event)
+    items = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    matches = [i for i in items
+               if i.get('visibility') == 'PUBLIC' and i.get('group') == group]
+    matches.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
+    return _ok([_story_summary(i, lang) for i in matches])
+
+
+# ─── Import ───────────────────────────────────────────────────────────────────
 
 def import_story(event):
     _, err = _require_admin(event)
@@ -275,6 +425,84 @@ def import_story(event):
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
         })
 
+    # Step 15: Build character templates list
+    raw_char_templates = data.get('characterTemplates', [])
+    character_templates = []
+    for ct in raw_char_templates:
+        ct_uuid = str(uuid_lib.uuid4())
+        id_ct_name = ct.get('idTextName')
+        id_ct_desc = ct.get('idTextDescription')
+        ct_texts = _build_sub_entity_texts(raw_texts, id_ct_name, id_ct_desc)
+        character_templates.append({
+            'uuid':              ct_uuid,
+            'texts':             ct_texts,
+            'lifeMax':           ct.get('lifeMax', 0),
+            'energyMax':         ct.get('energyMax', 0),
+            'sadMax':            ct.get('sadMax', 0),
+            'dexterityStart':    ct.get('dexterityStart', 0),
+            'intelligenceStart': ct.get('intelligenceStart', 0),
+            'constitutionStart': ct.get('constitutionStart', 0),
+        })
+
+    # Step 15: Build classes list
+    raw_classes = data.get('classes', [])
+    classes = []
+    for cl in raw_classes:
+        cl_uuid = str(uuid_lib.uuid4())
+        id_cl_name = cl.get('idTextName')
+        id_cl_desc = cl.get('idTextDescription')
+        cl_texts = _build_sub_entity_texts(raw_texts, id_cl_name, id_cl_desc)
+        classes.append({
+            'uuid':             cl_uuid,
+            'texts':            cl_texts,
+            'weightMax':        cl.get('weightMax', 0),
+            'dexterityBase':    cl.get('dexterityBase', 0),
+            'intelligenceBase': cl.get('intelligenceBase', 0),
+            'constitutionBase': cl.get('constitutionBase', 0),
+        })
+
+    # Step 15: Build traits list
+    raw_traits = data.get('traits', [])
+    traits = []
+    for tr in raw_traits:
+        tr_uuid = str(uuid_lib.uuid4())
+        id_tr_name = tr.get('idTextName')
+        id_tr_desc = tr.get('idTextDescription')
+        tr_texts = _build_sub_entity_texts(raw_texts, id_tr_name, id_tr_desc)
+        traits.append({
+            'uuid':              tr_uuid,
+            'texts':             tr_texts,
+            'costPositive':      tr.get('costPositive', 0),
+            'costNegative':      tr.get('costNegative', 0),
+            'idClassPermitted':  tr.get('idClassPermitted'),
+            'idClassProhibited': tr.get('idClassProhibited'),
+        })
+
+    # Step 15: Build card info
+    raw_cards = data.get('cards', [])
+    id_card = data.get('idCard')
+    card = None
+    if id_card is not None and raw_cards:
+        for c in raw_cards:
+            if c.get('id') == id_card:
+                card_uuid = str(uuid_lib.uuid4())
+                id_card_name = c.get('idTextName') or c.get('idTextTitle')
+                card_texts = {}
+                for t in raw_texts:
+                    if t.get('idText') == id_card_name:
+                        lang_t = t.get('lang', 'en')
+                        card_texts[lang_t] = {'title': t.get('shortText') or t.get('longText')}
+                card = {
+                    'uuid':             card_uuid,
+                    'texts':            card_texts,
+                    'imageUrl':         c.get('urlImmage') or c.get('imageUrl'),
+                    'alternativeImage': c.get('alternativeImage'),
+                    'awesomeIcon':      c.get('awesomeIcon'),
+                    'styleMain':        c.get('styleMain'),
+                    'styleDetail':      c.get('styleDetail'),
+                }
+                break
+
     priority = int(data.get('priority') or 0)
 
     story_item = {
@@ -298,6 +526,14 @@ def import_story(event):
         'location_count':         len(data.get('locations', [])),
         'event_count':            len(data.get('events', [])),
         'item_count':             len(data.get('items', [])),
+        # Step 15
+        'characterTemplates':     character_templates,
+        'classes':                classes,
+        'traits':                 traits,
+        'card':                   card,
+        'class_count':            len(classes),
+        'template_count':         len(character_templates),
+        'trait_count':            len(traits),
         # GSI for story listing
         'GSI1_PK':                'STORY_LIST',
         'GSI1_SK':                f'STORY#{story_uuid}',
@@ -312,9 +548,30 @@ def import_story(event):
         'eventsImported':      len(data.get('events', [])),
         'itemsImported':       len(data.get('items', [])),
         'difficultiesImported':len(difficulties),
-        'classesImported':     len(data.get('classes', [])),
+        'classesImported':     len(classes),
         'choicesImported':     len(data.get('choices', [])),
     }, status=201)
+
+
+def _build_sub_entity_texts(raw_texts, id_name, id_desc):
+    """Build a multi-lang texts dict for a sub-entity (class, template, trait).
+
+    Returns: { 'en': {'name': '...', 'description': '...'}, 'it': {...} }
+    """
+    texts = {}
+    for t in raw_texts:
+        id_t = t.get('idText')
+        lang_t = t.get('lang', 'en')
+        val = t.get('shortText') or t.get('longText')
+        if id_t == id_name:
+            if lang_t not in texts:
+                texts[lang_t] = {}
+            texts[lang_t]['name'] = val
+        if id_t == id_desc:
+            if lang_t not in texts:
+                texts[lang_t] = {}
+            texts[lang_t]['description'] = val
+    return texts
 
 
 def list_all_stories(event):
@@ -323,7 +580,7 @@ def list_all_stories(event):
         return err
     lang  = _get_lang(event)
     items = db_utils.query_gsi('GSI1', 'STORY_LIST')
-    items.sort(key=lambda x: int(x.get('priority') or 0), reverse=True)
+    items.sort(key=lambda x: _safe_int(x.get('priority')), reverse=True)
     return _ok([_story_summary(i, lang) for i in items])
 
 

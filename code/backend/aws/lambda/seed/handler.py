@@ -126,6 +126,14 @@ SEED_STORIES = [
         "location_count":   8,
         "event_count":      5,
         "item_count":       4,
+        # Step 15 fields
+        "characterTemplates": [],
+        "classes":            [],
+        "traits":             [],
+        "card":               None,
+        "class_count":        0,
+        "template_count":     0,
+        "trait_count":        0,
     },
     {
         "uuid":       "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
@@ -193,6 +201,14 @@ SEED_STORIES = [
         "location_count":   12,
         "event_count":      5,
         "item_count":       5,
+        # Step 15 fields
+        "characterTemplates": [],
+        "classes":            [],
+        "traits":             [],
+        "card":               None,
+        "class_count":        0,
+        "template_count":     0,
+        "trait_count":        0,
     },
 ]
 
@@ -226,6 +242,14 @@ def _seed_stories():
             "location_count":           s["location_count"],
             "event_count":              s["event_count"],
             "item_count":               s["item_count"],
+            # Step 15 fields
+            "characterTemplates":       s.get("characterTemplates", []),
+            "classes":                  s.get("classes", []),
+            "traits":                   s.get("traits", []),
+            "card":                     s.get("card"),
+            "class_count":              s.get("class_count", 0),
+            "template_count":           s.get("template_count", 0),
+            "trait_count":              s.get("trait_count", 0),
             # GSI for story listing
             "GSI1_PK":                  "STORY_LIST",
             "GSI1_SK":                  f"STORY#{story_uuid}",

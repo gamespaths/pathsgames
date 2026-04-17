@@ -44,7 +44,7 @@ sam deploy \
     --s3-bucket "${S3_BUCKET:-pathsgames-cloudformation-dev}" \
     --s3-prefix "${S3_PREFIX:-pathsgames-aws-backend}" \
     --region "${AWS_REGION:-us-east-2}" \
-    --capabilities CAPABILITY_IAM \
+    --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
     --parameter-overrides Environment="${ENVIRONMENT_NAME:-dev}" \
     --no-fail-on-empty-changeset 2>&1
 

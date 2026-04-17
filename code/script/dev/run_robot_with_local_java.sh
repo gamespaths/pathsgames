@@ -27,6 +27,12 @@ fi
 echo "Kill all process using 8042 port"
 fuser -k 8042/tcp || true
 
+# Build the JAR with the dev Maven profile (includes adapter-sqlte + SQLite JDBC driver)
+echo "Building Java project with Maven dev profile..."
+cd "$PROJECT_ROOT/code/backend/java" && \
+	mvn -q clean install package -P dev -DskipTests
+echo "Build completed."
+
 # start local server
 java -jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
 SERVER_PID=$!

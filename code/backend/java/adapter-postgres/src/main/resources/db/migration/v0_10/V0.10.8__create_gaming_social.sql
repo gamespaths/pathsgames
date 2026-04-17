@@ -16,7 +16,7 @@
 
 CREATE TABLE gaming_trades (
     id                          BIGSERIAL    PRIMARY KEY,
-    uuid                        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match                    BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match_sender   BIGINT       NOT NULL REFERENCES gaming_character_instance(id),
     id_character_match_dest     BIGINT       NOT NULL REFERENCES gaming_character_instance(id),
@@ -26,8 +26,8 @@ CREATE TABLE gaming_trades (
     timeout                     TIMESTAMP,
     resource                    VARCHAR(50),
     amount                      INTEGER      DEFAULT 0,
-    ts_insert                   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN gaming_trades.status IS 'PENDING_VALIDATION, ACCEPTED, REFUSED, FAILED_INVALID, EXPIRED';
@@ -35,7 +35,7 @@ COMMENT ON COLUMN gaming_trades.resource IS 'food, magic, coin';
 
 CREATE TABLE gaming_movement_invites (
     id                          BIGSERIAL    PRIMARY KEY,
-    uuid                        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match                    BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match_sender   BIGINT       NOT NULL REFERENCES gaming_character_instance(id),
     id_character_match_friend   BIGINT       NOT NULL REFERENCES gaming_character_instance(id),
@@ -44,28 +44,28 @@ CREATE TABLE gaming_movement_invites (
     timestamp_timeout           TIMESTAMP,
     timestamp_answer            TIMESTAMP,
     energy_cost                 INTEGER      DEFAULT 0,
-    ts_insert                   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN gaming_movement_invites.state IS 'PENDING, ACCEPTED, EXPIRED, CANCELLED';
 
 CREATE TABLE gaming_notification_queue (
     id               BIGSERIAL    PRIMARY KEY,
-    uuid             UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid             VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match         BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_chat          BIGINT,
     flag_system_push BOOLEAN      NOT NULL DEFAULT FALSE,
     timestamp        TIMESTAMP    NOT NULL DEFAULT NOW(),
     type             VARCHAR(50),
     priority         INTEGER      DEFAULT 0,
-    ts_insert        TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update        TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE gaming_user_sessions (
     id        BIGSERIAL    PRIMARY KEY,
-    uuid      UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid      VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_user   BIGINT       NOT NULL REFERENCES users(id),
     id_match  BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     last_seen TIMESTAMP    DEFAULT NOW(),
@@ -74,19 +74,19 @@ CREATE TABLE gaming_user_sessions (
     ip        VARCHAR(45),
     device    VARCHAR(100),
     channel   VARCHAR(100),
-    ts_insert TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE chat_messages (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user             BIGINT       NOT NULL REFERENCES users(id),
     id_character_match  BIGINT       REFERENCES gaming_character_instance(id),
     message             TEXT         NOT NULL,
     timestamp           TIMESTAMP    NOT NULL DEFAULT NOW(),
     counter             INTEGER      DEFAULT 0,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

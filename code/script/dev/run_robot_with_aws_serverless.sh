@@ -67,10 +67,26 @@ cd "$PROJECT_ROOT/code/tests/robot"
 # ADMIN token can come from .env as ROBOT_VAR_ADMIN_TOKEN or be empty (tests may generate it)
 ADMIN_TOKEN_VALUE="${ROBOT_VAR_ADMIN_TOKEN:-}"
 
+
+# Prepare environment for robot tests
+if [ ! -d "$PROJECT_ROOT/.venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv "$PROJECT_ROOT/.venv"
+fi
+source "$PROJECT_ROOT/.venv/bin/activate"
+
+echo "Installing/updating dependencies..."
+pip install -q --upgrade pip
+if [ -f "$PROJECT_ROOT/code/tests/robot/requirements.txt" ]; then
+    pip install -q -r "$PROJECT_ROOT/code/tests/robot/requirements.txt"
+fi
+
+echo "Running Robot tests!"
+cd "$PROJECT_ROOT/code/tests/robot" && \
 robot --variablefile variables/dev.yaml \
-      --variable BASE_URL:"$API_URL" \
-      --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
-      --outputdir reports-aws/ tests/
+    --variable BASE_URL:"$API_URL" \
+    --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
+    --outputdir reports-aws/ tests/
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-aws/"
 

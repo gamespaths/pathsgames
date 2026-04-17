@@ -72,7 +72,6 @@ Character Templates Have Required Fields
     ${response}=    Get Story By UUID    ${DEMO_1_UUID}
     ${body}=    Set Variable    ${response.json()}
     ${templates}=    Set Variable    ${body}[characterTemplates]
-    Return From Keyword If    len(${templates}) == 0
     FOR    ${ct}    IN    @{templates}
         Dictionary Should Contain Key    ${ct}    uuid
         Dictionary Should Contain Key    ${ct}    name
@@ -89,7 +88,6 @@ Classes Have Required Fields
     ${response}=    Get Story By UUID    ${DEMO_1_UUID}
     ${body}=    Set Variable    ${response.json()}
     ${classes}=    Set Variable    ${body}[classes]
-    Return From Keyword If    len(${classes}) == 0
     FOR    ${cls}    IN    @{classes}
         Dictionary Should Contain Key    ${cls}    uuid
         Dictionary Should Contain Key    ${cls}    name
@@ -105,7 +103,6 @@ Traits Have Required Fields
     ${response}=    Get Story By UUID    ${DEMO_1_UUID}
     ${body}=    Set Variable    ${response.json()}
     ${traits}=    Set Variable    ${body}[traits]
-    Return From Keyword If    len(${traits}) == 0
     FOR    ${tr}    IN    @{traits}
         Dictionary Should Contain Key    ${tr}    uuid
         Dictionary Should Contain Key    ${tr}    name

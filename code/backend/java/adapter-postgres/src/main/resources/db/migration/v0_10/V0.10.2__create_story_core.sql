@@ -20,7 +20,7 @@
 
 CREATE TABLE list_stories (
     id                          BIGSERIAL    PRIMARY KEY,
-    uuid                        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card                     BIGINT,                          -- FK to list_cards(id), deferred to V0.10.11
     id_text_title               BIGINT,                          -- references list_texts(id_text)
     id_text_description         BIGINT,                          -- references list_texts(id_text)
@@ -42,13 +42,13 @@ CREATE TABLE list_stories (
     visibility                  VARCHAR(50)  DEFAULT 'PUBLIC',
     priority                    INTEGER      DEFAULT 0,
     peghi                       INTEGER      DEFAULT 0,
-    ts_insert                   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_stories_difficulty (
     id                       BIGSERIAL   PRIMARY KEY,
-    uuid                     UUID        NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                     VARCHAR(36)        NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card                  BIGINT,                             -- FK to list_cards(id), deferred
     id_story                 BIGINT      NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_description      BIGINT,                             -- references list_texts(id_text)
@@ -59,13 +59,13 @@ CREATE TABLE list_stories_difficulty (
     cost_help_coma           INTEGER     NOT NULL DEFAULT 3,
     cost_max_characteristics INTEGER     NOT NULL DEFAULT 3,
     number_max_free_action   INTEGER     NOT NULL DEFAULT 1,
-    ts_insert                TIMESTAMP   NOT NULL DEFAULT NOW(),
-    ts_update                TIMESTAMP   NOT NULL DEFAULT NOW()
+    ts_insert                VARCHAR(50)   NOT NULL DEFAULT NOW()::text,
+    ts_update                VARCHAR(50)   NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_keys (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     name                VARCHAR(200) NOT NULL,
@@ -74,13 +74,13 @@ CREATE TABLE list_keys (
     "group"             VARCHAR(100),
     priority            INTEGER      DEFAULT 0,
     visibility          VARCHAR(50)  DEFAULT 'PUBLIC',
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_classes (
     id                 BIGSERIAL    PRIMARY KEY,
-    uuid               UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid               VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card            BIGINT,                                   -- FK to list_cards(id), deferred
     id_story           BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name       BIGINT,                                   -- references list_texts(id_text)
@@ -89,13 +89,13 @@ CREATE TABLE list_classes (
     dexterity_base     INTEGER      NOT NULL DEFAULT 1,
     intelligence_base  INTEGER      NOT NULL DEFAULT 1,
     constitution_base  INTEGER      NOT NULL DEFAULT 1,
-    ts_insert          TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update          TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert          VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update          VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_classes_bonus (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_class            BIGINT       NOT NULL REFERENCES list_classes(id) ON DELETE CASCADE,
@@ -103,15 +103,15 @@ CREATE TABLE list_classes_bonus (
     value               INTEGER      NOT NULL DEFAULT 0,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN list_classes_bonus.statistic IS 'energy, life, sad, dex, int, cos, food, magic, coin';
 
 CREATE TABLE list_traits (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_class_permitted  BIGINT       REFERENCES list_classes(id),
@@ -120,13 +120,13 @@ CREATE TABLE list_traits (
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     cost_positive       INTEGER      DEFAULT 0,
     cost_negative       INTEGER      DEFAULT 0,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_character_templates (
     id_tipo             BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
@@ -137,6 +137,6 @@ CREATE TABLE list_character_templates (
     dexterity_start     INTEGER      NOT NULL DEFAULT 1,
     intelligence_start  INTEGER      NOT NULL DEFAULT 1,
     constitution_start  INTEGER      NOT NULL DEFAULT 1,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

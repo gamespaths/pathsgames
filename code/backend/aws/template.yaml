@@ -7,21 +7,11 @@ Parameters:
     Type: String
     Default: dev
     Description: 'Ambiente di deploy (dev, prod, ecc.)'
-
-Globals:
-  Function:
-    Runtime: python3.13
-    Handler: handler.lambda_handler
-    Timeout: 30
-    MemorySize: 256
-    Tags:
-      project: PathsGames
-      env: !Ref Environment
-    Environment:
-      Variables:
-        TABLE_NAME: !Ref PathsGamesTable
-        ENV: !Ref Environment
-        JWT_SECRET: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+    Description: 'Secret key for JWT verification'
 
 Resources:
   # DynamoDB Table (Single Table Design)
@@ -68,14 +58,8 @@ Resources:
         project: PathsGames
         env: !Ref Environment
       CorsConfiguration:
-        AllowMethods:
-          - GET
-          - POST
-          - DELETE
-          - OPTIONS
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
         AllowOrigins:
-          # localhost (any common dev port) + 127.0.0.1
-          # AllowCredentials:true requires explicit origins (no wildcard)
           - "http://localhost"
           - "http://localhost:3000"
           - "http://localhost:5173"
@@ -86,219 +70,47 @@ Resources:
           - "http://127.0.0.1:8042"
           - "http://127.0.0.1:8080"
           - "http://127.0.0.1:5500"
-        AllowHeaders:
-          - Content-Type
-          - Authorization
-          - Cookie
+        AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
 
-  # Lambda Functions
-
-  # CloudWatch Log Groups — explicitly managed so they are deleted with the stack
-  EchoLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
+  # Nested Stacks (Modules)
+  
+  EchoModule:
+    Type: AWS::Serverless::Application
     Properties:
-      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-EchoFunction"
-      RetentionInDays: 14
-      Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+      Location: template/echo.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
 
-  AuthLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
+  AuthModule:
+    Type: AWS::Serverless::Application
     Properties:
-      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AuthFunction"
-      RetentionInDays: 14
-      Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+      Location: template/auth.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+        JwtSecret: !Ref JwtSecret
 
-  StoryLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
+  StoryModule:
+    Type: AWS::Serverless::Application
     Properties:
-      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-StoryFunction"
-      RetentionInDays: 14
-      Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
+      Location: template/story.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
 
-  SeedLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Delete
+  SeedModule:
+    Type: AWS::Serverless::Application
     Properties:
-      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-SeedFunction"
-      RetentionInDays: 14
-      Tags:
-        - Key: project
-          Value: PathsGames
-        - Key: env
-          Value: !Ref Environment
-
-  EchoFunction:
-    Type: AWS::Serverless::Function
-    DependsOn: EchoLogGroup
-    Properties:
-      FunctionName: !Sub "pathsgames-${Environment}-EchoFunction"
-      CodeUri: lambda/echo/
-      Events:
-        HealthCheck:
-          Type: HttpApi
-          Properties:
-            Path: /api/echo/status
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref PathsGamesTable
-
-  AuthFunction:
-    Type: AWS::Serverless::Function
-    DependsOn: AuthLogGroup
-    Properties:
-      FunctionName: !Sub "pathsgames-${Environment}-AuthFunction"
-      CodeUri: lambda/
-      Handler: auth.handler.lambda_handler
-      Events:
-        GuestLogin:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/guest
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        ResumeGuest:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/guest/resume
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        RefreshToken:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/refresh
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        Logout:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/logout
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        LogoutAll:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/logout/all
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        GetMe:
-          Type: HttpApi
-          Properties:
-            Path: /api/auth/me
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        ListGuests:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/guests
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        GuestStats:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/guests/stats
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        CleanupExpiredGuests:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/guests/expired
-            Method: DELETE
-            ApiId: !Ref PathsGamesApi
-        GetGuestByUuid:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/guests/{uuid}
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        DeleteGuest:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/guests/{uuid}
-            Method: DELETE
-            ApiId: !Ref PathsGamesApi
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref PathsGamesTable
-
-  StoryFunction:
-    Type: AWS::Serverless::Function
-    DependsOn: StoryLogGroup
-    Properties:
-      FunctionName: !Sub "pathsgames-${Environment}-StoryFunction"
-      CodeUri: lambda/
-      Handler: story.handler.lambda_handler
-      Events:
-        ListStories:
-          Type: HttpApi
-          Properties:
-            Path: /api/stories
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        GetStory:
-          Type: HttpApi
-          Properties:
-            Path: /api/stories/{uuid}
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        ImportStory:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/stories/import
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-        ListAllStories:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/stories
-            Method: GET
-            ApiId: !Ref PathsGamesApi
-        DeleteStory:
-          Type: HttpApi
-          Properties:
-            Path: /api/admin/stories/{uuid}
-            Method: DELETE
-            ApiId: !Ref PathsGamesApi
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref PathsGamesTable
-
-  # Dev-only seed function — inserts test users from R__insert_dev_test_data.sql
-  # The handler itself guards against non-dev environments (returns 403).
-  SeedFunction:
-    Type: AWS::Serverless::Function
-    DependsOn: SeedLogGroup
-    Properties:
-      FunctionName: !Sub "pathsgames-${Environment}-SeedFunction"
-      CodeUri: lambda/
-      Handler: seed.handler.lambda_handler
-      Events:
-        SeedData:
-          Type: HttpApi
-          Properties:
-            Path: /api/dev/seed
-            Method: POST
-            ApiId: !Ref PathsGamesApi
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref PathsGamesTable
+      Location: template/seed.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
 
 Outputs:
   ApiUrl:
@@ -308,5 +120,5 @@ Outputs:
     Description: "DynamoDB Table Name"
     Value: !Ref PathsGamesTable
   SeedEndpoint:
-    Description: "Dev seed endpoint (POST — inserts test users, 403 in non-dev)"
+    Description: "Dev seed endpoint"
     Value: !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"

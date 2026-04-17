@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+  TableName:
+    Type: String
+  ApiId:
+    Type: String
+
+Resources:
+  StoryLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-StoryFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: project
+          Value: PathsGames
+        - Key: env
+          Value: !Ref Environment
+
+  StoryFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: StoryLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-StoryFunction"
+      Runtime: python3.13
+      Handler: story.handler.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      CodeUri: ../lambda/
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+
+  StoryIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt StoryFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  StoryPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref StoryFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+
+  ListCategoriesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/categories"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListStoriesByCategoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/category/{category}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListGroupsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/groups"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListStoriesByGroupRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/group/{group}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListStoriesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  GetStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/{uuid}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ImportStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/stories/import"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListAllStoriesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/stories"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  DeleteStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "DELETE /api/admin/stories/{uuid}"
+      Target: !Sub "integrations/${StoryIntegration}"

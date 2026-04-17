@@ -59,3 +59,331 @@ VALUES (4, 'test_player3', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZ
 
 -- Reset sequence after explicit ID inserts
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+
+-- =============================================
+-- Story Seed Data: DEMO_1 and DEMO_2
+-- =============================================
+-- Clean previous story test data (id >= 9000)
+DELETE FROM list_choices_effects       WHERE id_story IN (9001, 9002);
+DELETE FROM list_choices_conditions    WHERE id_story IN (9001, 9002);
+DELETE FROM list_choices               WHERE id_story IN (9001, 9002);
+DELETE FROM list_events_effects        WHERE id_story IN (9001, 9002);
+DELETE FROM list_events                WHERE id_story IN (9001, 9002);
+DELETE FROM list_items_effects         WHERE id_story IN (9001, 9002);
+DELETE FROM list_items                 WHERE id_story IN (9001, 9002);
+DELETE FROM list_locations_neighbors   WHERE id_story IN (9001, 9002);
+DELETE FROM list_locations             WHERE id_story IN (9001, 9002);
+DELETE FROM list_weather_rules         WHERE id_story IN (9001, 9002);
+DELETE FROM list_missions_steps        WHERE id_story IN (9001, 9002);
+DELETE FROM list_missions              WHERE id_story IN (9001, 9002);
+DELETE FROM list_global_random_events  WHERE id_story IN (9001, 9002);
+DELETE FROM list_character_templates   WHERE id_story IN (9001, 9002);
+DELETE FROM list_traits                WHERE id_story IN (9001, 9002);
+DELETE FROM list_classes_bonus         WHERE id_story IN (9001, 9002);
+DELETE FROM list_classes               WHERE id_story IN (9001, 9002);
+DELETE FROM list_stories_difficulty    WHERE id_story IN (9001, 9002);
+DELETE FROM list_cards                 WHERE id_story IN (9001, 9002);
+DELETE FROM list_creator               WHERE id_story IN (9001, 9002);
+DELETE FROM list_keys                  WHERE id_story IN (9001, 9002);
+DELETE FROM list_texts                 WHERE id_story IN (9001, 9002);
+DELETE FROM list_stories               WHERE id IN (9001, 9002);
+
+-- ── Story 1: DEMO — Learn to Play (id=9001) ─────────────────────
+INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description)
+VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 'turn', 'turns',
+    'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2);
+
+-- ── Story 2: Il Valvassore di Marca (id=9002) ────────────────────
+INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description)
+VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
+    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2);
+
+-- ── Story 1 Texts ───────────────────────────────────────────────
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90001, 9001, 1, 'en', 'TUTORIAL', 'Welcome to Paths Games! This guided tutorial will teach you every mechanic step by step.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90002, 9001, 1, 'it', 'TUTORIAL', 'Benvenuto in Paths Games! Questo tutorial guidato ti insegnerà ogni meccanica passo dopo passo.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90003, 9001, 2, 'en', 'A short training adventure in the Academy of Paths.', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90004, 9001, 2, 'it', 'Una breve avventura di addestramento.', 'Una breve avventura di addestramento nell''Accademia di Paths. Impara movimento, energia, oggetti, scelte e missioni in un ambiente sicuro.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90005, 9001, 100, 'en', 'Welcome Hall', 'A bright, welcoming hall with banners explaining the basics of Paths Games.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90006, 9001, 100, 'it', 'Sala di Benvenuto', 'Una sala luminosa e accogliente con stendardi.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90007, 9001, 101, 'en', 'Movement Training Room', 'A long corridor with colored tiles on the floor.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90008, 9001, 101, 'it', 'Sala Addestramento Movimento', 'Un lungo corridoio con mattonelle colorate.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90009, 9001, 102, 'en', 'Energy & Life Classroom', 'A cozy classroom with diagrams on a blackboard.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90010, 9001, 102, 'it', 'Aula Energia & Vita', 'Un''aula accogliente con diagrammi alla lavagna.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90011, 9001, 103, 'en', 'Item Workshop', 'A workshop filled with glowing potions and rusty swords.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90012, 9001, 103, 'it', 'Laboratorio Oggetti', 'Un laboratorio pieno di pozioni e spade.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90013, 9001, 104, 'en', 'Choice Arena', 'A circular arena with two doors: one gold, one red.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90014, 9001, 104, 'it', 'Arena delle Scelte', 'Un''arena circolare con due porte.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90015, 9001, 105, 'en', 'Weather Observatory', 'A tower with a glass dome revealing the sky.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90016, 9001, 105, 'it', 'Osservatorio Meteo', 'Una torre con una cupola di vetro.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90017, 9001, 106, 'en', 'Mission Board', 'A large board covered with quest notices.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90018, 9001, 106, 'it', 'Bacheca Missioni', 'Una grande bacheca coperta di avvisi di missioni.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90019, 9001, 107, 'en', 'Multiplayer Courtyard', 'An open courtyard where training dummies represent other players.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90020, 9001, 107, 'it', 'Cortile Multigiocatore', 'Un cortile aperto con manichini da allenamento.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90021, 9001, 108, 'en', 'Graduation Hall', 'A grand hall with a golden trophy at the center.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90022, 9001, 108, 'it', 'Sala della Laurea', 'Una sala maestosa con un trofeo dorato al centro.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90029, 9001, 200, 'en', 'Student', 'A balanced beginner. Good at everything, master of nothing.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90030, 9001, 200, 'it', 'Studente', 'Un principiante equilibrato.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90031, 9001, 201, 'en', 'Scholar', 'High intelligence, low constitution.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90032, 9001, 201, 'it', 'Erudito', 'Alta intelligenza, bassa costituzione.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90033, 9001, 202, 'en', 'Athlete', 'High dexterity and constitution, lower intelligence.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90034, 9001, 202, 'it', 'Atleta', 'Alta destrezza e costituzione.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90035, 9001, 300, 'en', 'Tutorial', 'The only difficulty available for the tutorial.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90036, 9001, 300, 'it', 'Tutorial', 'L''unica difficoltà disponibile per il tutorial.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90071, 9001, 700, 'en', 'Quick Learner', 'You absorb knowledge faster.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90072, 9001, 700, 'it', 'Apprendista Veloce', 'Assorbi conoscenza più rapidamente.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90073, 9001, 701, 'en', 'Curious Mind', 'Your curiosity leads you to discover hidden details.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90074, 9001, 701, 'it', 'Mente Curiosa', 'La tua curiosità ti porta a scoprire dettagli nascosti.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90075, 9001, 702, 'en', 'Resilient Spirit', 'You recover quickly from setbacks.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90076, 9001, 702, 'it', 'Spirito Resiliente', 'Ti riprendi rapidamente dalle avversità.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90096, 9001, 210, 'en', 'The Student', 'A well-rounded student with equal stats.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90097, 9001, 211, 'en', 'The Bookworm', 'A studious character with high intelligence.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90098, 9001, 212, 'en', 'The Gym Star', 'An athletic character with high dexterity.');
+
+-- ── Story 1 Difficulties ────────────────────────────────────────
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3);
+
+-- ── Story 1 Classes ─────────────────────────────────────────────
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (90001, 9001, 200, 200, 12, 3, 3, 3);
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (90002, 9001, 201, 201, 8, 2, 5, 2);
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (90003, 9001, 202, 202, 10, 5, 2, 4);
+
+-- ── Story 1 Classes Bonus ───────────────────────────────────────
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90001, 9001, 90001, 'life', 3);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90002, 9001, 90001, 'energy', 3);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90003, 9001, 90001, 'exp', 2);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90004, 9001, 90002, 'int', 3);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90005, 9001, 90002, 'energy', 2);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90006, 9001, 90002, 'exp', 3);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90007, 9001, 90003, 'dex', 3);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90008, 9001, 90003, 'life', 2);
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90009, 9001, 90003, 'energy', 4);
+
+-- ── Story 1 Traits ──────────────────────────────────────────────
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (90001, 9001, 700, 700, 1, 0);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (90002, 9001, 701, 701, 1, 0);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (90003, 9001, 702, 702, 1, 0);
+
+-- ── Story 1 Character Templates ─────────────────────────────────
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90001, 9001, 210, 210, 12, 12, 8, 3, 3, 3);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90002, 9001, 211, 211, 10, 10, 6, 2, 5, 2);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90003, 9001, 212, 212, 11, 14, 7, 5, 2, 4);
+
+-- ── Story 1 Keys ────────────────────────────────────────────────
+INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90001, 9001, 'tutorial_progress', '0', 'tutorial');
+INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90002, 9001, 'items_collected', 'false', 'tutorial');
+INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 'choice_made', 'false', 'tutorial');
+
+-- ── Story 1 Locations ───────────────────────────────────────────
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90001, 9001, 100, 100, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90002, 9001, 101, 101, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90003, 9001, 102, 102, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90004, 9001, 103, 103, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90005, 9001, 104, 104, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90006, 9001, 105, 105, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90007, 9001, 106, 106, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 107, 107, 1, 10);
+
+-- ── Story 1 Location Neighbors ──────────────────────────────────
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90001, 9001, 90001, 90002, 'NORTH', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90002, 9001, 90002, 90003, 'EAST', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90003, 9001, 90003, 90004, 'NORTH', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90004, 9001, 90004, 90005, 'EAST', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90005, 9001, 90005, 90006, 'NORTH', 1);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90006, 9001, 90006, 90007, 'EAST', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90007, 9001, 90007, 90008, 'NORTH', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90008, 9001, 90001, 90008, 'EAST', 1);
+
+-- ── Story 1 Items ───────────────────────────────────────────────
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90001, 9001, 400, 400, 1);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90002, 9001, 401, 401, 2);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90003, 9001, 402, 402, 1);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90004, 9001, 403, 403, 1);
+
+-- ── Story 1 Item Effects ────────────────────────────────────────
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90001, 9001, 90001, 'LIFE', 3);
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90002, 9001, 90003, 'EXP', 5);
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90003, 9001, 90004, 'ENERGY', 3);
+
+-- ── Story 1 Weather Rules ───────────────────────────────────────
+INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90001, 9001, 800, 50, 1);
+INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90002, 9001, 801, 35, 1);
+INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90003, 9001, 802, 15, 1);
+
+-- ── Story 1 Events ──────────────────────────────────────────────
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90001, 9001, 500, 500, 'FIRST', 0, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90002, 9001, 501, 501, 'FIRST', 0, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90003, 9001, 502, 502, 'FIRST', 0, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90004, 9001, 503, 503, 'NORMAL', 1, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90005, 9001, 504, 504, 'AUTOMATIC', 0, 1);
+
+-- ── Story 1 Event Effects ───────────────────────────────────────
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90001, 9001, 90001, 'exp', 2);
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90002, 9001, 90002, 'exp', 3);
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90003, 9001, 90003, 'exp', 3);
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90004, 9001, 90004, 'energy', -1);
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90005, 9001, 90005, 'exp', 15);
+
+-- ── Story 1 Choices ─────────────────────────────────────────────
+INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90001, 9001, 90004, 1, 600, 600, 0, 1);
+INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90002, 9001, 90004, 2, 601, 601, 0, 1);
+INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90003, 9001, 90003, 1, 602, 602, 0, 1);
+INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90004, 9001, 90005, 1, 603, 603, 0, 1);
+
+-- ── Story 1 Choice Conditions ───────────────────────────────────
+INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES (90001, 9001, 90003, 'statistics', 'int', '1', '>');
+
+-- ── Story 1 Choice Effects ──────────────────────────────────────
+INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) VALUES (90001, 9001, 90001, 'exp', 5);
+INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) VALUES (90002, 9001, 90002, 'life', -1);
+INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) VALUES (90003, 9001, 90003, 'exp', 3);
+INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) VALUES (90004, 9001, 90004, 'exp', 10);
+
+-- ── Story 1 Global Random Events ────────────────────────────────
+INSERT INTO list_global_random_events (id, id_story, probability) VALUES (90001, 9001, 10);
+
+-- ── Story 1 Missions ────────────────────────────────────────────
+INSERT INTO list_missions (id, id_story, condition_key, condition_value_from, condition_value_to, id_text_name, id_text_description) VALUES (90001, 9001, 'tutorial_progress', '0', '3', 900, 900);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90002, 9001, 'items_collected', 'true', 901, 901);
+INSERT INTO list_missions (id, id_story, condition_key, condition_value_to, id_text_name, id_text_description) VALUES (90003, 9001, 'choice_made', 'gold', 902, 902);
+
+-- ── Story 1 Mission Steps ───────────────────────────────────────
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90001, 9001, 90001, 1, 'visited_movement', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90002, 9001, 90001, 2, 'visited_energy', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90003, 9001, 90001, 3, 'visited_graduation', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90004, 9001, 90002, 1, 'potion_collected', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90005, 9001, 90002, 2, 'snack_used', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90006, 9001, 90003, 1, 'entered_arena', 'true');
+INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, condition_value_to) VALUES (90007, 9001, 90003, 2, 'door_chosen', 'true');
+
+-- ── Story 1 Creator ─────────────────────────────────────────────
+INSERT INTO list_creator (id, id_story, link) VALUES (90001, 9001, 'https://paths.games');
+
+-- ── Story 1 Cards ───────────────────────────────────────────────
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90001, 9001, 'fas fa-graduation-cap', 'tutorial');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90002, 9001, 'fas fa-book-open', 'learning');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90003, 9001, 'fas fa-lightbulb', 'tips');
+
+-- #############################################################################
+-- STORY 2: IL VALVASSORE DI MARCA (id=9002)
+-- #############################################################################
+
+-- ── Story 2 Texts ───────────────────────────────────────────────
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91001, 9002, 1, 'en', 'The Valvassor of the March', 'Veneto, 1243 AD. You are a valvassor serving under Ezzelino III da Romano.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91002, 9002, 1, 'it', 'Il Valvassore di Marca', 'Veneto, 1243. Sei un valvassore al servizio di Ezzelino III da Romano.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91003, 9002, 2, 'en', 'The Valvassor of the March', 'Travel across medieval Veneto to save your vassal from an unjust death.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91004, 9002, 2, 'it', 'Il Valvassore di Marca', 'Viaggia attraverso il Veneto medievale per salvare il tuo vassallo.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91005, 9002, 100, 'en', 'Castelfranco Veneto', 'Your small fortified town.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91006, 9002, 100, 'it', 'Castelfranco Veneto', 'La tua piccola città fortificata.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91029, 9002, 200, 'en', 'Knight', 'A minor noble trained in combat and horsemanship.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91030, 9002, 200, 'it', 'Cavaliere', 'Un piccolo nobile addestrato nel combattimento.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91031, 9002, 201, 'en', 'Cleric', 'A man of the cloth with access to monasteries.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91032, 9002, 201, 'it', 'Chierico', 'Un uomo di chiesa.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91033, 9002, 202, 'en', 'Merchant', 'A wealthy trader with connections in every city.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91034, 9002, 202, 'it', 'Mercante', 'Un ricco commerciante.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91035, 9002, 203, 'en', 'Scout', 'A nimble tracker at home in forests and marshes.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91036, 9002, 203, 'it', 'Esploratore', 'Un agile segugi.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91037, 9002, 300, 'en', 'Merciful Judge', 'Extra time and resources.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91038, 9002, 300, 'it', 'Giudice Misericordioso', 'Tempo e risorse extra.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91039, 9002, 301, 'en', 'Just Trial', 'Standard difficulty.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91040, 9002, 301, 'it', 'Giusto Processo', 'Difficoltà standard.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91041, 9002, 302, 'en', 'Iron Inquisition', 'Extreme difficulty.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91042, 9002, 302, 'it', 'Inquisizione di Ferro', 'Difficoltà estrema.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91073, 9002, 700, 'en', 'Feudal Authority', 'Your rank commands respect from peasants and minor lords.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91074, 9002, 700, 'it', 'Autorità Feudale', 'Il tuo rango impone rispetto.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91075, 9002, 701, 'en', 'Silver Tongue', 'A gift for persuasion.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91076, 9002, 701, 'it', 'Lingua d''Argento', 'Un dono per la persuasione.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91077, 9002, 702, 'en', 'Local Knowledge', 'Born and raised in the Marca Trevigiana.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91078, 9002, 702, 'it', 'Conoscenza del Territorio', 'Nato e cresciuto nella Marca Trevigiana.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91098, 9002, 210, 'en', 'The Loyal Valvassor', 'A steadfast minor lord who always honors his oaths.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91099, 9002, 211, 'en', 'The Cunning Notary', 'A sharp legal mind trained at the University of Padova.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91100, 9002, 212, 'en', 'The Veteran Sergeant', 'A battle-hardened soldier from Ezzelino''s campaigns.');
+
+-- ── Story 2 Difficulties ────────────────────────────────────────
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3);
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1);
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (91003, 9002, 302, 8, 8, 2, 3, 5, 5, 0);
+
+-- ── Story 2 Classes ─────────────────────────────────────────────
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (91001, 9002, 200, 200, 12, 3, 2, 4);
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (91002, 9002, 201, 201, 6, 1, 5, 2);
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (91003, 9002, 202, 202, 10, 2, 4, 2);
+INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (91004, 9002, 203, 203, 8, 5, 2, 2);
+
+-- ── Story 2 Traits ──────────────────────────────────────────────
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (91001, 9002, 700, 700, 3, 0);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (91002, 9002, 701, 701, 2, 0);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (91003, 9002, 702, 702, 2, 0);
+
+-- ── Story 2 Character Templates ─────────────────────────────────
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91001, 9002, 210, 210, 12, 10, 8, 3, 3, 4);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91002, 9002, 211, 211, 8, 8, 6, 1, 5, 2);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91003, 9002, 212, 212, 14, 12, 10, 4, 1, 5);
+
+-- ── Story 2 Locations ───────────────────────────────────────────
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 100, 100, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91002, 9002, 101, 101, 1, 15);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91003, 9002, 102, 102, 1, 20);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91004, 9002, 103, 103, 0, 8);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91005, 9002, 104, 104, 1, 6);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91006, 9002, 105, 105, 1, 10);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91007, 9002, 106, 106, 0, 4);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91008, 9002, 107, 107, 0, 6);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91009, 9002, 108, 108, 0, 4);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91010, 9002, 109, 109, 0, 12);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91011, 9002, 110, 110, 0, 6);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91012, 9002, 111, 111, 1, 8);
+
+-- ── Story 2 Events ──────────────────────────────────────────────
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91001, 9002, 500, 500, 'NORMAL', 2, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91002, 9002, 501, 501, 'NORMAL', 1, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91003, 9002, 502, 502, 'FIRST', 0, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91004, 9002, 503, 503, 'NORMAL', 1, 0);
+INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91005, 9002, 504, 504, 'AUTOMATIC', 0, 1);
+
+-- ── Story 2 Items ───────────────────────────────────────────────
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (91001, 9002, 400, 400, 1);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (91002, 9002, 401, 401, 1);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (91003, 9002, 402, 402, 2);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (91004, 9002, 403, 403, 1);
+INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (91005, 9002, 404, 404, 1);
+
+-- ── Story 1 Item Effects ────────────────────────────────────────
+-- (Story 1 item effects with correct column names)
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (91001, 9002, 91001, 'LIFE', 3);
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (91002, 9002, 91003, 'EXP', 5);
+INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (91003, 9002, 91004, 'ENERGY', 3);
+
+-- ── Story 2 Cards ───────────────────────────────────────────────
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91001, 9002, 'fas fa-chess-rook', 'medieval');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
+
+-- ── Story 2 Creator ─────────────────────────────────────────────
+INSERT INTO list_creator (id, id_story, link) VALUES (91001, 9002, 'https://paths.games');
+
+-- Reset sequences after explicit ID inserts for story seed data
+SELECT setval('list_stories_id_seq',            (SELECT MAX(id) FROM list_stories));
+SELECT setval('list_texts_id_seq',              (SELECT MAX(id) FROM list_texts));
+SELECT setval('list_stories_difficulty_id_seq', (SELECT MAX(id) FROM list_stories_difficulty));
+SELECT setval('list_classes_id_seq',            (SELECT MAX(id) FROM list_classes));
+SELECT setval('list_classes_bonus_id_seq',      (SELECT MAX(id) FROM list_classes_bonus));
+SELECT setval('list_traits_id_seq',             (SELECT MAX(id) FROM list_traits));
+SELECT setval('list_character_templates_id_tipo_seq',(SELECT MAX(id_tipo) FROM list_character_templates));
+SELECT setval('list_keys_id_seq',               (SELECT MAX(id) FROM list_keys));
+SELECT setval('list_locations_id_seq',          (SELECT MAX(id) FROM list_locations));
+SELECT setval('list_locations_neighbors_id_seq',(SELECT MAX(id) FROM list_locations_neighbors));
+SELECT setval('list_items_id_seq',              (SELECT MAX(id) FROM list_items));
+SELECT setval('list_items_effects_id_seq',      (SELECT MAX(id) FROM list_items_effects));
+SELECT setval('list_weather_rules_id_seq',      (SELECT MAX(id) FROM list_weather_rules));
+SELECT setval('list_events_id_seq',             (SELECT MAX(id) FROM list_events));
+SELECT setval('list_events_effects_id_seq',     (SELECT MAX(id) FROM list_events_effects));
+SELECT setval('list_choices_id_seq',            (SELECT MAX(id) FROM list_choices));
+SELECT setval('list_choices_conditions_id_seq', (SELECT MAX(id) FROM list_choices_conditions));
+SELECT setval('list_choices_effects_id_seq',    (SELECT MAX(id) FROM list_choices_effects));
+SELECT setval('list_global_random_events_id_seq',(SELECT MAX(id) FROM list_global_random_events));
+SELECT setval('list_missions_id_seq',           (SELECT MAX(id) FROM list_missions));
+SELECT setval('list_missions_steps_id_seq',     (SELECT MAX(id) FROM list_missions_steps));
+SELECT setval('list_creator_id_seq',            (SELECT MAX(id) FROM list_creator));
+SELECT setval('list_cards_id_seq',              (SELECT MAX(id) FROM list_cards));

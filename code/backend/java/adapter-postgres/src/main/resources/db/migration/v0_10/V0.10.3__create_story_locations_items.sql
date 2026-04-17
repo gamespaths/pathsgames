@@ -19,14 +19,14 @@
 
 CREATE TABLE list_locations (
     id                                     BIGSERIAL    PRIMARY KEY,
-    uuid                                   UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                                   VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card                                BIGINT,                          -- FK to list_cards(id), deferred
     id_story                               BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name                           BIGINT,                          -- references list_texts(id_text)
     id_text_description                    BIGINT,                          -- references list_texts(id_text)
     id_text_narrative                      BIGINT,                          -- references list_texts(id_text)
     id_image                               BIGINT,
-    is_safe                                BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_safe                                INTEGER      NOT NULL DEFAULT 0,
     cost_energy_enter                      INTEGER      NOT NULL DEFAULT 1,
     counter_time                           INTEGER,
     id_event_if_counter_zero               BIGINT,                          -- FK to list_events(id), deferred
@@ -38,62 +38,62 @@ CREATE TABLE list_locations (
     priority_automatic_event               INTEGER      DEFAULT 0,
     id_audio                               BIGINT,
     max_characters                         INTEGER      DEFAULT 100,
-    ts_insert                              TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                              TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                              VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                              VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_locations_neighbors (
     id                       BIGSERIAL    PRIMARY KEY,
-    uuid                     UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                     VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story                 BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_location_from         BIGINT       NOT NULL REFERENCES list_locations(id) ON DELETE CASCADE,
     id_location_to           BIGINT       NOT NULL REFERENCES list_locations(id) ON DELETE CASCADE,
     direction                VARCHAR(20)  NOT NULL,
-    flag_back                BOOLEAN      NOT NULL DEFAULT FALSE,
+    flag_back                INTEGER      NOT NULL DEFAULT 0,
     condition_registry_key   VARCHAR(200),
     condition_registry_value VARCHAR(200),
     energy_cost              INTEGER      DEFAULT 0,
     id_text_go               BIGINT,                             -- references list_texts(id_text)
     id_text_back             BIGINT,                             -- references list_texts(id_text)
-    ts_insert                TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN list_locations_neighbors.direction IS 'NORTH, SOUTH, EAST, WEST, ABOVE, BELOW, SKY';
 
 CREATE TABLE list_items (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     weight              INTEGER      NOT NULL DEFAULT 1,
-    is_consumabile      BOOLEAN      NOT NULL DEFAULT TRUE,
+    is_consumabile      INTEGER      NOT NULL DEFAULT 1,
     id_class_permitted  BIGINT       REFERENCES list_classes(id),
     id_class_prohibited BIGINT       REFERENCES list_classes(id),
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE list_items_effects (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_item             BIGINT       NOT NULL REFERENCES list_items(id) ON DELETE CASCADE,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     effect_code         VARCHAR(50)  NOT NULL,
     effect_value        INTEGER      NOT NULL DEFAULT 0,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN list_items_effects.effect_code IS 'LIFE, ENERGY, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN';
 
 CREATE TABLE list_weather_rules (
     id                          BIGSERIAL    PRIMARY KEY,
-    uuid                        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card                     BIGINT,                          -- FK to list_cards(id), deferred
     id_story                    BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name                BIGINT,                          -- references list_texts(id_text)
@@ -106,10 +106,10 @@ CREATE TABLE list_weather_rules (
     time_from                   INTEGER,
     time_to                     INTEGER,
     id_text                     BIGINT,                          -- references list_texts(id_text)
-    active                      BOOLEAN      NOT NULL DEFAULT TRUE,
+    active                      INTEGER      NOT NULL DEFAULT 1,
     priority                    INTEGER      DEFAULT 0,
     delta_energy                INTEGER      DEFAULT 0,
     id_event                    BIGINT,                          -- FK to list_events(id), deferred
-    ts_insert                   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update                   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

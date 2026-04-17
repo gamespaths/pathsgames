@@ -17,20 +17,20 @@
 
 CREATE TABLE log_events (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match  BIGINT       REFERENCES gaming_character_instance(id),
     timestamp           TIMESTAMP    NOT NULL DEFAULT NOW(),
     id_event            BIGINT       REFERENCES list_events(id),
     id_choise           BIGINT       REFERENCES list_choices(id),
     log_message         TEXT,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_movements (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match  BIGINT       REFERENCES gaming_character_instance(id),
     id_location_from    BIGINT       REFERENCES list_locations(id),
@@ -39,38 +39,38 @@ CREATE TABLE log_movements (
     id_choise           BIGINT       REFERENCES list_choices(id),
     log_message         TEXT,
     energy              INTEGER,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_item_usage (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match  BIGINT       NOT NULL REFERENCES gaming_character_instance(id),
     id_item             BIGINT       NOT NULL REFERENCES list_items(id),
     counter             INTEGER      DEFAULT 1,
     effects_json        JSONB,
     timestamp           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_weather (
     id              BIGSERIAL    PRIMARY KEY,
-    uuid            UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid            VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match        BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock           INTEGER      NOT NULL,
     id_weather      BIGINT       REFERENCES list_weather_rules(id),
     timestamp_start TIMESTAMP,
     timestamp_end   TIMESTAMP,
-    ts_insert       TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update       TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_clock_history (
     id              BIGSERIAL    PRIMARY KEY,
-    uuid            UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid            VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match        BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock           INTEGER      NOT NULL,
     weather         VARCHAR(100),
@@ -78,31 +78,31 @@ CREATE TABLE log_clock_history (
     timestamp_end   TIMESTAMP,
     id_event_start  BIGINT       REFERENCES list_events(id),
     id_event_end    BIGINT       REFERENCES list_events(id),
-    ts_insert       TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update       TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_lock_history (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_character_match  BIGINT       REFERENCES gaming_character_instance(id),
     lock_start          TIMESTAMP    NOT NULL DEFAULT NOW(),
     lock_end            TIMESTAMP,
     reason              VARCHAR(200),
     message             TEXT,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE log_choices_executed (
     id          BIGSERIAL    PRIMARY KEY,
-    uuid        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match    BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock       INTEGER,
     id_event    BIGINT       REFERENCES list_events(id),
     id_choise   BIGINT       REFERENCES list_choices(id),
     log_message TEXT,
-    ts_insert   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

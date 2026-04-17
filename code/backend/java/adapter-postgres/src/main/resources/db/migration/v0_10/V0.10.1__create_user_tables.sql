@@ -14,7 +14,7 @@
 
 CREATE TABLE users (
     id                  BIGSERIAL    PRIMARY KEY,
-    uuid                UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     username            VARCHAR(100) NOT NULL UNIQUE,
     password_hash       VARCHAR(255),
     email_address       VARCHAR(255),
@@ -24,12 +24,12 @@ CREATE TABLE users (
     nickname            VARCHAR(100),
     language            VARCHAR(10)  DEFAULT 'en',
     guest_cookie_token  VARCHAR(255),
-    guest_expires_at    TIMESTAMP,
+    guest_expires_at    VARCHAR(50),
     theme_selected      VARCHAR(50)  DEFAULT 'default',
-    ts_registration     TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_last_access      TIMESTAMP,
-    ts_insert           TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update           TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_registration     VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_last_access      VARCHAR(50),
+    ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN users.state IS '1=registration, 2=active, 3=blocked, 4=banned, 5=password_reset, 6=guest';
@@ -37,11 +37,11 @@ COMMENT ON COLUMN users.role IS 'ADMIN or PLAYER';
 
 CREATE TABLE users_tokens (
     id            BIGSERIAL    PRIMARY KEY,
-    uuid          UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid          VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_user       BIGINT       NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     refresh_token VARCHAR(500) NOT NULL,
-    expires_at    TIMESTAMP    NOT NULL,
+    expires_at    VARCHAR(50)    NOT NULL,
     revoked       BOOLEAN      NOT NULL DEFAULT FALSE,
-    ts_insert     TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update     TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert     VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update     VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

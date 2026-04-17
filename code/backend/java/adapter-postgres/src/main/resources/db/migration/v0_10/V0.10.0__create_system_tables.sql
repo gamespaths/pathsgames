@@ -16,16 +16,16 @@
 
 CREATE TABLE global_game_version (
     id          INTEGER      PRIMARY KEY,
-    uuid        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     version     VARCHAR(20)  NOT NULL,
     description TEXT,
-    ts_insert   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 CREATE TABLE global_runtime_variables (
     id           BIGSERIAL    PRIMARY KEY,
-    uuid         UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid         VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     type         VARCHAR(50)  NOT NULL,
     key          VARCHAR(100) NOT NULL UNIQUE,
     string_value VARCHAR(500),
@@ -35,6 +35,6 @@ CREATE TABLE global_runtime_variables (
     max_value    INTEGER,
     min_version  VARCHAR(20),
     max_version  VARCHAR(20),
-    ts_insert    TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update    TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert    VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update    VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );

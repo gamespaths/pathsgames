@@ -15,7 +15,7 @@
 
 CREATE TABLE system_snapshot (
     id          BIGSERIAL    PRIMARY KEY,
-    uuid        UUID         NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+    uuid        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story    BIGINT       NOT NULL REFERENCES list_stories(id),
     id_match    BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     timestamp   TIMESTAMP    NOT NULL DEFAULT NOW(),
@@ -23,8 +23,8 @@ CREATE TABLE system_snapshot (
     jsonb_data  JSONB,
     file_path   TEXT,
     description TEXT,
-    ts_insert   TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ts_update   TIMESTAMP    NOT NULL DEFAULT NOW()
+    ts_insert   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
 );
 
 COMMENT ON COLUMN system_snapshot.type IS 'FULL or LIGHT';

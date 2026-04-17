@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+  TableName:
+    Type: String
+  ApiId:
+    Type: String
+
+Resources:
+  SeedLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-SeedFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: project
+          Value: PathsGames
+        - Key: env
+          Value: !Ref Environment
+
+  SeedFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: SeedLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-SeedFunction"
+      Runtime: python3.13
+      Handler: seed.handler.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      CodeUri: ../lambda/
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+
+  SeedIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt SeedFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  SeedRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/dev/seed"
+      Target: !Sub "integrations/${SeedIntegration}"
+
+  SeedPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref SeedFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
