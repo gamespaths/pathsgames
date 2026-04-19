@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.15.2 — Card Effects Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Card Effects Demo</h1>
+  <p class="subtitle">Two effects: decorative top border + 3D hover tilt</p>
+
+  <div class="cards-container">
+
+    <!-- Card 1 -->
+    <div class="card card-3d">
+      <div class="card-3d-shine"></div>
+      <div class="card-header">
+        <span class="card-emote">🏰</span>
+      </div>
+      <div class="card-title">The Dark Castle</div>
+      <div class="card-body">
+        <p>An ancient castle shrouded in mist, where every room hides a secret.</p>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card card-3d">
+      <div class="card-3d-shine"></div>
+      <div class="card-header">
+        <span class="card-emote">🌲</span>
+      </div>
+      <div class="card-title">The Enchanted Forest</div>
+      <div class="card-body">
+        <p>Millennial trees and paths that change direction. Those who enter are never the same.</p>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card card-3d">
+      <div class="card-3d-shine"></div>
+      <div class="card-header">
+        <span class="card-emote">⚔️</span>
+      </div>
+      <div class="card-title">Champions' Arena</div>
+      <div class="card-body">
+        <p>Only the bravest can face the arena's challenges and emerge victorious.</p>
+      </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="card card-3d">
+      <div class="card-3d-shine"></div>
+      <div class="card-header">
+        <span class="card-emote">🗺️</span>
+      </div>
+      <div class="card-title">The Lost Map</div>
+      <div class="card-body">
+        <p>An ancient map revealing hidden treasures, but beware of the traps...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="explanation">
+    <h2>How it works</h2>
+
+    <div class="explanation-section">
+      <h3>1. Decorative Top Border (CSS <code>::before</code>)</h3>
+      <p>
+        The <code>.card-header</code> has a <code>::before</code> pseudo-element positioned
+        absolutely at the top. It uses a <code>linear-gradient</code> that goes from
+        <em>transparent → gold → transparent</em>, creating a glowing line
+        that isn't flat but fades at the sides like a decorative arc.
+      </p>
+      <pre><code>.card-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #ffd700,
+    transparent
+  );
+}</code></pre>
+    </div>
+
+    <div class="explanation-section">
+      <h3>2. 3D Tilt Effect on Hover (JavaScript + CSS)</h3>
+      <p>
+        When the mouse moves over the card, JavaScript calculates how far the cursor
+        is from the center. Then it applies <code>rotateX</code> and <code>rotateY</code>
+        with <code>perspective()</code> to create the illusion that the card bends
+        towards the mouse point.
+      </p>
+      <pre><code>// Calculate distance from center
+const rotateY = ((x - centerX) / centerX) * 15;
+const rotateX = ((centerY - y) / centerY) * 10;
+
+// Apply 3D transformation
+el.style.transform =
+  `perspective(600px)
+   rotateY(${rotateY}deg)
+   rotateX(${rotateX}deg)`;</code></pre>
+      <p>
+        Additionally, a <code>.card-3d-shine</code> overlay shows a
+        <code>radial-gradient</code> that follows the mouse, simulating a light reflection.
+      </p>
+    </div>
+  </div>
+
+  <script src="card3d.js"></script>
+</body>
+</html>

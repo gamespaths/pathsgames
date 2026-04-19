@@ -1,0 +1,220 @@
+/* =============================================
+   v0.15.2 — Card Effects Demo
+   Minimal medieval style with two effects:
+   1. Non-flat top border (::before gradient)
+   2. 3D tilt on hover (perspective + rotate)
+   ============================================= */
+
+/* ── Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: #1a0a02;
+  color: #e8d5b0;
+  font-family: 'Crimson Text', Georgia, serif;
+  padding: 2rem;
+}
+
+h1 {
+  font-family: 'Cinzel', serif;
+  text-align: center;
+  font-size: 2.2rem;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  margin-bottom: 0.3rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: #c0a070;
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+/* ── Cards Container ── */
+.cards-container {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 3rem;
+}
+
+/* ── Card Base ── */
+.card {
+  width: 220px;
+  min-height: 300px;
+  background: linear-gradient(135deg, #1a0a02, #7a4520 40%, #2e1508);
+  border: 2px solid #9a6f08;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.card:hover {
+  box-shadow: 0 0 24px rgba(200, 150, 10, 0.35);
+}
+
+/* ── Card Header ── */
+.card-header {
+  background: radial-gradient(ellipse at center, #7a4520, #1a0a02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border-bottom: 1px solid #9a6f08;
+  position: relative;
+}
+
+/* ============================================
+   EFFECT 1 — NON-flat top border
+   ============================================
+   A ::before pseudo-element positioned at the top
+   of the card header. The gradient goes from
+   transparent → gold → transparent, creating a
+   glowing line that fades at the sides.
+   This gives the impression that the top border
+   is not flat but has an arched decoration.
+   ============================================ */
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;       /* Non parte dal bordo: sfuma */
+  right: 10%;      /* Non arriva al bordo: sfuma */
+  height: 3px;     /* Spessore della linea */
+  background: linear-gradient(
+    90deg,
+    transparent,        /* Sfuma a sinistra */
+    #ffd700,            /* Oro pieno al centro */
+    transparent          /* Sfuma a destra */
+  );
+  z-index: 1;
+}
+
+/* ── Card Title ── */
+.card-title {
+  background: linear-gradient(120deg, #5c3317, #1a0a02);
+  text-align: center;
+  padding: 0.4rem 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  color: #e8b830;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(154, 111, 8, 0.3);
+}
+
+/* ── Card Body ── */
+.card-body {
+  padding: 0.75rem;
+}
+
+.card-body p {
+  font-size: 0.85rem;
+  color: #c0a070;
+  line-height: 1.5;
+}
+
+/* ── Card Emote ── */
+.card-emote {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+/* ============================================
+   EFFECT 2 — 3D Tilt (CSS)
+   ============================================
+   The card uses transform-style: preserve-3d and
+   perspective to enable 3D transformations.
+   The JS applies rotateX/rotateY based on the
+   mouse position.
+   ============================================ */
+.card-3d {
+  transition: transform 0.15s ease;
+  transform-style: preserve-3d;
+  /* perspective può stare qui o nel transform JS */
+}
+
+/* Shine effect — overlay following the mouse */
+.card-3d-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;   /* Doesn't intercept the mouse */
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+.card-3d:hover .card-3d-shine {
+  opacity: 1;
+}
+
+/* ── Explanation Section ── */
+.explanation {
+  max-width: 750px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: rgba(46, 21, 8, 0.7);
+  border: 1px solid #9a6f08;
+  border-radius: 12px;
+}
+
+.explanation h2 {
+  font-family: 'Cinzel', serif;
+  color: #ffd700;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.explanation-section {
+  margin-bottom: 2rem;
+}
+
+.explanation-section h3 {
+  font-family: 'Cinzel', serif;
+  color: #e8b830;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.explanation-section p {
+  color: #c0a070;
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.explanation-section code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #e8b830;
+}
+
+.explanation-section pre {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(154, 111, 8, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.explanation-section pre code {
+  background: none;
+  padding: 0;
+  color: #e8d5b0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
