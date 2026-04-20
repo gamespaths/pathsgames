@@ -458,7 +458,7 @@ Full API specification: `code/backend/java/adapter-rest/src/main/resources/opena
     | 0.16.3 | New Website concept with card informations from APIs | April 20, 2026 |
     
 - **Last Updated**: April 20, 2026
-- **Status**: In progress
+- **Status**: ✅ Complete
 
 
 

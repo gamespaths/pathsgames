@@ -12,6 +12,9 @@ if [ -f "$ENV_FILE" ]; then
 fi
 echo "Env file loaded: ${ENV_FILE:-None}"   
 
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true
+
 cd "$PROJECT_ROOT/code/backend/java" && mvn clean install package  -DskipTests && mvn -pl ms-launcher spring-boot:run #java -jar target/pathsgames-java-1.0-SNAPSHOT.jar
 
 

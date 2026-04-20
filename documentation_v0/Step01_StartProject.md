@@ -3,29 +3,28 @@
 This document defines the **start project steps** to build a **Paths Games**, a playable web-based game, with detailed requirements and scope for a V1 release.
 
 
-**Important note**: this file describe the **initial concepts**: rules and tecnical components should be evolved in next steps, read all MD file to all details.
+**Important note**: this file describe the **initial concepts**: rules and tecnical components should be evolved in next steps, read all MD file into documentation folder to all details.
 
-
-**NEVER change/update this file during developer steps**
 
 
 ## Main concept
 
 1. **Project Overview: PathsGames**
 	- Hi! I want to create a game titled "PathsGames".
-	- Note: If you have any doubts or questions, the answer is always 42.
+	- Note: If you have any doubts or questions: the answer is always 42.
 2. **Repository & Architecture**
-	- The repository is organized into the following sections: frontend, backend, website, admin, documentation, scripts, etc.
-	- Backend: Java Spring Boot 3.5.x using the main package games.paths.xxx.
-	- Database: PostgreSQL (production) / SQLite (development/local).
-	- Communication: REST APIs secured with JWT.
+	- The repository is organized into the following sections: frontend, backend, website, admin, documentation, scripts ....folders
+	- Main Backend: Java Spring Boot 3.5.x using the main package games.paths.xxx.
+		- Alternative backend: python, php and aws lambda in python
+	- Database: PostgreSQL (production) / SQLite (development/local). Php version use Mysql. Aws version use Dynamo!
+	- Communication: REST APIs secured with token JWT.
 	- Frontend: Web-browser based with full mobile compatibility.
 	- Authentication: User registration and login required. All API calls between frontend and backend use JWT tokens. Supports SSO via Google and Steam.
 		- Anonymous session: When a user visits without logging in, the backend generates a unique guest token (UUID) stored in an HttpOnly cookie
 		- Temporary identity: The guest gets a row in users (or a separate users_guest table) with state=6 (GUEST) and no email/password
 		- Cookie-based session: All API calls authenticate via JWT generated 
 		- Optional upgrade: Guest can later register a full account, linking their match history
-		- Google SSO: Google SSO one-click login (you already planned google_id_sso). Auto-generate nickname from Google profile
+		- Google SSO: Google SSO one-click login. Auto-generate nickname from Google profile
 3. **Game Mechanics & Roles**: The game functions like a hybrid of a gamebook, a board game, and a card game.
 	- Match Creation: A player can create a match by selecting a story and a difficulty level from the available list.
 	- Character Setup: Players join a match before it starts by selecting a character, class, and traits from a story-specific list.
@@ -268,7 +267,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ GET `/stories/groups`: Groups list
 		- ✅ GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
 		- ✅ GET `/stories/{uuid_story}`: All information about a single story (characters list, difficulties, ...)
-	- Contents
+	- ✅ Contents
 		- ✅ GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
 		- ✅ GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
 		- ✅ GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
@@ -382,125 +381,124 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	28. `FREE_ACTION_USED`
 	29. `FREE_ACTION_EXHAUSTED`
 	30. `TURN_TIMEOUT_WARNING`
-9. Service list : in italian language *traslation coming soon*!
 
-```
-- service java (oltre ai CRUD di tutte le tabelle), alcui sono solo di utilità ma servono! (per ogni vediamo quali hanno una API che serve)
+9. Service list : in italian language *traslation coming soon*!
 	- auth e utenti
-	1. userRegister: registra utente: per la registrazione di un utente
-		- sottometodo per registrare come guess
-		- sottometodo per convertire da guess a utente
-		- sottometodo per convertire da guess a google
-		- sottometodo per registrare google sso
-	2. userListPerMatch
-	3. userChangeInformation
-	4. userChangePassword
+		1. userRegister: registra utente: per la registrazione di un utente
+			- sottometodo per registrare come guess
+			- sottometodo per convertire da guess a utente
+			- sottometodo per convertire da guess a google
+			- sottometodo per registrare google sso
+		2. userListPerMatch
+		3. userChangeInformation
+		- ✅ 4 userGuest: create a guest sessions and security token!
+		- note: Change-password is will be not developed in first game version
 	- games
-	5. gamesFormulaOrdine(elenco characters)
-	6. gamesNumeroMassimoPartiteAttiveNelloStessoMomento()
-	7. gamesTimeoutPlayerPass()
-	8. gamesStories (ritorna la lista storie)
-	9. gamesStory (ritorna il dettaglio di una storia con metodi specifici per classi, characters, luoghi, oggetti, meteo, eventi)
-	10. gamesCards (elenco carte e elenco testi)
-	11. gamesStoryValidation(id_storia) Ritorna un report con errori/warning di una storia
+		5. gamesFormulaOrdine(elenco characters)
+		6. gamesNumeroMassimoPartiteAttiveNelloStessoMomento()
+		7. gamesTimeoutPlayerPass()
+		- ✅ 8 gamesStories: stories lists
+		- ✅ 9 gamesStory: story details (classes, difficulties, ... 
+		10. gamesCards (elenco carte e elenco testi)
+		11. gamesStoryValidation(id_storia) Ritorna un report con errori/warning di una storia
 	- match
-	12. matchCreate inizia partita: per creare riga in gioco_partite e aspettare che vengano create i characters
-	13. matchAddPlayer aggiungi character a partita (id_character_tipo_possibile, classe) che influsce IM
-	14. matcheStart avvia partita e inizio primo tempo e primo evento!
-	15. matchListNonStared : ritorna la lista delle partite CREATA ma non in CORSO ( anche le altre?)
-	16. matchListUtente(id_utente, stato) tutte le partite di un utente	 con filtro per stato
-	17. matchChageStatus(id_match, stato) la IA propone un metodo per mettere in pausa o far partire/ripartire una partita
-	18. matchAquireLock(id_match,id_character) la IA propone scrive nella nella gioco_lock_history, serve per evitare problemi di concorrenza, usata per gestire nel websocket chi sta agendo, acquisisci un lock su Redis (SETNX game:{id}:lock:char:{id} {timestamp} EX 10). Se fallisce, ritorna errore "Azione in corso".
-	19. matchReleaseLock(id_match,id_character) la IA propone scrive nella nella gioco_lock_history, serve per evitare problemi di concorrenza usata per gestire nel websocket chi sta agendo
+		12. matchCreate inizia partita: per creare riga in gioco_partite e aspettare che vengano create i characters
+		13. matchAddPlayer aggiungi character a partita (id_character_tipo_possibile, classe) che influsce IM
+		14. matcheStart avvia partita e inizio primo tempo e primo evento!
+		15. matchListNonStared : ritorna la lista delle partite CREATA ma non in CORSO ( anche le altre?)
+		16. matchListUtente(id_utente, stato) tutte le partite di un utente	 con filtro per stato
+		17. matchChageStatus(id_match, stato) la IA propone un metodo per mettere in pausa o far partire/ripartire una partita
+		18. matchAquireLock(id_match,id_character) la IA propone scrive nella nella gioco_lock_history, serve per evitare problemi di concorrenza, usata per gestire nel websocket chi sta agendo, acquisisci un lock su Redis (SETNX game:{id}:lock:char:{id} {timestamp} EX 10). Se fallisce, ritorna errore "Azione in corso".
+		19. matchReleaseLock(id_match,id_character) la IA propone scrive nella nella gioco_lock_history, serve per evitare problemi di concorrenza usata per gestire nel websocket chi sta agendo
 	- registro e missioni
-	20. chiaveRegistroAggiungi (id_match, chiave, valore)
-	21. chiaveRegistroLista (id_match)	
-	22. missionsStatus(id_match): Ritorna JSON con tutte le missioni e loro progressione.
-	- character
-	23. characterValoriLimiti (id_match, id_character) ritorna INT,DES,COS,CIBO,MAGIA,RICCH,ELENCO_OGGETTI,FLAG e i limiti , flag che indica se il peso è troppo alto! e tutti gli effetti attivi
-	24. characterAddValues(id_match, id_character, energia, sad, vita int, des, cos , cibo, magia , ricch) e verifica limiti!
-	25. characterAddExp(id_match,id_character,quantita_exp)
-	26. characterAddExp(id_match,quantita_exp) aggiunge exp a tutti i characters della partita
-	27. characterSpendiEsperienza(id_match,id_character,des,int,cos) sempre in base al esperienzaCosto
-	28. characterAddCaratteristica(id_match,id_character, id_caratteristica)
-	29. characterRemoveCaratteristica(id_match,id_character, id_caratteristica)
-	30. characterHelpCOMA(id_match,id_character_aiutante,id_character_coma,id_oggetto) characters in coma possono essere "salvati" da un altro character nello stesso luogo che usa una energia oppure da oggetti consumabili che danno vita, verifica stesso luogo e che costa energia in base alla difficoltà
-	31. characterAddEffetto(id_match,id_character, tipo_effetto, durata_tempo, valore)
-	32. characterRemoveEffetto(id_match,id_character, tipo_effetto)
+		20. chiaveRegistroAggiungi (id_match, chiave, valore)
+		21. chiaveRegistroLista (id_match)	
+		22. missionsStatus(id_match): Ritorna JSON con tutte le missioni e loro progressione.
+		- character
+		23. characterValoriLimiti (id_match, id_character) ritorna INT,DES,COS,CIBO,MAGIA,RICCH,ELENCO_OGGETTI,FLAG e i limiti , flag che indica se il peso è troppo alto! e tutti gli effetti attivi
+		24. characterAddValues(id_match, id_character, energia, sad, vita int, des, cos , cibo, magia , ricch) e verifica limiti!
+		25. characterAddExp(id_match,id_character,quantita_exp)
+		26. characterAddExp(id_match,quantita_exp) aggiunge exp a tutti i characters della partita
+		27. characterSpendiEsperienza(id_match,id_character,des,int,cos) sempre in base al esperienzaCosto
+		28. characterAddCaratteristica(id_match,id_character, id_caratteristica)
+		29. characterRemoveCaratteristica(id_match,id_character, id_caratteristica)
+		30. characterHelpCOMA(id_match,id_character_aiutante,id_character_coma,id_oggetto) characters in coma possono essere "salvati" da un altro character nello stesso luogo che usa una energia oppure da oggetti consumabili che danno vita, verifica stesso luogo e che costa energia in base alla difficoltà
+		31. characterAddEffetto(id_match,id_character, tipo_effetto, durata_tempo, valore)
+		32. characterRemoveEffetto(id_match,id_character, tipo_effetto)
 	- inventory
-	33. inventoryAdd(id_match, id_character, cibo,magia,ricchezza,id_oggetto)
-	34. inventoryRemove(id_match, id_character, cibo,magia,ricchezza,id_oggetto)
-	35. inventoryTradingCreate(id_match,id_character_mittente,id_character_destinatario,id_oggetto)
-	36. inventoryAccettaScambio(id_match,id_character_mittente,id_character_destinatario,id_oggetto,id_proposta_scambio)
-	37. inventoryRifiutaScambio(id_match,id_character_mittente,id_character_destinatario,id_oggetto,id_proposta_scambio)
-	38. inventoryUsaOggetto(id_match,id_character,id_oggetto)
-	39. inventoryDiscardItem(id_match,id_character,id_oggetto)
-	40. inventoryCheckSufficientCapacity(id_match,id_character,id_oggetto) solo di verifica se oggetto prendibile da character
+		33. inventoryAdd(id_match, id_character, cibo,magia,ricchezza,id_oggetto)
+		34. inventoryRemove(id_match, id_character, cibo,magia,ricchezza,id_oggetto)
+		35. inventoryTradingCreate(id_match,id_character_mittente,id_character_destinatario,id_oggetto)
+		36. inventoryAccettaScambio(id_match,id_character_mittente,id_character_destinatario,id_oggetto,id_proposta_scambio)
+		37. inventoryRifiutaScambio(id_match,id_character_mittente,id_character_destinatario,id_oggetto,id_proposta_scambio)
+		38. inventoryUsaOggetto(id_match,id_character,id_oggetto)
+		39. inventoryDiscardItem(id_match,id_character,id_oggetto)
+		40. inventoryCheckSufficientCapacity(id_match,id_character,id_oggetto) solo di verifica se oggetto prendibile da character
 	- matchRunning
-	41. matchAddBonusInizioTempo(id_match,id_character,id_meteo,tempo) non serve id_classe perchè se la prende da solo
-	42. matcheSpleep(id_match,id_character) un character scegliere di addormentarsi (o ha finito energia)
-	43. matchCheckSleep(id_match) verifica se ci sono characters con energia<=0 allora li addormenta
-	44. matchGetcharacterAttivo(id_match) per il websocket , ricalcola chi è attivo, se senza energia passa al successivo
-	45. matchPass(id_match, id_character) usato per un giocatore che passa, aggiorna il numero_pass e aggiorna prossimo giocatore con timestamp_inizio_turno, timestamp_fine_turno=timestamp_inizio_turno + TimeoutPlayerPass + TimeoutPlayerEveryPass*numero_pass
-	46. matchAllEventDisponibile(id_match) in base alla posizione dei characters ritornare l'elenco degli eventi disponibili e l'elenco dei luoghi vicini possibili (e magari anche quelli non disponibili)
-	47. matcheSecondarie(id_match) ritorna tutte le missioni attive con i le varie descrizioni e gli stati
-	- time
-	48. timeStart(id_match,meteo_new) metodo che modifica le tabelle
-	49. timeCalculateNewWeather(id_match,giorno_nuovo) calcola un nuovo meteo senza salvare nulla e ritorna meteo_new
-	50. timeAddBonusClasse(id_match,id_character) data la classe e tipo aggiunge valori al character
-	51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+P,sad=-INT-P), se non si trova in luogo sicuro characterAddValues(energia=DES), P=secure_param del luogo in cui si trova
-	52. timeEnd(id_match) metodo di utilità quando tutti i characters sono a zero energia o stanno dormento che poi lancia la timeStart()
-	53. timeCalculateCharactersSort: svuota tabella gioco_coda_turni (id_match, id_character_match, ordine_turno) e ripopola con elenco characters con ordine determinato da formula_ordine (In caso di parità si aggiunge id_character)
-	54. timeStartDayEventiNeiLuoghi (id_match) per ogni luogo con almeno un giocatore eventExec(id_parita,evento_se_giocatore_inizia_day)
+		41. matchAddBonusInizioTempo(id_match,id_character,id_meteo,tempo) non serve id_classe perchè se la prende da solo
+		42. matcheSpleep(id_match,id_character) un character scegliere di addormentarsi (o ha finito energia)
+		43. matchCheckSleep(id_match) verifica se ci sono characters con energia<=0 allora li addormenta
+		44. matchGetcharacterAttivo(id_match) per il websocket , ricalcola chi è attivo, se senza energia passa al successivo
+		45. matchPass(id_match, id_character) usato per un giocatore che passa, aggiorna il numero_pass e aggiorna prossimo giocatore con timestamp_inizio_turno, timestamp_fine_turno=timestamp_inizio_turno + TimeoutPlayerPass + TimeoutPlayerEveryPass*numero_pass
+		46. matchAllEventDisponibile(id_match) in base alla posizione dei characters ritornare l'elenco degli eventi disponibili e l'elenco dei luoghi vicini possibili (e magari anche quelli non disponibili)
+		47. matcheSecondarie(id_match) ritorna tutte le missioni attive con i le varie descrizioni e gli stati
+	- clock
+		48. timeStart(id_match,meteo_new) metodo che modifica le tabelle
+		49. timeCalculateNewWeather(id_match,giorno_nuovo) calcola un nuovo meteo senza salvare nulla e ritorna meteo_new
+		50. timeAddBonusClasse(id_match,id_character) data la classe e tipo aggiunge valori al character
+		51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+P,sad=-INT-P), se non si trova in luogo sicuro characterAddValues(energia=DES), P=secure_param del luogo in cui si trova
+		52. timeEnd(id_match) metodo di utilità quando tutti i characters sono a zero energia o stanno dormento che poi lancia la timeStart()
+		53. timeCalculateCharactersSort: svuota tabella gioco_coda_turni (id_match, id_character_match, ordine_turno) e ripopola con elenco characters con ordine determinato da formula_ordine (In caso di parità si aggiunge id_character)
+		54. timeStartDayEventiNeiLuoghi (id_match) per ogni luogo con almeno un giocatore eventExec(id_parita,evento_se_giocatore_inizia_day)
 	- spazi
-	55. spaceMoveIntoCheck(id_match,id_character_principale) verifica se il movimento è possibile (come regole vicini e costo energia e verifica stato precedente), in caso affermativo invia notifica agli altri giocatori che possono accettare o meno di muoversi secondo le regole, poi si chiama il spaceMoveInto
-	56. spaceMoveFollow(id_match,id_character_principale,id_character_assieme) da chiamare quando un character sceglie l'azione follow per seguire un movimento
-	57. spaceMoveInto(id_match,id_character_principale,id_characters_assieme): execMoveInto 
-	58. spaceList(id_match,id_luogo) lista di tutti gli eventi disponibili in questo luogo (se presenti characters) e la lista delle scelte
-	59. spaceFindShortestPath(id_match, id_luogo_start, id_luogo_end) "Qual è il percorso più breve da Luogo A a Luogo Z?" (Dijkstra) e AI dei NPC
+		55. spaceMoveIntoCheck(id_match,id_character_principale) verifica se il movimento è possibile (come regole vicini e costo energia e verifica stato precedente), in caso affermativo invia notifica agli altri giocatori che possono accettare o meno di muoversi secondo le regole, poi si chiama il spaceMoveInto
+		56. spaceMoveFollow(id_match,id_character_principale,id_character_assieme) da chiamare quando un character sceglie l'azione follow per seguire un movimento
+		57. spaceMoveInto(id_match,id_character_principale,id_characters_assieme): execMoveInto 
+		58. spaceList(id_match,id_luogo) lista di tutti gli eventi disponibili in questo luogo (se presenti characters) e la lista delle scelte
+		59. spaceFindShortestPath(id_match, id_luogo_start, id_luogo_end) "Qual è il percorso più breve da Luogo A a Luogo Z?" (Dijkstra) e AI dei NPC
 	- matchCheck
-	60. checkIfAllcharactersInLuogo(id_match,id_luogo) verifica se tutti sono in quel luogo e ritorna quelli che ci sono e quelli che non ci sono
-	61. checkStatocharacters(id_match) verifica se tutti stanno dormendo, se ci sono a zero di energia imposta addormentati e timeEnd usando la checkIfcharacterExhausted
-	62. checkIfcharacterExhausted(id_match,id_character) se zero energia imposta addormentato e ritorna addormentato! usando la checkIfcharactersad
-	63. checkIfcharacterSad(id_match,id_character) se sad>vita imposta vita=vita-COS e zero sad
-	64. checkIfcharacterComa(id_match,id_character) se vita<0 imposta addormentato e in coma (è considerato in coma ma anche addormentato)
-	65. .checkIfAllComa(id_match) se tutti in coma allora immediatamente execEvent(event_all_coma della storia)
-	66. checkVerifyIntegrity(id_match) verifica integrità di inventory, energia negativa, dati negativi, 
-	67. checkMissionProgress(id_match, id_character): Confronta registro con condizione_valore_finale e aggiorna stati missioni.
+		60. checkIfAllcharactersInLuogo(id_match,id_luogo) verifica se tutti sono in quel luogo e ritorna quelli che ci sono e quelli che non ci sono
+		61. checkStatocharacters(id_match) verifica se tutti stanno dormendo, se ci sono a zero di energia imposta addormentati e timeEnd usando la checkIfcharacterExhausted
+		62. checkIfcharacterExhausted(id_match,id_character) se zero energia imposta addormentato e ritorna addormentato! usando la checkIfcharactersad
+		63. checkIfcharacterSad(id_match,id_character) se sad>vita imposta vita=vita-COS e zero sad
+		64. checkIfcharacterComa(id_match,id_character) se vita<0 imposta addormentato e in coma (è considerato in coma ma anche addormentato)
+		65. .checkIfAllComa(id_match) se tutti in coma allora immediatamente execEvent(event_all_coma della storia)
+		66. checkVerifyIntegrity(id_match) verifica integrità di inventory, energia negativa, dati negativi, 
+		67. checkMissionProgress(id_match, id_character): Confronta registro con condizione_valore_finale e aggiorna stati missioni.
 	- snapshot
-	68. snapshotCreate(id_match, tipo, nome) prende tutte le tabelle e salva le righe con id_match in tabella (tipo json in un mongo)
-	69. snapshotRestore(id_match, snapshot_id) snapshotCreate, poi cancella tutte le righe (per id_match) e poi ripristina tutte le righe (per id_match)
-	70. snapshotList(id_match, tempo_da, tempo_a)
-	- notification
-	71. notificationPush(id_match, target_type, target_id, tipo, messaggio, priority)
-	72. notificationMarkAsRead(id_utente, notification_id)
+		68. snapshotCreate(id_match, tipo, nome) prende tutte le tabelle e salva le righe con id_match in tabella (tipo json in un mongo)
+		69. snapshotRestore(id_match, snapshot_id) snapshotCreate, poi cancella tutte le righe (per id_match) e poi ripristina tutte le righe (per id_match)
+		70. snapshotList(id_match, tempo_da, tempo_a)
+		- notification
+		71. notificationPush(id_match, target_type, target_id, tipo, messaggio, priority)
+		72. notificationMarkAsRead(id_utente, notification_id)
 	- exec
-	73. execEvents (id_match,id_luogo,id_eventi) vedi sotto
-	74. execChoice 
-	75. execStartNewTime (...)
+		73. execEvents (id_match,id_luogo,id_eventi) vedi sotto
+		74. execChoice 
+		75. execStartNewTime (...)
 	- scheduled
-	76. @Scheduled matchcharacterPassTimeout(id_match) un giocatore ha un tot di tempo (parametro TimeoutPlayerPass) superato quel tempo si passa  con messaggio TURN_UPDATE
-	77. @Scheduled cleanExpiredTrades: cancella i trade scaduti e manda nel WebSocket TRADE_EXPIRED ai giocatori coinvolti in base al parametro TimeoutTradesExpire
-	78. @Scheduled checkTimeCleanUpAFKPlayers: controlla gioco_utente_sessioni per utenti inattivi da più di X minuti, li marca come offline e invia WebSocket PLAYER_DISCONNECTED
-	79. @Scheduled utilsFullSnapshot: salva uno snapshot completo della partita ogni X tempo (per backup/rollback), Archivia o cancella partite con stato = TERMINATA più vecchie di X tempo
-	80. @Scheduled utilsStatistichs Aggiorna statistiche storiche degli utenti (partite giocate, vittorie, tempo sopravvissuti).
-	81. @Scheduled utilsSaveLightSnapshotDaily: salva uno snapshot leggero della partita (solo delta) alla fine di ogni tempo
-	82. @Scheduled utilsCleanOrphanSessions: Cancella gioco_movimenti_inviti con tempo_validita < tempo_corrente
-	83. @Scheduled matchCheckLockExpiration: Controlla se lock_expiration_timestamp è scaduto senza azioni, sblocca la partita forzatamente e logga in gioco_lock_history.
-	84. @Scheduled utilsCleanOrphanWebSocketSessions: Rimuove record da gioco_utente_sessioni se la connessione WebSocket non esiste più o il client_id non corrisponde a nessuna sessione attiva.
-	85. @Scheduled matcheSendPendingNotifications: Preleva notifiche da gioco_notification_queue, le ordina per priority, deduplica per hash_deduplica, le invia via WebSocket SYSTEM_MESSAGE e le marca come inviate.
-	86. @Scheduled matchCleanExpiredMovementInvites: Cancella gioco_movimenti_inviti oltre tempo_validita in base al TimemoutMovementFollow
-	87. @Scheduled timeDailyGameProgression: processo tempo di avanzamento = "inizio tempo", analizzare se serve veramente!
-	88. @Scheduled checkTimeoutChoise: in caso di timeout di una scelta nella partita si sceglie l'opzione "altrimenti" se presente, altrimenti non si sceglie nulla e l'evento termina
+		76. @Scheduled matchcharacterPassTimeout(id_match) un giocatore ha un tot di tempo (parametro TimeoutPlayerPass) superato quel tempo si passa  con messaggio TURN_UPDATE
+		77. @Scheduled cleanExpiredTrades: cancella i trade scaduti e manda nel WebSocket TRADE_EXPIRED ai giocatori coinvolti in base al parametro TimeoutTradesExpire
+		78. @Scheduled checkTimeCleanUpAFKPlayers: controlla gioco_utente_sessioni per utenti inattivi da più di X minuti, li marca come offline e invia WebSocket PLAYER_DISCONNECTED
+		79. @Scheduled utilsFullSnapshot: salva uno snapshot completo della partita ogni X tempo (per backup/rollback), Archivia o cancella partite con stato = TERMINATA più vecchie di X tempo
+		80. @Scheduled utilsStatistichs Aggiorna statistiche storiche degli utenti (partite giocate, vittorie, tempo sopravvissuti).
+		81. @Scheduled utilsSaveLightSnapshotDaily: salva uno snapshot leggero della partita (solo delta) alla fine di ogni tempo
+		82. @Scheduled utilsCleanOrphanSessions: Cancella gioco_movimenti_inviti con tempo_validita < tempo_corrente
+		83. @Scheduled matchCheckLockExpiration: Controlla se lock_expiration_timestamp è scaduto senza azioni, sblocca la partita forzatamente e logga in gioco_lock_history.
+		84. @Scheduled utilsCleanOrphanWebSocketSessions: Rimuove record da gioco_utente_sessioni se la connessione WebSocket non esiste più o il client_id non corrisponde a nessuna sessione attiva.
+		85. @Scheduled matcheSendPendingNotifications: Preleva notifiche da gioco_notification_queue, le ordina per priority, deduplica per hash_deduplica, le invia via WebSocket SYSTEM_MESSAGE e le marca come inviate.
+		86. @Scheduled matchCleanExpiredMovementInvites: Cancella gioco_movimenti_inviti oltre tempo_validita in base al TimemoutMovementFollow
+		87. @Scheduled timeDailyGameProgression: processo tempo di avanzamento = "inizio tempo", analizzare se serve veramente!
+		88. @Scheduled checkTimeoutChoise: in caso di timeout di una scelta nella partita si sceglie l'opzione "altrimenti" se presente, altrimenti non si sceglie nulla e l'evento termina
 	- exec
-	89. execMoveInto sposta i characters calcolando il costo e poi esegue gli eventi con eventExec (evento_se_giocatore_entra_per_primo, evento_se_prima_volta, evento_se_successive_volte) , esecuzione degli eventi con ordine priority_automatic_event
-		- verifica se possibile
-			- verifica peso del character / dei characters
-			- verifica se il movimento è possibile per regole elenco_luoghi_vicini
-		- eventExec (evento_se_giocatore_entra_per_primo, evento_se_prima_volta, evento_se_successive_volte) , esecuzione degli eventi con ordine priority_automatic_event
-	90. execEvents(id_paritita,id_luogo,id_eventi,id_character)
-		- cicla per ogni evento ed esegue la execEvent (si interrompe se il precedente ha ritornato flag interrompi eventi successivi)
-	91. execEvent(id_paritita,id_luogo,id_evento,id_character)
+		89. execMoveInto sposta i characters calcolando il costo e poi esegue gli eventi con eventExec (evento_se_giocatore_entra_per_primo, evento_se_prima_volta, evento_se_successive_volte) , esecuzione degli eventi con ordine priority_automatic_event
+			- verifica se possibile
+				- verifica peso del character / dei characters
+				- verifica se il movimento è possibile per regole elenco_luoghi_vicini
+			- eventExec (evento_se_giocatore_entra_per_primo, evento_se_prima_volta, evento_se_successive_volte) , esecuzione degli eventi con ordine priority_automatic_event
+		90. execEvents(id_paritita,id_luogo,id_eventi,id_character)
+			- cicla per ogni evento ed esegue la execEvent (si interrompe se il precedente ha ritornato flag interrompi eventi successivi)
+		91. execEvent(id_paritita,id_luogo,id_evento,id_character)
 	- 91a eventTerminePartita: se id_evento===evento_partita_terminata imposta fine partita e continua
 	- 91b eventCostEnergia
 		- verifica il costo di energia: se non ha abbastanza energia si l'evento si ferma (si interrompe con un bel return e flag interrompi eventi successivi)
@@ -519,14 +517,14 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- se id_oggetto_da_aggiungere allora inventoryCheckSufficientCapacity e inventoryAdd
 	- 91f eventTriggerChoice		
 		- ritorno descrizione/testo, elenco scelte e flag interrompi eventi successivi
-	92. execChoice (id_paritita, in base al id_luogo o id_evento, id_Scelta, id_character, ...)
-	- nota: se otherwise_flag (è sempre possibile) senza verifiche
-	- 92a verifica condizioni limite_sad, limite_des, limite_int, limite_cos, limite_sad, limite_des, limite_int, limite_cos
-	- 92b verifica condizione nella elenco_scelte_condizioni e logic_operator (tutte devono essere verificate) altrimenti ritorno non possibile 
-	- 92c characterAddValues in base al elenco_scalte_effetti (se effetto_di_gruppo su tutti i characters nel luogo)
-	- 92d check is_progresso (se is progresso=true allora insert nella gioco_trama_progresso)
-	- 92e eventExec ( id_evento_risultato ) se valorizzato altrimenti return "l'azione termina"
-	93. execStartNewTime(id_paritita)
+	- 92. execChoice (id_paritita, in base al id_luogo o id_evento, id_Scelta, id_character, ...)
+		- nota: se otherwise_flag (è sempre possibile) senza verifiche
+		- 92a verifica condizioni limite_sad, limite_des, limite_int, limite_cos, limite_sad, limite_des, limite_int, limite_cos
+		- 92b verifica condizione nella elenco_scelte_condizioni e logic_operator (tutte devono essere verificate) altrimenti ritorno non possibile 
+		- 92c characterAddValues in base al elenco_scalte_effetti (se effetto_di_gruppo su tutti i characters nel luogo)
+		- 92d check is_progresso (se is progresso=true allora insert nella gioco_trama_progresso)
+		- 92e eventExec ( id_evento_risultato ) se valorizzato altrimenti return "l'azione termina"
+	- 93. execStartNewTime(id_paritita)
 	- 93a checkTerminato (se una partita è terminata ritorna senza fare nulla)
 	- 93b regole fine giorno
 		- checkAddormentati verifica che tutti i giocatori siano addormentati (zero energia) se non lo sono imposta zero
@@ -535,31 +533,32 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- gioco_movimenti_inviti cancella tutto
 		- resetto turno_scadenza_ts e id_character_current_turn
 	- 93c incrementi/riduzione
-		- incremento numero tempo (in memoria e in tabella tempo_corrente in gioco_partite )
-		- tutti giocatori recuperano vita, sad, energia in base alle regole
-		- Riduce durata_tempo in gioco_effetti_attivi; se arriva a zero, rimuove l'effetto.
-		- Riduce counter_tempo dei luoghi ogni tempo; se arriva a zero, scatena event_if_counter_zero (decrementLocationCounters)
-		- Applica danni/benefici di gioco_effetti_attivi con trigger_momento = ON_DAY_START ogni inizio tempo (applyDailyEffects) e cancella quelle terminate
-		- Aumenta tempo_in_coma per characters in COMA; messaggio in chat che un utente sta morendo (checkComaDeath)
-		- resetto counter_consecutive_pass a zero
-	- 93d verifiche 
-		- Verifica game over: se tutti i characters sono in coma o counter_consecutive_pass > PARAMETRO -> termina partita con stato GAMEOVER
-	- 93e nuovi eventi (lista)
-		- calcolo nuovo meteo casuale (generateDailyWeather): dalla lista dei meteo validi, applica peso probabilità, aggiorna meteo corrente in gioco_partite_attive e invia GAME_EVENT via WebSocket
-		- Verifica condizioni di elenco_global_random_events, lancia dado probabilità, lista eventi add random_Event
-		- se il meteo prevede un id_evento_scatenato allora lista eventi add id_evento_scatenato
-		- timeStartDayEventiNeiLuoghi per aggiungere alla lista eventi i evento_se_giocatore_inizia_day dei luoghi che hanno almeno un character
-		- ricostruisco gioco_coda_turni in base a formula MatchFormulaOrdine delle priorità con calcolo id_character_current_turn
-		- ritorno lista eventi e lista turni
-	- 93f invio a giocatori
-		- WebSocket GAME_EVENT per nuovo meteo e evento inizio tempo
-		- WebSocket TURN_UPDATE per il primo giocatore
-		- Preleva notifiche da gioco_notification_queue e le invia via WebSocket, deduplica per hash.
-		- puliziaPlayer: Rimuove record da gioco_utente_sessioni se last_seen più vecchio di X minuti.
-	- additional
-	94. un'interfaccia ConditionChecker con implementazioni specifiche (RegistryConditionChecker, StatConditionChecker, etc.) che il service cicla dinamicamente. 
-	95. inmporter : processo che da uno json/yaml popola tutte le tabelle "elenco_" mettendo gli id correntti come chiavi esterne!
-- possibile frontend-web(react con bootstrap5 e ultima versione di fontawesome) 
+			- incremento numero tempo (in memoria e in tabella tempo_corrente in gioco_partite )
+			- tutti giocatori recuperano vita, sad, energia in base alle regole
+			- Riduce durata_tempo in gioco_effetti_attivi; se arriva a zero, rimuove l'effetto.
+			- Riduce counter_tempo dei luoghi ogni tempo; se arriva a zero, scatena event_if_counter_zero (decrementLocationCounters)
+			- Applica danni/benefici di gioco_effetti_attivi con trigger_momento = ON_DAY_START ogni inizio tempo (applyDailyEffects) e cancella quelle terminate
+			- Aumenta tempo_in_coma per characters in COMA; messaggio in chat che un utente sta morendo (checkComaDeath)
+			- resetto counter_consecutive_pass a zero
+		- 93d verifiche 
+			- Verifica game over: se tutti i characters sono in coma o counter_consecutive_pass > PARAMETRO -> termina partita con stato GAMEOVER
+		- 93e nuovi eventi (lista)
+			- calcolo nuovo meteo casuale (generateDailyWeather): dalla lista dei meteo validi, applica peso probabilità, aggiorna meteo corrente in gioco_partite_attive e invia GAME_EVENT via WebSocket
+			- Verifica condizioni di elenco_global_random_events, lancia dado probabilità, lista eventi add random_Event
+			- se il meteo prevede un id_evento_scatenato allora lista eventi add id_evento_scatenato
+			- timeStartDayEventiNeiLuoghi per aggiungere alla lista eventi i evento_se_giocatore_inizia_day dei luoghi che hanno almeno un character
+			- ricostruisco gioco_coda_turni in base a formula MatchFormulaOrdine delle priorità con calcolo id_character_current_turn
+			- ritorno lista eventi e lista turni
+		- 93f invio a giocatori
+			- WebSocket GAME_EVENT per nuovo meteo e evento inizio tempo
+			- WebSocket TURN_UPDATE per il primo giocatore
+			- Preleva notifiche da gioco_notification_queue e le invia via WebSocket, deduplica per hash.
+			- puliziaPlayer: Rimuove record da gioco_utente_sessioni se last_seen più vecchio di X minuti.
+		- additional
+	- 94. un'interfaccia ConditionChecker con implementazioni specifiche (RegistryConditionChecker, StatConditionChecker, etc.) che il service cicla dinamicamente. 
+	- 95. inmporter : processo che da uno json/yaml popola tutte le tabelle "elenco_" mettendo gli id correntti come chiavi esterne!
+
+10. possibile frontend-web(react con bootstrap5 e ultima versione di fontawesome) 
 	- messaggio iniziale: da dato questo gioco, voglio iniziare a pensare alla parte grafica del frontend-web, dammi la lista dei component che faresti, dammi solo elenco senza pensare al codice
 	- idea di base: essendo ispirato ad un librogame voglio farlo a mo di libro e di raccoglitore di carte, tipo raccoglitore di carte magic/pokemon
 		- ogni character è un raccoglitore : prima pagina carta character con classe e tipo, le altre pagine sono elenco effetti, elenco caratteristiche, elenco oggetti inventory
@@ -688,7 +687,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		99. WebSocketHeartbeat Mantiene viva la connessione con PING/PONG
 		100. WebSocketReconnectModal Modale di riconnessione in caso di disconnessione
 		101. WebSocketMessageQueue Coda messaggi per gestire disconnessioni temporanee
-```
+
+
 
 
 
@@ -704,12 +704,15 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	
 	> I wanna add a new logic: player without login but only with cookies save into browser, tell me what do you think?
 - **Document Version**: 0.10.12
-	- 0.1.0: fist version of file in italian language (February 3, 2026)
-	- 0.1.1: added licence and version control sections (February 5, 2026)
-	- 0.9.0: traslated and updated roles and table sections (March 13, 2026)
-	- 0.9.1: add "play without login" to enable anonymous/guest user (March 16, 2026)
-	- 0.10.12: traslated API and WebSocket and updated tables sections (March 19, 2026)
-- **Last Updated**: March 16, 2026
+    | Version | Description | Date |
+    | --- | --- | --- |
+	| 0.1.0 | fist version of file in italian language | February 3, 2026 |
+	| 0.1.1 | added licence and version control sections | February 5, 2026 |
+	| 0.9.0 | traslated and updated roles and table sections | March 13, 2026 |
+	| 0.9.1 | add "play without login" to enable anonymous/guest user | March 16, 2026 |
+	| 0.10.12 | traslated API and WebSocket and updated tables sections | March 19, 2026 |
+	| 0.16.3 | traslated stories service just developed! | April 20, 2026 |
+- **Last Updated**: April 20, 2026
 - **Status**: In progress, traslation *coming soon*
 
 

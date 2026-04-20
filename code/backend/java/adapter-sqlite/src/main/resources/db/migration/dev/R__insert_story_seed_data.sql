@@ -96,8 +96,11 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90033, 9001, 202, 'en', 'Athlete', 'High dexterity and constitution, lower intelligence. Excels at movement and physical challenges.'),
 (90034, 9001, 202, 'it', 'Atleta', 'Alta destrezza e costituzione, intelligenza inferiore. Eccelle nel movimento e nelle sfide fisiche.'),
 -- Difficulty texts
-(90035, 9001, 300, 'en', 'Tutorial', 'The only difficulty available for the tutorial. Generous stats, no real danger. Focus on learning.'),
-(90036, 9001, 300, 'it', 'Tutorial', 'L''unica difficoltà disponibile per la tutorial. Statistiche generose, nessun vero pericolo. Concentrati sull''apprendimento.'),
+(90035, 9001, 300, 'en', 'Easy', 'The only difficulty available for the tutorial. Generous stats, no real danger. Focus on learning.'),
+(90036, 9001, 300, 'it', 'Easy', 'L''unica difficoltà disponibile per la tutorial. Statistiche generose, nessun vero pericolo. Concentrati sull''apprendimento.'),
+(90037, 9001, 301, 'en', 'Hard', 'The only difficulty available for the tutorial. Generous stats, no real danger. Focus on learning.'),
+(90038, 9001, 301, 'it', 'Hard', 'L''unica difficoltà disponibile per la tutorial. Statistiche generose, nessun vero pericolo. Concentrati sull''apprendimento.'),
+
 -- Item texts
 (90041, 9001, 400, 'en', 'Training Potion', 'A mild potion that restores a small amount of life. Used to demonstrate how consumable items work.'),
 (90042, 9001, 400, 'it', 'Pozione di Addestramento', 'Una pozione leggera che ripristina una piccola quantità di vita. Usata per dimostrare come funzionano gli oggetti consumabili.'),
@@ -167,7 +170,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 
 -- ── Difficulties ────────────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 1, 3);
+(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 1, 3),
+(90002, 9001, 90001, 301, 1, 20, 1, 4, 1, 1, 3);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
