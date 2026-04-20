@@ -437,13 +437,26 @@ Full API specification: `code/backend/java/adapter-rest/src/main/resources/opena
 
     > read all website concept and use "v0.15.4-prototype" like last website version. i wanna create "v0.16.1-stories-cards"  with stories list from APIs and cardInfo (don't use title and description from stories lists outside cardinfo). if service is not disponibile use mock-json. on header bar add server status and possiblity to change website endpoint. 
 
+    > I need to add CardInfo value in response APIs (join stories with cards):
+        - /stories/
+        - /stories/category/{category}
+        - /stories/group/{group}
+        Please change java, python, php and aws-lambda projects code. 
+        Update open-api documentation "code/backend/java/adapter-rest/src/main/resources/openapi".
+        Add test in all project to test if values is into response.
+        Update robot-test to check new value into responses (update 15_story_content file, not create a new robot file).  
+
+    > Get "code/website/concepts_v0/v0.15.4-prototype/" and create "v0.16.3-prototype-api". change proptotype to use APIs just developed with 0.16.x steps! in header remove "nav-badges" and add "server selector" = LOCAL / MOCK. with mock use a static json. with local use stories APIs to get stories list , show card (image, test, description). remove "catalog-info-footer" and move (i) icon on catalog-card-cover on right-bottom corner. the (i) modal must use link_copyright and id_text_copyright. if LOCAL server on story modal to use difficulties, character from APIs with relative card if possibile.      
+
 
 - **Document Version**: 0.16.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.0 | Card, test and authors details APIs | April 20, 2026 |
     | 0.16.1 | Refactor CardInfo and alternative backend card APIs | April 20, 2026 |
-    | 0.16.2 | New Website concept with card information from APIs | April 20, 2026 |
+    | 0.16.2 | Add CardInfo to Stories APIs | April 20, 2026 | 
+    | 0.16.3 | New Website concept with card informations from APIs | April 20, 2026 |
+    
 - **Last Updated**: April 20, 2026
 - **Status**: In progress
 

@@ -81,6 +81,10 @@ paths:
                   priority: 5
                   peghi: 2
                   difficultyCount: 3
+                  card:
+                    uuid: "card-main-uuid"
+                    imageUrl: "https://example.com/card.png"
+                    title: "The Lost Kingdom"
                 - uuid: "660e8400-e29b-41d4-a716-446655440001"
                   title: "Dark Secrets"
                   description: "A horror mystery"
@@ -91,6 +95,7 @@ paths:
                   priority: 3
                   peghi: 1
                   difficultyCount: 1
+                  card: null
 
   /api/stories/{uuid}:
     get:
@@ -428,6 +433,10 @@ components:
           type: integer
           description: Number of available difficulty levels
           example: 3
+        card:
+          nullable: true
+          description: Visual card information with resolved text (null if no card associated)
+          $ref: '#/components/schemas/CardInfoResponse'
       required:
         - uuid
 
@@ -753,3 +762,49 @@ components:
       required:
         - error
         - message
+
+    CardInfoResponse:
+      type: object
+      description: Visual card information with resolved text
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          example: "card-main-uuid"
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to the card image
+          example: "https://example.com/card.png"
+        alternativeImage:
+          type: string
+          nullable: true
+          description: Alternative image identifier
+        awesomeIcon:
+          type: string
+          nullable: true
+          description: FontAwesome icon class
+        styleMain:
+          type: string
+          nullable: true
+          description: CSS style for the main card view
+        styleDetail:
+          type: string
+          nullable: true
+          description: CSS style for the detail card view
+        title:
+          type: string
+          nullable: true
+          description: Resolved card title
+        description:
+          type: string
+          nullable: true
+          description: Resolved card description
+        copyrightText:
+          type: string
+          nullable: true
+          description: Resolved copyright text
+        linkCopyright:
+          type: string
+          nullable: true
+          description: URL to the copyright holder

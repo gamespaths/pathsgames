@@ -47,6 +47,7 @@ Story Summary Should Have Required Fields
     Dictionary Should Contain Key    ${item}    priority
     Dictionary Should Contain Key    ${item}    peghi
     Dictionary Should Contain Key    ${item}    difficultyCount
+    Dictionary Should Contain Key    ${item}    card
 
 Story Detail Should Have Required Fields
     [Documentation]    Validates that a StoryDetailResponse body has all required fields.

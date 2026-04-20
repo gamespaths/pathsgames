@@ -183,6 +183,28 @@ class StoryQueryService(StoryQueryPort):
         
         diff_count = len(self.read_port.find_difficulties_for_story(story_id))
 
+        # Card resolution
+        card = None
+        story_id_card = raw_story.get("id_card")
+        if story_id_card is not None:
+            raw_card = self.read_port.find_card_for_story(story_id, story_id_card)
+            if raw_card:
+                card_title = self._resolve_text(texts, raw_card.get("id_text_title") or raw_card.get("id_text_name"), lang)
+                card_description = self._resolve_text(texts, raw_card.get("id_text_description"), lang)
+                card_copyright_text = self._resolve_text(texts, raw_card.get("id_text_copyright"), lang)
+                card = CardInfo(
+                    uuid=raw_card.get("uuid") or str(raw_card.get("id", "")),
+                    imageUrl=raw_card.get("image_url"),
+                    alternativeImage=raw_card.get("alternative_image"),
+                    awesomeIcon=raw_card.get("awesome_icon"),
+                    styleMain=raw_card.get("style_main"),
+                    styleDetail=raw_card.get("style_detail"),
+                    title=card_title,
+                    description=card_description,
+                    copyrightText=card_copyright_text,
+                    linkCopyright=raw_card.get("link_copyright")
+                )
+
         return StorySummary(
             uuid=raw_story.get("uuid"),
             title=title,
@@ -193,7 +215,8 @@ class StoryQueryService(StoryQueryPort):
             visibility=raw_story.get("visibility"),
             priority=raw_story.get("priority", 0),
             peghi=raw_story.get("peghi", 0),
-            difficultyCount=diff_count
+            difficultyCount=diff_count,
+            card=card
         )
 
     def _resolve_text(self, texts: List[Dict[str, Any]], txt_id: Optional[int], target_lang: str) -> Optional[str]:

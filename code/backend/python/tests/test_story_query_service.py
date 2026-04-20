@@ -43,6 +43,46 @@ def test_list_public_stories_with_data(mock_read_port):
     assert len(results) == 1
     assert results[0].title == "Story T"
     assert results[0].uuid == "u1"
+    assert results[0].card is None
+
+def test_list_public_stories_with_card(mock_read_port):
+    mock_read_port.find_public_stories.return_value = [
+        {"id": 1, "uuid": "u1", "id_text_title": 10, "id_card": 42}
+    ]
+    mock_read_port.find_texts_for_story.return_value = [
+        {"id_text": 10, "lang": "en", "short_text": "Story T"},
+        {"id_text": 400, "lang": "en", "short_text": "Card Title"},
+        {"id_text": 401, "lang": "en", "short_text": "Card Desc"}
+    ]
+    mock_read_port.find_card_for_story.return_value = {
+        "id": 42, "uuid": "card-uuid", "image_url": "https://img.png",
+        "alternative_image": "alt", "awesome_icon": "fa-star",
+        "style_main": "bg-dark", "style_detail": "text-light",
+        "id_text_title": 400, "id_text_description": 401,
+        "link_copyright": "https://lic.example.com"
+    }
+    service = StoryQueryService(mock_read_port)
+    results = service.list_public_stories()
+    assert len(results) == 1
+    assert results[0].card is not None
+    assert results[0].card.uuid == "card-uuid"
+    assert results[0].card.imageUrl == "https://img.png"
+    assert results[0].card.title == "Card Title"
+    assert results[0].card.description == "Card Desc"
+    assert results[0].card.awesomeIcon == "fa-star"
+
+def test_list_public_stories_card_not_found(mock_read_port):
+    mock_read_port.find_public_stories.return_value = [
+        {"id": 1, "uuid": "u1", "id_text_title": 10, "id_card": 99}
+    ]
+    mock_read_port.find_texts_for_story.return_value = [
+        {"id_text": 10, "lang": "en", "short_text": "Story T"}
+    ]
+    mock_read_port.find_card_for_story.return_value = None
+    service = StoryQueryService(mock_read_port)
+    results = service.list_public_stories()
+    assert len(results) == 1
+    assert results[0].card is None
 
 def test_list_all_stories(mock_read_port):
     mock_read_port.find_all_stories.return_value = [

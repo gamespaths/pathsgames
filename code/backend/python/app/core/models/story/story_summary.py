@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from app.core.models.story.card_info import CardInfo
 
 @dataclass
 class StorySummary:
@@ -12,3 +13,4 @@ class StorySummary:
     priority: int = 0
     peghi: int = 0
     difficultyCount: int = 0
+    card: CardInfo | None = None

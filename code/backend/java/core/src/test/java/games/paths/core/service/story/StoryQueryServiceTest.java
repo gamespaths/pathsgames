@@ -204,8 +204,52 @@ class StoryQueryServiceTest {
                 () -> assertEquals("PUBLIC", s.getVisibility()),
                 () -> assertEquals(5, s.getPriority()),
                 () -> assertEquals(2, s.getPeghi()),
-                () -> assertEquals(1, s.getDifficultyCount())
+                () -> assertEquals(1, s.getDifficultyCount()),
+                () -> assertNull(s.getCard())
             );
+        }
+
+        @Test
+        @DisplayName("Should include card info in summary when story has idCard")
+        void listPublicStories_withCard() {
+            StoryEntity story = createStoryEntity("uuid-1", "Author1", 100, 101, "PUBLIC", 5, 2);
+            story.setIdCard(42);
+            when(readPort.findStoriesByVisibility("PUBLIC")).thenReturn(List.of(story));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 100, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 100, "en", "Title EN")));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 101, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 101, "en", "Desc EN")));
+            when(readPort.findDifficultiesByStoryId(1L)).thenReturn(List.of());
+            CardEntity card = createCardEntity(1L, "card-uuid");
+            when(readPort.findCardByStoryIdAndCardId(1L, 42L)).thenReturn(Optional.of(card));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 500, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 500, "en", "Card Title")));
+
+            List<StorySummary> result = storyQueryService.listPublicStories("en");
+
+            assertEquals(1, result.size());
+            StorySummary s = result.get(0);
+            assertNotNull(s.getCard());
+            assertEquals("card-uuid", s.getCard().getUuid());
+            assertEquals("Card Title", s.getCard().getTitle());
+            assertEquals("https://example.com/card.png", s.getCard().getImageUrl());
+        }
+
+        @Test
+        @DisplayName("Should set card to null in summary when story has no idCard")
+        void listPublicStories_noCard() {
+            StoryEntity story = createStoryEntity("uuid-1", "Author1", 100, 101, "PUBLIC", 5, 2);
+            when(readPort.findStoriesByVisibility("PUBLIC")).thenReturn(List.of(story));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 100, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 100, "en", "Title EN")));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 101, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 101, "en", "Desc EN")));
+            when(readPort.findDifficultiesByStoryId(1L)).thenReturn(List.of());
+
+            List<StorySummary> result = storyQueryService.listPublicStories("en");
+
+            assertEquals(1, result.size());
+            assertNull(result.get(0).getCard());
         }
 
         @Test

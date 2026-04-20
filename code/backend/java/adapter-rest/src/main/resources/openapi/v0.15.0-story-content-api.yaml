@@ -356,6 +356,10 @@ components:
           type: integer
           description: Number of available difficulty levels
           example: 3
+        card:
+          nullable: true
+          description: Visual card information with resolved text (null if no card associated)
+          $ref: '#/components/schemas/CardInfoResponse'
       required:
         - uuid
 

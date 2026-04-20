@@ -12,6 +12,15 @@ def test_story_summary_defaults():
     s = StorySummary(uuid="u1")
     assert s.priority == 0
     assert s.title is None
+    assert s.card is None
+
+def test_story_summary_with_card():
+    card = CardInfo(uuid="c1", imageUrl="https://img.png", title="Card T")
+    s = StorySummary(uuid="u1", card=card)
+    assert s.card is not None
+    assert s.card.uuid == "c1"
+    assert s.card.imageUrl == "https://img.png"
+    assert s.card.title == "Card T"
 
 def test_difficulty_info_defaults():
     d = DifficultyInfo(uuid="u1")

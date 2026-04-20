@@ -209,6 +209,7 @@ public class StoryQueryService implements StoryQueryPort {
             String description = resolveText(story.getId(), story.getIdTextDescription(), lang);
 
             List<StoryDifficultyEntity> diffs = readPort.findDifficultiesByStoryId(story.getId());
+            CardInfo cardInfo = resolveCardInfo(story.getId(), story.getIdCard(), lang);
 
             summaries.add(StorySummary.builder()
                     .uuid(story.getUuid())
@@ -221,6 +222,7 @@ public class StoryQueryService implements StoryQueryPort {
                     .priority(story.getPriority() != null ? story.getPriority() : 0)
                     .peghi(story.getPeghi() != null ? story.getPeghi() : 0)
                     .difficultyCount(diffs.size())
+                    .card(cardInfo)
                     .build());
         }
         return summaries;

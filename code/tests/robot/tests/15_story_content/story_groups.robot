@@ -108,3 +108,14 @@ Groups Accessible Without Auth
     [Tags]    stories    step15    groups
     ${response}=    Get Story Groups
     Status Should Be    ${response}    200
+
+Stories By Group Have Card Field
+    [Documentation]    Each story in the group result has a 'card' field (may be null).
+    [Tags]    stories    step15    groups
+    ${grp_resp}=    Get Story Groups
+    ${first_grp}=    Set Variable    ${grp_resp.json()}[0]
+    ${response}=    Get Stories By Group    ${first_grp}
+    ${body}=    Set Variable    ${response.json()}
+    FOR    ${item}    IN    @{body}
+        Dictionary Should Contain Key    ${item}    card
+    END

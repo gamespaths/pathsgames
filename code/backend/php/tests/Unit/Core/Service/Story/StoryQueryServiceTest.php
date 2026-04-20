@@ -69,6 +69,53 @@ class StoryQueryServiceTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertSame('Story T', $results[0]->title);
         $this->assertSame('u1', $results[0]->uuid);
+        $this->assertNull($results[0]->card);
+    }
+
+    public function testListPublicStoriesWithCard(): void
+    {
+        $this->readPort->method('findPublicStories')->willReturn([
+            ['id' => 1, 'uuid' => 'u1', 'id_text_title' => 10, 'id_card' => 42]
+        ]);
+        $this->readPort->method('findTextsForStory')->willReturn([
+            ['id_text' => 10, 'lang' => 'en', 'short_text' => 'Story T'],
+            ['id_text' => 400, 'lang' => 'en', 'short_text' => 'Card Title'],
+            ['id_text' => 401, 'lang' => 'en', 'short_text' => 'Card Desc']
+        ]);
+        $this->readPort->method('findDifficultiesForStory')->willReturn([]);
+        $this->readPort->method('findCardForStory')->willReturn([
+            'id' => 42, 'uuid' => 'card-uuid', 'image_url' => 'https://img.png',
+            'alternative_image' => 'alt', 'awesome_icon' => 'fa-star',
+            'style_main' => 'bg-dark', 'style_detail' => 'text-light',
+            'id_text_title' => 400, 'id_text_description' => 401,
+            'link_copyright' => 'https://lic.example.com'
+        ]);
+
+        $results = $this->service->listPublicStories();
+        $this->assertCount(1, $results);
+        $this->assertNotNull($results[0]->card);
+        $this->assertInstanceOf(CardInfo::class, $results[0]->card);
+        $this->assertSame('card-uuid', $results[0]->card->uuid);
+        $this->assertSame('https://img.png', $results[0]->card->imageUrl);
+        $this->assertSame('Card Title', $results[0]->card->title);
+        $this->assertSame('Card Desc', $results[0]->card->description);
+        $this->assertSame('fa-star', $results[0]->card->awesomeIcon);
+    }
+
+    public function testListPublicStoriesCardNotFound(): void
+    {
+        $this->readPort->method('findPublicStories')->willReturn([
+            ['id' => 1, 'uuid' => 'u1', 'id_text_title' => 10, 'id_card' => 99]
+        ]);
+        $this->readPort->method('findTextsForStory')->willReturn([
+            ['id_text' => 10, 'lang' => 'en', 'short_text' => 'Story T']
+        ]);
+        $this->readPort->method('findDifficultiesForStory')->willReturn([]);
+        $this->readPort->method('findCardForStory')->willReturn(null);
+
+        $results = $this->service->listPublicStories();
+        $this->assertCount(1, $results);
+        $this->assertNull($results[0]->card);
     }
 
     public function testListAllStories(): void

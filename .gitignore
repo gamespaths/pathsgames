@@ -61,3 +61,4 @@ code/tests/robot/reports-local-python/
 code/tests/robot/reports-local-php
 code/backend/php/build/logs/junit.xml
 code/backend/php/.phpunit.result.cache
+run_robot_results/

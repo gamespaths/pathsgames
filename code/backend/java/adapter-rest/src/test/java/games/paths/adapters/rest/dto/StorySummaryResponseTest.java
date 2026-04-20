@@ -16,7 +16,7 @@ class StorySummaryResponseTest {
     void allArgsConstructor() {
         StorySummaryResponse r = new StorySummaryResponse(
                 "uuid-1", "Title", "Desc", "Author",
-                "adventure", "fantasy", "PUBLIC", 5, 2, 3);
+                "adventure", "fantasy", "PUBLIC", 5, 2, 3, null);
 
         assertAll("StorySummaryResponse fields",
             () -> assertEquals("uuid-1", r.getUuid()),
@@ -28,7 +28,27 @@ class StorySummaryResponseTest {
             () -> assertEquals("PUBLIC", r.getVisibility()),
             () -> assertEquals(5, r.getPriority()),
             () -> assertEquals(2, r.getPeghi()),
-            () -> assertEquals(3, r.getDifficultyCount())
+            () -> assertEquals(3, r.getDifficultyCount()),
+            () -> assertNull(r.getCard())
+        );
+    }
+
+    @Test
+    @DisplayName("All-args constructor with card should set card field")
+    void allArgsConstructor_withCard() {
+        CardInfoResponse card = new CardInfoResponse();
+        card.setUuid("card-uuid");
+        card.setTitle("Card Title");
+
+        StorySummaryResponse r = new StorySummaryResponse(
+                "uuid-1", "Title", "Desc", "Author",
+                "adventure", "fantasy", "PUBLIC", 5, 2, 3, card);
+
+        assertAll("StorySummaryResponse with card",
+            () -> assertEquals("uuid-1", r.getUuid()),
+            () -> assertNotNull(r.getCard()),
+            () -> assertEquals("card-uuid", r.getCard().getUuid()),
+            () -> assertEquals("Card Title", r.getCard().getTitle())
         );
     }
 
@@ -47,6 +67,10 @@ class StorySummaryResponseTest {
         r.setPeghi(1);
         r.setDifficultyCount(2);
 
+        CardInfoResponse card = new CardInfoResponse();
+        card.setUuid("card-uuid");
+        r.setCard(card);
+
         assertAll("Setter values",
             () -> assertEquals("uuid-2", r.getUuid()),
             () -> assertEquals("Title2", r.getTitle()),
@@ -57,7 +81,9 @@ class StorySummaryResponseTest {
             () -> assertEquals("PRIVATE", r.getVisibility()),
             () -> assertEquals(3, r.getPriority()),
             () -> assertEquals(1, r.getPeghi()),
-            () -> assertEquals(2, r.getDifficultyCount())
+            () -> assertEquals(2, r.getDifficultyCount()),
+            () -> assertNotNull(r.getCard()),
+            () -> assertEquals("card-uuid", r.getCard().getUuid())
         );
     }
 }

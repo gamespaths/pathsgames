@@ -108,3 +108,14 @@ Categories Accessible Without Auth
     [Tags]    stories    step15    categories
     ${response}=    Get Story Categories
     Status Should Be    ${response}    200
+
+Stories By Category Have Card Field
+    [Documentation]    Each story in the category result has a 'card' field (may be null).
+    [Tags]    stories    step15    categories
+    ${cat_resp}=    Get Story Categories
+    ${first_cat}=    Set Variable    ${cat_resp.json()}[0]
+    ${response}=    Get Stories By Category    ${first_cat}
+    ${body}=    Set Variable    ${response.json()}
+    FOR    ${item}    IN    @{body}
+        Dictionary Should Contain Key    ${item}    card
+    END

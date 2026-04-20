@@ -212,6 +212,33 @@ class StoryQueryService implements StoryQueryPort
         
         $diffCount = count($this->readPort->findDifficultiesForStory($storyId));
 
+        $card = null;
+        $storyIdCard = $rawStory['id_card'] ?? null;
+        if ($storyIdCard !== null) {
+            $rawCard = $this->readPort->findCardForStory($storyId, (int)$storyIdCard);
+            if ($rawCard) {
+                $cardTitleTextId = isset($rawCard['id_text_title']) ? (int)$rawCard['id_text_title']
+                    : (isset($rawCard['id_text_name']) ? (int)$rawCard['id_text_name'] : null);
+                $cardTitle = $this->resolveText($texts, $cardTitleTextId, $lang);
+                $cardDescTextId = isset($rawCard['id_text_description']) ? (int)$rawCard['id_text_description'] : null;
+                $cardDescription = $this->resolveText($texts, $cardDescTextId, $lang);
+                $cardCopyrightTextId = isset($rawCard['id_text_copyright']) ? (int)$rawCard['id_text_copyright'] : null;
+                $cardCopyrightText = $this->resolveText($texts, $cardCopyrightTextId, $lang);
+                $card = new CardInfo(
+                    $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+                    $rawCard['image_url'] ?? null,
+                    $rawCard['alternative_image'] ?? null,
+                    $rawCard['awesome_icon'] ?? null,
+                    $rawCard['style_main'] ?? null,
+                    $rawCard['style_detail'] ?? null,
+                    $cardTitle,
+                    $cardDescription,
+                    $cardCopyrightText,
+                    $rawCard['link_copyright'] ?? null
+                );
+            }
+        }
+
         return new StorySummary(
             $rawStory['uuid'],
             $title,
@@ -222,7 +249,8 @@ class StoryQueryService implements StoryQueryPort
             $rawStory['visibility'] ?? null,
             isset($rawStory['priority']) ? (int)$rawStory['priority'] : 0,
             isset($rawStory['peghi']) ? (int)$rawStory['peghi'] : 0,
-            $diffCount
+            $diffCount,
+            $card
         );
     }
 

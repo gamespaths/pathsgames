@@ -140,10 +140,12 @@ public class StoryController {
     }
 
     private StorySummaryResponse toSummaryResponse(StorySummary s) {
+        CardInfoResponse cardResp = s.getCard() != null ? toCardInfoResponse(s.getCard()) : null;
         return new StorySummaryResponse(
                 s.getUuid(), s.getTitle(), s.getDescription(), s.getAuthor(),
                 s.getCategory(), s.getGroup(), s.getVisibility(),
-                s.getPriority(), s.getPeghi(), s.getDifficultyCount());
+                s.getPriority(), s.getPeghi(), s.getDifficultyCount(),
+                cardResp);
     }
 
     private StoryDetailResponse toDetailResponse(StoryDetail d) {

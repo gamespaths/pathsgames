@@ -16,6 +16,7 @@ public class StorySummary {
     private final int priority;
     private final int peghi;
     private final int difficultyCount;
+    private final CardInfo card;
 
     private StorySummary(Builder builder) {
         this.uuid = builder.uuid;
@@ -28,6 +29,7 @@ public class StorySummary {
         this.priority = builder.priority;
         this.peghi = builder.peghi;
         this.difficultyCount = builder.difficultyCount;
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -40,6 +42,7 @@ public class StorySummary {
     public int getPriority() { return priority; }
     public int getPeghi() { return peghi; }
     public int getDifficultyCount() { return difficultyCount; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -54,6 +57,7 @@ public class StorySummary {
         private int priority;
         private int peghi;
         private int difficultyCount;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder title(String title) { this.title = title; return this; }
@@ -65,6 +69,7 @@ public class StorySummary {
         public Builder priority(int priority) { this.priority = priority; return this; }
         public Builder peghi(int peghi) { this.peghi = peghi; return this; }
         public Builder difficultyCount(int difficultyCount) { this.difficultyCount = difficultyCount; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
 
         public StorySummary build() {
             if (uuid == null || uuid.isBlank()) {

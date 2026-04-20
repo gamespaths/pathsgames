@@ -87,3 +87,12 @@ Stories Have difficultyCount Field
     FOR    ${item}    IN    @{body}
         Dictionary Should Contain Key    ${item}    difficultyCount
     END
+
+Stories Have Card Field
+    [Documentation]    Each story summary has the card field (may be null or an object).
+    [Tags]    stories    step14
+    ${response}=    Get Public Stories
+    ${body}=    Set Variable    ${response.json()}
+    FOR    ${item}    IN    @{body}
+        Dictionary Should Contain Key    ${item}    card
+    END

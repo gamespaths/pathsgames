@@ -23,6 +23,17 @@ class StoryModelsTest extends TestCase
         $summary = new StorySummary('u1');
         $this->assertSame(0, $summary->priority);
         $this->assertNull($summary->title);
+        $this->assertNull($summary->card);
+    }
+
+    public function testStorySummaryWithCard(): void
+    {
+        $card = new CardInfo('c1', 'https://img.png', null, null, null, null, 'Card T');
+        $summary = new StorySummary('u1', card: $card);
+        $this->assertNotNull($summary->card);
+        $this->assertSame('c1', $summary->card->uuid);
+        $this->assertSame('https://img.png', $summary->card->imageUrl);
+        $this->assertSame('Card T', $summary->card->title);
     }
 
     public function testDifficultyInfoDefaults(): void

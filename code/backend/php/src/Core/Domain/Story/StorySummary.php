@@ -16,7 +16,8 @@ class StorySummary
         public ?string $visibility = null,
         public int $priority = 0,
         public int $peghi = 0,
-        public int $difficultyCount = 0
+        public int $difficultyCount = 0,
+        public ?CardInfo $card = null
     ) {
     }
 }

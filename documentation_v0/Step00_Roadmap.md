@@ -79,7 +79,7 @@ For next steps use this prompt
     - Implement text resolution service supporting multi-language text lookup with fallback to default language (backend)
     - Implement card and image resolution service linked to locations, stories, and characters (backend)
     - Write backend unit tests for all content endpoints, text resolution, card service, and data integrity validation (backend tests)
-17. Story admin CRUD endpoints
+17. Story admin CRUD endpoints (all into Admin section/adapters)
     - Implement admin CRUD for stories (list_stories): create, update, delete with admin role check (backend)
     - Implement admin CRUD for story-related tables: list_stories_difficulty, list_locations, list_locations_neighbors, list_keys (backend)
     - Implement admin CRUD for events and effects: list_events, list_events_effects, list_choices, list_choices_conditions, list_choices_effects (backend)

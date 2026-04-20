@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "paths-games-backend-python"
-version = "0.16.1"
+version = "0.16.2"
 description = "FastAPI Hexagonal Backend for Paths Games"
 authors = ["Paths Games Dev Team <dev@paths.games>"]
 license = "GPL-3.0"

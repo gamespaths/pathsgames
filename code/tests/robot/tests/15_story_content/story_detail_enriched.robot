@@ -128,3 +128,12 @@ Demo 2 Story Also Has Step 15 Fields
     Status Should Be    ${response}    200
     ${body}=    Set Variable    ${response.json()}
     Story Detail Should Have Required Fields    ${body}
+
+Public Stories Have Card Field In Summary
+    [Documentation]    GET /api/stories returns summaries with a 'card' field (object or null).
+    [Tags]    stories    step15    detail
+    ${response}=    Get Public Stories
+    ${body}=    Set Variable    ${response.json()}
+    FOR    ${item}    IN    @{body}
+        Dictionary Should Contain Key    ${item}    card
+    END

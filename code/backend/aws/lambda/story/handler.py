@@ -127,6 +127,24 @@ def _safe_int(val, default=0):
 def _story_summary(item, lang):
     """Build StorySummaryResponse from a DynamoDB story item."""
     texts = item.get('texts', {})
+
+    # Card resolution
+    raw_card = item.get('card')
+    card = None
+    if raw_card:
+        card = {
+            'uuid':             raw_card.get('uuid'),
+            'imageUrl':         raw_card.get('imageUrl'),
+            'alternativeImage': raw_card.get('alternativeImage'),
+            'awesomeIcon':      raw_card.get('awesomeIcon'),
+            'styleMain':        raw_card.get('styleMain'),
+            'styleDetail':      raw_card.get('styleDetail'),
+            'title':            _resolve_text(raw_card.get('texts', {}), lang, 'title'),
+            'description':      _resolve_text(raw_card.get('texts', {}), lang, 'description'),
+            'copyrightText':    _resolve_text(raw_card.get('texts', {}), lang, 'copyrightText'),
+            'linkCopyright':    raw_card.get('linkCopyright'),
+        }
+
     return {
         'uuid':            item.get('uuid'),
         'title':           _resolve_text(texts, lang, 'title'),
@@ -138,6 +156,7 @@ def _story_summary(item, lang):
         'priority':        _safe_int(item.get('priority')),
         'peghi':           _safe_int(item.get('peghi')),
         'difficultyCount': _safe_int(item.get('difficulty_count')),
+        'card':            card,
     }
 
 def _story_detail(item, lang):
