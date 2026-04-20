@@ -90,15 +90,17 @@ DELETE FROM list_stories               WHERE id IN (9001, 9002);
 
 -- ── Story 1: DEMO — Learn to Play (id=9001) ─────────────────────
 INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
-    category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card)
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description)
 VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 'turn', 'turns',
-    'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2, 90001);
+    'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2);
+
 
 -- ── Story 2: Il Valvassore di Marca (id=9002) ────────────────────
 INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
-    category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card)
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description )
 VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
-    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2 , 91001);
+    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2 );
+
 
 -- ── Story 1 Texts ───────────────────────────────────────────────
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90001, 9001, 1, 'en', 'TUTORIAL', 'Welcome to Paths Games! This guided tutorial will teach you every mechanic step by step.');
@@ -359,6 +361,9 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91001, 9002, 'fas fa-chess-rook', 'medieval');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
+
+UPDATE list_stories SET id_card = 91001 WHERE id = 9002;
+UPDATE list_stories SET id_card = 90001 WHERE id = 9001;
 
 -- ── Story 2 Creator ─────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link) VALUES (91001, 9002, 'https://paths.games');

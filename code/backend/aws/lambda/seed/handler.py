@@ -134,6 +134,35 @@ SEED_STORIES = [
         "class_count":        0,
         "template_count":     0,
         "trait_count":        0,
+        # Step 16: raw content data for content detail endpoints
+        "raw_texts": [
+            {"idText": 1, "lang": "en", "shortText": "TUTORIAL", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 1, "lang": "it", "shortText": "TUTORIAL", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 2, "lang": "en",
+             "shortText": "A short training adventure in the Academy of Paths. "
+                          "Learn movement, energy, items, choices, and missions "
+                          "in a safe environment. Perfect for new players.",
+             "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 2, "lang": "it",
+             "shortText": "Una breve avventura di addestramento nell'Accademia di Paths. "
+                          "Impara movimento, energia, oggetti, scelte e missioni "
+                          "in un ambiente sicuro. Perfetta per i nuovi giocatori.",
+             "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 3, "lang": "en", "shortText": "Tutorial", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 3, "lang": "it", "shortText": "Tutorial", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 100, "lang": "en", "shortText": "Welcome Hall", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 100, "lang": "it", "shortText": "Sala di Benvenuto", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+        ],
+        "raw_cards":    [],
+        "raw_creators": [],
     },
     {
         "uuid":       "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
@@ -209,6 +238,28 @@ SEED_STORIES = [
         "class_count":        0,
         "template_count":     0,
         "trait_count":        0,
+        # Step 16: raw content data for content detail endpoints
+        "raw_texts": [
+            {"idText": 1, "lang": "en", "shortText": "The Valvassor of the March", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 2, "lang": "en",
+             "shortText": "Travel across medieval Veneto to save your vassal from an "
+                          "unjust death. Navigate feudal politics, gather evidence, "
+                          "recruit allies, and face the Inquisition. Every hour counts.",
+             "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 2, "lang": "it",
+             "shortText": "Viaggia attraverso il Veneto medievale per salvare il tuo "
+                          "vassallo da una morte ingiusta. Naviga la politica feudale, "
+                          "raccogli prove, recluta alleati e affronta l'Inquisizione. "
+                          "Ogni ora conta.",
+             "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+        ],
+        "raw_cards":    [],
+        "raw_creators": [],
     },
 ]
 
@@ -250,6 +301,10 @@ def _seed_stories():
             "class_count":              s.get("class_count", 0),
             "template_count":           s.get("template_count", 0),
             "trait_count":              s.get("trait_count", 0),
+            # Step 16: raw content data for content detail queries
+            "raw_texts":                s.get("raw_texts", []),
+            "raw_cards":                s.get("raw_cards", []),
+            "raw_creators":             s.get("raw_creators", []),
             # GSI for story listing
             "GSI1_PK":                  "STORY_LIST",
             "GSI1_SK":                  f"STORY#{story_uuid}",

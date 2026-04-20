@@ -4,7 +4,8 @@ from app.core.ports.story.story_read_port import StoryReadPort
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
     LocationEntity, EventEntity, ItemEntity,
-    ClassEntity, CharacterTemplateEntity, TraitEntity, CardEntity
+    ClassEntity, CharacterTemplateEntity, TraitEntity, CardEntity,
+    CreatorEntity
 )
 
 class StoryReadAdapter(StoryReadPort):
@@ -114,6 +115,40 @@ class StoryReadAdapter(StoryReadPort):
                 CardEntity.id == card_id
             ).first()
             return self._to_dict(card) if card else None
+
+    # Step 16: Content detail queries
+
+    def find_card_by_story_id_and_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            card = session.query(CardEntity).filter(
+                CardEntity.id_story == story_id,
+                CardEntity.uuid == uuid
+            ).first()
+            return self._to_dict(card) if card else None
+
+    def find_text_by_story_id_text_and_lang(self, story_id: int, id_text: int, lang: str) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            text = session.query(TextEntity).filter(
+                TextEntity.id_story == story_id,
+                TextEntity.id_text == id_text,
+                TextEntity.lang == lang
+            ).first()
+            return self._to_dict(text) if text else None
+
+    def find_creator_by_story_id_and_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            creator = session.query(CreatorEntity).filter(
+                CreatorEntity.id_story == story_id,
+                CreatorEntity.uuid == uuid
+            ).first()
+            return self._to_dict(creator) if creator else None
+
+    def find_creators_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            creators = session.query(CreatorEntity).filter(
+                CreatorEntity.id_story == story_id
+            ).all()
+            return [self._to_dict(c) for c in creators]
 
     def _to_dict(self, obj) -> Dict[str, Any]:
         result = {}

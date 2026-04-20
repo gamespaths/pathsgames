@@ -305,11 +305,18 @@ INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
 (90001, 9001, 'PathsMaster', 'https://paths.games', 'https://paths.games/assets/logo.png');
 
 -- ── Cards ───────────────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main , id_text_title, id_text_description , id_text_name) VALUES
-(90001, 9001, 'https://unsplash.com/photos/closeup-photo-of-castle-with-mist-21DP3hytVHw', 'fas fa-graduation-cap', 'tutorial', 42, 42, 1 ),
-(90002, 9001, NULL, 'fas fa-book-open',      'learning', 911, 911, 911),
-(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912);
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main , id_text_title, id_text_description , id_text_name
+    , link_copyright, id_text_copyright
+) VALUES
+(90001, 9001, 'https://images.unsplash.com/photo-1585829365343-ea8ed0b1cb5b?q=80&w=1470', 'fas fa-graduation-cap', 'tutorial', 42, 42, 1
+    ,'https://unsplash.com/photos/green-and-black-typewriter-with-white-printer-paper-HpWwEURimK8', 43 ),
+(90002, 9001, NULL, 'fas fa-book-open',      'learning', 911, 911, 911 ,'',42),
+(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912,'',42);
 
+
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+    (81001, 9002, 43, 'en', 'Unsplash License', 'Unsplash License description '),
+    (81002, 9002, 43, 'it', 'Unsplash License', 'Unsplash License descrizione ');
 
 -- #############################################################################
 -- #                                                                           #

@@ -353,10 +353,12 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_cards (
-                id_story, uuid, card_type, id_text_name, id_text_title, image_url, id_reference,
+                id_story, uuid, card_type, id_text_name, id_text_title, id_text_description,
+                id_text_copyright, link_copyright, id_creator, image_url, id_reference,
                 alternative_image, awesome_icon, style_main, style_detail
             ) VALUES (
-                :id_story, :uuid, :card_type, :id_text_name, :id_text_title, :image_url, :id_reference,
+                :id_story, :uuid, :card_type, :id_text_name, :id_text_title, :id_text_description,
+                :id_text_copyright, :link_copyright, :id_creator, :image_url, :id_reference,
                 :alternative_image, :awesome_icon, :style_main, :style_detail
             )
         ");
@@ -368,6 +370,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':card_type' => $c['cardType'] ?? null,
                 ':id_text_name' => $c['idTextName'] ?? null,
                 ':id_text_title' => $c['idTextTitle'] ?? null,
+                ':id_text_description' => $c['idTextDescription'] ?? null,
+                ':id_text_copyright' => $c['idTextCopyright'] ?? null,
+                ':link_copyright' => $c['linkCopyright'] ?? null,
+                ':id_creator' => $c['idCreator'] ?? null,
                 ':image_url' => $c['imageUrl'] ?? null,
                 ':id_reference' => $c['idReference'] ?? null,
                 ':alternative_image' => $c['alternativeImage'] ?? null,
@@ -543,15 +549,26 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveCreators(int $storyId, array $creators): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO list_creator (id_story, creator_name, creator_role, link)
-            VALUES (:id_story, :creator_name, :creator_role, :link)
+            INSERT INTO list_creator (
+                id_story, uuid, id_text, creator_name, creator_role, link,
+                url, url_image, url_emote, url_instagram
+            ) VALUES (
+                :id_story, :uuid, :id_text, :creator_name, :creator_role, :link,
+                :url, :url_image, :url_emote, :url_instagram
+            )
         ");
         foreach ($creators as $c) {
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $c['uuid'] ?? null,
+                ':id_text' => $c['idText'] ?? null,
                 ':creator_name' => $c['creatorName'] ?? null,
                 ':creator_role' => $c['creatorRole'] ?? null,
                 ':link' => $c['link'] ?? null,
+                ':url' => $c['url'] ?? null,
+                ':url_image' => $c['urlImage'] ?? null,
+                ':url_emote' => $c['urlEmote'] ?? null,
+                ':url_instagram' => $c['urlInstagram'] ?? null,
             ]);
         }
     }

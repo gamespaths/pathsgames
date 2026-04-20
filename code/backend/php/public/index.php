@@ -22,6 +22,8 @@ use Games\Paths\Core\Service\Story\StoryQueryService;
 use Games\Paths\Core\Service\Story\StoryImportService;
 use Games\Paths\Adapter\Rest\Story\StoryController;
 use Games\Paths\Adapter\Rest\Story\StoryAdminController;
+use Games\Paths\Core\Service\Story\ContentQueryService;
+use Games\Paths\Adapter\Rest\Story\ContentController;
 
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
@@ -122,6 +124,7 @@ $guestAuthService = new GuestAuthService($guestRepo, $jwtAdapter);
 $guestAdminService = new GuestAdminService($guestRepo);
 $storyQueryService = new StoryQueryService($storyReadRepo);
 $storyImportService = new StoryImportService($storyPersistRepo);
+$contentQueryService = new ContentQueryService($storyReadRepo);
 
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
@@ -130,6 +133,7 @@ $guestAdminController = new GuestAdminController($guestAdminService);
 $sessionController = new SessionController($sessionService);
 $storyController = new StoryController($storyQueryService);
 $storyAdminController = new StoryAdminController($storyQueryService, $storyImportService);
+$contentController = new ContentController($contentQueryService);
 
 // ─── Authentication Middleware ───
 $publicPaths = [
@@ -138,14 +142,15 @@ $publicPaths = [
     '/api/auth/guest/resume',
     '/api/auth/refresh',
     '/api/stories',
-    '/api/stories/**'
+    '/api/stories/**',
+    '/api/content/**'
 ];
 $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths);
 
 // ─── Define Routes ───
 $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $echoController, $guestAuthController, $guestAdminController, $sessionController,
-    $storyController, $storyAdminController
+    $storyController, $storyAdminController, $contentController
 ) {
     
     // Echo (Public)
@@ -180,6 +185,11 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/admin/stories', [$storyAdminController, 'listAllStories']);
     $group->post('/admin/stories/import', [$storyAdminController, 'importStory']);
     $group->delete('/admin/stories/{uuid}', [$storyAdminController, 'deleteStory']);
+
+    // Content Detail (Public)
+    $group->get('/content/{uuidStory}/cards/{uuidCard}', [$contentController, 'getCard']);
+    $group->get('/content/{uuidStory}/texts/{idText}/lang/{lang}', [$contentController, 'getText']);
+    $group->get('/content/{uuidStory}/creators/{uuidCreator}', [$contentController, 'getCreator']);
 
 })->add($authMiddleware);
 

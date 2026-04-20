@@ -220,6 +220,9 @@ def _story_detail(item, lang):
             'styleMain':        raw_card.get('styleMain'),
             'styleDetail':      raw_card.get('styleDetail'),
             'title':            _resolve_text(raw_card.get('texts', {}), lang, 'title'),
+            'description':      _resolve_text(raw_card.get('texts', {}), lang, 'description'),
+            'copyrightText':    _resolve_text(raw_card.get('texts', {}), lang, 'copyrightText'),
+            'linkCopyright':    raw_card.get('linkCopyright'),
         }
 
     return {
@@ -487,11 +490,25 @@ def import_story(event):
             if c.get('id') == id_card:
                 card_uuid = str(uuid_lib.uuid4())
                 id_card_name = c.get('idTextName') or c.get('idTextTitle')
+                id_card_desc = c.get('idTextDescription')
+                id_card_copyright = c.get('idTextCopyright')
                 card_texts = {}
                 for t in raw_texts:
-                    if t.get('idText') == id_card_name:
-                        lang_t = t.get('lang', 'en')
-                        card_texts[lang_t] = {'title': t.get('shortText') or t.get('longText')}
+                    id_t = t.get('idText')
+                    lang_t = t.get('lang', 'en')
+                    val = t.get('shortText') or t.get('longText')
+                    if id_t == id_card_name:
+                        if lang_t not in card_texts:
+                            card_texts[lang_t] = {}
+                        card_texts[lang_t]['title'] = val
+                    if id_t == id_card_desc:
+                        if lang_t not in card_texts:
+                            card_texts[lang_t] = {}
+                        card_texts[lang_t]['description'] = val
+                    if id_t == id_card_copyright:
+                        if lang_t not in card_texts:
+                            card_texts[lang_t] = {}
+                        card_texts[lang_t]['copyrightText'] = val
                 card = {
                     'uuid':             card_uuid,
                     'texts':            card_texts,
@@ -500,8 +517,44 @@ def import_story(event):
                     'awesomeIcon':      c.get('awesomeIcon'),
                     'styleMain':        c.get('styleMain'),
                     'styleDetail':      c.get('styleDetail'),
+                    'linkCopyright':    c.get('linkCopyright'),
                 }
                 break
+
+    # Step 16: Build raw_creators with assigned UUIDs (for content detail queries)
+    raw_creators_input = data.get('creators', [])
+    stored_creators = []
+    for cr in raw_creators_input:
+        cr_uuid = str(uuid_lib.uuid4())
+        stored_creators.append({
+            'id':           cr.get('id'),
+            'uuid':         cr_uuid,
+            'idText':       cr.get('idText'),
+            'link':         cr.get('link'),
+            'url':          cr.get('url'),
+            'urlImage':     cr.get('urlImage'),
+            'urlEmote':     cr.get('urlEmote'),
+            'urlInstagram': cr.get('urlInstagram'),
+        })
+
+    # Step 16: Build raw_cards with assigned UUIDs (for content detail queries)
+    stored_cards = []
+    for c in raw_cards:
+        c_uuid = str(uuid_lib.uuid4())
+        stored_cards.append({
+            'id':                c.get('id'),
+            'uuid':              c_uuid,
+            'idTextTitle':       c.get('idTextName') or c.get('idTextTitle'),
+            'idTextDescription': c.get('idTextDescription'),
+            'idTextCopyright':   c.get('idTextCopyright'),
+            'linkCopyright':     c.get('linkCopyright'),
+            'idCreator':         c.get('idCreator'),
+            'imageUrl':          c.get('urlImmage') or c.get('imageUrl'),
+            'alternativeImage':  c.get('alternativeImage'),
+            'awesomeIcon':       c.get('awesomeIcon'),
+            'styleMain':         c.get('styleMain'),
+            'styleDetail':       c.get('styleDetail'),
+        })
 
     priority = int(data.get('priority') or 0)
 
@@ -534,6 +587,10 @@ def import_story(event):
         'class_count':            len(classes),
         'template_count':         len(character_templates),
         'trait_count':            len(traits),
+        # Step 16: raw data for content detail queries
+        'raw_texts':              raw_texts,
+        'raw_cards':              stored_cards,
+        'raw_creators':           stored_creators,
         # GSI for story listing
         'GSI1_PK':                'STORY_LIST',
         'GSI1_SK':                f'STORY#{story_uuid}',

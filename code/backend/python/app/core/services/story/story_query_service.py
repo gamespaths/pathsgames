@@ -130,6 +130,8 @@ class StoryQueryService(StoryQueryPort):
             raw_card = self.read_port.find_card_for_story(story_id, story_id_card)
             if raw_card:
                 card_title = self._resolve_text(texts, raw_card.get("id_text_title") or raw_card.get("id_text_name"), lang)
+                card_description = self._resolve_text(texts, raw_card.get("id_text_description"), lang)
+                card_copyright_text = self._resolve_text(texts, raw_card.get("id_text_copyright"), lang)
                 card = CardInfo(
                     uuid=raw_card.get("uuid") or str(raw_card.get("id", "")),
                     imageUrl=raw_card.get("image_url"),
@@ -137,7 +139,10 @@ class StoryQueryService(StoryQueryPort):
                     awesomeIcon=raw_card.get("awesome_icon"),
                     styleMain=raw_card.get("style_main"),
                     styleDetail=raw_card.get("style_detail"),
-                    title=card_title
+                    title=card_title,
+                    description=card_description,
+                    copyrightText=card_copyright_text,
+                    linkCopyright=raw_card.get("link_copyright")
                 )
 
         return StoryDetail(

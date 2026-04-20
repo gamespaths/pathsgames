@@ -36,7 +36,21 @@ def seed():
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL"},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL"},
             {"idText": 2, "lang": "en", "shortText": "A short training adventure."},
-            {"idText": 2, "lang": "it", "shortText": "Una breve avventura di addestramento."}
+            {"idText": 2, "lang": "it", "shortText": "Una breve avventura di addestramento."},
+            {"idText": 100, "lang": "en", "shortText": "Welcome Hall"},
+            {"idText": 100, "lang": "it", "shortText": "Sala di Benvenuto"},
+            {"idText": 200, "lang": "en", "shortText": "Warrior"},
+            {"idText": 200, "lang": "it", "shortText": "Guerriero"},
+            {"idText": 210, "lang": "en", "shortText": "Fighter"},
+            {"idText": 210, "lang": "it", "shortText": "Combattente"},
+            {"idText": 300, "lang": "en", "shortText": "Tutorial"},
+            {"idText": 300, "lang": "it", "shortText": "Tutorial"},
+            {"idText": 400, "lang": "en", "shortText": "Wooden Sword"},
+            {"idText": 400, "lang": "it", "shortText": "Spada di Legno"},
+            {"idText": 500, "lang": "en", "shortText": "Welcome Event"},
+            {"idText": 500, "lang": "it", "shortText": "Evento di Benvenuto"},
+            {"idText": 700, "lang": "en", "shortText": "Brave"},
+            {"idText": 700, "lang": "it", "shortText": "Coraggioso"}
         ],
         "difficulties": [
             {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20}

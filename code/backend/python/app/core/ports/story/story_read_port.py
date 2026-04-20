@@ -65,3 +65,21 @@ class StoryReadPort(ABC):
     @abstractmethod
     def find_card_for_story(self, story_id: int, card_id: int) -> Optional[Dict[str, Any]]:
         pass
+
+    # Step 16: Content detail queries
+
+    @abstractmethod
+    def find_card_by_story_id_and_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_text_by_story_id_text_and_lang(self, story_id: int, id_text: int, lang: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_creator_by_story_id_and_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_creators_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass

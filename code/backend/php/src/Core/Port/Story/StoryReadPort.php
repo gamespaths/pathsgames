@@ -37,4 +37,12 @@ interface StoryReadPort
     public function findTraitsForStory(int $storyId): array;
 
     public function findCardForStory(int $storyId, int $cardId): ?array;
+
+    public function findCardByStoryIdAndUuid(int $storyId, string $uuid): ?array;
+
+    public function findTextByStoryIdTextAndLang(int $storyId, int $idText, string $lang): ?array;
+
+    public function findCreatorByStoryIdAndUuid(int $storyId, string $uuid): ?array;
+
+    public function findCreatorsForStory(int $storyId): array;
 }

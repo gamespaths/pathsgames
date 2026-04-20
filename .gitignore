@@ -59,5 +59,5 @@ code/tests/robot/reports-local-java-postgres/
 code/tests/robot/reports-local-java/
 code/tests/robot/reports-local-python/
 code/tests/robot/reports-local-php
-code/backend/php/*phpunit*
 code/backend/php/build/logs/junit.xml
+code/backend/php/.phpunit.result.cache

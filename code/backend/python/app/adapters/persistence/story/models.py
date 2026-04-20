@@ -59,6 +59,9 @@ class TextEntity(Base):
     lang = Column(String(10), default="en")
     short_text = Column(String(1000))
     long_text = Column(Text)
+    id_text_copyright = Column(Integer)
+    link_copyright = Column(String(500))
+    id_creator = Column(Integer)
 
 
 class KeyEntity(Base):
@@ -311,13 +314,19 @@ class CreatorEntity(Base):
     __tablename__ = "list_creator"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
+    id_text = Column(Integer)
     creator_name = Column(String(255))
     creator_role = Column(String(100))
     link = Column(String(500))
+    url = Column(String(500))
+    url_image = Column(String(500))
+    url_emote = Column(String(500))
+    url_instagram = Column(String(500))
 
 
 class CardEntity(Base):
@@ -330,9 +339,13 @@ class CardEntity(Base):
     card_type = Column(String(50))
     id_text_name = Column(Integer)
     id_text_title = Column(Integer)
+    id_text_description = Column(Integer)
+    id_text_copyright = Column(Integer)
     image_url = Column(String(500))
     alternative_image = Column(Text)
     awesome_icon = Column(String(100))
     style_main = Column(String(100))
     style_detail = Column(String(100))
+    link_copyright = Column(String(500))
+    id_creator = Column(Integer)
     id_reference = Column(Integer)

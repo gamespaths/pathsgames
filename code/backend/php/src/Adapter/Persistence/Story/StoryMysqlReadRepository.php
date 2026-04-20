@@ -133,4 +133,35 @@ class StoryMysqlReadRepository implements StoryReadPort
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
+
+    public function findCardByStoryIdAndUuid(int $storyId, string $uuid): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_cards WHERE id_story = :id_story AND uuid = :uuid LIMIT 1");
+        $stmt->execute([':id_story' => $storyId, ':uuid' => $uuid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function findTextByStoryIdTextAndLang(int $storyId, int $idText, string $lang): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_texts WHERE id_story = :id_story AND id_text = :id_text AND lang = :lang LIMIT 1");
+        $stmt->execute([':id_story' => $storyId, ':id_text' => $idText, ':lang' => $lang]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function findCreatorByStoryIdAndUuid(int $storyId, string $uuid): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_creator WHERE id_story = :id_story AND uuid = :uuid LIMIT 1");
+        $stmt->execute([':id_story' => $storyId, ':uuid' => $uuid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function findCreatorsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_creator WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

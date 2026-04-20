@@ -102,12 +102,25 @@ def test_card_info_defaults():
     assert c.styleMain is None
     assert c.styleDetail is None
     assert c.title is None
+    assert c.description is None
+    assert c.copyrightText is None
+    assert c.linkCopyright is None
+    assert c.creator is None
 
 def test_card_info_full():
+    from app.core.models.story.creator_info import CreatorInfo
+    cr = CreatorInfo(uuid="cr1", name="Author")
     c = CardInfo(uuid="cd1", imageUrl="https://img.png", alternativeImage="alt",
                  awesomeIcon="fa-star", styleMain="bg-dark", styleDetail="text-light",
-                 title="My Card")
+                 title="My Card", description="A card", copyrightText="(c) 2025",
+                 linkCopyright="https://lic.example.com", creator=cr)
     assert c.uuid == "cd1"
     assert c.imageUrl == "https://img.png"
     assert c.awesomeIcon == "fa-star"
     assert c.title == "My Card"
+    assert c.description == "A card"
+    assert c.copyrightText == "(c) 2025"
+    assert c.linkCopyright == "https://lic.example.com"
+    assert c.creator is not None
+    assert c.creator.uuid == "cr1"
+    assert c.creator.name == "Author"

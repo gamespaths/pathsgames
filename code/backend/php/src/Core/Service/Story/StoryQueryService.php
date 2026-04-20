@@ -153,6 +153,10 @@ class StoryQueryService implements StoryQueryPort
                 $cardTitleTextId = isset($rawCard['id_text_title']) ? (int)$rawCard['id_text_title']
                     : (isset($rawCard['id_text_name']) ? (int)$rawCard['id_text_name'] : null);
                 $cardTitle = $this->resolveText($texts, $cardTitleTextId, $lang);
+                $cardDescTextId = isset($rawCard['id_text_description']) ? (int)$rawCard['id_text_description'] : null;
+                $cardDescription = $this->resolveText($texts, $cardDescTextId, $lang);
+                $cardCopyrightTextId = isset($rawCard['id_text_copyright']) ? (int)$rawCard['id_text_copyright'] : null;
+                $cardCopyrightText = $this->resolveText($texts, $cardCopyrightTextId, $lang);
                 $card = new CardInfo(
                     $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
                     $rawCard['image_url'] ?? null,
@@ -160,7 +164,10 @@ class StoryQueryService implements StoryQueryPort
                     $rawCard['awesome_icon'] ?? null,
                     $rawCard['style_main'] ?? null,
                     $rawCard['style_detail'] ?? null,
-                    $cardTitle
+                    $cardTitle,
+                    $cardDescription,
+                    $cardCopyrightText,
+                    $rawCard['link_copyright'] ?? null
                 );
             }
         }

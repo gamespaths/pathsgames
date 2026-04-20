@@ -266,13 +266,16 @@ def test_get_story_detail_with_card(mock_read_port):
     }
     mock_read_port.find_texts_for_story.return_value = [
         {"id_text": 10, "lang": "en", "short_text": "Title"},
-        {"id_text": 400, "lang": "en", "short_text": "Card Title"}
+        {"id_text": 400, "lang": "en", "short_text": "Card Title"},
+        {"id_text": 401, "lang": "en", "short_text": "Card Desc"},
+        {"id_text": 402, "lang": "en", "short_text": "Card (c)"}
     ]
     mock_read_port.find_card_for_story.return_value = {
         "id": 42, "uuid": "card-uuid", "image_url": "https://img.png",
         "alternative_image": "alt-img", "awesome_icon": "fa-star",
         "style_main": "bg-dark", "style_detail": "text-light",
-        "id_text_title": 400
+        "id_text_title": 400, "id_text_description": 401,
+        "id_text_copyright": 402, "link_copyright": "https://lic.example.com"
     }
 
     service = StoryQueryService(mock_read_port)
@@ -287,6 +290,9 @@ def test_get_story_detail_with_card(mock_read_port):
     assert detail.card.styleMain == "bg-dark"
     assert detail.card.styleDetail == "text-light"
     assert detail.card.title == "Card Title"
+    assert detail.card.description == "Card Desc"
+    assert detail.card.copyrightText == "Card (c)"
+    assert detail.card.linkCopyright == "https://lic.example.com"
 
 def test_get_story_detail_without_card(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {

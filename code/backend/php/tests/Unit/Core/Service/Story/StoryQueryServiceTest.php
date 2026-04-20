@@ -320,14 +320,17 @@ class StoryQueryServiceTest extends TestCase
         ]);
         $this->readPort->method('findTextsForStory')->willReturn([
             ['id_text' => 10, 'lang' => 'en', 'short_text' => 'Title'],
-            ['id_text' => 400, 'lang' => 'en', 'short_text' => 'Card Title']
+            ['id_text' => 400, 'lang' => 'en', 'short_text' => 'Card Title'],
+            ['id_text' => 401, 'lang' => 'en', 'short_text' => 'Card Desc'],
+            ['id_text' => 402, 'lang' => 'en', 'short_text' => 'Card (c)']
         ]);
         $this->setUpDefaultMocks();
         $this->readPort->method('findCardForStory')->willReturn([
             'id' => 42, 'uuid' => 'card-uuid', 'image_url' => 'https://img.png',
             'alternative_image' => 'alt-img', 'awesome_icon' => 'fa-star',
             'style_main' => 'bg-dark', 'style_detail' => 'text-light',
-            'id_text_title' => 400
+            'id_text_title' => 400, 'id_text_description' => 401,
+            'id_text_copyright' => 402, 'link_copyright' => 'https://lic.example.com'
         ]);
 
         $detail = $this->service->getStoryDetail('u1', 'en');
@@ -341,6 +344,9 @@ class StoryQueryServiceTest extends TestCase
         $this->assertSame('bg-dark', $detail->card->styleMain);
         $this->assertSame('text-light', $detail->card->styleDetail);
         $this->assertSame('Card Title', $detail->card->title);
+        $this->assertSame('Card Desc', $detail->card->description);
+        $this->assertSame('Card (c)', $detail->card->copyrightText);
+        $this->assertSame('https://lic.example.com', $detail->card->linkCopyright);
     }
 
     public function testGetStoryDetailWithoutCard(): void

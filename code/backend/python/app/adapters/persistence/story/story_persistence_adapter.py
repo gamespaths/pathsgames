@@ -256,9 +256,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         self._insert_batch(CardEntity, story_id, items, {
             "uuid": "uuid", "id_card": "idCard", "card_type": "cardType",
             "id_text_name": "idTextName", "id_text_title": "idTextTitle",
+            "id_text_description": "idTextDescription", "id_text_copyright": "idTextCopyright",
             "image_url": "imageUrl", "alternative_image": "alternativeImage",
             "awesome_icon": "awesomeIcon", "style_main": "styleMain",
-            "style_detail": "styleDetail", "id_reference": "idReference"
+            "style_detail": "styleDetail", "link_copyright": "linkCopyright",
+            "id_creator": "idCreator", "id_reference": "idReference"
         })
 
     def save_keys(self, story_id: int, items: List[Dict[str, Any]]) -> None:
@@ -328,7 +330,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_creators(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CreatorEntity, story_id, items, {
-            "creator_name": "creatorName", "creator_role": "creatorRole", "link": "link"
+            "uuid": "uuid", "id_text": "idText",
+            "creator_name": "creatorName", "creator_role": "creatorRole",
+            "link": "link", "url": "url",
+            "url_image": "urlImage", "url_emote": "urlEmote",
+            "url_instagram": "urlInstagram"
         })
 
     def _insert_batch(self, entity_class, story_id: int, items: List[Dict[str, Any]], field_map: Dict[str, str]) -> None:

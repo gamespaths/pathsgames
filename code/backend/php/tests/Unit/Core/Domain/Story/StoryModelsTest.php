@@ -7,10 +7,12 @@ namespace Games\Paths\Tests\Unit\Core\Domain\Story;
 use Games\Paths\Core\Domain\Story\CardInfo;
 use Games\Paths\Core\Domain\Story\CharacterTemplateInfo;
 use Games\Paths\Core\Domain\Story\ClassInfo;
+use Games\Paths\Core\Domain\Story\CreatorInfo;
 use Games\Paths\Core\Domain\Story\DifficultyInfo;
 use Games\Paths\Core\Domain\Story\StoryDetail;
 use Games\Paths\Core\Domain\Story\StoryImportResult;
 use Games\Paths\Core\Domain\Story\StorySummary;
+use Games\Paths\Core\Domain\Story\TextInfo;
 use Games\Paths\Core\Domain\Story\TraitInfo;
 use PHPUnit\Framework\TestCase;
 
@@ -129,15 +131,27 @@ class StoryModelsTest extends TestCase
         $this->assertNull($c->styleMain);
         $this->assertNull($c->styleDetail);
         $this->assertNull($c->title);
+        $this->assertNull($c->description);
+        $this->assertNull($c->copyrightText);
+        $this->assertNull($c->linkCopyright);
+        $this->assertNull($c->creator);
     }
 
     public function testCardInfoFull(): void
     {
-        $c = new CardInfo('cd1', 'https://img.png', 'alt', 'fa-star', 'bg-dark', 'text-light', 'My Card');
+        $cr = new CreatorInfo('cr1', 'Author');
+        $c = new CardInfo('cd1', 'https://img.png', 'alt', 'fa-star', 'bg-dark', 'text-light',
+            'My Card', 'A card', '(c) 2025', 'https://lic.example.com', $cr);
         $this->assertSame('cd1', $c->uuid);
         $this->assertSame('https://img.png', $c->imageUrl);
         $this->assertSame('fa-star', $c->awesomeIcon);
         $this->assertSame('My Card', $c->title);
+        $this->assertSame('A card', $c->description);
+        $this->assertSame('(c) 2025', $c->copyrightText);
+        $this->assertSame('https://lic.example.com', $c->linkCopyright);
+        $this->assertNotNull($c->creator);
+        $this->assertSame('cr1', $c->creator->uuid);
+        $this->assertSame('Author', $c->creator->name);
     }
 
     public function testClassInfoJsonSerialize(): void
@@ -152,11 +166,93 @@ class StoryModelsTest extends TestCase
 
     public function testCardInfoJsonSerialize(): void
     {
-        $c = new CardInfo('cd1', 'https://img.png', null, 'fa-star', null, null, 'Title');
+        $c = new CardInfo('cd1', 'https://img.png', null, 'fa-star', null, null, 'Title',
+            'Desc', '(c)', 'https://lic.example.com');
         $json = json_encode($c);
         $decoded = json_decode($json, true);
         $this->assertSame('cd1', $decoded['uuid']);
         $this->assertSame('fa-star', $decoded['awesomeIcon']);
         $this->assertNull($decoded['alternativeImage']);
+        $this->assertSame('Desc', $decoded['description']);
+        $this->assertSame('(c)', $decoded['copyrightText']);
+        $this->assertSame('https://lic.example.com', $decoded['linkCopyright']);
+    }
+
+    // ─── Step 16: CreatorInfo and TextInfo ───
+
+    public function testCreatorInfoDefaults(): void
+    {
+        $c = new CreatorInfo('cr1');
+        $this->assertSame('cr1', $c->uuid);
+        $this->assertNull($c->name);
+        $this->assertNull($c->link);
+        $this->assertNull($c->url);
+        $this->assertNull($c->urlImage);
+        $this->assertNull($c->urlEmote);
+        $this->assertNull($c->urlInstagram);
+    }
+
+    public function testCreatorInfoFull(): void
+    {
+        $c = new CreatorInfo('cr1', 'John', 'http://john.com', 'http://john.com/p',
+            'http://john.com/img', 'http://john.com/emote', 'http://ig.com/john');
+        $this->assertSame('cr1', $c->uuid);
+        $this->assertSame('John', $c->name);
+        $this->assertSame('http://john.com', $c->link);
+        $this->assertSame('http://john.com/p', $c->url);
+        $this->assertSame('http://john.com/img', $c->urlImage);
+        $this->assertSame('http://john.com/emote', $c->urlEmote);
+        $this->assertSame('http://ig.com/john', $c->urlInstagram);
+    }
+
+    public function testCreatorInfoJsonSerialize(): void
+    {
+        $c = new CreatorInfo('cr1', 'John', 'http://link');
+        $json = json_encode($c);
+        $decoded = json_decode($json, true);
+        $this->assertSame('cr1', $decoded['uuid']);
+        $this->assertSame('John', $decoded['name']);
+        $this->assertSame('http://link', $decoded['link']);
+        $this->assertNull($decoded['url']);
+    }
+
+    public function testTextInfoDefaults(): void
+    {
+        $t = new TextInfo(1, 'en', 'en');
+        $this->assertSame(1, $t->idText);
+        $this->assertSame('en', $t->lang);
+        $this->assertSame('en', $t->resolvedLang);
+        $this->assertNull($t->shortText);
+        $this->assertNull($t->longText);
+        $this->assertNull($t->copyrightText);
+        $this->assertNull($t->linkCopyright);
+        $this->assertNull($t->creator);
+    }
+
+    public function testTextInfoFull(): void
+    {
+        $cr = new CreatorInfo('cr1', 'Author');
+        $t = new TextInfo(1, 'it', 'en', 'Hello', 'Hello World', '(c) 2025',
+            'https://lic.example.com', $cr);
+        $this->assertSame(1, $t->idText);
+        $this->assertSame('it', $t->lang);
+        $this->assertSame('en', $t->resolvedLang);
+        $this->assertSame('Hello', $t->shortText);
+        $this->assertSame('Hello World', $t->longText);
+        $this->assertSame('(c) 2025', $t->copyrightText);
+        $this->assertSame('https://lic.example.com', $t->linkCopyright);
+        $this->assertNotNull($t->creator);
+        $this->assertSame('cr1', $t->creator->uuid);
+    }
+
+    public function testTextInfoJsonSerialize(): void
+    {
+        $t = new TextInfo(1, 'en', 'en', 'Short');
+        $json = json_encode($t);
+        $decoded = json_decode($json, true);
+        $this->assertSame(1, $decoded['idText']);
+        $this->assertSame('en', $decoded['lang']);
+        $this->assertSame('Short', $decoded['shortText']);
+        $this->assertNull($decoded['creator']);
     }
 }

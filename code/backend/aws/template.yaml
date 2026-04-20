@@ -103,6 +103,15 @@ Resources:
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
 
+  ContentModule:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template/content.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+
   SeedModule:
     Type: AWS::Serverless::Application
     Properties:

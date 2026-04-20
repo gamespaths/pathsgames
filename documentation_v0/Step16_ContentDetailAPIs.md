@@ -431,13 +431,19 @@ Full API specification: `code/backend/java/adapter-rest/src/main/resources/opena
 
     > on project I see CardDetail & CardInfo types (dto, responseses, ...) , they are similar. I wanna to use only CardInfo name, remove Details classes and objects but add into Info all informations. . update testunit, robot tests and open-api  
 
+    > now check and add if necessary fields into CardInto to python, php and aws projects. check if there are robot test to check description and title into CardInfoResponse. let's go
+
+    > Set Step/XX=16. read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX=000 for python and php and aws backend. please read all changes about step 16 and write php and python and aws project code using tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files outside "code/backend/php" and "code/backend/python" and "code/backend/aws" folders. my robot "code/tests/robot" must works with python and php project, check it with script inside "code/script/dev/" folder. to execute python project and robot command remember to use ".venv". 
+
+    > read all website concept and use "v0.15.4-prototype" like last website version. i wanna create "v0.16.1-stories-cards"  with stories list from APIs and cardInfo (don't use title and description from stories lists outside cardinfo). if service is not disponibile use mock-json. on header bar add server status and possiblity to change website endpoint. 
 
 
-
-- **Document Version**: 0.16.0
+- **Document Version**: 0.16.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.0 | Card, test and authors details APIs | April 20, 2026 |
+    | 0.16.1 | Refactor CardInfo and alternative backend card APIs | April 20, 2026 |
+    | 0.16.2 | New Website concept with card information from APIs | April 20, 2026 |
 - **Last Updated**: April 20, 2026
 - **Status**: In progress
 

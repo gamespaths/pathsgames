@@ -6,7 +6,7 @@
 
     <groupId>games.paths</groupId>
     <artifactId>paths-game-backend</artifactId>
-    <version>0.16.0-SNAPSHOT</version>
+    <version>0.16.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Paths Games - Backend</name>
     <description>Backend for Paths Games - Hexagonal Architecture</description>
