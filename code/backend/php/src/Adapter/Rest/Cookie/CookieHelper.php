@@ -30,7 +30,7 @@ class CookieHelper
             self::SAME_SITE
         );
 
-        if ($maxAge > 0) {
+        if ($maxAge !== 0) {
             $cookie .= "; Max-Age=$maxAge";
         }
 
