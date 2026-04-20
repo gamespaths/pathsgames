@@ -261,17 +261,17 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ POST `/auth/refresh`
 		- ✅ POST `/auth/logout`
 		- ✅ POST `/auth/logout/all`
-	- Stories
+	- ✅ Stories
 		- ✅ GET `/stories/`: Stories list - removed to no implement
-		- GET `/stories/categories`: Category list 
-		- GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
-		- GET `/stories/groups`: Groups list S
-		- GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
+		- ✅ GET `/stories/categories`: Category list 
+		- ✅ GET `/stories/category/{category}`: Stories list filtered by category (only title and card information)
+		- ✅ GET `/stories/groups`: Groups list
+		- ✅ GET `/stories/group/{group}`: Stories list filtered by group (only title and card information)
 		- ✅ GET `/stories/{uuid_story}`: All information about a single story (characters list, difficulties, ...)
 	- Contents
-		- GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
-		- GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
-		- GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
+		- ✅ GET `/content/{uuid_story}/cards/{uuid_card}`: Get a card
+		- ✅ GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
+		- ✅ GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
 	- Matches
 		- GET  `/matches/active`: Matches list in status "wait for others players"
 		- GET  `/matches/list/{uuid_user}/{status}`: Matches list filtered by status and by user

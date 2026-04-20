@@ -217,6 +217,7 @@ public class StoryController {
         return new CardInfoResponse(
                 ci.getUuid(), ci.getImageUrl(), ci.getAlternativeImage(),
                 ci.getAwesomeIcon(), ci.getStyleMain(), ci.getStyleDetail(),
-                ci.getTitle());
+                ci.getTitle(), ci.getDescription(),
+                ci.getCopyrightText(), ci.getLinkCopyright(), null);
     }
 }

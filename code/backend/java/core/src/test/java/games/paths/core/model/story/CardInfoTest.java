@@ -23,7 +23,11 @@ class CardInfoTest {
                 .awesomeIcon("fa-star")
                 .styleMain("bg-primary")
                 .styleDetail("text-light")
-                .title("Card Title");
+                .title("Card Title")
+                .description("Card Description")
+                .copyrightText("© 2026")
+                .linkCopyright("https://example.com")
+                .creator(CreatorInfo.builder().uuid("cr-1").name("Author").build());
     }
 
     @Nested
@@ -43,6 +47,11 @@ class CardInfoTest {
                 () -> assertEquals("bg-primary", ci.getStyleMain()),
                 () -> assertEquals("text-light", ci.getStyleDetail()),
                 () -> assertEquals("Card Title", ci.getTitle()),
+                () -> assertEquals("Card Description", ci.getDescription()),
+                () -> assertEquals("© 2026", ci.getCopyrightText()),
+                () -> assertEquals("https://example.com", ci.getLinkCopyright()),
+                () -> assertNotNull(ci.getCreator()),
+                () -> assertEquals("cr-1", ci.getCreator().getUuid()),
                 () -> assertTrue(ci.toString().contains("card-1")),
                 () -> assertTrue(ci.toString().contains("https://example.com/card.png"))
             );
@@ -59,6 +68,10 @@ class CardInfoTest {
                     .styleMain(null)
                     .styleDetail(null)
                     .title(null)
+                    .description(null)
+                    .copyrightText(null)
+                    .linkCopyright(null)
+                    .creator(null)
                     .build();
 
             assertAll("All null fields",
@@ -68,12 +81,16 @@ class CardInfoTest {
                 () -> assertNull(ci.getAwesomeIcon()),
                 () -> assertNull(ci.getStyleMain()),
                 () -> assertNull(ci.getStyleDetail()),
-                () -> assertNull(ci.getTitle())
+                () -> assertNull(ci.getTitle()),
+                () -> assertNull(ci.getDescription()),
+                () -> assertNull(ci.getCopyrightText()),
+                () -> assertNull(ci.getLinkCopyright()),
+                () -> assertNull(ci.getCreator())
             );
         }
 
         @Test
-        @DisplayName("Should default all String fields to null when not set")
+        @DisplayName("Should default all fields to null when not set")
         void build_defaultFields() {
             CardInfo ci = CardInfo.builder().build();
 
@@ -84,7 +101,11 @@ class CardInfoTest {
                 () -> assertNull(ci.getAwesomeIcon()),
                 () -> assertNull(ci.getStyleMain()),
                 () -> assertNull(ci.getStyleDetail()),
-                () -> assertNull(ci.getTitle())
+                () -> assertNull(ci.getTitle()),
+                () -> assertNull(ci.getDescription()),
+                () -> assertNull(ci.getCopyrightText()),
+                () -> assertNull(ci.getLinkCopyright()),
+                () -> assertNull(ci.getCreator())
             );
         }
     }

@@ -57,7 +57,8 @@ class StoryDetailResponseTest {
 
         CardInfoResponse card = new CardInfoResponse(
                 "card-1", "https://img.com/card.png", "alt.jpg",
-                "fa-star", "bg-dark", "text-light", "Card Title");
+                "fa-star", "bg-dark", "text-light", "Card Title",
+                null, null, null, null);
         r.setCard(card);
 
         assertAll("StoryDetailResponse fields",

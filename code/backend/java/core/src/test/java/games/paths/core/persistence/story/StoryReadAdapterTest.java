@@ -33,6 +33,7 @@ class StoryReadAdapterTest {
     @Mock private ClassRepository classRepository;
     @Mock private TraitRepository traitRepository;
     @Mock private CardRepository cardRepository;
+    @Mock private CreatorRepository creatorRepository;
 
     @InjectMocks
     private StoryReadAdapter adapter;
@@ -268,6 +269,64 @@ class StoryReadAdapterTest {
             when(cardRepository.findByIdStoryAndId(1L, 99L)).thenReturn(Optional.empty());
 
             assertTrue(adapter.findCardByStoryIdAndCardId(1L, 99L).isEmpty());
+        }
+    }
+
+    // === Step 16: Card and Creator lookup by UUID ===
+
+    @Nested
+    @DisplayName("Step 16 Entity Lookups")
+    class Step16EntityLookups {
+
+        @Test
+        @DisplayName("findCardByStoryIdAndUuid should return card when found")
+        void findCardByUuid_found() {
+            CardEntity c = new CardEntity();
+            c.setUuid("card-uuid");
+            when(cardRepository.findByIdStoryAndUuid(1L, "card-uuid")).thenReturn(Optional.of(c));
+
+            Optional<CardEntity> result = adapter.findCardByStoryIdAndUuid(1L, "card-uuid");
+
+            assertTrue(result.isPresent());
+            assertEquals("card-uuid", result.get().getUuid());
+        }
+
+        @Test
+        @DisplayName("findCardByStoryIdAndUuid should return empty when not found")
+        void findCardByUuid_notFound() {
+            when(cardRepository.findByIdStoryAndUuid(1L, "unknown")).thenReturn(Optional.empty());
+
+            assertTrue(adapter.findCardByStoryIdAndUuid(1L, "unknown").isEmpty());
+        }
+
+        @Test
+        @DisplayName("findCreatorByStoryIdAndUuid should return creator when found")
+        void findCreatorByUuid_found() {
+            CreatorEntity cr = new CreatorEntity();
+            cr.setUuid("creator-uuid");
+            when(creatorRepository.findByIdStoryAndUuid(1L, "creator-uuid")).thenReturn(Optional.of(cr));
+
+            Optional<CreatorEntity> result = adapter.findCreatorByStoryIdAndUuid(1L, "creator-uuid");
+
+            assertTrue(result.isPresent());
+            assertEquals("creator-uuid", result.get().getUuid());
+        }
+
+        @Test
+        @DisplayName("findCreatorByStoryIdAndUuid should return empty when not found")
+        void findCreatorByUuid_notFound() {
+            when(creatorRepository.findByIdStoryAndUuid(1L, "unknown")).thenReturn(Optional.empty());
+
+            assertTrue(adapter.findCreatorByStoryIdAndUuid(1L, "unknown").isEmpty());
+        }
+
+        @Test
+        @DisplayName("findCreatorsByStoryId should delegate to repository")
+        void findCreatorsByStoryId() {
+            when(creatorRepository.findByIdStory(1L))
+                    .thenReturn(List.of(new CreatorEntity(), new CreatorEntity()));
+
+            assertEquals(2, adapter.findCreatorsByStoryId(1L).size());
         }
     }
 }

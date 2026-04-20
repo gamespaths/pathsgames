@@ -12,12 +12,14 @@ import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
+import games.paths.core.service.story.ContentQueryService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -87,5 +89,10 @@ public class CoreConfig {
     @Bean
     public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort) {
         return new StoryImportService(storyPersistencePort);
+    }
+
+    @Bean
+    public ContentQueryPort contentQueryPort(StoryReadPort storyReadPort) {
+        return new ContentQueryService(storyReadPort);
     }
 }

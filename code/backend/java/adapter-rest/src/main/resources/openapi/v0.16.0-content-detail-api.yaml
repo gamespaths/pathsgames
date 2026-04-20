@@ -1,0 +1,379 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Content Detail API (Cards, Texts, Creators)
+  description: |
+    OpenAPI specification for Step 16: Story Content Detail APIs — Cards, Texts, and Creators.
+
+    Adds three new public endpoints for retrieving detailed content within a story:
+    - `GET /api/content/{uuidStory}/cards/{uuidCard}` — enriched card detail with resolved text and creator
+    - `GET /api/content/{uuidStory}/texts/{idText}/lang/{lang}` — resolved text entry with language fallback
+    - `GET /api/content/{uuidStory}/creators/{uuidCreator}` — creator profile with resolved name
+
+    **Text resolution**: Text fields (title, description, copyright) are resolved from the
+    multi-language `list_texts` table. When the requested language is not available,
+    the system falls back to English (`en`).
+
+    **Creator resolution**: Creator references (`id_creator` columns) are resolved by
+    matching the integer FK to the creator's primary key within the same story.
+
+    All endpoints are public (no authentication required).
+  version: 0.16.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Card Info
+    description: Retrieve enriched card information for a story
+  - name: Text Detail
+    description: Retrieve resolved text entries for a story
+  - name: Creator Detail
+    description: Retrieve creator profiles for a story
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Card Detail Endpoint
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/content/{uuidStory}/cards/{uuidCard}:
+    get:
+      tags: [Card Info]
+      summary: Get card detail by UUID
+      description: |
+        Returns the full detail of a card within a story, including resolved
+        title, description, copyright text, and creator information.
+
+        Text fields are resolved in the requested language with English fallback.
+        The creator is resolved from the `id_creator` FK on the card entity.
+      operationId: getCardByUuid
+      parameters:
+        - $ref: '#/components/parameters/UuidStoryPath'
+        - name: uuidCard
+          in: path
+          required: true
+          description: UUID of the card within the story
+          schema:
+            type: string
+            example: "card-uuid-001"
+        - $ref: '#/components/parameters/LangQuery'
+      responses:
+        '200':
+          description: Card detail retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardInfoResponse'
+              example:
+                uuid: "card-uuid-001"
+                imageUrl: "https://img.paths.games/stories/demo/cards/forest.png"
+                alternativeImage: "forest_alt.jpg"
+                awesomeIcon: "fa-tree"
+                styleMain: "bg-success"
+                styleDetail: "text-light"
+                title: "The Dark Forest"
+                description: "A dense forest full of mysteries."
+                copyrightText: "© 2026 Paths Games"
+                linkCopyright: "https://paths.games/copyright"
+                creator:
+                  uuid: "creator-uuid-001"
+                  name: "John Doe"
+                  link: "https://johndoe.com"
+                  url: "https://johndoe.com/profile"
+                  urlImage: "https://johndoe.com/avatar.png"
+                  urlEmote: "https://johndoe.com/emote.png"
+                  urlInstagram: "https://instagram.com/johndoe"
+        '404':
+          description: Card or story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CARD_NOT_FOUND"
+                message: "No card found with UUID: card-uuid-001 in story: story-uuid-001"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Text Detail Endpoint
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/content/{uuidStory}/texts/{idText}/lang/{lang}:
+    get:
+      tags: [Text Detail]
+      summary: Get resolved text by id_text and language
+      description: |
+        Returns a resolved text entry for the given story, text ID, and language.
+
+        If the requested language is not available, the system falls back to English.
+        The `resolvedLang` field in the response indicates which language was actually
+        returned (useful for detecting fallback).
+
+        The response also includes optional copyright text and creator information,
+        resolved from the text entity's `id_text_copyright` and `id_creator` fields.
+      operationId: getTextByIdTextAndLang
+      parameters:
+        - $ref: '#/components/parameters/UuidStoryPath'
+        - name: idText
+          in: path
+          required: true
+          description: |
+            Business identifier for the text group (integer).
+            Multiple rows in `list_texts` share the same `id_text` with different `lang` values.
+          schema:
+            type: integer
+            example: 100
+        - name: lang
+          in: path
+          required: true
+          description: Language code (ISO 639-1). Falls back to "en" when not found.
+          schema:
+            type: string
+            example: "it"
+      responses:
+        '200':
+          description: Text entry resolved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TextInfoResponse'
+              example:
+                idText: 100
+                lang: "it"
+                resolvedLang: "en"
+                shortText: "Hello World"
+                longText: "A longer description of Hello World."
+                copyrightText: "© 2026 Author"
+                linkCopyright: "https://example.com/copyright"
+                creator:
+                  uuid: "creator-uuid-001"
+                  name: "John Doe"
+                  link: "https://johndoe.com"
+                  url: null
+                  urlImage: null
+                  urlEmote: null
+                  urlInstagram: null
+        '404':
+          description: Text or story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "TEXT_NOT_FOUND"
+                message: "No text found with id_text: 100 in story: story-uuid-001"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Creator Detail Endpoint
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/content/{uuidStory}/creators/{uuidCreator}:
+    get:
+      tags: [Creator Detail]
+      summary: Get creator detail by UUID
+      description: |
+        Returns the profile of a creator within a story.
+
+        The creator's name is resolved from the multi-language `list_texts` table
+        using the creator's `id_text` reference.
+      operationId: getCreatorByUuid
+      parameters:
+        - $ref: '#/components/parameters/UuidStoryPath'
+        - name: uuidCreator
+          in: path
+          required: true
+          description: UUID of the creator within the story
+          schema:
+            type: string
+            example: "creator-uuid-001"
+        - $ref: '#/components/parameters/LangQuery'
+      responses:
+        '200':
+          description: Creator profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorInfoResponse'
+              example:
+                uuid: "creator-uuid-001"
+                name: "John Doe"
+                link: "https://johndoe.com"
+                url: "https://johndoe.com/profile"
+                urlImage: "https://johndoe.com/avatar.png"
+                urlEmote: "https://johndoe.com/emote.png"
+                urlInstagram: "https://instagram.com/johndoe"
+        '404':
+          description: Creator or story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "CREATOR_NOT_FOUND"
+                message: "No creator found with UUID: creator-uuid-001 in story: story-uuid-001"
+
+components:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Reusable Parameters
+  # ═══════════════════════════════════════════════════════════════
+
+  parameters:
+    UuidStoryPath:
+      name: uuidStory
+      in: path
+      required: true
+      description: UUID of the story
+      schema:
+        type: string
+        example: "story-uuid-001"
+
+    LangQuery:
+      name: lang
+      in: query
+      required: false
+      description: |
+        Preferred language code (ISO 639-1). Defaults to "en".
+        If the requested language is not available, falls back to English.
+      schema:
+        type: string
+        default: "en"
+        example: "it"
+
+  # ═══════════════════════════════════════════════════════════════
+  # Response Schemas
+  # ═══════════════════════════════════════════════════════════════
+
+  schemas:
+
+    CardInfoResponse:
+      type: object
+      description: Card information with resolved text and creator
+      properties:
+        uuid:
+          type: string
+          description: Card UUID
+        imageUrl:
+          type: string
+          nullable: true
+          description: Primary image URL for the card
+        alternativeImage:
+          type: string
+          nullable: true
+          description: Alternative image filename
+        awesomeIcon:
+          type: string
+          nullable: true
+          description: FontAwesome icon class (e.g., "fa-star")
+        styleMain:
+          type: string
+          nullable: true
+          description: CSS class for the card's main style
+        styleDetail:
+          type: string
+          nullable: true
+          description: CSS class for the card's detail style
+        title:
+          type: string
+          nullable: true
+          description: Resolved title text in the requested language
+        description:
+          type: string
+          nullable: true
+          description: Resolved description text in the requested language
+        copyrightText:
+          type: string
+          nullable: true
+          description: Resolved copyright text
+        linkCopyright:
+          type: string
+          nullable: true
+          description: URL to the copyright holder
+        creator:
+          $ref: '#/components/schemas/CreatorInfoResponse'
+
+    TextInfoResponse:
+      type: object
+      description: Resolved text entry with language information
+      properties:
+        idText:
+          type: integer
+          description: Text business identifier (grouping key)
+        lang:
+          type: string
+          description: The language that was requested
+        resolvedLang:
+          type: string
+          description: |
+            The language that was actually returned.
+            Differs from `lang` when fallback to English occurred.
+        shortText:
+          type: string
+          nullable: true
+          description: Short text content
+        longText:
+          type: string
+          nullable: true
+          description: Long text content
+        copyrightText:
+          type: string
+          nullable: true
+          description: Resolved copyright text (from id_text_copyright)
+        linkCopyright:
+          type: string
+          nullable: true
+          description: URL to the copyright holder
+        creator:
+          $ref: '#/components/schemas/CreatorInfoResponse'
+
+    CreatorInfoResponse:
+      type: object
+      description: Content creator profile
+      properties:
+        uuid:
+          type: string
+          description: Creator UUID
+        name:
+          type: string
+          nullable: true
+          description: Resolved creator name (from id_text reference)
+        link:
+          type: string
+          nullable: true
+          description: Creator's primary link
+        url:
+          type: string
+          nullable: true
+          description: Creator's profile URL
+        urlImage:
+          type: string
+          nullable: true
+          description: Creator's avatar image URL
+        urlEmote:
+          type: string
+          nullable: true
+          description: Creator's emote image URL
+        urlInstagram:
+          type: string
+          nullable: true
+          description: Creator's Instagram profile URL
+
+    ErrorResponse:
+      type: object
+      description: Standard error response body
+      properties:
+        error:
+          type: string
+          description: Error code (e.g., CARD_NOT_FOUND, TEXT_NOT_FOUND, CREATOR_NOT_FOUND)
+        message:
+          type: string
+          description: Human-readable error message
+      required:
+        - error
+        - message

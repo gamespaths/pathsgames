@@ -461,7 +461,7 @@ components:
             $ref: '#/components/schemas/TraitInfoResponse'
         card:
           nullable: true
-          description: Visual card for the story
+          description: Visual card for the story with resolved text and creator
           allOf:
             - $ref: '#/components/schemas/CardInfoResponse'
       required:
@@ -616,7 +616,7 @@ components:
 
     CardInfoResponse:
       type: object
-      description: Visual card information
+      description: Visual card information with resolved text and optional creator
       properties:
         uuid:
           type: string
@@ -652,6 +652,24 @@ components:
           nullable: true
           description: Resolved card title
           example: "The Lost Kingdom"
+        description:
+          type: string
+          nullable: true
+          description: Resolved card description
+          example: "A mysterious kingdom lost in time."
+        copyrightText:
+          type: string
+          nullable: true
+          description: Resolved copyright text
+          example: "© 2026 Paths Games"
+        linkCopyright:
+          type: string
+          nullable: true
+          description: URL to the copyright holder
+          example: "https://paths.games/copyright"
+        creator:
+          nullable: true
+          $ref: '#/components/schemas/CreatorInfoResponse'
 
     ErrorResponse:
       type: object
@@ -668,3 +686,35 @@ components:
       required:
         - error
         - message
+
+    CreatorInfoResponse:
+      type: object
+      description: Content creator profile
+      properties:
+        uuid:
+          type: string
+          description: Creator UUID
+        name:
+          type: string
+          nullable: true
+          description: Resolved creator name
+        link:
+          type: string
+          nullable: true
+          description: Creator's primary link
+        url:
+          type: string
+          nullable: true
+          description: Creator's profile URL
+        urlImage:
+          type: string
+          nullable: true
+          description: Creator's avatar image URL
+        urlEmote:
+          type: string
+          nullable: true
+          description: Creator's emote image URL
+        urlInstagram:
+          type: string
+          nullable: true
+          description: Creator's Instagram profile URL

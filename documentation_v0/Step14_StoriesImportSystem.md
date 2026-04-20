@@ -409,7 +409,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.14.2 | Full backend implementation: JPA entities, services, API, tests | April 10, 2026 |
     | 0.14.3 | Create robot-test-framework components to test all APIs | April 10, 2026 | 
 - **Last Updated**: April 10, 2026
-- **Status**: In progress
+- **Status**: ✅ Complete
 
 
 

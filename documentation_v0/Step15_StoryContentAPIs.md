@@ -417,7 +417,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
 - **Last Updated**: April 16, 2026
-- **Status**: In progress
+- **Status**: ✅ Complete
 
 
 

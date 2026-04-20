@@ -28,6 +28,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 13 | [Session & token management](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
 | 14 | [Stories management & import](Step14_StoriesImportSystem.md) | ✅ | Story import system and data seeding. Start test robot framework. |
 | 15 | [Stories content APIs](./Step15_StoryContentAPIs.md) | ✅ | Story content APIs: categories, groups, enriched detail |
+| 16 | [Content detail](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
 
 
 | Steps | Phase |
@@ -776,7 +777,6 @@ For next steps use this prompt
     - Run production load test at 50% target capacity to verify stability (all)
     - Configure production feature flags and global_runtime_variables for V1 settings (backend)
     - Announce V1 launch: update website, publish release notes, open public access at paths.games (all)
-
 
 
 # Version Control

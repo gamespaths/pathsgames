@@ -9,64 +9,64 @@
      APP STATE
      ══════════════════════════════════════════ */
   // (story catalog and world data are in stories.js)
-  let currentId    = null;
-  let navHistory   = [];
-  let activeStory  = null;
+  let currentId = null;
+  let navHistory = [];
+  let activeStory = null;
 
   /* Options state */
-  let optionStep      = 0;
+  let optionStep = 0;
   let selectedOptions = {};
-  let termsAccepted   = false;
+  let termsAccepted = false;
 
   const STORY_OPTIONS = [
     {
       option: 'Difficulty',
       icon: 'fas fa-skull-crossbones',
       values: [
-        { label: 'Easy',   icon: 'fas fa-feather',          disabled: false },
-        { label: 'Medium', icon: 'fas fa-shield-alt',        disabled: true  },
-        { label: 'Hard',   icon: 'fas fa-skull-crossbones',  disabled: true  }
+        { label: 'Easy', icon: 'fas fa-feather', disabled: false },
+        { label: 'Medium', icon: 'fas fa-shield-alt', disabled: true },
+        { label: 'Hard', icon: 'fas fa-skull-crossbones', disabled: true }
       ]
     },
     {
       option: 'Character',
       icon: 'fas fa-user',
       values: [
-        { label: 'Hero', icon: 'fas fa-crown',       disabled: false },
-        { label: 'Evil', icon: 'fas fa-skull',        disabled: true  },
-        { label: 'Poor', icon: 'fas fa-hat-wizard',   disabled: true  }
+        { label: 'Hero', icon: 'fas fa-crown', disabled: false },
+        { label: 'Evil', icon: 'fas fa-skull', disabled: true },
+        { label: 'Poor', icon: 'fas fa-hat-wizard', disabled: true }
       ]
     },
     {
       option: 'Type',
       icon: 'fas fa-gamepad',
       values: [
-        { label: 'Single Player', icon: 'fas fa-user',   disabled: false },
-        { label: 'Multiplayer',   icon: 'fas fa-users',  disabled: true  },
-        { label: 'Open World',    icon: 'fas fa-globe',  disabled: true  }
+        { label: 'Single Player', icon: 'fas fa-user', disabled: false },
+        { label: 'Multiplayer', icon: 'fas fa-users', disabled: true },
+        { label: 'Open World', icon: 'fas fa-globe', disabled: true }
       ]
     }
   ];
 
   /* DOM refs */
-  const elCatalog   = document.getElementById('story-catalog');
-  const elWorld     = document.getElementById('world');
-  const elGameBar   = document.getElementById('game-bar');
-  const elBarTitle  = document.getElementById('game-bar-title');
-  const btnMap      = document.getElementById('btn-map');
-  const btnJournal  = document.getElementById('btn-journal');
+  const elCatalog = document.getElementById('story-catalog');
+  const elWorld = document.getElementById('world');
+  const elGameBar = document.getElementById('game-bar');
+  const elBarTitle = document.getElementById('game-bar-title');
+  const btnMap = document.getElementById('btn-map');
+  const btnJournal = document.getElementById('btn-journal');
   const elCrowdfund = document.getElementById('crowdfund');
 
   /* ══════════════════════════════════════════
      MAGIC CODE GENERATOR
      ══════════════════════════════════════════ */
-  const RUNES  = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛇᛈᛋᛏᛒᛖᛚᛞᛟᛠᛡᛣ';
-  const HEX    = '0123456789abcdef';
+  const RUNES = 'ᚠᚢᚦᚨᚱᚲᚷᚹᚺᚾᛁᛇᛈᛋᛏᛒᛖᛚᛞᛟᛠᛡᛣ';
+  const HEX = '0123456789abcdef';
   const GLYPHS = '†‡§¶♠♣♥♦★✶✷✻❁❖◆◊•×÷≈∞∴∵≡';
 
   function magicCode(len) {
     const pools = [RUNES, HEX, GLYPHS];
-    const pool  = pools[Math.floor(Math.random() * pools.length)];
+    const pool = pools[Math.floor(Math.random() * pools.length)];
     let out = '';
     for (let i = 0; i < len; i++) {
       if (i > 0 && i % 4 === 0) out += ' ';
@@ -98,11 +98,11 @@
         const coverHTML = s.cover
           ? `<img src="${s.cover}" alt="${s.title}" class="catalog-card-img"/>`
           : `<span class="catalog-card-emote">${s.emote}</span>`;
-        const btnClass  = playable ? 'catalog-play-btn' : 'catalog-play-btn catalog-play-btn-disabled';
-        const btnLabel  = playable ? '<i class="fas fa-play me-1"></i>Play' : 'Coming soon'; //<i class="fas fa-lock me-1"></i>
+        const btnClass = playable ? 'catalog-play-btn' : 'catalog-play-btn catalog-play-btn-disabled';
+        const btnLabel = playable ? '<i class="fas fa-play me-1"></i>Play' : 'Coming soon'; //<i class="fas fa-lock me-1"></i>
         html += `
-          <div class="catalog-card card-dimension-normal" data-story="${s.id}">
-            <div class="catalog-title-plate">
+          <div class="catalog-card card-dimension-normal card-3d " data-story="${s.id}">
+            <div class="catalog-title-plate card-decorative  ">
               <span>${s.title}</span>
             </div>
             <div class="catalog-body">
@@ -141,12 +141,12 @@
      STORY PREVIEW MODAL
      ══════════════════════════════════════════ */
   const STORY_INFO_CARDS = [
-    { icon: 'fas fa-user',          label: 'Type',       value: 'Singleplayer' },
-    { icon: 'fas fa-clock',         label: 'Duration',   value: '5 minutes'    },
-    { icon: 'fas fa-hat-wizard',    label: 'Category',   value: 'Fantasy'      },
-    { icon: 'fas fa-shield-alt',    label: 'Level',      value: 'Easy'         },
-    { icon: 'fas fa-feather-alt',   label: 'Written by', value: 'alnao'        },
-    { icon: 'fas fa-unlock-alt',    label: 'Price',      value: 'Free to Play' }
+    { icon: 'fas fa-user', label: 'Type', value: 'Singleplayer' },
+    { icon: 'fas fa-clock', label: 'Duration', value: '5 minutes' },
+    { icon: 'fas fa-hat-wizard', label: 'Category', value: 'Fantasy' },
+    { icon: 'fas fa-shield-alt', label: 'Level', value: 'Easy' },
+    { icon: 'fas fa-feather-alt', label: 'Written by', value: 'alnao' },
+    { icon: 'fas fa-unlock-alt', label: 'Price', value: 'Free to Play' }
   ];
 
   let pendingStoryId = null;
@@ -157,9 +157,9 @@
     pendingStoryId = storyId;
 
     /* Reset options state */
-    optionStep      = 0;
+    optionStep = 0;
     selectedOptions = {};
-    termsAccepted   = false;
+    termsAccepted = false;
 
     /* Modal title */
     document.getElementById('preview-modal-title').textContent = story.title;
@@ -171,8 +171,8 @@
       : `<span class="preview-visual-emote">${story.emote}</span>`;
 
     body.innerHTML = `
-      <div class="story-preview-main card-dimension-large">
-        <div class="preview-title-plate"><span>${story.title}</span></div>
+      <div class="story-preview-main card-dimension-large card-3d">
+        <div class="preview-title-plate card-decorative"><span>${story.title}</span></div>
         <div class="preview-visual">${coverHTML}</div>
         <div class="preview-desc"><p>${story.desc}</p><button class="card-info-btn" title="Copyright info"><i class="fas fa-info-circle"></i></button></div>
         <div class="preview-magic">${magicCode(24)}</div>
@@ -185,6 +185,7 @@
     /* Show modal via Bootstrap */
     const modal = new bootstrap.Modal(document.getElementById('storyPreviewModal'));
     modal.show();
+
   }
 
   /* ══════════════════════════════════════════
@@ -204,13 +205,13 @@
       html += `<div class="options-cards-row">`;
       group.values.forEach(val => {
         const disabledClass = val.disabled ? 'option-disabled' : '';
-        const btnDisabled   = val.disabled ? 'disabled' : '';
-        const btnLabel      = val.disabled
+        const btnDisabled = val.disabled ? 'disabled' : '';
+        const btnLabel = val.disabled
           ? '<i class="fas fa-lock me-1"></i>Locked'
           : '<i class="fas fa-check me-1"></i>Select';
         html += `
-          <div class="option-card card-dimension-little ${disabledClass}" data-value="${val.label}">
-            <div class="option-title-plate"><span>${val.label}</span></div>
+          <div class="option-card card-dimension-little ${disabledClass}  card-3d" data-value="${val.label}">
+            <div class="option-title-plate card-decorative"><span>${val.label}</span></div>
             <div class="option-visual"><i class="${val.icon}"></i></div>
             <button class="option-select-btn" ${btnDisabled}>${btnLabel}</button>
           </div>`;
@@ -240,6 +241,8 @@
     } else {
       renderLoginStep();
     }
+    add3dEffect();
+
   }
 
   /* ══════════════════════════════════════════
@@ -248,7 +251,7 @@
   function renderLoginStep() {
     const container = document.getElementById('story-preview-options');
     if (!container) return;
-    let html = ``;  
+    let html = ``;
     /* Summary on top */
 
     html += `<h4 class="options-step-title"><i class="fas fa-user-circle me-2"></i>Login</h4>`;
@@ -256,24 +259,24 @@
 
     /* Card 1 — Play as Guest */
     html += `
-      <div class="option-card card-dimension-little" data-value="guest">
-        <div class="option-title-plate"><span>Guest</span></div>
+      <div class="option-card card-dimension-little  card-3d" data-value="guest">
+        <div class="option-title-plate card-decorative"><span>Guest</span></div>
         <div class="option-visual"><i class="fas fa-user"></i></div>
         <button class="option-select-btn" id="btn-login-guest"><i class="fas fa-play me-1"></i>Guest</button>
       </div>`;
 
     /* Card 2 — Register (disabled) */
     html += `
-      <div class="option-card card-dimension-little option-disabled" data-value="register">
-        <div class="option-title-plate"><span>Register</span></div>
+      <div class="option-card card-dimension-little option-disabled  card-3d" data-value="register">
+        <div class="option-title-plate card-decorative"><span>Register</span></div>
         <div class="option-visual"><i class="fas fa-user-plus"></i></div>
         <button class="option-select-btn" disabled><i class="fas fa-lock me-1"></i>Register</button>
       </div>`;
 
     /* Card 3 — Login (disabled) */
     html += `
-      <div class="option-card card-dimension-little option-disabled" data-value="login">
-        <div class="option-title-plate"><span>Login</span></div>
+      <div class="option-card card-dimension-little option-disabled  card-3d" data-value="login">
+        <div class="option-title-plate card-decorative"><span>Login</span></div>
         <div class="option-visual"><i class="fas fa-sign-in-alt"></i></div>
         <button class="option-select-btn" disabled><i class="fas fa-lock me-1"></i>Login</button>
       </div>`;
@@ -294,6 +297,8 @@
       selectedOptions['Login'] = 'Guest';
       renderFinalOptions();
     });
+    add3dEffect();
+
   }
 
   /* ══════════════════════════════════════════
@@ -310,13 +315,13 @@
     }
     summaryHTML += `</div>`;
 
-    const checkVisual   = termsAccepted
+    const checkVisual = termsAccepted
       ? `<i class="fas fa-check-square"></i>`
       : `<span class="option-terms-notice">To play you must read and accept 
           <button class="option-terms-info" id="btn-terms-info" title="Read Terms"> the terms of conditions</button>
         </span>`;
     const startDisabled = termsAccepted ? '' : 'disabled';
-    const startOpacity  = termsAccepted ? '' : 'option-btn-disabled';
+    const startOpacity = termsAccepted ? '' : 'option-btn-disabled';
     const startCardOpacity = termsAccepted ? '' : 'option-disabled';
     const termsCardOpacity = termsAccepted ? 'option-disabled' : '';
 
@@ -326,16 +331,16 @@
 
     /* Card 1 — Terms */
     html += `
-      <div class="option-card card-dimension-little final-card ${termsCardOpacity}">
-        <div class="option-title-plate"><span>Terms</span></div>
+      <div class="option-card card-dimension-little final-card ${termsCardOpacity}  card-3d">
+        <div class="option-title-plate card-decorative"><span>Terms</span></div>
         <div class="option-visual">${checkVisual}</div>
         <button class="option-select-btn" id="btn-accept-terms"><i class="fas fa-check me-1"></i>${termsAccepted ? 'Accepted' : 'Accept'}</button>
       </div>`;
 
     /* Card 2 — Start */
     html += `
-      <div class="option-card card-dimension-little final-card ${startCardOpacity}">
-        <div class="option-title-plate"><span>Start</span></div>
+      <div class="option-card card-dimension-little final-card ${startCardOpacity}  card-3d">
+        <div class="option-title-plate card-decorative"><span>Start</span></div>
         <div class="option-visual"><i class="fas fa-dice-d20"></i></div>
         <button class="option-select-btn ${startOpacity}" id="btn-start-adventure" ${startDisabled}><i class="fas fa-play me-1"></i>Start</button>
       </div>`;
@@ -368,6 +373,8 @@
       startStory(pendingStoryId);
       pendingStoryId = null;
     });
+    add3dEffect();
+
   }
 
   /* Modal Play button */
@@ -386,26 +393,27 @@
     const story = STORIES.find(s => s.id === storyId);
     if (!story || !story.startLocation) return;
     activeStory = story;
-    currentId   = story.startLocation;
-    navHistory  = [];
+    currentId = story.startLocation;
+    navHistory = [];
 
     /* Switch UI */
     elCatalog.style.display = 'none';
-    elWorld.style.display   = '';
+    elWorld.style.display = '';
     elGameBar.style.display = '';
     elCrowdfund.style.display = 'none';
-    elBarTitle.textContent  = story.title;
+    elBarTitle.textContent = story.title;
 
     renderLocation(currentId);
+    add3dEffect();
   }
 
   function stopStory() {
     activeStory = null;
-    currentId   = null;
-    navHistory  = [];
+    currentId = null;
+    navHistory = [];
 
     Array.from(elWorld.children).forEach(c => { if (c.id !== 'player-bar') c.remove(); });
-    elWorld.style.display   = 'none';
+    elWorld.style.display = 'none';
     elCrowdfund.style.display = '';
     elGameBar.style.display = 'none';
     elCatalog.style.display = '';
@@ -417,7 +425,7 @@
   function renderLocation(id, direction) {
     if (!activeStory) return;
     const locMap = STORIES_LOCATIONS[activeStory.id] || {};
-    const loc    = locMap[id];
+    const loc = locMap[id];
     if (!loc) return;
     currentId = id;
 
@@ -427,10 +435,10 @@
       : `<span class="card-visual-emote">${loc.emote}</span>`;
 
     const locationCardHTML = `
-      <div class="location-card card-dimension-large">
-        <div class="card-title-plate">
+      <div class="location-card card-dimension-large card-3d">
+        <div class="card-title-plate card-decorative">
           <span>${loc.title}</span>
-          <i class="${loc.icon} card-plate-icon"${ loc.iconColor ? ` style="color:${loc.iconColor}"` : ''}></i>
+          <i class="${loc.icon} card-plate-icon"${loc.iconColor ? ` style="color:${loc.iconColor}"` : ''}></i>
         </div>
         <div class="card-body-left">
           <div class="card-visual">${visualHTML}</div>
@@ -444,10 +452,10 @@
       const n = locMap[nid];
       if (!n) return '';
       return `
-        <div class="choice-card card-dimension-normal go-card" data-target="${n.id}">
-          <div class="choice-title-plate">
+        <div class="choice-card card-dimension-normal go-card card-3d" data-target="${n.id}">
+          <div class="choice-title-plate card-decorative">
             <span>${n.title}</span>
-            <i class="${n.icon} choice-plate-icon"${ n.iconColor ? ` style="color:${n.iconColor}"` : ''}></i>
+            <i class="${n.icon} choice-plate-icon"${n.iconColor ? ` style="color:${n.iconColor}"` : ''}></i>
           </div>
           <div class="choice-body-left">
             <div class="choice-visual"><span class="choice-visual-emote">${n.emote}</span></div>
@@ -459,8 +467,8 @@
 
     /* ── Action cards — Row 2 ── */
     const actionCardsHTML = (loc.actions || []).map(a => `
-      <div class="choice-card card-dimension-normal action-card" data-action="${a.id}">
-        <div class="choice-title-plate">
+      <div class="choice-card card-dimension-normal action-card card-3d" data-action="${a.id}">
+        <div class="choice-title-plate card-decorative">
           <span>${a.title}</span>
           <i class="${a.icon} choice-plate-icon"></i>
         </div>
@@ -489,9 +497,9 @@
 
     const container = elWorld;
     if (container.children.length > 0 && direction) {
-      const old      = container.children[0];
+      const old = container.children[0];
       const outClass = direction === 'back' ? 'slide-out-right' : 'slide-out-left';
-      const inClass  = direction === 'back' ? 'slide-in-left'   : 'slide-in-right';
+      const inClass = direction === 'back' ? 'slide-in-left' : 'slide-in-right';
       scene.classList.add(inClass);
       old.classList.add(outClass);
       old.addEventListener('animationend', () => {
@@ -509,6 +517,8 @@
       else container.appendChild(scene);
       bindGameEvents();
     }
+    add3dEffect();
+
   }
 
   /* ══════════════════════════════════════════
@@ -518,12 +528,14 @@
     navHistory.push(currentId);
     currentId = targetId;
     renderLocation(targetId, 'forward');
+
   }
 
   function navigateBack() {
     if (!navHistory.length) return;
     currentId = navHistory.pop();
     renderLocation(currentId, 'back');
+
   }
 
   /* ══════════════════════════════════════════
@@ -544,7 +556,7 @@
     document.querySelectorAll('.action-card[data-action]').forEach(card => {
       card.addEventListener('click', () => {
         const locMap = STORIES_LOCATIONS[activeStory?.id] || {};
-        const loc    = locMap[currentId];
+        const loc = locMap[currentId];
         const action = (loc?.actions || []).find(a => a.id === card.dataset.action);
         if (!action) return;
         showCardModal(action, 'action', card.dataset.action);
@@ -556,11 +568,10 @@
       let isDown = false, startX, scrollLeft;
       row.addEventListener('mousedown', e => { isDown = true; row.classList.add('grabbing'); startX = e.pageX - row.offsetLeft; scrollLeft = row.scrollLeft; });
       row.addEventListener('mouseleave', () => { isDown = false; row.classList.remove('grabbing'); });
-      row.addEventListener('mouseup',    () => { isDown = false; row.classList.remove('grabbing'); });
-      row.addEventListener('mousemove',  e => { if (!isDown) return; e.preventDefault(); row.scrollLeft = scrollLeft - (e.pageX - row.offsetLeft - startX) * 1.5; });
+      row.addEventListener('mouseup', () => { isDown = false; row.classList.remove('grabbing'); });
+      row.addEventListener('mousemove', e => { if (!isDown) return; e.preventDefault(); row.scrollLeft = scrollLeft - (e.pageX - row.offsetLeft - startX) * 1.5; });
     });
 
-    initCardTilt();
     initEntrance();
   }
 
@@ -568,7 +579,7 @@
      CARD DETAIL MODAL
      ══════════════════════════════════════════ */
   function showCardModal(data, type, id) {
-    const isGo   = type === 'go';
+    const isGo = type === 'go';
     const visual = data.image
       ? `<img src="${data.image}" alt="${data.title}" style="width:100%;height:100%;object-fit:cover;" />`
       : `<span class="card-visual-emote">${data.emote}</span>`;
@@ -576,7 +587,7 @@
       ? '<i class="fas fa-shoe-prints me-2"></i>Move'
       : '<i class="fas fa-scroll me-2"></i>Proceed';
     const iconAttr = data.icon
-      ? `<i class="${data.icon} card-plate-icon"${ data.iconColor ? ` style="color:${data.iconColor}"` : ''}></i>`
+      ? `<i class="${data.icon} card-plate-icon"${data.iconColor ? ` style="color:${data.iconColor}"` : ''}></i>`
       : '';
 
     document.getElementById('card-detail-inner').innerHTML = `
@@ -584,8 +595,8 @@
         <button class="card-detail-close" data-bs-dismiss="modal" aria-label="Close">
           <i class="fas fa-times"></i>
         </button>
-        <div class="card-detail-card card-dimension-large">
-          <div class="card-title-plate">
+        <div class="card-detail-card card-dimension-large card-3d">
+          <div class="card-title-plate card-decorative">
             <span>${data.title}</span>${iconAttr}
           </div>
           <div class="card-body-left">
@@ -610,6 +621,7 @@
     });
 
     new bootstrap.Modal(document.getElementById('cardDetailModal')).show();
+
   }
 
   /* ══════════════════════════════════════════
@@ -644,23 +656,6 @@
     }
   });
 
-  /* ══════════════════════════════════════════
-     CARD 3D TILT
-     ══════════════════════════════════════════ */
-  function initCardTilt() {
-    document.querySelectorAll('.location-card, .go-card, .action-card').forEach(card => {
-      const isSmall = card.classList.contains('go-card') || card.classList.contains('action-card');
-      card.addEventListener('mousemove', e => {
-        const r  = card.getBoundingClientRect();
-        const dx = (e.clientX - (r.left + r.width  / 2)) / (r.width  / 2);
-        const dy = (e.clientY - (r.top  + r.height / 2)) / (r.height / 2);
-        const tz = isSmall ? 4 : 8;
-        card.style.transform =
-          `perspective(900px) rotateX(${-dy * 8}deg) rotateY(${dx * 8}deg) translateY(-${tz}px) scale(1.04)`;
-      });
-      card.addEventListener('mouseleave', () => { card.style.transform = ''; });
-    });
-  }
 
   /* ══════════════════════════════════════════
      CHOICE POPUP

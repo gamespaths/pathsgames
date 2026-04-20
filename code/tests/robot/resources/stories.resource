@@ -128,3 +128,57 @@ Get Admin Stories
     ${response}=    GET On Session    public_session    /api/admin/stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
+
+# ── Step 16: Content Info Keywords ────────────────────────────────────
+
+Get Card Info
+    [Documentation]    Calls GET /api/content/{uuidStory}/cards/{uuidCard}?lang={lang}.
+    [Arguments]    ${uuid_story}    ${uuid_card}    ${lang}=${DEFAULT_LANG}
+    ${params}=    Create Dictionary    lang=${lang}
+    ${response}=    GET On Session    public_session    /api/content/${uuid_story}/cards/${uuid_card}
+    ...    params=${params}    expected_status=any
+    RETURN    ${response}
+
+Get Text Detail
+    [Documentation]    Calls GET /api/content/{uuidStory}/texts/{idText}/lang/{lang}.
+    [Arguments]    ${uuid_story}    ${id_text}    ${lang}=${DEFAULT_LANG}
+    ${response}=    GET On Session    public_session    /api/content/${uuid_story}/texts/${id_text}/lang/${lang}
+    ...    expected_status=any
+    RETURN    ${response}
+
+Get Creator Detail
+    [Documentation]    Calls GET /api/content/{uuidStory}/creators/{uuidCreator}?lang={lang}.
+    [Arguments]    ${uuid_story}    ${uuid_creator}    ${lang}=${DEFAULT_LANG}
+    ${params}=    Create Dictionary    lang=${lang}
+    ${response}=    GET On Session    public_session    /api/content/${uuid_story}/creators/${uuid_creator}
+    ...    params=${params}    expected_status=any
+    RETURN    ${response}
+
+Card Info Should Have Required Fields
+    [Documentation]    Validates that a CardInfoResponse body has all required fields.
+    [Arguments]    ${body}
+    Dictionary Should Contain Key    ${body}    uuid
+    Dictionary Should Contain Key    ${body}    title
+    Dictionary Should Contain Key    ${body}    imageUrl
+    Dictionary Should Contain Key    ${body}    alternativeImage
+    Dictionary Should Contain Key    ${body}    awesomeIcon
+    Dictionary Should Contain Key    ${body}    styleMain
+    Dictionary Should Contain Key    ${body}    styleDetail
+    Dictionary Should Contain Key    ${body}    description
+    Dictionary Should Contain Key    ${body}    copyrightText
+    Dictionary Should Contain Key    ${body}    linkCopyright
+
+Text Detail Should Have Required Fields
+    [Documentation]    Validates that a TextInfoResponse body has all required fields.
+    [Arguments]    ${body}
+    Dictionary Should Contain Key    ${body}    idText
+    Dictionary Should Contain Key    ${body}    lang
+    Dictionary Should Contain Key    ${body}    resolvedLang
+    Dictionary Should Contain Key    ${body}    shortText
+    Dictionary Should Contain Key    ${body}    longText
+
+Creator Detail Should Have Required Fields
+    [Documentation]    Validates that a CreatorInfoResponse body has all required fields.
+    [Arguments]    ${body}
+    Dictionary Should Contain Key    ${body}    uuid
+    Dictionary Should Contain Key    ${body}    name

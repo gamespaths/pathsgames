@@ -14,6 +14,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for card management.
  *
  * <p>Enhanced in Step 15 with card lookup by story and card ID.</p>
+ * <p>Enhanced in Step 16 with card lookup by story and card UUID.</p>
  */
 @Repository
 public interface CardRepository extends JpaRepository<CardEntity, Long> {
@@ -21,6 +22,8 @@ public interface CardRepository extends JpaRepository<CardEntity, Long> {
     List<CardEntity> findByIdStory(Long idStory);
 
     Optional<CardEntity> findByIdStoryAndId(Long idStory, Long id);
+
+    Optional<CardEntity> findByIdStoryAndUuid(Long idStory, String uuid);
 
     @Modifying
     @Transactional

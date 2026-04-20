@@ -142,7 +142,8 @@ class StoryControllerTest {
                     .uuid("card-1").imageUrl("https://example.com/card.png")
                     .alternativeImage("alt").awesomeIcon("fa-star")
                     .styleMain("bg-primary").styleDetail("text-light")
-                    .title("Card Title")
+                    .title("Card Title").description(null)
+                    .copyrightText(null).linkCopyright(null)
                     .build();
 
             StoryDetail detail = StoryDetail.builder()

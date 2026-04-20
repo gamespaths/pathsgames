@@ -265,6 +265,8 @@ public class StoryQueryService implements StoryQueryPort {
         }
         CardEntity card = cardOpt.get();
         String cardTitle = resolveText(storyId, card.getIdTextTitle(), lang);
+        String cardDescription = resolveText(storyId, card.getIdTextDescription(), lang);
+        String cardCopyrightText = resolveText(storyId, card.getIdTextCopyright(), lang);
         return CardInfo.builder()
                 .uuid(card.getUuid())
                 .imageUrl(card.getUrlImmage())
@@ -272,7 +274,10 @@ public class StoryQueryService implements StoryQueryPort {
                 .awesomeIcon(card.getAwesomeIcon())
                 .styleMain(card.getStyleMain())
                 .styleDetail(card.getStyleDetail())
+                .description(cardDescription)
                 .title(cardTitle)
+                .copyrightText(cardCopyrightText)
+                .linkCopyright(card.getLinkCopyright())
                 .build();
     }
 }

@@ -10,6 +10,7 @@ import games.paths.core.entity.story.CharacterTemplateEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.entity.story.CardEntity;
+import games.paths.core.entity.story.CreatorEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +21,8 @@ import java.util.Optional;
  *
  * <p>Enhanced in Step 15 with category/group listing, filtering,
  * and entity retrieval methods for character templates, classes, traits, and cards.</p>
+ *
+ * <p>Enhanced in Step 16 with card/creator lookup by UUID.</p>
  */
 public interface StoryReadPort {
 
@@ -109,4 +112,21 @@ public interface StoryReadPort {
      * Finds a card by story ID and card primary key.
      */
     Optional<CardEntity> findCardByStoryIdAndCardId(Long storyId, Long cardId);
+
+    // === Step 16: Card and Creator lookup by UUID ===
+
+    /**
+     * Finds a card by story ID and card UUID.
+     */
+    Optional<CardEntity> findCardByStoryIdAndUuid(Long storyId, String uuid);
+
+    /**
+     * Finds a creator by story ID and creator UUID.
+     */
+    Optional<CreatorEntity> findCreatorByStoryIdAndUuid(Long storyId, String uuid);
+
+    /**
+     * Finds all creators for a story.
+     */
+    java.util.List<CreatorEntity> findCreatorsByStoryId(Long storyId);
 }

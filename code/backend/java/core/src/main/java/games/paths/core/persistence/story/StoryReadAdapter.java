@@ -16,6 +16,8 @@ import java.util.Optional;
  *
  * <p>Enhanced in Step 15 with category/group listing, filtering,
  * and entity retrieval for character templates, classes, traits, and cards.</p>
+ *
+ * <p>Enhanced in Step 16 with card/creator lookup by UUID.</p>
  */
 @Repository
 @Transactional(readOnly = true)
@@ -31,6 +33,7 @@ public class StoryReadAdapter implements StoryReadPort {
     private final ClassRepository classRepository;
     private final TraitRepository traitRepository;
     private final CardRepository cardRepository;
+    private final CreatorRepository creatorRepository;
 
     public StoryReadAdapter(
             StoryRepository storyRepository,
@@ -42,7 +45,8 @@ public class StoryReadAdapter implements StoryReadPort {
             CharacterTemplateRepository characterTemplateRepository,
             ClassRepository classRepository,
             TraitRepository traitRepository,
-            CardRepository cardRepository) {
+            CardRepository cardRepository,
+            CreatorRepository creatorRepository) {
         this.storyRepository = storyRepository;
         this.difficultyRepository = difficultyRepository;
         this.textRepository = textRepository;
@@ -53,6 +57,7 @@ public class StoryReadAdapter implements StoryReadPort {
         this.classRepository = classRepository;
         this.traitRepository = traitRepository;
         this.cardRepository = cardRepository;
+        this.creatorRepository = creatorRepository;
     }
 
     @Override
@@ -141,5 +146,22 @@ public class StoryReadAdapter implements StoryReadPort {
     @Override
     public Optional<CardEntity> findCardByStoryIdAndCardId(Long storyId, Long cardId) {
         return cardRepository.findByIdStoryAndId(storyId, cardId);
+    }
+
+    // === Step 16: Card and Creator lookup by UUID ===
+
+    @Override
+    public Optional<CardEntity> findCardByStoryIdAndUuid(Long storyId, String uuid) {
+        return cardRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public Optional<CreatorEntity> findCreatorByStoryIdAndUuid(Long storyId, String uuid) {
+        return creatorRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<CreatorEntity> findCreatorsByStoryId(Long storyId) {
+        return creatorRepository.findByIdStory(storyId);
     }
 }

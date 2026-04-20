@@ -14,9 +14,13 @@ class CardInfoResponseTest {
     @Test
     @DisplayName("All-args constructor should set all fields")
     void allArgsConstructor() {
+        CreatorInfoResponse creator = new CreatorInfoResponse(
+                "cr-1", "Author", null, null, null, null, null);
         CardInfoResponse r = new CardInfoResponse(
                 "card-1", "https://img.com/card.png", "alt.jpg",
-                "fa-star", "bg-dark", "text-light", "Card Title");
+                "fa-star", "bg-dark", "text-light",
+                "Card Title", "Card Description",
+                "© 2026", "https://copy.com", creator);
 
         assertAll("CardInfoResponse fields",
             () -> assertEquals("card-1", r.getUuid()),
@@ -25,7 +29,12 @@ class CardInfoResponseTest {
             () -> assertEquals("fa-star", r.getAwesomeIcon()),
             () -> assertEquals("bg-dark", r.getStyleMain()),
             () -> assertEquals("text-light", r.getStyleDetail()),
-            () -> assertEquals("Card Title", r.getTitle())
+            () -> assertEquals("Card Title", r.getTitle()),
+            () -> assertEquals("Card Description", r.getDescription()),
+            () -> assertEquals("© 2026", r.getCopyrightText()),
+            () -> assertEquals("https://copy.com", r.getLinkCopyright()),
+            () -> assertNotNull(r.getCreator()),
+            () -> assertEquals("cr-1", r.getCreator().getUuid())
         );
     }
 
@@ -40,6 +49,10 @@ class CardInfoResponseTest {
         r.setStyleMain("bg-primary");
         r.setStyleDetail("text-dark");
         r.setTitle("Card Two");
+        r.setDescription("Description Two");
+        r.setCopyrightText("© 2026");
+        r.setLinkCopyright("https://copy2.com");
+        r.setCreator(null);
 
         assertAll("Setter values",
             () -> assertEquals("card-2", r.getUuid()),
@@ -48,7 +61,11 @@ class CardInfoResponseTest {
             () -> assertEquals("fa-heart", r.getAwesomeIcon()),
             () -> assertEquals("bg-primary", r.getStyleMain()),
             () -> assertEquals("text-dark", r.getStyleDetail()),
-            () -> assertEquals("Card Two", r.getTitle())
+            () -> assertEquals("Card Two", r.getTitle()),
+            () -> assertEquals("Description Two", r.getDescription()),
+            () -> assertEquals("© 2026", r.getCopyrightText()),
+            () -> assertEquals("https://copy2.com", r.getLinkCopyright()),
+            () -> assertNull(r.getCreator())
         );
     }
 }

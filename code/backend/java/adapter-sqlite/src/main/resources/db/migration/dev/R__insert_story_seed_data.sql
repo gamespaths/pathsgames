@@ -57,9 +57,9 @@ DELETE FROM list_stories              WHERE id IN (9001, 9002);
 -- #############################################################################
 
 INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
-    category, "group", visibility, priority, peghi, id_text_title, id_text_description)
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card)
 VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 'turn', 'turns',
-    'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2);
+    'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2, 90001);
 
 -- ── Texts ───────────────────────────────────────────────────────
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
@@ -68,6 +68,7 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90002, 9001, 1, 'it', 'TUTORIAL', 'Benvenuto in Paths Games! Questo tutorial guidato ti insegnerà ogni meccanica passo dopo passo: muoversi tra le locazioni, gestire energia e vita, usare oggetti, fare scelte, controllare il meteo e completare missioni. Non serve esperienza — solo curiosità!'),
 (90003, 9001, 2, 'en', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment.', 'A short training adventure in the Academy of Paths. Learn movement, energy, items, choices, and missions in a safe environment. Perfect for new players.'),
 (90004, 9001, 2, 'it', 'Una breve avventura di addestramento nell''Accademia di Paths.', 'Una breve avventura di addestramento nell''Accademia di Paths. Impara movimento, energia, oggetti, scelte e missioni in un ambiente sicuro. Perfetta per i nuovi giocatori.'),
+(42,9001,42,'en','quarantadue','quarantadue desc'),
 -- Location texts (8 tutorial rooms)
 (90005, 9001, 100, 'en', 'Welcome Hall', 'A bright, welcoming hall with banners explaining the basics of Paths Games. A friendly guide stands at the center, ready to explain how the game works. "Welcome, adventurer! Let''s start your training."'),
 (90006, 9001, 100, 'it', 'Sala di Benvenuto', 'Una sala luminosa e accogliente con stendardi che spiegano le basi di Paths Games. Una guida amichevole sta al centro, pronta a spiegare come funziona il gioco. "Benvenuto, avventuriero! Iniziamo il tuo addestramento."'),
@@ -165,8 +166,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90101, 9001, 952, 'en', 'Choice Made', 'Records whether you have made your first choice in the Choice Arena.');
 
 -- ── Difficulties ────────────────────────────────────────────────
-INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3);
+INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
+(90001, 9001, 90001, 300, 1, 20, 1, 4, 1, 1, 3);
 
 -- ── Classes ─────────────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -304,10 +305,10 @@ INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
 (90001, 9001, 'PathsMaster', 'https://paths.games', 'https://paths.games/assets/logo.png');
 
 -- ── Cards ───────────────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main) VALUES
-(90001, 9001, NULL, 'fas fa-graduation-cap', 'tutorial'),
-(90002, 9001, NULL, 'fas fa-book-open',      'learning'),
-(90003, 9001, NULL, 'fas fa-lightbulb',      'tips');
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main , id_text_title, id_text_description , id_text_name) VALUES
+(90001, 9001, 'https://unsplash.com/photos/closeup-photo-of-castle-with-mist-21DP3hytVHw', 'fas fa-graduation-cap', 'tutorial', 42, 42, 1 ),
+(90002, 9001, NULL, 'fas fa-book-open',      'learning', 911, 911, 911),
+(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912);
 
 
 -- #############################################################################
@@ -319,9 +320,9 @@ INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main) VALU
 -- #############################################################################
 
 INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
-    category, "group", visibility, priority, peghi, id_text_title, id_text_description)
+    category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card )
 VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
-    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2);
+    'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2, 91001);
 
 -- ── Texts ───────────────────────────────────────────────────────
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
@@ -609,10 +610,10 @@ INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
 (91001, 9002, 'PathsMaster', 'https://paths.games', 'https://paths.games/assets/logo.png');
 
 -- ── Cards ───────────────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main) VALUES
-(91001, 9002, NULL, 'fas fa-chess-rook',    'medieval'),
-(91002, 9002, NULL, 'fas fa-scroll',        'evidence'),
-(91003, 9002, NULL, 'fas fa-balance-scale', 'justice');
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description , id_text_name) VALUES
+(91001, 9002, 'https://unsplash.com/photos/a-castle-in-the-middle-of-a-lush-green-forest-nxySr36wCSM', 'fas fa-chess-rook',    'medieval', 1, 2 ,1),
+(91002, 9002, NULL, 'fas fa-scroll',        'evidence', 941, 941, 942),
+(91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943);
 
 -- =============================================
 -- END OF STORY SEED DATA
