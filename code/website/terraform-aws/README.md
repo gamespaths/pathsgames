@@ -126,7 +126,11 @@ terraform plan
 
 # Apply the infrastructure
 terraform apply
+
+# Script to import terraform ftstate
+./import.sh
 ```
+
 
 ### Enable WAF
 

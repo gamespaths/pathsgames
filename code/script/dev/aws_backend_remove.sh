@@ -24,8 +24,8 @@ if [ -z "${ENVIRONMENT_NAME:-}" ] || [ -z "${STACK_NAME:-}" ]; then
     exit 1
 fi
 
-S3_BUCKET="${S3_BUCKET:-pathsgames-cloudformation-dev}"
-S3_PREFIX="${S3_PREFIX:-pathsgames-aws-backend}"
+S3_BUCKET="${S3_BUCKET:-pathsgames-dev}"
+S3_PREFIX="${S3_PREFIX:-cloudformation-backend}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 
 echo "Removing stack '$STACK_NAME' from region '$AWS_REGION' (Environment: $ENVIRONMENT_NAME)"

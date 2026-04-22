@@ -79,7 +79,7 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 ### Prerequisites
 - Install [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 - Configure AWS credentials (`aws configure`).
-- Create an S3 bucket for CloudFormation templates (e.g., `pathsgames-cloudformation-dev`).
+- Create an S3 bucket for CloudFormation templates (e.g., `pathsgames-dev`).
 
 ### Main Commands
 
@@ -99,7 +99,7 @@ The project uses **AWS SAM** to handle packaging and deployment across different
 | Parameter | Dev | Prod |
 | :--- | :--- | :--- |
 | Stack name | `pathsgames-dev` | `pathsgames-prod` |
-| S3 bucket | `pathsgames-cloudformation` | `pathsgames-cloudformation` |
+| S3 bucket | `pathsgames-dev` | `pathsgames-prod` |
 | Region | `us-east-2` | — |
 
 The `deploy` command output will provide the **API Endpoint URL** to be configured in the frontend.

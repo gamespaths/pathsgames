@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Load .env from repository root if present
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
 	# shellcheck disable=SC1090

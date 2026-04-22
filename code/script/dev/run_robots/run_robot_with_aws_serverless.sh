@@ -10,7 +10,7 @@ set -euo pipefail
 set -euo pipefail
 
 # Load .env from repository root if present
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
     # shellcheck disable=SC1090
@@ -30,8 +30,8 @@ if [ -z "${ENVIRONMENT_NAME:-}" ] || [ -z "${STACK_NAME:-}" ]; then
     exit 1
 fi
 
-S3_BUCKET="${S3_BUCKET:-pathsgames-cloudformation-dev}"
-S3_PREFIX="${S3_PREFIX:-pathsgames-aws-backend}"
+S3_BUCKET="${S3_BUCKET:-pathsgames-dev}"
+S3_PREFIX="${S3_PREFIX:-cloudformation-backend}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 
 ## get url of the deployed API from CloudFormation outputs

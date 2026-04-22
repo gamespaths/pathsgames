@@ -36,10 +36,13 @@ target/
 
 .alnao/
 
-#AWSù
+#AWS
 .aws-sam/
 .aws-sam-cli-managed-default/
 .aws-sam-cli-managed-default.toml
+
+# AWS CloudFormation
+.ebextensions/  
 
 # Backend python!
 database.sqlite

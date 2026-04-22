@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
 	# shellcheck disable=SC1090
@@ -37,8 +37,9 @@ DB_PASSWORD="${DB_PASSWORD:-pathsgames}"
 DOCKER_PG_CONTAINER="paths-postgres-test"
 
 # Ask whether to start a Docker PostgreSQL container
-read -r -p "Do you want to start a PostgreSQL Docker container? [Y/n] " START_POSTGRES_INPUT
-START_POSTGRES_INPUT="${START_POSTGRES_INPUT:-Y}"
+#read -r -p "Do you want to start a PostgreSQL Docker container? [Y/n] " START_POSTGRES_INPUT
+START_POSTGRES_INPUT="y"
+#START_POSTGRES_INPUT="${START_POSTGRES_INPUT:-Y}"
 
 if [[ "$START_POSTGRES_INPUT" =~ ^[Yy]$ ]]; then
 	echo "Starting PostgreSQL via Docker..."

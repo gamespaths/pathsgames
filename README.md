@@ -130,8 +130,3 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 
-
-
-
-
-crea una cartella "code/website/concepts_v0/v0.15.4-prototype" con una versione del sito completa, prendi spunto dal html (/mnt/Dati4/Workspace/pathsgames/code/website/html) e usa le card3d (/mnt/Dati4/Workspace/pathsgames/code/website/concepts_v0/v0.15.3-card3d), non guardare nessun'altra cartella. voglio che tutte le card siano con effetto 3d. sistema il sito in stile netflix al posto di "Crowdfunding Coming Soon" metti una immagine free di un castello ma alta un terzo della home. tutte le foto che userai le prendeai da unsplash. in tutte le card voglio che metti una immagine interente al titolo/descrizione. In Ogni card (di tutti i tipi) voglio la foto sopra e il titolo in messo, sotto il bottone oppure la descrizione (non aggiungere descrizione dove non c'è nella versione home). Aggiungi l'effetto 3d anche nella modale di una card. nella home togli le descrizioni nelle card e anche nella modale di scelta di gioco ma solo immagine e sotto il titolo. tutte le carte con l'icona (i) mostrano una modale nella quale voglio che aggiungi il nome dell'artista e il link funzionante verso unsplash. in tutte le card voglio immagini, comprese le option-card, anche nelle choice-card e le location-card (sistema la grafica) e anche nelle card modali card-detail-inner. 

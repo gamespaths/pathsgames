@@ -2,16 +2,16 @@ version = 0.1
 
 [default.deploy.parameters]
 stack_name = "pathsgames-aws-backend"
-s3_bucket = "pathsgames-cloudformation"
-s3_prefix = "pathsgames-aws-backend"
-region = "us-east-1"
+s3_bucket = "pathsgames-dev"
+s3_prefix = "cloudformation-backend"
+region = "us-east-2"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 
 [dev.deploy.parameters]
 stack_name = "pathsgames-dev"
-s3_bucket = "pathsgames-cloudformation-dev"
-s3_prefix = "pathsgames-dev"
+s3_bucket = "pathsgames-dev"
+s3_prefix = "cloudformation-backend"
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "Environment=dev"
 region = "us-east-2"
