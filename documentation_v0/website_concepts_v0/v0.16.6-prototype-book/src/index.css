@@ -1,0 +1,54 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-parchment: #e8d5b0;
+  --color-gold: #c8960a;
+  --color-brown-deep: #1a0a02;
+}
+
+body {
+  margin: 0;
+  background-color: #1a0a02;
+  color: #e8d5b0;
+  font-family: 'Crimson Text', serif;
+  overflow-x: hidden;
+}
+
+.medieval-font {
+  font-family: 'Cinzel', serif;
+}
+
+.medieval-font-decorative {
+  font-family: 'Cinzel Decorative', serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #080400;
+}
+::-webkit-scrollbar-thumb {
+  background: #7a4520;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c8960a;
+}
+
+/* 3D Card Effects */
+.card-3d-container {
+  perspective: 1000px;
+}
+
+.card-3d-inner {
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}

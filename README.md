@@ -1,10 +1,14 @@
 # Paths Games
 
-**Paths Games** is a multiplayer game inspired by classic gamebooks, adapted to modern gaming mechanics.
+## 🎭 Project Vision
 
+**Paths Games** is a multi-user storytelling game where choices matter. Players explore dynamic worlds, manage resources, and collaborate (or compete) in real-time narrative adventures. 
+- **Story-Driven**: Rich, branching narratives with deep world-building.
+- **Dynamic Mechanics**: Time-based progression, weather systems, and stat-based choices.
+- **Multiplayer First**: Real-time synchronization via WebSockets for shared experiences.
+- **Open Source**: Built with ❤️ and released under the **GNU-GPL3** license.
 - ✅ Paths games is **free-to-play** game, all code will be **open source** released with GNU-GPL3 licence
-
-- Visit [paths.games](http://paths.games) website, crowdfunding campaign *coming soon*.
+- Crowdfunding campaign *coming soon*. Visit [paths.games](http://paths.games) website.
 
 
 ## Documentation
@@ -14,11 +18,11 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 | Version | Steps | Focus | 
 | --- | --- | --- |
-| 0 | 📝 **Start project** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
-| 0.16 | 🛠️ **Current version** | - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) <br />- ✅ [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) & [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content detail](./Step16_ContentDetailAPIs.md) <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
+| 0 | 📝 **Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
+| 0.16.6 | 🛠️ **Current version** | - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) <br />- ✅ [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) & [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content detail](./Step16_ContentDetailAPIs.md) <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
 | 0.42 | 🧑‍🔬 **Single player** <br /> Steps 12-42 |  Single player game engine and website prototype |
 | 0.84 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
-| 1 | 🏁 **Launch game** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
+| 1 | 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
 | 1.1 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
 | 1.2 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
 | 2 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
@@ -44,6 +48,12 @@ Documents includes all steps and the roadmap for create paths.games components, 
     | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white" height=30/> <img src="https://img.shields.io/badge/Bootstrap-7952B3?logo=bootstrap&logoColor=white" height=30/> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?logo=fontawesome&logoColor=white" height=30/> |
     | Backend tecnologies | <img src="https://img.shields.io/badge/React-61DBFB?logo=react&logoColor=black" height=30/> <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" height=30/> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" height=30/>
 
+- 📂 **Repository Structure**
+    - `/code/backend/`: Source code for Java, Python, and PHP backend versions.
+    - `/code/website/`: Frontend React applications and terraform templates.
+    - `/code/tests/`: Automated E2E tests using Robot Framework.
+    - `/code/scripts/`: Utility scripts for development, build, and deployment.
+    - `/documentation_v0/`: This folder, containing all design and step documents.
 
 - **Backend** projects into `code/backend` folder:
     - **Java**: main backend project, see [README](./code/backend/java/README.md) for all details, build with Java 21, Spring boot with Hexagonal Architecture. Run application on developer environment with commands:

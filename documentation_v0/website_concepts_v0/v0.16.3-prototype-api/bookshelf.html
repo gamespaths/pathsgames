@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libreria 3D CSS</title>
+    <style>
+        :root {
+            --shelf-color: #4a3325;
+            --wood-texture: linear-gradient(90deg, #5c4033 0%, #3e2a1d 100%);
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            /* Appoggia la libreria in basso */
+            height: 100vh;
+            margin: 0;
+            padding-bottom: 50px;
+            perspective: 2000px;
+            overflow: hidden;
+        }
+
+        /* --- LO SCAFFALE --- */
+        .bookshelf {
+            width: 80%;
+            max-width: 900px;
+            height: 40px;
+            background: var(--wood-texture);
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            padding: 0 20px;
+        }
+
+        /* Il ripiano orizzontale superiore (3D) */
+        .bookshelf::before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: #6d4c3a;
+            transform: skewX(-45deg);
+            transform-origin: bottom;
+        }
+
+        /* --- IL LIBRO --- */
+        .book-wrapper {
+            width: 60px;
+            height: 220px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: all 0.6s ease;
+            cursor: pointer;
+            z-index: 10;
+            margin-bottom: 5px;
+        }
+
+        /* Animazione: Quando passi il mouse, il libro esce e si apre */
+        .book-wrapper:hover {
+            transform: translateZ(100px) translateY(-50px) rotateY(-30deg);
+            width: 250px;
+            /* Si allarga per mostrare l'interno */
+        }
+
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .page {
+            position: absolute;
+            width: 150px;
+            /* Larghezza pagina aperta */
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: #fff9e6;
+            border: 1px solid #ddd;
+            backface-visibility: hidden;
+            transform-origin: left;
+            transition: transform 0.8s ease;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Copertina (Spine/Costola inizialmente) */
+        .cover {
+            width: 50px;
+            /* Larghezza costola sul ripiano */
+            background: #2c3e50;
+            color: gold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            writing-mode: vertical-rl;
+            /* Testo in verticale sulla costola */
+            transform: rotateY(0deg);
+            z-index: 5;
+            border-radius: 3px;
+        }
+
+        .book-wrapper:hover .cover {
+            width: 150px;
+            /* Diventa la copertina frontale */
+            writing-mode: horizontal-tb;
+            transform: rotateY(-140deg);
+        }
+
+        /* Pagina interna */
+        .content {
+            width: 150px;
+            z-index: 1;
+            padding: 15px;
+            box-sizing: border-box;
+            font-size: 10px;
+            visibility: hidden;
+            /* Nascondi testo finché è chiuso */
+        }
+
+        .book-wrapper:hover .content {
+            visibility: visible;
+        }
+
+        /* Colori diversi per i libri */
+        .book1 .cover {
+            background-color: #831010;
+        }
+
+        .book2 .cover {
+            background-color: #1a4d2e;
+        }
+
+        .book3 .cover {
+            background-color: #2e4374;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bookshelf">
+        <div class="book-wrapper book1">
+            <div class="book">
+                <div class="page content">
+                    <h3>Storia Antica</h3>
+                    <p>Questo è un esempio di testo contenuto all'interno del libro sullo scaffale...</p>
+                </div>
+                <div class="page cover">STORIA</div>
+            </div>
+        </div>
+
+        <div class="book-wrapper book2">
+            <div class="book">
+                <div class="page content">
+                    <h3>CSS Moderno</h3>
+                    <p>Imparare il 3D CSS è fondamentale per creare interfacce immersive nel 2026.</p>
+                </div>
+                <div class="page cover">DESIGN</div>
+            </div>
+        </div>
+
+        <div class="book-wrapper book3">
+            <div class="book">
+                <div class="page content">
+                    <h3>Codice Puro</h3>
+                    <p>Niente JavaScript, solo potenza dei fogli di stile e trasformazioni.</p>
+                </div>
+                <div class="page cover">CODING</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>

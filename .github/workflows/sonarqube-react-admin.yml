@@ -1,0 +1,57 @@
+name: SonarQube Analysis - React Admin
+
+on:
+  push:
+    branches: [ develop ]
+    paths:
+      - 'code/frontend/react-admin/**'
+#  pull_request:
+#    branches: [ main, develop ]
+#    paths:
+#      - 'code/frontend/react-admin/**'
+
+jobs:
+  sonarqube:
+    name: SonarQube Scan - React Admin
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code/frontend/react-admin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: code/frontend/react-admin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_REACT_ADMIN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: code/frontend/react-admin
+          args: >
+            -Dsonar.projectKey=paths-game-admin-react
+            -Dsonar.organization=gamespaths
+            -Dsonar.projectName="Frontend React Admin"
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.sources=src
+            -Dsonar.tests=src/tests
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,src/tests/**
+            -Dsonar.test.inclusions=src/tests/**/*.test.jsx
+            -Dsonar.branch.name=develop
+            -Dsonar.qualitygate.wait=false

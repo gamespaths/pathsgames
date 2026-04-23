@@ -28,7 +28,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 13 | [Session & token management](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
 | 14 | [Stories management & import](Step14_StoriesImportSystem.md) | ✅ | Story import system and data seeding. Start test robot framework. |
 | 15 | [Stories content APIs](./Step15_StoryContentAPIs.md) | ✅ | Story content APIs: categories, groups, enriched detail |
-| 16 | [Content detail](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
+| 16 | [Content details APIs](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
 
 
 | Steps | Phase |
@@ -59,26 +59,19 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 ## Next steps
 For next steps use this prompt
-> Set Step/XX=16. read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX descripted into Step00_Roadmap file: write all java backend code into "code/backend/java" project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder with new/changed api, if some api changed write me into md files. create a new simple web example to use new api-interfaces inside new "code/website/concepts_v0/v0.XX.0/" folder, if necessary create a new "code/website/concepts_v0/v0.XX.0-admin/" folder for dedicated admin web-site sections, for websites use componentes by code/website/html and others last concepts. add new folder inside "code/tests/robot/test" and write new robot-framework test to check all apis and new components are ok (launcing java backend with sqlite profile to test all). don't look and don't change "backend/python" , "backend/php" , "backend/aws" and others concepts folder into "website". to execute robot command remember to use ".venv". 
+> Set Step/XX=16.  
 
-> Set Step/XX=16. read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files outside "code/backend/php" and "code/backend/python" folders. my robot "code/tests/robot" must works with python and php project, check it with script inside "code/script/dev/" folder. to execute python project and robot command remember to use ".venv". 
+> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX descripted into Step00_Roadmap file: write all java backend code into "code/backend/java" project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder with new/changed api, if some api changed write me into md files. create a new simple web example to use new api-interfaces inside new "code/website/concepts_v0/v0.XX.0/" folder, if necessary create a new "code/website/concepts_v0/v0.XX.0-admin/" folder for dedicated admin web-site sections, for websites use componentes by code/website/html and others last concepts. add new folder inside "code/tests/robot/test" and write new robot-framework test to check all apis and new components are ok (launcing java backend with sqlite profile to test all). don't look and don't change "backend/python" , "backend/php" , "backend/aws" and others concepts folder into "website". to execute robot command remember to use ".venv".  
 
-> Set Step/XX=16. read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX for aws backend version inside "code/backend/aws" folder. please read all changes about step XX from java and python versions and write into aws project new code using tecnologies defined into README.md file inside projects and previus code. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. never change files outside "code/backend/aws" folder. my robot "code/tests/robot" must works with new code, never change robot test code.
+> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files outside "code/backend/php" and "code/backend/python" folders. my robot "code/tests/robot" must works with python and php project, check it with script inside "code/script/dev/" folder. to execute python project and robot command remember to use ".venv".  
 
-> Set Step/XX=16. read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects.
+> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX for aws backend version inside "code/backend/aws" folder. please read all changes about step XX from java and python versions and write into aws project new code using tecnologies defined into README.md file inside projects and previus code. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. never change files outside "code/backend/aws" folder. my robot "code/tests/robot" must works with new code, never change robot test code.
 
----
+> Read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects. In this step never change files outside react projects. Rember to cover code with tests for have 100% sonar coverage.
+
 
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-
-16. Story content APIs — cards, texts, and creators
-    - Implement GET /content/{uuid_story}/cards/{uuid_card} endpoint returning card details for a story (backend)
-    - Implement GET /content/{uuid_story}/text/{uuid_text}/lang/{lang} endpoint returning resolved text in requested language (backend)
-    - Implement GET /content/{uuid_story}/creator/{uuid_creator} endpoint returning creator details (backend)
-    - Implement text resolution service supporting multi-language text lookup with fallback to default language (backend)
-    - Implement card and image resolution service linked to locations, stories, and characters (backend)
-    - Write backend unit tests for all content endpoints, text resolution, card service, and data integrity validation (backend tests)
 17. Story admin CRUD endpoints (all into Admin section/adapters)
     - Implement admin CRUD for stories (list_stories): create, update, delete with admin role check (backend)
     - Implement admin CRUD for story-related tables: list_stories_difficulty, list_locations, list_locations_neighbors, list_keys (backend)
@@ -87,17 +80,7 @@ For next steps use this prompt
     - Implement admin CRUD for characters: list_character_templates, list_classes, list_classes_bonus, list_traits (backend)
     - Implement admin CRUD for content: list_texts, list_cards, list_creator, list_missions, list_missions_steps (backend)
     - Write backend unit tests for all admin CRUD endpoints covering validation, authorization, and error cases (backend tests)
-18. Frontend: Story catalog and detail pages
-    - react con vite e bootstrap e Tailwind e font awesome
-    - spiegami meglio Framer Motion e XState e TanStack Query e React-Hook-Form
-    - Build story catalog page displaying available stories as cards with title, description, image, and difficulty badges (frontend)
-    - Build story detail modal/page showing full description, available difficulties, character options, and location preview (frontend)
-    - Implement story card component with category, author, and version compatibility indicators (frontend)
-    - Implement difficulty selection component showing player limits, weight limits, and experience costs (frontend)
-    - Implement responsive layout with Bootstrap 5 grid and medieval/fantasy card style (frontend)
-    - Integrate story API client with Redux/state management for caching and loading states (frontend)
-    - Write frontend unit tests for story catalog, detail, card components, and API integration mocks (frontend tests)
-19. Frontend: Admin story management UI
+19. Frontend: Admin story management UI into "react-admin" project
     - Build admin story list page with search, filter, and CRUD actions (create, edit, delete) (frontend)
     - Build admin story editor with form for story metadata, difficulty levels, and version settings (frontend)
     - Build admin location editor with visual adjacency map showing directional connections (frontend)
@@ -105,6 +88,14 @@ For next steps use this prompt
     - Build admin item and weather editor with effect configuration and probability settings (frontend)
     - Implement form validation, error display, and confirmation dialogs for destructive actions (frontend)
     - Write frontend unit tests for all admin editor components, form validation, and CRUD operations (frontend tests)
+19. Frontend: Story catalog and detail pages
+    - Build story catalog page displaying available stories as cards with title, description, image, and difficulty badges (frontend)
+    - Build story detail modal/page showing full description, available difficulties, character options, and location preview (frontend)
+    - Implement story card component with category, author, and version compatibility indicators (frontend)
+    - Implement difficulty selection component showing player limits, weight limits, and experience costs (frontend)
+    - Implement responsive layout with Bootstrap 5 grid and medieval/fantasy card style (frontend)
+    - Integrate story API client with Redux/state management for caching and loading states (frontend)
+    - Write frontend unit tests for story catalog, detail, card components, and API integration mocks (frontend tests)
 20. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)

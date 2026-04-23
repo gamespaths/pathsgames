@@ -105,6 +105,15 @@ sed -i "s|'${CURRENT}'|'${NEW}'|g" "$AWS_FILE"
 
 
 # ────────────────────────────────────────────
+# 8. React Admin - Navbar.jsx (versione in-code)
+# ────────────────────────────────────────────
+echo "  [8/6] React Admin - Navbar.jsx (versione in-code)"
+NAVBAR_FILE="$ROOT/code/frontend/react-admin/src/components/layout/Sidebar.jsx"
+sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$NAVBAR_FILE"
+
+
+
+# ────────────────────────────────────────────
 echo ""
 echo "  Versione aggiornata: $CURRENT → $NEW"
 echo ""
@@ -114,8 +123,9 @@ echo "    • code/backend/java/**/application*.yml  (Spring Boot)"
 echo "    • code/backend/python/pyproject.toml"
 echo "    • code/backend/python/app/config.py"
 echo "    • code/backend/php/src/Core/Service/EchoService.php"
-echo "    • code/website/html/index.html"
 echo "    • code/backend/aws/lambda/echo/handler.py"
+echo "    • code/website/html/index.html"
+echo "    • code/frontend/react-admin/src/components/layout/Sidebar.jsx"
 echo ""
 echo "  Prossimi passi suggeriti:"
 echo "    git add -A && git commit -m \"chore: bump version $CURRENT → $NEW\""
