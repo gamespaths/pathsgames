@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * LocationNeighborRepository - Spring Data JPA repository for the "list_locations_neighbors" table.
@@ -20,4 +21,10 @@ public interface LocationNeighborRepository extends JpaRepository<LocationNeighb
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<LocationNeighborEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * EventEffectRepository - Spring Data JPA repository for the "list_events_effects" table.
@@ -20,4 +21,10 @@ public interface EventEffectRepository extends JpaRepository<EventEffectEntity, 
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<EventEffectEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

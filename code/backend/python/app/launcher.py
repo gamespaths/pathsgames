@@ -25,6 +25,9 @@ from app.adapters.rest.story.story_admin_controller import StoryAdminController
 from app.core.services.story.content_query_service import ContentQueryService
 from app.adapters.rest.story.content_controller import ContentController
 
+from app.core.services.story.story_crud_service import StoryCrudService
+from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminController
+
 # 1. Initialize Database
 init_db()
 
@@ -55,6 +58,7 @@ guest_admin_service = GuestAdminService(persistence_adapter)
 story_query_service = StoryQueryService(story_read_adapter)
 story_import_service = StoryImportService(story_persistence_adapter)
 content_query_service = ContentQueryService(story_read_adapter)
+story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter)
 
 # 4. Initialize Controllers
 echo_controller = EchoController(echo_service)
@@ -64,6 +68,7 @@ session_controller = SessionController(session_service)
 story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service)
 content_controller = ContentController(content_query_service)
+story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -124,6 +129,7 @@ app.include_router(session_controller.router, prefix="/api/auth")
 app.include_router(story_controller.router)
 app.include_router(story_admin_controller.router)
 app.include_router(content_controller.router)
+app.include_router(story_crud_admin_controller.router)
 
 if __name__ == "__main__":
     import uvicorn

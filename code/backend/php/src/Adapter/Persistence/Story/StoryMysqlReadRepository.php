@@ -164,4 +164,53 @@ class StoryMysqlReadRepository implements StoryReadPort
         $stmt->execute([':id_story' => $storyId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Step 17: Generic CRUD read support
+
+    public function findLocationsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_locations WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findEventsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_events WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findItemsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_items WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findCardsForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_cards WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findEntityByStoryAndUuid(int $storyId, string $tableName, string $uuid): ?array
+    {
+        $allowed = [
+            'list_stories_difficulty', 'list_locations', 'list_events', 'list_items',
+            'list_character_templates', 'list_classes', 'list_traits',
+            'list_creator', 'list_cards', 'list_texts',
+        ];
+        if (!in_array($tableName, $allowed, true)) {
+            return null;
+        }
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM $tableName WHERE id_story = :id_story AND uuid = :uuid LIMIT 1"
+        );
+        $stmt->execute([':id_story' => $storyId, ':uuid' => $uuid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
 }
+

@@ -6,6 +6,7 @@ import DashboardPage   from './pages/DashboardPage'
 import GuestsPage      from './pages/GuestsPage'
 import StoriesPage     from './pages/StoriesPage'
 import StoryImportPage from './pages/StoryImportPage'
+import StoryEditorPage from './pages/StoryEditorPage'
 import EchoPage        from './pages/EchoPage'
 
 function ProtectedRoutes() {
@@ -18,6 +19,7 @@ function ProtectedRoutes() {
         <Route path="/guests"         element={<GuestsPage />}      />
         <Route path="/stories"        element={<StoriesPage />}     />
         <Route path="/stories/import" element={<StoryImportPage />} />
+        <Route path="/stories/:uuid/edit" element={<StoryEditorPage />} />
         <Route path="/echo"           element={<EchoPage />}        />
         <Route path="*"               element={<Navigate to="/" />} />
       </Routes>

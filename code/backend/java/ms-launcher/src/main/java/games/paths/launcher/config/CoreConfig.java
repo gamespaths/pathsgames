@@ -8,6 +8,7 @@ import games.paths.core.port.auth.GuestAdminPort;
 import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
+import games.paths.core.port.story.StoryCrudPort;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
@@ -17,6 +18,7 @@ import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
+import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
 import games.paths.core.service.story.ContentQueryService;
@@ -94,5 +96,10 @@ public class CoreConfig {
     @Bean
     public ContentQueryPort contentQueryPort(StoryReadPort storyReadPort) {
         return new ContentQueryService(storyReadPort);
+    }
+
+    @Bean
+    public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort) {
+        return new StoryCrudService(storyReadPort, storyPersistencePort);
     }
 }

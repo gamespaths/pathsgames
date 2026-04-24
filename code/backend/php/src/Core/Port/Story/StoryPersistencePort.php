@@ -41,4 +41,15 @@ interface StoryPersistencePort
     public function saveMissions(int $storyId, array $missions): void;
 
     public function saveCreators(int $storyId, array $creators): void;
+
+    // Step 17: Generic entity CRUD
+
+    public function saveEntity(int $storyId, string $tableName, array $data): void;
+
+    public function updateEntity(int $storyId, string $tableName, string $uuid, array $data): void;
+
+    public function deleteEntityByUuid(string $tableName, string $uuid): void;
+
+    public function updateStoryById(int $storyId, array $data): void;
 }
+

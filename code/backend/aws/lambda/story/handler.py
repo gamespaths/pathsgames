@@ -302,14 +302,37 @@ def lambda_handler(event, context):
         uid = params.get('uuid') or path.split('/')[-1]
         return get_story(event, uid)
 
-    # admin — static route before parameterised
+    # admin — static routes before parameterised
     if path == '/api/admin/stories/import' and method == 'POST':
         return import_story(event)
     if path == '/api/admin/stories' and method == 'GET':
         return list_all_stories(event)
-    if path.startswith('/api/admin/stories/') and method == 'DELETE':
-        uid = params.get('uuid') or path.split('/')[-1]
-        return delete_story(event, uid)
+    if path == '/api/admin/stories' and method == 'POST':
+        return create_story(event)
+
+    # admin — parameterised routes
+    if method == 'PUT' and 'uuidStory' in params and 'entityType' not in params:
+        return update_story(event, params['uuidStory'])
+
+    if 'uuidStory' in params and 'entityType' in params:
+        st_uuid  = params['uuidStory']
+        ent_type = params['entityType']
+        ent_uuid = params.get('entityUuid')
+
+        if method == 'GET':
+            if ent_uuid:
+                return get_entity(event, st_uuid, ent_type, ent_uuid)
+            return list_entities(event, st_uuid, ent_type)
+        if method == 'POST':
+            return create_entity(event, st_uuid, ent_type)
+        if method == 'PUT' and ent_uuid:
+            return update_entity(event, st_uuid, ent_type, ent_uuid)
+        if method == 'DELETE' and ent_uuid:
+            return delete_entity(event, st_uuid, ent_type, ent_uuid)
+
+    # old delete story (keeping for compatibility if needed, but uuidStory is preferred)
+    if path.startswith('/api/admin/stories/') and method == 'DELETE' and 'uuid' in params:
+        return delete_story(event, params['uuid'])
 
     return _err(404, 'NOT_FOUND', f'Resource {path} not found')
 
@@ -414,6 +437,8 @@ def import_story(event):
 
     texts_dict = {}
     for t in raw_texts:
+        if not t.get('uuid'):
+            t['uuid'] = str(uuid_lib.uuid4())
         lang = t.get('lang', 'en')
         id_t = t.get('idText')
         if lang not in texts_dict:
@@ -606,6 +631,10 @@ def import_story(event):
         'class_count':            len(classes),
         'template_count':         len(character_templates),
         'trait_count':            len(traits),
+        # Step 17: actually store sub-entities
+        'locations':              _assign_uuids(data.get('locations', [])),
+        'events':                 _assign_uuids(data.get('events', [])),
+        'items':                  _assign_uuids(data.get('items', [])),
         # Step 16: raw data for content detail queries
         'raw_texts':              raw_texts,
         'raw_cards':              stored_cards,
@@ -650,6 +679,14 @@ def _build_sub_entity_texts(raw_texts, id_name, id_desc):
     return texts
 
 
+def _assign_uuids(entities):
+    """Assign a random UUID to each entity in a list if not already present."""
+    for e in entities:
+        if not e.get('uuid'):
+            e['uuid'] = str(uuid_lib.uuid4())
+    return entities
+
+
 def list_all_stories(event):
     _, err = _require_admin(event)
     if err:
@@ -670,3 +707,193 @@ def delete_story(event, story_uuid):
                     f'No story found with UUID: {story_uuid}')
     db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
     return _ok({'status': 'DELETED', 'uuid': story_uuid})
+
+
+# ─── Step 17: Admin CRUD ──────────────────────────────────────────────────────
+
+TYPE_MAP = {
+    'difficulties': 'difficulties',
+    'locations': 'locations',
+    'events': 'events',
+    'items': 'items',
+    'character-templates': 'characterTemplates',
+    'classes': 'classes',
+    'traits': 'traits',
+    'creators': 'raw_creators',
+    'cards': 'raw_cards',
+    'texts': 'raw_texts'
+}
+
+def create_story(event):
+    _, err = _require_admin(event)
+    if err: return err
+
+    try:
+        data = json.loads(event.get('body', '{}'))
+    except Exception:
+        return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    story_uuid = str(uuid_lib.uuid4())
+    story_item = {
+        'PK':         f'STORY#{story_uuid}',
+        'SK':         'METADATA',
+        'uuid':       story_uuid,
+        'author':     data.get('author'),
+        'category':   data.get('category'),
+        'group':      data.get('group'),
+        'visibility': data.get('visibility', 'DRAFT'),
+        'priority':   _safe_int(data.get('priority')),
+        'peghi':      _safe_int(data.get('peghi')),
+        'versionMin': data.get('versionMin'),
+        'versionMax': data.get('versionMax'),
+        'texts':      {},
+        'GSI1_PK':    'STORY_LIST',
+        'GSI1_SK':    f'STORY#{story_uuid}',
+    }
+    db_utils.put_item(story_item)
+    return _ok({'uuid': story_uuid}, status=201)
+
+def update_story(event, story_uuid):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    try:
+        data = json.loads(event.get('body', '{}'))
+    except Exception:
+        return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    # Update allowed fields
+    fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi', 'versionMin', 'versionMax']
+    for f in fields:
+        if f in data:
+            item[f] = data[f]
+
+    db_utils.put_item(item)
+    return _ok({'uuid': story_uuid, 'status': 'UPDATED'})
+
+def list_entities(event, story_uuid, entity_type):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    field = TYPE_MAP.get(entity_type)
+    if not field:
+        return _ok([]) # unknown type -> empty list
+
+    entities = item.get(field, [])
+    # Add idStory to response for compatibility
+    for e in entities:
+        e['idStory'] = item.get('id') # or 0
+
+    return _ok(entities)
+
+def create_entity(event, story_uuid, entity_type):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    field = TYPE_MAP.get(entity_type)
+    if not field:
+        return _err(400, 'INVALID_TYPE', f'Invalid entity type: {entity_type}')
+
+    try:
+        data = json.loads(event.get('body', '{}'))
+    except Exception:
+        return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    ent_uuid = str(uuid_lib.uuid4())
+    data['uuid'] = ent_uuid
+    data['idStory'] = item.get('id')
+
+    if field not in item:
+        item[field] = []
+    item[field].append(data)
+
+    db_utils.put_item(item)
+    return _ok({'uuid': ent_uuid}, status=201)
+
+def get_entity(event, story_uuid, entity_type, entity_uuid):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    field = TYPE_MAP.get(entity_type)
+    if not field:
+        return _err(404, 'ENTITY_NOT_FOUND', 'Type not found')
+
+    entities = item.get(field, [])
+    entity = next((e for e in entities if e.get('uuid') == entity_uuid), None)
+    if not entity:
+        return _err(404, 'ENTITY_NOT_FOUND', f'Entity {entity_uuid} not found')
+
+    return _ok(entity)
+
+def update_entity(event, story_uuid, entity_type, entity_uuid):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    field = TYPE_MAP.get(entity_type)
+    if not field:
+        return _err(404, 'ENTITY_NOT_FOUND', 'Type not found')
+
+    entities = item.get(field, [])
+    found_idx = -1
+    for i, e in enumerate(entities):
+        if e.get('uuid') == entity_uuid:
+            found_idx = i
+            break
+
+    if found_idx == -1:
+        return _err(404, 'ENTITY_NOT_FOUND', f'Entity {entity_uuid} not found')
+
+    try:
+        data = json.loads(event.get('body', '{}'))
+    except Exception:
+        return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    # Update fields in place
+    for k, v in data.items():
+        if k != 'uuid': # don't change uuid
+            entities[found_idx][k] = v
+
+    db_utils.put_item(item)
+    return _ok({'uuid': entity_uuid, 'status': 'UPDATED'})
+
+def delete_entity(event, story_uuid, entity_type, entity_uuid):
+    _, err = _require_admin(event)
+    if err: return err
+
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'Story {story_uuid} not found')
+
+    field = TYPE_MAP.get(entity_type)
+    if not field:
+        return _err(404, 'ENTITY_NOT_FOUND', 'Type not found')
+
+    entities = item.get(field, [])
+    new_entities = [e for e in entities if e.get('uuid') != entity_uuid]
+
+    if len(new_entities) == len(entities):
+        return _err(404, 'ENTITY_NOT_FOUND', f'Entity {entity_uuid} not found')
+
+    item[field] = new_entities
+    db_utils.put_item(item)
+    return _ok({'status': 'DELETED', 'uuid': entity_uuid, 'entityType': entity_type})

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import games.paths.core.port.EchoPort;
+import games.paths.core.port.story.StoryCrudPort;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,6 +14,9 @@ class CoreConfigTest {
 
     @Autowired
     private EchoPort echoPort;
+
+    @Autowired
+    private StoryCrudPort storyCrudPort;
 
     @Test
     void echoPort_shouldBeCreatedBySpringContext() {
@@ -41,5 +45,10 @@ class CoreConfigTest {
     void echoPort_shouldReturnValidTimestamp() {
         long ts = echoPort.getTimestamp();
         assertTrue(ts > 0);
+    }
+
+    @Test
+    void storyCrudPort_shouldBeCreatedBySpringContext() {
+        assertNotNull(storyCrudPort);
     }
 }

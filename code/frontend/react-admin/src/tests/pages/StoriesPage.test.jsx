@@ -124,7 +124,7 @@ describe('StoriesPage', () => {
   it('opens detail modal on eye click', async () => {
     renderPage()
     await screen.findByText('The Lost Kingdom')
-    await userEvent.click(screen.getAllByTitle('View')[0])
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
     // modal shows the story title; Close button appears only in the modal
     expect(screen.getByText('Close')).toBeInTheDocument()
   })

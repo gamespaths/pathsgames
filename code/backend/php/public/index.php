@@ -25,6 +25,9 @@ use Games\Paths\Adapter\Rest\Story\StoryAdminController;
 use Games\Paths\Core\Service\Story\ContentQueryService;
 use Games\Paths\Adapter\Rest\Story\ContentController;
 
+use Games\Paths\Core\Service\Story\StoryCrudService;
+use Games\Paths\Adapter\Rest\Story\StoryCrudAdminController;
+
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
 if ($appEnv === 'development') {
@@ -125,6 +128,7 @@ $guestAdminService = new GuestAdminService($guestRepo);
 $storyQueryService = new StoryQueryService($storyReadRepo);
 $storyImportService = new StoryImportService($storyPersistRepo);
 $contentQueryService = new ContentQueryService($storyReadRepo);
+$storyCrudService = new StoryCrudService($storyReadRepo, $storyPersistRepo);
 
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
@@ -134,6 +138,7 @@ $sessionController = new SessionController($sessionService);
 $storyController = new StoryController($storyQueryService);
 $storyAdminController = new StoryAdminController($storyQueryService, $storyImportService);
 $contentController = new ContentController($contentQueryService);
+$storyCrudAdminController = new StoryCrudAdminController($storyCrudService);
 
 // ─── Authentication Middleware ───
 $publicPaths = [
@@ -150,7 +155,7 @@ $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths)
 // ─── Define Routes ───
 $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $echoController, $guestAuthController, $guestAdminController, $sessionController,
-    $storyController, $storyAdminController, $contentController
+    $storyController, $storyAdminController, $contentController, $storyCrudAdminController
 ) {
     
     // Echo (Public)
@@ -190,6 +195,15 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/content/{uuidStory}/cards/{uuidCard}', [$contentController, 'getCard']);
     $group->get('/content/{uuidStory}/texts/{idText}/lang/{lang}', [$contentController, 'getText']);
     $group->get('/content/{uuidStory}/creators/{uuidCreator}', [$contentController, 'getCreator']);
+
+    // Admin - Story Entity CRUD (Step 17, Protected)
+    $group->post('/admin/stories', [$storyCrudAdminController, 'createStory']);
+    $group->put('/admin/stories/{uuidStory}', [$storyCrudAdminController, 'updateStory']);
+    $group->get('/admin/stories/{uuidStory}/{entityType}', [$storyCrudAdminController, 'listEntities']);
+    $group->post('/admin/stories/{uuidStory}/{entityType}', [$storyCrudAdminController, 'createEntity']);
+    $group->get('/admin/stories/{uuidStory}/{entityType}/{entityUuid}', [$storyCrudAdminController, 'getEntity']);
+    $group->put('/admin/stories/{uuidStory}/{entityType}/{entityUuid}', [$storyCrudAdminController, 'updateEntity']);
+    $group->delete('/admin/stories/{uuidStory}/{entityType}/{entityUuid}', [$storyCrudAdminController, 'deleteEntity']);
 
 })->add($authMiddleware);
 

@@ -129,4 +129,45 @@ public interface StoryReadPort {
      * Finds all creators for a story.
      */
     java.util.List<CreatorEntity> findCreatorsByStoryId(Long storyId);
+
+    // === Step 17: CRUD lookup methods for all entity types ===
+
+    /** Finds a difficulty by story ID and UUID. */
+    Optional<StoryDifficultyEntity> findDifficultyByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds a location by story ID and UUID. */
+    Optional<LocationEntity> findLocationByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds all locations for a story. */
+    List<LocationEntity> findLocationsByStoryId(Long storyId);
+
+    /** Finds an event by story ID and UUID. */
+    Optional<EventEntity> findEventByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds all events for a story. */
+    List<EventEntity> findEventsByStoryId(Long storyId);
+
+    /** Finds an item by story ID and UUID. */
+    Optional<ItemEntity> findItemByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds all items for a story. */
+    List<ItemEntity> findItemsByStoryId(Long storyId);
+
+    /** Finds a character template by story ID and UUID. */
+    Optional<CharacterTemplateEntity> findCharacterTemplateByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds a class by story ID and UUID. */
+    Optional<ClassEntity> findClassByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds a trait by story ID and UUID. */
+    Optional<TraitEntity> findTraitByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds a text by story ID and UUID. */
+    Optional<TextEntity> findTextByStoryIdAndUuid(Long storyId, String uuid);
+
+    /** Finds all texts for a story. */
+    List<TextEntity> findTextsByStoryId(Long storyId);
+
+    /** Finds all cards for a story. */
+    List<CardEntity> findCardsByStoryId(Long storyId);
 }

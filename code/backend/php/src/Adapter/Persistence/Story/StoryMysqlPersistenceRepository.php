@@ -580,4 +580,121 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
+
+    // Step 17: Generic entity CRUD
+
+    private const ALLOWED_TABLES = [
+        'list_stories_difficulty', 'list_locations', 'list_events', 'list_items',
+        'list_character_templates', 'list_classes', 'list_traits',
+        'list_creator', 'list_cards', 'list_texts',
+    ];
+
+    public function saveEntity(int $storyId, string $tableName, array $data): void
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return;
+        }
+        $columns = $this->getTableColumns($tableName);
+        $insertCols = ['id_story'];
+        $placeholders = [':id_story'];
+        $params = [':id_story' => $storyId];
+
+        foreach ($columns as $col) {
+            if ($col === 'id' || $col === 'id_story') continue;
+            $camelKey = $this->toCamel($col);
+            $value = $data[$camelKey] ?? $data[$col] ?? null;
+            if ($value !== null) {
+                $insertCols[] = $col;
+                $placeholders[] = ":$col";
+                $params[":$col"] = $value;
+            }
+        }
+        $colStr = implode(', ', $insertCols);
+        $phStr = implode(', ', $placeholders);
+        $stmt = $this->pdo->prepare("INSERT INTO $tableName ($colStr) VALUES ($phStr)");
+        $stmt->execute($params);
+    }
+
+    public function updateEntity(int $storyId, string $tableName, string $uuid, array $data): void
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return;
+        }
+        $columns = $this->getTableColumns($tableName);
+        $sets = [];
+        $params = [':id_story' => $storyId, ':uuid' => $uuid];
+
+        foreach ($columns as $col) {
+            if (in_array($col, ['id', 'id_story', 'uuid'], true)) continue;
+            $camelKey = $this->toCamel($col);
+            if (array_key_exists($camelKey, $data)) {
+                $sets[] = "$col = :$col";
+                $params[":$col"] = $data[$camelKey];
+            } elseif (array_key_exists($col, $data)) {
+                $sets[] = "$col = :$col";
+                $params[":$col"] = $data[$col];
+            }
+        }
+        if (empty($sets)) return;
+        $setStr = implode(', ', $sets);
+        $stmt = $this->pdo->prepare("UPDATE $tableName SET $setStr WHERE id_story = :id_story AND uuid = :uuid");
+        $stmt->execute($params);
+    }
+
+    public function deleteEntityByUuid(string $tableName, string $uuid): void
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return;
+        }
+        $stmt = $this->pdo->prepare("DELETE FROM $tableName WHERE uuid = :uuid");
+        $stmt->execute([':uuid' => $uuid]);
+    }
+
+    public function updateStoryById(int $storyId, array $data): void
+    {
+        $fieldMap = [
+            'author' => 'author', 'category' => 'category', 'group' => 'group_name',
+            'visibility' => 'visibility', 'priority' => 'priority', 'peghi' => 'peghi',
+            'versionMin' => 'version_min', 'versionMax' => 'version_max',
+            'idTextTitle' => 'id_text_title', 'idTextDescription' => 'id_text_description',
+        ];
+        $sets = [];
+        $params = [':id' => $storyId];
+        foreach ($fieldMap as $jsonKey => $dbCol) {
+            if (array_key_exists($jsonKey, $data)) {
+                $sets[] = "$dbCol = :$dbCol";
+                $params[":$dbCol"] = $data[$jsonKey];
+            }
+        }
+        if (empty($sets)) return;
+        $setStr = implode(', ', $sets);
+        $stmt = $this->pdo->prepare("UPDATE list_stories SET $setStr WHERE id = :id");
+        $stmt->execute($params);
+    }
+
+    private function getTableColumns(string $tableName): array
+    {
+        // Return known column sets for each table (MySQL-compatible)
+        $columnMap = [
+            'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action'],
+            'list_locations' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'is_safe', 'max_characters', 'id_event_on_enter', 'id_event_if_counter_zero', 'counter_start', 'id_card'],
+            'list_events' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'event_type', 'trigger_type', 'energy_cost', 'coin_cost', 'id_event_next', 'flag_interrupt', 'flag_end_time', 'id_location'],
+            'list_items' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight', 'id_class'],
+            'list_character_templates' => ['id', 'id_story', 'uuid', 'id_tipo', 'id_text_name', 'id_text_description', 'life_max', 'energy_max', 'sad_max', 'dexterity_start', 'intelligence_start', 'constitution_start'],
+            'list_classes' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight_max', 'dexterity_base', 'intelligence_base', 'constitution_base'],
+            'list_traits' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
+            'list_creator' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'creator_name', 'creator_role', 'link', 'url', 'url_image', 'url_emote', 'url_instagram'],
+            'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'link_copyright', 'id_creator', 'id_reference'],
+            'list_texts' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'lang', 'short_text', 'long_text', 'id_text_copyright', 'link_copyright', 'id_creator'],
+        ];
+        return $columnMap[$tableName] ?? [];
+    }
+
+    private function toCamel(string $snake): string
+    {
+        $parts = explode('_', $snake);
+        $first = array_shift($parts);
+        return $first . implode('', array_map('ucfirst', $parts));
+    }
 }
+

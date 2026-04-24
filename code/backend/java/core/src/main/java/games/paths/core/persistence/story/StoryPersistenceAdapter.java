@@ -240,4 +240,66 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
     public List<MissionStepEntity> saveMissionSteps(List<MissionStepEntity> steps) {
         return missionStepRepository.saveAll(steps);
     }
+
+    // === Step 17: Individual entity save/delete for CRUD ===
+
+    @Override
+    public LocationEntity saveLocation(LocationEntity entity) { return locationRepository.save(entity); }
+
+    @Override
+    public EventEntity saveEvent(EventEntity entity) { return eventRepository.save(entity); }
+
+    @Override
+    public ItemEntity saveItem(ItemEntity entity) { return itemRepository.save(entity); }
+
+    @Override
+    public StoryDifficultyEntity saveDifficulty(StoryDifficultyEntity entity) { return difficultyRepository.save(entity); }
+
+    @Override
+    public CharacterTemplateEntity saveCharacterTemplate(CharacterTemplateEntity entity) { return characterTemplateRepository.save(entity); }
+
+    @Override
+    public ClassEntity saveClass(ClassEntity entity) { return classRepository.save(entity); }
+
+    @Override
+    public TraitEntity saveTrait(TraitEntity entity) { return traitRepository.save(entity); }
+
+    @Override
+    public TextEntity saveText(TextEntity entity) { return textRepository.save(entity); }
+
+    @Override
+    public CardEntity saveCard(CardEntity entity) { return cardRepository.save(entity); }
+
+    @Override
+    public CreatorEntity saveCreator(CreatorEntity entity) { return creatorRepository.save(entity); }
+
+    @Override
+    public void deleteLocationByUuid(String uuid) { locationRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteEventByUuid(String uuid) { eventRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteItemByUuid(String uuid) { itemRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteDifficultyByUuid(String uuid) { difficultyRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteCharacterTemplateByUuid(String uuid) { characterTemplateRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteClassByUuid(String uuid) { classRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteTraitByUuid(String uuid) { traitRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteTextByUuid(String uuid) { textRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteCardByUuid(String uuid) { cardRepository.deleteByUuid(uuid); }
+
+    @Override
+    public void deleteCreatorByUuid(String uuid) { creatorRepository.deleteByUuid(uuid); }
 }

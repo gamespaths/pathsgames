@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Paths Games API — v0.17.0 Story Admin CRUD
+  version: 0.17.0
+  description: |
+    Admin CRUD endpoints for managing individual story sub-entities.
+    All endpoints require ADMIN role JWT authentication.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/admin/stories:
+    post:
+      tags: [Admin Story CRUD]
+      summary: Create a new story
+      operationId: createStory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryRequest'
+      responses:
+        '201':
+          description: Story created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityResponse'
+        '400':
+          description: Invalid or empty data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/stories/{uuidStory}:
+    put:
+      tags: [Admin Story CRUD]
+      summary: Update story metadata
+      operationId: updateStory
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryRequest'
+      responses:
+        '200':
+          description: Story updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityResponse'
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/stories/{uuidStory}/{entityType}:
+    get:
+      tags: [Admin Entity CRUD]
+      summary: List all entities of a type within a story
+      operationId: listEntities
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+        - $ref: '#/components/parameters/entityType'
+      responses:
+        '200':
+          description: Entity list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntityResponse'
+        '404':
+          description: Story not found
+    post:
+      tags: [Admin Entity CRUD]
+      summary: Create a new entity within a story
+      operationId: createEntity
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+        - $ref: '#/components/parameters/entityType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityRequest'
+      responses:
+        '201':
+          description: Entity created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityResponse'
+        '400':
+          description: Invalid data
+        '404':
+          description: Story not found
+
+  /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}:
+    get:
+      tags: [Admin Entity CRUD]
+      summary: Get a single entity by UUID
+      operationId: getEntity
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+        - $ref: '#/components/parameters/entityType'
+        - $ref: '#/components/parameters/entityUuid'
+      responses:
+        '200':
+          description: Entity found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityResponse'
+        '404':
+          description: Entity not found
+    put:
+      tags: [Admin Entity CRUD]
+      summary: Update an entity
+      operationId: updateEntity
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+        - $ref: '#/components/parameters/entityType'
+        - $ref: '#/components/parameters/entityUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EntityRequest'
+      responses:
+        '200':
+          description: Entity updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntityResponse'
+        '404':
+          description: Entity not found
+    delete:
+      tags: [Admin Entity CRUD]
+      summary: Delete an entity
+      operationId: deleteEntity
+      parameters:
+        - $ref: '#/components/parameters/uuidStory'
+        - $ref: '#/components/parameters/entityType'
+        - $ref: '#/components/parameters/entityUuid'
+      responses:
+        '200':
+          description: Entity deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Entity not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    uuidStory:
+      name: uuidStory
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Story UUID
+    entityType:
+      name: entityType
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - difficulties
+          - locations
+          - events
+          - items
+          - character-templates
+          - classes
+          - traits
+          - creators
+          - cards
+          - texts
+      description: Entity type
+    entityUuid:
+      name: entityUuid
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Entity UUID
+
+  schemas:
+    StoryRequest:
+      type: object
+      properties:
+        author: { type: string }
+        category: { type: string }
+        group: { type: string }
+        visibility: { type: string }
+        priority: { type: integer }
+        peghi: { type: integer }
+        versionMin: { type: string }
+        versionMax: { type: string }
+        idTextTitle: { type: integer }
+        idTextDescription: { type: integer }
+
+    EntityRequest:
+      type: object
+      additionalProperties: true
+      description: Generic entity data — fields vary by entity type
+
+    EntityResponse:
+      type: object
+      properties:
+        uuid: { type: string }
+        idStory: { type: integer }
+        idCard: { type: integer }
+        idTextName: { type: integer }
+        idTextDescription: { type: integer }
+        tsInsert: { type: string, format: date-time }
+        tsUpdate: { type: string, format: date-time }
+      additionalProperties: true
+
+    DeleteResponse:
+      type: object
+      properties:
+        status: { type: string, example: DELETED }
+        uuid: { type: string }
+        entityType: { type: string }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }

@@ -121,3 +121,52 @@ Resources:
       ApiId: !Ref ApiId
       RouteKey: "DELETE /api/admin/stories/{uuid}"
       Target: !Sub "integrations/${StoryIntegration}"
+
+  CreateStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/stories"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  UpdateStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PUT /api/admin/stories/{uuidStory}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  ListEntitiesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/stories/{uuidStory}/{entityType}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  CreateEntityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/stories/{uuidStory}/{entityType}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  GetEntityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  UpdateEntityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PUT /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
+  DeleteEntityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "DELETE /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
+      Target: !Sub "integrations/${StoryIntegration}"

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * StoryDifficultyRepository - Spring Data JPA repository for the "list_stories_difficulty" table.
@@ -20,4 +21,10 @@ public interface StoryDifficultyRepository extends JpaRepository<StoryDifficulty
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<StoryDifficultyEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

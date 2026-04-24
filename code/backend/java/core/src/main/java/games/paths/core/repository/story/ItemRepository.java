@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ItemRepository - Spring Data JPA repository for the "list_items" table.
@@ -20,4 +21,10 @@ public interface ItemRepository extends JpaRepository<ItemEntity, Long> {
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<ItemEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

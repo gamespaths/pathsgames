@@ -51,6 +51,7 @@ class TextEntity(Base):
     __tablename__ = "list_texts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
@@ -135,6 +136,7 @@ class LocationEntity(Base):
     __tablename__ = "list_locations"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -166,6 +168,7 @@ class ItemEntity(Base):
     __tablename__ = "list_items"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -204,6 +207,7 @@ class EventEntity(Base):
     __tablename__ = "list_events"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)

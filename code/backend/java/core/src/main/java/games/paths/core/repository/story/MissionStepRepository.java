@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * MissionStepRepository - Spring Data JPA repository for the "list_missions_steps" table.
@@ -20,4 +21,10 @@ public interface MissionStepRepository extends JpaRepository<MissionStepEntity, 
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<MissionStepEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

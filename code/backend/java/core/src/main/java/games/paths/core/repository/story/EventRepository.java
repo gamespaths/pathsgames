@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * EventRepository - Spring Data JPA repository for the "list_events" table.
@@ -20,4 +21,10 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<EventEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

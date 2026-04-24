@@ -16,7 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConfigurationProperties(prefix = "game.auth.cors")
 public class WebConfig {
 
-    private List<String> allowedOrigins = List.of("http://localhost:3000");
+    private List<String> allowedOrigins = List.of("http://localhost:3000", "http://localhost:5173");
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
@@ -32,7 +32,7 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOrigins(allowedOrigins.toArray(new String[0]))
+                        .allowedOriginPatterns("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)

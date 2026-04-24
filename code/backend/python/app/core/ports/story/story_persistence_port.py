@@ -74,3 +74,22 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_creators(self, story_id: int, creators: List[Dict[str, Any]]) -> None:
         pass
+
+    # Step 17: Generic entity CRUD
+
+    @abstractmethod
+    def save_entity(self, story_id: int, table_name: str, data: Dict[str, Any]) -> None:
+        pass
+
+    @abstractmethod
+    def update_entity(self, story_id: int, table_name: str, uuid: str, data: Dict[str, Any]) -> None:
+        pass
+
+    @abstractmethod
+    def delete_entity_by_uuid(self, table_name: str, uuid: str) -> None:
+        pass
+
+    @abstractmethod
+    def update_story_by_id(self, story_id: int, data: Dict[str, Any]) -> None:
+        pass
+

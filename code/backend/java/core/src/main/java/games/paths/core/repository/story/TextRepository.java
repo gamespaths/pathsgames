@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * TextRepository - Spring Data JPA repository for the "list_texts" table.
@@ -21,7 +22,13 @@ public interface TextRepository extends JpaRepository<TextEntity, Long> {
 
     List<TextEntity> findByIdStoryAndIdTextAndLang(Long idStory, Integer idText, String lang);
 
+    Optional<TextEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

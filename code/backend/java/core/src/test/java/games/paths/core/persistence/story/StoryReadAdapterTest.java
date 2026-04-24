@@ -329,4 +329,76 @@ class StoryReadAdapterTest {
             assertEquals(2, adapter.findCreatorsByStoryId(1L).size());
         }
     }
+
+    // === Step 17: CRUD lookup methods ===
+
+    @Nested
+    @DisplayName("Step 17 CRUD Lookups")
+    class Step17CrudLookups {
+
+        @Test void findDifficultyByUuid() {
+            when(difficultyRepository.findByIdStoryAndUuid(1L, "d-uuid")).thenReturn(Optional.of(new StoryDifficultyEntity()));
+            assertTrue(adapter.findDifficultyByStoryIdAndUuid(1L, "d-uuid").isPresent());
+        }
+
+        @Test void findLocationByUuid() {
+            when(locationRepository.findByIdStoryAndUuid(1L, "l-uuid")).thenReturn(Optional.of(new LocationEntity()));
+            assertTrue(adapter.findLocationByStoryIdAndUuid(1L, "l-uuid").isPresent());
+        }
+
+        @Test void findLocationsByStoryId() {
+            when(locationRepository.findByIdStory(1L)).thenReturn(List.of(new LocationEntity()));
+            assertEquals(1, adapter.findLocationsByStoryId(1L).size());
+        }
+
+        @Test void findEventByUuid() {
+            when(eventRepository.findByIdStoryAndUuid(1L, "e-uuid")).thenReturn(Optional.of(new EventEntity()));
+            assertTrue(adapter.findEventByStoryIdAndUuid(1L, "e-uuid").isPresent());
+        }
+
+        @Test void findEventsByStoryId() {
+            when(eventRepository.findByIdStory(1L)).thenReturn(List.of(new EventEntity()));
+            assertEquals(1, adapter.findEventsByStoryId(1L).size());
+        }
+
+        @Test void findItemByUuid() {
+            when(itemRepository.findByIdStoryAndUuid(1L, "i-uuid")).thenReturn(Optional.of(new ItemEntity()));
+            assertTrue(adapter.findItemByStoryIdAndUuid(1L, "i-uuid").isPresent());
+        }
+
+        @Test void findItemsByStoryId() {
+            when(itemRepository.findByIdStory(1L)).thenReturn(List.of(new ItemEntity()));
+            assertEquals(1, adapter.findItemsByStoryId(1L).size());
+        }
+
+        @Test void findCharacterTemplateByUuid() {
+            when(characterTemplateRepository.findByIdStoryAndUuid(1L, "ct-uuid")).thenReturn(Optional.of(new CharacterTemplateEntity()));
+            assertTrue(adapter.findCharacterTemplateByStoryIdAndUuid(1L, "ct-uuid").isPresent());
+        }
+
+        @Test void findClassByUuid() {
+            when(classRepository.findByIdStoryAndUuid(1L, "c-uuid")).thenReturn(Optional.of(new ClassEntity()));
+            assertTrue(adapter.findClassByStoryIdAndUuid(1L, "c-uuid").isPresent());
+        }
+
+        @Test void findTraitByUuid() {
+            when(traitRepository.findByIdStoryAndUuid(1L, "t-uuid")).thenReturn(Optional.of(new TraitEntity()));
+            assertTrue(adapter.findTraitByStoryIdAndUuid(1L, "t-uuid").isPresent());
+        }
+
+        @Test void findTextByUuid() {
+            when(textRepository.findByIdStoryAndUuid(1L, "tx-uuid")).thenReturn(Optional.of(new TextEntity()));
+            assertTrue(adapter.findTextByStoryIdAndUuid(1L, "tx-uuid").isPresent());
+        }
+
+        @Test void findTextsByStoryId() {
+            when(textRepository.findByIdStory(1L)).thenReturn(List.of(new TextEntity()));
+            assertEquals(1, adapter.findTextsByStoryId(1L).size());
+        }
+
+        @Test void findCardsByStoryId() {
+            when(cardRepository.findByIdStory(1L)).thenReturn(List.of(new CardEntity()));
+            assertEquals(1, adapter.findCardsByStoryId(1L).size());
+        }
+    }
 }

@@ -137,4 +137,48 @@ public interface StoryPersistencePort {
      * Saves a list of mission step entities.
      */
     List<MissionStepEntity> saveMissionSteps(List<MissionStepEntity> steps);
+
+    // === Step 17: Individual entity save/delete for CRUD ===
+
+    /** Saves a single location entity. */
+    LocationEntity saveLocation(LocationEntity entity);
+
+    /** Saves a single event entity. */
+    EventEntity saveEvent(EventEntity entity);
+
+    /** Saves a single item entity. */
+    ItemEntity saveItem(ItemEntity entity);
+
+    /** Saves a single difficulty entity. */
+    StoryDifficultyEntity saveDifficulty(StoryDifficultyEntity entity);
+
+    /** Saves a single character template entity. */
+    CharacterTemplateEntity saveCharacterTemplate(CharacterTemplateEntity entity);
+
+    /** Saves a single class entity. */
+    ClassEntity saveClass(ClassEntity entity);
+
+    /** Saves a single trait entity. */
+    TraitEntity saveTrait(TraitEntity entity);
+
+    /** Saves a single text entity. */
+    TextEntity saveText(TextEntity entity);
+
+    /** Saves a single card entity. */
+    CardEntity saveCard(CardEntity entity);
+
+    /** Saves a single creator entity. */
+    CreatorEntity saveCreator(CreatorEntity entity);
+
+    /** Deletes an entity by UUID (generic - caller resolves type). */
+    void deleteLocationByUuid(String uuid);
+    void deleteEventByUuid(String uuid);
+    void deleteItemByUuid(String uuid);
+    void deleteDifficultyByUuid(String uuid);
+    void deleteCharacterTemplateByUuid(String uuid);
+    void deleteClassByUuid(String uuid);
+    void deleteTraitByUuid(String uuid);
+    void deleteTextByUuid(String uuid);
+    void deleteCardByUuid(String uuid);
+    void deleteCreatorByUuid(String uuid);
 }

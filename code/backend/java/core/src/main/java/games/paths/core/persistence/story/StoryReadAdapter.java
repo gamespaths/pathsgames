@@ -164,4 +164,71 @@ public class StoryReadAdapter implements StoryReadPort {
     public List<CreatorEntity> findCreatorsByStoryId(Long storyId) {
         return creatorRepository.findByIdStory(storyId);
     }
+
+    // === Step 17: CRUD lookup methods ===
+
+    @Override
+    public Optional<StoryDifficultyEntity> findDifficultyByStoryIdAndUuid(Long storyId, String uuid) {
+        return difficultyRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public Optional<LocationEntity> findLocationByStoryIdAndUuid(Long storyId, String uuid) {
+        return locationRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<LocationEntity> findLocationsByStoryId(Long storyId) {
+        return locationRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<EventEntity> findEventByStoryIdAndUuid(Long storyId, String uuid) {
+        return eventRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<EventEntity> findEventsByStoryId(Long storyId) {
+        return eventRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ItemEntity> findItemByStoryIdAndUuid(Long storyId, String uuid) {
+        return itemRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ItemEntity> findItemsByStoryId(Long storyId) {
+        return itemRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<CharacterTemplateEntity> findCharacterTemplateByStoryIdAndUuid(Long storyId, String uuid) {
+        return characterTemplateRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public Optional<ClassEntity> findClassByStoryIdAndUuid(Long storyId, String uuid) {
+        return classRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public Optional<TraitEntity> findTraitByStoryIdAndUuid(Long storyId, String uuid) {
+        return traitRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public Optional<TextEntity> findTextByStoryIdAndUuid(Long storyId, String uuid) {
+        return textRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<TextEntity> findTextsByStoryId(Long storyId) {
+        return textRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public List<CardEntity> findCardsByStoryId(Long storyId) {
+        return cardRepository.findByIdStory(storyId);
+    }
 }

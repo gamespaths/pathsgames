@@ -150,8 +150,57 @@ class StoryReadAdapter(StoryReadPort):
             ).all()
             return [self._to_dict(c) for c in creators]
 
+    # Step 17: Generic CRUD read support
+
+    def find_locations_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            items = session.query(LocationEntity).filter(LocationEntity.id_story == story_id).all()
+            return [self._to_dict(i) for i in items]
+
+    def find_events_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            items = session.query(EventEntity).filter(EventEntity.id_story == story_id).all()
+            return [self._to_dict(i) for i in items]
+
+    def find_items_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            items = session.query(ItemEntity).filter(ItemEntity.id_story == story_id).all()
+            return [self._to_dict(i) for i in items]
+
+    def find_cards_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            items = session.query(CardEntity).filter(CardEntity.id_story == story_id).all()
+            return [self._to_dict(i) for i in items]
+
+    def find_entity_by_story_and_uuid(self, story_id: int, table_name: str, uuid: str) -> Optional[Dict[str, Any]]:
+        model = self._model_for_table(table_name)
+        if not model:
+            return None
+        with self.session_factory() as session:
+            entity = session.query(model).filter(
+                model.id_story == story_id,
+                model.uuid == uuid
+            ).first()
+            return self._to_dict(entity) if entity else None
+
+    def _model_for_table(self, table_name: str):
+        table_map = {
+            "list_stories_difficulty": StoryDifficultyEntity,
+            "list_locations": LocationEntity,
+            "list_events": EventEntity,
+            "list_items": ItemEntity,
+            "list_character_templates": CharacterTemplateEntity,
+            "list_classes": ClassEntity,
+            "list_traits": TraitEntity,
+            "list_creator": CreatorEntity,
+            "list_cards": CardEntity,
+            "list_texts": TextEntity,
+        }
+        return table_map.get(table_name)
+
     def _to_dict(self, obj) -> Dict[str, Any]:
         result = {}
         for column in obj.__table__.columns:
             result[column.name] = getattr(obj, column.name)
         return result
+

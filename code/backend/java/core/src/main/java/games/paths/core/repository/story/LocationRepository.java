@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * LocationRepository - Spring Data JPA repository for the "list_locations" table.
@@ -20,4 +21,10 @@ public interface LocationRepository extends JpaRepository<LocationEntity, Long> 
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<LocationEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

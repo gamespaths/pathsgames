@@ -346,3 +346,94 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         kwargs[db_col] = item[json_key]
                 session.add(entity_class(**kwargs))
             session.commit()
+
+    # Step 17: Generic entity CRUD
+
+    _TABLE_MODEL_MAP = None
+
+    def _get_model_map(self):
+        if self._TABLE_MODEL_MAP is None:
+            StoryPersistenceAdapter._TABLE_MODEL_MAP = {
+                "list_stories_difficulty": StoryDifficultyEntity,
+                "list_locations": LocationEntity,
+                "list_events": EventEntity,
+                "list_items": ItemEntity,
+                "list_character_templates": CharacterTemplateEntity,
+                "list_classes": ClassEntity,
+                "list_traits": TraitEntity,
+                "list_creator": CreatorEntity,
+                "list_cards": CardEntity,
+                "list_texts": TextEntity,
+            }
+        return self._TABLE_MODEL_MAP
+
+    def save_entity(self, story_id: int, table_name: str, data: Dict[str, Any]) -> None:
+        model = self._get_model_map().get(table_name)
+        if not model:
+            return
+        with self.session_factory() as session:
+            kwargs = {"id_story": story_id}
+            for col in model.__table__.columns:
+                col_name = col.name
+                if col_name in ("id", "id_story"):
+                    continue
+                # Try camelCase key from data
+                camel_key = self._to_camel(col_name)
+                if camel_key in data:
+                    kwargs[col_name] = data[camel_key]
+                elif col_name in data:
+                    kwargs[col_name] = data[col_name]
+            session.add(model(**kwargs))
+            session.commit()
+
+    def update_entity(self, story_id: int, table_name: str, uuid: str, data: Dict[str, Any]) -> None:
+        model = self._get_model_map().get(table_name)
+        if not model:
+            return
+        with self.session_factory() as session:
+            entity = session.query(model).filter(
+                model.id_story == story_id,
+                model.uuid == uuid
+            ).first()
+            if not entity:
+                return
+            for col in model.__table__.columns:
+                col_name = col.name
+                if col_name in ("id", "id_story", "uuid"):
+                    continue
+                camel_key = self._to_camel(col_name)
+                if camel_key in data:
+                    setattr(entity, col_name, data[camel_key])
+                elif col_name in data:
+                    setattr(entity, col_name, data[col_name])
+            session.commit()
+
+    def delete_entity_by_uuid(self, table_name: str, uuid: str) -> None:
+        model = self._get_model_map().get(table_name)
+        if not model:
+            return
+        with self.session_factory() as session:
+            session.query(model).filter(model.uuid == uuid).delete()
+            session.commit()
+
+    def update_story_by_id(self, story_id: int, data: Dict[str, Any]) -> None:
+        with self.session_factory() as session:
+            story = session.query(StoryEntity).filter(StoryEntity.id == story_id).first()
+            if not story:
+                return
+            field_map = {
+                "author": "author", "category": "category", "group": "group_name",
+                "visibility": "visibility", "priority": "priority", "peghi": "peghi",
+                "versionMin": "version_min", "versionMax": "version_max",
+                "idTextTitle": "id_text_title", "idTextDescription": "id_text_description",
+            }
+            for json_key, db_attr in field_map.items():
+                if json_key in data:
+                    setattr(story, db_attr, data[json_key])
+            session.commit()
+
+    @staticmethod
+    def _to_camel(snake_str: str) -> str:
+        parts = snake_str.split("_")
+        return parts[0] + "".join(p.capitalize() for p in parts[1:])
+

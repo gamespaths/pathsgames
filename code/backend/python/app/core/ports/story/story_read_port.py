@@ -83,3 +83,26 @@ class StoryReadPort(ABC):
     @abstractmethod
     def find_creators_for_story(self, story_id: int) -> List[Dict[str, Any]]:
         pass
+
+    # Step 17: Generic CRUD read support
+
+    @abstractmethod
+    def find_locations_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_events_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_items_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_cards_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def find_entity_by_story_and_uuid(self, story_id: int, table_name: str, uuid: str) -> Optional[Dict[str, Any]]:
+        pass
+

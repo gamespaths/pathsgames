@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * ChoiceConditionRepository - Spring Data JPA repository for the "list_choices_conditions" table.
@@ -20,4 +21,10 @@ public interface ChoiceConditionRepository extends JpaRepository<ChoiceCondition
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    Optional<ChoiceConditionEntity> findByIdStoryAndUuid(Long idStory, String uuid);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

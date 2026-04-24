@@ -45,4 +45,16 @@ interface StoryReadPort
     public function findCreatorByStoryIdAndUuid(int $storyId, string $uuid): ?array;
 
     public function findCreatorsForStory(int $storyId): array;
+
+    // Step 17: Generic CRUD read support
+
+    public function findLocationsForStory(int $storyId): array;
+
+    public function findEventsForStory(int $storyId): array;
+
+    public function findItemsForStory(int $storyId): array;
+
+    public function findCardsForStory(int $storyId): array;
+
+    public function findEntityByStoryAndUuid(int $storyId, string $tableName, string $uuid): ?array;
 }

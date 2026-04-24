@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
     port: int = 8042
-    version: str = "0.16.6"  
+    version: str = "0.17.0"  
     
 
     # >0.12.5 change version here

@@ -28,4 +28,8 @@ public interface CardRepository extends JpaRepository<CardEntity, Long> {
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

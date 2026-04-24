@@ -35,6 +35,10 @@ sleep 1
 mysql -u pathsgames -ppathsgames -h 127.0.0.1 -D pathsgames < "$PROJECT_ROOT/code/backend/php/database_seed_dev_data.sql"
 sleep 1
 
+
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true
+
 # start local server
 php -S localhost:8042 -t "$PROJECT_ROOT/code/backend/php/public" &
 SERVER_PID=$!

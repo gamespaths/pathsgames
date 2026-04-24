@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory } from '../api/storyApi'
+import { listAllStories, deleteStory, createStory } from '../api/storyApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function StoriesPage() {
   const [stories,  setStories]  = useState([])
@@ -14,6 +14,7 @@ export default function StoriesPage() {
   const [lang,     setLang]     = useState('en')
   const [modal,    setModal]    = useState(null)
   const [detail,   setDetail]   = useState(null)
+  const navigate = useNavigate()
 
   const load = () => {
     setLoading(true); setError('')
@@ -31,6 +32,13 @@ export default function StoriesPage() {
       await deleteStory(uuid)
       setSuccess(`Story ${uuid.slice(0, 8)}… deleted.`)
       load()
+    } catch (e) { setError(e.message) }
+  }
+
+  const handleCreate = async () => {
+    try {
+      const res = await createStory({ author: 'Admin', visibility: 'DRAFT' })
+      navigate(`/stories/${res.uuid}/edit`)
     } catch (e) { setError(e.message) }
   }
 
@@ -78,8 +86,11 @@ export default function StoriesPage() {
         <button className="pg-btn pg-btn-ghost" onClick={load}>
           <i className="fas fa-sync-alt" /> Refresh
         </button>
-        <Link to="/stories/import" className="pg-btn pg-btn-gold">
-          <i className="fas fa-file-import" /> Import Story
+        <button className="pg-btn pg-btn-gold" onClick={handleCreate}>
+          <i className="fas fa-plus" /> New Story
+        </button>
+        <Link to="/stories/import" className="pg-btn pg-btn-ghost">
+          <i className="fas fa-file-import" /> Import
         </Link>
       </div>
 
@@ -126,7 +137,10 @@ export default function StoriesPage() {
                     <td style={{ textAlign: 'center' }}>{s.peghi ?? '—'}</td>
                     <td style={{ textAlign: 'center' }}>{s.difficultyCount ?? '—'}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => setDetail(s)} title="View">
+                      <Link to={`/stories/${s.uuid}/edit`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Edit">
+                        <i className="fas fa-edit" />
+                      </Link>
+                      <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => setDetail(s)} title="View Info">
                         <i className="fas fa-eye" />
                       </button>
                       <button className="pg-btn pg-btn-danger pg-btn-sm" onClick={() => setModal(s.uuid)} title="Delete">

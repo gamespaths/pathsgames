@@ -25,4 +25,8 @@ public interface CreatorRepository extends JpaRepository<CreatorEntity, Long> {
     @Modifying
     @Transactional
     void deleteByIdStory(Long idStory);
+
+    @Modifying
+    @Transactional
+    void deleteByUuid(String uuid);
 }

@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
 
 CREATE TABLE IF NOT EXISTS list_texts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
@@ -97,6 +98,7 @@ CREATE TABLE IF NOT EXISTS list_texts (
 
 CREATE TABLE IF NOT EXISTS list_locations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
@@ -126,6 +128,7 @@ CREATE TABLE IF NOT EXISTS list_locations_neighbors (
 
 CREATE TABLE IF NOT EXISTS list_events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
@@ -154,6 +157,7 @@ CREATE TABLE IF NOT EXISTS list_events_effects (
 
 CREATE TABLE IF NOT EXISTS list_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,

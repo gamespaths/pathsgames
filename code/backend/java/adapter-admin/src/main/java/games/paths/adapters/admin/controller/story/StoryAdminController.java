@@ -3,6 +3,7 @@ package games.paths.adapters.admin.controller.story;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
+import games.paths.core.model.story.StoryDetail;
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.model.story.StorySummary;
 import games.paths.core.port.story.StoryImportPort;
@@ -20,12 +21,22 @@ import java.util.stream.Collectors;
 /**
  * StoryAdminController - REST adapter for story administration.
  *
- * <p>POST /api/admin/stories/import → import a complete story from JSON</p>
- * <p>GET  /api/admin/stories        → list all stories (any visibility)</p>
- * <p>GET  /api/admin/stories/{uuid} → get a single story detail (admin view)</p>
- * <p>DELETE /api/admin/stories/{uuid} → delete a story and all its data</p>
+ * <p>
+ * POST /api/admin/stories/import → import a complete story from JSON
+ * </p>
+ * <p>
+ * GET /api/admin/stories → list all stories (any visibility)
+ * </p>
+ * <p>
+ * GET /api/admin/stories/{uuid} → get a single story detail (admin view)
+ * </p>
+ * <p>
+ * DELETE /api/admin/stories/{uuid} → delete a story and all its data
+ * </p>
  *
- * <p>All endpoints require ADMIN role (enforced by JwtAuthenticationFilter).</p>
+ * <p>
+ * All endpoints require ADMIN role (enforced by JwtAuthenticationFilter).
+ * </p>
  */
 @RestController
 @RequestMapping("/api/admin/stories")
@@ -90,6 +101,40 @@ public class StoryAdminController {
                         s.getPriority(), s.getPeghi(), s.getDifficultyCount()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * GET /api/admin/stories/{uuid}
+     * Returns the full detail of a single story by UUID (any visibility).
+     */
+    @GetMapping("/{uuid}")
+    public ResponseEntity<Object> getStory(
+            @PathVariable String uuid,
+            @RequestParam(value = "lang", defaultValue = "en") String lang) {
+
+        StoryDetail detail = storyQueryPort.getStoryByUuid(uuid, lang);
+        if (detail == null) {
+            Map<String, String> error = new LinkedHashMap<>();
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.STORY_NOT_FOUND);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.STORY_NOT_FOUND_WITH_UUID + uuid);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+
+        // Return a map with all metadata for the editor
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("uuid", detail.getUuid());
+        resp.put("author", detail.getAuthor());
+        resp.put("category", detail.getCategory());
+        resp.put("group", detail.getGroup());
+        resp.put("visibility", detail.getVisibility());
+        resp.put("priority", detail.getPriority());
+        resp.put("peghi", detail.getPeghi());
+        resp.put("versionMin", detail.getVersionMin());
+        resp.put("versionMax", detail.getVersionMax());
+        resp.put("idTextTitle", null);
+        resp.put("idTextDescription", null);
+
+        return ResponseEntity.ok(resp);
     }
 
     /**
