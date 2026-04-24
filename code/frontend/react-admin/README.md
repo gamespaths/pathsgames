@@ -1,6 +1,8 @@
 # Paths Games — React Admin
 
+
 Administration frontend for the Paths Games backend.
+
 
 ## Stack
 - **React 18** + **Vite 5**
