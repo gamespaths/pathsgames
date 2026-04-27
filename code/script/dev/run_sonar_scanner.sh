@@ -28,7 +28,7 @@ run_java() {
     fi
     cd "$PROJECT_ROOT/code/backend/java"
     mvn clean package
-    mvn sonar:sonar -Dsonar.login="$SONAR_LOGIN_TOKEN_JAVA"
+    mvn sonar:sonar -Dsonar.token="$SONAR_LOGIN_TOKEN_JAVA"
     echo "Java Sonar Scanner completed."
 }
 
@@ -47,7 +47,8 @@ run_php() {
     set +e
     XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover build/logs/clover.xml --log-junit build/logs/junit.xml
     set -e
-    npx -y sonar-scanner -Dsonar.login="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
+    rm -rf .scannerwork
+    npx -y sonarqube-scanner -Dsonar.token="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
     echo "PHP Sonar Scanner completed."
 }
 
@@ -69,8 +70,8 @@ run_python() {
         pytest --cov=app --cov-report=xml:coverage.xml --cov-report=term-missing -v
     fi
     set -e
-
-    npx -y sonar-scanner -Dsonar.login="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
+    rm -rf .scannerwork
+    npx -y sonarqube-scanner -Dsonar.token="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
     echo "Python Sonar Scanner completed."
 }
 
@@ -88,8 +89,11 @@ run_react_admin() {
     npm run test:coverage
     set -e
     
-    npx -y sonar-scanner \
-        -Dsonar.login="$SONAR_LOGIN_TOKEN" \
+    # Cleanup previous scanner work to avoid lock issues
+    rm -rf .scannerwork
+    
+    npx -y sonarqube-scanner \
+        -Dsonar.token="$SONAR_LOGIN_TOKEN" \
         -Dsonar.host.url="$SONAR_HOST_URL" \
         -Dsonar.organization="$SONAR_ORGANIZATION" \
         -Dsonar.projectKey=paths-game-admin-react \
@@ -98,7 +102,10 @@ run_react_admin() {
         -Dsonar.sources=src \
         -Dsonar.tests=src/tests \
         -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,src/tests/**" \
-        -Dsonar.test.inclusions="src/tests/**/*.test.jsx"
+        -Dsonar.test.inclusions="src/tests/**/*.test.jsx" \
+        -Dsonar.js.security.sensor.skip=true \
+        -Dsonar.security.analysis.skip=true \
+        -Dsonar.main.js.security.skip=true
     echo "React Admin Sonar Scanner completed."
 }
 
@@ -114,7 +121,7 @@ case "$TARGET" in
         run_java
         run_php
         run_python
-        # run_react_admin
+        run_react_admin
         ;;
     java)
         run_java

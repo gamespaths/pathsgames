@@ -4,14 +4,14 @@ on:
   push:
     branches: [ develop ] #main, 
     paths:
-      - 'code/backend/java/**'
+      - "code/backend/java/**"
 #  pull_request:
 #    branches: [ main, develop ]
 #    paths:
 #      - 'code/backend/java/**'
-  
+
 env:
-  JAVA_VERSION: '21'
+  JAVA_VERSION: "21"
 
 jobs:
   sonarqube:
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history needed for SonarQube blame data
+          fetch-depth: 0 # Full history needed for SonarQube blame data
 
       - name: Set up Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4

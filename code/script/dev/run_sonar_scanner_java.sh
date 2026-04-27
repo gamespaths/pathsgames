@@ -21,5 +21,6 @@ fi
 SONAR_LOGIN_TOKEN_JAVA="${SONAR_LOGIN_TOKEN_JAVA:-}"
 
 cd "$PROJECT_ROOT/code/backend/java" && mvn clean package && mvn sonar:sonar -Dsonar.login="$SONAR_LOGIN_TOKEN_JAVA"
+	# -Dsonar.cpd.exclusions="**/dto/**,**/model/**"
 
 echo "Sonar Scanner for Java completed successfully."

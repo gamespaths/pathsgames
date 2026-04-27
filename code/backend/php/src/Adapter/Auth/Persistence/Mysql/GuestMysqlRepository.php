@@ -23,6 +23,7 @@ class GuestMysqlRepository implements GuestRepositoryPort
             VALUES 
                 (:uuid, :username, :role, :state, :cookieToken, :guestExpiresAt, :tsInsert, :tsRegistration, :tsLastAccess, :expiresAt)
         ");
+        $now = date('Y-m-d H:i:s');
         $stmt->execute([
             ':uuid' => $session->getUuid(),
             ':username' => $session->getUsername(),
@@ -31,8 +32,8 @@ class GuestMysqlRepository implements GuestRepositoryPort
             ':cookieToken' => $session->getCookieToken(),
             ':guestExpiresAt' => $session->getGuestExpiresAt(),
             ':tsInsert' => $session->getTsInsert()->format('Y-m-d H:i:s'),
-            ':tsRegistration' => $session->getTsRegistration(),
-            ':tsLastAccess' => $session->getTsLastAccess(),
+            ':tsRegistration' => $session->getTsRegistration() ?? $now,
+            ':tsLastAccess' => $session->getTsLastAccess() ?? $now,
             ':expiresAt' => $session->getExpiresAt()->format('Y-m-d H:i:s'),
         ]);
     }

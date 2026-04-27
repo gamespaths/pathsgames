@@ -249,20 +249,7 @@ public class StoryCrudService implements StoryCrudPort {
         LocationEntity e = new LocationEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
-        if (d.containsKey("idImage")) e.setIdImage(intVal(d, "idImage"));
-        if (d.containsKey("isSafe")) e.setIsSafe(intVal(d, "isSafe"));
-        if (d.containsKey("costEnergyEnter")) e.setCostEnergyEnter(intVal(d, "costEnergyEnter"));
-        if (d.containsKey("counterTime")) e.setCounterTime(intVal(d, "counterTime"));
-        if (d.containsKey("idEventIfCounterZero")) e.setIdEventIfCounterZero(intVal(d, "idEventIfCounterZero"));
-        if (d.containsKey("secureParam")) e.setSecureParam(intVal(d, "secureParam"));
-        if (d.containsKey("idEventIfCharacterStartTime")) e.setIdEventIfCharacterStartTime(intVal(d, "idEventIfCharacterStartTime"));
-        if (d.containsKey("idEventIfCharacterEnterFirstTime")) e.setIdEventIfCharacterEnterFirstTime(intVal(d, "idEventIfCharacterEnterFirstTime"));
-        if (d.containsKey("idEventIfFirstTime")) e.setIdEventIfFirstTime(intVal(d, "idEventIfFirstTime"));
-        if (d.containsKey("idEventNotFirstTime")) e.setIdEventNotFirstTime(intVal(d, "idEventNotFirstTime"));
-        if (d.containsKey("priorityAutomaticEvent")) e.setPriorityAutomaticEvent(intVal(d, "priorityAutomaticEvent"));
-        if (d.containsKey("idAudio")) e.setIdAudio(intVal(d, "idAudio"));
-        if (d.containsKey("maxCharacters")) e.setMaxCharacters(intVal(d, "maxCharacters"));
+        applyLocationFields(e, d);
         return toMap(persistencePort.saveLocation(e));
     }
 
@@ -270,18 +257,7 @@ public class StoryCrudService implements StoryCrudPort {
         EventEntity e = new EventEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idSpecificLocation")) e.setIdSpecificLocation(intVal(d, "idSpecificLocation"));
-        if (d.containsKey("type")) e.setType(str(d, "type"));
-        if (d.containsKey("costEnery")) e.setCostEnery(intVal(d, "costEnery"));
-        if (d.containsKey("flagEndTime")) e.setFlagEndTime(intVal(d, "flagEndTime"));
-        if (d.containsKey("characteristicToAdd")) e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
-        if (d.containsKey("characteristicToRemove")) e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
-        if (d.containsKey("keyToAdd")) e.setKeyToAdd(str(d, "keyToAdd"));
-        if (d.containsKey("keyValueToAdd")) e.setKeyValueToAdd(str(d, "keyValueToAdd"));
-        if (d.containsKey("idItemToAdd")) e.setIdItemToAdd(intVal(d, "idItemToAdd"));
-        if (d.containsKey("idWeather")) e.setIdWeather(intVal(d, "idWeather"));
-        if (d.containsKey("idEventNext")) e.setIdEventNext(intVal(d, "idEventNext"));
-        if (d.containsKey("coinCost")) e.setCoinCost(intVal(d, "coinCost"));
+        applyEventFields(e, d);
         return toMap(persistencePort.saveEvent(e));
     }
 
@@ -289,10 +265,7 @@ public class StoryCrudService implements StoryCrudPort {
         ItemEntity e = new ItemEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("weight")) e.setWeight(intVal(d, "weight"));
-        if (d.containsKey("isConsumabile")) e.setIsConsumabile(intVal(d, "isConsumabile"));
-        if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
-        if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
+        applyItemFields(e, d);
         return toMap(persistencePort.saveItem(e));
     }
 
@@ -300,13 +273,7 @@ public class StoryCrudService implements StoryCrudPort {
         StoryDifficultyEntity e = new StoryDifficultyEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("expCost")) e.setExpCost(intVal(d, "expCost"));
-        if (d.containsKey("maxWeight")) e.setMaxWeight(intVal(d, "maxWeight"));
-        if (d.containsKey("minCharacter")) e.setMinCharacter(intVal(d, "minCharacter"));
-        if (d.containsKey("maxCharacter")) e.setMaxCharacter(intVal(d, "maxCharacter"));
-        if (d.containsKey("costHelpComa")) e.setCostHelpComa(intVal(d, "costHelpComa"));
-        if (d.containsKey("costMaxCharacteristics")) e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
-        if (d.containsKey("numberMaxFreeAction")) e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
+        applyDifficultyFields(e, d);
         return toMap(persistencePort.saveDifficulty(e));
     }
 
@@ -314,12 +281,7 @@ public class StoryCrudService implements StoryCrudPort {
         CharacterTemplateEntity e = new CharacterTemplateEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("lifeMax")) e.setLifeMax(intVal(d, "lifeMax"));
-        if (d.containsKey("energyMax")) e.setEnergyMax(intVal(d, "energyMax"));
-        if (d.containsKey("sadMax")) e.setSadMax(intVal(d, "sadMax"));
-        if (d.containsKey("dexterityStart")) e.setDexterityStart(intVal(d, "dexterityStart"));
-        if (d.containsKey("intelligenceStart")) e.setIntelligenceStart(intVal(d, "intelligenceStart"));
-        if (d.containsKey("constitutionStart")) e.setConstitutionStart(intVal(d, "constitutionStart"));
+        applyCharacterTemplateFields(e, d);
         return toMap(persistencePort.saveCharacterTemplate(e));
     }
 
@@ -327,10 +289,7 @@ public class StoryCrudService implements StoryCrudPort {
         ClassEntity e = new ClassEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("weightMax")) e.setWeightMax(intVal(d, "weightMax"));
-        if (d.containsKey("dexterityBase")) e.setDexterityBase(intVal(d, "dexterityBase"));
-        if (d.containsKey("intelligenceBase")) e.setIntelligenceBase(intVal(d, "intelligenceBase"));
-        if (d.containsKey("constitutionBase")) e.setConstitutionBase(intVal(d, "constitutionBase"));
+        applyClassFields(e, d);
         return toMap(persistencePort.saveClass(e));
     }
 
@@ -338,66 +297,35 @@ public class StoryCrudService implements StoryCrudPort {
         TraitEntity e = new TraitEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
-        if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
-        if (d.containsKey("costPositive")) e.setCostPositive(intVal(d, "costPositive"));
-        if (d.containsKey("costNegative")) e.setCostNegative(intVal(d, "costNegative"));
+        applyTraitFields(e, d);
         return toMap(persistencePort.saveTrait(e));
     }
 
     private Map<String, Object> createText(Long sid, Map<String, Object> d) {
         TextEntity e = new TextEntity();
         e.setIdStory(sid);
-        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-        if (d.containsKey("lang")) e.setLang(str(d, "lang"));
-        if (d.containsKey("shortText")) e.setShortText(str(d, "shortText"));
-        if (d.containsKey("longText")) e.setLongText(str(d, "longText"));
-        if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
-        if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
-        if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
+        applyTextFields(e, d);
         return toMap(persistencePort.saveText(e));
     }
 
     private Map<String, Object> createCard(Long sid, Map<String, Object> d) {
         CardEntity e = new CardEntity();
         e.setIdStory(sid);
-        if (d.containsKey("idTextTitle")) e.setIdTextTitle(intVal(d, "idTextTitle"));
-        if (d.containsKey("idTextDescription")) e.setIdTextDescription(intVal(d, "idTextDescription"));
-        if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
-        if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
-        if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
-        if (d.containsKey("urlImmage")) e.setUrlImmage(str(d, "urlImmage"));
-        if (d.containsKey("alternativeImage")) e.setAlternativeImage(str(d, "alternativeImage"));
-        if (d.containsKey("awesomeIcon")) e.setAwesomeIcon(str(d, "awesomeIcon"));
-        if (d.containsKey("styleMain")) e.setStyleMain(str(d, "styleMain"));
-        if (d.containsKey("styleDetail")) e.setStyleDetail(str(d, "styleDetail"));
+        applyCardFields(e, d);
         return toMap(persistencePort.saveCard(e));
     }
 
     private Map<String, Object> createCreator(Long sid, Map<String, Object> d) {
         CreatorEntity e = new CreatorEntity();
         e.setIdStory(sid);
-        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-        if (d.containsKey("link")) e.setLink(str(d, "link"));
-        if (d.containsKey("url")) e.setUrl(str(d, "url"));
-        if (d.containsKey("urlImage")) e.setUrlImage(str(d, "urlImage"));
-        if (d.containsKey("urlEmote")) e.setUrlEmote(str(d, "urlEmote"));
-        if (d.containsKey("urlInstagram")) e.setUrlInstagram(str(d, "urlInstagram"));
+        applyCreatorFields(e, d);
         return toMap(persistencePort.saveCreator(e));
     }
 
     private Map<String, Object> createLocationNeighbor(Long sid, Map<String, Object> d) {
         LocationNeighborEntity e = new LocationNeighborEntity();
         e.setIdStory(sid);
-        if (d.containsKey("idLocationFrom")) e.setIdLocationFrom(intVal(d, "idLocationFrom"));
-        if (d.containsKey("idLocationTo")) e.setIdLocationTo(intVal(d, "idLocationTo"));
-        if (d.containsKey("direction")) e.setDirection(str(d, "direction"));
-        if (d.containsKey("flagBack")) e.setFlagBack(intVal(d, "flagBack"));
-        if (d.containsKey("conditionRegistryKey")) e.setConditionRegistryKey(str(d, "conditionRegistryKey"));
-        if (d.containsKey("conditionRegistryValue")) e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
-        if (d.containsKey("energyCost")) e.setEnergyCost(intVal(d, "energyCost"));
-        if (d.containsKey("idTextGo")) e.setIdTextGo(intVal(d, "idTextGo"));
-        if (d.containsKey("idTextBack")) e.setIdTextBack(intVal(d, "idTextBack"));
+        applyLocationNeighborFields(e, d);
         return toMap(persistencePort.saveLocationNeighbor(e));
     }
 
@@ -405,11 +333,7 @@ public class StoryCrudService implements StoryCrudPort {
         KeyEntity e = new KeyEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("name")) e.setName(str(d, "name"));
-        if (d.containsKey("value")) e.setValue(str(d, "value"));
-        if (d.containsKey("group")) e.setGroup(str(d, "group"));
-        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-        if (d.containsKey("visibility")) e.setVisibility(str(d, "visibility"));
+        applyKeyFields(e, d);
         return toMap(persistencePort.saveKey(e));
     }
 
@@ -417,15 +341,7 @@ public class StoryCrudService implements StoryCrudPort {
         EventEffectEntity e = new EventEffectEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
-        if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
-        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
-        if (d.containsKey("target")) e.setTarget(str(d, "target"));
-        if (d.containsKey("traitsToAdd")) e.setTraitsToAdd(str(d, "traitsToAdd"));
-        if (d.containsKey("traitsToRemove")) e.setTraitsToRemove(str(d, "traitsToRemove"));
-        if (d.containsKey("targetClass")) e.setTargetClass(intVal(d, "targetClass"));
-        if (d.containsKey("idItemTarget")) e.setIdItemTarget(intVal(d, "idItemTarget"));
-        if (d.containsKey("itemAction")) e.setItemAction(str(d, "itemAction"));
+        applyEventEffectFields(e, d);
         return toMap(persistencePort.saveEventEffect(e));
     }
 
@@ -433,18 +349,7 @@ public class StoryCrudService implements StoryCrudPort {
         ChoiceEntity e = new ChoiceEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
-        if (d.containsKey("idLocation")) e.setIdLocation(intVal(d, "idLocation"));
-        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-        if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
-        if (d.containsKey("idEventTorun")) e.setIdEventTorun(intVal(d, "idEventTorun"));
-        if (d.containsKey("limitSad")) e.setLimitSad(intVal(d, "limitSad"));
-        if (d.containsKey("limitDex")) e.setLimitDex(intVal(d, "limitDex"));
-        if (d.containsKey("limitInt")) e.setLimitInt(intVal(d, "limitInt"));
-        if (d.containsKey("limitCos")) e.setLimitCos(intVal(d, "limitCos"));
-        if (d.containsKey("otherwiseFlag")) e.setOtherwiseFlag(intVal(d, "otherwiseFlag"));
-        if (d.containsKey("isProgress")) e.setIsProgress(intVal(d, "isProgress"));
-        if (d.containsKey("logicOperator")) e.setLogicOperator(str(d, "logicOperator"));
+        applyChoiceFields(e, d);
         return toMap(persistencePort.saveChoice(e));
     }
 
@@ -452,11 +357,7 @@ public class StoryCrudService implements StoryCrudPort {
         ChoiceConditionEntity e = new ChoiceConditionEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
-        if (d.containsKey("type")) e.setType(str(d, "type"));
-        if (d.containsKey("key")) e.setKey(str(d, "key"));
-        if (d.containsKey("value")) e.setValue(str(d, "value"));
-        if (d.containsKey("operator")) e.setOperator(str(d, "operator"));
+        applyChoiceConditionFields(e, d);
         return toMap(persistencePort.saveChoiceCondition(e));
     }
 
@@ -464,15 +365,7 @@ public class StoryCrudService implements StoryCrudPort {
         ChoiceEffectEntity e = new ChoiceEffectEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
-        if (d.containsKey("idScelta")) e.setIdScelta(intVal(d, "idScelta"));
-        if (d.containsKey("flagGroup")) e.setFlagGroup(intVal(d, "flagGroup"));
-        if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
-        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
-        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-        if (d.containsKey("key")) e.setKey(str(d, "key"));
-        if (d.containsKey("valueToAdd")) e.setValueToAdd(str(d, "valueToAdd"));
-        if (d.containsKey("valueToRemove")) e.setValueToRemove(str(d, "valueToRemove"));
+        applyChoiceEffectFields(e, d);
         return toMap(persistencePort.saveChoiceEffect(e));
     }
 
@@ -480,9 +373,7 @@ public class StoryCrudService implements StoryCrudPort {
         ItemEffectEntity e = new ItemEffectEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idItem")) e.setIdItem(intVal(d, "idItem"));
-        if (d.containsKey("effectCode")) e.setEffectCode(str(d, "effectCode"));
-        if (d.containsKey("effectValue")) e.setEffectValue(intVal(d, "effectValue"));
+        applyItemEffectFields(e, d);
         return toMap(persistencePort.saveItemEffect(e));
     }
 
@@ -490,18 +381,7 @@ public class StoryCrudService implements StoryCrudPort {
         WeatherRuleEntity e = new WeatherRuleEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
-        if (d.containsKey("costMoveSafeLocation")) e.setCostMoveSafeLocation(intVal(d, "costMoveSafeLocation"));
-        if (d.containsKey("costMoveNotSafeLocation")) e.setCostMoveNotSafeLocation(intVal(d, "costMoveNotSafeLocation"));
-        if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
-        if (d.containsKey("conditionKeyValue")) e.setConditionKeyValue(str(d, "conditionKeyValue"));
-        if (d.containsKey("timeFrom")) e.setTimeFrom(intVal(d, "timeFrom"));
-        if (d.containsKey("timeTo")) e.setTimeTo(intVal(d, "timeTo"));
-        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-        if (d.containsKey("active")) e.setActive(intVal(d, "active"));
-        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-        if (d.containsKey("deltaEnergy")) e.setDeltaEnergy(intVal(d, "deltaEnergy"));
-        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+        applyWeatherRuleFields(e, d);
         return toMap(persistencePort.saveWeatherRule(e));
     }
 
@@ -509,11 +389,7 @@ public class StoryCrudService implements StoryCrudPort {
         GlobalRandomEventEntity e = new GlobalRandomEventEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
-        if (d.containsKey("conditionValue")) e.setConditionValue(str(d, "conditionValue"));
-        if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
-        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+        applyGlobalRandomEventFields(e, d);
         return toMap(persistencePort.saveGlobalRandomEvent(e));
     }
 
@@ -521,9 +397,7 @@ public class StoryCrudService implements StoryCrudPort {
         ClassBonusEntity e = new ClassBonusEntity();
         e.setIdStory(sid);
         applyBaseFields(e, d);
-        if (d.containsKey("idClass")) e.setIdClass(intVal(d, "idClass"));
-        if (d.containsKey("statistic")) e.setStatistic(str(d, "statistic"));
-        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
+        applyClassBonusFields(e, d);
         return toMap(persistencePort.saveClassBonus(e));
     }
 
@@ -540,8 +414,7 @@ public class StoryCrudService implements StoryCrudPort {
         e.setIdStory(sid);
         applyBaseFields(e, d);
         applyMissionFields(e, d);
-        if (d.containsKey("idMission")) e.setIdMission(intVal(d, "idMission"));
-        if (d.containsKey("step")) e.setStep(intVal(d, "step"));
+        applyMissionStepFields(e, d);
         return toMap(persistencePort.saveMissionStep(e));
     }
 
@@ -549,20 +422,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateLocation(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findLocationByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
-            if (d.containsKey("idImage")) e.setIdImage(intVal(d, "idImage"));
-            if (d.containsKey("isSafe")) e.setIsSafe(intVal(d, "isSafe"));
-            if (d.containsKey("costEnergyEnter")) e.setCostEnergyEnter(intVal(d, "costEnergyEnter"));
-            if (d.containsKey("counterTime")) e.setCounterTime(intVal(d, "counterTime"));
-            if (d.containsKey("idEventIfCounterZero")) e.setIdEventIfCounterZero(intVal(d, "idEventIfCounterZero"));
-            if (d.containsKey("secureParam")) e.setSecureParam(intVal(d, "secureParam"));
-            if (d.containsKey("idEventIfCharacterStartTime")) e.setIdEventIfCharacterStartTime(intVal(d, "idEventIfCharacterStartTime"));
-            if (d.containsKey("idEventIfCharacterEnterFirstTime")) e.setIdEventIfCharacterEnterFirstTime(intVal(d, "idEventIfCharacterEnterFirstTime"));
-            if (d.containsKey("idEventIfFirstTime")) e.setIdEventIfFirstTime(intVal(d, "idEventIfFirstTime"));
-            if (d.containsKey("idEventNotFirstTime")) e.setIdEventNotFirstTime(intVal(d, "idEventNotFirstTime"));
-            if (d.containsKey("priorityAutomaticEvent")) e.setPriorityAutomaticEvent(intVal(d, "priorityAutomaticEvent"));
-            if (d.containsKey("idAudio")) e.setIdAudio(intVal(d, "idAudio"));
-            if (d.containsKey("maxCharacters")) e.setMaxCharacters(intVal(d, "maxCharacters"));
+            applyLocationFields(e, d);
             return toMap(persistencePort.saveLocation(e));
         }).orElse(null);
     }
@@ -570,18 +430,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateEvent(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findEventByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idSpecificLocation")) e.setIdSpecificLocation(intVal(d, "idSpecificLocation"));
-            if (d.containsKey("type")) e.setType(str(d, "type"));
-            if (d.containsKey("costEnery")) e.setCostEnery(intVal(d, "costEnery"));
-            if (d.containsKey("flagEndTime")) e.setFlagEndTime(intVal(d, "flagEndTime"));
-            if (d.containsKey("characteristicToAdd")) e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
-            if (d.containsKey("characteristicToRemove")) e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
-            if (d.containsKey("keyToAdd")) e.setKeyToAdd(str(d, "keyToAdd"));
-            if (d.containsKey("keyValueToAdd")) e.setKeyValueToAdd(str(d, "keyValueToAdd"));
-            if (d.containsKey("idItemToAdd")) e.setIdItemToAdd(intVal(d, "idItemToAdd"));
-            if (d.containsKey("idWeather")) e.setIdWeather(intVal(d, "idWeather"));
-            if (d.containsKey("idEventNext")) e.setIdEventNext(intVal(d, "idEventNext"));
-            if (d.containsKey("coinCost")) e.setCoinCost(intVal(d, "coinCost"));
+            applyEventFields(e, d);
             return toMap(persistencePort.saveEvent(e));
         }).orElse(null);
     }
@@ -589,10 +438,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateItem(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findItemByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("weight")) e.setWeight(intVal(d, "weight"));
-            if (d.containsKey("isConsumabile")) e.setIsConsumabile(intVal(d, "isConsumabile"));
-            if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
-            if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
+            applyItemFields(e, d);
             return toMap(persistencePort.saveItem(e));
         }).orElse(null);
     }
@@ -600,13 +446,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateDifficulty(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findDifficultyByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("expCost")) e.setExpCost(intVal(d, "expCost"));
-            if (d.containsKey("maxWeight")) e.setMaxWeight(intVal(d, "maxWeight"));
-            if (d.containsKey("minCharacter")) e.setMinCharacter(intVal(d, "minCharacter"));
-            if (d.containsKey("maxCharacter")) e.setMaxCharacter(intVal(d, "maxCharacter"));
-            if (d.containsKey("costHelpComa")) e.setCostHelpComa(intVal(d, "costHelpComa"));
-            if (d.containsKey("costMaxCharacteristics")) e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
-            if (d.containsKey("numberMaxFreeAction")) e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
+            applyDifficultyFields(e, d);
             return toMap(persistencePort.saveDifficulty(e));
         }).orElse(null);
     }
@@ -614,12 +454,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateCharacterTemplate(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findCharacterTemplateByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("lifeMax")) e.setLifeMax(intVal(d, "lifeMax"));
-            if (d.containsKey("energyMax")) e.setEnergyMax(intVal(d, "energyMax"));
-            if (d.containsKey("sadMax")) e.setSadMax(intVal(d, "sadMax"));
-            if (d.containsKey("dexterityStart")) e.setDexterityStart(intVal(d, "dexterityStart"));
-            if (d.containsKey("intelligenceStart")) e.setIntelligenceStart(intVal(d, "intelligenceStart"));
-            if (d.containsKey("constitutionStart")) e.setConstitutionStart(intVal(d, "constitutionStart"));
+            applyCharacterTemplateFields(e, d);
             return toMap(persistencePort.saveCharacterTemplate(e));
         }).orElse(null);
     }
@@ -627,10 +462,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateClass(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findClassByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("weightMax")) e.setWeightMax(intVal(d, "weightMax"));
-            if (d.containsKey("dexterityBase")) e.setDexterityBase(intVal(d, "dexterityBase"));
-            if (d.containsKey("intelligenceBase")) e.setIntelligenceBase(intVal(d, "intelligenceBase"));
-            if (d.containsKey("constitutionBase")) e.setConstitutionBase(intVal(d, "constitutionBase"));
+            applyClassFields(e, d);
             return toMap(persistencePort.saveClass(e));
         }).orElse(null);
     }
@@ -638,66 +470,35 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateTrait(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findTraitByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
-            if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
-            if (d.containsKey("costPositive")) e.setCostPositive(intVal(d, "costPositive"));
-            if (d.containsKey("costNegative")) e.setCostNegative(intVal(d, "costNegative"));
+            applyTraitFields(e, d);
             return toMap(persistencePort.saveTrait(e));
         }).orElse(null);
     }
 
     private Map<String, Object> updateText(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findTextByStoryIdAndUuid(sid, uuid).map(e -> {
-            if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-            if (d.containsKey("lang")) e.setLang(str(d, "lang"));
-            if (d.containsKey("shortText")) e.setShortText(str(d, "shortText"));
-            if (d.containsKey("longText")) e.setLongText(str(d, "longText"));
-            if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
-            if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
-            if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
+            applyTextFields(e, d);
             return toMap(persistencePort.saveText(e));
         }).orElse(null);
     }
 
     private Map<String, Object> updateCard(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findCardByStoryIdAndUuid(sid, uuid).map(e -> {
-            if (d.containsKey("idTextTitle")) e.setIdTextTitle(intVal(d, "idTextTitle"));
-            if (d.containsKey("idTextDescription")) e.setIdTextDescription(intVal(d, "idTextDescription"));
-            if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
-            if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
-            if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
-            if (d.containsKey("urlImmage")) e.setUrlImmage(str(d, "urlImmage"));
-            if (d.containsKey("alternativeImage")) e.setAlternativeImage(str(d, "alternativeImage"));
-            if (d.containsKey("awesomeIcon")) e.setAwesomeIcon(str(d, "awesomeIcon"));
-            if (d.containsKey("styleMain")) e.setStyleMain(str(d, "styleMain"));
-            if (d.containsKey("styleDetail")) e.setStyleDetail(str(d, "styleDetail"));
+            applyCardFields(e, d);
             return toMap(persistencePort.saveCard(e));
         }).orElse(null);
     }
 
     private Map<String, Object> updateCreator(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findCreatorByStoryIdAndUuid(sid, uuid).map(e -> {
-            if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-            if (d.containsKey("link")) e.setLink(str(d, "link"));
-            if (d.containsKey("url")) e.setUrl(str(d, "url"));
-            if (d.containsKey("urlImage")) e.setUrlImage(str(d, "urlImage"));
-            if (d.containsKey("urlEmote")) e.setUrlEmote(str(d, "urlEmote"));
-            if (d.containsKey("urlInstagram")) e.setUrlInstagram(str(d, "urlInstagram"));
+            applyCreatorFields(e, d);
             return toMap(persistencePort.saveCreator(e));
         }).orElse(null);
     }
 
     private Map<String, Object> updateLocationNeighbor(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findLocationNeighborByStoryIdAndUuid(sid, uuid).map(e -> {
-            if (d.containsKey("idLocationFrom")) e.setIdLocationFrom(intVal(d, "idLocationFrom"));
-            if (d.containsKey("idLocationTo")) e.setIdLocationTo(intVal(d, "idLocationTo"));
-            if (d.containsKey("direction")) e.setDirection(str(d, "direction"));
-            if (d.containsKey("flagBack")) e.setFlagBack(intVal(d, "flagBack"));
-            if (d.containsKey("conditionRegistryKey")) e.setConditionRegistryKey(str(d, "conditionRegistryKey"));
-            if (d.containsKey("conditionRegistryValue")) e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
-            if (d.containsKey("energyCost")) e.setEnergyCost(intVal(d, "energyCost"));
-            if (d.containsKey("idTextGo")) e.setIdTextGo(intVal(d, "idTextGo"));
-            if (d.containsKey("idTextBack")) e.setIdTextBack(intVal(d, "idTextBack"));
+            applyLocationNeighborFields(e, d);
             return toMap(persistencePort.saveLocationNeighbor(e));
         }).orElse(null);
     }
@@ -705,11 +506,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateKey(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findKeyByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("name")) e.setName(str(d, "name"));
-            if (d.containsKey("value")) e.setValue(str(d, "value"));
-            if (d.containsKey("group")) e.setGroup(str(d, "group"));
-            if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-            if (d.containsKey("visibility")) e.setVisibility(str(d, "visibility"));
+            applyKeyFields(e, d);
             return toMap(persistencePort.saveKey(e));
         }).orElse(null);
     }
@@ -717,15 +514,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateEventEffect(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findEventEffectByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
-            if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
-            if (d.containsKey("value")) e.setValue(intVal(d, "value"));
-            if (d.containsKey("target")) e.setTarget(str(d, "target"));
-            if (d.containsKey("traitsToAdd")) e.setTraitsToAdd(str(d, "traitsToAdd"));
-            if (d.containsKey("traitsToRemove")) e.setTraitsToRemove(str(d, "traitsToRemove"));
-            if (d.containsKey("targetClass")) e.setTargetClass(intVal(d, "targetClass"));
-            if (d.containsKey("idItemTarget")) e.setIdItemTarget(intVal(d, "idItemTarget"));
-            if (d.containsKey("itemAction")) e.setItemAction(str(d, "itemAction"));
+            applyEventEffectFields(e, d);
             return toMap(persistencePort.saveEventEffect(e));
         }).orElse(null);
     }
@@ -733,18 +522,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateChoice(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findChoiceByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
-            if (d.containsKey("idLocation")) e.setIdLocation(intVal(d, "idLocation"));
-            if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-            if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
-            if (d.containsKey("idEventTorun")) e.setIdEventTorun(intVal(d, "idEventTorun"));
-            if (d.containsKey("limitSad")) e.setLimitSad(intVal(d, "limitSad"));
-            if (d.containsKey("limitDex")) e.setLimitDex(intVal(d, "limitDex"));
-            if (d.containsKey("limitInt")) e.setLimitInt(intVal(d, "limitInt"));
-            if (d.containsKey("limitCos")) e.setLimitCos(intVal(d, "limitCos"));
-            if (d.containsKey("otherwiseFlag")) e.setOtherwiseFlag(intVal(d, "otherwiseFlag"));
-            if (d.containsKey("isProgress")) e.setIsProgress(intVal(d, "isProgress"));
-            if (d.containsKey("logicOperator")) e.setLogicOperator(str(d, "logicOperator"));
+            applyChoiceFields(e, d);
             return toMap(persistencePort.saveChoice(e));
         }).orElse(null);
     }
@@ -752,11 +530,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateChoiceCondition(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findChoiceConditionByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
-            if (d.containsKey("type")) e.setType(str(d, "type"));
-            if (d.containsKey("key")) e.setKey(str(d, "key"));
-            if (d.containsKey("value")) e.setValue(str(d, "value"));
-            if (d.containsKey("operator")) e.setOperator(str(d, "operator"));
+            applyChoiceConditionFields(e, d);
             return toMap(persistencePort.saveChoiceCondition(e));
         }).orElse(null);
     }
@@ -764,15 +538,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateChoiceEffect(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findChoiceEffectByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
-            if (d.containsKey("idScelta")) e.setIdScelta(intVal(d, "idScelta"));
-            if (d.containsKey("flagGroup")) e.setFlagGroup(intVal(d, "flagGroup"));
-            if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
-            if (d.containsKey("value")) e.setValue(intVal(d, "value"));
-            if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-            if (d.containsKey("key")) e.setKey(str(d, "key"));
-            if (d.containsKey("valueToAdd")) e.setValueToAdd(str(d, "valueToAdd"));
-            if (d.containsKey("valueToRemove")) e.setValueToRemove(str(d, "valueToRemove"));
+            applyChoiceEffectFields(e, d);
             return toMap(persistencePort.saveChoiceEffect(e));
         }).orElse(null);
     }
@@ -780,9 +546,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateItemEffect(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findItemEffectByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idItem")) e.setIdItem(intVal(d, "idItem"));
-            if (d.containsKey("effectCode")) e.setEffectCode(str(d, "effectCode"));
-            if (d.containsKey("effectValue")) e.setEffectValue(intVal(d, "effectValue"));
+            applyItemEffectFields(e, d);
             return toMap(persistencePort.saveItemEffect(e));
         }).orElse(null);
     }
@@ -790,18 +554,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateWeatherRule(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findWeatherRuleByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
-            if (d.containsKey("costMoveSafeLocation")) e.setCostMoveSafeLocation(intVal(d, "costMoveSafeLocation"));
-            if (d.containsKey("costMoveNotSafeLocation")) e.setCostMoveNotSafeLocation(intVal(d, "costMoveNotSafeLocation"));
-            if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
-            if (d.containsKey("conditionKeyValue")) e.setConditionKeyValue(str(d, "conditionKeyValue"));
-            if (d.containsKey("timeFrom")) e.setTimeFrom(intVal(d, "timeFrom"));
-            if (d.containsKey("timeTo")) e.setTimeTo(intVal(d, "timeTo"));
-            if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-            if (d.containsKey("active")) e.setActive(intVal(d, "active"));
-            if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
-            if (d.containsKey("deltaEnergy")) e.setDeltaEnergy(intVal(d, "deltaEnergy"));
-            if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+            applyWeatherRuleFields(e, d);
             return toMap(persistencePort.saveWeatherRule(e));
         }).orElse(null);
     }
@@ -809,11 +562,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateGlobalRandomEvent(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findGlobalRandomEventByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
-            if (d.containsKey("conditionValue")) e.setConditionValue(str(d, "conditionValue"));
-            if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
-            if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
-            if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+            applyGlobalRandomEventFields(e, d);
             return toMap(persistencePort.saveGlobalRandomEvent(e));
         }).orElse(null);
     }
@@ -821,9 +570,7 @@ public class StoryCrudService implements StoryCrudPort {
     private Map<String, Object> updateClassBonus(Long sid, String uuid, Map<String, Object> d) {
         return readPort.findClassBonusByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
-            if (d.containsKey("idClass")) e.setIdClass(intVal(d, "idClass"));
-            if (d.containsKey("statistic")) e.setStatistic(str(d, "statistic"));
-            if (d.containsKey("value")) e.setValue(intVal(d, "value"));
+            applyClassBonusFields(e, d);
             return toMap(persistencePort.saveClassBonus(e));
         }).orElse(null);
     }
@@ -840,8 +587,7 @@ public class StoryCrudService implements StoryCrudPort {
         return readPort.findMissionStepByStoryIdAndUuid(sid, uuid).map(e -> {
             applyBaseFields(e, d);
             applyMissionFields(e, d);
-            if (d.containsKey("idMission")) e.setIdMission(intVal(d, "idMission"));
-            if (d.containsKey("step")) e.setStep(intVal(d, "step"));
+            applyMissionStepFields(e, d);
             return toMap(persistencePort.saveMissionStep(e));
         }).orElse(null);
     }
@@ -1139,5 +885,216 @@ public class StoryCrudService implements StoryCrudPort {
         if (v instanceof Number) return ((Number) v).intValue();
         if (v instanceof String) { try { return Integer.parseInt((String) v); } catch (NumberFormatException e) { return null; } }
         return null;
+    }
+
+    private void applyLocationFields(LocationEntity e, Map<String, Object> d) {
+        if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
+        if (d.containsKey("idImage")) e.setIdImage(intVal(d, "idImage"));
+        if (d.containsKey("isSafe")) e.setIsSafe(intVal(d, "isSafe"));
+        if (d.containsKey("costEnergyEnter")) e.setCostEnergyEnter(intVal(d, "costEnergyEnter"));
+        if (d.containsKey("counterTime")) e.setCounterTime(intVal(d, "counterTime"));
+        if (d.containsKey("idEventIfCounterZero")) e.setIdEventIfCounterZero(intVal(d, "idEventIfCounterZero"));
+        if (d.containsKey("secureParam")) e.setSecureParam(intVal(d, "secureParam"));
+        if (d.containsKey("idEventIfCharacterStartTime")) e.setIdEventIfCharacterStartTime(intVal(d, "idEventIfCharacterStartTime"));
+        if (d.containsKey("idEventIfCharacterEnterFirstTime")) e.setIdEventIfCharacterEnterFirstTime(intVal(d, "idEventIfCharacterEnterFirstTime"));
+        if (d.containsKey("idEventIfFirstTime")) e.setIdEventIfFirstTime(intVal(d, "idEventIfFirstTime"));
+        if (d.containsKey("idEventNotFirstTime")) e.setIdEventNotFirstTime(intVal(d, "idEventNotFirstTime"));
+        if (d.containsKey("priorityAutomaticEvent")) e.setPriorityAutomaticEvent(intVal(d, "priorityAutomaticEvent"));
+        if (d.containsKey("idAudio")) e.setIdAudio(intVal(d, "idAudio"));
+        if (d.containsKey("maxCharacters")) e.setMaxCharacters(intVal(d, "maxCharacters"));
+    }
+
+    private void applyEventFields(EventEntity e, Map<String, Object> d) {
+        if (d.containsKey("idSpecificLocation")) e.setIdSpecificLocation(intVal(d, "idSpecificLocation"));
+        if (d.containsKey("type")) e.setType(str(d, "type"));
+        if (d.containsKey("costEnery")) e.setCostEnery(intVal(d, "costEnery"));
+        if (d.containsKey("flagEndTime")) e.setFlagEndTime(intVal(d, "flagEndTime"));
+        if (d.containsKey("characteristicToAdd")) e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
+        if (d.containsKey("characteristicToRemove")) e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
+        if (d.containsKey("keyToAdd")) e.setKeyToAdd(str(d, "keyToAdd"));
+        if (d.containsKey("keyValueToAdd")) e.setKeyValueToAdd(str(d, "keyValueToAdd"));
+        if (d.containsKey("idItemToAdd")) e.setIdItemToAdd(intVal(d, "idItemToAdd"));
+        if (d.containsKey("idWeather")) e.setIdWeather(intVal(d, "idWeather"));
+        if (d.containsKey("idEventNext")) e.setIdEventNext(intVal(d, "idEventNext"));
+        if (d.containsKey("coinCost")) e.setCoinCost(intVal(d, "coinCost"));
+    }
+
+    private void applyItemFields(ItemEntity e, Map<String, Object> d) {
+        if (d.containsKey("weight")) e.setWeight(intVal(d, "weight"));
+        if (d.containsKey("isConsumabile")) e.setIsConsumabile(intVal(d, "isConsumabile"));
+        if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
+        if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
+    }
+
+    private void applyDifficultyFields(StoryDifficultyEntity e, Map<String, Object> d) {
+        if (d.containsKey("expCost")) e.setExpCost(intVal(d, "expCost"));
+        if (d.containsKey("maxWeight")) e.setMaxWeight(intVal(d, "maxWeight"));
+        if (d.containsKey("minCharacter")) e.setMinCharacter(intVal(d, "minCharacter"));
+        if (d.containsKey("maxCharacter")) e.setMaxCharacter(intVal(d, "maxCharacter"));
+        if (d.containsKey("costHelpComa")) e.setCostHelpComa(intVal(d, "costHelpComa"));
+        if (d.containsKey("costMaxCharacteristics")) e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
+        if (d.containsKey("numberMaxFreeAction")) e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
+    }
+
+    private void applyCharacterTemplateFields(CharacterTemplateEntity e, Map<String, Object> d) {
+        if (d.containsKey("lifeMax")) e.setLifeMax(intVal(d, "lifeMax"));
+        if (d.containsKey("energyMax")) e.setEnergyMax(intVal(d, "energyMax"));
+        if (d.containsKey("sadMax")) e.setSadMax(intVal(d, "sadMax"));
+        if (d.containsKey("dexterityStart")) e.setDexterityStart(intVal(d, "dexterityStart"));
+        if (d.containsKey("intelligenceStart")) e.setIntelligenceStart(intVal(d, "intelligenceStart"));
+        if (d.containsKey("constitutionStart")) e.setConstitutionStart(intVal(d, "constitutionStart"));
+    }
+
+    private void applyClassFields(ClassEntity e, Map<String, Object> d) {
+        if (d.containsKey("weightMax")) e.setWeightMax(intVal(d, "weightMax"));
+        if (d.containsKey("dexterityBase")) e.setDexterityBase(intVal(d, "dexterityBase"));
+        if (d.containsKey("intelligenceBase")) e.setIntelligenceBase(intVal(d, "intelligenceBase"));
+        if (d.containsKey("constitutionBase")) e.setConstitutionBase(intVal(d, "constitutionBase"));
+    }
+
+    private void applyTraitFields(TraitEntity e, Map<String, Object> d) {
+        if (d.containsKey("idClassPermitted")) e.setIdClassPermitted(intVal(d, "idClassPermitted"));
+        if (d.containsKey("idClassProhibited")) e.setIdClassProhibited(intVal(d, "idClassProhibited"));
+        if (d.containsKey("costPositive")) e.setCostPositive(intVal(d, "costPositive"));
+        if (d.containsKey("costNegative")) e.setCostNegative(intVal(d, "costNegative"));
+    }
+
+    private void applyTextFields(TextEntity e, Map<String, Object> d) {
+        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
+        if (d.containsKey("lang")) e.setLang(str(d, "lang"));
+        if (d.containsKey("shortText")) e.setShortText(str(d, "shortText"));
+        if (d.containsKey("longText")) e.setLongText(str(d, "longText"));
+        if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
+        if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
+        if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
+    }
+
+    private void applyCardFields(CardEntity e, Map<String, Object> d) {
+        if (d.containsKey("idTextTitle")) e.setIdTextTitle(intVal(d, "idTextTitle"));
+        if (d.containsKey("idTextDescription")) e.setIdTextDescription(intVal(d, "idTextDescription"));
+        if (d.containsKey("idTextCopyright")) e.setIdTextCopyright(intVal(d, "idTextCopyright"));
+        if (d.containsKey("linkCopyright")) e.setLinkCopyright(str(d, "linkCopyright"));
+        if (d.containsKey("idCreator")) e.setIdCreator(intVal(d, "idCreator"));
+        if (d.containsKey("urlImmage")) e.setUrlImmage(str(d, "urlImmage"));
+        if (d.containsKey("alternativeImage")) e.setAlternativeImage(str(d, "alternativeImage"));
+        if (d.containsKey("awesomeIcon")) e.setAwesomeIcon(str(d, "awesomeIcon"));
+        if (d.containsKey("styleMain")) e.setStyleMain(str(d, "styleMain"));
+        if (d.containsKey("styleDetail")) e.setStyleDetail(str(d, "styleDetail"));
+    }
+
+    private void applyCreatorFields(CreatorEntity e, Map<String, Object> d) {
+        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
+        if (d.containsKey("link")) e.setLink(str(d, "link"));
+        if (d.containsKey("url")) e.setUrl(str(d, "url"));
+        if (d.containsKey("urlImage")) e.setUrlImage(str(d, "urlImage"));
+        if (d.containsKey("urlEmote")) e.setUrlEmote(str(d, "urlEmote"));
+        if (d.containsKey("urlInstagram")) e.setUrlInstagram(str(d, "urlInstagram"));
+    }
+
+    private void applyLocationNeighborFields(LocationNeighborEntity e, Map<String, Object> d) {
+        if (d.containsKey("idLocationFrom")) e.setIdLocationFrom(intVal(d, "idLocationFrom"));
+        if (d.containsKey("idLocationTo")) e.setIdLocationTo(intVal(d, "idLocationTo"));
+        if (d.containsKey("direction")) e.setDirection(str(d, "direction"));
+        if (d.containsKey("flagBack")) e.setFlagBack(intVal(d, "flagBack"));
+        if (d.containsKey("conditionRegistryKey")) e.setConditionRegistryKey(str(d, "conditionRegistryKey"));
+        if (d.containsKey("conditionRegistryValue")) e.setConditionRegistryValue(str(d, "conditionRegistryValue"));
+        if (d.containsKey("energyCost")) e.setEnergyCost(intVal(d, "energyCost"));
+        if (d.containsKey("idTextGo")) e.setIdTextGo(intVal(d, "idTextGo"));
+        if (d.containsKey("idTextBack")) e.setIdTextBack(intVal(d, "idTextBack"));
+    }
+
+    private void applyKeyFields(KeyEntity e, Map<String, Object> d) {
+        if (d.containsKey("name")) e.setName(str(d, "name"));
+        if (d.containsKey("value")) e.setValue(str(d, "value"));
+        if (d.containsKey("group")) e.setGroup(str(d, "group"));
+        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
+        if (d.containsKey("visibility")) e.setVisibility(str(d, "visibility"));
+    }
+
+    private void applyEventEffectFields(EventEffectEntity e, Map<String, Object> d) {
+        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+        if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
+        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
+        if (d.containsKey("target")) e.setTarget(str(d, "target"));
+        if (d.containsKey("traitsToAdd")) e.setTraitsToAdd(str(d, "traitsToAdd"));
+        if (d.containsKey("traitsToRemove")) e.setTraitsToRemove(str(d, "traitsToRemove"));
+        if (d.containsKey("targetClass")) e.setTargetClass(intVal(d, "targetClass"));
+        if (d.containsKey("idItemTarget")) e.setIdItemTarget(intVal(d, "idItemTarget"));
+        if (d.containsKey("itemAction")) e.setItemAction(str(d, "itemAction"));
+    }
+
+    private void applyChoiceFields(ChoiceEntity e, Map<String, Object> d) {
+        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+        if (d.containsKey("idLocation")) e.setIdLocation(intVal(d, "idLocation"));
+        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
+        if (d.containsKey("idTextNarrative")) e.setIdTextNarrative(intVal(d, "idTextNarrative"));
+        if (d.containsKey("idEventTorun")) e.setIdEventTorun(intVal(d, "idEventTorun"));
+        if (d.containsKey("limitSad")) e.setLimitSad(intVal(d, "limitSad"));
+        if (d.containsKey("limitDex")) e.setLimitDex(intVal(d, "limitDex"));
+        if (d.containsKey("limitInt")) e.setLimitInt(intVal(d, "limitInt"));
+        if (d.containsKey("limitCos")) e.setLimitCos(intVal(d, "limitCos"));
+        if (d.containsKey("otherwiseFlag")) e.setOtherwiseFlag(intVal(d, "otherwiseFlag"));
+        if (d.containsKey("isProgress")) e.setIsProgress(intVal(d, "isProgress"));
+        if (d.containsKey("logicOperator")) e.setLogicOperator(str(d, "logicOperator"));
+    }
+
+    private void applyChoiceConditionFields(ChoiceConditionEntity e, Map<String, Object> d) {
+        if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
+        if (d.containsKey("type")) e.setType(str(d, "type"));
+        if (d.containsKey("key")) e.setKey(str(d, "key"));
+        if (d.containsKey("value")) e.setValue(str(d, "value"));
+        if (d.containsKey("operator")) e.setOperator(str(d, "operator"));
+    }
+
+    private void applyChoiceEffectFields(ChoiceEffectEntity e, Map<String, Object> d) {
+        if (d.containsKey("idChoices")) e.setIdChoices(intVal(d, "idChoices"));
+        if (d.containsKey("idScelta")) e.setIdScelta(intVal(d, "idScelta"));
+        if (d.containsKey("flagGroup")) e.setFlagGroup(intVal(d, "flagGroup"));
+        if (d.containsKey("statistics")) e.setStatistics(str(d, "statistics"));
+        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
+        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
+        if (d.containsKey("key")) e.setKey(str(d, "key"));
+        if (d.containsKey("valueToAdd")) e.setValueToAdd(str(d, "valueToAdd"));
+        if (d.containsKey("valueToRemove")) e.setValueToRemove(str(d, "valueToRemove"));
+    }
+
+    private void applyItemEffectFields(ItemEffectEntity e, Map<String, Object> d) {
+        if (d.containsKey("idItem")) e.setIdItem(intVal(d, "idItem"));
+        if (d.containsKey("effectCode")) e.setEffectCode(str(d, "effectCode"));
+        if (d.containsKey("effectValue")) e.setEffectValue(intVal(d, "effectValue"));
+    }
+
+    private void applyWeatherRuleFields(WeatherRuleEntity e, Map<String, Object> d) {
+        if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
+        if (d.containsKey("costMoveSafeLocation")) e.setCostMoveSafeLocation(intVal(d, "costMoveSafeLocation"));
+        if (d.containsKey("costMoveNotSafeLocation")) e.setCostMoveNotSafeLocation(intVal(d, "costMoveNotSafeLocation"));
+        if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
+        if (d.containsKey("conditionKeyValue")) e.setConditionKeyValue(str(d, "conditionKeyValue"));
+        if (d.containsKey("timeFrom")) e.setTimeFrom(intVal(d, "timeFrom"));
+        if (d.containsKey("timeTo")) e.setTimeTo(intVal(d, "timeTo"));
+        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
+        if (d.containsKey("active")) e.setActive(intVal(d, "active"));
+        if (d.containsKey("priority")) e.setPriority(intVal(d, "priority"));
+        if (d.containsKey("deltaEnergy")) e.setDeltaEnergy(intVal(d, "deltaEnergy"));
+        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+    }
+
+    private void applyGlobalRandomEventFields(GlobalRandomEventEntity e, Map<String, Object> d) {
+        if (d.containsKey("conditionKey")) e.setConditionKey(str(d, "conditionKey"));
+        if (d.containsKey("conditionValue")) e.setConditionValue(str(d, "conditionValue"));
+        if (d.containsKey("probability")) e.setProbability(intVal(d, "probability"));
+        if (d.containsKey("idText")) e.setIdText(intVal(d, "idText"));
+        if (d.containsKey("idEvent")) e.setIdEvent(intVal(d, "idEvent"));
+    }
+
+    private void applyClassBonusFields(ClassBonusEntity e, Map<String, Object> d) {
+        if (d.containsKey("idClass")) e.setIdClass(intVal(d, "idClass"));
+        if (d.containsKey("statistic")) e.setStatistic(str(d, "statistic"));
+        if (d.containsKey("value")) e.setValue(intVal(d, "value"));
+    }
+
+    private void applyMissionStepFields(MissionStepEntity e, Map<String, Object> d) {
+        if (d.containsKey("idMission")) e.setIdMission(intVal(d, "idMission"));
+        if (d.containsKey("step")) e.setStep(intVal(d, "step"));
     }
 }

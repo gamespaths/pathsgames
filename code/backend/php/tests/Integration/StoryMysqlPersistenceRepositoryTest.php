@@ -13,7 +13,7 @@ class StoryMysqlPersistenceRepositoryTest extends DatabaseIntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new StoryMysqlPersistenceRepository($this->pdo);
+        $this->repository = new StoryMysqlPersistenceRepository($this->getPdo());
     }
 
     public function testSaveAndFindStory(): void
@@ -56,7 +56,7 @@ class StoryMysqlPersistenceRepositoryTest extends DatabaseIntegrationTestCase
         
         $this->repository->saveEntity($storyId, 'list_locations', $locationData);
         
-        $stmt = $this->pdo->prepare("SELECT * FROM list_locations WHERE uuid = 'loc-1'");
+        $stmt = $this->getPdo()->prepare("SELECT * FROM list_locations WHERE uuid = 'loc-1'");
         $stmt->execute();
         $row = $stmt->fetch();
         
@@ -79,7 +79,7 @@ class StoryMysqlPersistenceRepositoryTest extends DatabaseIntegrationTestCase
             'maxCharacters' => 10
         ]);
         
-        $stmt = $this->pdo->prepare("SELECT * FROM list_locations WHERE uuid = 'loc-upd'");
+        $stmt = $this->getPdo()->prepare("SELECT * FROM list_locations WHERE uuid = 'loc-upd'");
         $stmt->execute();
         $row = $stmt->fetch();
         
@@ -94,8 +94,8 @@ class StoryMysqlPersistenceRepositoryTest extends DatabaseIntegrationTestCase
         
         $this->repository->deleteEntityByUuid('list_locations', 'loc-to-del');
         
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM list_locations WHERE uuid = 'loc-to-del'");
+        $stmt = $this->getPdo()->prepare("SELECT COUNT(*) FROM list_locations WHERE uuid = 'loc-to-del'");
         $stmt->execute();
-        $this->assertEquals(0, $stmt.fetchColumn());
+        $this->assertEquals(0, (int)$stmt->fetchColumn());
     }
 }

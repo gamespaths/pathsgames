@@ -85,3 +85,7 @@ code/frontend/react-admin/coverage/
 code/frontend/react-admin/dist/
 code/frontend/react-admin/jest-test-results.json
 
+
+# TMP files!
+code/backend/php/debug_sql.php
+code/backend/php/converted.sql
