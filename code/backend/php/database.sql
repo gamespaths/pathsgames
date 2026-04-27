@@ -200,6 +200,7 @@ CREATE TABLE IF NOT EXISTS list_classes_bonus (
 
 CREATE TABLE IF NOT EXISTS list_choices (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_event BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -259,6 +260,7 @@ CREATE TABLE IF NOT EXISTS list_cards (
 
 CREATE TABLE IF NOT EXISTS list_keys (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     key_name VARCHAR(255) DEFAULT NULL,
@@ -326,6 +328,7 @@ CREATE TABLE IF NOT EXISTS list_global_random_events (
 
 CREATE TABLE IF NOT EXISTS list_missions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,

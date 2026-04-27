@@ -256,13 +256,16 @@ The admin frontend provides a full management interface for Step 17 features:
 
   > Read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects. In this step never change files outside react projects. Rember to cover code with tests for have 100% sonar coverage. On editors components I wanna change all table column. 
 
+  > read all documentation_v0 folder, i'm developing step=17. Check all API: i wanna API permit change all values into tables, check API if permit change all values (Java, php, python and AWS editions), check openapi, check robot test anche check "code/frontend/react-admin" project if permit change all values
 
-- **Document Version**: 0.17.0
+
+- **Document Version**: 0.17.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
+    | 0.17.1 | Admin stories editor | April 27, 2026 |
     
-- **Last Updated**: April 24, 2026
+- **Last Updated**: April 27, 2026
 - **Status**: ✅ Complete
 
 

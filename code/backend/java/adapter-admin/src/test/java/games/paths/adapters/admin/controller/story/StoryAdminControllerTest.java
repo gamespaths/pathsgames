@@ -4,6 +4,7 @@ import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.model.story.StorySummary;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
+import games.paths.core.port.story.StoryCrudPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -29,13 +30,15 @@ class StoryAdminControllerTest {
     private MockMvc mockMvc;
     private StoryImportPort storyImportPort;
     private StoryQueryPort storyQueryPort;
+    private StoryCrudPort storyCrudPort;
 
     @BeforeEach
     void setup() {
         storyImportPort = mock(StoryImportPort.class);
         storyQueryPort = mock(StoryQueryPort.class);
+        storyCrudPort = mock(StoryCrudPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new StoryAdminController(storyImportPort, storyQueryPort)).build();
+                new StoryAdminController(storyImportPort, storyQueryPort, storyCrudPort)).build();
     }
 
     // === POST /api/admin/stories/import ===

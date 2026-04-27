@@ -198,6 +198,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
 
     // Admin - Story Entity CRUD (Step 17, Protected)
     $group->post('/admin/stories', [$storyCrudAdminController, 'createStory']);
+    $group->get('/admin/stories/{uuidStory}', [$storyCrudAdminController, 'getStory']);
     $group->put('/admin/stories/{uuidStory}', [$storyCrudAdminController, 'updateStory']);
     $group->get('/admin/stories/{uuidStory}/{entityType}', [$storyCrudAdminController, 'listEntities']);
     $group->post('/admin/stories/{uuidStory}/{entityType}', [$storyCrudAdminController, 'createEntity']);

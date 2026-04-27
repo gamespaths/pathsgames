@@ -34,7 +34,7 @@ export default function Sidebar() {
         <div className="pg-sidebar-footer mt-2">
             <div className=" text-center pg-card-title">
                 Paths Games Admin Panel<br />
-                Version: 0.17.0
+                Version: 0.17.1
             </div>
         </div>
     </aside>

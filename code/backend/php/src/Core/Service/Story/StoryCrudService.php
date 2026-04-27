@@ -20,14 +20,26 @@ class StoryCrudService implements StoryCrudPort
     private const TABLE_MAP = [
         'difficulties' => 'list_stories_difficulty',
         'locations' => 'list_locations',
+        'location-neighbors' => 'list_locations_neighbors',
         'events' => 'list_events',
+        'event-effects' => 'list_events_effects',
         'items' => 'list_items',
+        'item-effects' => 'list_items_effects',
         'character-templates' => 'list_character_templates',
         'classes' => 'list_classes',
+        'class-bonuses' => 'list_classes_bonus',
         'traits' => 'list_traits',
         'creators' => 'list_creator',
         'cards' => 'list_cards',
         'texts' => 'list_texts',
+        'keys' => 'list_keys',
+        'choices' => 'list_choices',
+        'choice-conditions' => 'list_choices_conditions',
+        'choice-effects' => 'list_choices_effects',
+        'weather-rules' => 'list_weather_rules',
+        'global-random-events' => 'list_global_random_events',
+        'missions' => 'list_missions',
+        'mission-steps' => 'list_missions_steps',
     ];
 
     public function __construct(StoryReadPort $readPort, StoryPersistencePort $persistencePort)
@@ -125,6 +137,43 @@ class StoryCrudService implements StoryCrudPort
         return true;
     }
 
+    public function getStory(string $storyUuid): ?array
+    {
+        if (empty($storyUuid)) {
+            return null;
+        }
+        $raw = $this->readPort->findStoryByUuid($storyUuid);
+        if ($raw === null) {
+            return null;
+        }
+        return [
+            'id'                       => $raw['id'] ?? null,
+            'uuid'                     => $raw['uuid'] ?? null,
+            'author'                   => $raw['author'] ?? null,
+            'category'                 => $raw['category'] ?? null,
+            'groupName'                => $raw['group_name'] ?? null,
+            'visibility'               => $raw['visibility'] ?? null,
+            'priority'                 => $raw['priority'] ?? null,
+            'peghi'                    => $raw['peghi'] ?? null,
+            'versionMin'               => $raw['version_min'] ?? null,
+            'versionMax'               => $raw['version_max'] ?? null,
+            'clockSingularDescription' => $raw['clock_singular'] ?? null,
+            'clockPluralDescription'   => $raw['clock_plural'] ?? null,
+            'linkCopyright'            => $raw['link_copyright'] ?? null,
+            'idCard'                   => $raw['id_card'] ?? null,
+            'idTextName'               => $raw['id_text_name'] ?? null,
+            'idTextTitle'              => $raw['id_text_title'] ?? null,
+            'idTextDescription'        => $raw['id_text_description'] ?? null,
+            'idTextCopyright'          => $raw['id_text_copyright'] ?? null,
+            'idLocationStart'          => $raw['id_location_start'] ?? null,
+            'idImage'                  => $raw['id_image'] ?? null,
+            'idCreator'                => $raw['id_creator'] ?? null,
+            'idLocationAllPlayerComa'  => $raw['id_location_all_player_coma'] ?? null,
+            'idEventAllPlayerComa'     => $raw['id_event_all_player_coma'] ?? null,
+            'idEventEndGame'           => $raw['id_event_end_game'] ?? null,
+        ];
+    }
+
     public function createStory(array $data): ?array
     {
         if (empty($data)) {
@@ -175,14 +224,35 @@ class StoryCrudService implements StoryCrudPort
             case 'creators': return $this->readPort->findCreatorsForStory($sid);
             case 'cards': return $this->readPort->findCardsForStory($sid);
             case 'texts': return $this->readPort->findTextsForStory($sid);
-            default: return [];
+            default:
+                $tableMap = [
+                    'location-neighbors'  => 'list_locations_neighbors',
+                    'event-effects'       => 'list_events_effects',
+                    'item-effects'        => 'list_items_effects',
+                    'class-bonuses'       => 'list_classes_bonus',
+                    'keys'                => 'list_keys',
+                    'choices'             => 'list_choices',
+                    'choice-conditions'   => 'list_choices_conditions',
+                    'choice-effects'      => 'list_choices_effects',
+                    'weather-rules'       => 'list_weather_rules',
+                    'global-random-events'=> 'list_global_random_events',
+                    'missions'            => 'list_missions',
+                    'mission-steps'       => 'list_missions_steps',
+                ];
+                if (isset($tableMap[$type])) {
+                    return $this->readPort->findEntitiesByStory($sid, $tableMap[$type]);
+                }
+                return [];
         }
     }
 
     private function applyStoryFields(array &$storyData, array $data): void
     {
         $fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi',
-                    'versionMin', 'versionMax', 'idTextTitle', 'idTextDescription'];
+                    'versionMin', 'versionMax', 'idTextTitle', 'idTextDescription',
+                    'idLocationStart', 'idImage', 'idLocationAllPlayerComa', 'idEventAllPlayerComa',
+                    'clockSingularDescription', 'clockPluralDescription', 'idEventEndGame',
+                    'idTextCopyright', 'linkCopyright', 'idCreator'];
         foreach ($fields as $key) {
             if (isset($data[$key])) {
                 $storyData[$key] = $data[$key];

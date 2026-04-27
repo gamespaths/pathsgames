@@ -57,4 +57,6 @@ interface StoryReadPort
     public function findCardsForStory(int $storyId): array;
 
     public function findEntityByStoryAndUuid(int $storyId, string $tableName, string $uuid): ?array;
+
+    public function findEntitiesByStory(int $storyId, string $tableName): array;
 }

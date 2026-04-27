@@ -115,6 +115,13 @@ Resources:
       RouteKey: "GET /api/admin/stories"
       Target: !Sub "integrations/${StoryIntegration}"
 
+  GetAdminStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/stories/{uuid}"
+      Target: !Sub "integrations/${StoryIntegration}"
+
   DeleteStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

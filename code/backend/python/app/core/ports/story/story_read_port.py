@@ -103,6 +103,10 @@ class StoryReadPort(ABC):
         pass
 
     @abstractmethod
+    def find_entities_for_story(self, story_id: int, table_name: str) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
     def find_entity_by_story_and_uuid(self, story_id: int, table_name: str, uuid: str) -> Optional[Dict[str, Any]]:
         pass
 

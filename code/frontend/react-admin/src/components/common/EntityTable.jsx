@@ -13,16 +13,18 @@ import { useState } from 'react'
 export default function EntityTable({ entities, columns, texts = [], onEdit, onDelete }) {
   const [search, setSearch] = useState('')
 
+  // Show max 3 columns from the definition
+  const visibleColumns = columns.slice(0, 3)
+
   // Helper to resolve short_text for a given idText
   const resolveText = (idText) => {
     if (!idText || !texts) return ''
-    // Try to find the text in the current language (or fallback to 'en')
     const match = texts.find(t => t.idText === idText && t.lang === 'en') || texts.find(t => t.idText === idText)
     return match ? match.shortText : `[Text #${idText}]`
   }
 
-  const filtered = entities.filter(e => 
-    !search || 
+  const filtered = entities.filter(e =>
+    !search ||
     Object.values(e).some(val => String(val).toLowerCase().includes(search.toLowerCase()))
   )
 
@@ -31,9 +33,9 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
       <div className="p-3 border-b border-white/5 flex items-center gap-3">
         <div className="relative flex-1">
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/30" style={{ fontSize: '0.8rem' }} />
-          <input 
-            className="pg-input pl-8 py-1 text-sm" 
-            placeholder="Search in table..." 
+          <input
+            className="pg-input pl-8 py-1 text-sm"
+            placeholder="Search in table..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -43,19 +45,29 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
         <table className="pg-table pg-table-sm">
           <thead>
             <tr>
-              {columns.map(col => (
+              <th style={{ width: 100 }}>ID</th>
+              {visibleColumns.map(col => (
                 <th key={col.key}>{col.label}</th>
               ))}
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th style={{ textAlign: 'right', whiteSpace: 'nowrap', width: 80 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={columns.length + 1} className="text-center py-8 text-white/20">No items found.</td></tr>
+              <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-white/20">No items found.</td></tr>
             )}
             {filtered.map(ent => (
               <tr key={ent.uuid || ent.id}>
-                {columns.map(col => {
+                <td>
+                  <span
+                    className="font-mono text-white/60"
+                    style={{ fontSize: '0.78rem', cursor: 'default' }}
+                    title={ent.uuid || ''}
+                  >
+                    {ent.id ?? '—'}
+                  </span>
+                </td>
+                {visibleColumns.map(col => {
                   let content = ent[col.key]
 
                   if (col.type === 'idTextName') {
@@ -85,7 +97,7 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
 
                   return <td key={col.key}>{content ?? '—'}</td>
                 })}
-                <td style={{ textAlign: 'right' }}>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => onEdit(ent)}>
                     <i className="fas fa-edit" />
                   </button>

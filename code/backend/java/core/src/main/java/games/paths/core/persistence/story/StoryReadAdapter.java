@@ -27,37 +27,73 @@ public class StoryReadAdapter implements StoryReadPort {
     private final StoryDifficultyRepository difficultyRepository;
     private final TextRepository textRepository;
     private final LocationRepository locationRepository;
+    private final LocationNeighborRepository locationNeighborRepository;
     private final EventRepository eventRepository;
+    private final EventEffectRepository eventEffectRepository;
     private final ItemRepository itemRepository;
+    private final ItemEffectRepository itemEffectRepository;
     private final CharacterTemplateRepository characterTemplateRepository;
     private final ClassRepository classRepository;
+    private final ClassBonusRepository classBonusRepository;
     private final TraitRepository traitRepository;
     private final CardRepository cardRepository;
     private final CreatorRepository creatorRepository;
+    private final KeyRepository keyRepository;
+    private final ChoiceRepository choiceRepository;
+    private final ChoiceConditionRepository choiceConditionRepository;
+    private final ChoiceEffectRepository choiceEffectRepository;
+    private final WeatherRuleRepository weatherRuleRepository;
+    private final GlobalRandomEventRepository globalRandomEventRepository;
+    private final MissionRepository missionRepository;
+    private final MissionStepRepository missionStepRepository;
 
     public StoryReadAdapter(
             StoryRepository storyRepository,
             StoryDifficultyRepository difficultyRepository,
             TextRepository textRepository,
             LocationRepository locationRepository,
+            LocationNeighborRepository locationNeighborRepository,
             EventRepository eventRepository,
+            EventEffectRepository eventEffectRepository,
             ItemRepository itemRepository,
+            ItemEffectRepository itemEffectRepository,
             CharacterTemplateRepository characterTemplateRepository,
             ClassRepository classRepository,
+            ClassBonusRepository classBonusRepository,
             TraitRepository traitRepository,
             CardRepository cardRepository,
-            CreatorRepository creatorRepository) {
+            CreatorRepository creatorRepository,
+            KeyRepository keyRepository,
+            ChoiceRepository choiceRepository,
+            ChoiceConditionRepository choiceConditionRepository,
+            ChoiceEffectRepository choiceEffectRepository,
+            WeatherRuleRepository weatherRuleRepository,
+            GlobalRandomEventRepository globalRandomEventRepository,
+            MissionRepository missionRepository,
+            MissionStepRepository missionStepRepository) {
         this.storyRepository = storyRepository;
         this.difficultyRepository = difficultyRepository;
         this.textRepository = textRepository;
         this.locationRepository = locationRepository;
+        this.locationNeighborRepository = locationNeighborRepository;
         this.eventRepository = eventRepository;
+        this.eventEffectRepository = eventEffectRepository;
         this.itemRepository = itemRepository;
+        this.itemEffectRepository = itemEffectRepository;
         this.characterTemplateRepository = characterTemplateRepository;
         this.classRepository = classRepository;
+        this.classBonusRepository = classBonusRepository;
         this.traitRepository = traitRepository;
         this.cardRepository = cardRepository;
         this.creatorRepository = creatorRepository;
+        this.keyRepository = keyRepository;
+        this.choiceRepository = choiceRepository;
+        this.choiceConditionRepository = choiceConditionRepository;
+        this.choiceEffectRepository = choiceEffectRepository;
+        this.weatherRuleRepository = weatherRuleRepository;
+        this.globalRandomEventRepository = globalRandomEventRepository;
+        this.missionRepository = missionRepository;
+        this.missionStepRepository = missionStepRepository;
     }
 
     @Override
@@ -230,5 +266,127 @@ public class StoryReadAdapter implements StoryReadPort {
     @Override
     public List<CardEntity> findCardsByStoryId(Long storyId) {
         return cardRepository.findByIdStory(storyId);
+    }
+
+    // === Step 17: 12 new entity type lookups ===
+
+    @Override
+    public Optional<LocationNeighborEntity> findLocationNeighborByStoryIdAndUuid(Long storyId, String uuid) {
+        return locationNeighborRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<LocationNeighborEntity> findLocationNeighborsByStoryId(Long storyId) {
+        return locationNeighborRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<KeyEntity> findKeyByStoryIdAndUuid(Long storyId, String uuid) {
+        return keyRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<KeyEntity> findKeysByStoryId(Long storyId) {
+        return keyRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<EventEffectEntity> findEventEffectByStoryIdAndUuid(Long storyId, String uuid) {
+        return eventEffectRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<EventEffectEntity> findEventEffectsByStoryId(Long storyId) {
+        return eventEffectRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ChoiceEntity> findChoiceByStoryIdAndUuid(Long storyId, String uuid) {
+        return choiceRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ChoiceEntity> findChoicesByStoryId(Long storyId) {
+        return choiceRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ChoiceConditionEntity> findChoiceConditionByStoryIdAndUuid(Long storyId, String uuid) {
+        return choiceConditionRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ChoiceConditionEntity> findChoiceConditionsByStoryId(Long storyId) {
+        return choiceConditionRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ChoiceEffectEntity> findChoiceEffectByStoryIdAndUuid(Long storyId, String uuid) {
+        return choiceEffectRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ChoiceEffectEntity> findChoiceEffectsByStoryId(Long storyId) {
+        return choiceEffectRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ItemEffectEntity> findItemEffectByStoryIdAndUuid(Long storyId, String uuid) {
+        return itemEffectRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ItemEffectEntity> findItemEffectsByStoryId(Long storyId) {
+        return itemEffectRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<WeatherRuleEntity> findWeatherRuleByStoryIdAndUuid(Long storyId, String uuid) {
+        return weatherRuleRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<WeatherRuleEntity> findWeatherRulesByStoryId(Long storyId) {
+        return weatherRuleRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<GlobalRandomEventEntity> findGlobalRandomEventByStoryIdAndUuid(Long storyId, String uuid) {
+        return globalRandomEventRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<GlobalRandomEventEntity> findGlobalRandomEventsByStoryId(Long storyId) {
+        return globalRandomEventRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<ClassBonusEntity> findClassBonusByStoryIdAndUuid(Long storyId, String uuid) {
+        return classBonusRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<ClassBonusEntity> findClassBonusesByStoryId(Long storyId) {
+        return classBonusRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<MissionEntity> findMissionByStoryIdAndUuid(Long storyId, String uuid) {
+        return missionRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<MissionEntity> findMissionsByStoryId(Long storyId) {
+        return missionRepository.findByIdStory(storyId);
+    }
+
+    @Override
+    public Optional<MissionStepEntity> findMissionStepByStoryIdAndUuid(Long storyId, String uuid) {
+        return missionStepRepository.findByIdStoryAndUuid(storyId, uuid);
+    }
+
+    @Override
+    public List<MissionStepEntity> findMissionStepsByStoryId(Long storyId) {
+        return missionStepRepository.findByIdStory(storyId);
     }
 }

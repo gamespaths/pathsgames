@@ -198,9 +198,12 @@ class StoryMysqlReadRepository implements StoryReadPort
     public function findEntityByStoryAndUuid(int $storyId, string $tableName, string $uuid): ?array
     {
         $allowed = [
-            'list_stories_difficulty', 'list_locations', 'list_events', 'list_items',
-            'list_character_templates', 'list_classes', 'list_traits',
-            'list_creator', 'list_cards', 'list_texts',
+            'list_stories_difficulty', 'list_locations', 'list_locations_neighbors',
+            'list_events', 'list_events_effects', 'list_items', 'list_items_effects',
+            'list_character_templates', 'list_classes', 'list_classes_bonus',
+            'list_traits', 'list_creator', 'list_cards', 'list_texts',
+            'list_keys', 'list_choices', 'list_choices_conditions', 'list_choices_effects',
+            'list_weather_rules', 'list_global_random_events', 'list_missions', 'list_missions_steps',
         ];
         if (!in_array($tableName, $allowed, true)) {
             return null;
@@ -211,6 +214,24 @@ class StoryMysqlReadRepository implements StoryReadPort
         $stmt->execute([':id_story' => $storyId, ':uuid' => $uuid]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    public function findEntitiesByStory(int $storyId, string $tableName): array
+    {
+        $allowed = [
+            'list_stories_difficulty', 'list_locations', 'list_locations_neighbors',
+            'list_events', 'list_events_effects', 'list_items', 'list_items_effects',
+            'list_character_templates', 'list_classes', 'list_classes_bonus',
+            'list_traits', 'list_creator', 'list_cards', 'list_texts',
+            'list_keys', 'list_choices', 'list_choices_conditions', 'list_choices_effects',
+            'list_weather_rules', 'list_global_random_events', 'list_missions', 'list_missions_steps',
+        ];
+        if (!in_array($tableName, $allowed, true)) {
+            return [];
+        }
+        $stmt = $this->pdo->prepare("SELECT * FROM $tableName WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 

@@ -33,6 +33,11 @@ class StoryCrudPort(ABC):
         pass
 
     @abstractmethod
+    def get_story(self, story_uuid: str) -> Optional[Dict[str, Any]]:
+        """Get a single story by UUID. Returns None if not found."""
+        pass
+
+    @abstractmethod
     def create_story(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a new story."""
         pass

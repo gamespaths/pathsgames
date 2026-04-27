@@ -38,6 +38,20 @@ class StoryCrudAdminController
         return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
     }
 
+    // GET /api/admin/stories/{uuidStory}
+    public function getStory(Request $request, Response $response, array $args): Response
+    {
+        if (!$this->isAdmin($request)) {
+            return $this->forbidden($response);
+        }
+        $result = $this->crudPort->getStory($args['uuidStory']);
+        if ($result === null) {
+            return $this->jsonError($response, 404, 'STORY_NOT_FOUND', 'No story: ' . $args['uuidStory']);
+        }
+        $response->getBody()->write(json_encode($result));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     // PUT /api/admin/stories/{uuidStory}
     public function updateStory(Request $request, Response $response, array $args): Response
     {

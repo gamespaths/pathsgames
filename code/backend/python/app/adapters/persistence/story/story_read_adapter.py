@@ -3,9 +3,15 @@ from sqlalchemy.orm import Session
 from app.core.ports.story.story_read_port import StoryReadPort
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
-    LocationEntity, EventEntity, ItemEntity,
-    ClassEntity, CharacterTemplateEntity, TraitEntity, CardEntity,
-    CreatorEntity
+    LocationEntity, LocationNeighborEntity,
+    EventEntity, EventEffectEntity,
+    ItemEntity, ItemEffectEntity,
+    ClassEntity, ClassBonusEntity,
+    CharacterTemplateEntity, TraitEntity,
+    CardEntity, CreatorEntity, KeyEntity,
+    ChoiceEntity, ChoiceConditionEntity, ChoiceEffectEntity,
+    WeatherRuleEntity, GlobalRandomEventEntity,
+    MissionEntity, MissionStepEntity
 )
 
 class StoryReadAdapter(StoryReadPort):
@@ -172,6 +178,14 @@ class StoryReadAdapter(StoryReadPort):
             items = session.query(CardEntity).filter(CardEntity.id_story == story_id).all()
             return [self._to_dict(i) for i in items]
 
+    def find_entities_for_story(self, story_id: int, table_name: str) -> List[Dict[str, Any]]:
+        model = self._model_for_table(table_name)
+        if not model:
+            return []
+        with self.session_factory() as session:
+            entities = session.query(model).filter(model.id_story == story_id).all()
+            return [self._to_dict(e) for e in entities]
+
     def find_entity_by_story_and_uuid(self, story_id: int, table_name: str, uuid: str) -> Optional[Dict[str, Any]]:
         model = self._model_for_table(table_name)
         if not model:
@@ -187,14 +201,26 @@ class StoryReadAdapter(StoryReadPort):
         table_map = {
             "list_stories_difficulty": StoryDifficultyEntity,
             "list_locations": LocationEntity,
+            "list_locations_neighbors": LocationNeighborEntity,
             "list_events": EventEntity,
+            "list_events_effects": EventEffectEntity,
             "list_items": ItemEntity,
+            "list_items_effects": ItemEffectEntity,
             "list_character_templates": CharacterTemplateEntity,
             "list_classes": ClassEntity,
+            "list_classes_bonus": ClassBonusEntity,
             "list_traits": TraitEntity,
             "list_creator": CreatorEntity,
             "list_cards": CardEntity,
             "list_texts": TextEntity,
+            "list_keys": KeyEntity,
+            "list_choices": ChoiceEntity,
+            "list_choices_conditions": ChoiceConditionEntity,
+            "list_choices_effects": ChoiceEffectEntity,
+            "list_weather_rules": WeatherRuleEntity,
+            "list_global_random_events": GlobalRandomEventEntity,
+            "list_missions": MissionEntity,
+            "list_missions_steps": MissionStepEntity,
         }
         return table_map.get(table_name)
 

@@ -8,6 +8,7 @@ const SERVER_KEY  = 'pg_admin_server'
 const DEFAULT_SERVERS = [
   { label: 'Local (8042)',  url: 'http://localhost:8042' },
   { label: 'Local (8080)',  url: 'http://localhost:8080' },
+  { label: 'AWS',  url: ' https://4zepmifep6.execute-api.us-east-2.amazonaws.com/dev/' },
 ]
 
 export function AuthProvider({ children }) {

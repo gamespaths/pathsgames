@@ -356,14 +356,26 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             StoryPersistenceAdapter._TABLE_MODEL_MAP = {
                 "list_stories_difficulty": StoryDifficultyEntity,
                 "list_locations": LocationEntity,
+                "list_locations_neighbors": LocationNeighborEntity,
                 "list_events": EventEntity,
+                "list_events_effects": EventEffectEntity,
                 "list_items": ItemEntity,
+                "list_items_effects": ItemEffectEntity,
                 "list_character_templates": CharacterTemplateEntity,
                 "list_classes": ClassEntity,
+                "list_classes_bonus": ClassBonusEntity,
                 "list_traits": TraitEntity,
                 "list_creator": CreatorEntity,
                 "list_cards": CardEntity,
                 "list_texts": TextEntity,
+                "list_keys": KeyEntity,
+                "list_choices": ChoiceEntity,
+                "list_choices_conditions": ChoiceConditionEntity,
+                "list_choices_effects": ChoiceEffectEntity,
+                "list_weather_rules": WeatherRuleEntity,
+                "list_global_random_events": GlobalRandomEventEntity,
+                "list_missions": MissionEntity,
+                "list_missions_steps": MissionStepEntity,
             }
         return self._TABLE_MODEL_MAP
 

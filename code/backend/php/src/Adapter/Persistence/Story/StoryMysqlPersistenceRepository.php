@@ -584,9 +584,15 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     // Step 17: Generic entity CRUD
 
     private const ALLOWED_TABLES = [
-        'list_stories_difficulty', 'list_locations', 'list_events', 'list_items',
-        'list_character_templates', 'list_classes', 'list_traits',
-        'list_creator', 'list_cards', 'list_texts',
+        'list_stories_difficulty', 'list_locations', 'list_locations_neighbors',
+        'list_events', 'list_events_effects',
+        'list_items', 'list_items_effects',
+        'list_character_templates', 'list_classes', 'list_classes_bonus',
+        'list_traits', 'list_creator', 'list_cards', 'list_texts',
+        'list_keys',
+        'list_choices', 'list_choices_conditions', 'list_choices_effects',
+        'list_weather_rules', 'list_global_random_events',
+        'list_missions', 'list_missions_steps',
     ];
 
     public function saveEntity(int $storyId, string $tableName, array $data): void
@@ -678,14 +684,26 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $columnMap = [
             'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action'],
             'list_locations' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'is_safe', 'max_characters', 'id_event_on_enter', 'id_event_if_counter_zero', 'counter_start', 'id_card'],
+            'list_locations_neighbors' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_location_from', 'id_location_to', 'direction', 'energy_cost', 'condition_key', 'condition_value'],
             'list_events' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'event_type', 'trigger_type', 'energy_cost', 'coin_cost', 'id_event_next', 'flag_interrupt', 'flag_end_time', 'id_location'],
+            'list_events_effects' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_event', 'effect_type', 'effect_value', 'flag_group'],
             'list_items' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight', 'id_class'],
+            'list_items_effects' => ['id', 'id_story', 'id_card', 'id_item', 'effect_type', 'effect_value'],
             'list_character_templates' => ['id', 'id_story', 'uuid', 'id_tipo', 'id_text_name', 'id_text_description', 'life_max', 'energy_max', 'sad_max', 'dexterity_start', 'intelligence_start', 'constitution_start'],
             'list_classes' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight_max', 'dexterity_base', 'intelligence_base', 'constitution_base'],
+            'list_classes_bonus' => ['id', 'id_story', 'id_class', 'bonus_type', 'bonus_value'],
             'list_traits' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
             'list_creator' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'creator_name', 'creator_role', 'link', 'url', 'url_image', 'url_emote', 'url_instagram'],
             'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'link_copyright', 'id_creator', 'id_reference'],
             'list_texts' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'lang', 'short_text', 'long_text', 'id_text_copyright', 'link_copyright', 'id_creator'],
+            'list_keys' => ['id', 'uuid', 'id_story', 'id_text_name', 'key_name', 'key_value', 'key_group', 'is_visible'],
+            'list_choices' => ['id', 'uuid', 'id_story', 'id_event', 'id_text_name', 'id_text_description', 'priority', 'is_otherwise', 'is_progress', 'id_event_torun'],
+            'list_choices_conditions' => ['id', 'id_story', 'id_card', 'id_choice', 'condition_type', 'condition_key', 'condition_value', 'condition_operator'],
+            'list_choices_effects' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_choice', 'effect_type', 'effect_value', 'flag_group'],
+            'list_weather_rules' => ['id', 'id_story', 'id_text_name', 'probability', 'delta_energy', 'id_event', 'condition_key', 'condition_value', 'time_start', 'time_end', 'is_active'],
+            'list_global_random_events' => ['id', 'id_story', 'id_text_name', 'id_text_description', 'id_event', 'probability', 'condition_key', 'condition_value'],
+            'list_missions' => ['id', 'uuid', 'id_story', 'id_text_name', 'id_text_description', 'condition_key', 'condition_value_from', 'condition_value_to', 'id_event_completed'],
+            'list_missions_steps' => ['id', 'id_story', 'id_mission', 'step_order', 'id_text_description', 'condition_key', 'condition_value', 'id_event_completed'],
         ];
         return $columnMap[$tableName] ?? [];
     }

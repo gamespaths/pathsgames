@@ -35,6 +35,11 @@ interface StoryCrudPort
     public function deleteEntity(string $storyUuid, string $entityType, string $entityUuid): bool;
 
     /**
+     * @return array|null  Story data, or null if not found.
+     */
+    public function getStory(string $storyUuid): ?array;
+
+    /**
      * @return array|null  Created story.
      */
     public function createStory(array $data): ?array;

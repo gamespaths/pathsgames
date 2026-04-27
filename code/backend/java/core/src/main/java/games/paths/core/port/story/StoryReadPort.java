@@ -1,16 +1,6 @@
 package games.paths.core.port.story;
 
-import games.paths.core.entity.story.StoryEntity;
-import games.paths.core.entity.story.StoryDifficultyEntity;
-import games.paths.core.entity.story.TextEntity;
-import games.paths.core.entity.story.LocationEntity;
-import games.paths.core.entity.story.EventEntity;
-import games.paths.core.entity.story.ItemEntity;
-import games.paths.core.entity.story.CharacterTemplateEntity;
-import games.paths.core.entity.story.ClassEntity;
-import games.paths.core.entity.story.TraitEntity;
-import games.paths.core.entity.story.CardEntity;
-import games.paths.core.entity.story.CreatorEntity;
+import games.paths.core.entity.story.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -170,4 +160,64 @@ public interface StoryReadPort {
 
     /** Finds all cards for a story. */
     List<CardEntity> findCardsByStoryId(Long storyId);
+
+    /** Finds a location-neighbor by story ID and UUID. */
+    Optional<LocationNeighborEntity> findLocationNeighborByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all location-neighbors for a story. */
+    List<LocationNeighborEntity> findLocationNeighborsByStoryId(Long storyId);
+
+    /** Finds a key by story ID and UUID. */
+    Optional<KeyEntity> findKeyByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all keys for a story. */
+    List<KeyEntity> findKeysByStoryId(Long storyId);
+
+    /** Finds an event-effect by story ID and UUID. */
+    Optional<EventEffectEntity> findEventEffectByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all event-effects for a story. */
+    List<EventEffectEntity> findEventEffectsByStoryId(Long storyId);
+
+    /** Finds a choice by story ID and UUID. */
+    Optional<ChoiceEntity> findChoiceByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all choices for a story. */
+    List<ChoiceEntity> findChoicesByStoryId(Long storyId);
+
+    /** Finds a choice-condition by story ID and UUID. */
+    Optional<ChoiceConditionEntity> findChoiceConditionByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all choice-conditions for a story. */
+    List<ChoiceConditionEntity> findChoiceConditionsByStoryId(Long storyId);
+
+    /** Finds a choice-effect by story ID and UUID. */
+    Optional<ChoiceEffectEntity> findChoiceEffectByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all choice-effects for a story. */
+    List<ChoiceEffectEntity> findChoiceEffectsByStoryId(Long storyId);
+
+    /** Finds an item-effect by story ID and UUID. */
+    Optional<ItemEffectEntity> findItemEffectByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all item-effects for a story. */
+    List<ItemEffectEntity> findItemEffectsByStoryId(Long storyId);
+
+    /** Finds a weather-rule by story ID and UUID. */
+    Optional<WeatherRuleEntity> findWeatherRuleByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all weather-rules for a story. */
+    List<WeatherRuleEntity> findWeatherRulesByStoryId(Long storyId);
+
+    /** Finds a global-random-event by story ID and UUID. */
+    Optional<GlobalRandomEventEntity> findGlobalRandomEventByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all global-random-events for a story. */
+    List<GlobalRandomEventEntity> findGlobalRandomEventsByStoryId(Long storyId);
+
+    /** Finds a class-bonus by story ID and UUID. */
+    Optional<ClassBonusEntity> findClassBonusByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all class-bonuses for a story. */
+    List<ClassBonusEntity> findClassBonusesByStoryId(Long storyId);
+
+    /** Finds a mission by story ID and UUID. */
+    Optional<MissionEntity> findMissionByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all missions for a story. */
+    List<MissionEntity> findMissionsByStoryId(Long storyId);
+
+    /** Finds a mission-step by story ID and UUID. */
+    Optional<MissionStepEntity> findMissionStepByStoryIdAndUuid(Long storyId, String uuid);
+    /** Finds all mission-steps for a story. */
+    List<MissionStepEntity> findMissionStepsByStoryId(Long storyId);
 }

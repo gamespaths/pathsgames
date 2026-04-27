@@ -69,6 +69,7 @@ class KeyEntity(Base):
     __tablename__ = "list_keys"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     key_name = Column(String(255))
@@ -238,6 +239,7 @@ class ChoiceEntity(Base):
     __tablename__ = "list_choices"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_event = Column(Integer)
     id_text_name = Column(Integer)
@@ -292,6 +294,7 @@ class MissionEntity(Base):
     __tablename__ = "list_missions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String(36))
     id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)

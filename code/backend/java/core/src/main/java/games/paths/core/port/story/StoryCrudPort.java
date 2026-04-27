@@ -67,6 +67,14 @@ public interface StoryCrudPort {
     boolean deleteEntity(String storyUuid, String entityType, String entityUuid);
 
     /**
+     * Gets a story by UUID, returning all admin-editable metadata fields.
+     *
+     * @param storyUuid the story UUID
+     * @return full story map with all metadata fields, or null if not found
+     */
+    Map<String, Object> getStory(String storyUuid);
+
+    /**
      * Updates the story itself (metadata fields).
      *
      * @param storyUuid the story UUID

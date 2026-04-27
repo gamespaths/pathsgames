@@ -21,6 +21,7 @@ class StoryCrudAdminController:
 
         # Story-level
         self.router.add_api_route("", self.create_story_route, methods=["POST"], status_code=201)
+        self.router.add_api_route("/{uuidStory}", self.get_story_route, methods=["GET"])
         self.router.add_api_route("/{uuidStory}", self.update_story_route, methods=["PUT"])
 
         # Entity CRUD
@@ -39,6 +40,13 @@ class StoryCrudAdminController:
         result = self.crud_port.create_story(data)
         if result is None:
             raise HTTPException(status_code=400, detail={"error": "INVALID_DATA", "message": "Could not create story"})
+        return result
+
+    async def get_story_route(self, req: Request, uuidStory: str = Path(...)):
+        self._require_admin(req)
+        result = self.crud_port.get_story(uuidStory)
+        if result is None:
+            raise HTTPException(status_code=404, detail={"error": "STORY_NOT_FOUND", "message": f"No story: {uuidStory}"})
         return result
 
     async def update_story_route(self, req: Request, uuidStory: str = Path(...), data: Dict[str, Any] = Body(default=None)):

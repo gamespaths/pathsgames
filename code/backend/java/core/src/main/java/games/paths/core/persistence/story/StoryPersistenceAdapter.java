@@ -302,4 +302,66 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
 
     @Override
     public void deleteCreatorByUuid(String uuid) { creatorRepository.deleteByUuid(uuid); }
+
+    // === Step 17: 12 new entity type save/delete ===
+
+    @Override
+    public LocationNeighborEntity saveLocationNeighbor(LocationNeighborEntity entity) { return locationNeighborRepository.save(entity); }
+    @Override
+    public void deleteLocationNeighborByUuid(String uuid) { locationNeighborRepository.deleteByUuid(uuid); }
+
+    @Override
+    public KeyEntity saveKey(KeyEntity entity) { return keyRepository.save(entity); }
+    @Override
+    public void deleteKeyByUuid(String uuid) { keyRepository.deleteByUuid(uuid); }
+
+    @Override
+    public EventEffectEntity saveEventEffect(EventEffectEntity entity) { return eventEffectRepository.save(entity); }
+    @Override
+    public void deleteEventEffectByUuid(String uuid) { eventEffectRepository.deleteByUuid(uuid); }
+
+    @Override
+    public ChoiceEntity saveChoice(ChoiceEntity entity) { return choiceRepository.save(entity); }
+    @Override
+    public void deleteChoiceByUuid(String uuid) { choiceRepository.deleteByUuid(uuid); }
+
+    @Override
+    public ChoiceConditionEntity saveChoiceCondition(ChoiceConditionEntity entity) { return choiceConditionRepository.save(entity); }
+    @Override
+    public void deleteChoiceConditionByUuid(String uuid) { choiceConditionRepository.deleteByUuid(uuid); }
+
+    @Override
+    public ChoiceEffectEntity saveChoiceEffect(ChoiceEffectEntity entity) { return choiceEffectRepository.save(entity); }
+    @Override
+    public void deleteChoiceEffectByUuid(String uuid) { choiceEffectRepository.deleteByUuid(uuid); }
+
+    @Override
+    public ItemEffectEntity saveItemEffect(ItemEffectEntity entity) { return itemEffectRepository.save(entity); }
+    @Override
+    public void deleteItemEffectByUuid(String uuid) { itemEffectRepository.deleteByUuid(uuid); }
+
+    @Override
+    public WeatherRuleEntity saveWeatherRule(WeatherRuleEntity entity) { return weatherRuleRepository.save(entity); }
+    @Override
+    public void deleteWeatherRuleByUuid(String uuid) { weatherRuleRepository.deleteByUuid(uuid); }
+
+    @Override
+    public GlobalRandomEventEntity saveGlobalRandomEvent(GlobalRandomEventEntity entity) { return globalRandomEventRepository.save(entity); }
+    @Override
+    public void deleteGlobalRandomEventByUuid(String uuid) { globalRandomEventRepository.deleteByUuid(uuid); }
+
+    @Override
+    public ClassBonusEntity saveClassBonus(ClassBonusEntity entity) { return classBonusRepository.save(entity); }
+    @Override
+    public void deleteClassBonusByUuid(String uuid) { classBonusRepository.deleteByUuid(uuid); }
+
+    @Override
+    public MissionEntity saveMission(MissionEntity entity) { return missionRepository.save(entity); }
+    @Override
+    public void deleteMissionByUuid(String uuid) { missionRepository.deleteByUuid(uuid); }
+
+    @Override
+    public MissionStepEntity saveMissionStep(MissionStepEntity entity) { return missionStepRepository.save(entity); }
+    @Override
+    public void deleteMissionStepByUuid(String uuid) { missionStepRepository.deleteByUuid(uuid); }
 }

@@ -11,6 +11,7 @@ Routes (API contracts match Java OpenAPI specs):
   GET    /api/stories/group/{group}       → list_stories_by_group  (public)  [Step 15]
   POST   /api/admin/stories/import        → import_story           (ADMIN)
   GET    /api/admin/stories               → list_all_stories       (ADMIN)
+  GET    /api/admin/stories/{uuid}        → get_admin_story        (ADMIN)
   DELETE /api/admin/stories/{uuid}        → delete_story           (ADMIN)
 
 Response shapes follow:
@@ -256,6 +257,15 @@ def _story_detail(item, lang):
         'peghi':                      _safe_int(item.get('peghi')),
         'versionMin':                 item.get('versionMin'),
         'versionMax':                 item.get('versionMax'),
+        'idTextTitle':                _safe_int(item.get('idTextTitle')),
+        'idTextDescription':          _safe_int(item.get('idTextDescription')),
+        'idLocationStart':            _safe_int(item.get('idLocationStart')),
+        'idImage':                    _safe_int(item.get('idImage')),
+        'idLocationAllPlayerComa':    _safe_int(item.get('idLocationAllPlayerComa')),
+        'idEventAllPlayerComa':       _safe_int(item.get('idEventAllPlayerComa')),
+        'idEventEndGame':             _safe_int(item.get('idEventEndGame')),
+        'idTextCopyright':            _safe_int(item.get('idTextCopyright')),
+        'idCreator':                  _safe_int(item.get('idCreator')),
         'clockSingularDescription':   item.get('clockSingularDescription'),
         'clockPluralDescription':     item.get('clockPluralDescription'),
         'copyrightText':              None,  # stored in texts if needed
@@ -309,6 +319,8 @@ def lambda_handler(event, context):
         return list_all_stories(event)
     if path == '/api/admin/stories' and method == 'POST':
         return create_story(event)
+    if method == 'GET' and 'uuid' in params and 'uuidStory' not in params and 'entityType' not in params:
+        return get_admin_story(event, params['uuid'])
 
     # admin — parameterised routes
     if method == 'PUT' and 'uuidStory' in params and 'entityType' not in params:
@@ -697,6 +709,18 @@ def list_all_stories(event):
     return _ok([_story_summary(i, lang) for i in items])
 
 
+def get_admin_story(event, story_uuid):
+    _, err = _require_admin(event)
+    if err:
+        return err
+    lang = _get_lang(event)
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND',
+                    f'No story found with UUID: {story_uuid}')
+    return _ok(_story_detail(item, lang))
+
+
 def delete_story(event, story_uuid):
     _, err = _require_admin(event)
     if err:
@@ -714,14 +738,26 @@ def delete_story(event, story_uuid):
 TYPE_MAP = {
     'difficulties': 'difficulties',
     'locations': 'locations',
+    'location-neighbors': 'locationNeighbors',
     'events': 'events',
+    'event-effects': 'eventEffects',
     'items': 'items',
+    'item-effects': 'itemEffects',
     'character-templates': 'characterTemplates',
     'classes': 'classes',
+    'class-bonuses': 'classBonuses',
     'traits': 'traits',
     'creators': 'raw_creators',
     'cards': 'raw_cards',
-    'texts': 'raw_texts'
+    'texts': 'raw_texts',
+    'keys': 'keys',
+    'choices': 'choices',
+    'choice-conditions': 'choiceConditions',
+    'choice-effects': 'choiceEffects',
+    'weather-rules': 'weatherRules',
+    'global-random-events': 'globalRandomEvents',
+    'missions': 'missions',
+    'mission-steps': 'missionSteps',
 }
 
 def create_story(event):
@@ -746,6 +782,18 @@ def create_story(event):
         'peghi':      _safe_int(data.get('peghi')),
         'versionMin': data.get('versionMin'),
         'versionMax': data.get('versionMax'),
+        'idTextTitle':               _safe_int(data.get('idTextTitle')),
+        'idTextDescription':         _safe_int(data.get('idTextDescription')),
+        'idLocationStart':           _safe_int(data.get('idLocationStart')),
+        'idImage':                   _safe_int(data.get('idImage')),
+        'idLocationAllPlayerComa':   _safe_int(data.get('idLocationAllPlayerComa')),
+        'idEventAllPlayerComa':      _safe_int(data.get('idEventAllPlayerComa')),
+        'clockSingularDescription':  data.get('clockSingularDescription'),
+        'clockPluralDescription':    data.get('clockPluralDescription'),
+        'idEventEndGame':            _safe_int(data.get('idEventEndGame')),
+        'idTextCopyright':           _safe_int(data.get('idTextCopyright')),
+        'linkCopyright':             data.get('linkCopyright'),
+        'idCreator':                 _safe_int(data.get('idCreator')),
         'texts':      {},
         'GSI1_PK':    'STORY_LIST',
         'GSI1_SK':    f'STORY#{story_uuid}',
@@ -767,7 +815,11 @@ def update_story(event, story_uuid):
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
 
     # Update allowed fields
-    fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi', 'versionMin', 'versionMax']
+    fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi',
+              'versionMin', 'versionMax', 'idTextTitle', 'idTextDescription',
+              'idLocationStart', 'idImage', 'idLocationAllPlayerComa', 'idEventAllPlayerComa',
+              'clockSingularDescription', 'clockPluralDescription', 'idEventEndGame',
+              'idTextCopyright', 'linkCopyright', 'idCreator']
     for f in fields:
         if f in data:
             item[f] = data[f]
@@ -788,9 +840,11 @@ def list_entities(event, story_uuid, entity_type):
         return _ok([]) # unknown type -> empty list
 
     entities = item.get(field, [])
-    # Add idStory to response for compatibility
-    for e in entities:
-        e['idStory'] = item.get('id') # or 0
+    # Ensure each entity has a sequential numeric id and correct idStory
+    for i, e in enumerate(entities):
+        if 'id' not in e or e['id'] is None:
+            e['id'] = i + 1
+        e['idStory'] = item.get('id', story_uuid)
 
     return _ok(entities)
 
@@ -813,10 +867,11 @@ def create_entity(event, story_uuid, entity_type):
 
     ent_uuid = str(uuid_lib.uuid4())
     data['uuid'] = ent_uuid
-    data['idStory'] = item.get('id')
+    data['idStory'] = item.get('id', story_uuid)
 
     if field not in item:
         item[field] = []
+    data['id'] = len(item[field]) + 1
     item[field].append(data)
 
     db_utils.put_item(item)

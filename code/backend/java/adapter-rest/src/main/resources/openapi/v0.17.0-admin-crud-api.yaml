@@ -193,14 +193,26 @@ components:
         enum:
           - difficulties
           - locations
+          - location-neighbors
           - events
+          - event-effects
           - items
+          - item-effects
           - character-templates
           - classes
+          - class-bonuses
           - traits
           - creators
           - cards
           - texts
+          - keys
+          - choices
+          - choice-conditions
+          - choice-effects
+          - weather-rules
+          - global-random-events
+          - missions
+          - mission-steps
       description: Entity type
     entityUuid:
       name: entityUuid
@@ -224,6 +236,16 @@ components:
         versionMax: { type: string }
         idTextTitle: { type: integer }
         idTextDescription: { type: integer }
+        idLocationStart: { type: integer }
+        idImage: { type: integer }
+        idLocationAllPlayerComa: { type: integer }
+        idEventAllPlayerComa: { type: integer }
+        clockSingularDescription: { type: string }
+        clockPluralDescription: { type: string }
+        idEventEndGame: { type: integer }
+        idTextCopyright: { type: integer }
+        linkCopyright: { type: string }
+        idCreator: { type: integer }
 
     EntityRequest:
       type: object
@@ -233,6 +255,7 @@ components:
     EntityResponse:
       type: object
       properties:
+        id: { type: integer }
         uuid: { type: string }
         idStory: { type: integer }
         idCard: { type: integer }

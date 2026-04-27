@@ -58,7 +58,7 @@ Resources:
         project: PathsGames
         env: !Ref Environment
       CorsConfiguration:
-        AllowMethods: [GET, POST, DELETE, OPTIONS]
+        AllowMethods: [GET, POST, PUT, DELETE, OPTIONS]
         AllowOrigins:
           - "http://localhost"
           - "http://localhost:3000"

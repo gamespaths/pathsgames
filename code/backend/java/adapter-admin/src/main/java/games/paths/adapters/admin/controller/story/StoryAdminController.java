@@ -3,11 +3,11 @@ package games.paths.adapters.admin.controller.story;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
-import games.paths.core.model.story.StoryDetail;
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.model.story.StorySummary;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
+import games.paths.core.port.story.StoryCrudPort;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,10 +44,12 @@ public class StoryAdminController {
 
     private final StoryImportPort storyImportPort;
     private final StoryQueryPort storyQueryPort;
+    private final StoryCrudPort storyCrudPort;
 
-    public StoryAdminController(StoryImportPort storyImportPort, StoryQueryPort storyQueryPort) {
+    public StoryAdminController(StoryImportPort storyImportPort, StoryQueryPort storyQueryPort, StoryCrudPort storyCrudPort) {
         this.storyImportPort = storyImportPort;
         this.storyQueryPort = storyQueryPort;
+        this.storyCrudPort = storyCrudPort;
     }
 
     /**
@@ -112,27 +114,14 @@ public class StoryAdminController {
             @PathVariable String uuid,
             @RequestParam(value = "lang", defaultValue = "en") String lang) {
 
-        StoryDetail detail = storyQueryPort.getStoryByUuid(uuid, lang);
-        if (detail == null) {
+        // Return full metadata from crud port (includes all integer FK fields)
+        Map<String, Object> resp = storyCrudPort.getStory(uuid);
+        if (resp == null) {
             Map<String, String> error = new LinkedHashMap<>();
             error.put(AdminConstant.KEY_ERROR, AdminConstant.STORY_NOT_FOUND);
             error.put(AdminConstant.KEY_MESSAGE, AdminConstant.STORY_NOT_FOUND_WITH_UUID + uuid);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
-
-        // Return a map with all metadata for the editor
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("uuid", detail.getUuid());
-        resp.put("author", detail.getAuthor());
-        resp.put("category", detail.getCategory());
-        resp.put("group", detail.getGroup());
-        resp.put("visibility", detail.getVisibility());
-        resp.put("priority", detail.getPriority());
-        resp.put("peghi", detail.getPeghi());
-        resp.put("versionMin", detail.getVersionMin());
-        resp.put("versionMax", detail.getVersionMax());
-        resp.put("idTextTitle", null);
-        resp.put("idTextDescription", null);
 
         return ResponseEntity.ok(resp);
     }

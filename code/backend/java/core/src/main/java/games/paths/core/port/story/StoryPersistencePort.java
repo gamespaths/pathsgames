@@ -181,4 +181,52 @@ public interface StoryPersistencePort {
     void deleteTextByUuid(String uuid);
     void deleteCardByUuid(String uuid);
     void deleteCreatorByUuid(String uuid);
+
+    /** Saves a single location-neighbor entity. */
+    LocationNeighborEntity saveLocationNeighbor(LocationNeighborEntity entity);
+    void deleteLocationNeighborByUuid(String uuid);
+
+    /** Saves a single key entity. */
+    KeyEntity saveKey(KeyEntity entity);
+    void deleteKeyByUuid(String uuid);
+
+    /** Saves a single event-effect entity. */
+    EventEffectEntity saveEventEffect(EventEffectEntity entity);
+    void deleteEventEffectByUuid(String uuid);
+
+    /** Saves a single choice entity. */
+    ChoiceEntity saveChoice(ChoiceEntity entity);
+    void deleteChoiceByUuid(String uuid);
+
+    /** Saves a single choice-condition entity. */
+    ChoiceConditionEntity saveChoiceCondition(ChoiceConditionEntity entity);
+    void deleteChoiceConditionByUuid(String uuid);
+
+    /** Saves a single choice-effect entity. */
+    ChoiceEffectEntity saveChoiceEffect(ChoiceEffectEntity entity);
+    void deleteChoiceEffectByUuid(String uuid);
+
+    /** Saves a single item-effect entity. */
+    ItemEffectEntity saveItemEffect(ItemEffectEntity entity);
+    void deleteItemEffectByUuid(String uuid);
+
+    /** Saves a single weather-rule entity. */
+    WeatherRuleEntity saveWeatherRule(WeatherRuleEntity entity);
+    void deleteWeatherRuleByUuid(String uuid);
+
+    /** Saves a single global-random-event entity. */
+    GlobalRandomEventEntity saveGlobalRandomEvent(GlobalRandomEventEntity entity);
+    void deleteGlobalRandomEventByUuid(String uuid);
+
+    /** Saves a single class-bonus entity. */
+    ClassBonusEntity saveClassBonus(ClassBonusEntity entity);
+    void deleteClassBonusByUuid(String uuid);
+
+    /** Saves a single mission entity. */
+    MissionEntity saveMission(MissionEntity entity);
+    void deleteMissionByUuid(String uuid);
+
+    /** Saves a single mission-step entity. */
+    MissionStepEntity saveMissionStep(MissionStepEntity entity);
+    void deleteMissionStepByUuid(String uuid);
 }

@@ -11,9 +11,11 @@ from app.core.ports.story.story_persistence_port import StoryPersistencePort
 
 
 ENTITY_TYPES = [
-    "difficulties", "locations", "events", "items",
-    "character-templates", "classes", "traits",
-    "creators", "cards", "texts"
+    "difficulties", "locations", "location-neighbors", "events", "event-effects",
+    "items", "item-effects", "character-templates", "classes", "class-bonuses",
+    "traits", "creators", "cards", "texts", "keys", "choices",
+    "choice-conditions", "choice-effects", "weather-rules",
+    "global-random-events", "missions", "mission-steps"
 ]
 
 
@@ -87,6 +89,39 @@ class StoryCrudService(StoryCrudPort):
         created = self.read_port.find_story_by_uuid(new_uuid)
         return created
 
+    def get_story(self, story_uuid: str) -> Optional[Dict[str, Any]]:
+        if not story_uuid:
+            return None
+        raw = self.read_port.find_story_by_uuid(story_uuid)
+        if raw is None:
+            return None
+        return {
+            "id":                       raw.get("id"),
+            "uuid":                     raw.get("uuid"),
+            "author":                   raw.get("author"),
+            "category":                 raw.get("category"),
+            "groupName":                raw.get("group_name"),
+            "visibility":               raw.get("visibility"),
+            "priority":                 raw.get("priority"),
+            "peghi":                    raw.get("peghi"),
+            "versionMin":               raw.get("version_min"),
+            "versionMax":               raw.get("version_max"),
+            "clockSingularDescription": raw.get("clock_singular"),
+            "clockPluralDescription":   raw.get("clock_plural"),
+            "linkCopyright":            raw.get("link_copyright"),
+            "idCard":                   raw.get("id_card"),
+            "idTextName":               raw.get("id_text_name"),
+            "idTextTitle":              raw.get("id_text_title"),
+            "idTextDescription":        raw.get("id_text_description"),
+            "idTextCopyright":          raw.get("id_text_copyright"),
+            "idLocationStart":          raw.get("id_location_start"),
+            "idImage":                  raw.get("id_image"),
+            "idCreator":                raw.get("id_creator"),
+            "idLocationAllPlayerComa":  raw.get("id_location_all_player_coma"),
+            "idEventAllPlayerComa":     raw.get("id_event_all_player_coma"),
+            "idEventEndGame":           raw.get("id_event_end_game"),
+        }
+
     def update_story(self, story_uuid: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         if not story_uuid or not data:
             return None
@@ -102,56 +137,46 @@ class StoryCrudService(StoryCrudPort):
         dispatch = {
             "difficulties": lambda: self.read_port.find_difficulties_for_story(sid),
             "locations": lambda: self.read_port.find_locations_for_story(sid),
+            "location-neighbors": lambda: self.read_port.find_entities_for_story(sid, "list_locations_neighbors"),
             "events": lambda: self.read_port.find_events_for_story(sid),
+            "event-effects": lambda: self.read_port.find_entities_for_story(sid, "list_events_effects"),
             "items": lambda: self.read_port.find_items_for_story(sid),
+            "item-effects": lambda: self.read_port.find_entities_for_story(sid, "list_items_effects"),
             "character-templates": lambda: self.read_port.find_character_templates_for_story(sid),
             "classes": lambda: self.read_port.find_classes_for_story(sid),
+            "class-bonuses": lambda: self.read_port.find_entities_for_story(sid, "list_classes_bonus"),
             "traits": lambda: self.read_port.find_traits_for_story(sid),
             "creators": lambda: self.read_port.find_creators_for_story(sid),
             "cards": lambda: self.read_port.find_cards_for_story(sid),
             "texts": lambda: self.read_port.find_texts_for_story(sid),
+            "keys": lambda: self.read_port.find_entities_for_story(sid, "list_keys"),
+            "choices": lambda: self.read_port.find_entities_for_story(sid, "list_choices"),
+            "choice-conditions": lambda: self.read_port.find_entities_for_story(sid, "list_choices_conditions"),
+            "choice-effects": lambda: self.read_port.find_entities_for_story(sid, "list_choices_effects"),
+            "weather-rules": lambda: self.read_port.find_entities_for_story(sid, "list_weather_rules"),
+            "global-random-events": lambda: self.read_port.find_entities_for_story(sid, "list_global_random_events"),
+            "missions": lambda: self.read_port.find_entities_for_story(sid, "list_missions"),
+            "mission-steps": lambda: self.read_port.find_entities_for_story(sid, "list_missions_steps"),
         }
         fn = dispatch.get(entity_type)
         return fn() if fn else []
 
     # === Dispatch: get ===
     def _get_by_type(self, sid: int, entity_type: str, entity_uuid: str) -> Optional[Dict[str, Any]]:
-        dispatch = {
-            "difficulties": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_stories_difficulty", entity_uuid),
-            "locations": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_locations", entity_uuid),
-            "events": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_events", entity_uuid),
-            "items": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_items", entity_uuid),
-            "character-templates": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_character_templates", entity_uuid),
-            "classes": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_classes", entity_uuid),
-            "traits": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_traits", entity_uuid),
-            "creators": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_creator", entity_uuid),
-            "cards": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_cards", entity_uuid),
-            "texts": lambda: self.read_port.find_entity_by_story_and_uuid(sid, "list_texts", entity_uuid),
-        }
-        fn = dispatch.get(entity_type)
-        return fn() if fn else None
+        table = self._table_for_type(entity_type)
+        if not table:
+            return None
+        return self.read_port.find_entity_by_story_and_uuid(sid, table, entity_uuid)
 
     # === Dispatch: create ===
     def _create_by_type(self, sid: int, entity_type: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         new_uuid = str(uuid_mod.uuid4())
         data["uuid"] = new_uuid
-        dispatch = {
-            "difficulties": lambda: self.persistence_port.save_entity(sid, "list_stories_difficulty", data),
-            "locations": lambda: self.persistence_port.save_entity(sid, "list_locations", data),
-            "events": lambda: self.persistence_port.save_entity(sid, "list_events", data),
-            "items": lambda: self.persistence_port.save_entity(sid, "list_items", data),
-            "character-templates": lambda: self.persistence_port.save_entity(sid, "list_character_templates", data),
-            "classes": lambda: self.persistence_port.save_entity(sid, "list_classes", data),
-            "traits": lambda: self.persistence_port.save_entity(sid, "list_traits", data),
-            "creators": lambda: self.persistence_port.save_entity(sid, "list_creator", data),
-            "cards": lambda: self.persistence_port.save_entity(sid, "list_cards", data),
-            "texts": lambda: self.persistence_port.save_entity(sid, "list_texts", data),
-        }
-        fn = dispatch.get(entity_type)
-        if not fn:
+        table = self._table_for_type(entity_type)
+        if not table:
             return None
-        fn()
-        return self.read_port.find_entity_by_story_and_uuid(sid, self._table_for_type(entity_type), new_uuid)
+        self.persistence_port.save_entity(sid, table, data)
+        return self.read_port.find_entity_by_story_and_uuid(sid, table, new_uuid)
 
     # === Dispatch: update ===
     def _update_by_type(self, sid: int, entity_type: str, entity_uuid: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -179,24 +204,37 @@ class StoryCrudService(StoryCrudPort):
         mapping = {
             "difficulties": "list_stories_difficulty",
             "locations": "list_locations",
+            "location-neighbors": "list_locations_neighbors",
             "events": "list_events",
+            "event-effects": "list_events_effects",
             "items": "list_items",
+            "item-effects": "list_items_effects",
             "character-templates": "list_character_templates",
             "classes": "list_classes",
+            "class-bonuses": "list_classes_bonus",
             "traits": "list_traits",
             "creators": "list_creator",
             "cards": "list_cards",
             "texts": "list_texts",
+            "keys": "list_keys",
+            "choices": "list_choices",
+            "choice-conditions": "list_choices_conditions",
+            "choice-effects": "list_choices_effects",
+            "weather-rules": "list_weather_rules",
+            "global-random-events": "list_global_random_events",
+            "missions": "list_missions",
+            "mission-steps": "list_missions_steps",
         }
         return mapping.get(entity_type)
 
     def _apply_story_fields(self, story_data: Dict, data: Dict):
-        field_map = {
-            "author": "author", "category": "category", "group": "group",
-            "visibility": "visibility", "priority": "priority", "peghi": "peghi",
-            "versionMin": "versionMin", "versionMax": "versionMax",
-            "idTextTitle": "idTextTitle", "idTextDescription": "idTextDescription",
-        }
-        for json_key, db_key in field_map.items():
-            if json_key in data:
-                story_data[db_key] = data[json_key]
+        fields = [
+            "author", "category", "group", "visibility", "priority", "peghi",
+            "versionMin", "versionMax", "idTextTitle", "idTextDescription",
+            "idLocationStart", "idImage", "idLocationAllPlayerComa", "idEventAllPlayerComa",
+            "clockSingularDescription", "clockPluralDescription", "idEventEndGame",
+            "idTextCopyright", "linkCopyright", "idCreator",
+        ]
+        for key in fields:
+            if key in data:
+                story_data[key] = data[key]
