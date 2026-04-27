@@ -153,6 +153,36 @@ class StoryAdminControllerTest {
         }
     }
 
+    // === GET /api/admin/stories/{uuid} ===
+
+    @Nested
+    @DisplayName("GET /api/admin/stories/{uuid}")
+    class GetStory {
+
+        @Test
+        @DisplayName("Should return 200 with full story detail")
+        void getStory_success() throws Exception {
+            Map<String, Object> storyDetail = Map.of("uuid", "uuid-1", "title", "Test Story");
+            when(storyCrudPort.getStory("uuid-1")).thenReturn(storyDetail);
+
+            mockMvc.perform(get("/api/admin/stories/uuid-1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.uuid").value("uuid-1"))
+                    .andExpect(jsonPath("$.title").value("Test Story"));
+        }
+
+        @Test
+        @DisplayName("Should return 404 when story not found")
+        void getStory_notFound() throws Exception {
+            when(storyCrudPort.getStory("unknown")).thenReturn(null);
+
+            mockMvc.perform(get("/api/admin/stories/unknown"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("STORY_NOT_FOUND"))
+                    .andExpect(jsonPath("$.message").value("No story found with UUID: unknown"));
+        }
+    }
+
     // === DELETE /api/admin/stories/{uuid} ===
 
     @Nested

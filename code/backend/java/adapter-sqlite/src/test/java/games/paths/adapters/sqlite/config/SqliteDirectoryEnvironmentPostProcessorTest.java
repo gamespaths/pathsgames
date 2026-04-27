@@ -58,4 +58,23 @@ class SqliteDirectoryEnvironmentPostProcessorTest {
         var pp = new SqliteDirectoryEnvironmentPostProcessor();
         assertDoesNotThrow(() -> pp.postProcessEnvironment(env, null));
     }
+
+    @Test
+    void handlesIOExceptionQuietly(@TempDir Path tempDir) throws Exception {
+        Path readOnlyDir = tempDir.resolve("readonly");
+        Files.createDirectory(readOnlyDir);
+        readOnlyDir.toFile().setReadOnly();
+
+        Path dbPath = readOnlyDir.resolve("subdir/database.sqlite");
+
+        ConfigurableEnvironment env = new StandardEnvironment();
+        env.getPropertySources().addFirst(new MapPropertySource("test", Map.of(
+                "game.database.path", dbPath.toString()
+        )));
+
+        var pp = new SqliteDirectoryEnvironmentPostProcessor();
+        assertDoesNotThrow(() -> pp.postProcessEnvironment(env, null));
+        
+        readOnlyDir.toFile().setWritable(true);
+    }
 }

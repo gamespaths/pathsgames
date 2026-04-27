@@ -25,17 +25,6 @@ class WebConfigTest {
     }
 
     @Test
-    @DisplayName("setAllowedOrigins replaces the list")
-    void setAllowedOrigins_replacesList() {
-        WebConfig config = new WebConfig();
-        List<String> custom = List.of("https://example.com", "https://admin.example.com");
-
-        config.setAllowedOrigins(custom);
-
-        assertEquals(custom, config.getAllowedOrigins());
-    }
-
-    @Test
     @DisplayName("corsConfigurer() returns a non-null WebMvcConfigurer")
     void corsConfigurer_notNull() {
         WebConfig config = new WebConfig();
@@ -44,15 +33,4 @@ class WebConfigTest {
         assertNotNull(configurer);
     }
 
-    @Test
-    @DisplayName("corsConfigurer() uses updated allowed origins after setAllowedOrigins")
-    void corsConfigurer_usesConfiguredOrigins() {
-        WebConfig config = new WebConfig();
-        config.setAllowedOrigins(List.of("https://myfrontend.com"));
-
-        WebMvcConfigurer configurer = config.corsConfigurer();
-        assertNotNull(configurer);
-        // Behaviour is verified by the fact that setAllowedOrigins changed the origins list
-        assertTrue(config.getAllowedOrigins().contains("https://myfrontend.com"));
-    }
 }

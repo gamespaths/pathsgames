@@ -322,5 +322,94 @@ class StoryPersistenceAdapterTest {
             inOrder.verify(difficultyRepository).deleteByIdStory(1L);
             inOrder.verify(storyRepository).deleteById(1L);
         }
+        
+        @Test void saveDeleteLocation() {
+            adapter.saveLocation(new LocationEntity()); verify(locationRepository).save(any());
+            adapter.deleteLocationByUuid("u"); verify(locationRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteEvent() {
+            adapter.saveEvent(new EventEntity()); verify(eventRepository).save(any());
+            adapter.deleteEventByUuid("u"); verify(eventRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteItem() {
+            adapter.saveItem(new ItemEntity()); verify(itemRepository).save(any());
+            adapter.deleteItemByUuid("u"); verify(itemRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteDifficulty() {
+            adapter.saveDifficulty(new StoryDifficultyEntity()); verify(difficultyRepository).save(any());
+            adapter.deleteDifficultyByUuid("u"); verify(difficultyRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteCharacterTemplate() {
+            adapter.saveCharacterTemplate(new CharacterTemplateEntity()); verify(characterTemplateRepository).save(any());
+            adapter.deleteCharacterTemplateByUuid("u"); verify(characterTemplateRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteClass() {
+            adapter.saveClass(new ClassEntity()); verify(classRepository).save(any());
+            adapter.deleteClassByUuid("u"); verify(classRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteTrait() {
+            adapter.saveTrait(new TraitEntity()); verify(traitRepository).save(any());
+            adapter.deleteTraitByUuid("u"); verify(traitRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteText() {
+            adapter.saveText(new TextEntity()); verify(textRepository).save(any());
+            adapter.deleteTextByUuid("u"); verify(textRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteCard() {
+            adapter.saveCard(new CardEntity()); verify(cardRepository).save(any());
+            adapter.deleteCardByUuid("u"); verify(cardRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteCreator() {
+            adapter.saveCreator(new CreatorEntity()); verify(creatorRepository).save(any());
+            adapter.deleteCreatorByUuid("u"); verify(creatorRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteLocationNeighbor() {
+            adapter.saveLocationNeighbor(new LocationNeighborEntity()); verify(locationNeighborRepository).save(any());
+            adapter.deleteLocationNeighborByUuid("u"); verify(locationNeighborRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteKey() {
+            adapter.saveKey(new KeyEntity()); verify(keyRepository).save(any());
+            adapter.deleteKeyByUuid("u"); verify(keyRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteEventEffect() {
+            adapter.saveEventEffect(new EventEffectEntity()); verify(eventEffectRepository).save(any());
+            adapter.deleteEventEffectByUuid("u"); verify(eventEffectRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteChoice() {
+            adapter.saveChoice(new ChoiceEntity()); verify(choiceRepository).save(any());
+            adapter.deleteChoiceByUuid("u"); verify(choiceRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteChoiceCondition() {
+            adapter.saveChoiceCondition(new ChoiceConditionEntity()); verify(choiceConditionRepository).save(any());
+            adapter.deleteChoiceConditionByUuid("u"); verify(choiceConditionRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteChoiceEffect() {
+            adapter.saveChoiceEffect(new ChoiceEffectEntity()); verify(choiceEffectRepository).save(any());
+            adapter.deleteChoiceEffectByUuid("u"); verify(choiceEffectRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteItemEffect() {
+            adapter.saveItemEffect(new ItemEffectEntity()); verify(itemEffectRepository).save(any());
+            adapter.deleteItemEffectByUuid("u"); verify(itemEffectRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteWeatherRule() {
+            adapter.saveWeatherRule(new WeatherRuleEntity()); verify(weatherRuleRepository).save(any());
+            adapter.deleteWeatherRuleByUuid("u"); verify(weatherRuleRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteGlobalRandomEvent() {
+            adapter.saveGlobalRandomEvent(new GlobalRandomEventEntity()); verify(globalRandomEventRepository).save(any());
+            adapter.deleteGlobalRandomEventByUuid("u"); verify(globalRandomEventRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteClassBonus() {
+            adapter.saveClassBonus(new ClassBonusEntity()); verify(classBonusRepository).save(any());
+            adapter.deleteClassBonusByUuid("u"); verify(classBonusRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteMission() {
+            adapter.saveMission(new MissionEntity()); verify(missionRepository).save(any());
+            adapter.deleteMissionByUuid("u"); verify(missionRepository).deleteByUuid("u");
+        }
+        @Test void saveDeleteMissionStep() {
+            adapter.saveMissionStep(new MissionStepEntity()); verify(missionStepRepository).save(any());
+            adapter.deleteMissionStepByUuid("u"); verify(missionStepRepository).deleteByUuid("u");
+        }
     }
 }

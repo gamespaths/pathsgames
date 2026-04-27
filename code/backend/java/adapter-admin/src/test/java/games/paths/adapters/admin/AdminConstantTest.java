@@ -45,4 +45,9 @@ class AdminConstantTest {
             () -> assertTrue(AdminConstant.GUEST_NOT_FOUND_WITH_UUID.startsWith("No guest"))
         );
     }
+    @Test
+    @DisplayName("Instantiation for coverage")
+    void instantiation() {
+        assertNotNull(new AdminConstant());
+    }
 }

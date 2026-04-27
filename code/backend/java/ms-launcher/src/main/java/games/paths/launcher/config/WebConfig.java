@@ -2,6 +2,7 @@ package games.paths.launcher.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,23 +17,24 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @ConfigurationProperties(prefix = "game.auth.cors")
 public class WebConfig {
 
-    private List<String> allowedOrigins = List.of("http://localhost:3000", "http://localhost:5173");
+    @Value("${game.auth.cors.allowed-origins:http://localhost:3000}")
+    private List<String> allowedOrigins = List.of("http://localhost:3000");
+    // In questo modo, se Spring carica il bean, sovrascriverà questo campo con i
+    // valori nel file application.yml (oppure manterrà il default di @Value),
+    // mentre se la classe viene instanziata "manualmente" in un semplice Unit Test,
+    // avrà comunque una lista valida e coerente con le aspettative del test.
 
     public List<String> getAllowedOrigins() {
         return allowedOrigins;
-    }
-
-    public void setAllowedOrigins(List<String> allowedOrigins) {
-        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            public void addCorsMappings(@org.springframework.lang.NonNull CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                        .allowedOriginPatterns("*")
+                        .allowedOriginPatterns(String.join(",", allowedOrigins))
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)

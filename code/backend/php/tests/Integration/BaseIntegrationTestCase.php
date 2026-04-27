@@ -26,8 +26,8 @@ abstract class BaseIntegrationTestCase extends TestCase
         $app->addBodyParsingMiddleware();
         $app->addRoutingMiddleware();
         
-        // Add minimal error middleware
-        $app->addErrorMiddleware(true, true, true);
+        // Add minimal error middleware (do not display details to avoid noise in test output)
+        $app->addErrorMiddleware(false, true, true);
         
         // Routes (simplified subset for testing handlers/middleware)
         $app->get('/api/echo/status', function ($request, $response) {

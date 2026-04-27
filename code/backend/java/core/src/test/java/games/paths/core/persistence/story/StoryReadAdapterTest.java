@@ -34,6 +34,18 @@ class StoryReadAdapterTest {
     @Mock private TraitRepository traitRepository;
     @Mock private CardRepository cardRepository;
     @Mock private CreatorRepository creatorRepository;
+    @Mock private LocationNeighborRepository locationNeighborRepository;
+    @Mock private KeyRepository keyRepository;
+    @Mock private EventEffectRepository eventEffectRepository;
+    @Mock private ChoiceRepository choiceRepository;
+    @Mock private ChoiceConditionRepository choiceConditionRepository;
+    @Mock private ChoiceEffectRepository choiceEffectRepository;
+    @Mock private ItemEffectRepository itemEffectRepository;
+    @Mock private WeatherRuleRepository weatherRuleRepository;
+    @Mock private GlobalRandomEventRepository globalRandomEventRepository;
+    @Mock private ClassBonusRepository classBonusRepository;
+    @Mock private MissionRepository missionRepository;
+    @Mock private MissionStepRepository missionStepRepository;
 
     @InjectMocks
     private StoryReadAdapter adapter;
@@ -399,6 +411,90 @@ class StoryReadAdapterTest {
         @Test void findCardsByStoryId() {
             when(cardRepository.findByIdStory(1L)).thenReturn(List.of(new CardEntity()));
             assertEquals(1, adapter.findCardsByStoryId(1L).size());
+        }
+
+        @Test void testLocationNeighbor() {
+            when(locationNeighborRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new LocationNeighborEntity()));
+            assertTrue(adapter.findLocationNeighborByStoryIdAndUuid(1L, "u").isPresent());
+            when(locationNeighborRepository.findByIdStory(1L)).thenReturn(List.of(new LocationNeighborEntity()));
+            assertEquals(1, adapter.findLocationNeighborsByStoryId(1L).size());
+        }
+
+        @Test void testKey() {
+            when(keyRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new KeyEntity()));
+            assertTrue(adapter.findKeyByStoryIdAndUuid(1L, "u").isPresent());
+            when(keyRepository.findByIdStory(1L)).thenReturn(List.of(new KeyEntity()));
+            assertEquals(1, adapter.findKeysByStoryId(1L).size());
+        }
+
+        @Test void testEventEffect() {
+            when(eventEffectRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new EventEffectEntity()));
+            assertTrue(adapter.findEventEffectByStoryIdAndUuid(1L, "u").isPresent());
+            when(eventEffectRepository.findByIdStory(1L)).thenReturn(List.of(new EventEffectEntity()));
+            assertEquals(1, adapter.findEventEffectsByStoryId(1L).size());
+        }
+
+        @Test void testChoice() {
+            when(choiceRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new ChoiceEntity()));
+            assertTrue(adapter.findChoiceByStoryIdAndUuid(1L, "u").isPresent());
+            when(choiceRepository.findByIdStory(1L)).thenReturn(List.of(new ChoiceEntity()));
+            assertEquals(1, adapter.findChoicesByStoryId(1L).size());
+        }
+
+        @Test void testChoiceCondition() {
+            when(choiceConditionRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new ChoiceConditionEntity()));
+            assertTrue(adapter.findChoiceConditionByStoryIdAndUuid(1L, "u").isPresent());
+            when(choiceConditionRepository.findByIdStory(1L)).thenReturn(List.of(new ChoiceConditionEntity()));
+            assertEquals(1, adapter.findChoiceConditionsByStoryId(1L).size());
+        }
+
+        @Test void testChoiceEffect() {
+            when(choiceEffectRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new ChoiceEffectEntity()));
+            assertTrue(adapter.findChoiceEffectByStoryIdAndUuid(1L, "u").isPresent());
+            when(choiceEffectRepository.findByIdStory(1L)).thenReturn(List.of(new ChoiceEffectEntity()));
+            assertEquals(1, adapter.findChoiceEffectsByStoryId(1L).size());
+        }
+
+        @Test void testItemEffect() {
+            when(itemEffectRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new ItemEffectEntity()));
+            assertTrue(adapter.findItemEffectByStoryIdAndUuid(1L, "u").isPresent());
+            when(itemEffectRepository.findByIdStory(1L)).thenReturn(List.of(new ItemEffectEntity()));
+            assertEquals(1, adapter.findItemEffectsByStoryId(1L).size());
+        }
+
+        @Test void testWeatherRule() {
+            when(weatherRuleRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new WeatherRuleEntity()));
+            assertTrue(adapter.findWeatherRuleByStoryIdAndUuid(1L, "u").isPresent());
+            when(weatherRuleRepository.findByIdStory(1L)).thenReturn(List.of(new WeatherRuleEntity()));
+            assertEquals(1, adapter.findWeatherRulesByStoryId(1L).size());
+        }
+
+        @Test void testGlobalRandomEvent() {
+            when(globalRandomEventRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new GlobalRandomEventEntity()));
+            assertTrue(adapter.findGlobalRandomEventByStoryIdAndUuid(1L, "u").isPresent());
+            when(globalRandomEventRepository.findByIdStory(1L)).thenReturn(List.of(new GlobalRandomEventEntity()));
+            assertEquals(1, adapter.findGlobalRandomEventsByStoryId(1L).size());
+        }
+
+        @Test void testClassBonus() {
+            when(classBonusRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new ClassBonusEntity()));
+            assertTrue(adapter.findClassBonusByStoryIdAndUuid(1L, "u").isPresent());
+            when(classBonusRepository.findByIdStory(1L)).thenReturn(List.of(new ClassBonusEntity()));
+            assertEquals(1, adapter.findClassBonusesByStoryId(1L).size());
+        }
+
+        @Test void testMission() {
+            when(missionRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new MissionEntity()));
+            assertTrue(adapter.findMissionByStoryIdAndUuid(1L, "u").isPresent());
+            when(missionRepository.findByIdStory(1L)).thenReturn(List.of(new MissionEntity()));
+            assertEquals(1, adapter.findMissionsByStoryId(1L).size());
+        }
+
+        @Test void testMissionStep() {
+            when(missionStepRepository.findByIdStoryAndUuid(1L, "u")).thenReturn(Optional.of(new MissionStepEntity()));
+            assertTrue(adapter.findMissionStepByStoryIdAndUuid(1L, "u").isPresent());
+            when(missionStepRepository.findByIdStory(1L)).thenReturn(List.of(new MissionStepEntity()));
+            assertEquals(1, adapter.findMissionStepsByStoryId(1L).size());
         }
     }
 }

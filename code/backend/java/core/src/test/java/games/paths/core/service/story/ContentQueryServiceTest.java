@@ -736,5 +736,40 @@ class ContentQueryServiceTest {
             assertNotNull(result);
             assertNull(result.getCreator());
         }
+
+        @Test
+        @DisplayName("Should skip fallback when requested language is already English")
+        void explicitEnglish_noFallback() {
+            StoryEntity story = createStory(1L, "story-uuid");
+            CardEntity card = createCard("card-uuid", 1L);
+            when(readPort.findStoryByUuid("story-uuid")).thenReturn(Optional.of(story));
+            when(readPort.findCardByStoryIdAndUuid(1L, "card-uuid")).thenReturn(Optional.of(card));
+            when(readPort.findTextByStoryIdTextAndLang(eq(1L), anyInt(), eq("en"))).thenReturn(Optional.empty());
+            when(readPort.findCreatorsByStoryId(1L)).thenReturn(List.of());
+
+            service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
+
+            // Verify findText called exactly once per field, no English fallback attempt
+            verify(readPort, times(1)).findTextByStoryIdTextAndLang(1L, 100, "en");
+        }
+
+        @Test
+        @DisplayName("Should skip creator when creator ID is null")
+        void creatorWithNullId() {
+            StoryEntity story = createStory(1L, "story-uuid");
+            CardEntity card = createCard("card-uuid", 1L);
+            card.setIdCreator(5);
+
+            CreatorEntity cr = new CreatorEntity();
+            cr.setId(null);
+
+            when(readPort.findStoryByUuid("story-uuid")).thenReturn(Optional.of(story));
+            when(readPort.findCardByStoryIdAndUuid(1L, "card-uuid")).thenReturn(Optional.of(card));
+            when(readPort.findTextByStoryIdTextAndLang(anyLong(), anyInt(), anyString())).thenReturn(Optional.empty());
+            when(readPort.findCreatorsByStoryId(1L)).thenReturn(List.of(cr));
+
+            CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
+            assertNull(result.getCreator());
+        }
     }
 }
