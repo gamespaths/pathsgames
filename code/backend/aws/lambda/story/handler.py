@@ -760,6 +760,20 @@ TYPE_MAP = {
     'mission-steps': 'missionSteps',
 }
 
+
+def _normalize_entity_output(entity_type, entity):
+    if not isinstance(entity, dict):
+        return entity
+
+    normalized = dict(entity)
+    if entity_type == 'creators':
+        if normalized.get('idCard') is None and normalized.get('id_card') is not None:
+            normalized['idCard'] = normalized.get('id_card')
+        if normalized.get('id_card') is None and normalized.get('idCard') is not None:
+            normalized['id_card'] = normalized.get('idCard')
+
+    return normalized
+
 def create_story(event):
     _, err = _require_admin(event)
     if err: return err
@@ -846,7 +860,7 @@ def list_entities(event, story_uuid, entity_type):
             e['id'] = i + 1
         e['idStory'] = item.get('id', story_uuid)
 
-    return _ok(entities)
+    return _ok([_normalize_entity_output(entity_type, e) for e in entities])
 
 def create_entity(event, story_uuid, entity_type):
     _, err = _require_admin(event)
@@ -875,7 +889,7 @@ def create_entity(event, story_uuid, entity_type):
     item[field].append(data)
 
     db_utils.put_item(item)
-    return _ok({'uuid': ent_uuid}, status=201)
+    return _ok(_normalize_entity_output(entity_type, data), status=201)
 
 def get_entity(event, story_uuid, entity_type, entity_uuid):
     _, err = _require_admin(event)
@@ -894,7 +908,7 @@ def get_entity(event, story_uuid, entity_type, entity_uuid):
     if not entity:
         return _err(404, 'ENTITY_NOT_FOUND', f'Entity {entity_uuid} not found')
 
-    return _ok(entity)
+    return _ok(_normalize_entity_output(entity_type, entity))
 
 def update_entity(event, story_uuid, entity_type, entity_uuid):
     _, err = _require_admin(event)
@@ -929,7 +943,9 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
             entities[found_idx][k] = v
 
     db_utils.put_item(item)
-    return _ok({'uuid': entity_uuid, 'status': 'UPDATED'})
+    updated_entity = _normalize_entity_output(entity_type, entities[found_idx])
+    updated_entity['status'] = 'UPDATED'
+    return _ok(updated_entity)
 
 def delete_entity(event, story_uuid, entity_type, entity_uuid):
     _, err = _require_admin(event)

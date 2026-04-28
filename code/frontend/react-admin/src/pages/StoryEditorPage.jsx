@@ -3,35 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../api/storyApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
-import EntityTable from '../components/common/EntityTable'
-import EntityForm from '../components/common/EntityForm'
+import EntityTable from '../components/common/story/EntityTable'
+import EntityForm from '../components/common/story/EntityForm'
 import ConfirmModal from '../components/common/ConfirmModal'
+import PathsSelector from '../components/common/story/PathsSelector'
+import FastTextSelectorModal from '../components/common/story/FastTextSelectorModal'
+import PathsOptionsSelectorModal from '../components/common/story/PathsOptionsSelectorModal'
+import {
+  STORIES_ENTITIES_TABS as TABS,
+  STORIES_ENTITIES_COLUMNS as COLUMNS, 
+  STORIES_ENTITIES_FIELDS as FIELDS} from '../constants/story/storiesEntities'
 
-const TABS = [
-  { id: 'metadata', label: 'Story Info', icon: 'fa-info-circle' },
-  { id: 'difficulties', label: 'Difficulties', icon: 'fa-layer-group' },
-  { id: 'locations', label: 'Locations', icon: 'fa-map-marker-alt' },
-  { id: 'location-neighbors', label: 'Loc Neighbors', icon: 'fa-project-diagram' },
-  { id: 'events', label: 'Events', icon: 'fa-bolt' },
-  { id: 'event-effects', label: 'Event Effects', icon: 'fa-magic' },
-  { id: 'items', label: 'Items', icon: 'fa-flask' },
-  { id: 'item-effects', label: 'Item Effects', icon: 'fa-cogs' },
-  { id: 'character-templates', label: 'Templates', icon: 'fa-user-tag' },
-  { id: 'classes', label: 'Classes', icon: 'fa-hat-wizard' },
-  { id: 'class-bonuses', label: 'Class Bonuses', icon: 'fa-star-half-alt' },
-  { id: 'traits', label: 'Traits', icon: 'fa-star' },
-  { id: 'creators', label: 'Creators', icon: 'fa-paint-brush' },
-  { id: 'cards', label: 'Cards', icon: 'fa-id-card' },
-  { id: 'texts', label: 'Texts', icon: 'fa-font' },
-  { id: 'keys', label: 'Keys', icon: 'fa-key' },
-  { id: 'choices', label: 'Choices', icon: 'fa-code-branch' },
-  { id: 'choice-conditions', label: 'Choice Cond.', icon: 'fa-filter' },
-  { id: 'choice-effects', label: 'Choice Effects', icon: 'fa-random' },
-  { id: 'weather-rules', label: 'Weather Rules', icon: 'fa-cloud-sun' },
-  { id: 'global-random-events', label: 'Random Events', icon: 'fa-dice' },
-  { id: 'missions', label: 'Missions', icon: 'fa-tasks' },
-  { id: 'mission-steps', label: 'Mission Steps', icon: 'fa-list-ol' },
-]
+import {
+  LOCATION_NEIGHBOR_DIRECTIONS,
+} from '../constants/story/locationNeighbors'
+
+
 
 export default function StoryEditorPage() {
   const { uuid } = useParams()
@@ -40,17 +27,106 @@ export default function StoryEditorPage() {
   const [story, setStory] = useState(null)
   const [entities, setEntities] = useState([])
   const [texts, setTexts] = useState([]) // All texts for resolution
+  const [locations, setLocations] = useState([])
+  const [eventsRef, setEventsRef] = useState([])
+  const [traitsRef, setTraitsRef] = useState([])
+  const [itemsRef, setItemsRef] = useState([])
+  const [classesRef, setClassesRef] = useState([])
+  const [choicesRef, setChoicesRef] = useState([])
+  const [missionsRef, setMissionsRef] = useState([])
+  const [keysRef, setKeysRef] = useState([])
+  const [cardsRef, setCardsRef] = useState([])
+  const [weatherRulesRef, setWeatherRulesRef] = useState([])
+  const [creators, setCreators] = useState([])
+  const [storyOptions, setStoryOptions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [modal, setModal] = useState(null) // { type, entity }
+  const [storyTextSelector, setStoryTextSelector] = useState(null)
+  const [storyCardSelectorOpen, setStoryCardSelectorOpen] = useState(false)
+  const [storyCreatorSelectorOpen, setStoryCreatorSelectorOpen] = useState(false)
+  const [storyStartLocationSelectorOpen, setStoryStartLocationSelectorOpen] = useState(false)
+  const [storyAllPlayerComaLocationSelectorOpen, setStoryAllPlayerComaLocationSelectorOpen] = useState(false)
+  const [storyAllPlayerComaEventSelectorOpen, setStoryAllPlayerComaEventSelectorOpen] = useState(false)
+  const [storyEndGameEventSelectorOpen, setStoryEndGameEventSelectorOpen] = useState(false)
+
+  const refreshTexts = async (storyUuid = uuid) => {
+    const txts = await listEntities(storyUuid, 'texts')
+    if (storyUuid === uuid) {
+      setTexts(txts)
+    }
+    return txts
+  }
+
+  const refreshCreators = async (storyUuid = uuid) => {
+    const creatorEntities = await listEntities(storyUuid, 'creators')
+    if (storyUuid === uuid) {
+      setCreators(creatorEntities)
+    }
+    return creatorEntities
+  }
+
+  const refreshLocations = async (storyUuid = uuid) => {
+    const locationEntities = await listEntities(storyUuid, 'locations')
+    if (storyUuid === uuid) {
+      setLocations(locationEntities)
+    }
+    return locationEntities
+  }
+
+  const refreshReferenceEntities = async (storyUuid = uuid) => {
+    const [eventsData, traitsData, itemsData, classesData, choicesData, missionsData, keysData, cardsData, weatherRulesData] = await Promise.all([
+      listEntities(storyUuid, 'events'),
+      listEntities(storyUuid, 'traits'),
+      listEntities(storyUuid, 'items'),
+      listEntities(storyUuid, 'classes'),
+      listEntities(storyUuid, 'choices'),
+      listEntities(storyUuid, 'missions'),
+      listEntities(storyUuid, 'keys'),
+      listEntities(storyUuid, 'cards'),
+      listEntities(storyUuid, 'weather-rules'),
+    ])
+
+    if (storyUuid === uuid) {
+      setEventsRef(eventsData)
+      setTraitsRef(traitsData)
+      setItemsRef(itemsData)
+      setClassesRef(classesData)
+      setChoicesRef(choicesData)
+      setMissionsRef(missionsData)
+      setKeysRef(keysData)
+      setCardsRef(cardsData)
+      setWeatherRulesRef(weatherRulesData)
+    }
+
+    return {
+      eventsData,
+      traitsData,
+      itemsData,
+      classesData,
+      choicesData,
+      missionsData,
+      keysData,
+      cardsData,
+      weatherRulesData,
+    }
+  }
 
   const loadStory = async () => {
     try {
       const data = await getStory(uuid)
       setStory(data)
-      const txts = await listEntities(uuid, 'texts')
-      setTexts(txts)
+      setStoryOptions([
+        {
+          value: data.uuid,
+          label: `${data.author || 'Story'} (${data.uuid.slice(0, 8)})`,
+        },
+      ])
+      await refreshTexts(uuid)
+      await refreshCreators(uuid)
+      await refreshLocations(uuid)
+      await refreshReferenceEntities(uuid)
       setLoading(false)
     } catch (e) {
       setError(e.message)
@@ -81,440 +157,652 @@ export default function StoryEditorPage() {
   }
 
   const handleDeleteEntity = async () => {
+    const entityTab = modal?.entityTab || activeTab
     const { entity } = modal
     setModal(null)
     try {
-      await deleteEntity(uuid, activeTab, entity.uuid)
-      setSuccess(`${activeTab} entity deleted`)
+      await deleteEntity(uuid, entityTab, entity.uuid)
+      setSuccess(`${entityTab} entity deleted`)
       loadEntities()
-      if (activeTab === 'texts') {
-        const txts = await listEntities(uuid, 'texts')
-        setTexts(txts)
+      if (entityTab === 'texts') {
+        await refreshTexts(uuid)
+      }
+      if (entityTab === 'locations') {
+        await refreshLocations(uuid)
+      }
+      if (['events', 'traits', 'items', 'classes', 'choices', 'missions', 'keys', 'cards', 'weather-rules'].includes(entityTab)) {
+        await refreshReferenceEntities(uuid)
       }
     } catch (e) { setError(e.message) }
   }
 
   const handleSaveEntity = async (data) => {
+    const entityTab = modal?.entityTab || activeTab
     try {
-      if (modal.entity) {
-        await updateEntity(uuid, activeTab, modal.entity.uuid, data)
-      } else {
-        await createEntity(uuid, activeTab, data)
+      const payload = { ...data }
+
+      const hasCardKey = Object.prototype.hasOwnProperty.call(payload, 'idCard')
+        || Object.prototype.hasOwnProperty.call(payload, 'id_card')
+      if (hasCardKey) {
+        const rawIdCard = payload.idCard ?? payload.id_card
+        const normalizedIdCard = Number(rawIdCard)
+        if (rawIdCard === '' || rawIdCard === null || rawIdCard === undefined) {
+          payload.idCard = ''
+          payload.id_card = null
+        } else if (Number.isFinite(normalizedIdCard)) {
+          payload.idCard = normalizedIdCard
+          payload.id_card = normalizedIdCard
+        }
       }
-      setSuccess(`${activeTab} saved`)
+
+      if (modal.entity?.uuid) {
+        await updateEntity(uuid, entityTab, modal.entity.uuid, payload)
+      } else {
+        await createEntity(uuid, entityTab, payload)
+      }
+      setSuccess(`${entityTab} saved`)
       setModal(null)
       loadEntities()
-      if (activeTab === 'texts') {
-        const txts = await listEntities(uuid, 'texts')
-        setTexts(txts)
+      if (entityTab === 'texts') {
+        await refreshTexts(uuid)
+      }
+      if (entityTab === 'locations') {
+        await refreshLocations(uuid)
+      }
+      if (['events', 'traits', 'items', 'classes', 'choices', 'missions', 'keys', 'cards', 'weather-rules'].includes(entityTab)) {
+        await refreshReferenceEntities(uuid)
       }
       setTimeout(() => setSuccess(''), 3000)
     } catch (e) { setError(e.message) }
   }
 
+  const handleOpenCardFromEntityTable = async (idCard) => {
+    const parsedIdCard = Number(idCard)
+    if (!Number.isFinite(parsedIdCard)) return
+
+    let availableCards = cardsRef
+    if (!availableCards?.length) {
+      availableCards = await listEntities(uuid, 'cards')
+      setCardsRef(availableCards)
+    }
+
+    const targetCard = availableCards.find(card => Number(card.idCard ?? card.id ?? card.id_card) === parsedIdCard)
+    if (!targetCard) {
+      setError(`Card #${parsedIdCard} not found`)
+      return
+    }
+
+    setModal({ type: 'form', entity: targetCard, entityTab: 'cards' })
+  }
+
+  const handleSaveFastText = async ({ uuidStory, idText, translations, mode }) => {
+    const targetStoryUuid = uuidStory || uuid
+    const existingTexts = await refreshTexts(targetStoryUuid)
+    const creatorEntities = await refreshCreators(targetStoryUuid)
+    const firstCreator = creatorEntities.find(item => item?.idCreator !== null && item?.idCreator !== undefined)
+    const firstCreatorId = firstCreator?.idCreator
+    const storyCreatorId = Number(story?.idCreator)
+    const storyCopyrightTextId = Number(story?.idTextCopyright)
+
+    let finalIdText = Number(idText)
+    if (mode === 'input-generator') {
+      const existingIds = existingTexts
+        .map(item => Number(item.idText))
+        .filter(value => !Number.isNaN(value))
+      finalIdText = existingIds.length ? Math.max(...existingIds) + 1 : 1
+    }
+
+    const languagesToSave = mode === 'input-generator' ? ['en'] : ['en', 'it']
+
+    for (const lang of languagesToSave) {
+      const translation = translations?.[lang] || { shortText: '', longText: '' }
+      const existing = existingTexts.find(
+        item => Number(item.idText) === Number(finalIdText) && item.lang === lang
+      )
+
+      if (existing?.uuid) {
+        await updateEntity(targetStoryUuid, 'texts', existing.uuid, {
+          ...existing,
+          idText: Number(finalIdText),
+          lang,
+          shortText: translation.shortText || '',
+          longText: translation.longText || '',
+          idTextCopyright: Number.isFinite(storyCopyrightTextId)
+            ? storyCopyrightTextId
+            : (existing?.idTextCopyright ?? null),
+          idCreator: Number.isFinite(storyCreatorId)
+            ? storyCreatorId
+            : (existing?.idCreator ?? firstCreatorId),
+        })
+      } else {
+        await createEntity(targetStoryUuid, 'texts', {
+          idText: Number(finalIdText),
+          lang,
+          shortText: translation.shortText || '',
+          longText: translation.longText || '',
+          idTextCopyright: Number.isFinite(storyCopyrightTextId) ? storyCopyrightTextId : null,
+          idCreator: Number.isFinite(storyCreatorId) ? storyCreatorId : firstCreatorId,
+        })
+      }
+    }
+
+    await refreshTexts(targetStoryUuid)
+    setSuccess(`Text #${finalIdText} saved`)
+    setTimeout(() => setSuccess(''), 3000)
+
+    return { idText: Number(finalIdText), uuidStory: targetStoryUuid }
+  }
+
+  const handleCreateFastCard = async ({ storyUuid, formData }) => {
+    const targetStoryUuid = storyUuid || uuid
+    const parseTextId = (value) => {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+
+    const isKeysEntityForm =
+      formData
+      && Object.prototype.hasOwnProperty.call(formData, 'idTextDescription')
+      && Object.prototype.hasOwnProperty.call(formData, 'name')
+      && Object.prototype.hasOwnProperty.call(formData, 'value')
+
+    const preferredTextIdKeys = [
+      'idTextName',
+      'idTextDescription',
+      'idTextNarrative',
+      'idTextTitle',
+      'idText',
+      'idTextGo',
+      'idTextBack',
+    ]
+
+    const titleTextIdFromPreferredKeys = preferredTextIdKeys
+      .map(key => parseTextId(formData?.[key]))
+      .find(value => value !== null)
+
+    const titleTextIdFromAnyIdTextField = Object.entries(formData || {})
+      .filter(([key]) => /^idText/i.test(key))
+      .map(([, value]) => parseTextId(value))
+      .find(value => value !== null)
+
+    const keysDescriptionTextId = isKeysEntityForm ? parseTextId(formData?.idTextDescription) : null
+    const titleTextId = keysDescriptionTextId ?? titleTextIdFromPreferredKeys ?? titleTextIdFromAnyIdTextField ?? null
+
+    if (titleTextId === null) {
+      setError('A text id is required to create a fast card (Name/Desc/Narrative/Text)')
+      return null
+    }
+
+    const descTextId = parseTextId(formData?.idTextDescription) ?? titleTextId
+
+    const cardsEntities = await listEntities(targetStoryUuid, 'cards')
+    const existingCardIds = (cardsEntities || [])
+      .map(item => Number(item.idCard ?? item.id ?? item.id_card))
+      .filter(value => Number.isFinite(value))
+    const nextCardId = existingCardIds.length ? Math.max(...existingCardIds) + 1 : 1
+
+    let creatorEntities = creators
+    if (!creatorEntities?.length) {
+      creatorEntities = await refreshCreators(targetStoryUuid)
+    }
+    const firstCreator = creatorEntities.find(item => item?.idCreator !== null && item?.idCreator !== undefined)
+    const firstCreatorId = firstCreator?.idCreator ?? null
+    const storyCreatorId = Number(story?.idCreator)
+    const storyCopyrightTextId = Number(story?.idTextCopyright)
+
+    await createEntity(targetStoryUuid, 'cards', {
+      idCard: nextCardId,
+      idTextName: titleTextId,
+      idTextTitle: titleTextId,
+      idTextDescription: descTextId,
+      idTextCopyright: Number.isFinite(storyCopyrightTextId) ? storyCopyrightTextId : 33,
+      idCreator: Number.isFinite(storyCreatorId) ? storyCreatorId : firstCreatorId,
+    })
+
+    await refreshReferenceEntities(targetStoryUuid)
+    setSuccess(`Card #${nextCardId} created`)
+    setTimeout(() => setSuccess(''), 3000)
+
+    return nextCardId
+  }
+
   if (loading) return <LoadingSpinner text="Loading story data..." />
 
   // Column definitions for each entity type
-  const COLUMNS = {
-    difficulties: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'expCost', label: 'EXP Cost' },
-      { key: 'maxWeight', label: 'Max Weight' },
-      { key: 'minCharacter', label: 'Min Chars' },
-      { key: 'maxCharacter', label: 'Max Chars' },
-      { key: 'costHelpComa', label: 'Help COMA' },
-      { key: 'costMaxCharacteristics', label: 'Max Char Cost' },
-      { key: 'numberMaxFreeAction', label: 'Max Free Actions' },
-    ],
-    locations: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'idTextDescription', label: 'Desc', type: 'idTextDescription' },
-      { key: 'isSafe', label: 'Safe', render: e => e.isSafe ? 'Yes' : 'No' },
-      { key: 'idImage', label: 'Image' },
-      { key: 'maxCharacters', label: 'Max Chars' },
-    ],
-    'location-neighbors': [
-      { key: 'idLocationFrom', label: 'From' },
-      { key: 'idLocationTo', label: 'To' },
-      { key: 'direction', label: 'Direction' },
-      { key: 'flagBack', label: 'Back' },
-    ],
-    events: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'type', label: 'Type' },
-      { key: 'costEnery', label: 'Energy Cost' },
-      { key: 'flagEndTime', label: 'End Time' },
-      { key: 'coinCost', label: 'Coin Cost' },
-    ],
-    'event-effects': [
-      { key: 'idEvent', label: 'Event ID' },
-      { key: 'statistics', label: 'Statistic' },
-      { key: 'value', label: 'Value' },
-      { key: 'target', label: 'Target' },
-    ],
-    items: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'weight', label: 'Weight' },
-      { key: 'isConsumabile', label: 'Consumable' },
-      { key: 'idClassPermitted', label: 'Class Permitted' },
-      { key: 'idClassProhibited', label: 'Class Prohibited' },
-    ],
-    'item-effects': [
-      { key: 'idItem', label: 'Item ID' },
-      { key: 'effectCode', label: 'Effect Code' },
-      { key: 'effectValue', label: 'Value' },
-    ],
-    'character-templates': [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'lifeMax', label: 'Max Life' },
-      { key: 'energyMax', label: 'Max Energy' },
-      { key: 'sadMax', label: 'Max Sad' },
-      { key: 'dexterityStart', label: 'Dex Start' },
-      { key: 'intelligenceStart', label: 'Int Start' },
-      { key: 'constitutionStart', label: 'Con Start' },
-    ],
-    classes: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'weightMax', label: 'Max Weight' },
-      { key: 'dexterityBase', label: 'Dex Base' },
-      { key: 'intelligenceBase', label: 'Int Base' },
-      { key: 'constitutionBase', label: 'Con Base' },
-    ],
-    'class-bonuses': [
-      { key: 'idClass', label: 'Class ID' },
-      { key: 'statistic', label: 'Statistic' },
-      { key: 'value', label: 'Value' },
-    ],
-    traits: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'costPositive', label: 'Cost (+)' },
-      { key: 'costNegative', label: 'Cost (-)' },
-      { key: 'idClassPermitted', label: 'Class Permitted' },
-      { key: 'idClassProhibited', label: 'Class Prohibited' },
-    ],
-    creators: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'link', label: 'Link' },
-      { key: 'url', label: 'URL' },
-      { key: 'urlEmote', label: 'Emote URL' },
-      { key: 'urlInstagram', label: 'Instagram URL' },
-    ],
-    cards: [
-      { key: 'idTextName', label: 'Title', type: 'idTextName' },
-      { key: 'idTextTitle', label: 'Title Text ID' },
-      { key: 'urlImmage', label: 'Image URL' },
-      { key: 'awesomeIcon', label: 'Icon' },
-      { key: 'idCreator', label: 'Creator' },
-    ],
-    texts: [
-      { key: 'idText', label: 'ID Text', render: e => <span className="font-mono text-gold-dark">#{e.idText}</span> },
-      { key: 'lang', label: 'Lang', render: e => <span className="pg-badge pg-badge-info">{e.lang}</span> },
-      { key: 'shortText', label: 'Short Text' },
-      { key: 'longText', label: 'Long Text', render: e => e.longText ? <i className="fas fa-file-alt text-ash" title={e.longText} /> : '—' },
-      { key: 'idTextCopyright', label: 'Copyright ID' },
-      { key: 'idCreator', label: 'Creator ID' },
-    ],
-    keys: [
-      { key: 'name', label: 'Name' },
-      { key: 'value', label: 'Value' },
-      { key: 'group', label: 'Group' },
-      { key: 'priority', label: 'Priority' },
-      { key: 'visibility', label: 'Visibility' },
-    ],
-    choices: [
-      { key: 'idEvent', label: 'Event ID' },
-      { key: 'idLocation', label: 'Location ID' },
-      { key: 'priority', label: 'Priority' },
-      { key: 'idTextNarrative', label: 'Narrative Text ID' },
-      { key: 'logicOperator', label: 'Logic Op.' },
-    ],
-    'choice-conditions': [
-      { key: 'idChoices', label: 'Choice ID' },
-      { key: 'type', label: 'Type' },
-      { key: 'key', label: 'Key' },
-      { key: 'value', label: 'Value' },
-      { key: 'operator', label: 'Operator' },
-    ],
-    'choice-effects': [
-      { key: 'idChoices', label: 'Choice ID' },
-      { key: 'statistics', label: 'Statistic' },
-      { key: 'value', label: 'Value' },
-      { key: 'key', label: 'Key' },
-    ],
-    'weather-rules': [
-      { key: 'probability', label: 'Probability' },
-      { key: 'conditionKey', label: 'Condition Key' },
-      { key: 'timeFrom', label: 'Time From' },
-      { key: 'timeTo', label: 'Time To' },
-      { key: 'deltaEnergy', label: 'Delta Energy' },
-    ],
-    'global-random-events': [
-      { key: 'conditionKey', label: 'Condition Key' },
-      { key: 'conditionValue', label: 'Condition Value' },
-      { key: 'probability', label: 'Probability' },
-      { key: 'idEvent', label: 'Event ID' },
-    ],
-    missions: [
-      { key: 'idTextName', label: 'Name', type: 'idTextName' },
-      { key: 'conditionKey', label: 'Condition Key' },
-      { key: 'idEventCompleted', label: 'Completed Event' },
-    ],
-    'mission-steps': [
-      { key: 'idMission', label: 'Mission ID' },
-      { key: 'step', label: 'Step' },
-      { key: 'conditionKey', label: 'Condition Key' },
-      { key: 'idEventCompleted', label: 'Completed Event' },
-    ],
-  }
 
-  const FIELDS = {
-    difficulties: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'expCost', label: 'EXP Cost', type: 'number' },
-      { key: 'maxWeight', label: 'Max Weight', type: 'number' },
-      { key: 'minCharacter', label: 'Min Characters', type: 'number' },
-      { key: 'maxCharacter', label: 'Max Characters', type: 'number' },
-      { key: 'costHelpComa', label: 'Cost Help Coma', type: 'number' },
-      { key: 'costMaxCharacteristics', label: 'Cost Max Characteristics', type: 'number' },
-      { key: 'numberMaxFreeAction', label: 'Max Free Actions', type: 'number' },
-    ],
-    locations: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
-      { key: 'idImage', label: 'Image ID', type: 'number' },
-      { key: 'isSafe', label: 'Safe Location', type: 'checkbox' },
-      { key: 'costEnergyEnter', label: 'Energy Cost to Enter', type: 'number' },
-      { key: 'counterTime', label: 'Counter Time', type: 'number' },
-      { key: 'idEventIfCounterZero', label: 'Event if Counter = 0', type: 'number' },
-      { key: 'secureParam', label: 'Secure Param', type: 'number' },
-      { key: 'idEventIfCharacterStartTime', label: 'Event if Start Time', type: 'number' },
-      { key: 'idEventIfCharacterEnterFirstTime', label: 'Event if Enter First', type: 'number' },
-      { key: 'idEventIfFirstTime', label: 'Event if First Time', type: 'number' },
-      { key: 'idEventNotFirstTime', label: 'Event if Not First Time', type: 'number' },
-      { key: 'priorityAutomaticEvent', label: 'Auto Event Priority', type: 'number' },
-      { key: 'idAudio', label: 'Audio ID', type: 'number' },
-      { key: 'maxCharacters', label: 'Max Characters', type: 'number' },
-    ],
-    'location-neighbors': [
-      { key: 'idLocationFrom', label: 'Location From ID', type: 'number' },
-      { key: 'idLocationTo', label: 'Location To ID', type: 'number' },
-      { key: 'direction', label: 'Direction', type: 'text' },
-      { key: 'flagBack', label: 'Flag Back', type: 'number' },
-      { key: 'conditionRegistryKey', label: 'Condition Registry Key', type: 'text' },
-      { key: 'conditionRegistryValue', label: 'Condition Registry Value', type: 'text' },
-      { key: 'energyCost', label: 'Energy Cost', type: 'number' },
-      { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
-      { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
-    ],
-    events: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'idSpecificLocation', label: 'Specific Location ID', type: 'number' },
-      { key: 'type', label: 'Event Type', type: 'text' },
-      { key: 'costEnery', label: 'Energy Cost', type: 'number' },
-      { key: 'flagEndTime', label: 'Flag End Time', type: 'number' },
-      { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
-      { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
-      { key: 'keyToAdd', label: 'Key to Add', type: 'text' },
-      { key: 'keyValueToAdd', label: 'Key Value to Add', type: 'text' },
-      { key: 'idItemToAdd', label: 'Item to Add ID', type: 'number' },
-      { key: 'idWeather', label: 'Weather ID', type: 'number' },
-      { key: 'idEventNext', label: 'Next Event ID', type: 'number' },
-      { key: 'coinCost', label: 'Coin Cost', type: 'number' },
-    ],
-    'event-effects': [
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'text' },
-      { key: 'value', label: 'Value', type: 'number' },
-      { key: 'target', label: 'Target', type: 'text' },
-      { key: 'traitsToAdd', label: 'Traits to Add', type: 'text' },
-      { key: 'traitsToRemove', label: 'Traits to Remove', type: 'text' },
-      { key: 'targetClass', label: 'Target Class', type: 'text' },
-      { key: 'idItemTarget', label: 'Item Target ID', type: 'number' },
-      { key: 'itemAction', label: 'Item Action', type: 'text' },
-    ],
-    items: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'weight', label: 'Weight', type: 'number' },
-      { key: 'isConsumabile', label: 'Consumable', type: 'checkbox' },
-      { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
-      { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
-    ],
-    'item-effects': [
-      { key: 'idItem', label: 'Item ID', type: 'number' },
-      { key: 'effectCode', label: 'Effect Code', type: 'text' },
-      { key: 'effectValue', label: 'Effect Value', type: 'number' },
-    ],
-    'character-templates': [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'lifeMax', label: 'Max Life', type: 'number' },
-      { key: 'energyMax', label: 'Max Energy', type: 'number' },
-      { key: 'sadMax', label: 'Max Sad', type: 'number' },
-      { key: 'dexterityStart', label: 'Dexterity Start', type: 'number' },
-      { key: 'intelligenceStart', label: 'Intelligence Start', type: 'number' },
-      { key: 'constitutionStart', label: 'Constitution Start', type: 'number' },
-    ],
-    classes: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'weightMax', label: 'Max Weight', type: 'number' },
-      { key: 'dexterityBase', label: 'Dexterity Base', type: 'number' },
-      { key: 'intelligenceBase', label: 'Intelligence Base', type: 'number' },
-      { key: 'constitutionBase', label: 'Constitution Base', type: 'number' },
-    ],
-    'class-bonuses': [
-      { key: 'idClass', label: 'Class ID', type: 'number' },
-      { key: 'statistic', label: 'Statistic', type: 'text' },
-      { key: 'value', label: 'Value', type: 'number' },
-    ],
-    traits: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'costPositive', label: 'Positive Cost', type: 'number' },
-      { key: 'costNegative', label: 'Negative Cost', type: 'number' },
-      { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
-      { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
-    ],
-    creators: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'link', label: 'Link', type: 'text' },
-      { key: 'url', label: 'URL', type: 'text' },
-      { key: 'urlImage', label: 'Image URL', type: 'text' },
-      { key: 'urlEmote', label: 'Emote URL', type: 'text' },
-      { key: 'urlInstagram', label: 'Instagram URL', type: 'text' },
-    ],
-    cards: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextTitle', label: 'Title Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
-      { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
-      { key: 'idCreator', label: 'Creator ID', type: 'number' },
-      { key: 'urlImmage', label: 'Image URL', type: 'text' },
-      { key: 'alternativeImage', label: 'Alternative Image', type: 'text' },
-      { key: 'awesomeIcon', label: 'Awesome Icon', type: 'text' },
-      { key: 'styleMain', label: 'Style Main', type: 'text' },
-      { key: 'styleDetail', label: 'Style Detail', type: 'text' },
-    ],
-    texts: [
-      { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'lang', label: 'Language', type: 'text' },
-      { key: 'shortText', label: 'Short Text', type: 'text' },
-      { key: 'longText', label: 'Long Text', type: 'textarea' },
-      { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
-      { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
-      { key: 'idCreator', label: 'Creator ID', type: 'number' },
-    ],
-    keys: [
-      { key: 'name', label: 'Name', type: 'text' },
-      { key: 'value', label: 'Value', type: 'text' },
-      { key: 'group', label: 'Group', type: 'text' },
-      { key: 'priority', label: 'Priority', type: 'number' },
-      { key: 'visibility', label: 'Visibility', type: 'text' },
-    ],
-    choices: [
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'idLocation', label: 'Location ID', type: 'number' },
-      { key: 'priority', label: 'Priority', type: 'number' },
-      { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
-      { key: 'idEventTorun', label: 'Event to Run ID', type: 'number' },
-      { key: 'limitSad', label: 'Sad Limit', type: 'number' },
-      { key: 'limitDex', label: 'Dex Limit', type: 'number' },
-      { key: 'limitInt', label: 'Int Limit', type: 'number' },
-      { key: 'limitCos', label: 'Cos Limit', type: 'number' },
-      { key: 'otherwiseFlag', label: 'Otherwise Flag', type: 'number' },
-      { key: 'isProgress', label: 'Is Progress', type: 'number' },
-      { key: 'logicOperator', label: 'Logic Operator', type: 'text' },
-    ],
-    'choice-conditions': [
-      { key: 'idChoices', label: 'Choice ID', type: 'number' },
-      { key: 'type', label: 'Type', type: 'text' },
-      { key: 'key', label: 'Key', type: 'text' },
-      { key: 'value', label: 'Value', type: 'text' },
-      { key: 'operator', label: 'Operator', type: 'text' },
-    ],
-    'choice-effects': [
-      { key: 'idChoices', label: 'Choice ID', type: 'number' },
-      { key: 'idScelta', label: 'Scelta ID', type: 'number' },
-      { key: 'flagGroup', label: 'Flag Group', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'text' },
-      { key: 'value', label: 'Value', type: 'number' },
-      { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'key', label: 'Key', type: 'text' },
-      { key: 'valueToAdd', label: 'Value to Add', type: 'text' },
-      { key: 'valueToRemove', label: 'Value to Remove', type: 'text' },
-    ],
-    'weather-rules': [
-      { key: 'probability', label: 'Probability', type: 'number' },
-      { key: 'costMoveSafeLocation', label: 'Cost Move Safe', type: 'number' },
-      { key: 'costMoveNotSafeLocation', label: 'Cost Move Not Safe', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionKeyValue', label: 'Condition Key Value', type: 'text' },
-      { key: 'timeFrom', label: 'Time From', type: 'number' },
-      { key: 'timeTo', label: 'Time To', type: 'number' },
-      { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'active', label: 'Active', type: 'number' },
-      { key: 'priority', label: 'Priority', type: 'number' },
-      { key: 'deltaEnergy', label: 'Delta Energy', type: 'number' },
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
-    ],
-    'global-random-events': [
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValue', label: 'Condition Value', type: 'text' },
-      { key: 'probability', label: 'Probability', type: 'number' },
-      { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
-    ],
-    missions: [
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
-      { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
-    ],
-    'mission-steps': [
-      { key: 'idMission', label: 'Mission ID', type: 'number' },
-      { key: 'step', label: 'Step Number', type: 'number' },
-      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
-      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'conditionKey', label: 'Condition Key', type: 'text' },
-      { key: 'conditionValueFrom', label: 'Condition Value From', type: 'number' },
-      { key: 'conditionValueTo', label: 'Condition Value To', type: 'number' },
-      { key: 'idEventCompleted', label: 'Completed Event ID', type: 'number' },
-    ],
-  }
+
 
   const defaultCols = [
     { key: 'idTextName', label: 'Name', type: 'idTextName' },
     { key: 'uuid', label: 'UUID', render: e => <small className="text-white/20">{e.uuid?.slice(0, 8)}...</small> }
   ]
 
+  const getTextDisplay = (idText) => {
+    if (idText === null || idText === undefined || idText === '') return ''
+    const target = texts.find(item => Number(item.idText) === Number(idText) && item.lang === 'en')
+    if (!target) return `Text #${idText} (EN not found)`
+    return `#${idText} ${target.shortText || '(empty)'}`
+  }
+
+  const extractNumericId = (entity, keys = []) => {
+    for (const key of keys) {
+      const value = entity?.[key]
+      if (value === null || value === undefined || value === '') continue
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+    return null
+  }
+
+  const getEnShortTextByEntity = (entity, textIdKeys = ['idTextName']) => {
+    const textId = extractNumericId(entity, textIdKeys)
+    if (textId === null) return ''
+    const textEntity = texts.find(item => Number(item.idText) === textId && item.lang === 'en')
+    return textEntity?.shortText || ''
+  }
+
+  const makeReferenceOptions = ({ entities, idKeys, textIdKeys = ['idTextName'] }) => {
+    return (entities || [])
+      .map(entity => {
+        const id = extractNumericId(entity, idKeys)
+        if (id === null) return null
+        const shortText = getEnShortTextByEntity(entity, textIdKeys)
+        return {
+          value: id,
+          label: shortText ? `#${id} ${shortText}` : `#${id}`,
+        }
+      })
+      .filter(Boolean)
+  }
+
+  const setStoryTextField = (key, idText) => {
+    setStory(prev => ({ ...prev, [key]: Number(idText) }))
+  }
+
+  const getCardDisplay = (idCard) => {
+    if (idCard === null || idCard === undefined || idCard === '') return ''
+    const match = cardsOptions.find(option => String(option.value) === String(idCard))
+    return match?.label || `#${idCard}`
+  }
+
+  const getCreatorDisplay = (idCreator) => {
+    if (idCreator === null || idCreator === undefined || idCreator === '') return ''
+    const match = creatorsOptions.find(option => String(option.value) === String(idCreator))
+    return match?.label || `#${idCreator}`
+  }
+
+  const getLocationDisplay = (idLocation) => {
+    if (idLocation === null || idLocation === undefined || idLocation === '') return ''
+    const match = locationOptions.find(option => String(option.value) === String(idLocation))
+    return match?.label || `#${idLocation}`
+  }
+
+  const getEventDisplay = (idEvent) => {
+    if (idEvent === null || idEvent === undefined || idEvent === '') return ''
+    const match = eventOptions.find(option => String(option.value) === String(idEvent))
+    return match?.label || `#${idEvent}`
+  }
+
+  const locationOptions = locations.map(location => {
+    const locationId = location.idLocation ?? location.id ?? location.id_location
+    const nameText = texts.find(item => Number(item.idText) === Number(location.idTextName) && item.lang === 'en')
+    return {
+      value: Number(locationId),
+      label: `#${locationId} ${nameText?.shortText || '(no name text)'}`,
+    }
+  }).filter(option => !Number.isNaN(option.value))
+
+  const eventOptions = makeReferenceOptions({
+    entities: eventsRef,
+    idKeys: ['idEvent', 'id', 'id_event'],
+    textIdKeys: ['idTextName', 'idTextDescription'],
+  })
+
+  const traitsOptions = makeReferenceOptions({
+    entities: traitsRef,
+    idKeys: ['idTraits', 'idTrait', 'id', 'id_traits'],
+    textIdKeys: ['idTextName', 'idTextDescription'],
+  })
+
+  const itemsOptions = makeReferenceOptions({
+    entities: itemsRef,
+    idKeys: ['idItem', 'id', 'id_item'],
+    textIdKeys: ['idTextName', 'idTextDescription'],
+  })
+
+  const classesOptions = makeReferenceOptions({
+    entities: classesRef,
+    idKeys: ['idClass', 'id', 'id_class'],
+    textIdKeys: ['idTextName', 'idTextDescription'],
+  })
+
+  const creatorsOptions = makeReferenceOptions({
+    entities: creators,
+    idKeys: ['idCreator', 'id', 'id_creator'],
+    textIdKeys: ['idTextName', 'idText'],
+  })
+
+  const cardsOptions = makeReferenceOptions({
+    entities: cardsRef,
+    idKeys: ['idCard', 'id', 'id_card'],
+    textIdKeys: ['idTextTitle', 'idTextDescription'],
+  })
+
+  const choicesOptions = makeReferenceOptions({
+    entities: choicesRef,
+    idKeys: ['idChoices', 'idChoice', 'idScelta', 'id', 'id_choices'],
+    textIdKeys: ['idTextNarrative', 'idTextName', 'idTextDescription'],
+  })
+
+  const missionsOptions = makeReferenceOptions({
+    entities: missionsRef,
+    idKeys: ['idMission', 'id', 'id_mission'],
+    textIdKeys: ['idTextName', 'idTextDescription'],
+  })
+
+  const weatherRulesOptions = makeReferenceOptions({
+    entities: weatherRulesRef,
+    idKeys: ['idCard', 'idWeather', 'id', 'id_weather'],
+    textIdKeys: ['idText', 'idTextDescription'],
+  })
+
+  const keysOptions = (keysRef || [])
+    .map(keyEntity => {
+      const keyName = keyEntity?.name
+      if (!keyName) return null
+      const keyValue = keyEntity?.value
+      return {
+        value: keyName,
+        label: keyValue ? `${keyName} = ${keyValue}` : keyName,
+      }
+    })
+    .filter(Boolean)
+
+  const pathSelectorOptionsByTab = {
+    difficulties: {
+      idCard: {
+        options: cardsOptions,
+      },
+    },
+    locations: {
+      idCard: {
+        options: cardsOptions,
+      },
+      idEventIfCounterZero: {
+        options: eventOptions,
+      },
+      idEventIfCharacterStartTime: {
+        options: eventOptions,
+      },
+      idEventIfCharacterEnterFirstTime: {
+        options: eventOptions,
+      },
+      idEventIfFirstTime: {
+        options: eventOptions,
+      },
+      idEventNotFirstTime: {
+        options: eventOptions,
+      },
+    },
+    events: {
+      idCard: {
+        options: cardsOptions,
+      },
+      idSpecificLocation: {
+        options: locationOptions,
+      },
+      keyToAdd: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+      characteristicToAdd: {
+        options: [
+          { value: 'DEXTERITY', label: 'DEXTERITY' },
+          { value: 'INTELLIGENCE', label: 'INTELLIGENCE' },
+          { value: 'CONSTITUTION', label: 'CONSTITUTION' },
+          { value: 'LIFE', label: 'LIFE' },
+          { value: 'ENERGY', label: 'ENERGY' },
+          { value: 'SAD', label: 'SAD' },
+          { value: 'COINS', label: 'COINS' },
+          { value: 'TIME', label: 'TIME' },
+        ],
+        valueType: 'string',
+      },
+      characteristicToRemove: {
+        options: [
+          { value: 'DEXTERITY', label: 'DEXTERITY' },
+          { value: 'INTELLIGENCE', label: 'INTELLIGENCE' },
+          { value: 'CONSTITUTION', label: 'CONSTITUTION' },
+          { value: 'LIFE', label: 'LIFE' },
+          { value: 'ENERGY', label: 'ENERGY' },
+          { value: 'SAD', label: 'SAD' },
+          { value: 'COINS', label: 'COINS' },
+          { value: 'TIME', label: 'TIME' },
+        ],
+        valueType: 'string',
+      },
+      idItemToAdd: {
+        options: itemsOptions,
+      },
+      idWeather: {
+        options: weatherRulesOptions,
+      },
+      idEventNext: {
+        options: eventOptions,
+      },
+    },
+    'event-effects': {
+      idEvent: {
+        options: eventOptions,
+      },
+      traitsToAdd: {
+        options: traitsOptions,
+      },
+      traitsToRemove: {
+        options: traitsOptions,
+      },
+      idItemTarget: {
+        options: itemsOptions,
+      },
+      targetClass: {
+        options: classesOptions,
+      },
+    },
+    items: {
+      idCard: {
+        options: cardsOptions,
+      },
+      idClassPermitted: {
+        options: classesOptions,
+      },
+      idClassProhibited: {
+        options: classesOptions,
+      },
+    },
+    'item-effects': {
+      idItem: {
+        options: itemsOptions,
+      },
+    },
+    'class-bonuses': {
+      idClass: {
+        options: classesOptions,
+      },
+    },
+    traits: {
+      idCard: {
+        options: cardsOptions,
+      },
+      idClassPermitted: {
+        options: classesOptions,
+      },
+      idClassProhibited: {
+        options: classesOptions,
+      },
+    },
+    classes: {
+      idCard: {
+        options: cardsOptions,
+      },
+    },
+    creators: {
+      idCard: {
+        options: cardsOptions,
+      },
+    },
+    keys: {
+      idCard: {
+        options: cardsOptions,
+      },
+    },
+    cards: {
+      idCreator: {
+        options: creatorsOptions,
+      },
+    },
+    texts: {
+      idCreator: {
+        options: creatorsOptions,
+      },
+    },
+    choices: {
+      idCard: {
+        options: cardsOptions,
+      },
+      idEvent: {
+        options: eventOptions,
+      },
+      idLocation: {
+        options: locationOptions,
+      },
+      idEventTorun: {
+        options: eventOptions,
+      },
+    },
+    'choice-conditions': {
+      idChoices: {
+        options: choicesOptions,
+      },
+      key: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    'choice-effects': {
+      idCard: {
+        options: cardsOptions,
+      },
+      idChoices: {
+        options: choicesOptions,
+      },
+      idScelta: {
+        options: choicesOptions,
+      },
+      key: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    'weather-rules': {
+      idCard: {
+        options: cardsOptions,
+      },
+      idEvent: {
+        options: eventOptions,
+      },
+      conditionKey: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    'global-random-events': {
+      idCard: {
+        options: cardsOptions,
+      },
+      idEvent: {
+        options: eventOptions,
+      },
+      conditionKey: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    'mission-steps': {
+      idMission: {
+        options: missionsOptions,
+      },
+      idEventCompleted: {
+        options: eventOptions,
+      },
+      conditionKey: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    'location-neighbors': {
+      idCard: {
+        options: cardsOptions,
+      },
+      idLocationFrom: {
+        options: locationOptions,
+      },
+      idLocationTo: {
+        options: locationOptions,
+      },
+      conditionRegistryKey: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+    },
+    missions: {
+      idCard: {
+        options: cardsOptions,
+      },
+      conditionKey: {
+        options: keysOptions,
+        valueType: 'string',
+      },
+      idEventCompleted: {
+        options: eventOptions,
+      },
+    },
+  }
+
+  const getNewEntityDefaults = () => {
+    if (activeTab === 'location-neighbors') {
+      return {
+        direction: LOCATION_NEIGHBOR_DIRECTIONS[0],
+        flagBack: 1,
+      }
+    }
+    return null
+  }
+
+  const normalizeEntityForForm = (entity, entityTab) => {
+    if (!entity) return entity
+
+    const normalizedEntity = { ...entity }
+    if (Object.prototype.hasOwnProperty.call(normalizedEntity, 'idCard')
+      || Object.prototype.hasOwnProperty.call(normalizedEntity, 'id_card')) {
+      const normalizedIdCard = Number(normalizedEntity.idCard ?? normalizedEntity.id_card)
+      normalizedEntity.idCard = Number.isFinite(normalizedIdCard) ? normalizedIdCard : ''
+      normalizedEntity.id_card = Number.isFinite(normalizedIdCard) ? normalizedIdCard : null
+    }
+
+    return normalizedEntity
+  }
+
   return (
-    <div className="flex flex-col md:flex-row gap-6">
+    <div className="flex flex-col md:flex-row gap-6 align-item-start">
       {/* Sidebar Tabs */}
       <div className="w-full md:w-64 flex-shrink-0">
         <div className="pg-card sticky top-4" style={{ padding: '0.5rem' }}>
-          <div className="mb-4 p-3 border-b border-white/5">
-            <button className="pg-btn pg-btn-ghost pg-btn-sm w-full justify-start mb-2" onClick={() => navigate('/stories')}>
-              <i className="fas fa-arrow-left me-2" /> Back to list
-            </button>
-            <h3 className="pg-card-title text-gold-dark" style={{ fontSize: '0.9rem' }}>
-              Editing Story
-            </h3>
-            <p className="text-xs text-white/40 truncate" title={uuid}>{uuid}</p>
-          </div>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-05">
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-3 py-2 rounded transition-all text-sm ${
+                className={`flex items-center gap-1 px-1 py-1 rounded transition-all text-sm ${
                   activeTab === tab.id ? 'bg-gold-dark/20 text-gold-light' : 'text-ash hover:bg-white/5'
                 }`}
               >
@@ -528,27 +816,31 @@ export default function StoryEditorPage() {
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">
-        <ErrorAlert message={error} onClose={() => setError('')} />
-        {success && (
-          <div className="pg-alert pg-alert-success mb-4">
-            <i className="fas fa-check-circle me-2" />{success}
-          </div>
-        )}
-
         <div className="flex items-center justify-between mb-4">
+          {success && (
+            <div className="pg-alert pg-alert-success position-absolute left-1/2 z-10 px-4">
+              <i className="fas fa-check-circle me-2" />{success}
+            </div>
+          )}
           <h2 className="pg-page-title" style={{ marginBottom: 0 }}>
             {TABS.find(t => t.id === activeTab)?.label}
           </h2>
           {activeTab !== 'metadata' && (
-            <button className="pg-btn pg-btn-gold pg-btn-sm" onClick={() => setModal({ type: 'form', entity: null })}>
+            <button className="pg-btn pg-btn-gold pg-btn-sm" onClick={() => setModal({ type: 'form', entity: null, initialData: getNewEntityDefaults() })}>
               <i className="fas fa-plus me-1" /> Add {TABS.find(t => t.id === activeTab)?.label.slice(0, -1)}
             </button>
           )}
+          {activeTab === 'metadata' && (
+            <button type="submit" form="story-metadata-form" className="pg-btn pg-btn-gold pg-btn-sm">
+              <i className="fas fa-save me-2" /> Save Changes
+            </button>
+          )}
+          <ErrorAlert message={error} onClose={() => setError('')} />
         </div>
 
         {activeTab === 'metadata' ? (
-          <form onSubmit={handleUpdateStory} className="pg-card flex flex-col gap-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form id="story-metadata-form" onSubmit={handleUpdateStory} className="pg-card flex flex-col gap-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
               <div>
                 <label className="pg-label">Author</label>
                 <input className="pg-input" value={story?.author || ''} onChange={e => setStory({...story, author: e.target.value})} />
@@ -586,28 +878,88 @@ export default function StoryEditorPage() {
                 <input className="pg-input" value={story?.versionMax || ''} onChange={e => setStory({...story, versionMax: e.target.value})} />
               </div>
               <div>
-                <label className="pg-label">Title Text ID</label>
-                <input type="number" className="pg-input" value={story?.idTextTitle || ''} onChange={e => setStory({...story, idTextTitle: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Title Text ID"
+                  name="idTextTitle"
+                  value={story?.idTextTitle ?? ''}
+                  displayValue={getTextDisplay(story?.idTextTitle)}
+                  placeholder="No text selected"
+                  onOpenSelector={() => setStoryTextSelector({ fieldKey: 'idTextTitle', startMode: 'list' })}
+                  onOpenCreator={() => setStoryTextSelector({ fieldKey: 'idTextTitle', startMode: 'input-generator' })}
+                  onClear={() => setStory(prev => ({ ...prev, idTextTitle: '' }))}
+                />
               </div>
               <div>
-                <label className="pg-label">Start Location ID</label>
-                <input type="number" className="pg-input" value={story?.idLocationStart || ''} onChange={e => setStory({...story, idLocationStart: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Card ID"
+                  name="idCard"
+                  value={story?.idCard ?? ''}
+                  displayValue={getCardDisplay(story?.idCard)}
+                  placeholder="No card selected"
+                  onOpenSelector={() => setStoryCardSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idCard: '' }))}
+                  showNewButton={false}
+                />
               </div>
               <div>
-                <label className="pg-label">Image ID</label>
-                <input type="number" className="pg-input" value={story?.idImage || ''} onChange={e => setStory({...story, idImage: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Start Location ID"
+                  name="idLocationStart"
+                  value={story?.idLocationStart ?? ''}
+                  displayValue={getLocationDisplay(story?.idLocationStart)}
+                  placeholder="No location selected"
+                  onOpenSelector={() => setStoryStartLocationSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idLocationStart: '' }))}
+                  showNewButton={false}
+                />
               </div>
               <div>
-                <label className="pg-label">All-Player Coma Location ID</label>
-                <input type="number" className="pg-input" value={story?.idLocationAllPlayerComa || ''} onChange={e => setStory({...story, idLocationAllPlayerComa: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Image ID"
+                  name="idImage"
+                  value={story?.idImage ?? ''}
+                  displayValue={getTextDisplay(story?.idImage)}
+                  placeholder="No image text selected"
+                  onOpenSelector={() => setStoryTextSelector({ fieldKey: 'idImage', startMode: 'list' })}
+                  onOpenCreator={() => setStoryTextSelector({ fieldKey: 'idImage', startMode: 'input-generator' })}
+                  onClear={() => setStory(prev => ({ ...prev, idImage: '' }))}
+                />
               </div>
               <div>
-                <label className="pg-label">All-Player Coma Event ID</label>
-                <input type="number" className="pg-input" value={story?.idEventAllPlayerComa || ''} onChange={e => setStory({...story, idEventAllPlayerComa: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="All-Player Coma Location ID"
+                  name="idLocationAllPlayerComa"
+                  value={story?.idLocationAllPlayerComa ?? ''}
+                  displayValue={getLocationDisplay(story?.idLocationAllPlayerComa)}
+                  placeholder="No location selected"
+                  onOpenSelector={() => setStoryAllPlayerComaLocationSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idLocationAllPlayerComa: '' }))}
+                  showNewButton={false}
+                />
               </div>
               <div>
-                <label className="pg-label">End Game Event ID</label>
-                <input type="number" className="pg-input" value={story?.idEventEndGame || ''} onChange={e => setStory({...story, idEventEndGame: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="All-Player Coma Event ID"
+                  name="idEventAllPlayerComa"
+                  value={story?.idEventAllPlayerComa ?? ''}
+                  displayValue={getEventDisplay(story?.idEventAllPlayerComa)}
+                  placeholder="No event selected"
+                  onOpenSelector={() => setStoryAllPlayerComaEventSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idEventAllPlayerComa: '' }))}
+                  showNewButton={false}
+                />
+              </div>
+              <div>
+                <PathsSelector
+                  label="End Game Event ID"
+                  name="idEventEndGame"
+                  value={story?.idEventEndGame ?? ''}
+                  displayValue={getEventDisplay(story?.idEventEndGame)}
+                  placeholder="No event selected"
+                  onOpenSelector={() => setStoryEndGameEventSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idEventEndGame: '' }))}
+                  showNewButton={false}
+                />
               </div>
               <div>
                 <label className="pg-label">Clock (singular)</label>
@@ -618,22 +970,33 @@ export default function StoryEditorPage() {
                 <input className="pg-input" value={story?.clockPluralDescription || ''} onChange={e => setStory({...story, clockPluralDescription: e.target.value})} />
               </div>
               <div>
-                <label className="pg-label">Copyright Text ID</label>
-                <input type="number" className="pg-input" value={story?.idTextCopyright || ''} onChange={e => setStory({...story, idTextCopyright: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Copyright Text ID"
+                  name="idTextCopyright"
+                  value={story?.idTextCopyright ?? ''}
+                  displayValue={getTextDisplay(story?.idTextCopyright)}
+                  placeholder="No text selected"
+                  onOpenSelector={() => setStoryTextSelector({ fieldKey: 'idTextCopyright', startMode: 'list' })}
+                  onOpenCreator={() => setStoryTextSelector({ fieldKey: 'idTextCopyright', startMode: 'input-generator' })}
+                  onClear={() => setStory(prev => ({ ...prev, idTextCopyright: '' }))}
+                />
               </div>
               <div>
                 <label className="pg-label">Copyright Link</label>
                 <input className="pg-input" value={story?.linkCopyright || ''} onChange={e => setStory({...story, linkCopyright: e.target.value})} />
               </div>
               <div>
-                <label className="pg-label">Creator ID</label>
-                <input type="number" className="pg-input" value={story?.idCreator || ''} onChange={e => setStory({...story, idCreator: parseInt(e.target.value)})} />
+                <PathsSelector
+                  label="Creator ID"
+                  name="idCreator"
+                  value={story?.idCreator ?? ''}
+                  displayValue={getCreatorDisplay(story?.idCreator)}
+                  placeholder="No creator selected"
+                  onOpenSelector={() => setStoryCreatorSelectorOpen(true)}
+                  onClear={() => setStory(prev => ({ ...prev, idCreator: '' }))}
+                  showNewButton={false}
+                />
               </div>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button type="submit" className="pg-btn pg-btn-gold px-8">
-                <i className="fas fa-save me-2" /> Save Changes
-              </button>
             </div>
           </form>
         ) : (
@@ -641,18 +1004,129 @@ export default function StoryEditorPage() {
             entities={entities}
             columns={COLUMNS[activeTab] || defaultCols}
             texts={texts}
-            onEdit={(ent) => setModal({ type: 'form', entity: ent })}
-            onDelete={(ent) => setModal({ type: 'delete', entity: ent })}
+            relationOptionsByField={pathSelectorOptionsByTab[activeTab] || {}}
+            onOpenIdCardForm={handleOpenCardFromEntityTable}
+            onEdit={(ent) => setModal({ type: 'form', entity: normalizeEntityForForm(ent, activeTab), entityTab: activeTab })}
+            onDelete={(ent) => setModal({ type: 'delete', entity: ent, entityTab: activeTab })}
           />
         )}
+
+
       </div>
+
+      <FastTextSelectorModal
+        open={!!storyTextSelector}
+        onClose={() => setStoryTextSelector(null)}
+        texts={texts}
+        selectedId={storyTextSelector ? story?.[storyTextSelector.fieldKey] : ''}
+        storyOptions={storyOptions}
+        storyUuid={uuid}
+        onSaveFastText={handleSaveFastText}
+        startMode={storyTextSelector?.startMode || 'list'}
+        onSelect={(idText) => {
+          if (!storyTextSelector) return
+          setStoryTextField(storyTextSelector.fieldKey, idText)
+          setStoryTextSelector(null)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyCardSelectorOpen}
+        onClose={() => setStoryCardSelectorOpen(false)}
+        selectedValue={story?.idCard ?? ''}
+        title="Select Card"
+        searchPlaceholder="Search by id or label"
+        options={cardsOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idCard: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryCardSelectorOpen(false)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyCreatorSelectorOpen}
+        onClose={() => setStoryCreatorSelectorOpen(false)}
+        selectedValue={story?.idCreator ?? ''}
+        title="Select Creator"
+        searchPlaceholder="Search by id or label"
+        options={creatorsOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idCreator: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryCreatorSelectorOpen(false)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyStartLocationSelectorOpen}
+        onClose={() => setStoryStartLocationSelectorOpen(false)}
+        selectedValue={story?.idLocationStart ?? ''}
+        title="Select Start Location"
+        searchPlaceholder="Search by id or label"
+        options={locationOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idLocationStart: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryStartLocationSelectorOpen(false)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyAllPlayerComaLocationSelectorOpen}
+        onClose={() => setStoryAllPlayerComaLocationSelectorOpen(false)}
+        selectedValue={story?.idLocationAllPlayerComa ?? ''}
+        title="Select All-Player Coma Location"
+        searchPlaceholder="Search by id or label"
+        options={locationOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idLocationAllPlayerComa: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryAllPlayerComaLocationSelectorOpen(false)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyAllPlayerComaEventSelectorOpen}
+        onClose={() => setStoryAllPlayerComaEventSelectorOpen(false)}
+        selectedValue={story?.idEventAllPlayerComa ?? ''}
+        title="Select All-Player Coma Event"
+        searchPlaceholder="Search by id or label"
+        options={eventOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idEventAllPlayerComa: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryAllPlayerComaEventSelectorOpen(false)
+        }}
+      />
+
+      <PathsOptionsSelectorModal
+        open={storyEndGameEventSelectorOpen}
+        onClose={() => setStoryEndGameEventSelectorOpen(false)}
+        selectedValue={story?.idEventEndGame ?? ''}
+        title="Select End Game Event"
+        searchPlaceholder="Search by id or label"
+        options={eventOptions}
+        onSelect={(value) => {
+          const numericValue = Number(value)
+          setStory(prev => ({ ...prev, idEventEndGame: Number.isFinite(numericValue) ? numericValue : '' }))
+          setStoryEndGameEventSelectorOpen(false)
+        }}
+      />
 
       {modal?.type === 'form' && (
         <EntityForm
           entity={modal.entity}
-          fields={FIELDS[activeTab] || [{ key: 'idTextName', label: 'Name Text ID', type: 'number' }]}
+          initialData={modal.initialData}
+          fields={FIELDS[modal?.entityTab || activeTab] || [{ key: 'idTextName', label: 'Name Text ID', type: 'number' }]}
           onSave={handleSaveEntity}
           onCancel={() => setModal(null)}
+          storyUuid={uuid}
+          storyOptions={storyOptions}
+          texts={texts}
+          onSaveFastText={handleSaveFastText}
+          onCreateFastCard={handleCreateFastCard}
+          pathSelectorOptions={pathSelectorOptionsByTab[modal?.entityTab || activeTab] || {}}
         />
       )}
 

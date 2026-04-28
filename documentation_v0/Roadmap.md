@@ -73,16 +73,7 @@ For next steps use this prompt
 
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-
-18. Frontend: Admin story management UI into "react-admin" project
-    - Build admin story list page with search, filter, and CRUD actions (create, edit, delete) (frontend)
-    - Build admin story editor with form for story metadata, difficulty levels, and version settings (frontend)
-    - Build admin location editor with visual adjacency map showing directional connections (frontend)
-    - Build admin event/choice editor with nested forms for effects, conditions, and linked entities (frontend)
-    - Build admin item and weather editor with effect configuration and probability settings (frontend)
-    - Implement form validation, error display, and confirmation dialogs for destructive actions (frontend)
-    - Write frontend unit tests for all admin editor components, form validation, and CRUD operations (frontend tests)
-19. Frontend: Story catalog and detail pages
+18. Frontend: Stoies catalog and detail components
     - Build story catalog page displaying available stories as cards with title, description, image, and difficulty badges (frontend)
     - Build story detail modal/page showing full description, available difficulties, character options, and location preview (frontend)
     - Implement story card component with category, author, and version compatibility indicators (frontend)
@@ -90,15 +81,7 @@ For next steps use this prompt
     - Implement responsive layout with Bootstrap 5 grid and medieval/fantasy card style (frontend)
     - Integrate story API client with Redux/state management for caching and loading states (frontend)
     - Write frontend unit tests for story catalog, detail, card components, and API integration mocks (frontend tests)
-20. Story validation and integrity checking
-    - Implement story validator service checking referential integrity across all story entities (backend)
-    - Validate all location neighbors reference existing locations with consistent directions (backend)
-    - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)
-    - Validate all choices have at least one option or an otherwise fallback; verify conditions reference valid keys (backend)
-    - Validate character templates have valid stat ranges and classes have defined bonuses (backend)
-    - Integrate validation into story import and admin CRUD operations to prevent saving invalid story data (backend)
-    - Write backend unit tests for all validation rules covering valid stories, broken references, and edge cases (backend tests)
-21. Single-player match creation
+19. Single-player match creation
     - Implement POST /matches endpoint to create a new match with story and difficulty selection (and creator character select) (backend)
     - Validate story exists, difficulty is valid, user is not banned, and system is not in maintenance (backend)
     - Generate match UUID, set status to CREATED, persist gaming_match record with id_user_creator (backend)
@@ -106,7 +89,7 @@ For next steps use this prompt
     - Initialize gaming_state_registry with all story default key-value pairs (backend)
     - Implement GET /match/{uuid_match}/info endpoint returning match details, location, events, choices, and registry (backend)
     - Write backend unit tests for match creation covering validation, state initialization, and error scenarios (backend tests)
-22. Character template and class selection
+21. Character template and class selection
     - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
     - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
     - Validate character template belongs to the story and class is compatible with selected template (backend)
@@ -114,6 +97,14 @@ For next steps use this prompt
     - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
     - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
     - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
+22. Story validation and integrity checking
+    - Implement story validator service checking referential integrity across all story entities (backend)
+    - Validate all location neighbors reference existing locations with consistent directions (backend)
+    - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)
+    - Validate all choices have at least one option or an otherwise fallback; verify conditions reference valid keys (backend)
+    - Validate character templates have valid stat ranges and classes have defined bonuses (backend)
+    - Integrate validation into story import and admin CRUD operations to prevent saving invalid story data (backend)
+    - Write backend unit tests for all validation rules covering valid stories, broken references, and edge cases (backend tests)
 23. Character traits and stats initialization
     - Implement trait listing for selected class filtered by id_class_permitted and id_class_prohibited (backend)
     - Assign traits during character creation (within POST /matches and POST /matches/{uuid_match}/join flow) (backend)

@@ -12,7 +12,7 @@ const MENU = [
   { to: '/echo',      icon: 'fas fa-heartbeat',      label: 'Server Status'},
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
   return (
     <aside className="pg-sidebar">
       {MENU.map((item, i) =>
@@ -24,19 +24,13 @@ export default function Sidebar() {
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) => `pg-sidebar-link${isActive ? ' active' : ''}`}
+              onClick={() => onNavigate?.(item.to)}
             >
               <i className={item.icon} />
               {item.label}
             </NavLink>
           )
       )}
-      <hr />
-        <div className="pg-sidebar-footer mt-2">
-            <div className=" text-center pg-card-title">
-                Paths Games Admin Panel<br />
-                Version: 0.17.1
-            </div>
-        </div>
     </aside>
   )
 }

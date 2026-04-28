@@ -872,7 +872,14 @@ class StoryCrudServiceCompleteTest {
         data.put("urlImage", "http://img");
         data.put("urlEmote", "http://emote");
         data.put("urlInstagram", "http://ig");
-        assertNotNull(service.createEntity("s", "creators", data));
+        data.remove("idCard"); // Remove camelCase to test snake_case fallback
+        data.put("id_card", 99);
+        Map<String, Object> result = service.createEntity("s", "creators", data);
+        assertNotNull(result);
+        
+        org.mockito.ArgumentCaptor<CreatorEntity> captor = org.mockito.ArgumentCaptor.forClass(CreatorEntity.class);
+        verify(persistencePort).saveCreator(captor.capture());
+        assertEquals(99, captor.getValue().getIdCard());
     }
 
     @Test

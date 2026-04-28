@@ -57,7 +57,8 @@ class StoryCrudService implements StoryCrudPort
         if ($sid === null) {
             return null;
         }
-        return $this->listByType($sid, $entityType);
+        $raw = $this->listByType($sid, $entityType);
+        return array_map([$this, 'toCamelKeys'], $raw);
     }
 
     public function getEntity(string $storyUuid, string $entityType, string $entityUuid): ?array
@@ -73,7 +74,8 @@ class StoryCrudService implements StoryCrudPort
         if (!$table) {
             return null;
         }
-        return $this->readPort->findEntityByStoryAndUuid($sid, $table, $entityUuid);
+        $raw = $this->readPort->findEntityByStoryAndUuid($sid, $table, $entityUuid);
+        return $raw ? $this->toCamelKeys($raw) : null;
     }
 
     public function createEntity(string $storyUuid, string $entityType, array $data): ?array
@@ -92,7 +94,8 @@ class StoryCrudService implements StoryCrudPort
         $newUuid = $this->generateUuid();
         $data['uuid'] = $newUuid;
         $this->persistencePort->saveEntity($sid, $table, $data);
-        return $this->readPort->findEntityByStoryAndUuid($sid, $table, $newUuid);
+        $raw = $this->readPort->findEntityByStoryAndUuid($sid, $table, $newUuid);
+        return $raw ? $this->toCamelKeys($raw) : null;
     }
 
     public function updateEntity(string $storyUuid, string $entityType, string $entityUuid, array $data): ?array
@@ -113,7 +116,8 @@ class StoryCrudService implements StoryCrudPort
             return null;
         }
         $this->persistencePort->updateEntity($sid, $table, $entityUuid, $data);
-        return $this->readPort->findEntityByStoryAndUuid($sid, $table, $entityUuid);
+        $raw = $this->readPort->findEntityByStoryAndUuid($sid, $table, $entityUuid);
+        return $raw ? $this->toCamelKeys($raw) : null;
     }
 
     public function deleteEntity(string $storyUuid, string $entityType, string $entityUuid): bool
@@ -244,6 +248,18 @@ class StoryCrudService implements StoryCrudPort
                 }
                 return [];
         }
+    }
+
+    private function toCamelKeys(array $raw): array
+    {
+        $result = [];
+        foreach ($raw as $key => $value) {
+            $parts = explode('_', $key);
+            $first = array_shift($parts);
+            $camelKey = $first . implode('', array_map('ucfirst', $parts));
+            $result[$camelKey] = $value;
+        }
+        return $result;
     }
 
     private function applyStoryFields(array &$storyData, array $data): void

@@ -159,14 +159,16 @@ class StoryCrudService(StoryCrudPort):
             "mission-steps": lambda: self.read_port.find_entities_for_story(sid, "list_missions_steps"),
         }
         fn = dispatch.get(entity_type)
-        return fn() if fn else []
+        raw = fn() if fn else []
+        return [self._to_camel_keys(r) for r in raw]
 
     # === Dispatch: get ===
     def _get_by_type(self, sid: int, entity_type: str, entity_uuid: str) -> Optional[Dict[str, Any]]:
         table = self._table_for_type(entity_type)
         if not table:
             return None
-        return self.read_port.find_entity_by_story_and_uuid(sid, table, entity_uuid)
+        raw = self.read_port.find_entity_by_story_and_uuid(sid, table, entity_uuid)
+        return self._to_camel_keys(raw) if raw else None
 
     # === Dispatch: create ===
     def _create_by_type(self, sid: int, entity_type: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -176,7 +178,8 @@ class StoryCrudService(StoryCrudPort):
         if not table:
             return None
         self.persistence_port.save_entity(sid, table, data)
-        return self.read_port.find_entity_by_story_and_uuid(sid, table, new_uuid)
+        raw = self.read_port.find_entity_by_story_and_uuid(sid, table, new_uuid)
+        return self._to_camel_keys(raw) if raw else None
 
     # === Dispatch: update ===
     def _update_by_type(self, sid: int, entity_type: str, entity_uuid: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -187,7 +190,8 @@ class StoryCrudService(StoryCrudPort):
         if not existing:
             return None
         self.persistence_port.update_entity(sid, table, entity_uuid, data)
-        return self.read_port.find_entity_by_story_and_uuid(sid, table, entity_uuid)
+        raw = self.read_port.find_entity_by_story_and_uuid(sid, table, entity_uuid)
+        return self._to_camel_keys(raw) if raw else None
 
     # === Dispatch: delete ===
     def _delete_by_type(self, sid: int, entity_type: str, entity_uuid: str) -> bool:
@@ -226,6 +230,24 @@ class StoryCrudService(StoryCrudPort):
             "mission-steps": "list_missions_steps",
         }
         return mapping.get(entity_type)
+
+    def _to_camel_keys(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        if not data:
+            return data
+        
+        # Convert dictionary or mapping proxy
+        if hasattr(data, '_mapping'):
+            data = dict(data._mapping)
+        elif not isinstance(data, dict):
+            # Try to convert object to dict if it's an SQLAlchemy Row or similar
+            data = dict(data)
+            
+        result = {}
+        for k, v in data.items():
+            parts = k.split('_')
+            camel_key = parts[0] + ''.join(p.capitalize() for p in parts[1:])
+            result[camel_key] = v
+        return result
 
     def _apply_story_fields(self, story_data: Dict, data: Dict):
         fields = [

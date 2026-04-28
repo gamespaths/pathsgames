@@ -19,16 +19,16 @@ Documents includes all steps and the roadmap for create paths.games components, 
 | Version | Steps | Focus | 
 | --- | --- | --- |
 | 0 | 📝 **Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
-| 0.17.1 | 🛠️ **Current version** | - ✅ [Implement guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session & token management](Step13_SessionTokenManagement.md) <br />- ✅ [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) & [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Admin operations](./documentation_v0/Step17_StoryAdminCRUD.md)  <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
+| 0.17.2 | 🛠️ **Current version** | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md)  <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
 | 0.42 | 🧑‍🔬 **Single player** <br /> Steps 12-42 |  Single player game engine and website prototype |
 | 0.84 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
 | 1 | 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
-| 1.1 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
-| 1.2 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
-| 2 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
-| 3 | 🤖 Game engine | Permadeath & Game Over & Silent Events | 
-| 4 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
-| 5 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
+| 2 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
+| 3 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
+| 4 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
+| 5 | 🤖 Game engine | Permadeath & Game Over & Silent Events | 
+| 6 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
+| 7 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
 | 42 | 📡 | *Life, the Universe and Everything*| 
 | 84 | 🛰️ | *To Boldly Go Where No Man Has Gone Before* |
 
@@ -50,54 +50,60 @@ Documents includes all steps and the roadmap for create paths.games components, 
 
 - 📂 **Repository Structure**
     - `/code/backend/`: Source code for Java, Python, and PHP backend versions.
-    - `/code/website/`: Frontend React applications and terraform templates.
+        - [Java](./code/backend/java/README.md) project, main tecnologies.
+        - [PHP](./code/backend/php/README.md) project, alternative backend.
+        - [Python](./code/backend/python/README.md) project, alternative backend.
+        - [AWS](./code/backend/aws/README.md) project, AWS infrastructure deployment.
+    - `/code/frontend/`: Frontend React applications.
+        - [React-admin](./code/frontend/react-admin/README.md) web-application for admin users.
+        - [React-game](./code/frontend/react-game/README.md) public web-application for game players.
     - `/code/tests/`: Automated E2E tests using Robot Framework.
     - `/code/scripts/`: Utility scripts for development, build, and deployment.
+    - `/code/website/`: Frontend React applications and terraform templates.
+        - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
+        - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)
     - `/documentation_v0/`: This folder, containing all design and step documents.
 
-- **Backend** projects into `code/backend` folder:
-    - **Java**: main backend project, see [README](./code/backend/java/README.md) for all details, build with Java 21, Spring boot with Hexagonal Architecture. Run application on developer environment with commands:
+- **Developer commands**:
+    - **Java**: main backend project, see [README](./code/backend/java/README.md), project build with Java 21 and Spring boot with Hexagonal Architecture. Run application on developer environment with commands:
         - Build project without run unit-test `mvn clean install -DskipTests`
         - Execute all unit test `mvn clean test`
         - Start service in local environment `mvn -pl ms-launcher spring-boot:run`
         - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
         -  **sonar-qube** scanner with `/code/script/dev/run_sonar_scanner_java.sh`
-            - [SonarCloud](https://sonarcloud.io/project/overview?id=paths-game-backend-java): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
+        - [SonarCloud](https://sonarcloud.io/project/overview?id=paths-game-backend-java): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
             
-    - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
-        ```
-        docker run -d -p 8042:8080 \
-            -e SPRING_PROFILES_ACTIVE=prod   \
-            -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
-            -e SPRING_DATASOURCE_USERNAME=dbuser   \
-            -e SPRING_DATASOURCE_PASSWORD=dbpass   \    
-            pathsgames/pathsgames:latest
-        ```
+        - **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames). Run backend application with docker image with `prod' profile using *extenal* postgres database:
+            ```
+            docker run -d -p 8042:8080 \
+                -e SPRING_PROFILES_ACTIVE=prod   \
+                -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
+                -e SPRING_DATASOURCE_USERNAME=dbuser   \
+                -e SPRING_DATASOURCE_PASSWORD=dbpass   \    
+                pathsgames/pathsgames:latest
+            ```
     - **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend/python/README.md) for all details.
         - Start virtual environment `python3 -m venv .venv && source .venv/bin/activate`
         - Start application `python3 -m app.launcher`
         - Execute test `pytest tests` or `pytest tests --cov=app --cov-report=term-missing`
         - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-python): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python)
+
     - **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
         - Start service into configured environment `php -S localhost:8042 -t public `
         - Execute test `XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text`
         - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-php): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php)
+
     - **AWS Serverless**: an alternative backend based on AWS API Gateway, Lambda and DynamoDB, see [README](./code/backend/aws/README.md) for architecture and deployment details.
         - To deploy all components into cloud run `/code/script/dev/aws_backend_deploy.sh`
         - To test all components with robot run `code/script/dev/run_robot_with_aws_serverless.sh`
         - TO remove all component run `/code/script/dev/aws_backend_remove.sh`
-- **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
-    - To execute all test run script: `/code/script/dev/run_robot_with_local_server.sh`
-        - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
-    - Report is created into `code/tests/robot/reports/report.html` folder.
-- **Website** project into `code/website` define all website components:
-    - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
-    - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)
-    - `code/website/concepts` — design exploration assets (mockups, card concepts, logo, screenshots)
-    
-- **Frontend**: projects about backend builded with React, Vite and Node.js
-    - **React-admin**: *coming soon*
-    - **React-game**: *coming soon*
+    - **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
+        - To execute all test run script: `/code/script/dev/run_robot_with_local_server.sh`
+            - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+        - Report is created into `code/tests/robot/reports/report.html` folder.
+    - **Frontend**: projects about backend builded with React, Vite and Node.js
+        - **React-admin**: *coming soon*
+        - **React-game**: *coming soon*
 
 
 ## References

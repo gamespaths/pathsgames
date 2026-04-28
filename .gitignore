@@ -57,6 +57,10 @@ code/backend/php/vendor
 code/backend/php/composer.lock
 
 # Robot
+code/tests/robot/log.html
+code/tests/robot/output.xml
+code/tests/robot/report.html
+code/tests/robot/reports/
 code/tests/robot/reports-aws/
 code/tests/robot/reports-local-java-postgres/
 code/tests/robot/reports-local-java/

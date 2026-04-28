@@ -108,7 +108,7 @@ sed -i "s|'${CURRENT}'|'${NEW}'|g" "$AWS_FILE"
 # 8. React Admin - Navbar.jsx (versione in-code)
 # ────────────────────────────────────────────
 echo "  [8/6] React Admin - Navbar.jsx (versione in-code)"
-NAVBAR_FILE="$ROOT/code/frontend/react-admin/src/components/layout/Sidebar.jsx"
+NAVBAR_FILE="$ROOT/code/frontend/react-admin/src/components/layout/FooterBar.jsx"
 sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$NAVBAR_FILE"
 
 

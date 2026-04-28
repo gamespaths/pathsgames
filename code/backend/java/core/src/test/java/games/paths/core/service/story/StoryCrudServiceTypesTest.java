@@ -92,7 +92,7 @@ class StoryCrudServiceTypesTest {
         m.put("conditionKey", "c"); m.put("conditionKeyValue", "c"); m.put("timeFrom", 1); m.put("timeTo", 1);
         m.put("active", 1); m.put("deltaEnergy", 1); m.put("conditionValue", "c"); m.put("idClass", 1); m.put("statistic", "s");
         m.put("conditionValueFrom", "c"); m.put("conditionValueTo", "c"); m.put("idEventCompleted", 1);
-        m.put("idMission", 1); m.put("step", 1); m.put("idCard", 1); m.put("idTextName", 1); m.put("author", "a"); m.put("versionMin", "1");
+        m.put("idMission", 1); m.put("step", 1); m.put("idCard", 1); m.put("id_card", 99); m.put("idTextName", 1); m.put("author", "a"); m.put("versionMin", "1");
         m.put("versionMax", "2"); m.put("category", "c"); m.put("peghi", 1); m.put("idLocationStart", 1); m.put("idLocationAllPlayerComa", 1);
         m.put("idEventAllPlayerComa", 1); m.put("clockSingularDescription", "c"); m.put("clockPluralDescription", "c"); m.put("idEventEndGame", 1);
         return m;

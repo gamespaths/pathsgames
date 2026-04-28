@@ -7,10 +7,12 @@ import { useState } from 'react'
  * @param {Array} props.entities - List of entities to display
  * @param {Array} props.columns - Column definitions: { key, label, type, render }
  * @param {Array} props.texts - List of story texts to resolve idText references
+ * @param {Object} props.relationOptionsByField - Map fieldKey -> { options: [{ value, label }] }
+ * @param {Function} props.onOpenIdCardForm - Callback when idCard is clicked
  * @param {Function} props.onEdit - Callback when edit is clicked
  * @param {Function} props.onDelete - Callback when delete is clicked
  */
-export default function EntityTable({ entities, columns, texts = [], onEdit, onDelete }) {
+export default function EntityTable({ entities, columns, texts = [], relationOptionsByField = {}, onOpenIdCardForm, onEdit, onDelete }) {
   const [search, setSearch] = useState('')
 
   // Show max 3 columns from the definition
@@ -23,10 +25,25 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
     return match ? match.shortText : `[Text #${idText}]`
   }
 
+  const resolveRelationLabel = (fieldKey, value) => {
+    if (value === null || value === undefined || value === '') return null
+
+    const fieldOptions = relationOptionsByField?.[fieldKey]?.options || []
+    if (!fieldOptions.length) return null
+
+    const match = fieldOptions.find(option => String(option.value) === String(value))
+    if (!match) return null
+
+    return match.label || `#${value}`
+  }
+
   const filtered = entities.filter(e =>
     !search ||
     Object.values(e).some(val => String(val).toLowerCase().includes(search.toLowerCase()))
   )
+  const displayed = [...filtered].reverse()
+
+  const hasIdCardColumn = entities.some(entity => entity?.idCard !== null && entity?.idCard !== undefined && entity?.idCard !== '')
 
   return (
     <div className="pg-card" style={{ padding: 0 }}>
@@ -46,6 +63,7 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
           <thead>
             <tr>
               <th style={{ width: 100 }}>ID</th>
+              {hasIdCardColumn && <th style={{ width: 120 }}>Card</th>}
               {visibleColumns.map(col => (
                 <th key={col.key}>{col.label}</th>
               ))}
@@ -53,10 +71,10 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
-              <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-white/20">No items found.</td></tr>
+            {displayed.length === 0 && (
+              <tr><td colSpan={visibleColumns.length + (hasIdCardColumn ? 3 : 2)} className="text-center py-8 text-white/20">No items found.</td></tr>
             )}
-            {filtered.map(ent => (
+            {displayed.map(ent => (
               <tr key={ent.uuid || ent.id}>
                 <td>
                   <span
@@ -67,6 +85,20 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
                     {ent.id ?? '—'}
                   </span>
                 </td>
+                {hasIdCardColumn && (
+                  <td>
+                    {ent.idCard !== null && ent.idCard !== undefined && ent.idCard !== '' ? (
+                      <button
+                        type="button"
+                        className="pg-btn pg-btn-ghost pg-btn-sm"
+                        onClick={() => onOpenIdCardForm?.(ent.idCard)}
+                        title="Open card"
+                      >
+                        #{ent.idCard}
+                      </button>
+                    ) : '—'}
+                  </td>
+                )}
                 {visibleColumns.map(col => {
                   let content = ent[col.key]
 
@@ -74,8 +106,9 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
                     const textVal = resolveText(ent[col.key])
                     return (
                       <td key={col.key}>
-                        <span className="text-white/40 me-1">#{ent[col.key]}</span>
-                        <span className="font-semibold">{textVal}</span>
+                        <span className="pg-badge pg-badge-resolved" title={textVal}>
+                          #{ent[col.key]} {textVal}
+                        </span>
                       </td>
                     )
                   }
@@ -84,8 +117,19 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
                     const textVal = resolveText(ent[col.key])
                     return (
                       <td key={col.key}>
-                        <span className="text-white/40" title={textVal}>
-                          #{ent[col.key]} <i className="fas fa-info-circle ms-1" />
+                        <span className="pg-badge pg-badge-resolved" title={textVal}>
+                          #{ent[col.key]} {textVal}
+                        </span>
+                      </td>
+                    )
+                  }
+
+                  if (col.type === 'idTextTitle') {
+                    const textVal = resolveText(ent[col.key])
+                    return (
+                      <td key={col.key}>
+                        <span className="pg-badge pg-badge-resolved" title={textVal}>
+                          #{ent[col.key]} {textVal}
                         </span>
                       </td>
                     )
@@ -93,6 +137,15 @@ export default function EntityTable({ entities, columns, texts = [], onEdit, onD
 
                   if (col.render) {
                     content = col.render(ent)
+                  }
+
+                  const relationLabel = resolveRelationLabel(col.key, ent[col.key])
+                  if (relationLabel) {
+                    return (
+                      <td key={col.key}>
+                        <span className="pg-badge pg-badge-resolved">{relationLabel}</span>
+                      </td>
+                    )
                   }
 
                   return <td key={col.key}>{content ?? '—'}</td>

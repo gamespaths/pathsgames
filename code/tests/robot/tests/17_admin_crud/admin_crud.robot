@@ -206,6 +206,23 @@ Create And Delete Mission
     ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/missions/${entity_uuid}
     Status Should Be    ${del_resp}    200
 
+Create And Update Creator With idCard
+    [Documentation]    Verifies that idCard is properly mapped and saved for creator sub-entities.
+    [Tags]    admin    crud    step17
+    &{data}=    Create Dictionary    idCard=${92460}    urlInstagram=https://instagram.com/test
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators    json=${data}
+    Status Should Be    ${create_resp}    201
+    ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
+    Response Field Should Equal    ${create_resp}    idCard    92460
+
+    &{update_data}=    Create Dictionary    idCard=${92461}
+    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}    json=${update_data}
+    Status Should Be    ${update_resp}    200
+    Response Field Should Equal    ${update_resp}    idCard    92461
+
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}
+    Status Should Be    ${del_resp}    200
+
 # === Story update with new fields ===
 
 Update Story With All New Fields Returns 200
