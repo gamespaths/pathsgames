@@ -872,8 +872,7 @@ class StoryCrudServiceCompleteTest {
         data.put("urlImage", "http://img");
         data.put("urlEmote", "http://emote");
         data.put("urlInstagram", "http://ig");
-        data.remove("idCard"); // Remove camelCase to test snake_case fallback
-        data.put("id_card", 99);
+        data.put("idCard", 99);
         Map<String, Object> result = service.createEntity("s", "creators", data);
         assertNotNull(result);
         

@@ -17,25 +17,25 @@ export default function PathsSelector({
 }) {
   return (
     <div className="pg-paths-selector-wrap">
-      <label className="pg-label" style={{ fontSize: '0.75rem', marginBottom: 3 }}>{label}</label>
-      <input type="hidden" name={name} value={value ?? ''} />
+      <label htmlFor={name} className="pg-label" style={{ fontSize: '0.75rem', marginBottom: 3 }}>{label}</label>
+      <input type="hidden" id={name} name={name} value={value ?? ''} />
       <div className="pg-paths-selector">
         <span className="pg-paths-selector-value" title={displayValue || placeholder}>
           {displayValue || placeholder}
         </span>
         <div className="pg-paths-selector-actions">
-          <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onOpenSelector}>
+          <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onOpenSelector} title={`Select ${label}`}>
             <i className="fas fa-pen" />
             {selectButtonLabel}
           </button>
           {showClearButton && (
-            <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onClear}>
+            <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onClear} title={`Clear ${label}`}>
               <i className={`fas ${clearButtonIcon}`} />
               {clearButtonLabel}
             </button>
           )}
           {showNewButton && (
-            <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onOpenCreator}>
+            <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={onOpenCreator} title={`New ${label}`}>
               <i className={`fas ${newButtonIcon}`} />
               {newButtonLabel}
             </button>

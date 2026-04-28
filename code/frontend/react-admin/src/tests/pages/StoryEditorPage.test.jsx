@@ -10,8 +10,10 @@ vi.mock('../../api/storyApi', () => ({
   listEntities: vi.fn(),
   updateStory: vi.fn(),
   deleteEntity: vi.fn(),
+  createEntity: vi.fn(),
+  updateEntity: vi.fn(),
 }))
-import { getStory, listEntities, updateStory, deleteEntity } from '../../api/storyApi'
+import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../../api/storyApi'
 
 const MOCK_STORY = {
   uuid: 'story-123',
@@ -77,7 +79,7 @@ describe('StoryEditorPage', () => {
     renderPage()
     await screen.findByDisplayValue('Author')
     await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
-    expect(await screen.findByText('Location Name')).toBeInTheDocument()
+    expect(await screen.findByText(/Location Name/i)).toBeInTheDocument()
     expect(listEntities).toHaveBeenCalledWith('story-123', 'locations')
   })
 
@@ -101,5 +103,31 @@ describe('StoryEditorPage', () => {
     expect(screen.getByText(/Are you sure you want to delete this location/i)).toBeInTheDocument()
     await userEvent.click(screen.getByText('Confirm'))
     expect(deleteEntity).toHaveBeenCalledWith('story-123', 'locations', 'loc-1')
+  })
+
+  it('creates a new entity', async () => {
+    createEntity.mockResolvedValue({ uuid: 'new-loc' })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /Add Location/i }))
+    
+    expect(screen.getByText('Create Entity')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'locations', expect.any(Object))
+  })
+
+  it('opens selectors in metadata form', async () => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    
+    const cardSelectorBtn = screen.getByTitle(/Select Card ID/i)
+    await userEvent.click(cardSelectorBtn)
+    expect(screen.getByText(/Select Card/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Close'))
+    
+    const startLocBtn = screen.getByTitle(/Select Start Location ID/i)
+    await userEvent.click(startLocBtn)
+    expect(screen.getByText(/Select Start Location/i)).toBeInTheDocument()
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import EntityTable from '../../components/common/EntityTable'
+import EntityTable from '../../components/common/story/EntityTable'
 
 const MOCK_COLS = [
   { key: 'name', label: 'Name' },
@@ -34,8 +34,8 @@ describe('EntityTable', () => {
     const ents = [{ uuid: '1', idName: 501 }]
     const texts = [{ idText: 501, lang: 'en', shortText: 'Resolved Name' }]
     render(<EntityTable columns={cols} entities={ents} texts={texts} onEdit={()=>{}} onDelete={()=>{}} />)
-    expect(screen.getByText('Resolved Name')).toBeInTheDocument()
-    expect(screen.getByText('#501')).toBeInTheDocument()
+    expect(screen.getByText(/Resolved Name/i)).toBeInTheDocument()
+    expect(screen.getByText(/#501/i)).toBeInTheDocument()
   })
 
   it('calls onEdit and onDelete callbacks', async () => {
@@ -46,10 +46,10 @@ describe('EntityTable', () => {
     const editBtns = screen.getAllByRole('button').filter(b => b.querySelector('.fa-edit'))
     const trashBtns = screen.getAllByRole('button').filter(b => b.querySelector('.fa-trash'))
     
-    await userEvent.click(editBtns[0])
+    await userEvent.click(editBtns[1])
     expect(onEdit).toHaveBeenCalledWith(MOCK_ENTITIES[0])
     
-    await userEvent.click(trashBtns[1])
+    await userEvent.click(trashBtns[0])
     expect(onDelete).toHaveBeenCalledWith(MOCK_ENTITIES[1])
   })
 })

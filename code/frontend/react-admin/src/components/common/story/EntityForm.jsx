@@ -119,7 +119,7 @@ export default function EntityForm({
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={onCancel}>
+    <div className="pg-modal-backdrop" onClick={onCancel} data-testid="entity-form-backdrop">
       <div
         className="pg-modal"
         style={{ maxWidth: 720, width: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
@@ -146,7 +146,7 @@ export default function EntityForm({
             {fields.map(field => (
               <div key={field.key} style={field.type === 'checkbox' ? { display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 } : {}}>
                 {field.type !== 'checkbox' && !isPathsTextSelector(field) && !isPathsOptionSelector(field) && (
-                  <label className="pg-label" style={{ fontSize: '0.75rem', marginBottom: 3 }}>{field.label}</label>
+                  <label htmlFor={`field-${field.key}`} className="pg-label" style={{ fontSize: '0.75rem', marginBottom: 3 }}>{field.label}</label>
                 )}
                 {isPathsTextSelector(field) ? (
                   <PathsSelector
@@ -197,6 +197,7 @@ export default function EntityForm({
                   />
                 ) : field.type === 'select' ? (
                   <select
+                    id={`field-${field.key}`}
                     className="pg-input"
                     style={{ fontSize: '0.8rem', padding: '4px 8px' }}
                     value={data[field.key] || ''}
@@ -210,6 +211,7 @@ export default function EntityForm({
                 ) : field.type === 'checkbox' ? (
                   <>
                     <input
+                      id={`field-${field.key}`}
                       type="checkbox"
                       checked={!!data[field.key]}
                       onChange={e => setData({...data, [field.key]: e.target.checked})}
@@ -218,6 +220,7 @@ export default function EntityForm({
                   </>
                 ) : field.type === 'textarea' ? (
                   <textarea
+                    id={`field-${field.key}`}
                     className="pg-textarea"
                     rows={3}
                     style={{ fontSize: '0.8rem', padding: '4px 8px' }}
@@ -226,6 +229,7 @@ export default function EntityForm({
                   />
                 ) : (
                   <input
+                    id={`field-${field.key}`}
                     type={field.type || 'text'}
                     className="pg-input"
                     style={{ fontSize: '0.8rem', padding: '4px 8px' }}

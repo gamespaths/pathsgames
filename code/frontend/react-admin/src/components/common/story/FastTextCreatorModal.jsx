@@ -78,16 +78,17 @@ export default function FastTextCreatorModal({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="pg-label">Story</label>
-              <select className="pg-input" value={storyUuid} onChange={e => setStoryUuid(e.target.value)}>
+              <label htmlFor="fast-text-story" className="pg-label">Story</label>
+              <select id="fast-text-story" className="pg-input" value={storyUuid} onChange={e => setStoryUuid(e.target.value)}>
                 {storyOptions?.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="pg-label">Text ID</label>
+              <label htmlFor="fast-text-id" className="pg-label">Text ID</label>
               <input
+                id="fast-text-id"
                 type="number"
                 className="pg-input"
                 value={idText}
@@ -102,12 +103,12 @@ export default function FastTextCreatorModal({
             <div className="pg-fast-text-head">Long Text</div>
 
             <div className="pg-fast-text-lang">en</div>
-            <input className="pg-input" value={enShortText} onChange={e => setEnShortText(e.target.value)} />
-            <textarea className="pg-textarea" rows={3} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
+            <input aria-label="en-short" className="pg-input" value={enShortText} onChange={e => setEnShortText(e.target.value)} />
+            <textarea aria-label="en-long" className="pg-textarea" rows={3} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
 
             <div className="pg-fast-text-lang">it</div>
-            <input className="pg-input" value={itShortText} onChange={e => setItShortText(e.target.value)} />
-            <textarea className="pg-textarea" rows={3} value={itLongText} onChange={e => setItLongText(e.target.value)} />
+            <input aria-label="it-short" className="pg-input" value={itShortText} onChange={e => setItShortText(e.target.value)} />
+            <textarea aria-label="it-long" className="pg-textarea" rows={3} value={itLongText} onChange={e => setItLongText(e.target.value)} />
           </div>
 
           {error && (
