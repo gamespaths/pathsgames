@@ -46,9 +46,11 @@ jobs:
           projectBaseDir: code/frontend/react-admin
           args: >
             -Dsonar.projectKey=paths-game-admin-react
-            -Dsonar.organization=gamespaths -Dsonar.projectName=Frontend React
-            Admin -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.organization=gamespaths   
+            -Dsonar.projectName=Frontend React Admin 
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.sources=src -Dsonar.tests=src/tests
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,src/tests/**
             -Dsonar.test.inclusions=src/tests/**/*.test.jsx
-            -Dsonar.branch.name=develop -Dsonar.qualitygate.wait=false
+            -Dsonar.branch.name=develop 
+            -Dsonar.qualitygate.wait=false
