@@ -6,7 +6,17 @@ import axios from 'axios'
  */
 export function apiClient() {
   const token  = localStorage.getItem('pg_admin_token') || ''
-  const server = localStorage.getItem('pg_admin_server') || 'http://localhost:8042'
+  const rawServer = localStorage.getItem('pg_admin_server') || 'http://localhost:8042'
+  
+  let server = 'http://localhost:8042'
+  try {
+    const parsedUrl = new URL(rawServer)
+    if (['http:', 'https:'].includes(parsedUrl.protocol)) {
+      server = rawServer
+    }
+  } catch (e) {
+    // Keep default if invalid
+  }
 
   const instance = axios.create({
     baseURL: server,

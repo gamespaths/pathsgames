@@ -14,6 +14,7 @@ function Probe() {
       <button onClick={() => ctx.login('eyJtest')}>login</button>
       <button onClick={ctx.logout}>logout</button>
       <button onClick={() => ctx.changeServer('http://localhost:9000')}>changeServer</button>
+      <button onClick={() => ctx.changeServer('javascript:alert(1)')}>poisonServer</button>
     </div>
   )
 }
@@ -61,6 +62,15 @@ describe('AuthContext', () => {
     await userEvent.click(screen.getByText('changeServer'))
     expect(screen.getByTestId('server').textContent).toBe('http://localhost:9000')
     expect(localStorage.getItem('pg_admin_server')).toBe('http://localhost:9000')
+  })
+
+  it('changeServer() ignores invalid URLs', async () => {
+    render(<AuthProvider><Probe /></AuthProvider>)
+    const initialServer = screen.getByTestId('server').textContent
+    await userEvent.click(screen.getByText('poisonServer'))
+    // Should remain initial
+    expect(screen.getByTestId('server').textContent).toBe(initialServer)
+    expect(localStorage.getItem('pg_admin_server')).toBeNull() // default was set in state but not yet in localStorage in this test flow if it started empty
   })
 
   it('defaults server to first preset', () => {

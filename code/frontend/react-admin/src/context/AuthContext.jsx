@@ -26,8 +26,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const changeServer = useCallback((url) => {
-    setServerState(url)
-    localStorage.setItem(SERVER_KEY, url)
+    try {
+      const parsedUrl = new URL(url)
+      if (['http:', 'https:'].includes(parsedUrl.protocol)) {
+        setServerState(url)
+        localStorage.setItem(SERVER_KEY, url)
+      } else {
+        console.warn('Blocked attempt to set insecure server URL:', url)
+      }
+    } catch (e) {
+      console.warn('Blocked attempt to set invalid server URL:', url)
+    }
   }, [])
 
   return (
