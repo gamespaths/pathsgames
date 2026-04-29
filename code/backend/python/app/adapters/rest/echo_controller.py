@@ -7,7 +7,7 @@ class EchoController:
         self.router = APIRouter(prefix="/api/echo")
         self.router.add_api_route("/status", self.get_status, methods=["GET"])
 
-    async def get_status(self):
+    def get_status(self):
         return {
             "status": self.echo_port.get_server_status(),
             "timestamp": self.echo_port.get_timestamp(),

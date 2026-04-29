@@ -15,7 +15,7 @@ class SessionController:
         self.router.add_api_route("/logout", self.logout, methods=["POST"])
         self.router.add_api_route("/logout/all", self.logout_all, methods=["POST"])
 
-    async def me(self, request: Request):
+    def me(self, request: Request):
         # Data populated by JwtMiddleware
         user_uuid = getattr(request.state, "user_uuid", None)
         username = getattr(request.state, "username", None)
@@ -31,7 +31,7 @@ class SessionController:
             "timestamp": int(time.time() * 1000)
         }
 
-    async def refresh(self, request: Request, response: Response):
+    def refresh(self, request: Request):
         # 1. Get refresh token from HttpOnly cookie
         refresh_token = request.cookies.get("pathsgames.refreshToken")
 
@@ -67,7 +67,7 @@ class SessionController:
 
         return response
 
-    async def logout(self, request: Request, response: Response):
+    def logout(self, request: Request):
         refresh_token = request.cookies.get("pathsgames.refreshToken")
         if refresh_token:
             self.session_service.logout(refresh_token)
@@ -81,7 +81,7 @@ class SessionController:
 
         return response
 
-    async def logout_all(self, request: Request, response: Response):
+    def logout_all(self, request: Request):
         user_uuid = getattr(request.state, "user_uuid", None)
         if user_uuid:
             self.session_service.logout_all(user_uuid)

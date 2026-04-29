@@ -13,15 +13,15 @@ class GuestAdminController:
         self.router.add_api_route("/{uuid}", self.get_guest_by_uuid, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.delete_guest, methods=["DELETE"])
 
-    async def list_all_guests(self):
+    def list_all_guests(self):
         guests = self.guest_admin_port.list_all_guests()
         return [g.model_dump(by_alias=True) for g in guests]
 
-    async def get_guest_stats(self):
+    def get_guest_stats(self):
         stats = self.guest_admin_port.get_guest_stats()
         return stats.model_dump(by_alias=True)
 
-    async def get_guest_by_uuid(self, uuid: str):
+    def get_guest_by_uuid(self, uuid: str):
         guest = self.guest_admin_port.get_guest_by_uuid(uuid)
         if not guest:
             raise HTTPException(
@@ -33,7 +33,7 @@ class GuestAdminController:
             )
         return guest.model_dump(by_alias=True)
 
-    async def delete_guest(self, uuid: str):
+    def delete_guest(self, uuid: str):
         deleted = self.guest_admin_port.delete_guest(uuid)
         if not deleted:
             raise HTTPException(
@@ -45,7 +45,7 @@ class GuestAdminController:
             )
         return {"status": "DELETED", "uuid": uuid}
 
-    async def delete_expired_guests(self):
+    def delete_expired_guests(self):
         deleted_count = self.guest_admin_port.delete_expired_guests()
         return {
             "status": "CLEANUP_COMPLETE",

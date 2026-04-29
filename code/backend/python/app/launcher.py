@@ -103,23 +103,20 @@ public_paths = [
 ]
 app.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
 
-# CORS (Added LAST to be OUTERMOST)
+# 6. CORS Configuration (Added LAST to be OUTERMOST as per S8414)
+# To be the first to handle requests (outermost), CORSMiddleware must be the last one added.
+cors_params = {
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
 if settings.cors_allowed_origins == "*":
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https?://.*",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Use regex to allow all origins while supporting allow_credentials=True
+    cors_params["allow_origin_regex"] = r"https?://.*"
 else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins_list,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    cors_params["allow_origins"] = settings.cors_origins_list
+
+app.add_middleware(CORSMiddleware, **cors_params)
 
 # Include Routers
 app.include_router(echo_controller.router)

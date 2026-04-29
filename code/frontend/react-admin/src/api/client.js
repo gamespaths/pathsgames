@@ -12,7 +12,11 @@ export function apiClient() {
   try {
     const parsedUrl = new URL(rawServer)
     if (['http:', 'https:'].includes(parsedUrl.protocol)) {
-      server = rawServer
+      // Reconstruct the URL from parsed components to sanitize it and avoid using the raw tainted string
+      server = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`
+      if (server.endsWith('/')) {
+        server = server.slice(0, -1)
+      }
     }
   } catch (e) {
     // Keep default if invalid

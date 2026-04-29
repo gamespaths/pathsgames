@@ -19,7 +19,7 @@ class GuestAuthController:
         self.router.add_api_route("", self.create_guest, methods=["POST"], status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("/resume", self.resume_guest, methods=["POST"])
 
-    async def _process_session_response(self, session):
+    def _process_session_response(self, session):
         uuid = session.user_uuid
         username = session.username
         role = "PLAYER" # Guest default
@@ -67,13 +67,13 @@ class GuestAuthController:
 
         return response
 
-    async def create_guest(self, request: Request):
+    def create_guest(self, request: Request):
         session = self.guest_auth_port.create_guest_session()
-        response = await self._process_session_response(session)
+        response = self._process_session_response(session)
         response.status_code = status.HTTP_201_CREATED
         return response
 
-    async def resume_guest(self, request_in: Request, body: Optional[GuestResumeRequest] = None):
+    def resume_guest(self, request_in: Request, body: Optional[GuestResumeRequest] = None):
         # Step 13: Read from cookie first
         guest_cookie_token = request_in.cookies.get("pathsgames.guestcookie")
         
@@ -93,4 +93,4 @@ class GuestAuthController:
                     "message": "Guest session expired or not found. Please create a new session."
                 }
             )
-        return await self._process_session_response(session)
+        return self._process_session_response(session)

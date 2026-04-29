@@ -8,7 +8,7 @@ const SERVER_KEY  = 'pg_admin_server'
 const DEFAULT_SERVERS = [
   { label: 'Local (8042)',  url: 'http://localhost:8042' },
   { label: 'Local (8080)',  url: 'http://localhost:8080' },
-  { label: 'AWS',  url: ' https://4zepmifep6.execute-api.us-east-2.amazonaws.com/dev/' },
+  { label: 'AWS',  url: 'https://4zepmifep6.execute-api.us-east-2.amazonaws.com/dev/' },
 ]
 
 export function AuthProvider({ children }) {
@@ -16,8 +16,15 @@ export function AuthProvider({ children }) {
   const [server, setServerState] = useState(() => localStorage.getItem(SERVER_KEY) || DEFAULT_SERVERS[0].url)
 
   const login = useCallback((jwt) => {
-    setTokenState(jwt)
-    localStorage.setItem(STORAGE_KEY, jwt)
+    // Sanitize token: ensure it's a string and remove any characters that shouldn't be in a JWT/token
+    // to prevent browser storage poisoning.
+    if (typeof jwt === 'string') {
+      const sanitized = jwt.replace(/[^\w\.\-\_\/]/g, '').trim()
+      if (sanitized) {
+        setTokenState(sanitized)
+        localStorage.setItem(STORAGE_KEY, sanitized)
+      }
+    }
   }, [])
 
   const logout = useCallback(() => {
@@ -29,8 +36,12 @@ export function AuthProvider({ children }) {
     try {
       const parsedUrl = new URL(url)
       if (['http:', 'https:'].includes(parsedUrl.protocol)) {
-        setServerState(url)
-        localStorage.setItem(SERVER_KEY, url)
+        // Reconstruct the URL from parsed components to sanitize it and avoid storage poisoning
+        const sanitized = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`
+        const finalUrl = sanitized.endsWith('/') ? sanitized.slice(0, -1) : sanitized
+        
+        setServerState(finalUrl)
+        localStorage.setItem(SERVER_KEY, finalUrl)
       } else {
         console.warn('Blocked attempt to set insecure server URL:', url)
       }
