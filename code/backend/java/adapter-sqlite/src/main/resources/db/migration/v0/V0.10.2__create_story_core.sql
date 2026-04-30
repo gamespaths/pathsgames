@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS list_stories (
     id_image                    INTEGER,
     id_location_all_player_coma INTEGER,                         -- logical FK to list_locations(id)
     id_event_all_player_coma    INTEGER,                         -- logical FK to list_events(id)
-    clock_singular_description  TEXT    DEFAULT 'hour',
-    clock_plural_description    TEXT    DEFAULT 'hours',
+    id_text_clock_singular      INTEGER DEFAULT 10,
+    id_text_clock_plural        INTEGER DEFAULT 11,
     id_event_end_game           INTEGER,                         -- logical FK to list_events(id)
     id_text_copyright           INTEGER,                         -- references list_texts(id_text)
     link_copyright              TEXT,

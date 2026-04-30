@@ -37,11 +37,11 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $stmt = $this->pdo->prepare("
             INSERT INTO list_stories (
                 uuid, author, category, group_name, visibility, priority, peghi, 
-                version_min, version_max, clock_singular, clock_plural, link_copyright,
+                version_min, version_max, id_text_clock_singular, id_text_clock_plural, link_copyright,
                 id_text_title, id_text_description, id_text_copyright, id_card
             ) VALUES (
                 :uuid, :author, :category, :group_name, :visibility, :priority, :peghi,
-                :version_min, :version_max, :clock_singular, :clock_plural, :link_copyright,
+                :version_min, :version_max, :id_text_clock_singular, :id_text_clock_plural, :link_copyright,
                 :id_text_title, :id_text_description, :id_text_copyright, :id_card
             )
         ");
@@ -55,8 +55,8 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             ':peghi' => $data['peghi'] ?? 0,
             ':version_min' => $data['versionMin'] ?? null,
             ':version_max' => $data['versionMax'] ?? null,
-            ':clock_singular' => $data['clockSingularDescription'] ?? null,
-            ':clock_plural' => $data['clockPluralDescription'] ?? null,
+            ':id_text_clock_singular' => $data['idTextClockSingular'] ?? null,
+            ':id_text_clock_plural' => $data['idTextClockPlural'] ?? null,
             ':link_copyright' => $data['linkCopyright'] ?? null,
             ':id_text_title' => $data['idTextTitle'] ?? null,
             ':id_text_description' => $data['idTextDescription'] ?? null,
@@ -663,6 +663,11 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             'visibility' => 'visibility', 'priority' => 'priority', 'peghi' => 'peghi',
             'versionMin' => 'version_min', 'versionMax' => 'version_max',
             'idTextTitle' => 'id_text_title', 'idTextDescription' => 'id_text_description',
+            'idTextClockSingular' => 'id_text_clock_singular', 'idTextClockPlural' => 'id_text_clock_plural',
+            'idLocationStart' => 'id_location_start', 'idImage' => 'id_image',
+            'idLocationAllPlayerComa' => 'id_location_all_player_coma', 'idEventAllPlayerComa' => 'id_event_all_player_coma',
+            'idEventEndGame' => 'id_event_end_game', 'idTextCopyright' => 'id_text_copyright',
+            'linkCopyright' => 'link_copyright', 'idCreator' => 'id_creator', 'idCard' => 'id_card',
         ];
         $sets = [];
         $params = [':id' => $storyId];

@@ -11,8 +11,9 @@ import FastTextSelectorModal from '../components/common/story/FastTextSelectorMo
 import PathsOptionsSelectorModal from '../components/common/story/PathsOptionsSelectorModal'
 import {
   STORIES_ENTITIES_TABS as TABS,
-  STORIES_ENTITIES_COLUMNS as COLUMNS, 
-  STORIES_ENTITIES_FIELDS as FIELDS} from '../constants/story/storiesEntities'
+  STORIES_ENTITIES_COLUMNS as COLUMNS,
+  STORIES_ENTITIES_FIELDS as FIELDS
+} from '../constants/story/storiesEntities'
 
 import {
   LOCATION_NEIGHBOR_DIRECTIONS,
@@ -214,6 +215,92 @@ export default function StoryEditorPage() {
       }
       setTimeout(() => setSuccess(''), 3000)
     } catch (e) { setError(e.message) }
+  }
+
+  const handleExportStory = async () => {
+    try {
+      setLoading(true)
+      const fullStory = {
+        story: {
+          uuid: story.uuid,
+          author: story.author,
+          category: story.category,
+          group: story.group,
+          visibility: story.visibility,
+          priority: story.priority,
+          peghi: story.peghi,
+          versionMin: story.versionMin,
+          versionMax: story.versionMax,
+          idTextTitle: story.idTextTitle,
+          idTextDescription: story.idTextDescription,
+          idLocationStart: story.idLocationStart,
+          idImage: story.idImage,
+          idLocationAllPlayerComa: story.idLocationAllPlayerComa,
+          idEventAllPlayerComa: story.idEventAllPlayerComa,
+          idTextClockSingular: story.idTextClockSingular,
+          idTextClockPlural: story.idTextClockPlural,
+          idEventEndGame: story.idEventEndGame,
+          idTextCopyright: story.idTextCopyright,
+          linkCopyright: story.linkCopyright,
+          idCreator: story.idCreator,
+          idCard: story.idCard,
+        },
+        texts: texts.map(t => ({ idText: t.idText, lang: t.lang, shortText: t.shortText, longText: t.longText })),
+        locations: locations.map(l => ({ ...l })),
+        events: eventsRef.map(e => ({ ...e })),
+        difficulties: await listEntities(uuid, 'difficulties'),
+        keys: keysRef.map(k => ({ ...k })),
+        items: itemsRef.map(i => ({ ...i })),
+        classes: classesRef.map(c => ({ ...c })),
+        traits: traitsRef.map(t => ({ ...t })),
+        characterTemplates: await listEntities(uuid, 'character-templates'),
+        locationNeighbors: await listEntities(uuid, 'location-neighbors'),
+        eventEffects: await listEntities(uuid, 'event-effects'),
+        choices: choicesRef.map(c => ({ ...c })),
+        choiceConditions: await listEntities(uuid, 'choice-conditions'),
+        choiceEffects: await listEntities(uuid, 'choice-effects'),
+        weatherRules: weatherRulesRef.map(w => ({ ...w })),
+        globalRandomEvents: await listEntities(uuid, 'global-random-events'),
+        missions: missionsRef.map(m => ({ ...m })),
+        missionSteps: await listEntities(uuid, 'mission-steps'),
+        creators: creators.map(c => ({ ...c })),
+        cards: cardsRef.map(c => ({ ...c })),
+        itemEffects: await listEntities(uuid, 'item-effects'),
+        classBonuses: await listEntities(uuid, 'class-bonuses'),
+      }
+
+      // Cleanup: remove fields that shouldn't be in the export (like id, ts_insert, etc.)
+      const cleanup = (obj) => {
+        if (Array.isArray(obj)) return obj.map(cleanup)
+        if (obj !== null && typeof obj === 'object') {
+          const { id, ts_insert, ts_update, ...rest } = obj
+          const cleaned = {}
+          for (const k in rest) {
+            cleaned[k] = cleanup(rest[k])
+          }
+          return cleaned
+        }
+        return obj
+      }
+
+      const finalJson = cleanup(fullStory)
+      const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `story_${story.uuid.slice(0, 8)}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      setSuccess('Story exported successfully')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (e) {
+      setError(`Export failed: ${e.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleOpenCardFromEntityTable = async (idCard) => {
@@ -802,9 +889,8 @@ export default function StoryEditorPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1 px-1 py-1 rounded transition-all text-sm ${
-                  activeTab === tab.id ? 'bg-gold-dark/20 text-gold-light' : 'text-ash hover:bg-white/5'
-                }`}
+                className={`flex items-center gap-1 px-1 py-1 rounded transition-all text-sm ${activeTab === tab.id ? 'bg-gold-dark/20 text-gold-light' : 'text-ash hover:bg-white/5'
+                  }`}
               >
                 <i className={`fas ${tab.icon} w-5 text-center`} />
                 {tab.label}
@@ -831,9 +917,14 @@ export default function StoryEditorPage() {
             </button>
           )}
           {activeTab === 'metadata' && (
-            <button type="submit" form="story-metadata-form" className="pg-btn pg-btn-gold pg-btn-sm">
-              <i className="fas fa-save me-2" /> Save Changes
-            </button>
+            <div className="flex gap-2">
+              <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={handleExportStory}>
+                <i className="fas fa-download me-2" /> Export JSON
+              </button>
+              <button type="submit" form="story-metadata-form" className="pg-btn pg-btn-gold pg-btn-sm">
+                <i className="fas fa-save me-2" /> Save Changes
+              </button>
+            </div>
           )}
           <ErrorAlert message={error} onClose={() => setError('')} />
         </div>
@@ -843,19 +934,19 @@ export default function StoryEditorPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
               <div>
                 <label className="pg-label">Author</label>
-                <input className="pg-input" value={story?.author || ''} onChange={e => setStory({...story, author: e.target.value})} />
+                <input className="pg-input" value={story?.author || ''} onChange={e => setStory({ ...story, author: e.target.value })} />
               </div>
               <div>
                 <label className="pg-label">Category</label>
-                <input className="pg-input" value={story?.category || ''} onChange={e => setStory({...story, category: e.target.value})} />
+                <input className="pg-input" value={story?.category || ''} onChange={e => setStory({ ...story, category: e.target.value })} />
               </div>
               <div>
                 <label className="pg-label">Group</label>
-                <input className="pg-input" value={story?.group || ''} onChange={e => setStory({...story, group: e.target.value})} />
+                <input className="pg-input" value={story?.group || ''} onChange={e => setStory({ ...story, group: e.target.value })} />
               </div>
               <div>
                 <label className="pg-label">Visibility</label>
-                <select className="pg-input" value={story?.visibility || 'DRAFT'} onChange={e => setStory({...story, visibility: e.target.value})}>
+                <select className="pg-input" value={story?.visibility || 'DRAFT'} onChange={e => setStory({ ...story, visibility: e.target.value })}>
                   <option value="DRAFT">DRAFT</option>
                   <option value="PUBLIC">PUBLIC</option>
                   <option value="PRIVATE">PRIVATE</option>
@@ -863,19 +954,19 @@ export default function StoryEditorPage() {
               </div>
               <div>
                 <label className="pg-label">Priority</label>
-                <input type="number" className="pg-input" value={story?.priority || 0} onChange={e => setStory({...story, priority: parseInt(e.target.value)})} />
+                <input type="number" className="pg-input" value={story?.priority || 0} onChange={e => setStory({ ...story, priority: parseInt(e.target.value) })} />
               </div>
               <div>
                 <label className="pg-label">PEGHI</label>
-                <input type="number" className="pg-input" value={story?.peghi || 0} onChange={e => setStory({...story, peghi: parseInt(e.target.value)})} />
+                <input type="number" className="pg-input" value={story?.peghi || 0} onChange={e => setStory({ ...story, peghi: parseInt(e.target.value) })} />
               </div>
               <div>
                 <label className="pg-label">Version Min</label>
-                <input className="pg-input" value={story?.versionMin || ''} onChange={e => setStory({...story, versionMin: e.target.value})} />
+                <input className="pg-input" value={story?.versionMin || ''} onChange={e => setStory({ ...story, versionMin: e.target.value })} />
               </div>
               <div>
                 <label className="pg-label">Version Max</label>
-                <input className="pg-input" value={story?.versionMax || ''} onChange={e => setStory({...story, versionMax: e.target.value})} />
+                <input className="pg-input" value={story?.versionMax || ''} onChange={e => setStory({ ...story, versionMax: e.target.value })} />
               </div>
               <div>
                 <PathsSelector
@@ -962,12 +1053,28 @@ export default function StoryEditorPage() {
                 />
               </div>
               <div>
-                <label className="pg-label">Clock (singular)</label>
-                <input className="pg-input" value={story?.clockSingularDescription || ''} onChange={e => setStory({...story, clockSingularDescription: e.target.value})} />
+                <PathsSelector
+                  label="Clock (singular) Text ID"
+                  name="idTextClockSingular"
+                  value={story?.idTextClockSingular ?? ''}
+                  displayValue={getTextDisplay(story?.idTextClockSingular)}
+                  placeholder="No text selected"
+                  onOpenSelector={() => setStoryTextSelector({ fieldKey: 'idTextClockSingular', startMode: 'list' })}
+                  onOpenCreator={() => setStoryTextSelector({ fieldKey: 'idTextClockSingular', startMode: 'input-generator' })}
+                  onClear={() => setStory(prev => ({ ...prev, idTextClockSingular: '' }))}
+                />
               </div>
               <div>
-                <label className="pg-label">Clock (plural)</label>
-                <input className="pg-input" value={story?.clockPluralDescription || ''} onChange={e => setStory({...story, clockPluralDescription: e.target.value})} />
+                <PathsSelector
+                  label="Clock (plural) Text ID"
+                  name="idTextClockPlural"
+                  value={story?.idTextClockPlural ?? ''}
+                  displayValue={getTextDisplay(story?.idTextClockPlural)}
+                  placeholder="No text selected"
+                  onOpenSelector={() => setStoryTextSelector({ fieldKey: 'idTextClockPlural', startMode: 'list' })}
+                  onOpenCreator={() => setStoryTextSelector({ fieldKey: 'idTextClockPlural', startMode: 'input-generator' })}
+                  onClear={() => setStory(prev => ({ ...prev, idTextClockPlural: '' }))}
+                />
               </div>
               <div>
                 <PathsSelector
@@ -983,7 +1090,7 @@ export default function StoryEditorPage() {
               </div>
               <div>
                 <label className="pg-label">Copyright Link</label>
-                <input className="pg-input" value={story?.linkCopyright || ''} onChange={e => setStory({...story, linkCopyright: e.target.value})} />
+                <input className="pg-input" value={story?.linkCopyright || ''} onChange={e => setStory({ ...story, linkCopyright: e.target.value })} />
               </div>
               <div>
                 <PathsSelector

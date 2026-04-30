@@ -184,8 +184,8 @@ class StoryQueryService implements StoryQueryPort
             isset($rawStory['peghi']) ? (int)$rawStory['peghi'] : 0,
             $rawStory['version_min'] ?? null,
             $rawStory['version_max'] ?? null,
-            $rawStory['clock_singular'] ?? null,
-            $rawStory['clock_plural'] ?? null,
+            $this->resolveText($texts, isset($rawStory['id_text_clock_singular']) ? (int)$rawStory['id_text_clock_singular'] : null, $lang),
+            $this->resolveText($texts, isset($rawStory['id_text_clock_plural']) ? (int)$rawStory['id_text_clock_plural'] : null, $lang),
             $copyrightTxt,
             $rawStory['link_copyright'] ?? null,
             $locCount,
@@ -198,7 +198,9 @@ class StoryQueryService implements StoryQueryPort
             $characterTemplates,
             $classes,
             $traits,
-            $card
+            $card,
+            isset($rawStory['id_text_clock_singular']) ? (int)$rawStory['id_text_clock_singular'] : null,
+            isset($rawStory['id_text_clock_plural']) ? (int)$rawStory['id_text_clock_plural'] : null
         );
     }
 
@@ -250,7 +252,9 @@ class StoryQueryService implements StoryQueryPort
             isset($rawStory['priority']) ? (int)$rawStory['priority'] : 0,
             isset($rawStory['peghi']) ? (int)$rawStory['peghi'] : 0,
             $diffCount,
-            $card
+            $card,
+            isset($rawStory['id_text_clock_singular']) ? (int)$rawStory['id_text_clock_singular'] : null,
+            isset($rawStory['id_text_clock_plural']) ? (int)$rawStory['id_text_clock_plural'] : null
         );
     }
 

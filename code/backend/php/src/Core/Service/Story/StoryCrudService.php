@@ -155,14 +155,14 @@ class StoryCrudService implements StoryCrudPort
             'uuid'                     => $raw['uuid'] ?? null,
             'author'                   => $raw['author'] ?? null,
             'category'                 => $raw['category'] ?? null,
-            'groupName'                => $raw['group_name'] ?? null,
+            'group'                    => $raw['group_name'] ?? null,
             'visibility'               => $raw['visibility'] ?? null,
             'priority'                 => $raw['priority'] ?? null,
             'peghi'                    => $raw['peghi'] ?? null,
             'versionMin'               => $raw['version_min'] ?? null,
             'versionMax'               => $raw['version_max'] ?? null,
-            'clockSingularDescription' => $raw['clock_singular'] ?? null,
-            'clockPluralDescription'   => $raw['clock_plural'] ?? null,
+            'idTextClockSingular'      => $raw['id_text_clock_singular'] ?? null,
+            'idTextClockPlural'        => $raw['id_text_clock_plural'] ?? null,
             'linkCopyright'            => $raw['link_copyright'] ?? null,
             'idCard'                   => $raw['id_card'] ?? null,
             'idTextName'               => $raw['id_text_name'] ?? null,
@@ -267,8 +267,8 @@ class StoryCrudService implements StoryCrudPort
         $fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi',
                     'versionMin', 'versionMax', 'idTextTitle', 'idTextDescription',
                     'idLocationStart', 'idImage', 'idLocationAllPlayerComa', 'idEventAllPlayerComa',
-                    'clockSingularDescription', 'clockPluralDescription', 'idEventEndGame',
-                    'idTextCopyright', 'linkCopyright', 'idCreator'];
+                    'idTextClockSingular', 'idTextClockPlural', 'idEventEndGame',
+                    'idTextCopyright', 'linkCopyright', 'idCreator', 'idCard'];
         foreach ($fields as $key) {
             if (isset($data[$key])) {
                 $storyData[$key] = $data[$key];

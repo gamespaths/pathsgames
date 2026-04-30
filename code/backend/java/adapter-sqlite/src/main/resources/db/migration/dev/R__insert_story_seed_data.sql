@@ -56,9 +56,9 @@ DELETE FROM list_stories              WHERE id IN (9001, 9002);
 -- #                                                                           #
 -- #############################################################################
 
-INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+INSERT INTO list_stories (id, uuid, author, version_min, id_text_clock_singular, id_text_clock_plural,
     category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card)
-VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 'turn', 'turns',
+VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 10, 11,
     'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2, 90001);
 
 -- ── Texts ───────────────────────────────────────────────────────
@@ -166,7 +166,9 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 -- Key texts
 (90099, 9001, 950, 'en', 'Tutorial Progress', 'Tracks how many tutorial rooms you have visited. Updated automatically as you explore.'),
 (90100, 9001, 951, 'en', 'Items Collected', 'Tracks whether you have collected and used the training items.'),
-(90101, 9001, 952, 'en', 'Choice Made', 'Records whether you have made your first choice in the Choice Arena.');
+(90101, 9001, 952, 'en', 'Choice Made', 'Records whether you have made your first choice in the Choice Arena.'),
+(90102, 9001, 10, 'en', 'turn', 'turn'),
+(90103, 9001, 11, 'en', 'turns', 'turns');
 
 -- ── Difficulties ────────────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_card, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
@@ -330,9 +332,9 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 -- #                                                                           #
 -- #############################################################################
 
-INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+INSERT INTO list_stories (id, uuid, author, version_min, id_text_clock_singular, id_text_clock_plural,
     category, "group", visibility, priority, peghi, id_text_title, id_text_description , id_card )
-VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
+VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 10, 11,
     'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2, 91001);
 
 -- ── Texts ───────────────────────────────────────────────────────
@@ -452,7 +454,11 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 -- Key texts
 (91101, 9002, 950, 'en', 'Monastery Records', 'Indicates whether you have obtained the incriminating documents from the Campese archives.'),
 (91102, 9002, 951, 'en', 'Monk''s Testimony', 'Indicates whether Brother Giacomo has agreed to testify at the trial.'),
-(91103, 9002, 952, 'en', 'Countess''s Letter', 'A letter of recommendation from the Countess of Asolo addressed to the Bishop of Padova.');
+(91103, 9002, 952, 'en', 'Countess''s Letter', 'A letter of recommendation from the Countess of Asolo addressed to the Bishop of Padova.'),
+(91104, 9002, 10, 'it', 'ora', 'ora'),
+(91105, 9002, 11, 'it', 'ore', 'ore'),
+(91106, 9002, 10, 'en', 'hour', 'hour'),
+(91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Difficulties ────────────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES

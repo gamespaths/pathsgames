@@ -130,20 +130,21 @@ def _story_summary(item, lang):
     texts = item.get('texts', {})
 
     # Card resolution
-    raw_card = item.get('card')
+    idCard = item.get('idCard')
+    card_body= db_utils.get_item(f'CARD#{idCard}')
     card = None
-    if raw_card:
+    if card_body:
         card = {
-            'uuid':             raw_card.get('uuid'),
-            'imageUrl':         raw_card.get('imageUrl'),
-            'alternativeImage': raw_card.get('alternativeImage'),
-            'awesomeIcon':      raw_card.get('awesomeIcon'),
-            'styleMain':        raw_card.get('styleMain'),
-            'styleDetail':      raw_card.get('styleDetail'),
-            'title':            _resolve_text(raw_card.get('texts', {}), lang, 'title'),
-            'description':      _resolve_text(raw_card.get('texts', {}), lang, 'description'),
-            'copyrightText':    _resolve_text(raw_card.get('texts', {}), lang, 'copyrightText'),
-            'linkCopyright':    raw_card.get('linkCopyright'),
+            'uuid':             card_body.get('uuid'),
+            'imageUrl':         card_body.get('imageUrl'),
+            'alternativeImage': card_body.get('alternativeImage'),
+            'awesomeIcon':      card_body.get('awesomeIcon'),
+            'styleMain':        card_body.get('styleMain'),
+            'styleDetail':      card_body.get('styleDetail'),
+            'title':            _resolve_text(card_body.get('texts', {}), lang, 'title'),
+            'description':      _resolve_text(card_body.get('texts', {}), lang, 'description'),
+            'copyrightText':    _resolve_text(card_body.get('texts', {}), lang, 'copyrightText'),
+            'linkCopyright':    card_body.get('linkCopyright'),
         }
 
     return {
@@ -158,6 +159,8 @@ def _story_summary(item, lang):
         'peghi':           _safe_int(item.get('peghi')),
         'difficultyCount': _safe_int(item.get('difficulty_count')),
         'card':            card,
+        'idTextClockSingular': _safe_int(item.get('idTextClockSingular')),
+        'idTextClockPlural':   _safe_int(item.get('idTextClockPlural')),
     }
 
 def _story_detail(item, lang):
@@ -229,20 +232,21 @@ def _story_detail(item, lang):
         })
 
     # Step 15: Card
-    raw_card = item.get('card')
+    idCard = item.get('idCard')
+    card_body= db_utils.get_item(f'CARD#{idCard}')
     card = None
-    if raw_card:
+    if card_body:
         card = {
-            'uuid':             raw_card.get('uuid'),
-            'imageUrl':         raw_card.get('imageUrl'),
-            'alternativeImage': raw_card.get('alternativeImage'),
-            'awesomeIcon':      raw_card.get('awesomeIcon'),
-            'styleMain':        raw_card.get('styleMain'),
-            'styleDetail':      raw_card.get('styleDetail'),
-            'title':            _resolve_text(raw_card.get('texts', {}), lang, 'title'),
-            'description':      _resolve_text(raw_card.get('texts', {}), lang, 'description'),
-            'copyrightText':    _resolve_text(raw_card.get('texts', {}), lang, 'copyrightText'),
-            'linkCopyright':    raw_card.get('linkCopyright'),
+            'uuid':             card_body.get('uuid'),
+            'imageUrl':         card_body.get('imageUrl'),
+            'alternativeImage': card_body.get('alternativeImage'),
+            'awesomeIcon':      card_body.get('awesomeIcon'),
+            'styleMain':        card_body.get('styleMain'),
+            'styleDetail':      card_body.get('styleDetail'),
+            'title':            _resolve_text(card_body.get('texts', {}), lang, 'title'),
+            'description':      _resolve_text(card_body.get('texts', {}), lang, 'description'),
+            'copyrightText':    _resolve_text(card_body.get('texts', {}), lang, 'copyrightText'),
+            'linkCopyright':    card_body.get('linkCopyright'),
         }
 
     return {
@@ -261,13 +265,16 @@ def _story_detail(item, lang):
         'idTextDescription':          _safe_int(item.get('idTextDescription')),
         'idLocationStart':            _safe_int(item.get('idLocationStart')),
         'idImage':                    _safe_int(item.get('idImage')),
+        'idCard':                     _safe_int(item.get('idCard')),
         'idLocationAllPlayerComa':    _safe_int(item.get('idLocationAllPlayerComa')),
         'idEventAllPlayerComa':       _safe_int(item.get('idEventAllPlayerComa')),
         'idEventEndGame':             _safe_int(item.get('idEventEndGame')),
         'idTextCopyright':            _safe_int(item.get('idTextCopyright')),
         'idCreator':                  _safe_int(item.get('idCreator')),
-        'clockSingularDescription':   item.get('clockSingularDescription'),
-        'clockPluralDescription':     item.get('clockPluralDescription'),
+        'idTextClockSingular':        _safe_int(item.get('idTextClockSingular')),
+        'idTextClockPlural':          _safe_int(item.get('idTextClockPlural')),
+        'clockSingularDescription':   _resolve_text(texts, lang, 'clockSingular'),
+        'clockPluralDescription':     _resolve_text(texts, lang, 'clockPlural'),
         'copyrightText':              None,  # stored in texts if needed
         'linkCopyright':              item.get('linkCopyright'),
         'locationCount':              _safe_int(item.get('location_count')),
@@ -446,6 +453,8 @@ def import_story(event):
     raw_texts = data.get('texts', [])
     id_title = data.get('idTextTitle')
     id_desc  = data.get('idTextDescription')
+    id_clock_s = data.get('idTextClockSingular')
+    id_clock_p = data.get('idTextClockPlural')
 
     texts_dict = {}
     for t in raw_texts:
@@ -459,6 +468,10 @@ def import_story(event):
             texts_dict[lang]['title'] = t.get('shortText') or t.get('longText')
         if id_t == id_desc:
             texts_dict[lang]['description'] = t.get('shortText') or t.get('longText')
+        if id_t == id_clock_s:
+            texts_dict[lang]['clockSingular'] = t.get('shortText') or t.get('longText')
+        if id_t == id_clock_p:
+            texts_dict[lang]['clockPlural'] = t.get('shortText') or t.get('longText')
 
     # Build difficulties list (store inline with story metadata)
     raw_diffs = data.get('difficulties', [])
@@ -626,8 +639,9 @@ def import_story(event):
         'peghi':                  int(data.get('peghi') or 0),
         'versionMin':             data.get('versionMin'),
         'versionMax':             data.get('versionMax'),
-        'clockSingularDescription': data.get('clockSingularDescription'),
-        'clockPluralDescription': data.get('clockPluralDescription'),
+        'idCard':                 _safe_int(data.get('idCard')),
+        'idTextClockSingular':    _safe_int(data.get('idTextClockSingular')),
+        'idTextClockPlural':      _safe_int(data.get('idTextClockPlural')),
         'linkCopyright':          data.get('linkCopyright'),
         'texts':                  texts_dict,
         'difficulties':           difficulties,
@@ -802,12 +816,13 @@ def create_story(event):
         'idImage':                   _safe_int(data.get('idImage')),
         'idLocationAllPlayerComa':   _safe_int(data.get('idLocationAllPlayerComa')),
         'idEventAllPlayerComa':      _safe_int(data.get('idEventAllPlayerComa')),
-        'clockSingularDescription':  data.get('clockSingularDescription'),
-        'clockPluralDescription':    data.get('clockPluralDescription'),
+        'idTextClockSingular':       _safe_int(data.get('idTextClockSingular')),
+        'idTextClockPlural':         _safe_int(data.get('idTextClockPlural')),
         'idEventEndGame':            _safe_int(data.get('idEventEndGame')),
         'idTextCopyright':           _safe_int(data.get('idTextCopyright')),
         'linkCopyright':             data.get('linkCopyright'),
         'idCreator':                 _safe_int(data.get('idCreator')),
+        'idCard':                    _safe_int(data.get('idCard')),
         'texts':      {},
         'GSI1_PK':    'STORY_LIST',
         'GSI1_SK':    f'STORY#{story_uuid}',
@@ -832,14 +847,14 @@ def update_story(event, story_uuid):
     fields = ['author', 'category', 'group', 'visibility', 'priority', 'peghi',
               'versionMin', 'versionMax', 'idTextTitle', 'idTextDescription',
               'idLocationStart', 'idImage', 'idLocationAllPlayerComa', 'idEventAllPlayerComa',
-              'clockSingularDescription', 'clockPluralDescription', 'idEventEndGame',
-              'idTextCopyright', 'linkCopyright', 'idCreator']
+              'idTextClockSingular', 'idTextClockPlural', 'idEventEndGame',
+              'idTextCopyright', 'linkCopyright', 'idCreator', 'idCard']
     for f in fields:
         if f in data:
             item[f] = data[f]
 
     db_utils.put_item(item)
-    return _ok({'uuid': story_uuid, 'status': 'UPDATED'})
+    return _ok({'uuid': story_uuid, 'status': 'UPDATED', 'item': item})
 
 def list_entities(event, story_uuid, entity_type):
     _, err = _require_admin(event)
@@ -886,6 +901,8 @@ def create_entity(event, story_uuid, entity_type):
     if field not in item:
         item[field] = []
     data['id'] = len(item[field]) + 1
+    if entity_type=='cards':
+        data['idCard']=data['id']
     item[field].append(data)
 
     db_utils.put_item(item)
@@ -941,6 +958,9 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
     for k, v in data.items():
         if k != 'uuid': # don't change uuid
             entities[found_idx][k] = v
+    
+    if entity_type=='cards':
+        entities[found_idx]['idCard']=entities[found_idx]['id']
 
     db_utils.put_item(item)
     updated_entity = _normalize_entity_output(entity_type, entities[found_idx])

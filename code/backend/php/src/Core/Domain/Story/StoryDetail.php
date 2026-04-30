@@ -38,7 +38,9 @@ class StoryDetail
         public array $characterTemplates = [],
         public array $classes = [],
         public array $traits = [],
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public ?int $idTextClockSingular = null,
+        public ?int $idTextClockPlural = null
     ) {
     }
 }

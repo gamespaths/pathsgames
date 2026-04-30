@@ -282,18 +282,19 @@ The admin frontend provides a full management interface for Step 17 features:
 
   > on all entityTable and PathsOptionsSelectorModal i wanna reverse the list. on PathsSelector i wanna a new button to set null value. on "Story Info" edit "Copyright Text ID" and "Creator ID" to use selector. when onSaveFastText on FastTextSelectorModal and onSave on FastTextCreatorModal use "Copyright Text ID" and "Creator ID" from Story Info. on "Story info" component move button on top page (on "pg-page-title" row). "Image ID" must be a text_id, "All-Player Coma Location ID" e "All-Player Coma Event ID" e "End Game Event ID" use selector. on "New Fast Card" on form "keys" must use "Desc Text ID". on location form "Event if Counter = 0", "Event if Start Time", "Event if Enter First", "Event if First Time", "Event if Not First Time" with selector. on Events form "Characteristic to Add", "Characteristic to Remove", "Key to Add", "Item to Add ID", "Weather ID", "Next Event ID" use selector. create a constant list of "possibile statistics" in "event effect" form. "event effect" form "Target Class" use selector. on "classes bonus" form on "Statistic" use "possibile statistics" list. on mission form "Completed Event ID" use selector. 
 
-  > TODO: "Story Info" change "Clock (singular) " and "Clock (plural)" to id_text_clock_singular id_text_clock_plural!
+  > Read "documentation_v0" documentation folder. I wanna change "clock_singular_description" and "clock_plural_description" to "id_text_clock_singular" and "id_text_clock_plural". I wanna change all backend projects (java, php, python, aws), i wanna chagne robot test, i wanna change "code/frontend/react-admin" project too. we're on "0.17.3" version. let's go!
 
   > TODO: export stories in json format! check import functionality!
   
-- **Document Version**: 0.17.2
+- **Document Version**: 0.17.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
     | 0.17.1 | Admin stories editor | April 27, 2026 |
     | 0.17.2 | Fix Creator idCard field and admin web project on `react-admin` | April 28, 2026 |
+    | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
     
-- **Last Updated**: April 28, 2026
+- **Last Updated**: April 30, 2026
 - **Status**: ✅ Complete
 
 

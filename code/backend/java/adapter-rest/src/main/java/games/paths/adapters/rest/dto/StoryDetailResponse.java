@@ -15,6 +15,8 @@ public class StoryDetailResponse extends BaseStorySummaryResponse {
     private String versionMax;
     private String clockSingularDescription;
     private String clockPluralDescription;
+    private Integer idTextClockSingular;
+    private Integer idTextClockPlural;
     private String copyrightText;
     private String linkCopyright;
     private int locationCount;
@@ -45,6 +47,12 @@ public class StoryDetailResponse extends BaseStorySummaryResponse {
 
     public String getClockPluralDescription() { return clockPluralDescription; }
     public void setClockPluralDescription(String clockPluralDescription) { this.clockPluralDescription = clockPluralDescription; }
+
+    public Integer getIdTextClockSingular() { return idTextClockSingular; }
+    public void setIdTextClockSingular(Integer idTextClockSingular) { this.idTextClockSingular = idTextClockSingular; }
+
+    public Integer getIdTextClockPlural() { return idTextClockPlural; }
+    public void setIdTextClockPlural(Integer idTextClockPlural) { this.idTextClockPlural = idTextClockPlural; }
 
     public String getCopyrightText() { return copyrightText; }
     public void setCopyrightText(String copyrightText) { this.copyrightText = copyrightText; }

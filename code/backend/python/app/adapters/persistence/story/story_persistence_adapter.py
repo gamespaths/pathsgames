@@ -66,12 +66,19 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 peghi=data.get("peghi", 0),
                 version_min=data.get("versionMin"),
                 version_max=data.get("versionMax"),
-                clock_singular=data.get("clockSingularDescription"),
-                clock_plural=data.get("clockPluralDescription"),
+                id_text_clock_singular=data.get("idTextClockSingular"),
+                id_text_clock_plural=data.get("idTextClockPlural"),
                 link_copyright=data.get("linkCopyright"),
                 id_text_title=data.get("idTextTitle"),
                 id_text_description=data.get("idTextDescription"),
-                id_text_copyright=data.get("idTextCopyright")
+                id_text_copyright=data.get("idTextCopyright"),
+                id_location_start=data.get("idLocationStart"),
+                id_image=data.get("idImage"),
+                id_location_all_player_coma=data.get("idLocationAllPlayerComa"),
+                id_event_all_player_coma=data.get("idEventAllPlayerComa"),
+                id_event_end_game=data.get("idEventEndGame"),
+                id_creator=data.get("idCreator"),
+                id_card=data.get("idCard")
             )
             session.add(s_ent)
             session.commit()
@@ -438,6 +445,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 "visibility": "visibility", "priority": "priority", "peghi": "peghi",
                 "versionMin": "version_min", "versionMax": "version_max",
                 "idTextTitle": "id_text_title", "idTextDescription": "id_text_description",
+                "idTextClockSingular": "id_text_clock_singular", "idTextClockPlural": "id_text_clock_plural",
+                "idLocationStart": "id_location_start", "idImage": "id_image",
+                "idLocationAllPlayerComa": "id_location_all_player_coma", "idEventAllPlayerComa": "id_event_all_player_coma",
+                "idEventEndGame": "id_event_end_game", "idTextCopyright": "id_text_copyright",
+                "linkCopyright": "link_copyright", "idCreator": "id_creator", "idCard": "id_card",
             }
             for json_key, db_attr in field_map.items():
                 if json_key in data:

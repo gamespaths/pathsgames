@@ -228,7 +228,7 @@ Create And Update Creator With idCard
 Update Story With All New Fields Returns 200
     [Documentation]    PUT /api/admin/stories/{uuid} can set all new story-level fields.
     [Tags]    admin    crud    step17
-    &{data}=    Create Dictionary    idImage=${2}    clockSingularDescription=hour    clockPluralDescription=hours
+    &{data}=    Create Dictionary    idImage=${2}    idTextClockSingular=${10}    idTextClockPlural=${11}
     ${response}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}    json=${data}
     Status Should Be    ${response}    200
 
@@ -247,8 +247,8 @@ Get Admin Story Returns 200
     Response Should Contain Field    ${response}    idLocationStart
     Response Should Contain Field    ${response}    idImage
     Response Should Contain Field    ${response}    idCreator
-    Response Should Contain Field    ${response}    clockSingularDescription
-    Response Should Contain Field    ${response}    clockPluralDescription
+    Response Should Contain Field    ${response}    idTextClockSingular
+    Response Should Contain Field    ${response}    idTextClockPlural
 
 Get Admin Story Not Found Returns 404
     [Documentation]    GET /api/admin/stories/{uuid} with unknown uuid returns 404.

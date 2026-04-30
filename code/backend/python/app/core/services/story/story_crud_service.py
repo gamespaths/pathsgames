@@ -106,8 +106,8 @@ class StoryCrudService(StoryCrudPort):
             "peghi":                    raw.get("peghi"),
             "versionMin":               raw.get("version_min"),
             "versionMax":               raw.get("version_max"),
-            "clockSingularDescription": raw.get("clock_singular"),
-            "clockPluralDescription":   raw.get("clock_plural"),
+            "idTextClockSingular":      raw.get("id_text_clock_singular"),
+            "idTextClockPlural":        raw.get("id_text_clock_plural"),
             "linkCopyright":            raw.get("link_copyright"),
             "idCard":                   raw.get("id_card"),
             "idTextName":               raw.get("id_text_name"),
@@ -254,8 +254,8 @@ class StoryCrudService(StoryCrudPort):
             "author", "category", "group", "visibility", "priority", "peghi",
             "versionMin", "versionMax", "idTextTitle", "idTextDescription",
             "idLocationStart", "idImage", "idLocationAllPlayerComa", "idEventAllPlayerComa",
-            "clockSingularDescription", "clockPluralDescription", "idEventEndGame",
-            "idTextCopyright", "linkCopyright", "idCreator",
+            "idTextClockSingular", "idTextClockPlural", "idEventEndGame",
+            "idTextCopyright", "linkCopyright", "idCreator", "idCard",
         ]
         for key in fields:
             if key in data:

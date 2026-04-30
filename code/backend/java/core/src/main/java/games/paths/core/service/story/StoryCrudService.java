@@ -997,8 +997,8 @@ public class StoryCrudService implements StoryCrudPort {
         m.put("idImage", s.getIdImage());
         m.put("idLocationAllPlayerComa", s.getIdLocationAllPlayerComa());
         m.put("idEventAllPlayerComa", s.getIdEventAllPlayerComa());
-        m.put("clockSingularDescription", s.getClockSingularDescription());
-        m.put("clockPluralDescription", s.getClockPluralDescription());
+        m.put("idTextClockSingular", s.getIdTextClockSingular());
+        m.put("idTextClockPlural", s.getIdTextClockPlural());
         m.put("idEventEndGame", s.getIdEventEndGame());
         m.put("idTextCopyright", s.getIdTextCopyright());
         m.put("linkCopyright", s.getLinkCopyright());
@@ -1043,10 +1043,10 @@ public class StoryCrudService implements StoryCrudPort {
             s.setIdLocationAllPlayerComa(intVal(d, "idLocationAllPlayerComa"));
         if (d.containsKey("idEventAllPlayerComa"))
             s.setIdEventAllPlayerComa(intVal(d, "idEventAllPlayerComa"));
-        if (d.containsKey("clockSingularDescription"))
-            s.setClockSingularDescription(str(d, "clockSingularDescription"));
-        if (d.containsKey("clockPluralDescription"))
-            s.setClockPluralDescription(str(d, "clockPluralDescription"));
+        if (d.containsKey("idTextClockSingular"))
+            s.setIdTextClockSingular(intVal(d, "idTextClockSingular"));
+        if (d.containsKey("idTextClockPlural"))
+            s.setIdTextClockPlural(intVal(d, "idTextClockPlural"));
         if (d.containsKey("idEventEndGame"))
             s.setIdEventEndGame(intVal(d, "idEventEndGame"));
         if (d.containsKey("idTextCopyright"))

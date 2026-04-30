@@ -89,16 +89,16 @@ DELETE FROM list_texts                 WHERE id_story IN (9001, 9002);
 DELETE FROM list_stories               WHERE id IN (9001, 9002);
 
 -- ── Story 1: DEMO — Learn to Play (id=9001) ─────────────────────
-INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+INSERT INTO list_stories (id, uuid, author, version_min, id_text_clock_singular, id_text_clock_plural,
     category, "group", visibility, priority, peghi, id_text_title, id_text_description)
-VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 'turn', 'turns',
+VALUES (9001, 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d', 'PathsMaster', '0.14.0', 10, 11,
     'tutorial', 'tutorial', 'PUBLIC', 100, 0, 1, 2);
 
 
 -- ── Story 2: Il Valvassore di Marca (id=9002) ────────────────────
-INSERT INTO list_stories (id, uuid, author, version_min, clock_singular_description, clock_plural_description,
+INSERT INTO list_stories (id, uuid, author, version_min, id_text_clock_singular, id_text_clock_plural,
     category, "group", visibility, priority, peghi, id_text_title, id_text_description )
-VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 'ora', 'ore',
+VALUES (9002, 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e', 'PathsMaster', '0.14.0', 10, 11,
     'fantasy', 'main', 'PUBLIC', 10, 5, 1, 2 );
 
 
@@ -142,6 +142,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90096, 9001, 210, 'en', 'The Student', 'A well-rounded student with equal stats.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90097, 9001, 211, 'en', 'The Bookworm', 'A studious character with high intelligence.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90098, 9001, 212, 'en', 'The Gym Star', 'An athletic character with high dexterity.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90102, 9001, 10, 'en', 'turn', 'turn');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90103, 9001, 11, 'en', 'turns', 'turns');
 
 -- ── Story 1 Difficulties ────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3);
@@ -301,6 +303,10 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91098, 9002, 210, 'en', 'The Loyal Valvassor', 'A steadfast minor lord who always honors his oaths.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91099, 9002, 211, 'en', 'The Cunning Notary', 'A sharp legal mind trained at the University of Padova.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91100, 9002, 212, 'en', 'The Veteran Sergeant', 'A battle-hardened soldier from Ezzelino''s campaigns.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91104, 9002, 10, 'it', 'ora', 'ora');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91105, 9002, 11, 'it', 'ore', 'ore');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91106, 9002, 10, 'en', 'hour', 'hour');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Story 2 Difficulties ────────────────────────────────────────
 INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES (91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3);

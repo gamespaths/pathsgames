@@ -15,7 +15,7 @@ export default function FooterBar({ isSidebarVisible, onToggleSidebar, canToggle
       <span className="pg-footer-separator">|</span>
       <span>Paths Games Admin Panel</span>
       <span className="pg-footer-separator">|</span>
-      <span>Version: 0.17.2</span>
+      <span>Version: 0.17.3</span>
     </footer>
   )
 }

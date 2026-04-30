@@ -25,6 +25,8 @@ public class StoryDetail {
     private final String versionMax;
     private final String clockSingularDescription;
     private final String clockPluralDescription;
+    private final Integer idTextClockSingular;
+    private final Integer idTextClockPlural;
     private final String copyrightText;
     private final String linkCopyright;
     private final int locationCount;
@@ -53,6 +55,8 @@ public class StoryDetail {
         this.versionMax = builder.versionMax;
         this.clockSingularDescription = builder.clockSingularDescription;
         this.clockPluralDescription = builder.clockPluralDescription;
+        this.idTextClockSingular = builder.idTextClockSingular;
+        this.idTextClockPlural = builder.idTextClockPlural;
         this.copyrightText = builder.copyrightText;
         this.linkCopyright = builder.linkCopyright;
         this.locationCount = builder.locationCount;
@@ -81,6 +85,8 @@ public class StoryDetail {
     public String getVersionMax() { return versionMax; }
     public String getClockSingularDescription() { return clockSingularDescription; }
     public String getClockPluralDescription() { return clockPluralDescription; }
+    public Integer getIdTextClockSingular() { return idTextClockSingular; }
+    public Integer getIdTextClockPlural() { return idTextClockPlural; }
     public String getCopyrightText() { return copyrightText; }
     public String getLinkCopyright() { return linkCopyright; }
     public int getLocationCount() { return locationCount; }
@@ -111,6 +117,8 @@ public class StoryDetail {
         private String versionMax;
         private String clockSingularDescription;
         private String clockPluralDescription;
+        private Integer idTextClockSingular;
+        private Integer idTextClockPlural;
         private String copyrightText;
         private String linkCopyright;
         private int locationCount;
@@ -138,6 +146,8 @@ public class StoryDetail {
         public Builder versionMax(String versionMax) { this.versionMax = versionMax; return this; }
         public Builder clockSingularDescription(String clockSingularDescription) { this.clockSingularDescription = clockSingularDescription; return this; }
         public Builder clockPluralDescription(String clockPluralDescription) { this.clockPluralDescription = clockPluralDescription; return this; }
+        public Builder idTextClockSingular(Integer idTextClockSingular) { this.idTextClockSingular = idTextClockSingular; return this; }
+        public Builder idTextClockPlural(Integer idTextClockPlural) { this.idTextClockPlural = idTextClockPlural; return this; }
         public Builder copyrightText(String copyrightText) { this.copyrightText = copyrightText; return this; }
         public Builder linkCopyright(String linkCopyright) { this.linkCopyright = linkCopyright; return this; }
         public Builder locationCount(int locationCount) { this.locationCount = locationCount; return this; }

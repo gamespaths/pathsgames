@@ -31,8 +31,8 @@ CREATE TABLE list_stories (
     id_image                    BIGINT,
     id_location_all_player_coma BIGINT,                          -- FK to list_locations(id), deferred to V0.10.11
     id_event_all_player_coma    BIGINT,                          -- FK to list_events(id), deferred to V0.10.11
-    clock_singular_description  VARCHAR(100) DEFAULT 'hour',
-    clock_plural_description    VARCHAR(100) DEFAULT 'hours',
+    id_text_clock_singular      INTEGER DEFAULT 10,
+    id_text_clock_plural        INTEGER DEFAULT 11,
     id_event_end_game           BIGINT,                          -- FK to list_events(id), deferred to V0.10.11
     id_text_copyright           BIGINT,                          -- references list_texts(id_text)
     link_copyright              TEXT,

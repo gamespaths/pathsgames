@@ -63,6 +63,7 @@ export default function FastTextSelectorModal({
     setViewMode('input-generator')
     setGeneratedText('')
     setGeneratorError('')
+    setGeneratorSaving(false)
   }
 
   useEffect(() => {
@@ -76,6 +77,13 @@ export default function FastTextSelectorModal({
     }
     wasOpenRef.current = open
   }, [open, startMode, generatedId])
+
+  useEffect(() => {
+    if (!open) {
+      setGeneratorSaving(false)
+      setGeneratorError('')
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open || viewMode !== 'input-generator') return
@@ -124,6 +132,7 @@ export default function FastTextSelectorModal({
         },
       })
 
+      setGeneratorSaving(false)
       const selected = Number(result?.idText ?? generatedId)
       onSelect(selected)
       onClose()

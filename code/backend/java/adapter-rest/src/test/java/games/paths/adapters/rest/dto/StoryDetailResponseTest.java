@@ -33,6 +33,8 @@ class StoryDetailResponseTest {
         r.setVersionMax("1.0");
         r.setClockSingularDescription("hour");
         r.setClockPluralDescription("hours");
+        r.setIdTextClockSingular(10);
+        r.setIdTextClockPlural(11);
         r.setCopyrightText("(c) 2025");
         r.setLinkCopyright("https://example.com");
         r.setLocationCount(10);
@@ -75,6 +77,8 @@ class StoryDetailResponseTest {
             () -> assertEquals("1.0", r.getVersionMax()),
             () -> assertEquals("hour", r.getClockSingularDescription()),
             () -> assertEquals("hours", r.getClockPluralDescription()),
+            () -> assertEquals(10, r.getIdTextClockSingular()),
+            () -> assertEquals(11, r.getIdTextClockPlural()),
             () -> assertEquals("(c) 2025", r.getCopyrightText()),
             () -> assertEquals("https://example.com", r.getLinkCopyright()),
             () -> assertEquals(10, r.getLocationCount()),

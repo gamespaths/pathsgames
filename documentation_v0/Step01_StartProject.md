@@ -193,7 +193,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	1. `global_runtime_variables` (id, type, key, string_value, int_value, description, min_value, max_value, min_version, max_version )
 	2. `users` (id, username, password_hash, email_address, google_id_sso, rule (ADMIN/PLAYER), ts_registration, ts_last_access, nickname, state (1=registration, 2=active, 3=blocked, 4=banned, 5=password, 6=guess), language, guest_cookie_token, guest_expires_at, theme_selected
 	3. `users_tokens` (id, id_user, refresh_token, expires_at, revoked)
-	4. `list_stories` (id, id_card, id_text_title, id_text_description, author, version_min, version_max, id_location_start, id_image. id_location_all_player_coma, id_event_all_player_coma, clock_singular_description (hour), clock_plural_description (hours), id_event_end_game, id_text_copyright, link_copyright, id_creator , category, group, visibility, priority, peghi)
+	4. `list_stories` (id, id_card, id_text_title, id_text_description, author, version_min, version_max, id_location_start, id_image. id_location_all_player_coma, id_event_all_player_coma, id_text_clock_singular (hour), id_text_clock_plural (hours), id_event_end_game, id_text_copyright, link_copyright, id_creator , category, group, visibility, priority, peghi)
 	5. `list_stories_difficulty` (id, id_card, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics , number_max_free_action)
 	6. `list_keys` (id, id_card, id_story, name, value, id_text_description, group, priority, visibility)
 	7. `list_classes` (id, id_card, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base)

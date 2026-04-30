@@ -15,7 +15,7 @@ def lambda_handler(event, context):
         "timestamp": timestamp,
         "properties": {
             "name":    "Paths Games",
-            "version": "0.17.0"
+            "version": "0.17.3"
         }
     }
 

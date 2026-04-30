@@ -64,6 +64,8 @@ public class StoryQueryService implements StoryQueryPort {
         String title = resolveText(story.getId(), story.getIdTextTitle(), lang);
         String description = resolveText(story.getId(), story.getIdTextDescription(), lang);
         String copyrightText = resolveText(story.getId(), story.getIdTextCopyright(), lang);
+        String clockSingular = resolveText(story.getId(), story.getIdTextClockSingular(), lang);
+        String clockPlural = resolveText(story.getId(), story.getIdTextClockPlural(), lang);
 
         List<StoryDifficultyEntity> diffEntities = readPort.findDifficultiesByStoryId(story.getId());
         List<DifficultyInfo> difficulties = new ArrayList<>();
@@ -152,8 +154,10 @@ public class StoryQueryService implements StoryQueryPort {
                 .peghi(story.getPeghi() != null ? story.getPeghi() : 0)
                 .versionMin(story.getVersionMin())
                 .versionMax(story.getVersionMax())
-                .clockSingularDescription(story.getClockSingularDescription())
-                .clockPluralDescription(story.getClockPluralDescription())
+                .clockSingularDescription(clockSingular)
+                .clockPluralDescription(clockPlural)
+                .idTextClockSingular(story.getIdTextClockSingular())
+                .idTextClockPlural(story.getIdTextClockPlural())
                 .copyrightText(copyrightText)
                 .linkCopyright(story.getLinkCopyright())
                 .locationCount((int) locationCount)

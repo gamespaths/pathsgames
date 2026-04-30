@@ -45,8 +45,8 @@ public class StoryImportService implements StoryImportPort {
         story.setAuthor(getString(storyData, "author"));
         story.setVersionMin(getString(storyData, "versionMin"));
         story.setVersionMax(getString(storyData, "versionMax"));
-        story.setClockSingularDescription(getString(storyData, "clockSingularDescription"));
-        story.setClockPluralDescription(getString(storyData, "clockPluralDescription"));
+        story.setIdTextClockSingular(getInteger(storyData, "idTextClockSingular"));
+        story.setIdTextClockPlural(getInteger(storyData, "idTextClockPlural"));
         story.setLinkCopyright(getString(storyData, "linkCopyright"));
         story.setCategory(getString(storyData, "category"));
         story.setGroup(getString(storyData, "group"));

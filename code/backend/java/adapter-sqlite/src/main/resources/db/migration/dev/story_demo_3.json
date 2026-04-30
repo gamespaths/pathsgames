@@ -2,8 +2,8 @@
   "uuid": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
   "author": "PathsMaster",
   "versionMin": "0.14.0",
-  "clockSingularDescription": "giorno",
-  "clockPluralDescription": "giorni",
+  "idTextClockSingular": 10,
+  "idTextClockPlural": 11,
   "category": "historical",
   "group": "main",
   "visibility": "PUBLIC",
@@ -115,7 +115,11 @@
 
     {"idText": 950, "lang": "en", "shortText": "Bishop's Writ", "longText": "An official document from the Bishop of Treviso granting ecclesiastical protection to the valvassore's lands."},
     {"idText": 951, "lang": "en", "shortText": "Marostica Battle Plans", "longText": "Stolen plans detailing the lord of Marostica's military strategy for his campaign against Castelfranco."},
-    {"idText": 952, "lang": "en", "shortText": "Ezzelino's Seal Ring", "longText": "A signet ring bearing Ezzelino III's personal seal. Whoever carries it speaks with the tyrant's authority — or so it appears."}
+    {"idText": 952, "lang": "en", "shortText": "Ezzelino's Seal Ring", "longText": "A signet ring bearing Ezzelino III's personal seal. Whoever carries it speaks with the tyrant's authority — or so it appears."},
+    {"idText": 10, "lang": "it", "shortText": "giorno", "longText": "giorno"},
+    {"idText": 11, "lang": "it", "shortText": "giorni", "longText": "giorni"},
+    {"idText": 10, "lang": "en", "shortText": "day", "longText": "day"},
+    {"idText": 11, "lang": "en", "shortText": "days", "longText": "days"}
   ],
 
   "difficulties": [

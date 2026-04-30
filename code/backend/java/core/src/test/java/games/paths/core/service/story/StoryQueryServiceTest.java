@@ -62,8 +62,8 @@ class StoryQueryServiceTest {
         e.setGroup("fantasy");
         e.setVersionMin("0.10");
         e.setVersionMax("1.0");
-        e.setClockSingularDescription("hour");
-        e.setClockPluralDescription("hours");
+        e.setIdTextClockSingular(10);
+        e.setIdTextClockPlural(11);
         e.setLinkCopyright("https://example.com");
         return e;
     }

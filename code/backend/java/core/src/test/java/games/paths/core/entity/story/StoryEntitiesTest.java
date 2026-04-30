@@ -1098,8 +1098,8 @@ class StoryEntitiesTest {
                 () -> assertEquals("PUBLIC", e.getVisibility()),
                 () -> assertEquals(0, e.getPriority()),
                 () -> assertEquals(0, e.getPeghi()),
-                () -> assertEquals("hour",  e.getClockSingularDescription()),
-                () -> assertEquals("hours", e.getClockPluralDescription())
+                () -> assertEquals(10, e.getIdTextClockSingular()),
+                () -> assertEquals(11, e.getIdTextClockPlural())
             );
         }
 
@@ -1110,15 +1110,15 @@ class StoryEntitiesTest {
             e.setVisibility("PRIVATE");
             e.setPriority(5);
             e.setPeghi(200);
-            e.setClockSingularDescription("minute");
-            e.setClockPluralDescription("minutes");
+            e.setIdTextClockSingular(100);
+            e.setIdTextClockPlural(101);
             e.onCreate();
             assertAll(
                 () -> assertEquals("PRIVATE", e.getVisibility()),
                 () -> assertEquals(5, e.getPriority()),
                 () -> assertEquals(200, e.getPeghi()),
-                () -> assertEquals("minute", e.getClockSingularDescription()),
-                () -> assertEquals("minutes", e.getClockPluralDescription())
+                () -> assertEquals(100, e.getIdTextClockSingular()),
+                () -> assertEquals(101, e.getIdTextClockPlural())
             );
         }
 
@@ -1137,8 +1137,8 @@ class StoryEntitiesTest {
             e.setIdImage(6);
             e.setIdLocationAllPlayerComa(7);
             e.setIdEventAllPlayerComa(8);
-            e.setClockSingularDescription("minute");
-            e.setClockPluralDescription("minutes");
+            e.setIdTextClockSingular(100);
+            e.setIdTextClockPlural(101);
             e.setIdEventEndGame(9);
             e.setIdTextCopyright(10);
             e.setLinkCopyright("https://copy.com");
@@ -1154,8 +1154,8 @@ class StoryEntitiesTest {
                 () -> assertEquals("Author", e.getAuthor()),
                 () -> assertEquals("1.0", e.getVersionMin()),
                 () -> assertEquals("2.0", e.getVersionMax()),
-                () -> assertEquals("minute", e.getClockSingularDescription()),
-                () -> assertEquals("minutes", e.getClockPluralDescription()),
+                () -> assertEquals(100, e.getIdTextClockSingular()),
+                () -> assertEquals(101, e.getIdTextClockPlural()),
                 () -> assertEquals("RPG", e.getCategory()),
                 () -> assertEquals("Fantasy", e.getGroup()),
                 () -> assertEquals("PUBLIC", e.getVisibility()),

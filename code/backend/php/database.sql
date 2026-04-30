@@ -52,15 +52,21 @@ CREATE TABLE IF NOT EXISTS list_stories (
     peghi INT DEFAULT 0,
     version_min VARCHAR(20) DEFAULT NULL,
     version_max VARCHAR(20) DEFAULT NULL,
-    clock_singular VARCHAR(100) DEFAULT NULL,
-    clock_plural VARCHAR(100) DEFAULT NULL,
+    id_text_clock_singular BIGINT DEFAULT NULL,   
+    id_text_clock_plural BIGINT DEFAULT NULL,
     link_copyright VARCHAR(500) DEFAULT NULL,
     id_story BIGINT DEFAULT NULL,
     id_card BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_title BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
-    id_text_copyright BIGINT DEFAULT NULL
+    id_text_copyright BIGINT DEFAULT NULL,
+    id_location_start BIGINT DEFAULT NULL,
+    id_image BIGINT DEFAULT NULL,
+    id_location_all_player_coma BIGINT DEFAULT NULL,
+    id_event_all_player_coma BIGINT DEFAULT NULL,
+    id_event_end_game BIGINT DEFAULT NULL,
+    id_creator BIGINT DEFAULT NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_stories_difficulty (

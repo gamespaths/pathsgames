@@ -240,8 +240,8 @@ components:
         idImage: { type: integer }
         idLocationAllPlayerComa: { type: integer }
         idEventAllPlayerComa: { type: integer }
-        clockSingularDescription: { type: string }
-        clockPluralDescription: { type: string }
+        idTextClockSingular: { type: integer }
+        idTextClockPlural: { type: integer }
         idEventEndGame: { type: integer }
         idTextCopyright: { type: integer }
         linkCopyright: { type: string }

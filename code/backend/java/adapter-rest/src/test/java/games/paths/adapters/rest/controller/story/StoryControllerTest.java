@@ -152,6 +152,7 @@ class StoryControllerTest {
                     .visibility("PUBLIC").priority(5).peghi(2)
                     .versionMin("0.10").versionMax("1.0")
                     .clockSingularDescription("hour").clockPluralDescription("hours")
+                    .idTextClockSingular(10).idTextClockPlural(11)
                     .copyrightText("(c) 2025").linkCopyright("https://example.com")
                     .locationCount(10).eventCount(20).itemCount(5)
                     .classCount(1).characterTemplateCount(1).traitCount(1)

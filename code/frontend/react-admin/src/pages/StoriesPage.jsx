@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory, createStory } from '../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../api/storyApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -40,6 +40,49 @@ export default function StoriesPage() {
       const res = await createStory({ author: 'Admin', visibility: 'DRAFT' })
       navigate(`/stories/${res.uuid}/edit`)
     } catch (e) { setError(e.message) }
+  }
+
+  const handleExport = async (story) => {
+    try {
+      setLoading(true)
+      const fullHeader = await getStory(story.uuid)
+      
+      const entityTypes = [
+        'texts', 'difficulties', 'classes', 'locations', 'events', 'items', 
+        'choices', 'creators', 'cards', 'keys', 'traits', 'characterTemplates', 
+        'weatherRules', 'globalRandomEvents', 'missions'
+      ]
+      
+      const exportData = { ...fullHeader }
+      const results = await Promise.all(entityTypes.map(type => listEntities(story.uuid, type)))
+      
+      entityTypes.forEach((type, index) => {
+        exportData[type] = results[index].map(item => {
+          // eslint-disable-next-line no-unused-vars
+          const { id, tsInsert, tsUpdate, idStory, uuid, ...rest } = item
+          return rest
+        })
+      })
+      
+      // eslint-disable-next-line no-unused-vars
+      const { id, tsInsert, tsUpdate, ...finalJson } = exportData
+      
+      const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `story_${story.uuid.slice(0, 8)}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      setSuccess(`Story ${story.uuid.slice(0, 8)} exported successfully.`)
+    } catch (e) {
+      setError(`Export failed: ${e.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const filtered = stories.filter(s =>
@@ -140,6 +183,9 @@ export default function StoriesPage() {
                       <Link to={`/stories/${s.uuid}/edit`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Edit">
                         <i className="fas fa-edit" />
                       </Link>
+                      <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => handleExport(s)} title="Export JSON">
+                        <i className="fas fa-file-export" />
+                      </button>
                       <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => setDetail(s)} title="View Info">
                         <i className="fas fa-eye" />
                       </button>

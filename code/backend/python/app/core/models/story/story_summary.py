@@ -14,3 +14,5 @@ class StorySummary:
     peghi: int = 0
     difficultyCount: int = 0
     card: CardInfo | None = None
+    idTextClockSingular: int | None = None
+    idTextClockPlural: int | None = None

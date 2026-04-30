@@ -157,8 +157,10 @@ class StoryQueryService(StoryQueryPort):
             peghi=raw_story.get("peghi", 0),
             versionMin=raw_story.get("version_min"),
             versionMax=raw_story.get("version_max"),
-            clockSingularDescription=raw_story.get("clock_singular"),
-            clockPluralDescription=raw_story.get("clock_plural"),
+            clockSingularDescription=self._resolve_text(texts, raw_story.get("id_text_clock_singular"), lang),
+            clockPluralDescription=self._resolve_text(texts, raw_story.get("id_text_clock_plural"), lang),
+            idTextClockSingular=raw_story.get("id_text_clock_singular"),
+            idTextClockPlural=raw_story.get("id_text_clock_plural"),
             copyrightText=copyright_txt,
             linkCopyright=raw_story.get("link_copyright"),
             locationCount=loc_count,
@@ -216,7 +218,9 @@ class StoryQueryService(StoryQueryPort):
             priority=raw_story.get("priority", 0),
             peghi=raw_story.get("peghi", 0),
             difficultyCount=diff_count,
-            card=card
+            card=card,
+            idTextClockSingular=raw_story.get("id_text_clock_singular"),
+            idTextClockPlural=raw_story.get("id_text_clock_plural")
         )
 
     def _resolve_text(self, texts: List[Dict[str, Any]], txt_id: Optional[int], target_lang: str) -> Optional[str]:

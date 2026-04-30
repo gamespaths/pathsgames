@@ -37,11 +37,11 @@ public class StoryEntity extends BaseStoryEntity {
     @Column(name = "id_event_all_player_coma")
     private Integer idEventAllPlayerComa;
 
-    @Column(name = "clock_singular_description")
-    private String clockSingularDescription;
+    @Column(name = "id_text_clock_singular")
+    private Integer idTextClockSingular;
 
-    @Column(name = "clock_plural_description")
-    private String clockPluralDescription;
+    @Column(name = "id_text_clock_plural")
+    private Integer idTextClockPlural;
 
     @Column(name = "id_event_end_game")
     private Integer idEventEndGame;
@@ -71,8 +71,8 @@ public class StoryEntity extends BaseStoryEntity {
         if (visibility == null) visibility = "PUBLIC";
         if (priority == null) priority = 0;
         if (peghi == null) peghi = 0;
-        if (clockSingularDescription == null) clockSingularDescription = "hour";
-        if (clockPluralDescription == null) clockPluralDescription = "hours";
+        if (idTextClockSingular == null) idTextClockSingular = 10;
+        if (idTextClockPlural == null) idTextClockPlural = 11;
     }
 
     // === Getters & Setters ===
@@ -106,11 +106,11 @@ public class StoryEntity extends BaseStoryEntity {
     public Integer getIdEventAllPlayerComa() { return idEventAllPlayerComa; }
     public void setIdEventAllPlayerComa(Integer idEventAllPlayerComa) { this.idEventAllPlayerComa = idEventAllPlayerComa; }
 
-    public String getClockSingularDescription() { return clockSingularDescription; }
-    public void setClockSingularDescription(String clockSingularDescription) { this.clockSingularDescription = clockSingularDescription; }
+    public Integer getIdTextClockSingular() { return idTextClockSingular; }
+    public void setIdTextClockSingular(Integer idTextClockSingular) { this.idTextClockSingular = idTextClockSingular; }
 
-    public String getClockPluralDescription() { return clockPluralDescription; }
-    public void setClockPluralDescription(String clockPluralDescription) { this.clockPluralDescription = clockPluralDescription; }
+    public Integer getIdTextClockPlural() { return idTextClockPlural; }
+    public void setIdTextClockPlural(Integer idTextClockPlural) { this.idTextClockPlural = idTextClockPlural; }
 
     public Integer getIdEventEndGame() { return idEventEndGame; }
     public void setIdEventEndGame(Integer idEventEndGame) { this.idEventEndGame = idEventEndGame; }

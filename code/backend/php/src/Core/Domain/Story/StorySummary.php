@@ -17,7 +17,9 @@ class StorySummary
         public int $priority = 0,
         public int $peghi = 0,
         public int $difficultyCount = 0,
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public ?int $idTextClockSingular = null,
+        public ?int $idTextClockPlural = null
     ) {
     }
 }

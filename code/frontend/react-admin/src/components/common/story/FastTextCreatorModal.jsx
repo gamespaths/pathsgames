@@ -56,10 +56,11 @@ export default function FastTextCreatorModal({
           it: { shortText: itShortText, longText: itLongText },
         },
       })
+      setSaving(false)
       onClose(result)
     } catch (e2) {
-      setError(e2?.message || 'Cannot save fast text')
       setSaving(false)
+      setError(e2?.message || 'Cannot save fast text')
     }
   }
 

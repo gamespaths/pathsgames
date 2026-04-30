@@ -21,6 +21,8 @@ class StoryDetail:
     versionMax: str | None = None
     clockSingularDescription: str | None = None
     clockPluralDescription: str | None = None
+    idTextClockSingular: int | None = None
+    idTextClockPlural: int | None = None
     copyrightText: str | None = None
     linkCopyright: str | None = None
     locationCount: int = 0

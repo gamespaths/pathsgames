@@ -22,6 +22,8 @@ public abstract class BaseStorySummaryResponse {
     private String visibility;
     private Integer priority;
     private Integer peghi;
+    private Integer idTextClockSingular;
+    private Integer idTextClockPlural;
     private int difficultyCount;
 
     protected BaseStorySummaryResponse() {}
@@ -73,4 +75,10 @@ public abstract class BaseStorySummaryResponse {
 
     public int getDifficultyCount() { return difficultyCount; }
     public void setDifficultyCount(int difficultyCount) { this.difficultyCount = difficultyCount; }
+
+    public Integer getIdTextClockSingular() { return idTextClockSingular; }
+    public void setIdTextClockSingular(Integer idTextClockSingular) { this.idTextClockSingular = idTextClockSingular; }
+
+    public Integer getIdTextClockPlural() { return idTextClockPlural; }
+    public void setIdTextClockPlural(Integer idTextClockPlural) { this.idTextClockPlural = idTextClockPlural; }
 }

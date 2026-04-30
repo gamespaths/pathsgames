@@ -19,8 +19,8 @@ class StoryEntity(Base):
     peghi = Column(Integer, default=0)
     version_min = Column(String(20))
     version_max = Column(String(20))
-    clock_singular = Column(String(100))
-    clock_plural = Column(String(100))
+    id_text_clock_singular = Column(Integer)
+    id_text_clock_plural = Column(Integer)
     link_copyright = Column(String(500))
     id_story = Column(Integer)
     id_card = Column(Integer)
@@ -28,6 +28,12 @@ class StoryEntity(Base):
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
     id_text_copyright = Column(Integer)
+    id_location_start = Column(Integer)
+    id_image = Column(Integer)
+    id_location_all_player_coma = Column(Integer)
+    id_event_all_player_coma = Column(Integer)
+    id_event_end_game = Column(Integer)
+    id_creator = Column(Integer)
 
 
 class StoryDifficultyEntity(Base):

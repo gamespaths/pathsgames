@@ -2,8 +2,8 @@
   "uuid": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
   "author": "PathsMaster",
   "versionMin": "0.14.0",
-  "clockSingularDescription": "giorno",
-  "clockPluralDescription": "giorni",
+  "idTextClockSingular": 10,
+  "idTextClockPlural": 11,
   "category": "historical",
   "group": "main",
   "visibility": "PUBLIC",
@@ -117,7 +117,11 @@
 
     {"idText": 950, "lang": "en", "shortText": "Doge's Promise", "longText": "A sealed letter from the Doge of Venice pledging Venetian naval and military support for the anti-Ezzelino coalition."},
     {"idText": 951, "lang": "en", "shortText": "Key to Cittadella", "longText": "A heavy iron key that opens the main gate of Cittadella. Stolen from one of Ezzelino's jailers by a brave infiltrator."},
-    {"idText": 952, "lang": "en", "shortText": "Scaligeri Alliance Pact", "longText": "A formal treaty signed by the Scaligeri of Verona, committing their forces to the coalition against Ezzelino III."}
+    {"idText": 952, "lang": "en", "shortText": "Scaligeri Alliance Pact", "longText": "A formal treaty signed by the Scaligeri of Verona, committing their forces to the coalition against Ezzelino III."},
+    {"idText": 10, "lang": "it", "shortText": "giorno", "longText": "giorno"},
+    {"idText": 11, "lang": "it", "shortText": "giorni", "longText": "giorni"},
+    {"idText": 10, "lang": "en", "shortText": "day", "longText": "day"},
+    {"idText": 11, "lang": "en", "shortText": "days", "longText": "days"}
   ],
 
   "difficulties": [

@@ -163,6 +163,8 @@ public class StoryController {
         resp.setVersionMax(d.getVersionMax());
         resp.setClockSingularDescription(d.getClockSingularDescription());
         resp.setClockPluralDescription(d.getClockPluralDescription());
+        resp.setIdTextClockSingular(d.getIdTextClockSingular());
+        resp.setIdTextClockPlural(d.getIdTextClockPlural());
         resp.setCopyrightText(d.getCopyrightText());
         resp.setLinkCopyright(d.getLinkCopyright());
         resp.setLocationCount(d.getLocationCount());

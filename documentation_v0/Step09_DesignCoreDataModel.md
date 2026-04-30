@@ -65,7 +65,7 @@ These tables are populated by a story importer and are **read-only** during game
 
 | Entity | Table | Description |
 |--------|-------|-------------|
-| **Story** | `list_stories` | A playable adventure: `id_card`, `id_text_title`, `id_text_description`, `author`, `version_min`, `version_max`, `id_location_start`, `id_image`, `id_location_all_player_coma`, `id_event_all_player_coma`, `clock_singular_description` (hour), `clock_plural_description` (hours), `id_event_end_game`, `id_text_copyright`, `link_copyright`, `id_creator`, `category`, `group`, `visibility`, `priority`, `peghi`. |
+| **Story** | `list_stories` | A playable adventure: `id_card`, `id_text_title`, `id_text_description`, `author`, `version_min`, `version_max`, `id_location_start`, `id_image`, `id_location_all_player_coma`, `id_event_all_player_coma`, `id_text_clock_singular` (hour), `id_text_clock_plural` (hours), `id_event_end_game`, `id_text_copyright`, `link_copyright`, `id_creator`, `category`, `group`, `visibility`, `priority`, `peghi`. |
 | **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`. |
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
@@ -846,14 +846,16 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.10.12
+- **Document Version**: 0.17.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
     | 0.9.1 | aligned all entity definitions, states, column names, and enums to match Step01 Point 6 as source of truth | March 13, 2026 |
     | 0.9.2 | aligned to Step0 file v0.9.2: added guest user state, guest columns, theme_selected, list_stories, ... | March 17, 2026 |
     | 0.10.12 | added `uuid` as standard column on all 52 tables — public API identifier to avoid exposing internal auto-increment IDs | March 19, 2026 |
-- **Last Updated**: March 19, 2026
+    | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
+    
+- **Last Updated**: April 30, 2026
 - **Status**: Complete ✅
 
 
