@@ -34,7 +34,8 @@ import static org.mockito.Mockito.*;
  * Unit tests for {@link StoryQueryService}.
  * Ensures full branch coverage for story listing, detail retrieval,
  * text resolution with language fallback, category/group queries,
- * and enriched story detail with character templates, classes, traits, and cards.
+ * and enriched story detail with character templates, classes, traits, and
+ * cards.
  */
 @ExtendWith(MockitoExtension.class)
 class StoryQueryServiceTest {
@@ -48,7 +49,7 @@ class StoryQueryServiceTest {
     // === Helper Methods ===
 
     private StoryEntity createStoryEntity(String uuid, String author, Integer idTextTitle,
-                                          Integer idTextDesc, String visibility, Integer priority, Integer peghi) {
+            Integer idTextDesc, String visibility, Integer priority, Integer peghi) {
         StoryEntity e = new StoryEntity();
         e.setId(1L);
         e.setUuid(uuid);
@@ -195,18 +196,17 @@ class StoryQueryServiceTest {
             assertEquals(1, result.size());
             StorySummary s = result.get(0);
             assertAll("StorySummary fields",
-                () -> assertEquals("uuid-1", s.getUuid()),
-                () -> assertEquals("Title EN", s.getTitle()),
-                () -> assertEquals("Desc EN", s.getDescription()),
-                () -> assertEquals("Author1", s.getAuthor()),
-                () -> assertEquals("adventure", s.getCategory()),
-                () -> assertEquals("fantasy", s.getGroup()),
-                () -> assertEquals("PUBLIC", s.getVisibility()),
-                () -> assertEquals(5, s.getPriority()),
-                () -> assertEquals(2, s.getPeghi()),
-                () -> assertEquals(1, s.getDifficultyCount()),
-                () -> assertNull(s.getCard())
-            );
+                    () -> assertEquals("uuid-1", s.getUuid()),
+                    () -> assertEquals("Title EN", s.getTitle()),
+                    () -> assertEquals("Desc EN", s.getDescription()),
+                    () -> assertEquals("Author1", s.getAuthor()),
+                    () -> assertEquals("adventure", s.getCategory()),
+                    () -> assertEquals("fantasy", s.getGroup()),
+                    () -> assertEquals("PUBLIC", s.getVisibility()),
+                    () -> assertEquals(5, s.getPriority()),
+                    () -> assertEquals(2, s.getPeghi()),
+                    () -> assertEquals(1, s.getDifficultyCount()),
+                    () -> assertNull(s.getCard()));
         }
 
         @Test
@@ -330,6 +330,10 @@ class StoryQueryServiceTest {
                     .thenReturn(Optional.of(createTextEntity(1L, 101, "en", "Description")));
             when(readPort.findTextByStoryIdTextAndLang(1L, 102, "en"))
                     .thenReturn(Optional.of(createTextEntity(1L, 102, "en", "Copyright")));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 10, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 10, "en", "turn")));
+            when(readPort.findTextByStoryIdTextAndLang(1L, 11, "en"))
+                    .thenReturn(Optional.of(createTextEntity(1L, 11, "en", "turns")));
 
             StoryDifficultyEntity diff = createDifficultyEntity(1L, "diff-uuid");
             when(readPort.findDifficultiesByStoryId(1L)).thenReturn(List.of(diff));
@@ -371,33 +375,36 @@ class StoryQueryServiceTest {
 
             assertNotNull(detail);
             assertAll("StoryDetail fields",
-                () -> assertEquals("uuid-1", detail.getUuid()),
-                () -> assertEquals("Title", detail.getTitle()),
-                () -> assertEquals("Description", detail.getDescription()),
-                () -> assertEquals("Copyright", detail.getCopyrightText()),
-                () -> assertEquals(5, detail.getLocationCount()),
-                () -> assertEquals(10, detail.getEventCount()),
-                () -> assertEquals(3, detail.getItemCount()),
-                () -> assertEquals(1, detail.getDifficulties().size()),
-                () -> assertEquals("Easy", detail.getDifficulties().get(0).getDescription()),
-                // Step 15: new fields
-                () -> assertEquals(1, detail.getCharacterTemplateCount()),
-                () -> assertEquals(1, detail.getClassCount()),
-                () -> assertEquals(1, detail.getTraitCount()),
-                () -> assertEquals(1, detail.getCharacterTemplates().size()),
-                () -> assertEquals("Warrior", detail.getCharacterTemplates().get(0).getName()),
-                () -> assertEquals("A strong fighter", detail.getCharacterTemplates().get(0).getDescription()),
-                () -> assertEquals(20, detail.getCharacterTemplates().get(0).getLifeMax()),
-                () -> assertEquals(1, detail.getClasses().size()),
-                () -> assertEquals("Knight", detail.getClasses().get(0).getName()),
-                () -> assertEquals(15, detail.getClasses().get(0).getWeightMax()),
-                () -> assertEquals(1, detail.getTraits().size()),
-                () -> assertEquals("Brave", detail.getTraits().get(0).getName()),
-                () -> assertEquals(2, detail.getTraits().get(0).getCostPositive()),
-                () -> assertNotNull(detail.getCard()),
-                () -> assertEquals("Card Title", detail.getCard().getTitle()),
-                () -> assertEquals("https://example.com/card.png", detail.getCard().getImageUrl())
-            );
+                    () -> assertEquals("uuid-1", detail.getUuid()),
+                    () -> assertEquals("Title", detail.getTitle()),
+                    () -> assertEquals("Description", detail.getDescription()),
+                    () -> assertEquals("Copyright", detail.getCopyrightText()),
+                    () -> assertEquals(5, detail.getLocationCount()),
+                    () -> assertEquals(10, detail.getEventCount()),
+                    () -> assertEquals(3, detail.getItemCount()),
+                    () -> assertEquals(1, detail.getDifficulties().size()),
+                    () -> assertEquals("Easy", detail.getDifficulties().get(0).getDescription()),
+                    // Step 15: new fields
+                    () -> assertEquals(1, detail.getCharacterTemplateCount()),
+                    () -> assertEquals(1, detail.getClassCount()),
+                    () -> assertEquals(1, detail.getTraitCount()),
+                    () -> assertEquals("turn", detail.getClockSingularDescription()),
+                    () -> assertEquals("turns", detail.getClockPluralDescription()),
+                    () -> assertEquals(10, detail.getIdTextClockSingular()),
+                    () -> assertEquals(11, detail.getIdTextClockPlural()),
+                    () -> assertEquals(1, detail.getCharacterTemplates().size()),
+                    () -> assertEquals("Warrior", detail.getCharacterTemplates().get(0).getName()),
+                    () -> assertEquals("A strong fighter", detail.getCharacterTemplates().get(0).getDescription()),
+                    () -> assertEquals(20, detail.getCharacterTemplates().get(0).getLifeMax()),
+                    () -> assertEquals(1, detail.getClasses().size()),
+                    () -> assertEquals("Knight", detail.getClasses().get(0).getName()),
+                    () -> assertEquals(15, detail.getClasses().get(0).getWeightMax()),
+                    () -> assertEquals(1, detail.getTraits().size()),
+                    () -> assertEquals("Brave", detail.getTraits().get(0).getName()),
+                    () -> assertEquals(2, detail.getTraits().get(0).getCostPositive()),
+                    () -> assertNotNull(detail.getCard()),
+                    () -> assertEquals("Card Title", detail.getCard().getTitle()),
+                    () -> assertEquals("https://example.com/card.png", detail.getCard().getImageUrl()));
         }
 
         @Test
@@ -453,13 +460,12 @@ class StoryQueryServiceTest {
 
             CharacterTemplateInfo ctInfo = detail.getCharacterTemplates().get(0);
             assertAll("Default values for null CharacterTemplate fields",
-                () -> assertEquals(10, ctInfo.getLifeMax()),
-                () -> assertEquals(10, ctInfo.getEnergyMax()),
-                () -> assertEquals(10, ctInfo.getSadMax()),
-                () -> assertEquals(1, ctInfo.getDexterityStart()),
-                () -> assertEquals(1, ctInfo.getIntelligenceStart()),
-                () -> assertEquals(1, ctInfo.getConstitutionStart())
-            );
+                    () -> assertEquals(10, ctInfo.getLifeMax()),
+                    () -> assertEquals(10, ctInfo.getEnergyMax()),
+                    () -> assertEquals(10, ctInfo.getSadMax()),
+                    () -> assertEquals(1, ctInfo.getDexterityStart()),
+                    () -> assertEquals(1, ctInfo.getIntelligenceStart()),
+                    () -> assertEquals(1, ctInfo.getConstitutionStart()));
         }
 
         @Test
@@ -482,11 +488,10 @@ class StoryQueryServiceTest {
 
             ClassInfo clInfo = detail.getClasses().get(0);
             assertAll("Default values for null Class fields",
-                () -> assertEquals(10, clInfo.getWeightMax()),
-                () -> assertEquals(1, clInfo.getDexterityBase()),
-                () -> assertEquals(1, clInfo.getIntelligenceBase()),
-                () -> assertEquals(1, clInfo.getConstitutionBase())
-            );
+                    () -> assertEquals(10, clInfo.getWeightMax()),
+                    () -> assertEquals(1, clInfo.getDexterityBase()),
+                    () -> assertEquals(1, clInfo.getIntelligenceBase()),
+                    () -> assertEquals(1, clInfo.getConstitutionBase()));
         }
 
         @Test
@@ -509,11 +514,10 @@ class StoryQueryServiceTest {
 
             TraitInfo trInfo = detail.getTraits().get(0);
             assertAll("Default values for null Trait fields",
-                () -> assertEquals(0, trInfo.getCostPositive()),
-                () -> assertEquals(0, trInfo.getCostNegative()),
-                () -> assertNull(trInfo.getIdClassPermitted()),
-                () -> assertNull(trInfo.getIdClassProhibited())
-            );
+                    () -> assertEquals(0, trInfo.getCostPositive()),
+                    () -> assertEquals(0, trInfo.getCostNegative()),
+                    () -> assertNull(trInfo.getIdClassPermitted()),
+                    () -> assertNull(trInfo.getIdClassProhibited()));
         }
 
         @Test
@@ -528,13 +532,12 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
             assertAll("Empty sub-entity lists",
-                () -> assertTrue(detail.getCharacterTemplates().isEmpty()),
-                () -> assertTrue(detail.getClasses().isEmpty()),
-                () -> assertTrue(detail.getTraits().isEmpty()),
-                () -> assertEquals(0, detail.getCharacterTemplateCount()),
-                () -> assertEquals(0, detail.getClassCount()),
-                () -> assertEquals(0, detail.getTraitCount())
-            );
+                    () -> assertTrue(detail.getCharacterTemplates().isEmpty()),
+                    () -> assertTrue(detail.getClasses().isEmpty()),
+                    () -> assertTrue(detail.getTraits().isEmpty()),
+                    () -> assertEquals(0, detail.getCharacterTemplateCount()),
+                    () -> assertEquals(0, detail.getClassCount()),
+                    () -> assertEquals(0, detail.getTraitCount()));
         }
 
         @Test
@@ -636,9 +639,8 @@ class StoryQueryServiceTest {
 
             assertNotNull(detail);
             assertAll("Null priority/peghi defaults to 0 in detail",
-                () -> assertEquals(0, detail.getPriority()),
-                () -> assertEquals(0, detail.getPeghi())
-            );
+                    () -> assertEquals(0, detail.getPriority()),
+                    () -> assertEquals(0, detail.getPeghi()));
         }
 
         @Test
@@ -660,14 +662,13 @@ class StoryQueryServiceTest {
             assertNotNull(detail);
             DifficultyInfo di = detail.getDifficulties().get(0);
             assertAll("Difficulty defaults for null fields",
-                () -> assertEquals(5, di.getExpCost()),
-                () -> assertEquals(10, di.getMaxWeight()),
-                () -> assertEquals(1, di.getMinCharacter()),
-                () -> assertEquals(4, di.getMaxCharacter()),
-                () -> assertEquals(3, di.getCostHelpComa()),
-                () -> assertEquals(3, di.getCostMaxCharacteristics()),
-                () -> assertEquals(1, di.getNumberMaxFreeAction())
-            );
+                    () -> assertEquals(5, di.getExpCost()),
+                    () -> assertEquals(10, di.getMaxWeight()),
+                    () -> assertEquals(1, di.getMinCharacter()),
+                    () -> assertEquals(4, di.getMaxCharacter()),
+                    () -> assertEquals(3, di.getCostHelpComa()),
+                    () -> assertEquals(3, di.getCostMaxCharacteristics()),
+                    () -> assertEquals(1, di.getNumberMaxFreeAction()));
         }
     }
 
