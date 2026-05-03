@@ -56,8 +56,6 @@ ALTER TABLE gaming_match ADD CONSTRAINT fk_match_character_current_turn
     FOREIGN KEY (id_character_current_turn, id) REFERENCES gaming_character_instance(id, id_match);
 
 -- id_card FK columns → list_cards(id)
-ALTER TABLE list_stories_difficulty ADD CONSTRAINT fk_stories_diff_card
-    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_keys ADD CONSTRAINT fk_keys_card
     FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_classes ADD CONSTRAINT fk_classes_card

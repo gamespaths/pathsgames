@@ -26,7 +26,13 @@ class StoryAdminController:
                 "error": "EMPTY_IMPORT_DATA",
                 "message": "Request body must contain story data"
             })
-        return self.import_port.import_story(data)
+        try:
+            return self.import_port.import_story(data)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail={
+                "error": "INVALID_IMPORT_DATA",
+                "message": str(e)
+            })
 
     async def delete_story(self, req: Request, uuid: str = Path(...)):
         self._require_admin(req)

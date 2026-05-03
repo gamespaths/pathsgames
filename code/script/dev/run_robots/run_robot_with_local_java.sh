@@ -27,6 +27,10 @@ fi
 echo "Kill all process using 8042 port"
 fuser -k 8042/tcp || true
 
+SQLITE_DB_PATH="${HOME}/.paths.games/database.sqlite"
+echo "Removing local SQLite database to force fresh Flyway migrations: ${SQLITE_DB_PATH}"
+rm -f "${SQLITE_DB_PATH}"
+
 # Build the JAR with the dev Maven profile (includes adapter-sqlte + SQLite JDBC driver)
 echo "Building Java project with Maven dev profile..."
 cd "$PROJECT_ROOT/code/backend/java" && \

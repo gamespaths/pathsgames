@@ -130,6 +130,15 @@ Get Admin Stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
 
+Get Admin Story By UUID
+    [Documentation]    Calls GET /api/admin/stories/{uuid}. Returns the response.
+    [Arguments]    ${uuid}    ${lang}=${DEFAULT_LANG}
+    ${params}=    Create Dictionary    lang=${lang}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    GET On Session    public_session    /api/admin/stories/${uuid}
+    ...    params=${params}    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
 # ── Step 16: Content Info Keywords ────────────────────────────────────
 
 Get Card Info

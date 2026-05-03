@@ -51,5 +51,17 @@ interface StoryPersistencePort
     public function deleteEntityByUuid(string $tableName, string $uuid): void;
 
     public function updateStoryById(int $storyId, array $data): void;
+
+    // Explicit-ID import support
+
+    public function existsStoryId(int $storyId): bool;
+
+    public function existsEntityId(string $tableName, string $idColumn, int $entityId, int $storyId): bool;
+
+    public function nextScopedId(string $tableName, string $idColumn, int $storyId): int;
+
+    public function nextGlobalId(string $tableName, string $idColumn): int;
+
+    public function syncSequences(): void;
 }
 

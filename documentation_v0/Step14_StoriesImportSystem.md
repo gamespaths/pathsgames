@@ -12,9 +12,10 @@ This document describes the implementation of **Step 14: Story Import System and
 | **Database** | 23 JPA entity tables for story data |
 | **Text system** | Multi-language with English fallback |
 | **Import mode** | Replace-on-conflict (delete existing + re-import) |
-| **ID policy** | Optional explicit numeric `id` accepted; duplicate explicit id rejected |
+| **ID policy** | Explicit numeric `id` supported; duplicate ID per table raises 400 ERROR |
 | **Public API** | Story listing and detail retrieval (no auth required) |
 | **Admin API** | Story import, listing, and deletion (ADMIN role required) |
+| **Backends** | Java, Python, PHP, AWS Lambda (DynamoDB) |
 
 ### Update (May 2026)
 
@@ -178,11 +179,10 @@ Returns the full detail of a single story by UUID.
 Imports a complete story from a JSON body. If a story with the same UUID already exists, it is fully deleted and re-imported (replace-on-conflict). If UUID is null/blank, a new one is auto-generated.
 
 If request contains explicit numeric `id` fields (story and/or sub-entities):
-- when `id` is not present in DB, the row is inserted with that exact id;
-- when `id` already exists in the target table, import stops with `INVALID_IMPORT_DATA` and message `story/<table> id=<value> already present`;
-- when `id` is missing/null, standard DB auto-increment is used.
-
-After explicit-id imports, PostgreSQL sequences are synchronized to avoid future auto-increment collisions.
+- **Insertion**: If the `id` is not present in the table, the row is inserted with that exact `id`.
+- **Conflict**: If the `id` already exists in the target table, the import stops with `INVALID_IMPORT_DATA` (400) and message `story/<table> id=<value> already present`.
+- **Auto-increment**: If `id` is missing/null, the system generates the next ID using auto-increment or scoped generation.
+- **PostgreSQL**: Internal sequences are synchronized (via `setval`) after manual insertions to prevent "Duplicate Key" errors on subsequent auto-increment operations.
 
 **Request Body:** Structured JSON with story header fields plus nested arrays for sub-entities (texts, difficulties, locations, events, items, choices, classes, creators, cards, keys, traits, character templates, weather rules, global random events, missions).
 
@@ -422,7 +422,8 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.14.1 | Manage projects structure and 101 steps definition | April 9, 2026 |
     | 0.14.2 | Full backend implementation: JPA entities, services, API, tests | April 10, 2026 |
     | 0.14.3 | Create robot-test-framework components to test all APIs | April 10, 2026 | 
-- **Last Updated**: April 10, 2026
+    | 0.17.4 | Harmonize ID policy across backends (explicit ID, sync sequences) | May 03, 2026 |
+- **Last Updated**: May 03, 2026
 - **Status**: ✅ Complete
 
 

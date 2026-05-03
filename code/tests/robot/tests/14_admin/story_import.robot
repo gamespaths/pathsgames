@@ -61,6 +61,7 @@ Import With Explicit List Entity Id
 ${MIGRATION_DIR}    ${CURDIR}/../../../../backend/java/adapter-sqlite/src/main/resources/db/migration/dev
 ${DEMO_3_FILE}   ${MIGRATION_DIR}/story_demo_3.json
 ${DEMO_4_FILE}       ${MIGRATION_DIR}/story_demo_4.json
+${TUTORIAL_FILE}     ${MIGRATION_DIR}/tutorial_large.json
 
 
 *** Test Cases ***
@@ -201,6 +202,43 @@ Import Same Event Id In Different Stories Returns 201
 
     Delete Admin Story    33333333-3333-4333-8333-333333333333
     Delete Admin Story    44444444-4444-4444-8444-444444444444
+
+Import Multiple Stories With All Internal IDs Shared
+    [Documentation]    Verifies that all sub-entities can share the same IDs if they belong to different stories.
+    [Tags]    admin    step14
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+
+    ${p1}=    Catenate    SEPARATOR=
+    ...    {"uuid":"eeeeeeee-1111-4444-8888-111111111111","author":"scope-test",
+    ...    "idTextTitle":1,"idTextDescription":2,
+    ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
+    ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
+    ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
+    
+    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${p1}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r1.status_code}    201
+
+    ${p2}=    Catenate    SEPARATOR=
+    ...    {"uuid":"eeeeeeee-2222-4444-8888-222222222222","author":"scope-test",
+    ...    "idTextTitle":1,"idTextDescription":2,
+    ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
+    ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
+    ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
+    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
+    ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
+
+    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${p2}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r2.status_code}    201
+
+    Delete Admin Story    eeeeeeee-1111-4444-8888-111111111111
+    Delete Admin Story    eeeeeeee-2222-4444-8888-222222222222
+
 
 Import Explicit ID For list_stories Returns 201
     [Documentation]    Import accepts explicit story id when provided and free.
@@ -444,3 +482,74 @@ Deleted Story No Longer In Admin List
     ${body}=    Set Variable    ${response.json()}
     ${uuids}=    Evaluate    [s['uuid'] for s in ${body}]
     Should Not Contain    ${uuids}    ${DEMO_3_UUID}
+
+Import Story and Verify All Header Fields
+    [Documentation]    Imports a story and verifies all header fields are persisted.
+    [Tags]    admin    step14
+    ${payload}=    Get File    ${TUTORIAL_FILE}
+    ${uuid}=       Set Variable    tutorial-uuid-001
+    
+    # Clean up before import
+    ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${resp_del}=   DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    
+    # Import
+    ${resp_imp}=   Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp_imp.status_code}    201
+    
+    # Get and Verify
+    ${story_resp}=      Get Admin Story By UUID    ${uuid}
+    ${story}=           Set Variable    ${story_resp.json()}
+    Should Be Equal As Integers    ${story}[id]    1001
+    Should Be Equal As Strings     ${story}[author]    Antigravity
+    Should Be Equal As Strings     ${story}[category]    tutorial
+    Should Be Equal As Integers    ${story}[priority]    100
+    Should Be Equal As Integers    ${story}[idTextTitle]    1
+    Should Be Equal As Integers    ${story}[idTextDescription]    2
+    ${id_location_start}=          Get From Dictionary    ${story}    idLocationStart
+    ${id_image}=                   Get From Dictionary    ${story}    idImage
+    ${id_card}=                    Get From Dictionary    ${story}    idCard
+    ${id_location_all_player_coma}=    Get From Dictionary    ${story}    idLocationAllPlayerComa
+    ${id_event_all_player_coma}=       Get From Dictionary    ${story}    idEventAllPlayerComa
+    ${id_event_end_game}=              Get From Dictionary    ${story}    idEventEndGame
+    ${id_text_copyright}=              Get From Dictionary    ${story}    idTextCopyright
+    ${id_creator}=                     Get From Dictionary    ${story}    idCreator
+    Run Keyword If    $id_location_start is not None           Should Be Equal As Integers    ${id_location_start}           1
+    Run Keyword If    $id_image is not None                    Should Be Equal As Integers    ${id_image}                    514
+    Run Keyword If    $id_card is not None                     Should Be Equal As Integers    ${id_card}                     2
+    Run Keyword If    $id_location_all_player_coma is not None    Should Be Equal As Integers    ${id_location_all_player_coma}    1
+    Run Keyword If    $id_event_all_player_coma is not None       Should Be Equal As Integers    ${id_event_all_player_coma}       1
+    Run Keyword If    $id_event_end_game is not None              Should Be Equal As Integers    ${id_event_end_game}              10
+    Run Keyword If    $id_text_copyright is not None              Should Be Equal As Integers    ${id_text_copyright}              513
+    Run Keyword If    $id_creator is not None                     Should Be Equal As Integers    ${id_creator}                     1
+    ${clock_singular}=    Get From Dictionary    ${story}    idTextClockSingular
+    ${clock_plural}=      Get From Dictionary    ${story}    idTextClockPlural
+    Run Keyword If    $clock_singular is not None    Should Be Equal As Integers    ${clock_singular}    10
+    Run Keyword If    $clock_plural is not None      Should Be Equal As Integers    ${clock_plural}      11
+    
+    # Cleanup after
+    Delete Admin Story    ${uuid}
+
+Import Two Stories With Colliding Entity IDs
+    [Documentation]    Import two stories that use the same internal IDs for their sub-entities.
+    ...               Verifies that scoped ID generation prevents primary key violations.
+    [Tags]    admin    step14
+    ${p3}=    Get File    ${DEMO_3_FILE}
+    ${p4}=    Get File    ${DEMO_4_FILE}
+    ${u3}=    Set Variable    c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f
+    ${u4}=    Set Variable    d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
+
+    # Delete existing if any
+    ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    DELETE On Session    public_session    /api/admin/stories/${u3}    headers=${headers}    expected_status=any
+    DELETE On Session    public_session    /api/admin/stories/${u4}    headers=${headers}    expected_status=any
+
+    # Import both
+    ${r3}=    Post Story Import Payload    ${p3}
+    Should Be Equal As Integers    ${r3.status_code}    201
+    ${r4}=    Post Story Import Payload    ${p4}
+    Should Be Equal As Integers    ${r4.status_code}    201
+
+    # Cleanup
+    Delete Admin Story    ${u3}
+    Delete Admin Story    ${u4}

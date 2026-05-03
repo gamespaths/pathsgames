@@ -33,12 +33,21 @@ class StoryImportService implements StoryImportPort
         // Replace on conflict
         $this->deleteStory($storyUuid);
 
+        // Check explicit story id
+        $storyIdInput = self::getLong($data, 'id', 'idStory', 'id_story');
+        if ($storyIdInput !== null) {
+            if ($this->persistencePort->existsStoryId($storyIdInput)) {
+                throw new \InvalidArgumentException("story/list_stories id={$storyIdInput} already present");
+            }
+        }
+
         // Save Header
         $storyId = $this->persistencePort->saveStory($data);
 
         // Texts
         $texts = $data['texts'] ?? [];
         if (!empty($texts)) {
+            $this->validateEntityIds($storyId, $texts, 'list_texts', 'id');
             $this->persistencePort->saveTexts($storyId, $texts);
         }
 
@@ -51,23 +60,44 @@ class StoryImportService implements StoryImportPort
                 }
             }
             unset($d);
+            $this->validateEntityIds($storyId, $diffs, 'list_stories_difficulty', 'id');
             $this->persistencePort->saveDifficulties($storyId, $diffs);
         }
 
-        // Other attributes
-        if (!empty($data['locations'])) { $this->persistencePort->saveLocations($storyId, $data['locations']); }
-        if (!empty($data['events'])) { $this->persistencePort->saveEvents($storyId, $data['events']); }
-        if (!empty($data['items'])) { $this->persistencePort->saveItems($storyId, $data['items']); }
-        if (!empty($data['classes'])) { $this->persistencePort->saveClasses($storyId, $data['classes']); }
-        if (!empty($data['choices'])) { $this->persistencePort->saveChoices($storyId, $data['choices']); }
-        if (!empty($data['cards'])) { $this->persistencePort->saveCards($storyId, $data['cards']); }
-        if (!empty($data['keys'])) { $this->persistencePort->saveKeys($storyId, $data['keys']); }
-        if (!empty($data['traits'])) { $this->persistencePort->saveTraits($storyId, $data['traits']); }
-        if (!empty($data['characterTemplates'])) { $this->persistencePort->saveCharacterTemplates($storyId, $data['characterTemplates']); }
-        if (!empty($data['weatherRules'])) { $this->persistencePort->saveWeatherRules($storyId, $data['weatherRules']); }
-        if (!empty($data['globalRandomEvents'])) { $this->persistencePort->saveGlobalRandomEvents($storyId, $data['globalRandomEvents']); }
-        if (!empty($data['missions'])) { $this->persistencePort->saveMissions($storyId, $data['missions']); }
-        if (!empty($data['creators'])) { $this->persistencePort->saveCreators($storyId, $data['creators']); }
+        // Other entities with explicit-id validation
+        $entityMapping = [
+            ['locations', 'list_locations', 'id', 'saveLocations'],
+            ['events', 'list_events', 'id', 'saveEvents'],
+            ['items', 'list_items', 'id', 'saveItems'],
+            ['classes', 'list_classes', 'id', 'saveClasses'],
+            ['choices', 'list_choices', 'id', 'saveChoices'],
+            ['cards', 'list_cards', 'id', 'saveCards'],
+            ['keys', 'list_keys', 'id', 'saveKeys'],
+            ['traits', 'list_traits', 'id', 'saveTraits'],
+            ['characterTemplates', 'list_character_templates', 'id_tipo', 'saveCharacterTemplates'],
+            ['weatherRules', 'list_weather_rules', 'id', 'saveWeatherRules'],
+            ['globalRandomEvents', 'list_global_random_events', 'id', 'saveGlobalRandomEvents'],
+            ['missions', 'list_missions', 'id', 'saveMissions'],
+            ['locationNeighbors', 'list_locations_neighbors', 'id', 'saveLocationNeighbors'],
+            ['eventEffects', 'list_events_effects', 'id', 'saveEventEffects'],
+            ['itemEffects', 'list_items_effects', 'id', 'saveItemEffects'],
+            ['choiceConditions', 'list_choices_conditions', 'id', 'saveChoiceConditions'],
+            ['choiceEffects', 'list_choices_effects', 'id', 'saveChoiceEffects'],
+            ['classBonuses', 'list_classes_bonus', 'id', 'saveClassBonuses'],
+            ['missionSteps', 'list_missions_steps', 'id', 'saveMissionSteps'],
+            ['creators', 'list_creator', 'id', 'saveCreators'],
+        ];
+
+        foreach ($entityMapping as [$jsonKey, $tableName, $idCol, $method]) {
+            $arr = $data[$jsonKey] ?? [];
+            if (!empty($arr)) {
+                $this->validateEntityIds($storyId, $arr, $tableName, $idCol);
+                $this->persistencePort->$method($storyId, $arr);
+            }
+        }
+
+        // Sync PostgreSQL sequences
+        $this->persistencePort->syncSequences();
 
         return new StoryImportResult(
             $storyUuid,
@@ -95,5 +125,33 @@ class StoryImportService implements StoryImportPort
 
         $this->persistencePort->deleteStoryById($storyId);
         return true;
+    }
+
+    /**
+     * Validate explicit IDs in items before they are saved.
+     * If an item has an explicit 'id', check it's not already taken.
+     */
+    private function validateEntityIds(int $storyId, array $items, string $tableName, string $idColumn): void
+    {
+        foreach ($items as $item) {
+            $itemId = self::getLong($item, 'id', 'id_tipo', 'idTipo');
+            if ($itemId !== null) {
+                if ($this->persistencePort->existsEntityId($tableName, $idColumn, $itemId, $storyId)) {
+                    throw new \InvalidArgumentException("story/{$tableName} id={$itemId} already present");
+                }
+            }
+        }
+    }
+
+    private static function getLong(array $data, string ...$keys): ?int
+    {
+        foreach ($keys as $key) {
+            if (isset($data[$key])) {
+                $v = $data[$key];
+                if (is_int($v)) return $v;
+                if (is_numeric($v)) return (int)$v;
+            }
+        }
+        return null;
     }
 }

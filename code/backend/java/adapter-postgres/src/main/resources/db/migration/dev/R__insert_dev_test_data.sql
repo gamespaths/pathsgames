@@ -377,11 +377,9 @@ INSERT INTO list_creator (id, id_story, link) VALUES (91001, 9002, 'https://path
 -- Reset sequences after explicit ID inserts for story seed data
 SELECT setval('list_stories_id_seq',            (SELECT MAX(id) FROM list_stories));
 SELECT setval('list_texts_id_seq',              (SELECT MAX(id) FROM list_texts));
-SELECT setval('list_stories_difficulty_id_seq', (SELECT MAX(id) FROM list_stories_difficulty));
 SELECT setval('list_classes_id_seq',            (SELECT MAX(id) FROM list_classes));
 SELECT setval('list_classes_bonus_id_seq',      (SELECT MAX(id) FROM list_classes_bonus));
 SELECT setval('list_traits_id_seq',             (SELECT MAX(id) FROM list_traits));
-SELECT setval('list_character_templates_id_tipo_seq',(SELECT MAX(id_tipo) FROM list_character_templates));
 SELECT setval('list_keys_id_seq',               (SELECT MAX(id) FROM list_keys));
 SELECT setval('list_locations_id_seq',          (SELECT MAX(id) FROM list_locations));
 SELECT setval('list_locations_neighbors_id_seq',(SELECT MAX(id) FROM list_locations_neighbors));

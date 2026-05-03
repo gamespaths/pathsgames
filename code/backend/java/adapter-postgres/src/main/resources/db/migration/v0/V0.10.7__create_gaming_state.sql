@@ -31,7 +31,6 @@ CREATE TABLE gaming_state_registry (
     ts_insert        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
@@ -75,7 +74,6 @@ CREATE TABLE gaming_active_effects (
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
@@ -88,8 +86,7 @@ CREATE TABLE gaming_active_choices (
     id_choise BIGINT,
     ts_insert VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE gaming_story_progress (
@@ -101,8 +98,7 @@ CREATE TABLE gaming_story_progress (
     id_choise BIGINT,
     ts_insert VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE gaming_temp_variables (
@@ -117,7 +113,6 @@ CREATE TABLE gaming_temp_variables (
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 

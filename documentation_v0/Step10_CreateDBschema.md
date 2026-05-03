@@ -125,25 +125,23 @@ The majority of tables use a **surrogate auto-increment integer PK** named `id`:
 **Exception**: `list_character_templates` uses `id_tipo` as its PK name (preserving the domain-specific identifier from the data model).
 
 
-### 2.2 Composite Primary Keys
+### 2.2 Composite Primary Keys (Scoped Identity)
 
-Two tables use composite primary keys to represent unique combinations:
+For tables with a surrogate auto-increment key and a natural parent scope (`id_story` for `list_*`, `id_match` for `gaming_*`), the schema now enforces **composite primary keys** to guarantee uniqueness within the parent context while allowing explicit ID values during imports.
 
-| Table | Primary Key | Rationale |
-|-------|-------------|-----------|
-| `gaming_state_locations` | `(id_match, id_location)` | Each location has exactly one state row per match |
-| `gaming_turn_queue` | `(id_match, id_character_match)` | Each character appears at most once in the turn queue per match |
+| Table Category | Primary Key | Rationale |
+|----------------|-------------|-----------|
+| Story Reference (`list_*`) | `(id, id_story)` | Guarantees entity uniqueness per story. Allows explicit `id` insertion from import data. |
+| Gaming Runtime (`gaming_*`) | `(id, id_match)` | Guarantees entity uniqueness per match. |
+| `gaming_state_locations` | `(id_match, id_location)` | Each location has exactly one state row per match. |
+| `gaming_turn_queue` | `(id_match, id_character_match)` | Each character appears at most once in the turn queue per match. |
 
-### 2.2.1 Scoped Identity Constraints (id + parent scope)
+**Identity Rules**:
+- `list_character_templates` uses `(id_tipo, id_story)` as its primary key.
+- The `id` (or `id_tipo`) column remains `AUTO_INCREMENT` / `SERIAL` but is explicitly included in the PK alongside the scope column.
+- This strategy prevents cross-story ID collisions and facilitates bulk import/export where IDs must be preserved.
 
-For tables with a surrogate auto-increment key and a natural parent scope (`id_story` for `list_*`, `id_match` for `gaming_*`), migrations now enforce an additional scoped uniqueness rule:
-
-- `UNIQUE (id, id_story)` on `list_*` tables containing `id_story`
-- `UNIQUE (id, id_match)` on `gaming_*` tables containing `id_match`
-
-This keeps compatibility with existing FK joins on `id` while making scoped identity explicit for import/export workflows.
-
-> SQLite note: true composite PK `(id, scope)` is incompatible with `INTEGER PRIMARY KEY AUTOINCREMENT`; therefore scoped identity is enforced with `UNIQUE` constraints while keeping auto-increment PK semantics.
+> SQLite note: Composite PKs are fully supported. For auto-incrementing parts, SQLite requires the integer column to be part of the primary key.
 
 
 ### 2.3 Primary Key Summary by Tier
@@ -152,8 +150,8 @@ This keeps compatibility with existing FK joins on `id` while making scoped iden
 |------|--------|-------------|
 | System (2) | `global_game_version`, `global_runtime_variables` | `id` auto-increment |
 | User (2) | `users`, `users_tokens` | `id` auto-increment |
-| Story (23) | All `list_*` tables | `id` auto-increment (except `list_character_templates` → `id_tipo`) |
-| Runtime (25) | All `gaming_*`, `log_*`, `chat_*`, `system_*` | `id` auto-increment or composite |
+| Story (23) | All `list_*` tables | `(id, id_story)` composite (except `list_stories` → `id`) |
+| Runtime (25) | All `gaming_*`, `log_*`, `chat_*` | `(id, id_match)` composite where applicable |
 
 
 ### 2.4 UUID Column (Public API Identifier)
@@ -637,7 +635,8 @@ ORDER BY installed_rank;
     | 0.10.0 | Initial version: 52 tables, 13 migration files per dialect, indexes, seed data, Flyway guide | March 19, 2026 |
     | 0.10.12 | Added UUID column to all 52 tables for public API identifiers (gen_random_uuid / randomblob) | March 19, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: April 09, 2026
+    | 0.17.4 | Change primary keys on `list_` and `gaming_` tables to composite `(id, scope)` | May 03, 2026 |
+- **Last Updated**: May 03, 2026
 - **Status**: Complete ✅
 
 

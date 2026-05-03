@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.CharacterTemplateScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for character template management.
  */
 @Repository
-public interface CharacterTemplateRepository extends JpaRepository<CharacterTemplateEntity, Long> {
+public interface CharacterTemplateRepository extends JpaRepository<CharacterTemplateEntity, CharacterTemplateScopedEntityId> {
 
     List<CharacterTemplateEntity> findByIdStory(Long idStory);
 

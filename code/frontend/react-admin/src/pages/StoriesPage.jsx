@@ -59,13 +59,20 @@ export default function StoriesPage() {
       entityTypes.forEach((type, index) => {
         exportData[type] = results[index].map(item => {
           // eslint-disable-next-line no-unused-vars
-          const { id, tsInsert, tsUpdate, idStory, uuid, ...rest } = item
+          const { tsInsert, tsUpdate, idStory, uuid, ...rest } = item
+          // Ensure id is present and matches idText for texts
+          if (type === 'texts' && item.idText) {
+            rest.id = Number(item.idText)
+            rest.idText = Number(item.idText)
+          } else if (!rest.id && item.id) {
+            rest.id = item.id
+          }
           return rest
         })
       })
       
       // eslint-disable-next-line no-unused-vars
-      const { id, tsInsert, tsUpdate, ...finalJson } = exportData
+      const { tsInsert, tsUpdate, ...finalJson } = exportData
       
       const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)

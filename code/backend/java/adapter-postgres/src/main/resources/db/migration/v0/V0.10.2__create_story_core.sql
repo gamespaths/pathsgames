@@ -47,21 +47,21 @@ CREATE TABLE list_stories (
 );
 
 CREATE TABLE list_stories_difficulty (
-    id                       BIGSERIAL   PRIMARY KEY,
-    uuid                     VARCHAR(36)        NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
-    id_card                  BIGINT,                             -- FK to list_cards(id), deferred
-    id_story                 BIGINT      NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_text_description      BIGINT,                             -- references list_texts(id_text)
-    exp_cost                 INTEGER     NOT NULL DEFAULT 5,
-    max_weight               INTEGER     NOT NULL DEFAULT 10,
-    min_character            INTEGER     NOT NULL DEFAULT 1,
-    max_character            INTEGER     NOT NULL DEFAULT 4,
-    cost_help_coma           INTEGER     NOT NULL DEFAULT 3,
-    cost_max_characteristics INTEGER     NOT NULL DEFAULT 3,
-    number_max_free_action   INTEGER     NOT NULL DEFAULT 1,
-    ts_insert                VARCHAR(50)   NOT NULL DEFAULT NOW()::text,
-    ts_update                VARCHAR(50)   NOT NULL DEFAULT NOW()::text,
-    UNIQUE (id, id_story)
+    id                       BIGINT NOT NULL,
+    id_story                 BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
+    uuid                     VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
+    id_text_name             BIGINT,
+    id_text_description      BIGINT,
+    exp_cost                 INTEGER      NOT NULL DEFAULT 5,
+    max_weight               INTEGER      NOT NULL DEFAULT 10,
+    min_character            INTEGER      NOT NULL DEFAULT 1,
+    max_character            INTEGER      NOT NULL DEFAULT 4,
+    cost_help_coma           INTEGER      NOT NULL DEFAULT 3,
+    cost_max_characteristics INTEGER      NOT NULL DEFAULT 2,
+    number_max_free_action   INTEGER      NOT NULL DEFAULT 0,
+    ts_insert                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE list_keys (
@@ -133,10 +133,10 @@ CREATE TABLE list_traits (
 );
 
 CREATE TABLE list_character_templates (
-    id_tipo             BIGSERIAL    PRIMARY KEY,
+    id_tipo             BIGINT NOT NULL,
+    id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
-    id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     life_max            INTEGER      NOT NULL DEFAULT 10,
@@ -147,5 +147,5 @@ CREATE TABLE list_character_templates (
     constitution_start  INTEGER      NOT NULL DEFAULT 1,
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    UNIQUE (id_tipo, id_story)
+    PRIMARY KEY (id_tipo, id_story)
 );

@@ -23,7 +23,7 @@ CREATE TABLE gaming_match (
     uuid                        VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story                    BIGINT       NOT NULL REFERENCES list_stories(id),
     name                        VARCHAR(255),
-    id_difficulty               BIGINT       NOT NULL REFERENCES list_stories_difficulty(id),
+    id_difficulty               BIGINT       NOT NULL,
     exp_cost                    INTEGER      NOT NULL DEFAULT 5,
     status                      VARCHAR(20)  NOT NULL DEFAULT 'CREATED',
     current_clock               INTEGER      NOT NULL DEFAULT 0,
@@ -37,7 +37,8 @@ CREATE TABLE gaming_match (
     secure_location_param       INTEGER      DEFAULT 0,
     counter_consecutive_pass    INTEGER      NOT NULL DEFAULT 0,
     ts_insert                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update                   VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    FOREIGN KEY (id_difficulty, id_story) REFERENCES list_stories_difficulty(id, id_story)
 );
 
 COMMENT ON COLUMN gaming_match.status IS 'CREATED, RUNNING, PAUSED, ENDED, GAMEOVER';
@@ -47,7 +48,7 @@ CREATE TABLE gaming_character_instance (
     uuid                     VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match                 BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user                  BIGINT       NOT NULL REFERENCES users(id),
-    id_character_template    BIGINT       NOT NULL REFERENCES list_character_templates(id_tipo),
+    id_character_template    BIGINT       NOT NULL,
     dexterity                INTEGER      NOT NULL DEFAULT 1,
     intelligence             INTEGER      NOT NULL DEFAULT 1,
     constitution             INTEGER      NOT NULL DEFAULT 1,
@@ -62,8 +63,7 @@ CREATE TABLE gaming_character_instance (
     counter_consecutive_pass INTEGER      NOT NULL DEFAULT 0,
     ts_insert                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE gaming_character_traits (
@@ -76,7 +76,6 @@ CREATE TABLE gaming_character_traits (
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
@@ -91,7 +90,6 @@ CREATE TABLE gaming_backpack_resources (
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     UNIQUE (id_character_match, id_match),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
@@ -107,6 +105,5 @@ CREATE TABLE gaming_inventory_items (
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

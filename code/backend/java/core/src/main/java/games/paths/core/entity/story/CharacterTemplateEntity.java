@@ -7,12 +7,16 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_character_templates")
-@AttributeOverride(name = "idStory", column = @Column(name = "id_story"))
+@IdClass(CharacterTemplateScopedEntityId.class)
 public class CharacterTemplateEntity extends BaseStoryEntity {
 
     @Id
     @Column(name = "id_tipo")
     private Long idTipo;
+
+    @Id
+    @Column(name = "id_story", insertable = false, updatable = false)
+    private Long idStoryPk;
 
     @Column(name = "life_max", nullable = false)
     private Integer lifeMax;
@@ -46,6 +50,15 @@ public class CharacterTemplateEntity extends BaseStoryEntity {
 
     public Long getIdTipo() { return idTipo; }
     public void setIdTipo(Long idTipo) { this.idTipo = idTipo; }
+
+    @Override
+    public Long getIdStory() { return super.getIdStory(); }
+
+    @Override
+    public void setIdStory(Long idStory) {
+        super.setIdStory(idStory);
+        this.idStoryPk = idStory;
+    }
 
 
 

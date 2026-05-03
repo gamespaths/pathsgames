@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS gaming_state_registry (
     ts_insert        TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update        TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
@@ -73,7 +72,6 @@ CREATE TABLE IF NOT EXISTS gaming_active_effects (
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
@@ -86,8 +84,7 @@ CREATE TABLE IF NOT EXISTS gaming_active_choices (
     id_choise INTEGER REFERENCES list_choices(id),
     ts_insert TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update TEXT    NOT NULL DEFAULT (datetime('now')),
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_story_progress (
@@ -99,8 +96,7 @@ CREATE TABLE IF NOT EXISTS gaming_story_progress (
     id_choise INTEGER REFERENCES list_choices(id),
     ts_insert TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update TEXT    NOT NULL DEFAULT (datetime('now')),
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_temp_variables (
@@ -115,6 +111,5 @@ CREATE TABLE IF NOT EXISTS gaming_temp_variables (
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

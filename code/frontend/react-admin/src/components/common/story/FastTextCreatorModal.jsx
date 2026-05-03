@@ -50,6 +50,7 @@ export default function FastTextCreatorModal({
     try {
       const result = await onSave({
         uuidStory: storyUuid,
+        id: Number(idText),
         idText: Number(idText),
         translations: {
           en: { shortText: enShortText, longText: enLongText },

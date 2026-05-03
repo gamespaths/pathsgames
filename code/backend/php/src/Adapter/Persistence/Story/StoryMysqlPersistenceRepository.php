@@ -34,15 +34,63 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
 
     public function saveStory(array $data): int
     {
+        $explicitId = self::getLong($data, 'id', 'idStory', 'id_story');
+        if ($explicitId !== null) {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO list_stories (
+                    id, uuid, author, category, group_name, visibility, priority, peghi, 
+                    version_min, version_max, id_text_clock_singular, id_text_clock_plural, link_copyright,
+                    id_text_title, id_text_description, id_text_copyright, id_card,
+                    id_location_start, id_image, id_location_all_player_coma, id_event_all_player_coma,
+                    id_event_end_game, id_creator
+                ) VALUES (
+                    :id, :uuid, :author, :category, :group_name, :visibility, :priority, :peghi,
+                    :version_min, :version_max, :id_text_clock_singular, :id_text_clock_plural, :link_copyright,
+                    :id_text_title, :id_text_description, :id_text_copyright, :id_card,
+                    :id_location_start, :id_image, :id_location_all_player_coma, :id_event_all_player_coma,
+                    :id_event_end_game, :id_creator
+                )
+            ");
+            $stmt->execute([
+                ':id' => $explicitId,
+                ':uuid' => $data['uuid'],
+                ':author' => $data['author'] ?? null,
+                ':category' => $data['category'] ?? null,
+                ':group_name' => $data['group'] ?? null,
+                ':visibility' => $data['visibility'] ?? 'DRAFT',
+                ':priority' => $data['priority'] ?? 0,
+                ':peghi' => $data['peghi'] ?? 0,
+                ':version_min' => $data['versionMin'] ?? null,
+                ':version_max' => $data['versionMax'] ?? null,
+                ':id_text_clock_singular' => $data['idTextClockSingular'] ?? null,
+                ':id_text_clock_plural' => $data['idTextClockPlural'] ?? null,
+                ':link_copyright' => $data['linkCopyright'] ?? null,
+                ':id_text_title' => $data['idTextTitle'] ?? null,
+                ':id_text_description' => $data['idTextDescription'] ?? null,
+                ':id_text_copyright' => $data['idTextCopyright'] ?? null,
+                ':id_card' => $data['idCard'] ?? null,
+                ':id_location_start' => $data['idLocationStart'] ?? null,
+                ':id_image' => $data['idImage'] ?? null,
+                ':id_location_all_player_coma' => $data['idLocationAllPlayerComa'] ?? null,
+                ':id_event_all_player_coma' => $data['idEventAllPlayerComa'] ?? null,
+                ':id_event_end_game' => $data['idEventEndGame'] ?? null,
+                ':id_creator' => $data['idCreator'] ?? null,
+            ]);
+            return $explicitId;
+        }
         $stmt = $this->pdo->prepare("
             INSERT INTO list_stories (
                 uuid, author, category, group_name, visibility, priority, peghi, 
                 version_min, version_max, id_text_clock_singular, id_text_clock_plural, link_copyright,
-                id_text_title, id_text_description, id_text_copyright, id_card
+                id_text_title, id_text_description, id_text_copyright, id_card,
+                id_location_start, id_image, id_location_all_player_coma, id_event_all_player_coma,
+                id_event_end_game, id_creator
             ) VALUES (
                 :uuid, :author, :category, :group_name, :visibility, :priority, :peghi,
                 :version_min, :version_max, :id_text_clock_singular, :id_text_clock_plural, :link_copyright,
-                :id_text_title, :id_text_description, :id_text_copyright, :id_card
+                :id_text_title, :id_text_description, :id_text_copyright, :id_card,
+                :id_location_start, :id_image, :id_location_all_player_coma, :id_event_all_player_coma,
+                :id_event_end_game, :id_creator
             )
         ");
         $stmt->execute([
@@ -62,51 +110,121 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             ':id_text_description' => $data['idTextDescription'] ?? null,
             ':id_text_copyright' => $data['idTextCopyright'] ?? null,
             ':id_card' => $data['idCard'] ?? null,
+            ':id_location_start' => $data['idLocationStart'] ?? null,
+            ':id_image' => $data['idImage'] ?? null,
+            ':id_location_all_player_coma' => $data['idLocationAllPlayerComa'] ?? null,
+            ':id_event_all_player_coma' => $data['idEventAllPlayerComa'] ?? null,
+            ':id_event_end_game' => $data['idEventEndGame'] ?? null,
+            ':id_creator' => $data['idCreator'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function saveTexts(int $storyId, array $texts): void
     {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO list_texts (id_story, id_text, lang, short_text, long_text) 
-            VALUES (:id_story, :id_text, :lang, :short_text, :long_text)
-        ");
         foreach ($texts as $t) {
-            $stmt->execute([
-                ':id_story' => $storyId,
-                ':id_text' => $t['idText'] ?? null,
-                ':lang' => $t['lang'] ?? 'en',
-                ':short_text' => $t['shortText'] ?? null,
-                ':long_text' => $t['longText'] ?? null,
-            ]);
+            $explicitId = self::getLong($t, 'id');
+            if ($explicitId !== null) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO list_texts (
+                        id, id_story, id_text, id_card, id_text_name, id_text_description, id_text_copyright,
+                        link_copyright, id_creator, lang, short_text, long_text
+                    ) VALUES (
+                        :id, :id_story, :id_text, :id_card, :id_text_name, :id_text_description, :id_text_copyright,
+                        :link_copyright, :id_creator, :lang, :short_text, :long_text
+                    )
+                ");
+                $stmt->execute([
+                    ':id' => $explicitId,
+                    ':id_story' => $storyId,
+                    ':id_text' => $t['idText'] ?? null,
+                    ':id_card' => $t['idCard'] ?? null,
+                    ':id_text_name' => $t['idTextName'] ?? null,
+                    ':id_text_description' => $t['idTextDescription'] ?? null,
+                    ':id_text_copyright' => $t['idTextCopyright'] ?? null,
+                    ':link_copyright' => $t['linkCopyright'] ?? null,
+                    ':id_creator' => $t['idCreator'] ?? null,
+                    ':lang' => $t['lang'] ?? 'en',
+                    ':short_text' => $t['shortText'] ?? null,
+                    ':long_text' => $t['longText'] ?? null,
+                ]);
+            } else {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO list_texts (
+                        id_story, id_text, id_card, id_text_name, id_text_description, id_text_copyright,
+                        link_copyright, id_creator, lang, short_text, long_text
+                    ) VALUES (
+                        :id_story, :id_text, :id_card, :id_text_name, :id_text_description, :id_text_copyright,
+                        :link_copyright, :id_creator, :lang, :short_text, :long_text
+                    )
+                ");
+                $stmt->execute([
+                    ':id_story' => $storyId,
+                    ':id_text' => $t['idText'] ?? null,
+                    ':id_card' => $t['idCard'] ?? null,
+                    ':id_text_name' => $t['idTextName'] ?? null,
+                    ':id_text_description' => $t['idTextDescription'] ?? null,
+                    ':id_text_copyright' => $t['idTextCopyright'] ?? null,
+                    ':link_copyright' => $t['linkCopyright'] ?? null,
+                    ':id_creator' => $t['idCreator'] ?? null,
+                    ':lang' => $t['lang'] ?? 'en',
+                    ':short_text' => $t['shortText'] ?? null,
+                    ':long_text' => $t['longText'] ?? null,
+                ]);
+            }
         }
     }
 
     public function saveDifficulties(int $storyId, array $difficulties): void
     {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO list_stories_difficulty (
-                id_story, uuid, id_text_description, exp_cost, max_weight, 
-                min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
-            ) VALUES (
-                :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
-                :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
-            )
-        ");
         foreach ($difficulties as $d) {
-            $stmt->execute([
-                ':id_story' => $storyId,
-                ':uuid' => $d['uuid'] ?? null,
-                ':id_text_description' => $d['idTextDescription'] ?? null,
-                ':exp_cost' => $d['expCost'] ?? null,
-                ':max_weight' => $d['maxWeight'] ?? null,
-                ':min_character' => $d['minCharacter'] ?? null,
-                ':max_character' => $d['maxCharacter'] ?? null,
-                ':cost_help_coma' => $d['costHelpComa'] ?? null,
-                ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
-                ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
-            ]);
+            $explicitId = self::getLong($d, 'id');
+            if ($explicitId !== null) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO list_stories_difficulty (
+                        id, id_story, uuid, id_text_description, exp_cost, max_weight,
+                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
+                    ) VALUES (
+                        :id, :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
+                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
+                    )
+                ");
+                $stmt->execute([
+                    ':id' => $explicitId,
+                    ':id_story' => $storyId,
+                    ':uuid' => $d['uuid'] ?? null,
+                    ':id_text_description' => $d['idTextDescription'] ?? null,
+                    ':exp_cost' => $d['expCost'] ?? null,
+                    ':max_weight' => $d['maxWeight'] ?? null,
+                    ':min_character' => $d['minCharacter'] ?? null,
+                    ':max_character' => $d['maxCharacter'] ?? null,
+                    ':cost_help_coma' => $d['costHelpComa'] ?? null,
+                    ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
+                    ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
+                ]);
+            } else {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO list_stories_difficulty (
+                        id_story, uuid, id_text_description, exp_cost, max_weight,
+                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
+                    ) VALUES (
+                        :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
+                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
+                    )
+                ");
+                $stmt->execute([
+                    ':id_story' => $storyId,
+                    ':uuid' => $d['uuid'] ?? null,
+                    ':id_text_description' => $d['idTextDescription'] ?? null,
+                    ':exp_cost' => $d['expCost'] ?? null,
+                    ':max_weight' => $d['maxWeight'] ?? null,
+                    ':min_character' => $d['minCharacter'] ?? null,
+                    ':max_character' => $d['maxCharacter'] ?? null,
+                    ':cost_help_coma' => $d['costHelpComa'] ?? null,
+                    ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
+                    ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
+                ]);
+            }
         }
     }
 
@@ -605,6 +723,14 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $placeholders = [':id_story'];
         $params = [':id_story' => $storyId];
 
+        // Handle explicit id
+        $explicitId = self::getLong($data, 'id');
+        if ($explicitId !== null) {
+            $insertCols[] = 'id';
+            $placeholders[] = ':id';
+            $params[':id'] = $explicitId;
+        }
+
         foreach ($columns as $col) {
             if ($col === 'id' || $col === 'id_story') continue;
             $camelKey = $this->toCamel($col);
@@ -719,5 +845,82 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $first = array_shift($parts);
         return $first . implode('', array_map('ucfirst', $parts));
     }
-}
 
+    // === Explicit-ID import support ===
+
+    private const SYNC_TABLES = [
+        ['list_stories', 'id'], ['list_texts', 'id'], ['list_stories_difficulty', 'id'],
+        ['list_creator', 'id'], ['list_cards', 'id'], ['list_keys', 'id'],
+        ['list_classes', 'id'], ['list_traits', 'id'], ['list_character_templates', 'id'],
+        ['list_locations', 'id'], ['list_events', 'id'], ['list_items', 'id'],
+        ['list_choices', 'id'], ['list_weather_rules', 'id'],
+        ['list_global_random_events', 'id'], ['list_missions', 'id'],
+    ];
+
+    public function existsStoryId(int $storyId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(1) FROM list_stories WHERE id = :id');
+        $stmt->execute([':id' => $storyId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function existsEntityId(string $tableName, string $idColumn, int $entityId, int $storyId): bool
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare("SELECT COUNT(1) FROM {$tableName} WHERE {$idColumn} = :eid AND id_story = :sid");
+        $stmt->execute([':eid' => $entityId, ':sid' => $storyId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function nextScopedId(string $tableName, string $idColumn, int $storyId): int
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return 1;
+        }
+        $stmt = $this->pdo->prepare("SELECT COALESCE(MAX({$idColumn}), 0) + 1 FROM {$tableName} WHERE id_story = :sid");
+        $stmt->execute([':sid' => $storyId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function nextGlobalId(string $tableName, string $idColumn): int
+    {
+        if (!in_array($tableName, self::ALLOWED_TABLES, true)) {
+            return 1;
+        }
+        $stmt = $this->pdo->prepare("SELECT COALESCE(MAX({$idColumn}), 0) + 1 FROM {$tableName}");
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function syncSequences(): void
+    {
+        // Detect PostgreSQL driver
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driver !== 'pgsql') {
+            return;
+        }
+        foreach (self::SYNC_TABLES as [$table, $col]) {
+            try {
+                $sql = "SELECT setval(pg_get_serial_sequence('{$table}', '{$col}'), "
+                     . "COALESCE((SELECT MAX({$col}) FROM {$table}), 1), true)";
+                $this->pdo->query($sql);
+            } catch (\Exception $e) {
+                // Sequence may not exist
+            }
+        }
+    }
+
+    private static function getLong(array $data, string ...$keys): ?int
+    {
+        foreach ($keys as $key) {
+            if (isset($data[$key])) {
+                $v = $data[$key];
+                if (is_int($v)) return $v;
+                if (is_numeric($v)) return (int)$v;
+            }
+        }
+        return null;
+    }
+}

@@ -89,6 +89,13 @@ public class StoryImportService implements StoryImportPort {
         importWeatherRules(storyData, storyId);
         importGlobalRandomEvents(storyData, storyId);
         importMissions(storyData, storyId);
+        importLocationNeighbors(storyData, storyId);
+        importEventEffects(storyData, storyId);
+        importItemEffects(storyData, storyId);
+        importChoiceConditions(storyData, storyId);
+        importChoiceEffects(storyData, storyId);
+        importClassBonuses(storyData, storyId);
+        importMissionSteps(storyData, storyId);
         persistencePort.syncStorySequences();
 
         return StoryImportResult.builder()
@@ -440,6 +447,144 @@ public class StoryImportService implements StoryImportPort {
         persistencePort.saveMissions(entities);
     }
 
+    private void importLocationNeighbors(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "locationNeighbors");
+        if (items.isEmpty()) return;
+
+        List<LocationNeighborEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            LocationNeighborEntity e = new LocationNeighborEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_locations_neighbors", "list_locations_neighbors", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdLocationFrom(getInteger(item, "idLocationFrom"));
+            e.setIdLocationTo(getInteger(item, "idLocationTo"));
+            e.setDirection(getString(item, "direction"));
+            e.setFlagBack(getInteger(item, "flagBack"));
+            e.setConditionRegistryKey(getString(item, "conditionRegistryKey"));
+            e.setConditionRegistryValue(getString(item, "conditionRegistryValue"));
+            e.setEnergyCost(getInteger(item, "energyCost"));
+            e.setIdTextGo(getInteger(item, "idTextGo"));
+            e.setIdTextBack(getInteger(item, "idTextBack"));
+            entities.add(e);
+        }
+        persistencePort.saveLocationNeighbors(entities);
+    }
+
+    private void importEventEffects(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "eventEffects");
+        if (items.isEmpty()) return;
+
+        List<EventEffectEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            EventEffectEntity e = new EventEffectEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_events_effects", "list_events_effects", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdEvent(getInteger(item, "idEvent"));
+            e.setStatistics(getString(item, "statistics"));
+            e.setValue(getInteger(item, "value"));
+            e.setTarget(getString(item, "target"));
+            e.setTraitsToAdd(getString(item, "traitsToAdd"));
+            e.setTraitsToRemove(getString(item, "traitsToRemove"));
+            e.setTargetClass(getInteger(item, "targetClass"));
+            e.setIdItemTarget(getInteger(item, "idItemTarget"));
+            e.setItemAction(getString(item, "itemAction"));
+            entities.add(e);
+        }
+        persistencePort.saveEventEffects(entities);
+    }
+
+    private void importItemEffects(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "itemEffects");
+        if (items.isEmpty()) return;
+
+        List<ItemEffectEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            ItemEffectEntity e = new ItemEffectEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_items_effects", "list_items_effects", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdItem(getInteger(item, "idItem"));
+            e.setEffectCode(getString(item, "effectCode"));
+            e.setEffectValue(getInteger(item, "effectValue"));
+            entities.add(e);
+        }
+        persistencePort.saveItemEffects(entities);
+    }
+
+    private void importChoiceConditions(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "choiceConditions");
+        if (items.isEmpty()) return;
+
+        List<ChoiceConditionEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            ChoiceConditionEntity e = new ChoiceConditionEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_choices_conditions", "list_choices_conditions", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdChoices(getInteger(item, "idChoices"));
+            e.setType(getString(item, "type"));
+            e.setKey(getString(item, "key"));
+            e.setValue(getString(item, "value"));
+            e.setOperator(getString(item, "operator"));
+            entities.add(e);
+        }
+        persistencePort.saveChoiceConditions(entities);
+    }
+
+    private void importChoiceEffects(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "choiceEffects");
+        if (items.isEmpty()) return;
+
+        List<ChoiceEffectEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            ChoiceEffectEntity e = new ChoiceEffectEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_choices_effects", "list_choices_effects", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdChoices(getInteger(item, "idChoices"));
+            e.setIdScelta(getInteger(item, "idScelta"));
+            e.setFlagGroup(getInteger(item, "flagGroup"));
+            e.setStatistics(getString(item, "statistics"));
+            e.setValue(getInteger(item, "value"));
+            e.setIdText(getInteger(item, "idText"));
+            e.setKey(getString(item, "key"));
+            e.setValueToAdd(getString(item, "valueToAdd"));
+            e.setValueToRemove(getString(item, "valueToRemove"));
+            entities.add(e);
+        }
+        persistencePort.saveChoiceEffects(entities);
+    }
+
+    private void importClassBonuses(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "classBonuses");
+        if (items.isEmpty()) return;
+
+        List<ClassBonusEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            ClassBonusEntity e = new ClassBonusEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_classes_bonus", "list_classes_bonus", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdClass(getInteger(item, "idClass"));
+            e.setStatistic(getString(item, "statistic"));
+            e.setValue(getInteger(item, "value"));
+            entities.add(e);
+        }
+        persistencePort.saveClassBonuses(entities);
+    }
+
+    private void importMissionSteps(Map<String, Object> data, Long storyId) {
+        List<Map<String, Object>> items = getList(data, "missionSteps");
+        if (items.isEmpty()) return;
+
+        List<MissionStepEntity> entities = new ArrayList<>();
+        for (Map<String, Object> item : items) {
+            MissionStepEntity e = new MissionStepEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_missions_steps", "list_missions_steps", "id", storyId, "id"));
+            e.setIdStory(storyId);
+            e.setIdMission(getInteger(item, "idMission"));
+            e.setStep(getInteger(item, "step"));
+            entities.add(e);
+        }
+        persistencePort.saveMissionSteps(entities);
+    }
+
     // === Utility Methods ===
 
     @SuppressWarnings("unchecked")
@@ -511,7 +656,10 @@ public class StoryImportService implements StoryImportPort {
                  "list_choices_effects",
                  "list_global_random_events",
                  "list_missions",
-                 "list_missions_steps" -> true;
+                 "list_missions_steps",
+                 "list_locations_neighbors",
+                 "list_items_effects",
+                 "list_classes_bonus" -> true;
             default -> false;
         };
         String cacheScope = useScopedGeneration ? String.valueOf(idStory) : "GLOBAL";
@@ -534,6 +682,13 @@ public class StoryImportService implements StoryImportPort {
                 case "story/list_weather_rules" -> persistencePort.existsWeatherRuleId(idInput, idStory);
                 case "story/list_global_random_events" -> persistencePort.existsGlobalRandomEventId(idInput, idStory);
                 case "story/list_missions" -> persistencePort.existsMissionId(idInput, idStory);
+                case "story/list_locations_neighbors" -> persistencePort.existsLocationNeighborId(idInput, idStory);
+                case "story/list_events_effects" -> persistencePort.existsEventEffectId(idInput, idStory);
+                case "story/list_items_effects" -> persistencePort.existsItemEffectId(idInput, idStory);
+                case "story/list_choices_conditions" -> persistencePort.existsChoiceConditionId(idInput, idStory);
+                case "story/list_choices_effects" -> persistencePort.existsChoiceEffectId(idInput, idStory);
+                case "story/list_classes_bonus" -> persistencePort.existsClassBonusId(idInput, idStory);
+                case "story/list_missions_steps" -> persistencePort.existsMissionStepId(idInput, idStory);
                 default -> false;
             };
             ensureIdAvailable(scope, idInput, exists);

@@ -227,6 +227,41 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
     public boolean existsMissionId(Long id, Long idStory) {
         return existsByStoryScope("list_missions", "id", id, idStory);
     }
+    
+    @Override
+    public boolean existsLocationNeighborId(Long id, Long idStory) {
+        return existsByStoryScope("list_locations_neighbors", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsEventEffectId(Long id, Long idStory) {
+        return existsByStoryScope("list_events_effects", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsItemEffectId(Long id, Long idStory) {
+        return existsByStoryScope("list_items_effects", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsChoiceConditionId(Long id, Long idStory) {
+        return existsByStoryScope("list_choices_conditions", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsChoiceEffectId(Long id, Long idStory) {
+        return existsByStoryScope("list_choices_effects", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsClassBonusId(Long id, Long idStory) {
+        return existsByStoryScope("list_classes_bonus", "id", id, idStory);
+    }
+
+    @Override
+    public boolean existsMissionStepId(Long id, Long idStory) {
+        return existsByStoryScope("list_missions_steps", "id", id, idStory);
+    }
 
     @Override
     public Long nextStoryScopedId(String tableName, String idColumn, Long idStory) {
@@ -275,6 +310,13 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         syncSequence("list_weather_rules", "id");
         syncSequence("list_global_random_events", "id");
         syncSequence("list_missions", "id");
+        syncSequence("list_locations_neighbors", "id");
+        syncSequence("list_events_effects", "id");
+        syncSequence("list_items_effects", "id");
+        syncSequence("list_choices_conditions", "id");
+        syncSequence("list_choices_effects", "id");
+        syncSequence("list_classes_bonus", "id");
+        syncSequence("list_missions_steps", "id");
     }
 
     private void syncSequence(String tableName, String idColumn) {

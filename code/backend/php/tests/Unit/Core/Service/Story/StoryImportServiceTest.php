@@ -49,7 +49,8 @@ class StoryImportServiceTest extends TestCase
     public function testImportStoryAutoUuid(): void
     {
         $this->persistencePort->method('findStoryIdByUuid')->willReturn(null);
-        
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+
         $this->persistencePort->expects($this->once())
             ->method('saveStory')
             ->willReturn(1);
@@ -74,6 +75,8 @@ class StoryImportServiceTest extends TestCase
             'missions' => [['idTextName' => 8, 'steps' => [['stepOrder' => 1]]]]
         ];
 
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(false);
         $this->persistencePort->expects($this->once())->method('saveTexts');
         $this->persistencePort->expects($this->once())->method('saveDifficulties');
         $this->persistencePort->expects($this->once())->method('saveLocations');
@@ -105,6 +108,8 @@ class StoryImportServiceTest extends TestCase
             'cards' => [['card_type' => 'T1']]
         ];
 
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(false);
         $this->persistencePort->expects($this->once())->method('saveKeys');
         $this->persistencePort->expects($this->once())->method('saveTraits');
         $this->persistencePort->expects($this->once())->method('saveCharacterTemplates');
@@ -114,6 +119,73 @@ class StoryImportServiceTest extends TestCase
         $this->persistencePort->expects($this->once())->method('saveCreators');
         $this->persistencePort->expects($this->once())->method('saveCards');
 
+        $this->service->importStory($data);
+    }
+
+    // === NEW TESTS: Explicit-ID import ===
+
+    public function testImportStoryWithExplicitStoryId(): void
+    {
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(false);
+        $this->persistencePort->method('saveStory')->willReturn(990001);
+
+        $data = ['uuid' => 'u-exp', 'id' => 990001, 'author' => 'robot'];
+        $result = $this->service->importStory($data);
+        $this->assertSame('IMPORTED', $result->status);
+    }
+
+    public function testImportStoryDuplicateStoryIdRaises(): void
+    {
+        $this->persistencePort->method('existsStoryId')->willReturn(true);
+        $this->persistencePort->method('findStoryIdByUuid')->willReturn(null);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('story/list_stories id=990001 already present');
+
+        $data = ['uuid' => 'u-dup', 'id' => 990001, 'author' => 'robot'];
+        $this->service->importStory($data);
+    }
+
+    public function testImportStoryWithExplicitEntityIds(): void
+    {
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(false);
+        $this->persistencePort->method('saveStory')->willReturn(1);
+
+        $data = [
+            'uuid' => 'u-ent-id',
+            'texts' => [['id' => 971001, 'idText' => 1, 'lang' => 'en', 'shortText' => 'T1']],
+            'events' => [['id' => 971010, 'type' => 'NORMAL']],
+        ];
+        $result = $this->service->importStory($data);
+        $this->assertSame('IMPORTED', $result->status);
+    }
+
+    public function testImportStoryDuplicateEntityIdRaises(): void
+    {
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(true);
+        $this->persistencePort->method('saveStory')->willReturn(1);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('story/list_texts id=971001 already present');
+
+        $data = [
+            'uuid' => 'u-ent-dup',
+            'texts' => [['id' => 971001, 'idText' => 1, 'lang' => 'en', 'shortText' => 'T1']],
+        ];
+        $this->service->importStory($data);
+    }
+
+    public function testImportStorySyncSequencesCalled(): void
+    {
+        $this->persistencePort->method('existsStoryId')->willReturn(false);
+        $this->persistencePort->method('existsEntityId')->willReturn(false);
+        $this->persistencePort->method('saveStory')->willReturn(1);
+        $this->persistencePort->expects($this->once())->method('syncSequences');
+
+        $data = ['uuid' => 'u-sync', 'author' => 'robot'];
         $this->service->importStory($data);
     }
 }

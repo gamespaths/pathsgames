@@ -48,10 +48,10 @@ CREATE TABLE IF NOT EXISTS list_stories (
 );
 
 CREATE TABLE IF NOT EXISTS list_stories_difficulty (
-    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                       INTEGER NOT NULL,
+    id_story                 INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     uuid                     TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card                  INTEGER,                            -- logical FK to list_cards(id)
-    id_story                 INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_description      INTEGER,                            -- references list_texts(id_text)
     exp_cost                 INTEGER NOT NULL DEFAULT 5,
     max_weight               INTEGER NOT NULL DEFAULT 10,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
     number_max_free_action   INTEGER NOT NULL DEFAULT 1,
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (id, id_story)
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_keys (
@@ -132,10 +132,10 @@ CREATE TABLE IF NOT EXISTS list_traits (
 );
 
 CREATE TABLE IF NOT EXISTS list_character_templates (
-    id_tipo             INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_tipo             INTEGER NOT NULL,
+    id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
-    id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     life_max            INTEGER NOT NULL DEFAULT 10,
@@ -146,5 +146,5 @@ CREATE TABLE IF NOT EXISTS list_character_templates (
     constitution_start  INTEGER NOT NULL DEFAULT 1,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (id_tipo, id_story)
+    PRIMARY KEY (id_tipo, id_story)
 );

@@ -124,7 +124,8 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 ### Validation Status (May 2026)
 
 - Core module tests: **605 passed / 0 failed** (`mvn -pl core test -DskipITs`).
-- End-to-end Robot suite (local Java + PostgreSQL): **178 passed / 0 failed** (`run_robot_with_local_java_postgres.sh`).
+- End-to-end Robot suite (local Java + PostgreSQL): **181 passed / 0 failed** (`run_robot_with_local_java_postgres.sh`).
+- End-to-end Robot suite (local Java + SQLite): **181 passed / 0 failed** (`run_robot_with_local_java.sh`).
 - Step 17 admin CRUD subset in PostgreSQL run: **29 passed / 0 failed**.
 
 ### Verification Commands

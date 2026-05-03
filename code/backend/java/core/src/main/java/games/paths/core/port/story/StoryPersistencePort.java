@@ -47,6 +47,13 @@ public interface StoryPersistencePort {
     boolean existsWeatherRuleId(Long id, Long idStory);
     boolean existsGlobalRandomEventId(Long id, Long idStory);
     boolean existsMissionId(Long id, Long idStory);
+    boolean existsLocationNeighborId(Long id, Long idStory);
+    boolean existsEventEffectId(Long id, Long idStory);
+    boolean existsItemEffectId(Long id, Long idStory);
+    boolean existsChoiceConditionId(Long id, Long idStory);
+    boolean existsChoiceEffectId(Long id, Long idStory);
+    boolean existsClassBonusId(Long id, Long idStory);
+    boolean existsMissionStepId(Long id, Long idStory);
 
     /**
      * Returns the next logical ID in a story scope for the given table/id column.

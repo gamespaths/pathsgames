@@ -10,7 +10,27 @@ from app.adapters.persistence.story.models import (
     MissionEntity, MissionStepEntity, CreatorEntity, CardEntity, KeyEntity
 )
 
+def _get_long(data, *keys):
+    """Try multiple keys to extract an integer value from data dict."""
+    if data is None:
+        return None
+    for key in keys:
+        value = data.get(key)
+        if value is None:
+            continue
+        if isinstance(value, int):
+            return value
+        if isinstance(value, (float,)):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                continue
+    return None
+
 class StoryPersistenceAdapter(StoryPersistencePort):
+
     def __init__(self, session_factory):
         self.session_factory = session_factory
 
@@ -56,6 +76,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_story(self, data: Dict[str, Any]) -> int:
         with self.session_factory() as session:
+            explicit_id = _get_long(data, "id", "idStory", "id_story")
             s_ent = StoryEntity(
                 uuid=data.get("uuid"),
                 author=data.get("author"),
@@ -80,6 +101,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 id_creator=data.get("idCreator"),
                 id_card=data.get("idCard")
             )
+            if explicit_id is not None:
+                s_ent.id = explicit_id
             session.add(s_ent)
             session.commit()
             session.refresh(s_ent)
@@ -103,7 +126,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_locations(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                loc = LocationEntity(
+                kwargs = dict(
                     id_story=story_id,
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
@@ -114,6 +137,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     counter_start=item.get("counterStart"),
                     id_card=item.get("idCard")
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                loc = LocationEntity(**kwargs)
                 session.add(loc)
                 session.flush() # get loc.id
                 
@@ -135,7 +162,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                ev = EventEntity(
+                kwargs = dict(
                     id_story=story_id,
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
@@ -148,6 +175,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     flag_end_time=item.get("flagEndTime", 0),
                     id_location=item.get("idLocation")
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                ev = EventEntity(**kwargs)
                 session.add(ev)
                 session.flush()
                 
@@ -167,13 +198,17 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                it = ItemEntity(
+                kwargs = dict(
                     id_story=story_id,
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     weight=item.get("weight", 0),
                     id_class=item.get("idClass")
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                it = ItemEntity(**kwargs)
                 session.add(it)
                 session.flush()
                 
@@ -192,7 +227,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_classes(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                cls = ClassEntity(
+                kwargs = dict(
                     id_story=story_id,
                     uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_text_name=item.get("idTextName"),
@@ -202,6 +237,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     intelligence_base=item.get("intelligenceBase", 1),
                     constitution_base=item.get("constitutionBase", 1)
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                cls = ClassEntity(**kwargs)
                 session.add(cls)
                 session.flush()
                 
@@ -220,7 +259,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_choices(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                ch = ChoiceEntity(
+                kwargs = dict(
                     id_story=story_id,
                     id_event=item.get("idEvent"),
                     id_text_name=item.get("idTextName"),
@@ -230,6 +269,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     is_progress=item.get("isProgress", 0),
                     id_event_torun=item.get("idEventToRun")
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                ch = ChoiceEntity(**kwargs)
                 session.add(ch)
                 session.flush()
                 
@@ -309,7 +352,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def save_missions(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
             for item in items:
-                m = MissionEntity(
+                kwargs = dict(
                     id_story=story_id,
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
@@ -318,6 +361,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     condition_value_to=item.get("conditionValueTo"),
                     id_event_completed=item.get("idEventCompleted")
                 )
+                explicit_id = _get_long(item, "id")
+                if explicit_id is not None:
+                    kwargs["id"] = explicit_id
+                m = MissionEntity(**kwargs)
                 session.add(m)
                 session.flush()
                 
@@ -348,6 +395,11 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         with self.session_factory() as session:
             for item in items:
                 kwargs = {"id_story": story_id}
+                # Handle explicit id
+                explicit_id = _get_long(item, "id", "idTipo", "id_tipo")
+                if explicit_id is not None:
+                    id_col = "id_tipo" if entity_class == CharacterTemplateEntity else "id"
+                    kwargs[id_col] = explicit_id
                 for db_col, json_key in field_map.items():
                     if json_key in item:
                         kwargs[db_col] = item[json_key]
@@ -392,9 +444,17 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             return
         with self.session_factory() as session:
             kwargs = {"id_story": story_id}
+            
+            # Handle ID (Step 17: generate next ID if not provided)
+            id_col = "id_tipo" if table_name == "list_character_templates" else "id"
+            explicit_id = _get_long(data, "id", "id_tipo", "idTipo")
+            if explicit_id is None:
+                explicit_id = self.next_scoped_id(table_name, id_col, story_id)
+            kwargs[id_col] = explicit_id
+            
             for col in model.__table__.columns:
                 col_name = col.name
-                if col_name in ("id", "id_story"):
+                if col_name in ("id", "id_story", "id_tipo"):
                     continue
                 # Try camelCase key from data
                 camel_key = self._to_camel(col_name)
@@ -460,4 +520,69 @@ class StoryPersistenceAdapter(StoryPersistencePort):
     def _to_camel(snake_str: str) -> str:
         parts = snake_str.split("_")
         return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+    # === Explicit-ID import support ===
+
+    _SYNC_TABLES = [
+        ("list_stories", "id"),
+        ("list_texts", "id"),
+        ("list_stories_difficulty", "id"),
+        ("list_creator", "id"),
+        ("list_cards", "id"),
+        ("list_keys", "id"),
+        ("list_classes", "id"),
+        ("list_traits", "id"),
+        ("list_character_templates", "id"),
+        ("list_locations", "id"),
+        ("list_events", "id"),
+        ("list_items", "id"),
+        ("list_choices", "id"),
+        ("list_weather_rules", "id"),
+        ("list_global_random_events", "id"),
+        ("list_missions", "id"),
+    ]
+
+    def exists_story_id(self, story_id: int) -> bool:
+        with self.session_factory() as session:
+            return session.query(StoryEntity).filter(StoryEntity.id == story_id).first() is not None
+
+    def exists_entity_id(self, table_name: str, id_column: str, entity_id: int, story_id: int) -> bool:
+        from sqlalchemy import text
+        with self.session_factory() as session:
+            sql = text(f"SELECT COUNT(1) FROM {table_name} WHERE {id_column} = :eid AND id_story = :sid")
+            result = session.execute(sql, {"eid": entity_id, "sid": story_id}).scalar()
+            return result is not None and result > 0
+
+    def next_scoped_id(self, table_name: str, id_column: str, story_id: int) -> int:
+        from sqlalchemy import text
+        with self.session_factory() as session:
+            sql = text(f"SELECT COALESCE(MAX({id_column}), 0) + 1 FROM {table_name} WHERE id_story = :sid")
+            result = session.execute(sql, {"sid": story_id}).scalar()
+            return result if result else 1
+
+    def next_global_id(self, table_name: str, id_column: str) -> int:
+        from sqlalchemy import text
+        with self.session_factory() as session:
+            sql = text(f"SELECT COALESCE(MAX({id_column}), 0) + 1 FROM {table_name}")
+            result = session.execute(sql).scalar()
+            return result if result else 1
+
+    def sync_sequences(self) -> None:
+        """Sync PostgreSQL sequences after explicit-id inserts. No-op on SQLite."""
+        from sqlalchemy import text
+        with self.session_factory() as session:
+            dialect = session.bind.dialect.name if session.bind else ""
+            if dialect != "postgresql":
+                return
+            for table_name, id_column in self._SYNC_TABLES:
+                try:
+                    sql = text(
+                        f"SELECT setval(pg_get_serial_sequence('{table_name}', '{id_column}'), "
+                        f"COALESCE((SELECT MAX({id_column}) FROM {table_name}), 1), true)"
+                    )
+                    session.execute(sql)
+                except Exception:
+                    pass  # Table or sequence may not exist
+            session.commit()
+
 

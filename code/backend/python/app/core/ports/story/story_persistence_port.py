@@ -93,3 +93,30 @@ class StoryPersistencePort(ABC):
     def update_story_by_id(self, story_id: int, data: Dict[str, Any]) -> None:
         pass
 
+    # Explicit-ID import support
+
+    @abstractmethod
+    def exists_story_id(self, story_id: int) -> bool:
+        """Check if a story with the given id exists."""
+        pass
+
+    @abstractmethod
+    def exists_entity_id(self, table_name: str, id_column: str, entity_id: int, story_id: int) -> bool:
+        """Check if an entity with the given id exists in the given table for a story."""
+        pass
+
+    @abstractmethod
+    def next_scoped_id(self, table_name: str, id_column: str, story_id: int) -> int:
+        """Return MAX(id_column)+1 for a given table scoped by story_id."""
+        pass
+
+    @abstractmethod
+    def next_global_id(self, table_name: str, id_column: str) -> int:
+        """Return MAX(id_column)+1 for a given table (global, no story scope)."""
+        pass
+
+    @abstractmethod
+    def sync_sequences(self) -> None:
+        """Sync PostgreSQL sequences after explicit-id inserts. No-op on SQLite."""
+        pass
+

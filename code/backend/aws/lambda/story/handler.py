@@ -149,6 +149,7 @@ def _story_summary(item, lang):
 
     return {
         'uuid':            item.get('uuid'),
+        'id':              _safe_int(item.get('id')),
         'title':           _resolve_text(texts, lang, 'title'),
         'description':     _resolve_text(texts, lang, 'description'),
         'author':          item.get('author'),
@@ -177,6 +178,7 @@ def _story_detail(item, lang):
     for d in raw_diffs:
         difficulties.append({
             'uuid':                  d.get('uuid'),
+            'id':                    _safe_int(d.get('id')),
             'description':           _resolve_text(d.get('texts', {}), lang, 'title'),
             'expCost':               _safe_int(d.get('expCost')),
             'maxWeight':             _safe_int(d.get('maxWeight')),
@@ -193,6 +195,7 @@ def _story_detail(item, lang):
     for ct in raw_templates:
         character_templates.append({
             'uuid':              ct.get('uuid'),
+            'id_tipo':           _safe_int(ct.get('id_tipo')),
             'name':              _resolve_text(ct.get('texts', {}), lang, 'name'),
             'description':       _resolve_text(ct.get('texts', {}), lang, 'description'),
             'lifeMax':           _safe_int(ct.get('lifeMax')),
@@ -209,6 +212,7 @@ def _story_detail(item, lang):
     for cl in raw_classes:
         classes.append({
             'uuid':             cl.get('uuid'),
+            'id':               _safe_int(cl.get('id')),
             'name':             _resolve_text(cl.get('texts', {}), lang, 'name'),
             'description':      _resolve_text(cl.get('texts', {}), lang, 'description'),
             'weightMax':        _safe_int(cl.get('weightMax')),
@@ -223,6 +227,7 @@ def _story_detail(item, lang):
     for tr in raw_traits:
         traits.append({
             'uuid':              tr.get('uuid'),
+            'id':                _safe_int(tr.get('id')),
             'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
             'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
             'costPositive':      _safe_int(tr.get('costPositive')),
@@ -251,6 +256,7 @@ def _story_detail(item, lang):
 
     return {
         'uuid':                       item.get('uuid'),
+        'id':                         _safe_int(item.get('id')),
         'title':                      _resolve_text(texts, lang, 'title'),
         'description':                _resolve_text(texts, lang, 'description'),
         'author':                     item.get('author'),
@@ -444,7 +450,20 @@ def import_story(event):
     if not story_uuid:
         story_uuid = str(uuid_lib.uuid4())
 
-    # If story already exists → delete it first (replace-on-conflict)
+    # ID validation and generation for stories
+    all_stories = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    input_id = data.get('id')
+    if input_id is not None:
+        input_id = _safe_int(input_id)
+        # Check global collision
+        for s in all_stories:
+            if s.get('uuid') != story_uuid and _safe_int(s.get('id')) == input_id:
+                return _err(400, 'INVALID_IMPORT_DATA', f'story/list_stories id={input_id} already present')
+    else:
+        max_story_id = max([_safe_int(s.get('id')) for s in all_stories], default=0)
+        input_id = max_story_id + 1
+
+    # If story already exists by UUID → delete it first (replace-on-conflict)
     existing = db_utils.get_item(f'STORY#{story_uuid}')
     if existing:
         db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
@@ -474,9 +493,9 @@ def import_story(event):
             texts_dict[lang]['clockPlural'] = t.get('shortText') or t.get('longText')
 
     # Build difficulties list (store inline with story metadata)
-    raw_diffs = data.get('difficulties', [])
+    raw_diffs = _assign_ids(data.get('difficulties', []), 'id')
     difficulties = []
-    for i, d in enumerate(raw_diffs):
+    for d in raw_diffs:
         diff_uuid = str(uuid_lib.uuid4())
         # Map idTextDescription to a stub text dict for description
         id_diff_desc = d.get('idTextDescription')
@@ -487,6 +506,7 @@ def import_story(event):
                 diff_texts[lang_t] = {'title': t.get('shortText') or t.get('longText')}
         difficulties.append({
             'uuid':                   diff_uuid,
+            'id':                     _safe_int(d.get('id')),
             'texts':                  diff_texts,
             'expCost':                d.get('expCost', 0),
             'maxWeight':              d.get('maxWeight', 0),
@@ -498,7 +518,7 @@ def import_story(event):
         })
 
     # Step 15: Build character templates list
-    raw_char_templates = data.get('characterTemplates', [])
+    raw_char_templates = _assign_ids(data.get('characterTemplates', []), 'id_tipo')
     character_templates = []
     for ct in raw_char_templates:
         ct_uuid = str(uuid_lib.uuid4())
@@ -507,6 +527,7 @@ def import_story(event):
         ct_texts = _build_sub_entity_texts(raw_texts, id_ct_name, id_ct_desc)
         character_templates.append({
             'uuid':              ct_uuid,
+            'id_tipo':           _safe_int(ct.get('id_tipo')),
             'texts':             ct_texts,
             'lifeMax':           ct.get('lifeMax', 0),
             'energyMax':         ct.get('energyMax', 0),
@@ -517,7 +538,7 @@ def import_story(event):
         })
 
     # Step 15: Build classes list
-    raw_classes = data.get('classes', [])
+    raw_classes = _assign_ids(data.get('classes', []), 'id')
     classes = []
     for cl in raw_classes:
         cl_uuid = str(uuid_lib.uuid4())
@@ -526,6 +547,7 @@ def import_story(event):
         cl_texts = _build_sub_entity_texts(raw_texts, id_cl_name, id_cl_desc)
         classes.append({
             'uuid':             cl_uuid,
+            'id':               _safe_int(cl.get('id')),
             'texts':            cl_texts,
             'weightMax':        cl.get('weightMax', 0),
             'dexterityBase':    cl.get('dexterityBase', 0),
@@ -534,7 +556,7 @@ def import_story(event):
         })
 
     # Step 15: Build traits list
-    raw_traits = data.get('traits', [])
+    raw_traits = _assign_ids(data.get('traits', []), 'id')
     traits = []
     for tr in raw_traits:
         tr_uuid = str(uuid_lib.uuid4())
@@ -543,6 +565,7 @@ def import_story(event):
         tr_texts = _build_sub_entity_texts(raw_texts, id_tr_name, id_tr_desc)
         traits.append({
             'uuid':              tr_uuid,
+            'id':                _safe_int(tr.get('id')),
             'texts':             tr_texts,
             'costPositive':      tr.get('costPositive', 0),
             'costNegative':      tr.get('costNegative', 0),
@@ -591,12 +614,12 @@ def import_story(event):
                 break
 
     # Step 16: Build raw_creators with assigned UUIDs (for content detail queries)
-    raw_creators_input = data.get('creators', [])
+    raw_creators_input = _assign_ids(data.get('creators', []), 'id')
     stored_creators = []
     for cr in raw_creators_input:
         cr_uuid = str(uuid_lib.uuid4())
         stored_creators.append({
-            'id':           cr.get('id'),
+            'id':           _safe_int(cr.get('id')),
             'uuid':         cr_uuid,
             'idText':       cr.get('idText'),
             'link':         cr.get('link'),
@@ -607,11 +630,12 @@ def import_story(event):
         })
 
     # Step 16: Build raw_cards with assigned UUIDs (for content detail queries)
+    raw_cards_input = _assign_ids(data.get('cards', []), 'id')
     stored_cards = []
-    for c in raw_cards:
+    for c in raw_cards_input:
         c_uuid = str(uuid_lib.uuid4())
         stored_cards.append({
-            'id':                c.get('id'),
+            'id':                _safe_int(c.get('id')),
             'uuid':              c_uuid,
             'idTextTitle':       c.get('idTextName') or c.get('idTextTitle'),
             'idTextDescription': c.get('idTextDescription'),
@@ -631,6 +655,7 @@ def import_story(event):
         'PK':                     f'STORY#{story_uuid}',
         'SK':                     'METADATA',
         'uuid':                   story_uuid,
+        'id':                     _safe_int(input_id),
         'author':                 data.get('author'),
         'category':               data.get('category'),
         'group':                  data.get('group'),
@@ -640,6 +665,15 @@ def import_story(event):
         'versionMin':             data.get('versionMin'),
         'versionMax':             data.get('versionMax'),
         'idCard':                 _safe_int(data.get('idCard')),
+        'idTextTitle':            _safe_int(data.get('idTextTitle')),
+        'idTextDescription':      _safe_int(data.get('idTextDescription')),
+        'idLocationStart':        _safe_int(data.get('idLocationStart')),
+        'idImage':                _safe_int(data.get('idImage')),
+        'idLocationAllPlayerComa': _safe_int(data.get('idLocationAllPlayerComa')),
+        'idEventAllPlayerComa':    _safe_int(data.get('idEventAllPlayerComa')),
+        'idEventEndGame':          _safe_int(data.get('idEventEndGame')),
+        'idTextCopyright':         _safe_int(data.get('idTextCopyright')),
+        'idCreator':               _safe_int(data.get('idCreator')),
         'idTextClockSingular':    _safe_int(data.get('idTextClockSingular')),
         'idTextClockPlural':      _safe_int(data.get('idTextClockPlural')),
         'linkCopyright':          data.get('linkCopyright'),
@@ -658,13 +692,25 @@ def import_story(event):
         'template_count':         len(character_templates),
         'trait_count':            len(traits),
         # Step 17: actually store sub-entities
-        'locations':              _assign_uuids(data.get('locations', [])),
-        'events':                 _assign_uuids(data.get('events', [])),
-        'items':                  _assign_uuids(data.get('items', [])),
+        'locations':              _assign_uuids(_assign_ids(data.get('locations', []), 'id')),
+        'events':                 _assign_uuids(_assign_ids(data.get('events', []), 'id')),
+        'items':                  _assign_uuids(_assign_ids(data.get('items', []), 'id')),
         # Step 16: raw data for content detail queries
-        'raw_texts':              raw_texts,
+        'raw_texts':              _assign_ids(data.get('texts', []), 'id'),
         'raw_cards':              stored_cards,
         'raw_creators':           stored_creators,
+        'keys':                   _assign_ids(data.get('keys', []), 'id'),
+        'choices':                _assign_ids(data.get('choices', []), 'id'),
+        'weatherRules':           _assign_ids(data.get('weatherRules', []), 'id'),
+        'globalRandomEvents':    _assign_ids(data.get('globalRandomEvents', []), 'id'),
+        'missions':               _assign_ids(data.get('missions', []), 'id'),
+        'locationNeighbors':      _assign_ids(data.get('locationNeighbors', []), 'id'),
+        'eventEffects':           _assign_ids(data.get('eventEffects', []), 'id'),
+        'itemEffects':            _assign_ids(data.get('itemEffects', []), 'id'),
+        'choiceConditions':       _assign_ids(data.get('choiceConditions', []), 'id'),
+        'choiceEffects':          _assign_ids(data.get('choiceEffects', []), 'id'),
+        'classBonuses':           _assign_ids(data.get('classBonuses', []), 'id'),
+        'missionSteps':           _assign_ids(data.get('missionSteps', []), 'id'),
         # GSI for story listing
         'GSI1_PK':                'STORY_LIST',
         'GSI1_SK':                f'STORY#{story_uuid}',
@@ -707,9 +753,46 @@ def _build_sub_entity_texts(raw_texts, id_name, id_desc):
 
 def _assign_uuids(entities):
     """Assign a random UUID to each entity in a list if not already present."""
+    if not entities: return []
     for e in entities:
         if not e.get('uuid'):
             e['uuid'] = str(uuid_lib.uuid4())
+    return entities
+
+def _assign_ids(entities, id_field):
+    """Assign/validate numeric IDs for sub-entities within a story.
+    Enforces uniqueness within the list and generates missing ones.
+    Checks for common ID fields if id_field is not present.
+    """
+    if not entities: return []
+    
+    seen = set()
+    to_assign = []
+    
+    for e in entities:
+        # Try primary field, then fallbacks
+        eid = e.get(id_field)
+        if eid is None:
+            eid = e.get('id') or e.get('idText') or e.get('id_text') or e.get('id_tipo') or e.get('idTipo')
+            
+        if eid is not None:
+            eid = _safe_int(eid)
+            if eid in seen:
+                # Collision within the same story import payload
+                pass 
+            seen.add(eid)
+            e[id_field] = eid
+        else:
+            to_assign.append(e)
+            
+    if not to_assign:
+        return entities
+        
+    next_id = max(seen, default=0) + 1
+    for e in to_assign:
+        e[id_field] = next_id
+        next_id += 1
+        
     return entities
 
 

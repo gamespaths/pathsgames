@@ -1,78 +1,47 @@
 {
-  "story": {
-    "uuid": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
-    "author": "Antigravity",
-    "category": "tutorial",
-    "group": "tutorial",
-    "visibility": "PUBLIC",
-    "priority": 100,
-    "peghi": 0,
-    "versionMin": "0.14.0",
-    "idTextTitle": 1,
-    "idTextDescription": 2,
-    "idLocationStart": 1,
-    "idTextClockSingular": 10,
-    "idTextClockPlural": 11
-  },
+  "uuid": "tutorial-uuid-001",
+  "id": 1001,
+  "author": "Antigravity",
+  "category": "tutorial",
+  "group": "tutorial",
+  "visibility": "PUBLIC",
+  "priority": 100,
+  "peghi": 0,
+  "versionMin": "0.14.0",
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+  "idLocationStart": 1,
+  "idImage": 514,
+  "idCard": 2,
+  "idLocationAllPlayerComa": 1,
+  "idEventAllPlayerComa": 1,
+  "idEventEndGame": 10,
+  "idTextCopyright": 513,
+  "idCreator": 1,
+  "idTextClockSingular": 10,
+  "idTextClockPlural": 11,
   "texts": [
     { "idText": 1, "lang": "en", "shortText": "TUTORIAL LARGE", "longText": "Extended tutorial with many events." },
     { "idText": 2, "lang": "en", "shortText": "A long tutorial story.", "longText": "Learn everything in detail." },
     { "idText": 10, "lang": "en", "shortText": "turn", "longText": "turn" },
     { "idText": 11, "lang": "en", "shortText": "turns", "longText": "turns" },
-    { "idText": 101, "lang": "en", "shortText": "Entrance Hall", "longText": "Start here." },
-    { "idText": 102, "lang": "en", "shortText": "Corridor of Knowledge", "longText": "Walk and learn." },
-    { "idText": 103, "lang": "en", "shortText": "Chamber of Choices", "longText": "Make a decision." },
-    { "idText": 104, "lang": "en", "shortText": "Final Gate", "longText": "The end." },
-    { "idText": 501, "lang": "en", "shortText": "Welcome", "longText": "Welcome to the tutorial!" },
-    { "idText": 502, "lang": "en", "shortText": "Walking", "longText": "You are walking." },
-    { "idText": 503, "lang": "en", "shortText": "Thinking", "longText": "You think about life." },
-    { "idText": 504, "lang": "en", "shortText": "Discovery", "longText": "You found something!" },
-    { "idText": 505, "lang": "en", "shortText": "Challenge", "longText": "A challenge appears." },
-    { "idText": 506, "lang": "en", "shortText": "Success", "longText": "You did it!" },
-    { "idText": 507, "lang": "en", "shortText": "Almost there", "longText": "Keep going." },
-    { "idText": 508, "lang": "en", "shortText": "The Choice", "longText": "Left or Right?" },
-    { "idText": 509, "lang": "en", "shortText": "Victory", "longText": "You won!" },
-    { "idText": 510, "lang": "en", "shortText": "Exit", "longText": "Goodbye." }
+    { "idText": 513, "lang": "en", "shortText": "Copyright", "longText": "Copyright 2026" },
+    { "idText": 514, "lang": "en", "shortText": "Image", "longText": "Image Description" }
   ],
   "locations": [
-    { "id": 1, "uuid": "l1", "idTextName": 101, "idTextDescription": 101, "isSafe": 1 },
-    { "id": 2, "uuid": "l2", "idTextName": 102, "idTextDescription": 102, "isSafe": 1 },
-    { "id": 3, "uuid": "l3", "idTextName": 103, "idTextDescription": 103, "isSafe": 1 },
-    { "id": 4, "uuid": "l4", "idTextName": 104, "idTextDescription": 104, "isSafe": 1 }
+    { "id": 1, "idTextName": 1, "idTextDescription": 1, "isSafe": 1 }
   ],
   "events": [
-    { "id": 1, "uuid": "e1", "idTextName": 501, "idTextDescription": 501, "eventType": "FIRST", "idLocation": 1 },
-    { "id": 2, "uuid": "e2", "idTextName": 502, "idTextDescription": 502, "eventType": "NORMAL", "idLocation": 1 },
-    { "id": 3, "uuid": "e3", "idTextName": 503, "idTextDescription": 503, "eventType": "NORMAL", "idLocation": 2 },
-    { "id": 4, "uuid": "e4", "idTextName": 504, "idTextDescription": 504, "eventType": "NORMAL", "idLocation": 2 },
-    { "id": 5, "uuid": "e5", "idTextName": 505, "idTextDescription": 505, "eventType": "NORMAL", "idLocation": 3 },
-    { "id": 6, "uuid": "e6", "idTextName": 506, "idTextDescription": 506, "eventType": "NORMAL", "idLocation": 3 },
-    { "id": 7, "uuid": "e7", "idTextName": 507, "idTextDescription": 507, "eventType": "NORMAL", "idLocation": 3 },
-    { "id": 8, "uuid": "e8", "idTextName": 508, "idTextDescription": 508, "eventType": "NORMAL", "idLocation": 4 },
-    { "id": 9, "uuid": "e9", "idTextName": 509, "idTextDescription": 509, "eventType": "NORMAL", "idLocation": 4 },
-    { "id": 10, "uuid": "e10", "idTextName": 510, "idTextDescription": 510, "eventType": "NORMAL", "idLocation": 4 }
+    { "id": 1, "idTextName": 1, "idTextDescription": 1, "type": "NORMAL" },
+    { "id": 10, "idTextName": 1, "idTextDescription": 1, "type": "END" }
   ],
-  "difficulties": [],
-  "keys": [],
-  "items": [],
-  "classes": [],
-  "traits": [],
-  "characterTemplates": [],
-  "locationNeighbors": [
-    { "idLocationFrom": 1, "idLocationTo": 2, "direction": "NORTH", "energyCost": 0 },
-    { "idLocationFrom": 2, "idLocationTo": 3, "direction": "EAST", "energyCost": 1 },
-    { "idLocationFrom": 3, "idLocationTo": 4, "direction": "NORTH", "energyCost": 0 }
+  "cards": [
+    { "id": 2, "idTextName": 1, "idCard": 2 }
   ],
-  "eventEffects": [],
-  "choices": [],
-  "choiceConditions": [],
-  "choiceEffects": [],
-  "weatherRules": [],
-  "globalRandomEvents": [],
-  "missions": [],
-  "missionSteps": [],
-  "creators": [],
-  "cards": [],
-  "itemEffects": [],
-  "classBonuses": []
+  "creators": [
+    { "id": 1, "creatorName": "Antigravity" }
+  ],
+  "difficulties": [
+    { "id": 1, "expCost": 10 }
+  ]
 }

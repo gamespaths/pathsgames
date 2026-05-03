@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS list_stories (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_stories_difficulty (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     uuid VARCHAR(36) DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -82,11 +82,12 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
     cost_help_coma INT DEFAULT NULL,
     cost_max_characteristics INT DEFAULT NULL,
     number_max_free_action INT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_texts (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text BIGINT NOT NULL,
@@ -99,11 +100,12 @@ CREATE TABLE IF NOT EXISTS list_texts (
     lang VARCHAR(10) DEFAULT 'en',
     short_text TEXT DEFAULT NULL,
     long_text TEXT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_locations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -114,11 +116,12 @@ CREATE TABLE IF NOT EXISTS list_locations (
     id_event_if_counter_zero BIGINT DEFAULT NULL,
     counter_start INT DEFAULT NULL,
     id_card BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_locations_neighbors (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -129,11 +132,12 @@ CREATE TABLE IF NOT EXISTS list_locations_neighbors (
     energy_cost INT DEFAULT 1,
     condition_key VARCHAR(255) DEFAULT NULL,
     condition_value VARCHAR(255) DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_events (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -146,11 +150,12 @@ CREATE TABLE IF NOT EXISTS list_events (
     flag_interrupt INT DEFAULT 0,
     flag_end_time INT DEFAULT 0,
     id_location BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_events_effects (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
@@ -158,32 +163,35 @@ CREATE TABLE IF NOT EXISTS list_events_effects (
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
     flag_group INT DEFAULT 0,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_items (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
     weight INT DEFAULT 0,
     id_class BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_items_effects (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
     id_item BIGINT DEFAULT NULL,
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_classes (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -192,20 +200,22 @@ CREATE TABLE IF NOT EXISTS list_classes (
     dexterity_base INT DEFAULT 1,
     intelligence_base INT DEFAULT 1,
     constitution_base INT DEFAULT 1,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_classes_bonus (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_class BIGINT DEFAULT NULL,
     bonus_type VARCHAR(50) DEFAULT NULL,
     bonus_value INT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_choices (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_event BIGINT DEFAULT NULL,
@@ -215,11 +225,12 @@ CREATE TABLE IF NOT EXISTS list_choices (
     is_otherwise INT DEFAULT 0,
     is_progress INT DEFAULT 0,
     id_event_torun BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_choices_conditions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
     id_choice BIGINT DEFAULT NULL,
@@ -227,11 +238,12 @@ CREATE TABLE IF NOT EXISTS list_choices_conditions (
     condition_key VARCHAR(255) DEFAULT NULL,
     condition_value VARCHAR(255) DEFAULT NULL,
     condition_operator VARCHAR(10) DEFAULT 'AND',
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_choices_effects (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -240,11 +252,12 @@ CREATE TABLE IF NOT EXISTS list_choices_effects (
     effect_type VARCHAR(50) DEFAULT NULL,
     effect_value INT DEFAULT NULL,
     flag_group INT DEFAULT 0,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_cards (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_card BIGINT DEFAULT NULL,
@@ -261,11 +274,12 @@ CREATE TABLE IF NOT EXISTS list_cards (
     style_main VARCHAR(100) DEFAULT NULL,
     style_detail VARCHAR(100) DEFAULT NULL,
     id_reference BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_keys (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -273,11 +287,12 @@ CREATE TABLE IF NOT EXISTS list_keys (
     key_value VARCHAR(255) DEFAULT NULL,
     key_group VARCHAR(100) DEFAULT NULL,
     is_visible INT DEFAULT 0,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_traits (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -286,14 +301,14 @@ CREATE TABLE IF NOT EXISTS list_traits (
     cost_negative INT DEFAULT 0,
     id_class_permitted BIGINT DEFAULT NULL,
     id_class_prohibited BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_character_templates (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id_tipo BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
-    id_tipo BIGINT DEFAULT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
     life_max INT DEFAULT 10,
@@ -302,11 +317,12 @@ CREATE TABLE IF NOT EXISTS list_character_templates (
     dexterity_start INT DEFAULT 1,
     intelligence_start INT DEFAULT 1,
     constitution_start INT DEFAULT 1,
+    PRIMARY KEY (id_tipo, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_weather_rules (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     probability FLOAT DEFAULT NULL,
@@ -317,11 +333,12 @@ CREATE TABLE IF NOT EXISTS list_weather_rules (
     time_start INT DEFAULT NULL,
     time_end INT DEFAULT NULL,
     is_active INT DEFAULT 1,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_global_random_events (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
     id_text_description BIGINT DEFAULT NULL,
@@ -329,11 +346,12 @@ CREATE TABLE IF NOT EXISTS list_global_random_events (
     probability FLOAT DEFAULT NULL,
     condition_key VARCHAR(255) DEFAULT NULL,
     condition_value VARCHAR(255) DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_missions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_text_name BIGINT DEFAULT NULL,
@@ -342,11 +360,12 @@ CREATE TABLE IF NOT EXISTS list_missions (
     condition_value_from VARCHAR(255) DEFAULT NULL,
     condition_value_to VARCHAR(255) DEFAULT NULL,
     id_event_completed BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_missions_steps (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     id_mission BIGINT DEFAULT NULL,
     step_order INT DEFAULT NULL,
@@ -354,11 +373,12 @@ CREATE TABLE IF NOT EXISTS list_missions_steps (
     condition_key VARCHAR(255) DEFAULT NULL,
     condition_value VARCHAR(255) DEFAULT NULL,
     id_event_completed BIGINT DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS list_creator (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT,
     id_story BIGINT NOT NULL,
     uuid VARCHAR(36) DEFAULT NULL,
     id_card BIGINT DEFAULT NULL,
@@ -372,6 +392,7 @@ CREATE TABLE IF NOT EXISTS list_creator (
     url_image VARCHAR(500) DEFAULT NULL,
     url_emote VARCHAR(500) DEFAULT NULL,
     url_instagram VARCHAR(500) DEFAULT NULL,
+    PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS gaming_character_instance (
     uuid                     TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match                 INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user                  INTEGER NOT NULL REFERENCES users(id),
-    id_character_template    INTEGER NOT NULL REFERENCES list_character_templates(id_tipo),
+    id_character_template    INTEGER NOT NULL,
     dexterity                INTEGER NOT NULL DEFAULT 1,
     intelligence             INTEGER NOT NULL DEFAULT 1,
     constitution             INTEGER NOT NULL DEFAULT 1,
@@ -58,8 +58,7 @@ CREATE TABLE IF NOT EXISTS gaming_character_instance (
     counter_consecutive_pass INTEGER NOT NULL DEFAULT 0,
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
-    PRIMARY KEY (id, id_match),
-    UNIQUE (id)
+    PRIMARY KEY (id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_character_traits (
@@ -72,7 +71,6 @@ CREATE TABLE IF NOT EXISTS gaming_character_traits (
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
@@ -87,7 +85,6 @@ CREATE TABLE IF NOT EXISTS gaming_backpack_resources (
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     UNIQUE (id_character_match, id_match),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
@@ -103,6 +100,5 @@ CREATE TABLE IF NOT EXISTS gaming_inventory_items (
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY (id, id_match),
-    UNIQUE (id),
     FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

@@ -1,12 +1,30 @@
 import boto3
 import os
 import time
+from decimal import Decimal
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 
 TABLE_NAME = os.environ.get('TABLE_NAME', 'PathsGamesBackend')
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(TABLE_NAME)
+
+
+def _to_dynamodb_value(value):
+    """Recursively convert Python values to DynamoDB-safe values.
+
+    In particular, DynamoDB does not accept Python float values; boto3 expects
+    Decimal for numeric values with fractional part.
+    """
+    if isinstance(value, dict):
+        return {k: _to_dynamodb_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_to_dynamodb_value(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_to_dynamodb_value(v) for v in value)
+    if isinstance(value, float):
+        return Decimal(str(value))
+    return value
 
 def get_item(pk, sk='METADATA'):
     """Fetch a single item from DynamoDB."""
@@ -24,10 +42,14 @@ def put_item(item):
         if 'ts_insert' not in item:
             item['ts_insert'] = now
         item['ts_update'] = now
-        table.put_item(Item=item)
+        sanitized = _to_dynamodb_value(item)
+        table.put_item(Item=sanitized)
         return True
     except ClientError as e:
         print(f"Error putting item: {e}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error putting item: {e}")
         return False
 
 def delete_item(pk, sk='METADATA'):

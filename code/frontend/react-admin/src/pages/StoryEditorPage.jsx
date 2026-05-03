@@ -196,6 +196,10 @@ export default function StoryEditorPage() {
         }
       }
 
+      if (entityTab === 'texts' && payload.idText) {
+        payload.id = Number(payload.idText)
+      }
+
       if (modal.entity?.uuid) {
         await updateEntity(uuid, entityTab, modal.entity.uuid, payload)
       } else {
@@ -222,6 +226,7 @@ export default function StoryEditorPage() {
       setLoading(true)
       const fullStory = {
         story: {
+          id: story.id,
           uuid: story.uuid,
           author: story.author,
           category: story.category,
@@ -245,7 +250,7 @@ export default function StoryEditorPage() {
           idCreator: story.idCreator,
           idCard: story.idCard,
         },
-        texts: texts.map(t => ({ idText: t.idText, lang: t.lang, shortText: t.shortText, longText: t.longText })),
+        texts: texts.map(t => ({ id: t.idText, idText: t.idText, lang: t.lang, shortText: t.shortText, longText: t.longText })),
         locations: locations.map(l => ({ ...l })),
         events: eventsRef.map(e => ({ ...e })),
         difficulties: await listEntities(uuid, 'difficulties'),
@@ -273,7 +278,8 @@ export default function StoryEditorPage() {
       const cleanup = (obj) => {
         if (Array.isArray(obj)) return obj.map(cleanup)
         if (obj !== null && typeof obj === 'object') {
-          const { id, ts_insert, ts_update, ...rest } = obj
+          // eslint-disable-next-line no-unused-vars
+          const { ts_insert, ts_update, tsInsert, tsUpdate, uuid, id_story, idStory, ...rest } = obj
           const cleaned = {}
           for (const k in rest) {
             cleaned[k] = cleanup(rest[k])
@@ -350,6 +356,7 @@ export default function StoryEditorPage() {
       if (existing?.uuid) {
         await updateEntity(targetStoryUuid, 'texts', existing.uuid, {
           ...existing,
+          id: Number(finalIdText),
           idText: Number(finalIdText),
           lang,
           shortText: translation.shortText || '',
@@ -363,6 +370,7 @@ export default function StoryEditorPage() {
         })
       } else {
         await createEntity(targetStoryUuid, 'texts', {
+          id: Number(finalIdText),
           idText: Number(finalIdText),
           lang,
           shortText: translation.shortText || '',

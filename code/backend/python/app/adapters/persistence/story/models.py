@@ -1,6 +1,7 @@
 """
 SQLAlchemy ORM models for the 23 story-related tables.
 Maps to the same schema as Java Flyway migrations (V0.10.x).
+Updated to use composite primary keys (id, id_story) for scoped identity.
 """
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Float
 from app.adapters.persistence.auth.models import Base
@@ -22,9 +23,7 @@ class StoryEntity(Base):
     id_text_clock_singular = Column(Integer)
     id_text_clock_plural = Column(Integer)
     link_copyright = Column(String(500))
-    id_story = Column(Integer)
     id_card = Column(Integer)
-    id_text_name = Column(Integer)
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
     id_text_copyright = Column(Integer)
@@ -39,8 +38,8 @@ class StoryEntity(Base):
 class StoryDifficultyEntity(Base):
     __tablename__ = "list_stories_difficulty"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -56,9 +55,9 @@ class StoryDifficultyEntity(Base):
 class TextEntity(Base):
     __tablename__ = "list_texts"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -74,9 +73,9 @@ class TextEntity(Base):
 class KeyEntity(Base):
     __tablename__ = "list_keys"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     key_name = Column(String(255))
     key_value = Column(String(255))
@@ -87,9 +86,9 @@ class KeyEntity(Base):
 class ClassEntity(Base):
     __tablename__ = "list_classes"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     weight_max = Column(Integer, default=10)
@@ -101,8 +100,8 @@ class ClassEntity(Base):
 class ClassBonusEntity(Base):
     __tablename__ = "list_classes_bonus"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_class = Column(Integer)
     bonus_type = Column(String(50))
     bonus_value = Column(Integer)
@@ -111,9 +110,9 @@ class ClassBonusEntity(Base):
 class TraitEntity(Base):
     __tablename__ = "list_traits"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     cost_positive = Column(Integer, default=0)
@@ -125,10 +124,9 @@ class TraitEntity(Base):
 class CharacterTemplateEntity(Base):
     __tablename__ = "list_character_templates"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_tipo = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
-    id_tipo = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     life_max = Column(Integer, default=10)
@@ -142,9 +140,9 @@ class CharacterTemplateEntity(Base):
 class LocationEntity(Base):
     __tablename__ = "list_locations"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     is_safe = Column(Integer, default=0)
@@ -158,8 +156,8 @@ class LocationEntity(Base):
 class LocationNeighborEntity(Base):
     __tablename__ = "list_locations_neighbors"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -174,9 +172,9 @@ class LocationNeighborEntity(Base):
 class ItemEntity(Base):
     __tablename__ = "list_items"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     weight = Column(Integer, default=0)
@@ -186,8 +184,8 @@ class ItemEntity(Base):
 class ItemEffectEntity(Base):
     __tablename__ = "list_items_effects"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_card = Column(Integer)
     id_item = Column(Integer)
     effect_type = Column(String(50))
@@ -197,8 +195,9 @@ class ItemEffectEntity(Base):
 class WeatherRuleEntity(Base):
     __tablename__ = "list_weather_rules"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_text_name = Column(Integer)
     probability = Column(Float)
     delta_energy = Column(Integer, default=0)
@@ -213,9 +212,9 @@ class WeatherRuleEntity(Base):
 class EventEntity(Base):
     __tablename__ = "list_events"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     event_type = Column(String(50))
@@ -231,8 +230,8 @@ class EventEntity(Base):
 class EventEffectEntity(Base):
     __tablename__ = "list_events_effects"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_event = Column(Integer)
@@ -244,9 +243,9 @@ class EventEffectEntity(Base):
 class ChoiceEntity(Base):
     __tablename__ = "list_choices"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_event = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -259,8 +258,8 @@ class ChoiceEntity(Base):
 class ChoiceConditionEntity(Base):
     __tablename__ = "list_choices_conditions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_card = Column(Integer)
     id_choice = Column(Integer)
     condition_type = Column(String(50))
@@ -272,8 +271,8 @@ class ChoiceConditionEntity(Base):
 class ChoiceEffectEntity(Base):
     __tablename__ = "list_choices_effects"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -286,8 +285,9 @@ class ChoiceEffectEntity(Base):
 class GlobalRandomEventEntity(Base):
     __tablename__ = "list_global_random_events"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_event = Column(Integer)
@@ -299,9 +299,9 @@ class GlobalRandomEventEntity(Base):
 class MissionEntity(Base):
     __tablename__ = "list_missions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     condition_key = Column(String(255))
@@ -313,8 +313,8 @@ class MissionEntity(Base):
 class MissionStepEntity(Base):
     __tablename__ = "list_missions_steps"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     id_mission = Column(Integer)
     step_order = Column(Integer)
     id_text_description = Column(Integer)
@@ -326,9 +326,9 @@ class MissionStepEntity(Base):
 class CreatorEntity(Base):
     __tablename__ = "list_creator"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
@@ -345,9 +345,9 @@ class CreatorEntity(Base):
 class CardEntity(Base):
     __tablename__ = "list_cards"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
     uuid = Column(String(36))
-    id_story = Column(Integer, ForeignKey("list_stories.id"), nullable=False)
     id_card = Column(Integer)
     card_type = Column(String(50))
     id_text_name = Column(Integer)
