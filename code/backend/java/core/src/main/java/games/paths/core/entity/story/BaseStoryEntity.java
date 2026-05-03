@@ -41,7 +41,7 @@ public abstract class BaseStoryEntity {
     @Column(name = "id_card")
     private Integer idCard;
 
-    @Column(name = "id_story")
+    @Column(name = "id_story", insertable = false, updatable = false)
     private Long idStory;
 
     @Column(name = "id_text_name")

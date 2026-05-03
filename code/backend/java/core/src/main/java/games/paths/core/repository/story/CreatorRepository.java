@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.CreatorEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -16,7 +17,7 @@ import java.util.Optional;
  * <p>Enhanced in Step 16 with creator lookup by story and UUID.</p>
  */
 @Repository
-public interface CreatorRepository extends JpaRepository<CreatorEntity, Long> {
+public interface CreatorRepository extends JpaRepository<CreatorEntity, StoryScopedEntityId> {
 
     List<CreatorEntity> findByIdStory(Long idStory);
 

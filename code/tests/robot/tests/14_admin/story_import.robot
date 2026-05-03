@@ -33,6 +33,30 @@ Initialize Admin Suite
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
+Post Story Import Payload
+    [Documentation]    POST /api/admin/stories/import with raw JSON payload string.
+    [Arguments]    ${payload}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${payload}    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Import Payload Should Return 201 And Cleanup
+    [Documentation]    Imports payload, asserts 201, and deletes created story by UUID.
+    [Arguments]    ${payload}    ${uuid}
+    ${response}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${response.status_code}    201
+    Delete Admin Story    ${uuid}
+
+Import With Explicit List Entity Id
+    [Documentation]    Generic helper: import one list_* array with explicit id.
+    [Arguments]    ${uuid}    ${entity_key}    ${entity_json}
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-explicit-id","${entity_key}":[${entity_json}]}
+    Import Payload Should Return 201 And Cleanup    ${payload}    ${uuid}
+
 *** Variables ***
 ${MIGRATION_DIR}    ${CURDIR}/../../../../backend/java/adapter-sqlite/src/main/resources/db/migration/dev
 ${DEMO_3_FILE}   ${MIGRATION_DIR}/story_demo_3.json
@@ -131,6 +155,213 @@ Demo 4 Import UUID Matches
     ${response}=    Import Story From File    ${DEMO_4_FILE}
     ${body}=    Set Variable    ${response.json()}
     Should Be Equal As Strings    ${body}[storyUuid]    ${DEMO_4_UUID}
+
+Import With Duplicate Explicit Story Id Returns 400
+    [Documentation]    If request has explicit story id already present, import fails with INVALID_IMPORT_DATA.
+    [Tags]    admin    step14
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+
+    ${payload1}=    Catenate    SEPARATOR=
+    ...    {"uuid":"11111111-1111-4111-8111-111111111111","id":990001,"author":"dup-id-a"}
+    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${payload1}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r1.status_code}    201
+
+    ${payload2}=    Catenate    SEPARATOR=
+    ...    {"uuid":"22222222-2222-4222-8222-222222222222","id":990001,"author":"dup-id-b"}
+    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${payload2}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r2.status_code}    400
+    ${body}=    Set Variable    ${r2.json()}
+    Should Be Equal As Strings    ${body}[error]    INVALID_IMPORT_DATA
+    Should Contain    ${body}[message]    story/list_stories id=990001 already present
+
+    Delete Admin Story    11111111-1111-4111-8111-111111111111
+
+Import Same Event Id In Different Stories Returns 201
+    [Documentation]    Same event id is allowed in different stories (scope by id_story).
+    [Tags]    admin    step14
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+
+    ${payload1}=    Catenate    SEPARATOR=
+    ...    {"uuid":"33333333-3333-4333-8333-333333333333","author":"scope-a","events":[{"id":1,"type":"NORMAL"}]}
+    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${payload1}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r1.status_code}    201
+
+    ${payload2}=    Catenate    SEPARATOR=
+    ...    {"uuid":"44444444-4444-4444-8444-444444444444","author":"scope-b","events":[{"id":1,"type":"NORMAL"}]}
+    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ...    data=${payload2}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r2.status_code}    201
+
+    Delete Admin Story    33333333-3333-4333-8333-333333333333
+    Delete Admin Story    44444444-4444-4444-8444-444444444444
+
+Import Explicit ID For list_stories Returns 201
+    [Documentation]    Import accepts explicit story id when provided and free.
+    [Tags]    admin    step14
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"55555555-5555-4555-8555-555555555555","id":970001,"author":"robot-story-id"}
+    Import Payload Should Return 201 And Cleanup    ${payload}    55555555-5555-4555-8555-555555555555
+
+Import Explicit ID For list_texts Returns 201
+    [Documentation]    Import accepts explicit id for list_texts rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    61111111-1111-4111-8111-111111111111
+    ...    texts
+    ...    {"id":971001,"idText":1,"lang":"en","shortText":"T1"}
+
+Import Explicit ID For list_stories_difficulty Returns 201
+    [Documentation]    Import accepts explicit id for list_stories_difficulty rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    62222222-2222-4222-8222-222222222222
+    ...    difficulties
+    ...    {"id":971002,"expCost":5,"maxWeight":10,"minCharacter":1,"maxCharacter":4,"costHelpComa":3,"costMaxCharacteristics":3,"numberMaxFreeAction":1}
+
+Import Explicit ID For list_creator Returns 201
+    [Documentation]    Import accepts explicit id for list_creator rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    63333333-3333-4333-8333-333333333333
+    ...    creators
+    ...    {"id":971003,"link":"c"}
+
+Import Explicit ID For list_cards Returns 201
+    [Documentation]    Import accepts explicit id for list_cards rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    64444444-4444-4444-8444-444444444444
+    ...    cards
+    ...    {"id":971004,"urlImmage":"img"}
+
+Import Explicit ID For list_keys Returns 201
+    [Documentation]    Import accepts explicit id for list_keys rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    65555555-5555-4555-8555-555555555555
+    ...    keys
+    ...    {"id":971005,"name":"k1"}
+
+Import Explicit ID For list_classes Returns 201
+    [Documentation]    Import accepts explicit id for list_classes rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    66666666-6666-4666-8666-666666666666
+    ...    classes
+    ...    {"id":971006,"weightMax":10,"dexterityBase":1,"intelligenceBase":1,"constitutionBase":1}
+
+Import Explicit ID For list_traits Returns 201
+    [Documentation]    Import accepts explicit id for list_traits rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    67777777-7777-4777-8777-777777777777
+    ...    traits
+    ...    {"id":971007,"costPositive":0,"costNegative":0}
+
+Import Explicit ID For list_character_templates Returns 201
+    [Documentation]    Import accepts explicit id for list_character_templates rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    68888888-8888-4888-8888-888888888888
+    ...    characterTemplates
+    ...    {"id":971008,"lifeMax":1,"energyMax":0,"sadMax":0,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}
+
+Import Explicit ID For list_locations Returns 201
+    [Documentation]    Import accepts explicit id for list_locations rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    69999999-9999-4999-8999-999999999999
+    ...    locations
+    ...    {"id":971009,"isSafe":0,"costEnergyEnter":1}
+
+Import Explicit ID For list_events Returns 201
+    [Documentation]    Import accepts explicit id for list_events rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6aaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+    ...    events
+    ...    {"id":971010,"type":"NORMAL","flagEndTime":0}
+
+Import Explicit ID For list_items Returns 201
+    [Documentation]    Import accepts explicit id for list_items rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6bbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
+    ...    items
+    ...    {"id":971011,"weight":1,"isConsumabile":1}
+
+Import Explicit ID For list_choices Returns 201
+    [Documentation]    Import accepts explicit id for list_choices rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6ccccccc-cccc-4ccc-8ccc-cccccccccccc
+    ...    choices
+    ...    {"id":971012,"priority":0,"otherwiseFlag":0,"isProgress":0}
+
+Import Explicit ID For list_weather_rules Returns 201
+    [Documentation]    Import accepts explicit id for list_weather_rules rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6ddddddd-dddd-4ddd-8ddd-dddddddddddd
+    ...    weatherRules
+    ...    {"id":971013,"probability":1,"active":1}
+
+Import Explicit ID For list_global_random_events Returns 201
+    [Documentation]    Import accepts explicit id for list_global_random_events rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6eeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+    ...    globalRandomEvents
+    ...    {"id":971014,"probability":1}
+
+Import Explicit ID For list_missions Returns 201
+    [Documentation]    Import accepts explicit id for list_missions rows.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    6fffffff-ffff-4fff-8fff-ffffffffffff
+    ...    missions
+    ...    {"id":971015,"conditionKey":"k"}
+
+Import Three Stories With Text Ids And Multi-Lang Returns 201
+    [Documentation]    3 stories with explicit story ids and text idText 1..4 in multiple languages.
+    [Tags]    admin    step14
+    ${payload1}=    Catenate    SEPARATOR=
+    ...    {"uuid":"71111111-1111-4111-8111-111111111111","id":980001,"author":"multi-1","texts":[
+    ...    {"id":980101,"idText":1,"lang":"en","shortText":"s1-t1-en"},{"id":980102,"idText":1,"lang":"it","shortText":"s1-t1-it"},
+    ...    {"id":980103,"idText":2,"lang":"en","shortText":"s1-t2-en"},{"id":980104,"idText":2,"lang":"it","shortText":"s1-t2-it"},
+    ...    {"id":980105,"idText":3,"lang":"en","shortText":"s1-t3-en"},{"id":980106,"idText":3,"lang":"it","shortText":"s1-t3-it"},
+    ...    {"id":980107,"idText":4,"lang":"en","shortText":"s1-t4-en"},{"id":980108,"idText":4,"lang":"it","shortText":"s1-t4-it"}]}
+    ${r1}=    Post Story Import Payload    ${payload1}
+    Should Be Equal As Integers    ${r1.status_code}    201
+
+    ${payload2}=    Catenate    SEPARATOR=
+    ...    {"uuid":"72222222-2222-4222-8222-222222222222","id":980002,"author":"multi-2","texts":[
+    ...    {"id":980201,"idText":1,"lang":"en","shortText":"s2-t1-en"},{"id":980202,"idText":1,"lang":"it","shortText":"s2-t1-it"},
+    ...    {"id":980203,"idText":2,"lang":"en","shortText":"s2-t2-en"},{"id":980204,"idText":2,"lang":"it","shortText":"s2-t2-it"},
+    ...    {"id":980205,"idText":3,"lang":"en","shortText":"s2-t3-en"},{"id":980206,"idText":3,"lang":"it","shortText":"s2-t3-it"},
+    ...    {"id":980207,"idText":4,"lang":"en","shortText":"s2-t4-en"},{"id":980208,"idText":4,"lang":"it","shortText":"s2-t4-it"}]}
+    ${r2}=    Post Story Import Payload    ${payload2}
+    Should Be Equal As Integers    ${r2.status_code}    201
+
+    ${payload3}=    Catenate    SEPARATOR=
+    ...    {"uuid":"73333333-3333-4333-8333-333333333333","id":980003,"author":"multi-3","texts":[
+    ...    {"id":980301,"idText":1,"lang":"en","shortText":"s3-t1-en"},{"id":980302,"idText":1,"lang":"it","shortText":"s3-t1-it"},
+    ...    {"id":980303,"idText":2,"lang":"en","shortText":"s3-t2-en"},{"id":980304,"idText":2,"lang":"it","shortText":"s3-t2-it"},
+    ...    {"id":980305,"idText":3,"lang":"en","shortText":"s3-t3-en"},{"id":980306,"idText":3,"lang":"it","shortText":"s3-t3-it"},
+    ...    {"id":980307,"idText":4,"lang":"en","shortText":"s3-t4-en"},{"id":980308,"idText":4,"lang":"it","shortText":"s3-t4-it"}]}
+    ${r3}=    Post Story Import Payload    ${payload3}
+    Should Be Equal As Integers    ${r3.status_code}    201
+
+    Delete Admin Story    71111111-1111-4111-8111-111111111111
+    Delete Admin Story    72222222-2222-4222-8222-222222222222
+    Delete Admin Story    73333333-3333-4333-8333-333333333333
 
 # ---- admin list tests -------------------------------------------------------
 

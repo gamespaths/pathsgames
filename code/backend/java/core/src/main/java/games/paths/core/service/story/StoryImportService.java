@@ -16,6 +16,7 @@ import java.util.*;
 public class StoryImportService implements StoryImportPort {
 
     private final StoryPersistencePort persistencePort;
+    private final ThreadLocal<Map<String, Long>> scopedIdCache = ThreadLocal.withInitial(HashMap::new);
 
     public StoryImportService(StoryPersistencePort persistencePort) {
         this.persistencePort = persistencePort;
@@ -23,6 +24,8 @@ public class StoryImportService implements StoryImportPort {
 
     @Override
     public StoryImportResult importStory(Map<String, Object> storyData) {
+        scopedIdCache.get().clear();
+        try {
         if (storyData == null || storyData.isEmpty()) {
             throw new IllegalArgumentException("storyData must not be null or empty");
         }
@@ -41,6 +44,11 @@ public class StoryImportService implements StoryImportPort {
 
         // Create story entity
         StoryEntity story = new StoryEntity();
+        Long storyIdInput = getLong(storyData, "id", "idStory", "id_story");
+        if (storyIdInput != null) {
+            ensureIdAvailable("story/list_stories", storyIdInput, persistencePort.existsStoryId(storyIdInput));
+            story.setId(storyIdInput);
+        }
         story.setUuid(uuid);
         story.setAuthor(getString(storyData, "author"));
         story.setVersionMin(getString(storyData, "versionMin"));
@@ -81,6 +89,7 @@ public class StoryImportService implements StoryImportPort {
         importWeatherRules(storyData, storyId);
         importGlobalRandomEvents(storyData, storyId);
         importMissions(storyData, storyId);
+        persistencePort.syncStorySequences();
 
         return StoryImportResult.builder()
                 .storyUuid(savedStory.getUuid())
@@ -93,6 +102,9 @@ public class StoryImportService implements StoryImportPort {
                 .classesImported(classesImported)
                 .choicesImported(choicesImported)
                 .build();
+        } finally {
+            scopedIdCache.get().clear();
+        }
     }
 
     @Override
@@ -125,6 +137,7 @@ public class StoryImportService implements StoryImportPort {
         List<TextEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             TextEntity e = new TextEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_texts", "list_texts", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdText(getInteger(item, "idText"));
             e.setLang(getString(item, "lang") != null ? getString(item, "lang") : "en");
@@ -145,6 +158,7 @@ public class StoryImportService implements StoryImportPort {
         List<StoryDifficultyEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             StoryDifficultyEntity e = new StoryDifficultyEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_stories_difficulty", "list_stories_difficulty", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setExpCost(getInteger(item, "expCost"));
@@ -166,6 +180,7 @@ public class StoryImportService implements StoryImportPort {
         List<ClassEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             ClassEntity e = new ClassEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_classes", "list_classes", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -185,6 +200,7 @@ public class StoryImportService implements StoryImportPort {
         List<LocationEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             LocationEntity e = new LocationEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_locations", "list_locations", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -205,6 +221,7 @@ public class StoryImportService implements StoryImportPort {
         List<EventEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             EventEntity e = new EventEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_events", "list_events", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -228,6 +245,7 @@ public class StoryImportService implements StoryImportPort {
         List<ItemEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             ItemEntity e = new ItemEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_items", "list_items", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -245,6 +263,7 @@ public class StoryImportService implements StoryImportPort {
         List<ChoiceEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             ChoiceEntity e = new ChoiceEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_choices", "list_choices", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -265,6 +284,7 @@ public class StoryImportService implements StoryImportPort {
         List<CreatorEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             CreatorEntity e = new CreatorEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_creator", "list_creator", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdText(getInteger(item, "idText"));
             e.setLink(getString(item, "link"));
@@ -284,6 +304,7 @@ public class StoryImportService implements StoryImportPort {
         List<CardEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             CardEntity e = new CardEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_cards", "list_cards", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setUrlImmage(getString(item, "urlImmage"));
             e.setIdTextTitle(getInteger(item, "idTextTitle"));
@@ -306,6 +327,7 @@ public class StoryImportService implements StoryImportPort {
         List<KeyEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             KeyEntity e = new KeyEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_keys", "list_keys", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setName(getString(item, "name"));
             e.setValue(getString(item, "value"));
@@ -325,6 +347,7 @@ public class StoryImportService implements StoryImportPort {
         List<TraitEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             TraitEntity e = new TraitEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_traits", "list_traits", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -342,6 +365,7 @@ public class StoryImportService implements StoryImportPort {
         List<CharacterTemplateEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             CharacterTemplateEntity e = new CharacterTemplateEntity();
+            e.setIdTipo(resolveStoryScopedId(item, "story/list_character_templates", "list_character_templates", "id_tipo", storyId, "id", "idTipo", "id_tipo"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -363,6 +387,7 @@ public class StoryImportService implements StoryImportPort {
         List<WeatherRuleEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             WeatherRuleEntity e = new WeatherRuleEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_weather_rules", "list_weather_rules", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdTextName(getInteger(item, "idTextName"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -386,6 +411,7 @@ public class StoryImportService implements StoryImportPort {
         List<GlobalRandomEventEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             GlobalRandomEventEntity e = new GlobalRandomEventEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_global_random_events", "list_global_random_events", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setConditionKey(getString(item, "conditionKey"));
             e.setConditionValue(getString(item, "conditionValue"));
@@ -402,6 +428,7 @@ public class StoryImportService implements StoryImportPort {
         List<MissionEntity> entities = new ArrayList<>();
         for (Map<String, Object> item : items) {
             MissionEntity e = new MissionEntity();
+            e.setId(resolveStoryScopedId(item, "story/list_missions", "list_missions", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setConditionKey(getString(item, "conditionKey"));
             e.setConditionValueFrom(getString(item, "conditionValueFrom"));
@@ -442,5 +469,92 @@ public class StoryImportService implements StoryImportPort {
             }
         }
         return null;
+    }
+
+    private Long getLong(Map<String, Object> data, String... keys) {
+        if (data == null || keys == null) return null;
+        for (String key : keys) {
+            Object value = data.get(key);
+            if (value instanceof Number) {
+                return ((Number) value).longValue();
+            }
+            if (value instanceof String) {
+                try {
+                    return Long.parseLong((String) value);
+                } catch (NumberFormatException ignored) {
+                    // try next key
+                }
+            }
+        }
+        return null;
+    }
+
+    private void ensureIdAvailable(String scope, Long id, boolean exists) {
+        if (exists) {
+            throw new IllegalArgumentException(scope + " id=" + id + " already present");
+        }
+    }
+
+    private Long resolveStoryScopedId(
+            Map<String, Object> data,
+            String scope,
+            String tableName,
+            String idColumn,
+            Long idStory,
+            String... keys) {
+        Map<String, Long> cache = scopedIdCache.get();
+        boolean useScopedGeneration = switch (tableName) {
+            case "list_events",
+                 "list_events_effects",
+                 "list_choices",
+                 "list_choices_conditions",
+                 "list_choices_effects",
+                 "list_global_random_events",
+                 "list_missions",
+                 "list_missions_steps" -> true;
+            default -> false;
+        };
+        String cacheScope = useScopedGeneration ? String.valueOf(idStory) : "GLOBAL";
+        String cacheKey = tableName + "#" + idColumn + "#" + cacheScope;
+        Long idInput = getLong(data, keys);
+        if (idInput != null) {
+            boolean exists = switch (scope) {
+                case "story/list_texts" -> persistencePort.existsTextId(idInput, idStory);
+                case "story/list_stories_difficulty" -> persistencePort.existsDifficultyId(idInput, idStory);
+                case "story/list_creator" -> persistencePort.existsCreatorId(idInput, idStory);
+                case "story/list_cards" -> persistencePort.existsCardId(idInput, idStory);
+                case "story/list_keys" -> persistencePort.existsKeyId(idInput, idStory);
+                case "story/list_classes" -> persistencePort.existsClassId(idInput, idStory);
+                case "story/list_traits" -> persistencePort.existsTraitId(idInput, idStory);
+                case "story/list_character_templates" -> persistencePort.existsCharacterTemplateId(idInput, idStory);
+                case "story/list_locations" -> persistencePort.existsLocationId(idInput, idStory);
+                case "story/list_events" -> persistencePort.existsEventId(idInput, idStory);
+                case "story/list_items" -> persistencePort.existsItemId(idInput, idStory);
+                case "story/list_choices" -> persistencePort.existsChoiceId(idInput, idStory);
+                case "story/list_weather_rules" -> persistencePort.existsWeatherRuleId(idInput, idStory);
+                case "story/list_global_random_events" -> persistencePort.existsGlobalRandomEventId(idInput, idStory);
+                case "story/list_missions" -> persistencePort.existsMissionId(idInput, idStory);
+                default -> false;
+            };
+            ensureIdAvailable(scope, idInput, exists);
+            Long cachedNext = cache.get(cacheKey);
+            if (cachedNext == null || cachedNext <= idInput) {
+                cache.put(cacheKey, idInput + 1);
+            }
+            return idInput;
+        }
+
+        if (useScopedGeneration && idStory == null) {
+            return null;
+        }
+
+        Long next = cache.get(cacheKey);
+        if (next == null) {
+            next = useScopedGeneration
+                    ? persistencePort.nextStoryScopedId(tableName, idColumn, idStory)
+                    : persistencePort.nextGlobalId(tableName, idColumn);
+        }
+        cache.put(cacheKey, next + 1);
+        return next;
     }
 }

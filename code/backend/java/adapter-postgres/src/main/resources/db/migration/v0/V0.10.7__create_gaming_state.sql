@@ -16,25 +16,28 @@
 -- =============================================
 
 CREATE TABLE gaming_state_registry (
-    id               BIGSERIAL    PRIMARY KEY,
+    id               BIGSERIAL,
     uuid             VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match         BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     key              VARCHAR(200) NOT NULL,
     string_value     VARCHAR(500),
     int_value        INTEGER,
-    id_character     BIGINT       REFERENCES gaming_character_instance(id),
-    id_event         BIGINT       REFERENCES list_events(id),
-    id_choice        BIGINT       REFERENCES list_choices(id),
+    id_character     BIGINT,
+    id_event         BIGINT,
+    id_choice        BIGINT,
     clock            INTEGER,
-    id_mission       BIGINT       REFERENCES list_missions(id),
-    id_mission_steps BIGINT       REFERENCES list_missions_steps(id),
+    id_mission       BIGINT,
+    id_mission_steps BIGINT,
     ts_insert        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE gaming_state_locations (
     id_match             BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_location          BIGINT       NOT NULL REFERENCES list_locations(id),
+    id_location          BIGINT       NOT NULL,
     uuid                 VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     flag_already_actived BOOLEAN      NOT NULL DEFAULT FALSE,
     clock_counter        INTEGER      DEFAULT 0,
@@ -45,7 +48,7 @@ CREATE TABLE gaming_state_locations (
 
 CREATE TABLE gaming_turn_queue (
     id_match           BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match BIGINT       NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match BIGINT       NOT NULL,
     uuid               VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     clock              INTEGER      NOT NULL,
     timestamp_start    TIMESTAMP,
@@ -54,57 +57,68 @@ CREATE TABLE gaming_turn_queue (
     priority           BIGINT       NOT NULL DEFAULT 0,
     ts_insert          VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update          VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    PRIMARY KEY (id_match, id_character_match)
+    PRIMARY KEY (id_match, id_character_match),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 COMMENT ON COLUMN gaming_turn_queue.priority IS 'Calculated: (DES*3 + INT*2 + COS*1) * 1000 + LIFE*10 + CHARACTER_ID';
 
 CREATE TABLE gaming_active_effects (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  BIGINT       NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match  BIGINT       NOT NULL,
     clock               INTEGER,
-    id_choise           BIGINT       REFERENCES list_choices(id),
+    id_choise           BIGINT,
     timestamp_start     TIMESTAMP    NOT NULL DEFAULT NOW(),
     timestamp_timeout   TIMESTAMP,
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE gaming_active_choices (
-    id        BIGSERIAL    PRIMARY KEY,
+    id        BIGSERIAL,
     uuid      VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match  BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock     INTEGER,
-    id_event  BIGINT       REFERENCES list_events(id),
-    id_choise BIGINT       REFERENCES list_choices(id),
+    id_event  BIGINT,
+    id_choise BIGINT,
     ts_insert VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE gaming_story_progress (
-    id        BIGSERIAL    PRIMARY KEY,
+    id        BIGSERIAL,
     uuid      VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match  BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock     INTEGER,
-    id_event  BIGINT       REFERENCES list_events(id),
-    id_choise BIGINT       REFERENCES list_choices(id),
+    id_event  BIGINT,
+    id_choise BIGINT,
     ts_insert VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE gaming_temp_variables (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  BIGINT       REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match  BIGINT,
     key                 VARCHAR(200) NOT NULL,
     value               VARCHAR(500),
     type                VARCHAR(50),
     timestamp           TIMESTAMP    DEFAULT NOW(),
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 COMMENT ON COLUMN gaming_temp_variables.type IS 'CLOCK, EVENT, LOCATION, RESOURCES, TRAITS, etc.';

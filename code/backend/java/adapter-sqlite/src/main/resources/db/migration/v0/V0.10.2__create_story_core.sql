@@ -61,11 +61,12 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
     cost_max_characteristics INTEGER NOT NULL DEFAULT 3,
     number_max_free_action   INTEGER NOT NULL DEFAULT 1,
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_keys (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -76,11 +77,12 @@ CREATE TABLE IF NOT EXISTS list_keys (
     priority            INTEGER DEFAULT 0,
     visibility          TEXT    DEFAULT 'PUBLIC',
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_classes (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -91,36 +93,42 @@ CREATE TABLE IF NOT EXISTS list_classes (
     intelligence_base   INTEGER NOT NULL DEFAULT 1,
     constitution_base   INTEGER NOT NULL DEFAULT 1,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_classes_bonus (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_class            INTEGER NOT NULL REFERENCES list_classes(id) ON DELETE CASCADE,
+    id_class            INTEGER NOT NULL,
     statistic           TEXT    NOT NULL,                         -- energy, life, sad, dex, int, cos, food, magic, coin
     value               INTEGER NOT NULL DEFAULT 0,
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_class, id_story) REFERENCES list_classes(id, id_story) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS list_traits (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_class_permitted  INTEGER REFERENCES list_classes(id),
-    id_class_prohibited INTEGER REFERENCES list_classes(id),
+    id_class_permitted  INTEGER,
+    id_class_prohibited INTEGER,
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     cost_positive       INTEGER DEFAULT 0,
     cost_negative       INTEGER DEFAULT 0,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_class_permitted, id_story) REFERENCES list_classes(id, id_story),
+    FOREIGN KEY (id_class_prohibited, id_story) REFERENCES list_classes(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_character_templates (
@@ -137,5 +145,6 @@ CREATE TABLE IF NOT EXISTS list_character_templates (
     intelligence_start  INTEGER NOT NULL DEFAULT 1,
     constitution_start  INTEGER NOT NULL DEFAULT 1,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (id_tipo, id_story)
 );

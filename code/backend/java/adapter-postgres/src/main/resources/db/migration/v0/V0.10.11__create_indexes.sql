@@ -23,69 +23,69 @@
 
 -- list_stories → list_cards, list_locations, list_events, list_creator
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_location_start
-    FOREIGN KEY (id_location_start) REFERENCES list_locations(id);
+    FOREIGN KEY (id_location_start, id) REFERENCES list_locations(id, id_story);
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_location_coma
-    FOREIGN KEY (id_location_all_player_coma) REFERENCES list_locations(id);
+    FOREIGN KEY (id_location_all_player_coma, id) REFERENCES list_locations(id, id_story);
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_event_coma
-    FOREIGN KEY (id_event_all_player_coma) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_all_player_coma, id) REFERENCES list_events(id, id_story);
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_event_end
-    FOREIGN KEY (id_event_end_game) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_end_game, id) REFERENCES list_events(id, id_story);
 ALTER TABLE list_stories ADD CONSTRAINT fk_stories_creator
-    FOREIGN KEY (id_creator) REFERENCES list_creator(id);
+    FOREIGN KEY (id_creator, id) REFERENCES list_creator(id, id_story);
 
 -- list_locations → list_events (event trigger columns)
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_event_counter_zero
-    FOREIGN KEY (id_event_if_counter_zero) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_if_counter_zero, id_story) REFERENCES list_events(id, id_story);
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_event_start_time
-    FOREIGN KEY (id_event_if_character_start_time) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_if_character_start_time, id_story) REFERENCES list_events(id, id_story);
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_event_enter_first
-    FOREIGN KEY (id_event_if_character_enter_first_time) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_if_character_enter_first_time, id_story) REFERENCES list_events(id, id_story);
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_event_first_time
-    FOREIGN KEY (id_event_if_first_time) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_if_first_time, id_story) REFERENCES list_events(id, id_story);
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_event_not_first
-    FOREIGN KEY (id_event_not_first_time) REFERENCES list_events(id);
+    FOREIGN KEY (id_event_not_first_time, id_story) REFERENCES list_events(id, id_story);
 
 -- list_weather_rules → list_events
 ALTER TABLE list_weather_rules ADD CONSTRAINT fk_weather_rules_event
-    FOREIGN KEY (id_event) REFERENCES list_events(id);
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story);
 
 -- gaming_match → gaming_character_instance (current turn)
 ALTER TABLE gaming_match ADD CONSTRAINT fk_match_character_current_turn
-    FOREIGN KEY (id_character_current_turn) REFERENCES gaming_character_instance(id);
+    FOREIGN KEY (id_character_current_turn, id) REFERENCES gaming_character_instance(id, id_match);
 
 -- id_card FK columns → list_cards(id)
 ALTER TABLE list_stories_difficulty ADD CONSTRAINT fk_stories_diff_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_keys ADD CONSTRAINT fk_keys_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_classes ADD CONSTRAINT fk_classes_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_classes_bonus ADD CONSTRAINT fk_classes_bonus_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_traits ADD CONSTRAINT fk_traits_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_character_templates ADD CONSTRAINT fk_char_templates_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_locations ADD CONSTRAINT fk_locations_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_items ADD CONSTRAINT fk_items_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_weather_rules ADD CONSTRAINT fk_weather_rules_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_events ADD CONSTRAINT fk_events_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_events_effects ADD CONSTRAINT fk_events_effects_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_choices ADD CONSTRAINT fk_choices_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_global_random_events ADD CONSTRAINT fk_global_random_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_missions ADD CONSTRAINT fk_missions_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 ALTER TABLE list_missions_steps ADD CONSTRAINT fk_missions_steps_card
-    FOREIGN KEY (id_card) REFERENCES list_cards(id);
+    FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story);
 
 
 -- =============================================

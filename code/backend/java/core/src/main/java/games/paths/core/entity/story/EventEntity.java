@@ -6,12 +6,17 @@ import jakarta.persistence.*;
  * EventEntity - JPA entity mapped to the "list_events" table.
  */
 @Entity
+@IdClass(StoryScopedEntityId.class)
 @Table(name = "list_events")
 public class EventEntity extends BaseStoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
+
+    @Id
+    @Column(name = "id_story", insertable = false, updatable = false)
+    private Long idStoryPk;
 
     @Column(name = "id_specific_location")
     private Integer idSpecificLocation;
@@ -61,6 +66,15 @@ public class EventEntity extends BaseStoryEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    @Override
+    public Long getIdStory() { return super.getIdStory(); }
+
+    @Override
+    public void setIdStory(Long idStory) {
+        super.setIdStory(idStory);
+        this.idStoryPk = idStory;
+    }
 
 
 

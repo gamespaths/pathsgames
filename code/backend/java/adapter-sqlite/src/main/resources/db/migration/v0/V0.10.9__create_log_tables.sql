@@ -15,23 +15,26 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS log_events (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER REFERENCES gaming_character_instance(id),
+    id_character_match  INTEGER,
     timestamp           TEXT    NOT NULL DEFAULT (datetime('now')),
     id_event            INTEGER REFERENCES list_events(id),
     id_choise           INTEGER REFERENCES list_choices(id),
     log_message         TEXT,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS log_movements (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER REFERENCES gaming_character_instance(id),
+    id_character_match  INTEGER,
     id_location_from    INTEGER REFERENCES list_locations(id),
     id_location_to      INTEGER REFERENCES list_locations(id),
     id_event            INTEGER REFERENCES list_events(id),
@@ -39,24 +42,30 @@ CREATE TABLE IF NOT EXISTS log_movements (
     log_message         TEXT,
     energy              INTEGER,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS log_item_usage (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER NOT NULL REFERENCES gaming_character_instance(id),
+    id_character_match  INTEGER NOT NULL,
     id_item             INTEGER NOT NULL REFERENCES list_items(id),
     counter             INTEGER DEFAULT 1,
     effects_json        TEXT,
     timestamp           TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS log_weather (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    id              INTEGER NOT NULL,
     uuid            TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match        INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock           INTEGER NOT NULL,
@@ -64,11 +73,13 @@ CREATE TABLE IF NOT EXISTS log_weather (
     timestamp_start TEXT,
     timestamp_end   TEXT,
     ts_insert       TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update       TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update       TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS log_clock_history (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    id              INTEGER NOT NULL,
     uuid            TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match        INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock           INTEGER NOT NULL,
@@ -78,24 +89,29 @@ CREATE TABLE IF NOT EXISTS log_clock_history (
     id_event_start  INTEGER REFERENCES list_events(id),
     id_event_end    INTEGER REFERENCES list_events(id),
     ts_insert       TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update       TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update       TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS log_lock_history (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER REFERENCES gaming_character_instance(id),
+    id_character_match  INTEGER,
     lock_start          TEXT    NOT NULL DEFAULT (datetime('now')),
     lock_end            TEXT,
     reason              TEXT,
     message             TEXT,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS log_choices_executed (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    id          INTEGER NOT NULL,
     uuid        TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match    INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock       INTEGER,
@@ -103,5 +119,7 @@ CREATE TABLE IF NOT EXISTS log_choices_executed (
     id_choise   INTEGER REFERENCES list_choices(id),
     log_message TEXT,
     ts_insert   TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update   TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update   TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );

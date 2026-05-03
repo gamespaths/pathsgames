@@ -13,9 +13,9 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS list_creator (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    id            INTEGER NOT NULL,
     uuid          TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
-    id_story      INTEGER REFERENCES list_stories(id) ON DELETE CASCADE,
+    id_story      INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text       INTEGER,                                       -- references list_texts(id_text)
     link          TEXT,
     url           TEXT,
@@ -23,29 +23,32 @@ CREATE TABLE IF NOT EXISTS list_creator (
     url_emote     TEXT,
     url_instagram TEXT,
     ts_insert     TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update     TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update     TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_cards (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
-    id_story            INTEGER REFERENCES list_stories(id) ON DELETE CASCADE,
+    id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     url_immage          TEXT,
     id_text_title       INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     id_text_copyright   INTEGER,                                 -- references list_texts(id_text)
     link_copyright      TEXT,
-    id_creator          INTEGER REFERENCES list_creator(id),
+    id_creator          INTEGER,
     alternative_image   TEXT,
     awesome_icon        TEXT,
     style_main          TEXT,
     style_detail        TEXT,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_creator, id_story) REFERENCES list_creator(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_texts (
-    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                INTEGER NOT NULL,
     uuid              TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_story          INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text           INTEGER NOT NULL,
@@ -54,8 +57,10 @@ CREATE TABLE IF NOT EXISTS list_texts (
     long_text         TEXT,
     id_text_copyright INTEGER,                                   -- references list_texts(id_text)
     link_copyright    TEXT,
-    id_creator        INTEGER REFERENCES list_creator(id),
+    id_creator        INTEGER,
     ts_insert         TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update         TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_creator, id_story) REFERENCES list_creator(id, id_story),
     UNIQUE (id_story, id_text, lang)
 );

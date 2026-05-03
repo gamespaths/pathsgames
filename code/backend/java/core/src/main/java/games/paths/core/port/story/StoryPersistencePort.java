@@ -29,6 +29,39 @@ public interface StoryPersistencePort {
     Optional<StoryEntity> findStoryByUuid(String uuid);
 
     /**
+     * Existence checks used by import when explicit IDs are provided.
+     */
+    boolean existsStoryId(Long id);
+    boolean existsTextId(Long id, Long idStory);
+    boolean existsDifficultyId(Long id, Long idStory);
+    boolean existsCreatorId(Long id, Long idStory);
+    boolean existsCardId(Long id, Long idStory);
+    boolean existsKeyId(Long id, Long idStory);
+    boolean existsClassId(Long id, Long idStory);
+    boolean existsTraitId(Long id, Long idStory);
+    boolean existsCharacterTemplateId(Long id, Long idStory);
+    boolean existsLocationId(Long id, Long idStory);
+    boolean existsEventId(Long id, Long idStory);
+    boolean existsItemId(Long id, Long idStory);
+    boolean existsChoiceId(Long id, Long idStory);
+    boolean existsWeatherRuleId(Long id, Long idStory);
+    boolean existsGlobalRandomEventId(Long id, Long idStory);
+    boolean existsMissionId(Long id, Long idStory);
+
+    /**
+     * Returns the next logical ID in a story scope for the given table/id column.
+     */
+    Long nextStoryScopedId(String tableName, String idColumn, Long idStory);
+
+    /**
+     * Synchronises PostgreSQL sequences after explicit-id inserts.
+     * No-op on non-PostgreSQL databases.
+     */
+    void syncStorySequences();
+
+    Long nextGlobalId(String tableName, String idColumn);
+
+    /**
      * Saves a list of text entities.
      */
     List<TextEntity> saveTexts(List<TextEntity> texts);

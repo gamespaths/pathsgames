@@ -15,38 +15,47 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS gaming_trades (
-    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                          INTEGER NOT NULL,
     uuid                        TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match                    INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match_sender   INTEGER NOT NULL REFERENCES gaming_character_instance(id),
-    id_character_match_dest     INTEGER NOT NULL REFERENCES gaming_character_instance(id),
+    id_character_match_sender   INTEGER NOT NULL,
+    id_character_match_dest     INTEGER NOT NULL,
     id_item                     INTEGER REFERENCES list_items(id),
-    id_inventory_items          INTEGER REFERENCES gaming_inventory_items(id),
+    id_inventory_items          INTEGER,
     status                      TEXT    NOT NULL DEFAULT 'PENDING_VALIDATION', -- PENDING_VALIDATION, ACCEPTED, REFUSED, FAILED_INVALID, EXPIRED
     timeout                     TEXT,
     resource                    TEXT,                             -- food, magic, coin
     amount                      INTEGER DEFAULT 0,
     ts_insert                   TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match_sender, id_match) REFERENCES gaming_character_instance(id, id_match),
+    FOREIGN KEY (id_character_match_dest, id_match) REFERENCES gaming_character_instance(id, id_match),
+    FOREIGN KEY (id_inventory_items, id_match) REFERENCES gaming_inventory_items(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_movement_invites (
-    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                          INTEGER NOT NULL,
     uuid                        TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match                    INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match_sender   INTEGER NOT NULL REFERENCES gaming_character_instance(id),
-    id_character_match_friend   INTEGER NOT NULL REFERENCES gaming_character_instance(id),
+    id_character_match_sender   INTEGER NOT NULL,
+    id_character_match_friend   INTEGER NOT NULL,
     state                       TEXT    NOT NULL DEFAULT 'PENDING', -- PENDING, ACCEPTED, EXPIRED, CANCELLED
     timestamp_send              TEXT    NOT NULL DEFAULT (datetime('now')),
     timestamp_timeout           TEXT,
     timestamp_answer            TEXT,
     energy_cost                 INTEGER DEFAULT 0,
     ts_insert                   TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match_sender, id_match) REFERENCES gaming_character_instance(id, id_match),
+    FOREIGN KEY (id_character_match_friend, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_notification_queue (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    id               INTEGER NOT NULL,
     uuid             TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match         INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_chat          INTEGER,
@@ -55,11 +64,13 @@ CREATE TABLE IF NOT EXISTS gaming_notification_queue (
     type             TEXT,
     priority         INTEGER DEFAULT 0,
     ts_insert        TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update        TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update        TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_user_sessions (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER NOT NULL,
     uuid      TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_user   INTEGER NOT NULL REFERENCES users(id),
     id_match  INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
@@ -70,18 +81,23 @@ CREATE TABLE IF NOT EXISTS gaming_user_sessions (
     device    TEXT,
     channel   TEXT,
     ts_insert TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS chat_messages (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user             INTEGER NOT NULL REFERENCES users(id),
-    id_character_match  INTEGER REFERENCES gaming_character_instance(id),
+    id_character_match  INTEGER,
     message             TEXT    NOT NULL,
     timestamp           TEXT    NOT NULL DEFAULT (datetime('now')),
     counter             INTEGER DEFAULT 0,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match)
 );

@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS gaming_match (
 );
 
 CREATE TABLE IF NOT EXISTS gaming_character_instance (
-    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                       INTEGER NOT NULL,
     uuid                     TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match                 INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user                  INTEGER NOT NULL REFERENCES users(id),
@@ -57,38 +57,52 @@ CREATE TABLE IF NOT EXISTS gaming_character_instance (
     timestamp_last_pass      TEXT,
     counter_consecutive_pass INTEGER NOT NULL DEFAULT 0,
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_character_traits (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match  INTEGER NOT NULL,
     id_traits           INTEGER NOT NULL REFERENCES list_traits(id),
     id_event            INTEGER REFERENCES list_events(id),
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS gaming_backpack_resources (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
-    id_character_match  INTEGER NOT NULL UNIQUE REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
+    id_character_match  INTEGER NOT NULL,
     food                INTEGER NOT NULL DEFAULT 0,
     magic               INTEGER NOT NULL DEFAULT 0,
     coin                INTEGER NOT NULL DEFAULT 0,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    UNIQUE (id_character_match, id_match),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS gaming_inventory_items (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
-    id_character_match  INTEGER NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
+    id_character_match  INTEGER NOT NULL,
     id_item             INTEGER NOT NULL REFERENCES list_items(id),
     amount              INTEGER NOT NULL DEFAULT 1,
     state               TEXT    DEFAULT 'ACTIVE',
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

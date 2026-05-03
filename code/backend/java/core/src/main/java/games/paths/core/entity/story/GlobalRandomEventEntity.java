@@ -6,12 +6,17 @@ import jakarta.persistence.*;
  * GlobalRandomEventEntity - JPA entity mapped to the "list_global_random_events" table.
  */
 @Entity
+@IdClass(StoryScopedEntityId.class)
 @Table(name = "list_global_random_events")
 public class GlobalRandomEventEntity extends BaseStoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
+
+    @Id
+    @Column(name = "id_story", insertable = false, updatable = false)
+    private Long idStoryPk;
 
     @Column(name = "condition_key")
     private String conditionKey;
@@ -37,6 +42,15 @@ public class GlobalRandomEventEntity extends BaseStoryEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    @Override
+    public Long getIdStory() { return super.getIdStory(); }
+
+    @Override
+    public void setIdStory(Long idStory) {
+        super.setIdStory(idStory);
+        this.idStoryPk = idStory;
+    }
 
 
 

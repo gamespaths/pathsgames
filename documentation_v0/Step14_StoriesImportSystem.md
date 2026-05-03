@@ -12,8 +12,15 @@ This document describes the implementation of **Step 14: Story Import System and
 | **Database** | 23 JPA entity tables for story data |
 | **Text system** | Multi-language with English fallback |
 | **Import mode** | Replace-on-conflict (delete existing + re-import) |
+| **ID policy** | Optional explicit numeric `id` accepted; duplicate explicit id rejected |
 | **Public API** | Story listing and detail retrieval (no auth required) |
 | **Admin API** | Story import, listing, and deletion (ADMIN role required) |
+
+### Update (May 2026)
+
+- Story scoped IDs (`id` + `id_story`) are now consistently handled across import and Step 17 CRUD create flows.
+- SQLite create/import paths avoid `NOT NULL` failures when numeric `id` is omitted.
+- PostgreSQL compatibility is aligned with scoped key model and validated on full Robot suite.
 
 
 ## Sub-steps completed
@@ -169,6 +176,13 @@ Returns the full detail of a single story by UUID.
 #### POST `/api/admin/stories/import` — Import Story
 
 Imports a complete story from a JSON body. If a story with the same UUID already exists, it is fully deleted and re-imported (replace-on-conflict). If UUID is null/blank, a new one is auto-generated.
+
+If request contains explicit numeric `id` fields (story and/or sub-entities):
+- when `id` is not present in DB, the row is inserted with that exact id;
+- when `id` already exists in the target table, import stops with `INVALID_IMPORT_DATA` and message `story/<table> id=<value> already present`;
+- when `id` is missing/null, standard DB auto-increment is used.
+
+After explicit-id imports, PostgreSQL sequences are synchronized to avoid future auto-increment collisions.
 
 **Request Body:** Structured JSON with story header fields plus nested arrays for sub-entities (texts, difficulties, locations, events, items, choices, classes, creators, cards, keys, traits, character templates, weather rules, global random events, missions).
 

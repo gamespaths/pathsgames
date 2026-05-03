@@ -6,6 +6,7 @@ import games.paths.core.port.story.StoryPersistencePort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -16,6 +17,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for {@link StoryImportService}.
@@ -29,6 +31,11 @@ class StoryImportServiceTest {
 
     @InjectMocks
     private StoryImportService storyImportService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(persistencePort.nextStoryScopedId(anyString(), anyString(), anyLong())).thenReturn(1L);
+    }
 
     // === Helper Methods ===
 
@@ -98,6 +105,96 @@ class StoryImportServiceTest {
 
             assertEquals("existing-uuid", result.getStoryUuid());
             verify(persistencePort).deleteStoryData(1L);
+        }
+
+        @Test
+        @DisplayName("Should preserve explicit story ID when provided and available")
+        void importStory_withExplicitStoryId() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "explicit-id-uuid");
+            data.put("id", 77);
+
+            when(persistencePort.findStoryByUuid("explicit-id-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.existsStoryId(77L)).thenReturn(false);
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                if (e.getId() == null) {
+                    e.setId(77L);
+                }
+                return e;
+            });
+
+            StoryImportResult result = storyImportService.importStory(data);
+
+            assertEquals("explicit-id-uuid", result.getStoryUuid());
+            ArgumentCaptor<StoryEntity> captor = ArgumentCaptor.forClass(StoryEntity.class);
+            verify(persistencePort, atLeastOnce()).saveStory(captor.capture());
+            assertEquals(77L, captor.getAllValues().get(0).getId());
+        }
+
+        @Test
+        @DisplayName("Should allow same explicit event id in different story scopes")
+        void importStory_sameEventIdAcrossDifferentStories() {
+            Map<String, Object> story1 = new HashMap<>();
+            story1.put("uuid", "story-uuid-1");
+            story1.put("events", List.of(Map.of("id", 1, "idTextName", 10)));
+
+            Map<String, Object> story2 = new HashMap<>();
+            story2.put("uuid", "story-uuid-2");
+            story2.put("events", List.of(Map.of("id", 1, "idTextName", 20)));
+
+            when(persistencePort.findStoryByUuid("story-uuid-1")).thenReturn(Optional.empty());
+            when(persistencePort.findStoryByUuid("story-uuid-2")).thenReturn(Optional.empty());
+            when(persistencePort.existsEventId(1L, 101L)).thenReturn(false);
+            when(persistencePort.existsEventId(1L, 202L)).thenReturn(false);
+
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(new org.mockito.stubbing.Answer<StoryEntity>() {
+                private int count = 0;
+                @Override
+                public StoryEntity answer(org.mockito.invocation.InvocationOnMock invocation) {
+                    StoryEntity e = invocation.getArgument(0);
+                    if (e.getId() == null) {
+                        e.setId((count++ == 0) ? 101L : 202L);
+                    }
+                    return e;
+                }
+            });
+            when(persistencePort.saveEvents(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            StoryImportResult r1 = storyImportService.importStory(story1);
+            StoryImportResult r2 = storyImportService.importStory(story2);
+
+            assertEquals("story-uuid-1", r1.getStoryUuid());
+            assertEquals("story-uuid-2", r2.getStoryUuid());
+
+            ArgumentCaptor<List<EventEntity>> eventsCaptor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort, times(2)).saveEvents(eventsCaptor.capture());
+
+            EventEntity first = eventsCaptor.getAllValues().get(0).get(0);
+            EventEntity second = eventsCaptor.getAllValues().get(1).get(0);
+            assertEquals(1L, first.getId());
+            assertEquals(1L, second.getId());
+            assertEquals(101L, first.getIdStory());
+            assertEquals(202L, second.getIdStory());
+        }
+
+        @Test
+        @DisplayName("Should stop import when explicit story ID already exists")
+        void importStory_withDuplicateStoryId_shouldFail() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "dup-id-uuid");
+            data.put("id", 10);
+
+            when(persistencePort.findStoryByUuid("dup-id-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.existsStoryId(10L)).thenReturn(true);
+
+            IllegalArgumentException ex = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> storyImportService.importStory(data)
+            );
+
+            assertEquals("story/list_stories id=10 already present", ex.getMessage());
+            verify(persistencePort, never()).saveStory(any(StoryEntity.class));
         }
 
         @Test

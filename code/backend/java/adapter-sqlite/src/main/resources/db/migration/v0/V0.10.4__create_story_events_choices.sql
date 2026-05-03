@@ -15,11 +15,11 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS list_events (
-    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                       INTEGER NOT NULL,
     uuid                     TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card                  INTEGER,                            -- logical FK to list_cards(id)
     id_story                 INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_specific_location     INTEGER REFERENCES list_locations(id),
+    id_specific_location     INTEGER,
     id_text_name             INTEGER,                            -- references list_texts(id_text)
     id_text_description      INTEGER,                            -- references list_texts(id_text)
     type                     TEXT    NOT NULL DEFAULT 'NORMAL',  -- AUTOMATIC, FIRST, NORMAL
@@ -29,44 +29,53 @@ CREATE TABLE IF NOT EXISTS list_events (
     characteristic_to_remove TEXT,
     key_to_add               TEXT,
     key_value_to_add         TEXT,
-    id_item_to_add           INTEGER REFERENCES list_items(id),
-    id_weather               INTEGER REFERENCES list_weather_rules(id),
-    id_event_next            INTEGER REFERENCES list_events(id),
+    id_item_to_add           INTEGER,
+    id_weather               INTEGER,
+    id_event_next            INTEGER,
     coin_cost                INTEGER DEFAULT 0,
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_specific_location, id_story) REFERENCES list_locations(id, id_story),
+    FOREIGN KEY (id_item_to_add, id_story) REFERENCES list_items(id, id_story),
+    FOREIGN KEY (id_weather, id_story) REFERENCES list_weather_rules(id, id_story),
+    FOREIGN KEY (id_event_next, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_events_effects (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    id               INTEGER NOT NULL,
     uuid             TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card          INTEGER,                                    -- logical FK to list_cards(id)
     id_story         INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_event         INTEGER NOT NULL REFERENCES list_events(id) ON DELETE CASCADE,
+    id_event         INTEGER NOT NULL,
     statistics       TEXT,                                       -- life, energy, exp, sad, dex, int, cos, food, magic, coin
     value            INTEGER DEFAULT 0,
     target           TEXT    DEFAULT 'ALL',                      -- ALL or ONLY_ONE
     traits_to_add    TEXT,
     traits_to_remove TEXT,
-    target_class     INTEGER REFERENCES list_classes(id),
-    id_item_target   INTEGER REFERENCES list_items(id),
+    target_class     INTEGER,
+    id_item_target   INTEGER,
     item_action      TEXT,                                       -- REMOVE or ADD
     ts_insert        TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update        TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update        TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story) ON DELETE CASCADE,
+    FOREIGN KEY (target_class, id_story) REFERENCES list_classes(id, id_story),
+    FOREIGN KEY (id_item_target, id_story) REFERENCES list_items(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_choices (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_event            INTEGER REFERENCES list_events(id),
-    id_location         INTEGER REFERENCES list_locations(id),
+    id_event            INTEGER,
+    id_location         INTEGER,
     priority            INTEGER DEFAULT 0,
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     id_text_narrative   INTEGER,                                 -- references list_texts(id_text)
-    id_event_torun      INTEGER REFERENCES list_events(id),
+    id_event_torun      INTEGER,
     limit_sad           INTEGER,
     limit_dex           INTEGER,
     limit_int           INTEGER,
@@ -75,14 +84,18 @@ CREATE TABLE IF NOT EXISTS list_choices (
     is_progress         INTEGER NOT NULL DEFAULT 0,
     logic_operator      TEXT    DEFAULT 'AND',                   -- AND or OR
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story),
+    FOREIGN KEY (id_location, id_story) REFERENCES list_locations(id, id_story),
+    FOREIGN KEY (id_event_torun, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_choices_conditions (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_choices          INTEGER NOT NULL REFERENCES list_choices(id) ON DELETE CASCADE,
+    id_choices          INTEGER NOT NULL,
     type                TEXT    NOT NULL,                         -- KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM
     key                 TEXT,
     value               TEXT,
@@ -90,14 +103,16 @@ CREATE TABLE IF NOT EXISTS list_choices_conditions (
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_choices, id_story) REFERENCES list_choices(id, id_story) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS list_choices_effects (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    id              INTEGER NOT NULL,
     uuid            TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_story        INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_choices      INTEGER NOT NULL REFERENCES list_choices(id) ON DELETE CASCADE,
+    id_choices      INTEGER NOT NULL,
     id_scelta       INTEGER,
     flag_group      INTEGER NOT NULL DEFAULT 0,
     statistics      TEXT,                                        -- life, energy, sad, DEX, COS, INT
@@ -107,11 +122,13 @@ CREATE TABLE IF NOT EXISTS list_choices_effects (
     value_to_add    TEXT,
     value_to_remove TEXT,
     ts_insert       TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update       TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update       TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_choices, id_story) REFERENCES list_choices(id, id_story) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS list_global_random_events (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    id              INTEGER NOT NULL,
     uuid            TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card         INTEGER,                                     -- logical FK to list_cards(id)
     id_story        INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -119,13 +136,15 @@ CREATE TABLE IF NOT EXISTS list_global_random_events (
     condition_value TEXT,
     probability     INTEGER NOT NULL DEFAULT 0,
     id_text         INTEGER,                                     -- references list_texts(id_text)
-    id_event        INTEGER REFERENCES list_events(id),
+    id_event        INTEGER,
     ts_insert       TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update       TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update       TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_missions (
-    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                   INTEGER NOT NULL,
     uuid                 TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card              INTEGER,                                -- logical FK to list_cards(id)
     id_story             INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -134,24 +153,29 @@ CREATE TABLE IF NOT EXISTS list_missions (
     condition_value_to   TEXT,
     id_text_name         INTEGER,                                -- references list_texts(id_text)
     id_text_description  INTEGER,                                -- references list_texts(id_text)
-    id_event_completed   INTEGER REFERENCES list_events(id),
+    id_event_completed   INTEGER,
     ts_insert            TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update            TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update            TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event_completed, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_missions_steps (
-    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                   INTEGER NOT NULL,
     uuid                 TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card              INTEGER,                                -- logical FK to list_cards(id)
     id_story             INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_mission           INTEGER NOT NULL REFERENCES list_missions(id) ON DELETE CASCADE,
+    id_mission           INTEGER NOT NULL,
     step                 INTEGER NOT NULL,
     condition_key        TEXT,
     condition_value_from TEXT,
     condition_value_to   TEXT,
     id_text_name         INTEGER,                                -- references list_texts(id_text)
     id_text_description  INTEGER,                                -- references list_texts(id_text)
-    id_event_completed   INTEGER REFERENCES list_events(id),
+    id_event_completed   INTEGER,
     ts_insert            TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update            TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update            TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_mission, id_story) REFERENCES list_missions(id, id_story) ON DELETE CASCADE,
+    FOREIGN KEY (id_event_completed, id_story) REFERENCES list_events(id, id_story)
 );

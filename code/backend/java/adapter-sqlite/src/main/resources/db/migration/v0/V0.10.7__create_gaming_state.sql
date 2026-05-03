@@ -16,20 +16,23 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS gaming_state_registry (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    id               INTEGER NOT NULL,
     uuid             TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match         INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     key              TEXT    NOT NULL,
     string_value     TEXT,
     int_value        INTEGER,
-    id_character     INTEGER REFERENCES gaming_character_instance(id),
+    id_character     INTEGER,
     id_event         INTEGER REFERENCES list_events(id),
     id_choice        INTEGER REFERENCES list_choices(id),
     clock            INTEGER,
     id_mission       INTEGER REFERENCES list_missions(id),
     id_mission_steps INTEGER REFERENCES list_missions_steps(id),
     ts_insert        TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update        TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update        TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character, id_match) REFERENCES gaming_character_instance(id, id_match)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_state_locations (
@@ -45,7 +48,7 @@ CREATE TABLE IF NOT EXISTS gaming_state_locations (
 
 CREATE TABLE IF NOT EXISTS gaming_turn_queue (
     id_match           INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match INTEGER NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match INTEGER NOT NULL,
     uuid               TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     clock              INTEGER NOT NULL,
     timestamp_start    TEXT,
@@ -54,53 +57,64 @@ CREATE TABLE IF NOT EXISTS gaming_turn_queue (
     priority           INTEGER NOT NULL DEFAULT 0,              -- (DES*3 + INT*2 + COS*1) * 1000 + LIFE*10 + CHARACTER_ID
     ts_insert          TEXT    NOT NULL DEFAULT (datetime('now')),
     ts_update          TEXT    NOT NULL DEFAULT (datetime('now')),
-    PRIMARY KEY (id_match, id_character_match)
+    PRIMARY KEY (id_match, id_character_match),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS gaming_active_effects (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match  INTEGER NOT NULL,
     clock               INTEGER,
     id_choise           INTEGER REFERENCES list_choices(id),
     timestamp_start     TEXT    NOT NULL DEFAULT (datetime('now')),
     timestamp_timeout   TEXT,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS gaming_active_choices (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER NOT NULL,
     uuid      TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match  INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock     INTEGER,
     id_event  INTEGER REFERENCES list_events(id),
     id_choise INTEGER REFERENCES list_choices(id),
     ts_insert TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_story_progress (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    id        INTEGER NOT NULL,
     uuid      TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match  INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     clock     INTEGER,
     id_event  INTEGER REFERENCES list_events(id),
     id_choise INTEGER REFERENCES list_choices(id),
     ts_insert TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE IF NOT EXISTS gaming_temp_variables (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_match            INTEGER NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  INTEGER REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_character_match  INTEGER,
     key                 TEXT    NOT NULL,
     value               TEXT,
     type                TEXT,                                     -- CLOCK, EVENT, LOCATION, RESOURCES, TRAITS, etc.
     timestamp           TEXT    DEFAULT (datetime('now')),
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

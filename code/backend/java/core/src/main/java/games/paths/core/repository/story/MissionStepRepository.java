@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.MissionStepEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for mission step management.
  */
 @Repository
-public interface MissionStepRepository extends JpaRepository<MissionStepEntity, Long> {
+public interface MissionStepRepository extends JpaRepository<MissionStepEntity, StoryScopedEntityId> {
 
     List<MissionStepEntity> findByIdStory(Long idStory);
 

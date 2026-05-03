@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.CardEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -17,7 +18,7 @@ import java.util.Optional;
  * <p>Enhanced in Step 16 with card lookup by story and card UUID.</p>
  */
 @Repository
-public interface CardRepository extends JpaRepository<CardEntity, Long> {
+public interface CardRepository extends JpaRepository<CardEntity, StoryScopedEntityId> {
 
     List<CardEntity> findByIdStory(Long idStory);
 

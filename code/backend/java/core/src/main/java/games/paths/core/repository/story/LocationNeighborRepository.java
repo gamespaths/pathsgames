@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.LocationNeighborEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for location neighbor management.
  */
 @Repository
-public interface LocationNeighborRepository extends JpaRepository<LocationNeighborEntity, Long> {
+public interface LocationNeighborRepository extends JpaRepository<LocationNeighborEntity, StoryScopedEntityId> {
 
     List<LocationNeighborEntity> findByIdStory(Long idStory);
 

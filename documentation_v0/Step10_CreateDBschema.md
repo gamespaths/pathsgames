@@ -134,6 +134,17 @@ Two tables use composite primary keys to represent unique combinations:
 | `gaming_state_locations` | `(id_match, id_location)` | Each location has exactly one state row per match |
 | `gaming_turn_queue` | `(id_match, id_character_match)` | Each character appears at most once in the turn queue per match |
 
+### 2.2.1 Scoped Identity Constraints (id + parent scope)
+
+For tables with a surrogate auto-increment key and a natural parent scope (`id_story` for `list_*`, `id_match` for `gaming_*`), migrations now enforce an additional scoped uniqueness rule:
+
+- `UNIQUE (id, id_story)` on `list_*` tables containing `id_story`
+- `UNIQUE (id, id_match)` on `gaming_*` tables containing `id_match`
+
+This keeps compatibility with existing FK joins on `id` while making scoped identity explicit for import/export workflows.
+
+> SQLite note: true composite PK `(id, scope)` is incompatible with `INTEGER PRIMARY KEY AUTOINCREMENT`; therefore scoped identity is enforced with `UNIQUE` constraints while keeping auto-increment PK semantics.
+
 
 ### 2.3 Primary Key Summary by Tier
 

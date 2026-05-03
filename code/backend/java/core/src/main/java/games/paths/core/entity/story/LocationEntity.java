@@ -7,11 +7,16 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_locations")
+@IdClass(StoryScopedEntityId.class)
 public class LocationEntity extends BaseStoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
+
+    @Id
+    @Column(name = "id_story", insertable = false, updatable = false)
+    private Long idStoryPk;
 
     @Column(name = "id_text_narrative")
     private Integer idTextNarrative;
@@ -68,6 +73,15 @@ public class LocationEntity extends BaseStoryEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    @Override
+    public Long getIdStory() { return super.getIdStory(); }
+
+    @Override
+    public void setIdStory(Long idStory) {
+        super.setIdStory(idStory);
+        this.idStoryPk = idStory;
+    }
 
 
 

@@ -115,6 +115,36 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     |--------|----------|-------------|
     | GET | `/api/echo/status` | Server status, timestamp, and properties |
 
+## Recent Fixes (Step 17 CRUD)
+
+- **SQLite CRUD create fix**: Step 17 single-entity create endpoints now auto-assign missing scoped numeric `id` values (`id` + `id_story`) before persist. This fixes `NOT NULL` errors on create for entities like choices and missions.
+- **PostgreSQL Flyway compatibility fix**: migrations `V0.10.6` → `V0.10.9` remove FK constraints that referenced non-globally-unique `list_* .id` columns after scoped-key adoption.
+- **PostgreSQL JPA mapping fix**: shared `id_story` mapping in `BaseStoryEntity` is now read-only by default to avoid duplicate insert bindings in `@IdClass` entities; non-`@IdClass` entities explicitly override it.
+
+### Validation Status (May 2026)
+
+- Core module tests: **605 passed / 0 failed** (`mvn -pl core test -DskipITs`).
+- End-to-end Robot suite (local Java + PostgreSQL): **178 passed / 0 failed** (`run_robot_with_local_java_postgres.sh`).
+- Step 17 admin CRUD subset in PostgreSQL run: **29 passed / 0 failed**.
+
+### Verification Commands
+
+- Core tests:
+    ```bash
+    cd code/backend/java
+    mvn -pl core test -DskipITs
+    ```
+- Robot (SQLite / local Java):
+    ```bash
+    cd code/tests/robot
+    python -m robot --variablefile variables/dev.yaml tests/17_admin_crud
+    ```
+- Robot (PostgreSQL / local Java + Docker):
+    ```bash
+    cd code/script/dev/run_robots
+    ./run_robot_with_local_java_postgres.sh
+    ```
+
 ## Architecture
 
 ```
@@ -140,13 +170,14 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.14.1
+- **Document Version**: 0.17.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
     | 0.10.12 | Create initial DB schema | Mar 25, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: April 1, 2026
+    | 0.17.1 | Step 17 CRUD SQLite/PostgreSQL stabilization and validation | May 03, 2026 |
+- **Last Updated**: May 3, 2026
 - **Status**: In progress
 
 

@@ -16,9 +16,9 @@
 -- =============================================
 
 CREATE TABLE list_creator (
-    id            BIGSERIAL    PRIMARY KEY,
+    id            BIGSERIAL,
     uuid          VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
-    id_story      BIGINT       REFERENCES list_stories(id) ON DELETE CASCADE,
+    id_story      BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text       BIGINT,                                        -- references list_texts(id_text)
     link          TEXT,
     url           TEXT,
@@ -26,29 +26,32 @@ CREATE TABLE list_creator (
     url_emote     TEXT,
     url_instagram TEXT,
     ts_insert     VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update     VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update     VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE list_cards (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
-    id_story            BIGINT       REFERENCES list_stories(id) ON DELETE CASCADE,
+    id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     url_immage          TEXT,
     id_text_title       BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     id_text_copyright   BIGINT,                                  -- references list_texts(id_text)
     link_copyright      TEXT,
-    id_creator          BIGINT       REFERENCES list_creator(id),
+    id_creator          BIGINT,
     alternative_image   TEXT,
     awesome_icon        VARCHAR(100),
     style_main          VARCHAR(100),
     style_detail        VARCHAR(100),
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_creator, id_story) REFERENCES list_creator(id, id_story)
 );
 
 CREATE TABLE list_texts (
-    id                BIGSERIAL    PRIMARY KEY,
+    id                BIGSERIAL,
     uuid              VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story          BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
     id_text           BIGINT       NOT NULL,
@@ -57,8 +60,10 @@ CREATE TABLE list_texts (
     long_text         TEXT,
     id_text_copyright BIGINT,                                    -- references list_texts(id_text)
     link_copyright    TEXT,
-    id_creator        BIGINT       REFERENCES list_creator(id),
+    id_creator        BIGINT,
     ts_insert         VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     ts_update         VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_creator, id_story) REFERENCES list_creator(id, id_story),
     UNIQUE (id_story, id_text, lang)
 );

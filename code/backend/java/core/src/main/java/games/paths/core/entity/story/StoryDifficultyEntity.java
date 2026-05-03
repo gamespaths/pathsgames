@@ -8,10 +8,11 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_stories_difficulty")
+@AttributeOverride(name = "idStory", column = @Column(name = "id_story"))
 public class StoryDifficultyEntity extends BaseStoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "exp_cost", nullable = false)

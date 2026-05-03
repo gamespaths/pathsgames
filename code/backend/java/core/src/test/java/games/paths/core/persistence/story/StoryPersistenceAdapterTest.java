@@ -2,12 +2,16 @@ package games.paths.core.persistence.story;
 
 import games.paths.core.entity.story.*;
 import games.paths.core.repository.story.*;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -22,6 +26,7 @@ import static org.mockito.Mockito.*;
  * Verifies delegation to the correct JPA repositories.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StoryPersistenceAdapterTest {
 
     @Mock private StoryRepository storyRepository;
@@ -47,6 +52,8 @@ class StoryPersistenceAdapterTest {
     @Mock private GlobalRandomEventRepository globalRandomEventRepository;
     @Mock private MissionRepository missionRepository;
     @Mock private MissionStepRepository missionStepRepository;
+    @Mock private JdbcTemplate jdbcTemplate;
+    @Mock private EntityManager entityManager;
 
     @InjectMocks
     private StoryPersistenceAdapter adapter;
@@ -56,26 +63,29 @@ class StoryPersistenceAdapterTest {
     class SaveOperations {
 
         @Test
-        @DisplayName("saveStory should delegate to storyRepository.save")
+        @DisplayName("saveStory should persist when id is new")
         void saveStory() {
             StoryEntity entity = new StoryEntity();
             entity.setUuid("test-uuid");
-            when(storyRepository.save(entity)).thenReturn(entity);
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class))).thenReturn(10L);
+            when(storyRepository.existsById(10L)).thenReturn(false);
 
             StoryEntity result = adapter.saveStory(entity);
 
             assertEquals("test-uuid", result.getUuid());
-            verify(storyRepository).save(entity);
+            assertEquals(10L, result.getId());
+            verify(entityManager).persist(entity);
+            verify(entityManager).flush();
         }
 
         @Test
-        @DisplayName("saveTexts should delegate to textRepository.saveAll")
+        @DisplayName("saveTexts should persist all entities")
         void saveTexts() {
             List<TextEntity> texts = List.of(new TextEntity());
-            when(textRepository.saveAll(texts)).thenReturn(texts);
 
             assertEquals(1, adapter.saveTexts(texts).size());
-            verify(textRepository).saveAll(texts);
+            verify(entityManager).persist(texts.get(0));
+            verify(entityManager).flush();
         }
 
         @Test
@@ -245,6 +255,24 @@ class StoryPersistenceAdapterTest {
             List<MissionStepEntity> list = List.of(new MissionStepEntity());
             when(missionStepRepository.saveAll(list)).thenReturn(list);
             assertEquals(1, adapter.saveMissionSteps(list).size());
+        }
+
+        @Test
+        @DisplayName("syncStorySequences should execute sequence sync queries safely")
+        void syncStorySequences() {
+            adapter.syncStorySequences();
+            verify(jdbcTemplate, atLeastOnce()).queryForObject(anyString(), eq(Long.class));
+        }
+
+        @Test
+        @DisplayName("nextStoryScopedId should query max+1 inside story scope")
+        void nextStoryScopedId() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(77L))).thenReturn(12L);
+
+            Long next = adapter.nextStoryScopedId("list_events", "id", 77L);
+
+            assertEquals(12L, next);
+            verify(jdbcTemplate).queryForObject(contains("FROM list_events"), eq(Long.class), eq(77L));
         }
     }
 

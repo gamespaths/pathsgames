@@ -15,11 +15,11 @@
 -- =============================================
 
 CREATE TABLE list_events (
-    id                       BIGSERIAL    PRIMARY KEY,
+    id                       BIGSERIAL,
     uuid                     VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card                  BIGINT,                              -- FK to list_cards(id), deferred
     id_story                 BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_specific_location     BIGINT       REFERENCES list_locations(id),
+    id_specific_location     BIGINT,
     id_text_name             BIGINT,                              -- references list_texts(id_text)
     id_text_description      BIGINT,                              -- references list_texts(id_text)
     type                     VARCHAR(30)  NOT NULL DEFAULT 'NORMAL',
@@ -29,33 +29,42 @@ CREATE TABLE list_events (
     characteristic_to_remove VARCHAR(200),
     key_to_add               VARCHAR(200),
     key_value_to_add         VARCHAR(500),
-    id_item_to_add           BIGINT       REFERENCES list_items(id),
-    id_weather               BIGINT       REFERENCES list_weather_rules(id),
-    id_event_next            BIGINT       REFERENCES list_events(id),
+    id_item_to_add           BIGINT,
+    id_weather               BIGINT,
+    id_event_next            BIGINT,
     coin_cost                INTEGER      DEFAULT 0,
     ts_insert                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_specific_location, id_story) REFERENCES list_locations(id, id_story),
+    FOREIGN KEY (id_item_to_add, id_story) REFERENCES list_items(id, id_story),
+    FOREIGN KEY (id_weather, id_story) REFERENCES list_weather_rules(id, id_story),
+    FOREIGN KEY (id_event_next, id_story) REFERENCES list_events(id, id_story)
 );
 
 COMMENT ON COLUMN list_events.type IS 'AUTOMATIC, FIRST, NORMAL';
 COMMENT ON COLUMN list_events.cost_enery IS 'Energy cost to trigger this event';
 
 CREATE TABLE list_events_effects (
-    id               BIGSERIAL    PRIMARY KEY,
+    id               BIGSERIAL,
     uuid             VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card          BIGINT,                                      -- FK to list_cards(id), deferred
     id_story         BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_event         BIGINT       NOT NULL REFERENCES list_events(id) ON DELETE CASCADE,
+    id_event         BIGINT       NOT NULL,
     statistics       VARCHAR(50),
     value            INTEGER      DEFAULT 0,
     target           VARCHAR(20)  DEFAULT 'ALL',
     traits_to_add    VARCHAR(200),
     traits_to_remove VARCHAR(200),
-    target_class     BIGINT       REFERENCES list_classes(id),
-    id_item_target   BIGINT       REFERENCES list_items(id),
+    target_class     BIGINT,
+    id_item_target   BIGINT,
     item_action      VARCHAR(20),
     ts_insert        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update        VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story) ON DELETE CASCADE,
+    FOREIGN KEY (target_class, id_story) REFERENCES list_classes(id, id_story),
+    FOREIGN KEY (id_item_target, id_story) REFERENCES list_items(id, id_story)
 );
 
 COMMENT ON COLUMN list_events_effects.target IS 'ALL or ONLY_ONE';
@@ -63,17 +72,17 @@ COMMENT ON COLUMN list_events_effects.item_action IS 'REMOVE or ADD';
 COMMENT ON COLUMN list_events_effects.statistics IS 'life, energy, exp, sad, dex, int, cos, food, magic, coin';
 
 CREATE TABLE list_choices (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_event            BIGINT       REFERENCES list_events(id),
-    id_location         BIGINT       REFERENCES list_locations(id),
+    id_event            BIGINT,
+    id_location         BIGINT,
     priority            INTEGER      DEFAULT 0,
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     id_text_narrative   BIGINT,                                  -- references list_texts(id_text)
-    id_event_torun      BIGINT       REFERENCES list_events(id),
+    id_event_torun      BIGINT,
     limit_sad           INTEGER,
     limit_dex           INTEGER,
     limit_int           INTEGER,
@@ -82,16 +91,20 @@ CREATE TABLE list_choices (
     is_progress         INTEGER      NOT NULL DEFAULT 0,
     logic_operator      VARCHAR(5)   DEFAULT 'AND',
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story),
+    FOREIGN KEY (id_location, id_story) REFERENCES list_locations(id, id_story),
+    FOREIGN KEY (id_event_torun, id_story) REFERENCES list_events(id, id_story)
 );
 
 COMMENT ON COLUMN list_choices.logic_operator IS 'AND or OR';
 
 CREATE TABLE list_choices_conditions (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_choices          BIGINT       NOT NULL REFERENCES list_choices(id) ON DELETE CASCADE,
+    id_choices          BIGINT       NOT NULL,
     type                VARCHAR(50)  NOT NULL,
     key                 VARCHAR(200),
     value               VARCHAR(500),
@@ -99,17 +112,19 @@ CREATE TABLE list_choices_conditions (
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_choices, id_story) REFERENCES list_choices(id, id_story) ON DELETE CASCADE
 );
 
 COMMENT ON COLUMN list_choices_conditions.type IS 'KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM';
 COMMENT ON COLUMN list_choices_conditions.operator IS '=, >, <, !=';
 
 CREATE TABLE list_choices_effects (
-    id              BIGSERIAL    PRIMARY KEY,
+    id              BIGSERIAL,
     uuid            VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_story        BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_choices      BIGINT       NOT NULL REFERENCES list_choices(id) ON DELETE CASCADE,
+    id_choices      BIGINT       NOT NULL,
     id_scelta       BIGINT,
     flag_group      INTEGER      NOT NULL DEFAULT 0,
     statistics      VARCHAR(50),
@@ -119,13 +134,15 @@ CREATE TABLE list_choices_effects (
     value_to_add    VARCHAR(500),
     value_to_remove VARCHAR(500),
     ts_insert       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_choices, id_story) REFERENCES list_choices(id, id_story) ON DELETE CASCADE
 );
 
 COMMENT ON COLUMN list_choices_effects.statistics IS 'life, energy, sad, DEX, COS, INT';
 
 CREATE TABLE list_global_random_events (
-    id              BIGSERIAL    PRIMARY KEY,
+    id              BIGSERIAL,
     uuid            VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card         BIGINT,                                      -- FK to list_cards(id), deferred
     id_story        BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -133,13 +150,15 @@ CREATE TABLE list_global_random_events (
     condition_value VARCHAR(500),
     probability     INTEGER      NOT NULL DEFAULT 0,
     id_text         BIGINT,                                      -- references list_texts(id_text)
-    id_event        BIGINT       REFERENCES list_events(id),
+    id_event        BIGINT,
     ts_insert       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update       VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE list_missions (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card             BIGINT,                                  -- FK to list_cards(id), deferred
     id_story            BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -148,24 +167,29 @@ CREATE TABLE list_missions (
     condition_value_to  VARCHAR(500),
     id_text_name        BIGINT,                                  -- references list_texts(id_text)
     id_text_description BIGINT,                                  -- references list_texts(id_text)
-    id_event_completed  BIGINT       REFERENCES list_events(id),
+    id_event_completed  BIGINT,
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_event_completed, id_story) REFERENCES list_events(id, id_story)
 );
 
 CREATE TABLE list_missions_steps (
-    id                   BIGSERIAL    PRIMARY KEY,
+    id                   BIGSERIAL,
     uuid                 VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_card              BIGINT,                                 -- FK to list_cards(id), deferred
     id_story             BIGINT       NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_mission           BIGINT       NOT NULL REFERENCES list_missions(id) ON DELETE CASCADE,
+    id_mission           BIGINT       NOT NULL,
     step                 INTEGER      NOT NULL,
     condition_key        VARCHAR(200),
     condition_value_from VARCHAR(500),
     condition_value_to   VARCHAR(500),
     id_text_name         BIGINT,                                 -- references list_texts(id_text)
     id_text_description  BIGINT,                                 -- references list_texts(id_text)
-    id_event_completed   BIGINT       REFERENCES list_events(id),
+    id_event_completed   BIGINT,
     ts_insert            VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update            VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update            VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_mission, id_story) REFERENCES list_missions(id, id_story) ON DELETE CASCADE,
+    FOREIGN KEY (id_event_completed, id_story) REFERENCES list_events(id, id_story)
 );

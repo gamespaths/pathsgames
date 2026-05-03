@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.ChoiceEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for choice management.
  */
 @Repository
-public interface ChoiceRepository extends JpaRepository<ChoiceEntity, Long> {
+public interface ChoiceRepository extends JpaRepository<ChoiceEntity, StoryScopedEntityId> {
 
     List<ChoiceEntity> findByIdStory(Long idStory);
 

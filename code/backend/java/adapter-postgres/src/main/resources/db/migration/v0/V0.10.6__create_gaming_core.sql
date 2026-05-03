@@ -27,7 +27,7 @@ CREATE TABLE gaming_match (
     exp_cost                    INTEGER      NOT NULL DEFAULT 5,
     status                      VARCHAR(20)  NOT NULL DEFAULT 'CREATED',
     current_clock               INTEGER      NOT NULL DEFAULT 0,
-    id_current_weather          BIGINT       REFERENCES list_weather_rules(id),
+    id_current_weather          BIGINT,
     id_user_creator             BIGINT       NOT NULL REFERENCES users(id),
     timestamp_start             TIMESTAMP,
     timestamp_lock_expiration   TIMESTAMP,
@@ -43,7 +43,7 @@ CREATE TABLE gaming_match (
 COMMENT ON COLUMN gaming_match.status IS 'CREATED, RUNNING, PAUSED, ENDED, GAMEOVER';
 
 CREATE TABLE gaming_character_instance (
-    id                       BIGSERIAL    PRIMARY KEY,
+    id                       BIGSERIAL,
     uuid                     VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match                 BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
     id_user                  BIGINT       NOT NULL REFERENCES users(id),
@@ -54,45 +54,59 @@ CREATE TABLE gaming_character_instance (
     energy                   INTEGER      NOT NULL DEFAULT 0,
     life                     INTEGER      NOT NULL DEFAULT 1,
     sad                      INTEGER      NOT NULL DEFAULT 0,
-    id_location              BIGINT       REFERENCES list_locations(id),
+    id_location              BIGINT,
     is_sleeping              BOOLEAN      NOT NULL DEFAULT FALSE,
     is_coma                  BOOLEAN      NOT NULL DEFAULT FALSE,
     clock_in_coma            INTEGER      DEFAULT 0,
     timestamp_last_pass      TIMESTAMP,
     counter_consecutive_pass INTEGER      NOT NULL DEFAULT 0,
     ts_insert                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update                VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id)
 );
 
 CREATE TABLE gaming_character_traits (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
     id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
-    id_character_match  BIGINT       NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
-    id_traits           BIGINT       NOT NULL REFERENCES list_traits(id),
-    id_event            BIGINT       REFERENCES list_events(id),
+    id_character_match  BIGINT       NOT NULL,
+    id_traits           BIGINT       NOT NULL,
+    id_event            BIGINT,
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE gaming_backpack_resources (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
-    id_character_match  BIGINT       NOT NULL UNIQUE REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
+    id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
+    id_character_match  BIGINT       NOT NULL,
     food                INTEGER      NOT NULL DEFAULT 0,
     magic               INTEGER      NOT NULL DEFAULT 0,
     coin                INTEGER      NOT NULL DEFAULT 0,
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    UNIQUE (id_character_match, id_match),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );
 
 CREATE TABLE gaming_inventory_items (
-    id                  BIGSERIAL    PRIMARY KEY,
+    id                  BIGSERIAL,
     uuid                VARCHAR(36)         NOT NULL DEFAULT gen_random_uuid()::text UNIQUE,
-    id_character_match  BIGINT       NOT NULL REFERENCES gaming_character_instance(id) ON DELETE CASCADE,
-    id_item             BIGINT       NOT NULL REFERENCES list_items(id),
+    id_match            BIGINT       NOT NULL REFERENCES gaming_match(id) ON DELETE CASCADE,
+    id_character_match  BIGINT       NOT NULL,
+    id_item             BIGINT       NOT NULL,
     amount              INTEGER      NOT NULL DEFAULT 1,
     state               VARCHAR(30)  DEFAULT 'ACTIVE',
     ts_insert           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
-    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text
+    ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
+    PRIMARY KEY (id, id_match),
+    UNIQUE (id),
+    FOREIGN KEY (id_character_match, id_match) REFERENCES gaming_character_instance(id, id_match) ON DELETE CASCADE
 );

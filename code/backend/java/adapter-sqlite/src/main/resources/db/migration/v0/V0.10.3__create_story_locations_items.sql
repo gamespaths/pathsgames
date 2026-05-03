@@ -14,7 +14,7 @@
 -- =============================================
 
 CREATE TABLE IF NOT EXISTS list_locations (
-    id                                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                                     INTEGER NOT NULL,
     uuid                                   TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card                                INTEGER,             -- logical FK to list_cards(id)
     id_story                               INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -35,15 +35,16 @@ CREATE TABLE IF NOT EXISTS list_locations (
     id_audio                               INTEGER,
     max_characters                         INTEGER DEFAULT 100,
     ts_insert                              TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                              TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                              TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_locations_neighbors (
-    id                       INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                       INTEGER NOT NULL,
     uuid                     TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_story                 INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_location_from         INTEGER NOT NULL REFERENCES list_locations(id) ON DELETE CASCADE,
-    id_location_to           INTEGER NOT NULL REFERENCES list_locations(id) ON DELETE CASCADE,
+    id_location_from         INTEGER NOT NULL,
+    id_location_to           INTEGER NOT NULL,
     direction                TEXT    NOT NULL,                    -- NORTH, SOUTH, EAST, WEST, ABOVE, BELOW, SKY
     flag_back                INTEGER NOT NULL DEFAULT 0,
     condition_registry_key   TEXT,
@@ -52,11 +53,14 @@ CREATE TABLE IF NOT EXISTS list_locations_neighbors (
     id_text_go               INTEGER,                            -- references list_texts(id_text)
     id_text_back             INTEGER,                            -- references list_texts(id_text)
     ts_insert                TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_location_from, id_story) REFERENCES list_locations(id, id_story) ON DELETE CASCADE,
+    FOREIGN KEY (id_location_to, id_story) REFERENCES list_locations(id, id_story) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS list_items (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card             INTEGER,                                 -- logical FK to list_cards(id)
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -64,27 +68,32 @@ CREATE TABLE IF NOT EXISTS list_items (
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     weight              INTEGER NOT NULL DEFAULT 1,
     is_consumabile      INTEGER NOT NULL DEFAULT 1,
-    id_class_permitted  INTEGER REFERENCES list_classes(id),
-    id_class_prohibited INTEGER REFERENCES list_classes(id),
+    id_class_permitted  INTEGER,
+    id_class_prohibited INTEGER,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_class_permitted, id_story) REFERENCES list_classes(id, id_story),
+    FOREIGN KEY (id_class_prohibited, id_story) REFERENCES list_classes(id, id_story)
 );
 
 CREATE TABLE IF NOT EXISTS list_items_effects (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                  INTEGER NOT NULL,
     uuid                TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_story            INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
-    id_item             INTEGER NOT NULL REFERENCES list_items(id) ON DELETE CASCADE,
+    id_item             INTEGER NOT NULL,
     id_text_name        INTEGER,                                 -- references list_texts(id_text)
     id_text_description INTEGER,                                 -- references list_texts(id_text)
     effect_code         TEXT    NOT NULL,                         -- LIFE, ENERGY, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN
     effect_value        INTEGER NOT NULL DEFAULT 0,
     ts_insert           TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update           TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update           TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story),
+    FOREIGN KEY (id_item, id_story) REFERENCES list_items(id, id_story) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS list_weather_rules (
-    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    id                          INTEGER NOT NULL,
     uuid                        TEXT    NOT NULL UNIQUE DEFAULT (lower(hex(randomblob(4))||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2)||'-'||substr('89ab',1+abs(random())%4,1)||substr(hex(randomblob(2)),2)||'-'||hex(randomblob(6)))),
     id_card                     INTEGER,                         -- logical FK to list_cards(id)
     id_story                    INTEGER NOT NULL REFERENCES list_stories(id) ON DELETE CASCADE,
@@ -103,5 +112,6 @@ CREATE TABLE IF NOT EXISTS list_weather_rules (
     delta_energy                INTEGER DEFAULT 0,
     id_event                    INTEGER,                         -- logical FK to list_events(id)
     ts_insert                   TEXT    NOT NULL DEFAULT (datetime('now')),
-    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now'))
+    ts_update                   TEXT    NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (id, id_story)
 );

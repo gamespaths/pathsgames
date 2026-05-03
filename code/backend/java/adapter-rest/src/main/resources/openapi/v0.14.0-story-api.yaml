@@ -186,6 +186,12 @@ paths:
         be completely deleted and re-imported.
 
         **Auto-UUID**: If the `uuid` field is null, blank, or missing, a new UUID is generated.
+
+        **Explicit IDs**:
+        - If `id` is provided (story or sub-entity row), import tries to persist that exact ID.
+        - If `id` is omitted/null, database auto-increment is used.
+        - If provided `id` already exists in target table, import stops with:
+          `INVALID_IMPORT_DATA` + message `story/<table> id=<value> already present`.
       operationId: importStory
       security:
         - bearerAuth: []
@@ -266,6 +272,10 @@ paths:
                   value:
                     error: "INVALID_IMPORT_DATA"
                     message: "storyData must not be null or empty"
+                duplicateId:
+                  value:
+                    error: "INVALID_IMPORT_DATA"
+                    message: "story/list_stories id=990001 already present"
         '401':
           description: Missing or invalid authentication
           content:
@@ -572,6 +582,11 @@ components:
           format: uuid
           nullable: true
           description: Story UUID (auto-generated if null/blank)
+        id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Optional explicit DB id for list_stories (must be unique if provided)
         author:
           type: string
         category:
@@ -609,6 +624,11 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: integer
+                format: int64
+                nullable: true
+                description: Optional explicit DB id for list_texts
               idText:
                 type: integer
               lang:
@@ -623,6 +643,11 @@ components:
           items:
             type: object
             properties:
+              id:
+                type: integer
+                format: int64
+                nullable: true
+                description: Optional explicit DB id for list_stories_difficulty
               idTextDescription:
                 type: integer
               expCost:

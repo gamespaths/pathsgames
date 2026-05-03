@@ -7,10 +7,10 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_character_templates")
+@AttributeOverride(name = "idStory", column = @Column(name = "id_story"))
 public class CharacterTemplateEntity extends BaseStoryEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_tipo")
     private Long idTipo;
 
