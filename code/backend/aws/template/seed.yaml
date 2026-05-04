@@ -8,6 +8,10 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  SeedBcryptHash:
+    Type: String
+    NoEcho: true
+    Description: 'BCrypt hash of the seed users password (dev-only). Never hardcode in source code.'
 
 Resources:
   SeedLogGroup:
@@ -39,6 +43,7 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          SEED_BCRYPT_HASH: !Ref SeedBcryptHash
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

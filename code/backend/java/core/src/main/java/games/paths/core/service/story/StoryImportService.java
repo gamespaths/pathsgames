@@ -110,7 +110,7 @@ public class StoryImportService implements StoryImportPort {
                 .choicesImported(choicesImported)
                 .build();
         } finally {
-            scopedIdCache.get().clear();
+            scopedIdCache.remove();
         }
     }
 

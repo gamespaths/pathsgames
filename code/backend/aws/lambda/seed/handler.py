@@ -36,8 +36,10 @@ from common import db_utils
 
 HEADERS = {"Content-Type": "application/json"}
 
-# Password hash = BCrypt of 'password123'  (same as SQL seed)
-BCRYPT_HASH = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+# BCrypt hash is loaded from the environment variable SEED_BCRYPT_HASH
+# (set via CloudFormation parameter SeedBcryptHash with NoEcho:true)
+# Never hardcode password hashes in source code.
+BCRYPT_HASH = os.environ.get("SEED_BCRYPT_HASH", "")
 
 # Seed users — mirrors R__insert_dev_test_data.sql exactly
 SEED_USERS = [

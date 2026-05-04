@@ -48,20 +48,38 @@ export default function StoriesPage() {
       const fullHeader = await getStory(story.uuid)
       
       const entityTypes = [
-        'texts', 'difficulties', 'classes', 'locations', 'events', 'items', 
-        'choices', 'creators', 'cards', 'keys', 'traits', 'characterTemplates', 
-        'weatherRules', 'globalRandomEvents', 'missions'
+        { apiType: 'texts',               jsonKey: 'texts' },
+        { apiType: 'difficulties',        jsonKey: 'difficulties' },
+        { apiType: 'classes',             jsonKey: 'classes' },
+        { apiType: 'locations',           jsonKey: 'locations' },
+        { apiType: 'events',              jsonKey: 'events' },
+        { apiType: 'items',               jsonKey: 'items' },
+        { apiType: 'choices',             jsonKey: 'choices' },
+        { apiType: 'creators',            jsonKey: 'creators' },
+        { apiType: 'cards',               jsonKey: 'cards' },
+        { apiType: 'keys',                jsonKey: 'keys' },
+        { apiType: 'traits',              jsonKey: 'traits' },
+        { apiType: 'character-templates', jsonKey: 'characterTemplates' },
+        { apiType: 'weatherRules',        jsonKey: 'weatherRules' },
+        { apiType: 'globalRandomEvents',  jsonKey: 'globalRandomEvents' },
+        { apiType: 'missions',            jsonKey: 'missions' },
+        { apiType: 'location-neighbors',  jsonKey: 'locationNeighbors' },
+        { apiType: 'event-effects',       jsonKey: 'eventEffects' },
+        { apiType: 'choice-conditions',   jsonKey: 'choiceConditions' },
+        { apiType: 'choice-effects',      jsonKey: 'choiceEffects' },
+        { apiType: 'item-effects',        jsonKey: 'itemEffects' },
+        { apiType: 'class-bonuses',       jsonKey: 'classBonuses' },
+        { apiType: 'mission-steps',       jsonKey: 'missionSteps' },
       ]
-      
+
       const exportData = { ...fullHeader }
-      const results = await Promise.all(entityTypes.map(type => listEntities(story.uuid, type)))
-      
-      entityTypes.forEach((type, index) => {
-        exportData[type] = results[index].map(item => {
+      const results = await Promise.all(entityTypes.map(et => listEntities(story.uuid, et.apiType)))
+
+      entityTypes.forEach((et, index) => {
+        exportData[et.jsonKey] = results[index].map(item => {
           // eslint-disable-next-line no-unused-vars
           const { tsInsert, tsUpdate, idStory, uuid, ...rest } = item
-          // Ensure id is present and matches idText for texts
-          if (type === 'texts' && item.idText) {
+          if (et.jsonKey === 'texts' && item.idText) {
             rest.id = Number(item.idText)
             rest.idText = Number(item.idText)
           } else if (!rest.id && item.id) {
@@ -246,7 +264,10 @@ export default function StoriesPage() {
                 ))}
               </div>
             )}
-            <div className="flex justify-end mt-3">
+            <div className="flex justify-end mt-3 gap-2">
+              <button className="pg-btn pg-btn-ghost" onClick={() => { handleExport(detail); setDetail(null) }} title="Export JSON">
+                <i className="fas fa-file-export me-1" />Export JSON
+              </button>
               <button className="pg-btn pg-btn-ghost" onClick={() => setDetail(null)}>Close</button>
             </div>
           </div>

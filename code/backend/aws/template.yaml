@@ -12,6 +12,11 @@ Parameters:
     NoEcho: true
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
     Description: 'Secret key for JWT verification'
+  SeedBcryptHash:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: 'BCrypt hash for seed users (dev-only). Pass at deploy time, do not store in code.'
 
 Resources:
   # DynamoDB Table (Single Table Design)
@@ -120,6 +125,7 @@ Resources:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        SeedBcryptHash: !Ref SeedBcryptHash
 
 Outputs:
   ApiUrl:

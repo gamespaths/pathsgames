@@ -28,7 +28,8 @@ abstract class DatabaseIntegrationTestCase extends TestCase
 
                 // SQLite doesn't support AUTO_INCREMENT or specific MySQL types well
                 $sql = str_replace('AUTO_INCREMENT PRIMARY KEY', 'PRIMARY KEY AUTOINCREMENT', $sql);
-                $sql = str_replace('AUTO_INCREMENT', 'AUTOINCREMENT', $sql);
+                // For composite PKs, AUTO_INCREMENT on a non-PK column is invalid in SQLite — remove it
+                $sql = str_replace('AUTO_INCREMENT', '', $sql);
                 
                 // Remove INT(11) etc
                 $sql = preg_replace('/INT\(\d+\)/', 'INTEGER', $sql);

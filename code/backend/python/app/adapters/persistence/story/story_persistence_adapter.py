@@ -125,6 +125,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_locations(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_loc_id = self._make_id_counter(session, "list_locations", "id", story_id)
+            next_nb_id = self._make_id_counter(session, "list_locations_neighbors", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -138,16 +140,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_card=item.get("idCard")
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_loc_id()
                 loc = LocationEntity(**kwargs)
                 session.add(loc)
-                session.flush() # get loc.id
-                
-                # Neighbors
-                neighbors = item.get("neighbors", [])
-                for n in neighbors:
+                session.flush()
+
+                for n in item.get("neighbors", []):
                     ne = LocationNeighborEntity(
+                        id=next_nb_id(),
                         id_story=story_id,
                         id_location_from=loc.id,
                         id_location_to=n.get("idLocationTo"),
@@ -161,6 +161,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_ev_id = self._make_id_counter(session, "list_events", "id", story_id)
+            next_ef_id = self._make_id_counter(session, "list_events_effects", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -176,16 +178,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_location=item.get("idLocation")
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
                 ev = EventEntity(**kwargs)
                 session.add(ev)
                 session.flush()
-                
-                # Effects
-                effects = item.get("effects", [])
-                for ef in effects:
+
+                for ef in item.get("effects", []):
                     efe = EventEffectEntity(
+                        id=next_ef_id(),
                         id_story=story_id,
                         id_event=ev.id,
                         effect_type=ef.get("effectType", ef.get("type")),
@@ -197,6 +197,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_it_id = self._make_id_counter(session, "list_items", "id", story_id)
+            next_ie_id = self._make_id_counter(session, "list_items_effects", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -206,16 +208,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_class=item.get("idClass")
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_it_id()
                 it = ItemEntity(**kwargs)
                 session.add(it)
                 session.flush()
                 
-                # Effects
-                effects = item.get("effects", [])
-                for ef in effects:
+                for ef in item.get("effects", []):
                     ie = ItemEffectEntity(
+                        id=next_ie_id(),
                         id_story=story_id,
                         id_item=it.id,
                         effect_type=ef.get("effectType", ef.get("type")),
@@ -226,6 +226,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_classes(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_cls_id = self._make_id_counter(session, "list_classes", "id", story_id)
+            next_cb_id = self._make_id_counter(session, "list_classes_bonus", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -238,16 +240,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     constitution_base=item.get("constitutionBase", 1)
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_cls_id()
                 cls = ClassEntity(**kwargs)
                 session.add(cls)
                 session.flush()
-                
-                # Bonuses
-                bonuses = item.get("bonuses", [])
-                for b in bonuses:
+
+                for b in item.get("bonuses", []):
                     cb = ClassBonusEntity(
+                        id=next_cb_id(),
                         id_story=story_id,
                         id_class=cls.id,
                         bonus_type=b.get("bonusType", b.get("type")),
@@ -258,6 +258,9 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_choices(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_ch_id = self._make_id_counter(session, "list_choices", "id", story_id)
+            next_cc_id = self._make_id_counter(session, "list_choices_conditions", "id", story_id)
+            next_ce_id = self._make_id_counter(session, "list_choices_effects", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -270,16 +273,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_torun=item.get("idEventToRun")
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_ch_id()
                 ch = ChoiceEntity(**kwargs)
                 session.add(ch)
                 session.flush()
-                
-                # Conditions
-                conds = item.get("conditions", [])
-                for c in conds:
+
+                for c in item.get("conditions", []):
                     cc = ChoiceConditionEntity(
+                        id=next_cc_id(),
                         id_story=story_id,
                         id_choice=ch.id,
                         condition_type=c.get("conditionType", c.get("type")),
@@ -288,11 +289,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         condition_operator=c.get("conditionOperator", "AND")
                     )
                     session.add(cc)
-                    
-                # Effects
-                effs = item.get("effects", [])
-                for ef in effs:
+
+                for ef in item.get("effects", []):
                     ce = ChoiceEffectEntity(
+                        id=next_ce_id(),
                         id_story=story_id,
                         id_choice=ch.id,
                         effect_type=ef.get("effectType", ef.get("type")),
@@ -351,6 +351,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_missions(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:
+            next_m_id = self._make_id_counter(session, "list_missions", "id", story_id)
+            next_st_id = self._make_id_counter(session, "list_missions_steps", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
@@ -362,15 +364,14 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_completed=item.get("idEventCompleted")
                 )
                 explicit_id = _get_long(item, "id")
-                if explicit_id is not None:
-                    kwargs["id"] = explicit_id
+                kwargs["id"] = explicit_id if explicit_id is not None else next_m_id()
                 m = MissionEntity(**kwargs)
                 session.add(m)
                 session.flush()
-                
-                steps = item.get("steps", [])
-                for idx, step in enumerate(steps):
+
+                for idx, step in enumerate(item.get("steps", [])):
                     st = MissionStepEntity(
+                        id=next_st_id(),
                         id_story=story_id,
                         id_mission=m.id,
                         step_order=step.get("stepOrder", idx + 1),
@@ -391,15 +392,28 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "url_instagram": "urlInstagram"
         })
 
+    @staticmethod
+    def _make_id_counter(session, table_name: str, id_col: str, story_id: int):
+        from sqlalchemy import text as sa_text
+        current = session.execute(
+            sa_text(f"SELECT COALESCE(MAX({id_col}), 0) FROM {table_name} WHERE id_story = :sid"),
+            {"sid": story_id}
+        ).scalar() or 0
+        state = [current]
+        def next_id():
+            state[0] += 1
+            return state[0]
+        return next_id
+
     def _insert_batch(self, entity_class, story_id: int, items: List[Dict[str, Any]], field_map: Dict[str, str]) -> None:
+        id_col = "id_tipo" if entity_class == CharacterTemplateEntity else "id"
+        table_name = entity_class.__tablename__
         with self.session_factory() as session:
+            next_id = self._make_id_counter(session, table_name, id_col, story_id)
             for item in items:
                 kwargs = {"id_story": story_id}
-                # Handle explicit id
                 explicit_id = _get_long(item, "id", "idTipo", "id_tipo")
-                if explicit_id is not None:
-                    id_col = "id_tipo" if entity_class == CharacterTemplateEntity else "id"
-                    kwargs[id_col] = explicit_id
+                kwargs[id_col] = explicit_id if explicit_id is not None else next_id()
                 for db_col, json_key in field_map.items():
                     if json_key in item:
                         kwargs[db_col] = item[json_key]

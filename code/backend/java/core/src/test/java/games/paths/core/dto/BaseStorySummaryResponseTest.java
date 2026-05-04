@@ -97,4 +97,22 @@ class BaseStorySummaryResponseTest {
         assertNull(r.getPriority());
         assertNull(r.getPeghi());
     }
+
+    @Test
+    @DisplayName("idTextClockSingular and idTextClockPlural getters and setters")
+    void clockTextIds() {
+        TestSummary r = new TestSummary();
+        assertNull(r.getIdTextClockSingular());
+        assertNull(r.getIdTextClockPlural());
+
+        r.setIdTextClockSingular(11);
+        r.setIdTextClockPlural(22);
+        assertEquals(11, r.getIdTextClockSingular());
+        assertEquals(22, r.getIdTextClockPlural());
+
+        r.setIdTextClockSingular(null);
+        r.setIdTextClockPlural(null);
+        assertNull(r.getIdTextClockSingular());
+        assertNull(r.getIdTextClockPlural());
+    }
 }

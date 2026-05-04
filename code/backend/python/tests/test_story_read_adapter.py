@@ -46,7 +46,7 @@ def test_find_story_by_uuid(session_factory, adapter):
 
 def test_find_texts_for_story(session_factory, adapter):
     with session_factory() as session:
-        session.add(TextEntity(id_story=1, id_text=1, lang="en", short_text="Hello"))
+        session.add(TextEntity(id=1, id_story=1, id_text=1, lang="en", short_text="Hello"))
         session.commit()
     
     texts = adapter.find_texts_for_story(1)

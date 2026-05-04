@@ -263,30 +263,42 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         return existsByStoryScope("list_missions_steps", "id", id, idStory);
     }
 
+    private static void validateIdentifier(String value) {
+        if (value == null || !value.matches("[a-zA-Z0-9_]+")) {
+            throw new IllegalArgumentException("Invalid SQL identifier: " + value);
+        }
+    }
+
     @Override
+    @SuppressWarnings("java:S2077")
     public Long nextStoryScopedId(String tableName, String idColumn, Long idStory) {
         if (idStory == null || tableName == null || idColumn == null) {
             return null;
         }
-        if (!tableName.matches("[a-zA-Z0-9_]+") || !idColumn.matches("[a-zA-Z0-9_]+")) {
-            throw new IllegalArgumentException("Invalid scoped id selector");
-        }
+        validateIdentifier(tableName);
+        validateIdentifier(idColumn);
         String sql = "SELECT COALESCE(MAX(" + idColumn + "), 0) + 1 FROM " + tableName + " WHERE id_story = ?";
         Long next = jdbcTemplate.queryForObject(sql, Long.class, idStory);
         return next != null ? next : 1L;
     }
 
+    @SuppressWarnings("java:S2077")
     private boolean existsByStoryScope(String tableName, String idColumn, Long id, Long idStory) {
         if (id == null || idStory == null) {
             return false;
         }
+        validateIdentifier(tableName);
+        validateIdentifier(idColumn);
         String sql = "SELECT COUNT(1) FROM " + tableName + " WHERE " + idColumn + " = ? AND id_story = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, id, idStory);
         return count != null && count > 0;
     }
 
     @Override
+    @SuppressWarnings("java:S2077")
     public Long nextGlobalId(String tableName, String idColumn) {
+        validateIdentifier(tableName);
+        validateIdentifier(idColumn);
         String sql = "SELECT COALESCE(MAX(" + idColumn + "), 0) + 1 FROM " + tableName;
         Long next = jdbcTemplate.queryForObject(sql, Long.class);
         return next == null ? 1L : next;
@@ -319,7 +331,10 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         syncSequence("list_missions_steps", "id");
     }
 
+    @SuppressWarnings("java:S2077")
     private void syncSequence(String tableName, String idColumn) {
+        validateIdentifier(tableName);
+        validateIdentifier(idColumn);
         try {
             String sql = "SELECT setval(pg_get_serial_sequence('" + tableName + "', '" + idColumn + "'), "
                     + "COALESCE((SELECT MAX(" + idColumn + ") FROM " + tableName + "), 1), true)";

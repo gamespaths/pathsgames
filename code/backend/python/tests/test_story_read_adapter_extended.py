@@ -20,7 +20,7 @@ def adapter(session_factory):
 
 def test_find_difficulties_for_story(session_factory, adapter):
     with session_factory() as session:
-        session.add(StoryDifficultyEntity(id_story=1, uuid="d1", exp_cost=10))
+        session.add(StoryDifficultyEntity(id=1, id_story=1, uuid="d1", exp_cost=10))
         session.commit()
     
     diffs = adapter.find_difficulties_for_story(1)
@@ -29,9 +29,9 @@ def test_find_difficulties_for_story(session_factory, adapter):
 
 def test_counts_for_story(session_factory, adapter):
     with session_factory() as session:
-        session.add(LocationEntity(id_story=1))
-        session.add(EventEntity(id_story=1))
-        session.add(ItemEntity(id_story=1))
+        session.add(LocationEntity(id=1, id_story=1))
+        session.add(EventEntity(id=1, id_story=1))
+        session.add(ItemEntity(id=1, id_story=1))
         session.commit()
     
     assert adapter.count_locations_for_story(1) == 1
@@ -56,12 +56,12 @@ def test_find_groups_and_categories(session_factory, adapter):
 
 def test_find_story_components(session_factory, adapter):
     with session_factory() as session:
-        session.add(ClassEntity(id_story=1))
-        session.add(CharacterTemplateEntity(id_story=1))
-        session.add(TraitEntity(id_story=1))
+        session.add(ClassEntity(id=1, id_story=1))
+        session.add(CharacterTemplateEntity(id_tipo=1, id_story=1))
+        session.add(TraitEntity(id=1, id_story=1))
         session.add(CardEntity(id_story=1, id=10, uuid="c1"))
-        session.add(TextEntity(id_story=1, id_text=20, lang="en"))
-        session.add(CreatorEntity(id_story=1, uuid="cr1"))
+        session.add(TextEntity(id=1, id_story=1, id_text=20, lang="en"))
+        session.add(CreatorEntity(id=1, id_story=1, uuid="cr1"))
         session.commit()
         
     assert len(adapter.find_classes_for_story(1)) == 1
@@ -77,7 +77,7 @@ def test_find_story_components(session_factory, adapter):
 
 def test_find_generic_entities(session_factory, adapter):
     with session_factory() as session:
-        session.add(LocationEntity(id_story=1, uuid="loc1"))
+        session.add(LocationEntity(id=1, id_story=1, uuid="loc1"))
         session.commit()
         
     assert len(adapter.find_locations_for_story(1)) == 1

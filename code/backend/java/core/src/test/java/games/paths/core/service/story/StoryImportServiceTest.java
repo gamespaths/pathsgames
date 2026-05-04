@@ -443,4 +443,193 @@ class StoryImportServiceTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
+
+    // === SECTION: RELATIONAL ENTITY IMPORTS ===
+
+    @Nested
+    @DisplayName("Relational entity import tests")
+    class RelationalEntityImports {
+
+        private StoryEntity setupStory(String uuid) {
+            when(persistencePort.findStoryByUuid(uuid)).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+            return new StoryEntity();
+        }
+
+        @Test
+        @DisplayName("Should import locationNeighbors")
+        void importStory_withLocationNeighbors() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ln-uuid");
+            data.put("locationNeighbors", List.of(Map.of("idLocationFrom", 1, "idLocationTo", 2, "direction", "NORTH")));
+            setupStory("ln-uuid");
+            when(persistencePort.saveLocationNeighbors(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveLocationNeighbors(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import eventEffects")
+        void importStory_withEventEffects() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ee-uuid");
+            data.put("eventEffects", List.of(Map.of("idEvent", 1, "statistics", "life", "value", 5)));
+            setupStory("ee-uuid");
+            when(persistencePort.saveEventEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveEventEffects(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import itemEffects")
+        void importStory_withItemEffects() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ie-uuid");
+            data.put("itemEffects", List.of(Map.of("idItem", 2, "effectCode", "HEAL", "effectValue", 10)));
+            setupStory("ie-uuid");
+            when(persistencePort.saveItemEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveItemEffects(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import choiceConditions")
+        void importStory_withChoiceConditions() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "cc-uuid");
+            data.put("choiceConditions", List.of(Map.of("idChoices", 3, "type", "KEY", "key", "k1", "value", "v1", "operator", "EQ")));
+            setupStory("cc-uuid");
+            when(persistencePort.saveChoiceConditions(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceConditions(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import choiceEffects")
+        void importStory_withChoiceEffects() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ce-uuid");
+            data.put("choiceEffects", List.of(Map.of("idChoices", 4, "statistics", "energy", "value", 3)));
+            setupStory("ce-uuid");
+            when(persistencePort.saveChoiceEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveChoiceEffects(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import classBonuses")
+        void importStory_withClassBonuses() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "cb-uuid");
+            data.put("classBonuses", List.of(Map.of("idClass", 1, "statistic", "dexterity", "value", 2)));
+            setupStory("cb-uuid");
+            when(persistencePort.saveClassBonuses(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveClassBonuses(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should import missionSteps")
+        void importStory_withMissionSteps() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "ms-uuid");
+            data.put("missionSteps", List.of(Map.of("idMission", 1, "step", 1)));
+            setupStory("ms-uuid");
+            when(persistencePort.saveMissionSteps(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveMissionSteps(argThat(list -> list.size() == 1));
+        }
+
+        @Test
+        @DisplayName("Should throw when duplicate scoped entity id is detected")
+        void importStory_duplicateScopedEntityId() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "dup-scope-uuid");
+            data.put("locations", List.of(Map.of("id", 5)));
+            when(persistencePort.findStoryByUuid("dup-scope-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+            when(persistencePort.existsLocationId(5L, 1L)).thenReturn(true);
+
+            assertThrows(IllegalArgumentException.class, () -> storyImportService.importStory(data));
+        }
+
+        @Test
+        @DisplayName("Should auto-generate scoped id when no explicit id provided for relational entity")
+        void importStory_autoGenerateScopedIdForRelationalEntity() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "auto-scope-uuid");
+            data.put("locationNeighbors", List.of(Map.of("idLocationFrom", 1, "idLocationTo", 2)));
+            when(persistencePort.findStoryByUuid("auto-scope-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(10L);
+                return e;
+            });
+            when(persistencePort.nextStoryScopedId(anyString(), anyString(), eq(10L))).thenReturn(1L);
+            when(persistencePort.saveLocationNeighbors(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            storyImportService.importStory(data);
+
+            verify(persistencePort).saveLocationNeighbors(anyList());
+        }
+
+        @Test
+        @DisplayName("getLong should parse string values")
+        void importStory_getLongStringParsing() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "str-long-uuid");
+            data.put("id", "55"); // string id that should be parsed to Long
+
+            when(persistencePort.findStoryByUuid("str-long-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.existsStoryId(55L)).thenReturn(false);
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                if (e.getId() == null) e.setId(55L);
+                return e;
+            });
+
+            StoryImportResult result = storyImportService.importStory(data);
+            assertNotNull(result);
+        }
+
+        @Test
+        @DisplayName("getLong should return null for unparseable string")
+        void importStory_getLongUnparseableString() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "bad-long-uuid");
+            data.put("id", "not-a-number"); // unparseable, should be ignored
+
+            when(persistencePort.findStoryByUuid("bad-long-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+
+            StoryImportResult result = storyImportService.importStory(data);
+            assertNotNull(result);
+        }
+    }
 }

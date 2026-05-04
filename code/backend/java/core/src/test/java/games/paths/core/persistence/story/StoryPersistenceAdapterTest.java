@@ -274,6 +274,64 @@ class StoryPersistenceAdapterTest {
             assertEquals(12L, next);
             verify(jdbcTemplate).queryForObject(contains("FROM list_events"), eq(Long.class), eq(77L));
         }
+
+        @Test
+        @DisplayName("nextStoryScopedId returns 1 when jdbcTemplate returns null")
+        void nextStoryScopedId_nullResult() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(1L))).thenReturn(null);
+            assertEquals(1L, adapter.nextStoryScopedId("list_events", "id", 1L));
+        }
+
+        @Test
+        @DisplayName("nextStoryScopedId returns null when any param is null")
+        void nextStoryScopedId_nullParams() {
+            assertNull(adapter.nextStoryScopedId(null, "id", 1L));
+            assertNull(adapter.nextStoryScopedId("list_events", null, 1L));
+            assertNull(adapter.nextStoryScopedId("list_events", "id", null));
+        }
+
+        @Test
+        @DisplayName("nextStoryScopedId throws on invalid identifier")
+        void nextStoryScopedId_invalidIdentifier() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> adapter.nextStoryScopedId("list events; DROP TABLE", "id", 1L));
+        }
+
+        @Test
+        @DisplayName("nextGlobalId returns 1 when jdbcTemplate returns null")
+        void nextGlobalId_nullResult() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class))).thenReturn(null);
+            assertEquals(1L, adapter.nextGlobalId("list_stories", "id"));
+        }
+
+        @Test
+        @DisplayName("nextGlobalId returns value from jdbcTemplate")
+        void nextGlobalId_value() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class))).thenReturn(5L);
+            assertEquals(5L, adapter.nextGlobalId("list_stories", "id"));
+        }
+
+        @Test
+        @DisplayName("nextGlobalId throws on invalid identifier")
+        void nextGlobalId_invalidIdentifier() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> adapter.nextGlobalId("list stories", "id"));
+        }
+
+        @Test
+        @DisplayName("saveStory merges when entity id already exists")
+        void saveStory_existingId() {
+            StoryEntity entity = new StoryEntity();
+            entity.setId(99L);
+            when(storyRepository.existsById(99L)).thenReturn(true);
+            when(storyRepository.save(entity)).thenReturn(entity);
+
+            StoryEntity result = adapter.saveStory(entity);
+
+            assertEquals(99L, result.getId());
+            verify(storyRepository).save(entity);
+            verify(entityManager, never()).persist(any());
+        }
     }
 
     @Nested

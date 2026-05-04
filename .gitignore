@@ -51,6 +51,7 @@ target/
 .aws-sam-cli-managed-default/
 .aws-sam-cli-managed-default.toml
 
+
 # AWS CloudFormation
 .ebextensions/  
 
@@ -81,11 +82,15 @@ code/backend/php/.phpunit.result.cache
 run_robot_results/
 
 # Sonar
+code/backend/aws/.scannerwork
+code/backend/aws/.sonar
 code/backend/java/.scannerwork
 code/backend/php/.scannerwork
 code/backend/python/.scannerwork
 code/frontend/react-admin/.scannerwork
 code/frontend/react-game/.scannerwork
+code/backend/aws/coverage.xml
+code/backend/aws/.coverage
 
 # Frontend react-admin
 code/frontend/react-admin/node_modules/

@@ -75,6 +75,33 @@ run_python() {
     echo "Python Sonar Scanner completed."
 }
 
+run_aws_lambda(){
+    echo "==========================================="
+    echo "Running Sonar Scanner for AWS Lambda..."
+    echo "==========================================="
+    if [ -z "${SONAR_LOGIN_TOKEN:-}" ]; then
+        echo "Error: SONAR_LOGIN_TOKEN must be set in the environment or .env file."
+        return 1
+    fi
+    cd "$PROJECT_ROOT/code/backend/aws-lambda"
+    
+    set +e
+    # Run tests using the local virtual environment if it exists
+    if [ -f ".venv/bin/pytest" ]; then
+        ./.venv/bin/pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing -v
+    else
+        pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing -v
+    fi
+    set -e
+    rm -rf .scannerwork
+    npx -y sonarqube-scanner -Dsonar.token="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
+    echo "AWS Lambda Sonar Scanner completed."
+    # pysonar \
+    # --sonar-token=d35ce27fa708ec5d844cfe50f184cfe29f5ff8ab \
+    # --sonar-project-key=pathsgames_backend-aws-lambda \
+    # --sonar-organization=gamespaths
+}
+
 run_react_admin() {
     echo "==========================================="
     echo "Running Sonar Scanner for React Admin..."
@@ -96,7 +123,7 @@ run_react_admin() {
         -Dsonar.token="$SONAR_LOGIN_TOKEN" \
         -Dsonar.host.url="$SONAR_HOST_URL" \
         -Dsonar.organization="$SONAR_ORGANIZATION" \
-        -Dsonar.projectKey=paths-game-admin-react \
+        -Dsonar.projectKey=gamespaths_frontend-react-admin \
         -Dsonar.projectName="Frontend React Admin" \
         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
         -Dsonar.sources=src \
