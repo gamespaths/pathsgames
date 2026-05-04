@@ -321,7 +321,7 @@ def lambda_handler(event, context):
     # public
     if path == '/api/stories' and method == 'GET':
         return list_stories(event)
-    if path.startswith('/api/stories/') and method == 'GET':
+    if path.startswith('/api/stories/') and method == 'GET' and len(path.split('/')) == 4:
         uid = params.get('uuid') or path.split('/')[-1]
         return get_story(event, uid)
 
