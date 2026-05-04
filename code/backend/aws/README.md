@@ -2,7 +2,7 @@
 
 Welcome to the **Serverless** version of the Paths Games backend! This project offers a high-performance, scalable, and extremely cost-effective alternative to traditional backends (Java/Python/PHP) based on relational databases.
 
-## 🚀 Architecture
+## 🚀 Architecture 
 
 The infrastructure is built entirely on managed AWS services:
 
