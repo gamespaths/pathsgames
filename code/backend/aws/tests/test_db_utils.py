@@ -1,14 +1,14 @@
 """
 Unit tests for common/db_utils.py.
-We patch `common.db_utils.table` (the module-level DynamoDB Table object)
-so no real AWS calls are made.
+We patch `common.db_utils._table` (the lazy-initialized DynamoDB Table object)
+so no real AWS calls are made and boto3 is never contacted at import time.
 """
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 import common.db_utils as db
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestToynamodbValue:
     def test_float_converted_to_decimal(self, _t):
         assert db._to_dynamodb_value({'score': 1.5}) == {'score': Decimal('1.5')}
@@ -32,7 +32,7 @@ class TestToynamodbValue:
         assert result == (Decimal('1.5'), 2)
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestGetItem:
     def test_hit(self, mock_table):
         mock_table.get_item.return_value = {'Item': {'PK': 'USER#1', 'uuid': '1'}}
@@ -50,7 +50,7 @@ class TestGetItem:
         mock_table.get_item.assert_called_once_with(Key={'PK': 'X', 'SK': 'CUSTOM'})
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestPutItem:
     def test_adds_timestamps(self, mock_table):
         mock_table.put_item.return_value = {}
@@ -73,7 +73,7 @@ class TestPutItem:
         assert item['ts_insert'] == 999
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestDeleteItem:
     def test_success(self, mock_table):
         mock_table.delete_item.return_value = {}
@@ -86,7 +86,7 @@ class TestDeleteItem:
         mock_table.delete_item.assert_called_once_with(Key={'PK': 'X', 'SK': 'MY_SK'})
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestQueryByPk:
     def test_returns_items(self, mock_table):
         mock_table.query.return_value = {'Items': [{'PK': 'X', 'SK': 'A'}]}
@@ -97,7 +97,7 @@ class TestQueryByPk:
         assert db.query_by_pk('MISSING') == []
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestDeleteAllByPk:
     def test_deletes_all(self, mock_table):
         mock_table.query.return_value = {
@@ -109,7 +109,7 @@ class TestDeleteAllByPk:
         assert mock_table.delete_item.call_count == 2
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestScanFilter:
     def test_returns_matching_items(self, mock_table):
         mock_table.scan.return_value = {'Items': [{'PK': 'USER#1', 'is_guest': True}]}
@@ -117,7 +117,7 @@ class TestScanFilter:
         assert len(result) == 1
 
 
-@patch.object(db, 'table')
+@patch.object(db, '_table')
 class TestUpdateTsLastAccess:
     def test_success(self, mock_table):
         mock_table.update_item.return_value = {}

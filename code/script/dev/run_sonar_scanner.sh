@@ -96,10 +96,6 @@ run_aws_lambda(){
     rm -rf .scannerwork
     npx -y sonarqube-scanner -Dsonar.token="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
     echo "AWS Lambda Sonar Scanner completed."
-    # pysonar \
-    # --sonar-token=d35ce27fa708ec5d844cfe50f184cfe29f5ff8ab \
-    # --sonar-project-key=pathsgames_backend-aws-lambda \
-    # --sonar-organization=gamespaths
 }
 
 run_react_admin() {
