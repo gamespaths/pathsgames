@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "brand": "Paths Games",
+    "guest": "Guest",
+    "login": "Login"
+  },
+  "home": {
+    "heroTitle": "Epic Adventures Await",
+    "heroSub": "Branching narratives. Infinite choices.",
+    "stories": "Stories",
+    "loading": "Loading stories…",
+    "noStories": "No stories available."
+  },
+  "book": {
+    "configureAdventure": "Start your Adventure",
+    "character": "Character",
+    "class": "Class",
+    "trait": "Trait",
+    "difficulty": "Difficulty",
+    "gameType": "Game Type",
+    "login": "Login",
+    "single": "Single",
+    "multiplayer": "Multiplayer",
+    "competitive": "Competitive",
+    "guest": "Guest",
+    "register": "Register",
+    "comingSoon": "Coming Soon",
+    "locked": "Locked",
+    "change": "Change",
+    "select": "Select",
+    "back": "Back",
+    "acceptTerms": "I accept the Terms & Conditions",
+    "startGame": "Start Game",
+    "selectTitle": "Select"
+  },
+  "game": {
+    "currentLocation": "Current Location",
+    "explore": "Explore",
+    "moveTo": "Move to…",
+    "actions": "Actions",
+    "exitToHome": "Exit to Home",
+    "stats": {
+      "life": "Life",
+      "energy": "Energy",
+      "sadness": "Sadness",
+      "experience": "XP",
+      "food": "Food",
+      "magic": "Magic",
+      "coins": "Coins",
+      "weight": "Weight"
+    },
+    "move": "Move Here",
+    "execute": "Execute"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "madeWith": "Crafted with",
+    "byTeam": "by the Paths Games Dev Team",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "cookies": "Cookies Policy",
+    "github": "GitHub",
+    "roadmap": "Roadmap",
+    "devlog": "Devlog",
+    "instagram": "Instagram",
+    "youtube": "YouTube"
+  },
+  "modals": {
+    "close": "Close",
+    "privacy": {
+      "title": "Privacy Policy",
+      "body": "This Privacy Policy describes how Paths Games collects, uses and protects your personal information. We may collect basic usage data through anonymised analytics. No personal data is sold to third parties. For any inquiries, contact us via our GitHub repository.",
+      "updated": "Last updated: April 2026"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "body": "By accessing Paths Games you agree to the following terms. All game content, stories, artwork and code are the intellectual property of Paths Games unless otherwise stated. You agree not to misuse the service or attempt unauthorised access. The game is provided as-is during the development phase.",
+      "updated": "Last updated: April 2026"
+    },
+    "cookies": {
+      "title": "Cookies Policy",
+      "body": "This site uses essential cookies only to keep your session active. No tracking cookies are used."
+    },
+    "copyright": {
+      "title": "Photo Credit",
+      "photoBy": "Photo by",
+      "viewOn": "View on Unsplash",
+      "allRights": "All stories, artwork and game content are",
+      "copyright": "© paths.games 2026 — All rights reserved",
+      "goBack": "Go Back"
+    }
+  }
+}

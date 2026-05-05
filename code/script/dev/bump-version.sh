@@ -112,6 +112,12 @@ NAVBAR_FILE="$ROOT/code/frontend/react-admin/src/components/layout/FooterBar.jsx
 sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$NAVBAR_FILE"
 
 
+# ────────────────────────────────────────────
+# 9. React Game - Footer.jsx (versione in-code)
+# ────────────────────────────────────────────
+echo "  [9/6] React Game - Footer.jsx (versione in-code)"
+FOOTER_FILE="$ROOT/code/frontend/react-game/src/components/layout/Footer.jsx"
+sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$FOOTER_FILE"
 
 # ────────────────────────────────────────────
 echo ""

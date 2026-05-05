@@ -134,4 +134,33 @@ describe('GuestsPage', () => {
     await userEvent.click(screen.getByText('Confirm'))
     await waitFor(() => expect(deleteExpiredGuests).toHaveBeenCalled())
   })
+
+  it('cancels cleanup modal', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getByText(/Cleanup Expired/i))
+    await userEvent.click(screen.getByText('Cancel'))
+    expect(deleteExpiredGuests).not.toHaveBeenCalled()
+  })
+
+  it('closes success alert', async () => {
+    deleteGuest.mockResolvedValue({ status: 'DELETED' })
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('Delete')[0])
+    await userEvent.click(screen.getByText('Confirm'))
+    const alert = await screen.findByText(/deleted/i)
+    const closeBtn = alert.parentElement.querySelector('button')
+    await userEvent.click(closeBtn)
+    await waitFor(() => expect(screen.queryByText(/deleted/i)).toBeNull())
+  })
+
+  it('closes detail modal with Close button', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    const closeBtn = screen.getByText('Close')
+    await userEvent.click(closeBtn)
+    expect(screen.queryByText('Close')).toBeNull()
+  })
 })

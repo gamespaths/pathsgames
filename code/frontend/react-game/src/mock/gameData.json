@@ -1,0 +1,84 @@
+{
+  "startLocation": {
+    "uuid": "loc-001",
+    "name": "The Old Tavern",
+    "description": "A dimly lit tavern at the crossroads. The perfect place to gather information and plan your next move. The smell of ale and roasted meat fills the air.",
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=70",
+    "awesomeIcon": "fas fa-glass-cheers",
+    "copyrightText": "Stanislav Kondratiev",
+    "linkCopyright": "https://unsplash.com/@technobulka"
+  },
+  "playerStats": {
+    "life": 100,
+    "energy": 80,
+    "sadness": 20,
+    "experience": 0,
+    "food": 5,
+    "magic": 3,
+    "coins": 50,
+    "weight": 12
+  },
+  "locations": [
+    {
+      "uuid": "loc-002",
+      "name": "Dark Cave",
+      "description": "A deep cave carved into the mountain side. Strange sounds echo from within. Only the brave dare enter its depths.",
+      "imageUrl": "https://images.unsplash.com/photo-1429704658776-3d38d9e931fa?auto=format&fit=crop&w=400&q=60",
+      "awesomeIcon": "fas fa-mountain",
+      "copyrightText": "Kedar Gadge",
+      "linkCopyright": "https://unsplash.com/@kedar9"
+    },
+    {
+      "uuid": "loc-003",
+      "name": "Ancient Forest",
+      "description": "A forest older than memory itself. The trees whisper secrets of ages long forgotten. Many who enter never find their way out.",
+      "imageUrl": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=400&q=60",
+      "awesomeIcon": "fas fa-tree",
+      "copyrightText": "veeterzy",
+      "linkCopyright": "https://unsplash.com/@veeterzy"
+    },
+    {
+      "uuid": "loc-004",
+      "name": "Castle Gate",
+      "description": "The imposing gates of the fortress loom before you. Two guards stand watch, their eyes scanning the horizon for threats.",
+      "imageUrl": "https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=400&q=60",
+      "awesomeIcon": "fas fa-chess-rook",
+      "copyrightText": "Cedric Dhaenens",
+      "linkCopyright": "https://unsplash.com/@cedericvandenberghe"
+    }
+  ],
+  "actions": [
+    {
+      "uuid": "act-001",
+      "name": "Talk to Barkeep",
+      "description": "The barkeep has been here for decades and knows every rumour in the region. Perhaps he has information about the dark fortress to the north.",
+      "imageUrl": "",
+      "awesomeIcon": "fas fa-comments",
+      "copyrightText": ""
+    },
+    {
+      "uuid": "act-002",
+      "name": "Search for Clues",
+      "description": "Inspect the notice board by the entrance. Travellers often pin bounties, warnings, and cryptic messages that might aid your quest.",
+      "imageUrl": "",
+      "awesomeIcon": "fas fa-search",
+      "copyrightText": ""
+    },
+    {
+      "uuid": "act-003",
+      "name": "Rest & Recover",
+      "description": "Rent a room for the night and recover your strength. Rest restores Life and Energy but consumes Coins and Food.",
+      "imageUrl": "",
+      "awesomeIcon": "fas fa-bed",
+      "copyrightText": ""
+    },
+    {
+      "uuid": "act-004",
+      "name": "Trade with Merchant",
+      "description": "A travelling merchant has set up in the corner. He carries rare potions and supplies that could prove invaluable on your journey.",
+      "imageUrl": "",
+      "awesomeIcon": "fas fa-store",
+      "copyrightText": ""
+    }
+  ]
+}

@@ -130,4 +130,70 @@ describe('StoryEditorPage', () => {
     await userEvent.click(startLocBtn)
     expect(screen.getByText(/Select Start Location/i)).toBeInTheDocument()
   })
+
+  it('exports story and cleans up data', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    
+    const exportBtn = screen.getByRole('button', { name: /Export JSON/i })
+    await userEvent.click(exportBtn)
+    
+    // It should call listEntities for many types
+    await waitFor(() => expect(listEntities).toHaveBeenCalledWith('story-123', 'difficulties'))
+    await waitFor(() => expect(screen.getByText(/exported successfully/i)).toBeInTheDocument())
+    clickSpy.mockRestore()
+  })
+
+  it('handles fast text saving', async () => {
+    createEntity.mockResolvedValue({ status: 'CREATED' })
+    listEntities.mockImplementation((uuid, type) => {
+        if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+        if (type === 'creators') return Promise.resolve([{ idCreator: 1, idTextName: 101 }])
+        return Promise.resolve([])
+    })
+    
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    
+    const titleTextBtn = screen.getByTitle(/Select Title Text ID/i)
+    await userEvent.click(titleTextBtn)
+    expect(await screen.findByText(/Fast Text Selector/i)).toBeInTheDocument()
+    
+    await userEvent.click(screen.getByText('New'))
+    
+    const shortTextInput = screen.getByPlaceholderText(/Insert text value/i)
+    await userEvent.type(shortTextInput, 'New Story Title')
+    
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    
+    await waitFor(() => expect(createEntity).toHaveBeenCalledWith('story-123', 'texts', expect.objectContaining({
+        shortText: 'New Story Title'
+    })))
+  })
+
+  it('handles selector onSelect for various fields', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+        if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+        if (type === 'cards') return Promise.resolve([{ idCard: 1, idTextTitle: 101 }])
+        if (type === 'creators') return Promise.resolve([{ idCreator: 1, idTextName: 101 }])
+        return Promise.resolve([])
+    })
+    
+    renderPage()
+    const cardBtn = await screen.findByTitle(/Select Card ID/i)
+    await userEvent.click(cardBtn)
+    
+    // Search for the title "Select Card"
+    expect(await screen.findByText('Select Card')).toBeInTheDocument()
+    
+    // The option should be "#1 Location Name"
+    const row = await screen.findByText(/Location Name/i)
+    const selectBtn = row.closest('tr').querySelector('button')
+    await userEvent.click(selectBtn)
+    
+    await waitFor(() => {
+        expect(screen.getByText(/#1 Location Name/i)).toBeInTheDocument()
+    })
+  })
 })

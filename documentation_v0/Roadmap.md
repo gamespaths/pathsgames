@@ -30,6 +30,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 15 | [Stories content APIs](./Step15_StoryContentAPIs.md) | ✅ | Story content APIs: categories, groups, enriched detail |
 | 16 | [Content details APIs](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
 | 17 | [Story Admin CRUD Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
+| 18 | [Frontend: Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
 
 
 | Steps | Phase |
@@ -73,14 +74,6 @@ For next steps use this prompt
 
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-18. Frontend: Stoies catalog and detail components
-    - Build story catalog page displaying available stories as cards with title, description, image, and difficulty badges (frontend)
-    - Build story detail modal/page showing full description, available difficulties, character options, and location preview (frontend)
-    - Implement story card component with category, author, and version compatibility indicators (frontend)
-    - Implement difficulty selection component showing player limits, weight limits, and experience costs (frontend)
-    - Implement responsive layout with Bootstrap 5 grid and medieval/fantasy card style (frontend)
-    - Integrate story API client with Redux/state management for caching and loading states (frontend)
-    - Write frontend unit tests for story catalog, detail, card components, and API integration mocks (frontend tests)
 19. Single-player match creation
     - Implement POST /matches endpoint to create a new match with story and difficulty selection (and creator character select) (backend)
     - Validate story exists, difficulty is valid, user is not banned, and system is not in maintenance (backend)

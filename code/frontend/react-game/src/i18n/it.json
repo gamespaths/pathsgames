@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "brand": "Paths Games",
+    "guest": "Ospite",
+    "login": "Accedi"
+  },
+  "home": {
+    "heroTitle": "Avventure Epiche ti Aspettano",
+    "heroSub": "Narrazioni ramificate. Scelte infinite.",
+    "stories": "Storie",
+    "loading": "Caricamento storie…",
+    "noStories": "Nessuna storia disponibile."
+  },
+  "book": {
+    "configureAdventure": "Inizia la tua Avventura",
+    "character": "Personaggio",
+    "class": "Classe",
+    "trait": "Tratto",
+    "difficulty": "Difficoltà",
+    "gameType": "Tipo di Gioco",
+    "login": "Accesso",
+    "single": "Singolo",
+    "multiplayer": "Multigiocatore",
+    "competitive": "Competitivo",
+    "guest": "Ospite",
+    "register": "Registrati",
+    "comingSoon": "Prossimamente",
+    "locked": "Bloccato",
+    "change": "Cambia",
+    "select": "Seleziona",
+    "back": "Indietro",
+    "acceptTerms": "Accetto i Termini e Condizioni",
+    "startGame": "Inizia Gioco",
+    "selectTitle": "Seleziona"
+  },
+  "game": {
+    "currentLocation": "Posizione Attuale",
+    "explore": "Esplora",
+    "moveTo": "Muoviti verso…",
+    "actions": "Azioni",
+    "exitToHome": "Torna alla Home",
+    "stats": {
+      "life": "Vita",
+      "energy": "Energia",
+      "sadness": "Tristezza",
+      "experience": "EXP",
+      "food": "Cibo",
+      "magic": "Magia",
+      "coins": "Monete",
+      "weight": "Peso"
+    },
+    "move": "Vai Qui",
+    "execute": "Esegui"
+  },
+  "footer": {
+    "rights": "Tutti i diritti riservati",
+    "madeWith": "Realizzato con",
+    "byTeam": "dal Team Paths Games",
+    "privacy": "Privacy Policy",
+    "terms": "Termini di Servizio",
+    "cookies": "Cookie Policy",
+    "github": "GitHub",
+    "roadmap": "Roadmap",
+    "devlog": "Devlog",
+    "instagram": "Instagram",
+    "youtube": "YouTube"
+  },
+  "modals": {
+    "close": "Chiudi",
+    "privacy": {
+      "title": "Privacy Policy",
+      "body": "Questa Privacy Policy descrive come Paths Games raccoglie, utilizza e protegge le tue informazioni personali. Potremmo raccogliere dati di utilizzo di base tramite analisi anonimizzate. Nessun dato personale viene venduto a terzi. Per qualsiasi domanda, contattaci tramite il nostro repository GitHub.",
+      "updated": "Ultimo aggiornamento: Aprile 2026"
+    },
+    "terms": {
+      "title": "Termini di Servizio",
+      "body": "Accedendo a Paths Games accetti i seguenti termini. Tutti i contenuti di gioco, storie, artwork e codice sono proprietà intellettuale di Paths Games salvo diversa indicazione. Accetti di non abusare del servizio o di tentare accessi non autorizzati. Il gioco è fornito così com'è durante la fase di sviluppo.",
+      "updated": "Ultimo aggiornamento: Aprile 2026"
+    },
+    "cookies": {
+      "title": "Cookie Policy",
+      "body": "Questo sito utilizza solo cookie essenziali per mantenere attiva la sessione. Non vengono utilizzati cookie di tracciamento."
+    },
+    "copyright": {
+      "title": "Crediti Foto",
+      "photoBy": "Foto di",
+      "viewOn": "Visualizza su Unsplash",
+      "allRights": "Tutte le storie, artwork e contenuti di gioco sono",
+      "copyright": "© paths.games 2026 — Tutti i diritti riservati",
+      "goBack": "Torna Indietro"
+    }
+  }
+}

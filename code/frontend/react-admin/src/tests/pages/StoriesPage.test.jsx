@@ -8,8 +8,16 @@ import StoriesPage from '../../pages/StoriesPage'
 vi.mock('../../api/storyApi', () => ({
   listAllStories: vi.fn(),
   deleteStory:    vi.fn(),
+  createStory:    vi.fn(),
+  getStory:       vi.fn(),
+  listEntities:   vi.fn(),
 }))
-import { listAllStories, deleteStory } from '../../api/storyApi'
+import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+
+// Mock URL APIs used by export
+const mockObjectURL = 'blob:http://localhost/test-uuid'
+global.URL.createObjectURL = vi.fn(() => mockObjectURL)
+global.URL.revokeObjectURL = vi.fn()
 
 const MOCK_STORIES = [
   {
@@ -22,7 +30,7 @@ const MOCK_STORIES = [
     priority:        5,
     peghi:           2,
     difficultyCount: 3,
-    card:            null,
+    card:            { awesomeIcon: 'fa-crown' },
   },
   {
     uuid:            'bbb-222',
@@ -38,6 +46,14 @@ const MOCK_STORIES = [
   },
 ]
 
+const MOCK_STORY_DETAIL = {
+  uuid: 'aaa-111',
+  title: 'The Lost Kingdom',
+  author: 'GameMaster',
+  tsInsert: '2024-01-01',
+  tsUpdate: '2024-01-02',
+}
+
 function renderPage() {
   return render(
     <MemoryRouter>
@@ -50,6 +66,9 @@ describe('StoriesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     listAllStories.mockResolvedValue(MOCK_STORIES)
+    getStory.mockResolvedValue(MOCK_STORY_DETAIL)
+    listEntities.mockResolvedValue([])
+    createStory.mockResolvedValue({ uuid: 'new-uuid-111' })
   })
 
   it('shows loading spinner initially', () => {
@@ -137,5 +156,73 @@ describe('StoriesPage', () => {
     await waitFor(() => {
       expect(listAllStories).toHaveBeenCalledWith('it')
     })
+  })
+
+  it('renders card awesomeIcon when story has card', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    // The first story has card.awesomeIcon = 'fa-crown'; icon element should be present
+    const rows = document.querySelectorAll('tbody tr')
+    expect(rows.length).toBeGreaterThan(0)
+    // story with card icon renders an <i> with the icon class
+    const iconEl = document.querySelector('i.fa-crown')
+    expect(iconEl).not.toBeNull()
+  })
+
+  it('exports story and shows success message', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const exportButtons = screen.getAllByTitle('Export JSON')
+    await userEvent.click(exportButtons[0])
+    await waitFor(() => expect(getStory).toHaveBeenCalledWith('aaa-111'))
+    await waitFor(() => expect(listEntities).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByText(/exported successfully/i)).toBeInTheDocument())
+    clickSpy.mockRestore()
+  })
+
+  it('shows export error when getStory fails', async () => {
+    getStory.mockRejectedValue(new Error('Export error'))
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const exportButtons = screen.getAllByTitle('Export JSON')
+    await userEvent.click(exportButtons[0])
+    await waitFor(() => expect(screen.getByText(/Export failed/i)).toBeInTheDocument())
+  })
+
+  it('closes success alert when X is clicked', async () => {
+    deleteStory.mockResolvedValue({ status: 'DELETED' })
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Delete')[0])
+    await userEvent.click(screen.getByText('Confirm'))
+    const successMsg = await screen.findByText(/deleted/i)
+    expect(successMsg).toBeInTheDocument()
+    // close button inside success alert
+    const closeBtn = successMsg.parentElement.querySelector('button')
+    await userEvent.click(closeBtn)
+    await waitFor(() => expect(screen.queryByText(/deleted/i)).toBeNull())
+  })
+
+  it('opens detail modal and can export from it', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+    // Export JSON inside detail modal - there are multiple "Export JSON" buttons (one in row, one in modal)
+    const exportBtns = screen.getAllByRole('button', { name: /Export JSON/i })
+    await userEvent.click(exportBtns[exportBtns.length - 1])
+    await waitFor(() => expect(getStory).toHaveBeenCalled())
+    clickSpy.mockRestore()
+  })
+
+  it('closes detail modal when backdrop clicked', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+    expect(screen.getByText('Close')).toBeInTheDocument()
+    // click close button
+    await userEvent.click(screen.getByText('Close'))
+    await waitFor(() => expect(screen.queryByText('Close')).toBeNull())
   })
 })

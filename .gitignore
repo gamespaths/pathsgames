@@ -89,6 +89,7 @@ code/backend/php/.scannerwork
 code/backend/python/.scannerwork
 code/frontend/react-admin/.scannerwork
 code/frontend/react-game/.scannerwork
+code/frontend/react-game/.sonar
 code/backend/aws/coverage.xml
 code/backend/aws/.coverage
 
@@ -104,6 +105,16 @@ code/frontend/react-admin/coverage/
 code/frontend/react-admin/dist/
 code/frontend/react-admin/jest-test-results.json
 
+code/frontend/react-game/node_modules/
+code/frontend/react-game/build/
+code/frontend/react-game/.env
+code/frontend/react-game/.env.local
+code/frontend/react-game/.env.development
+code/frontend/react-game/.env.test
+code/frontend/react-game/.env.production
+code/frontend/react-game/coverage/
+code/frontend/react-game/dist/
+code/frontend/react-game/jest-test-results.json
 
 # TMP files!
 code/backend/php/debug_sql.php

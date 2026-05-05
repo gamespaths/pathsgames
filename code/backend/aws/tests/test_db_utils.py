@@ -5,6 +5,7 @@ so no real AWS calls are made and boto3 is never contacted at import time.
 """
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
+from botocore.exceptions import ClientError
 import common.db_utils as db
 
 
@@ -124,3 +125,103 @@ class TestUpdateTsLastAccess:
         assert db.update_ts_last_access('USER#1', 12345) is True
         kwargs = mock_table.update_item.call_args[1]
         assert kwargs['ExpressionAttributeValues'][':t'] == 12345
+
+
+class TestGetTable:
+    def test_lazy_initialization_uses_env_values(self):
+        fake_table = MagicMock()
+        fake_resource = MagicMock()
+        fake_resource.Table.return_value = fake_table
+
+        with patch.object(db, '_table', None), patch.object(db, '_dynamodb', None), \
+             patch.dict('os.environ', {'AWS_DEFAULT_REGION': 'eu-west-1', 'TABLE_NAME': 'MyTable'}, clear=False), \
+             patch('common.db_utils.boto3.resource', return_value=fake_resource) as mock_boto:
+            table = db._get_table()
+            assert table is fake_table
+            mock_boto.assert_called_once_with('dynamodb', region_name='eu-west-1')
+            fake_resource.Table.assert_called_once_with('MyTable')
+
+    def test_lazy_initialization_default_region(self):
+        fake_table = MagicMock()
+        fake_resource = MagicMock()
+        fake_resource.Table.return_value = fake_table
+
+        with patch.object(db, '_table', None), patch.object(db, '_dynamodb', None), \
+             patch.dict('os.environ', {'TABLE_NAME': 'OnlyTableName'}, clear=False), \
+             patch('common.db_utils.boto3.resource', return_value=fake_resource) as mock_boto:
+            db._get_table()
+            mock_boto.assert_called_once_with('dynamodb', region_name='us-east-2')
+
+
+@patch.object(db, '_table')
+class TestQueryGsi:
+    def test_without_sk_prefix(self, mock_table):
+        mock_table.query.return_value = {'Items': [{'PK': 'A'}]}
+        result = db.query_gsi('GSI1', 'group#1')
+        assert len(result) == 1
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['KeyConditionExpression'] == 'GSI1_PK = :pk'
+        assert kwargs['ExpressionAttributeValues'] == {':pk': 'group#1'}
+
+    def test_with_sk_prefix(self, mock_table):
+        mock_table.query.return_value = {'Items': [{'PK': 'A'}]}
+        db.query_gsi('GSI1', 'group#1', sk_prefix='story#')
+        kwargs = mock_table.query.call_args[1]
+        assert kwargs['KeyConditionExpression'] == 'GSI1_PK = :pk AND begins_with(GSI1_SK, :sk)'
+        assert kwargs['ExpressionAttributeValues'] == {':pk': 'group#1', ':sk': 'story#'}
+
+
+@patch.object(db, '_table')
+class TestDbUtilsErrorBranches:
+    def test_get_item_client_error_returns_none(self, mock_table):
+        mock_table.get_item.side_effect = ClientError(
+            {'Error': {'Code': 'ProvisionedThroughputExceededException', 'Message': 'boom'}},
+            'GetItem'
+        )
+        assert db.get_item('X') is None
+
+    def test_put_item_client_error_returns_false(self, mock_table):
+        mock_table.put_item.side_effect = ClientError(
+            {'Error': {'Code': 'ValidationException', 'Message': 'boom'}},
+            'PutItem'
+        )
+        assert db.put_item({'PK': 'X', 'SK': 'METADATA'}) is False
+
+    def test_put_item_unexpected_error_returns_false(self, mock_table):
+        mock_table.put_item.side_effect = RuntimeError('unexpected')
+        assert db.put_item({'PK': 'X', 'SK': 'METADATA'}) is False
+
+    def test_delete_item_client_error_returns_false(self, mock_table):
+        mock_table.delete_item.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
+            'DeleteItem'
+        )
+        assert db.delete_item('X') is False
+
+    def test_query_by_pk_client_error_returns_empty(self, mock_table):
+        mock_table.query.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
+            'Query'
+        )
+        assert db.query_by_pk('X') == []
+
+    def test_query_gsi_client_error_returns_empty(self, mock_table):
+        mock_table.query.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
+            'Query'
+        )
+        assert db.query_gsi('GSI1', 'X') == []
+
+    def test_scan_filter_client_error_returns_empty(self, mock_table):
+        mock_table.scan.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
+            'Scan'
+        )
+        assert db.scan_filter('is_guest', True) == []
+
+    def test_update_ts_last_access_client_error_returns_false(self, mock_table):
+        mock_table.update_item.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}},
+            'UpdateItem'
+        )
+        assert db.update_ts_last_access('USER#1', 12345) is False

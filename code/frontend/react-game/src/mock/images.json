@@ -1,0 +1,66 @@
+[
+  {
+    "id": "person",
+    "linkCopyright": "https://game-icons.net/1x1/delapouite/person.html",
+    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4OC4wNCwxMy4wNCkgc2NhbGUoMC42NTYxKSI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTI1MC44ODIgMjIuODAyYy0yMy4zNjYgMy4wMzUtNDQuNTUzIDMwLjQ0NC00NC41NTMgNjUuOTM1IDAgMTkuNTU4IDYuNzcxIDM2Ljg1NiAxNi42OTUgNDguODE1bDExLjg0IDE0LjI2My0xOC4yMTcgMy40MjRjLTEyLjkgMi40MjUtMjIuMzU4IDkuMjQtMzAuNDQzIDIwLjMzNi04LjA4NSAxMS4wOTctMTQuMjY2IDI2LjU1OC0xOC41OTggNDQuMzc1LTcuODQzIDMyLjI4LTkuNTY4IDcxLjY5My05Ljg0MiAxMDYuNDM2aDQyLjg2OGwxMS43NzEgMTU3LjgzNmMyOS44OTQgNi43NDggNjEuODExIDYuNTEgOTAuNjAyLjAyNWwxMC40MTQtMTU3Ljg2aDQwLjgxNmMtLjAyNy0zNS4xNjktLjQ3Ny03NS4xMjYtNy41ODQtMTA3LjY1LTMuOTE4LTE3LjkzNC05Ljg1OC0zMy4zNzItMTguMDQtNDQuMzQzLTguMTg1LTEwLjk3LTE4LjA4LTE3Ljc0NS0zMi41NjMtMTkuOTg5bC0xOC41OTItMi44OCAxMS43MzYtMTQuNzA0YzkuNDk1LTExLjg5NyAxNS45MzItMjguOTk3IDE1LjkzMi00OC4wODIgMC0zNy44MzgtMjMuNjU1LTY1Ljg0NC00OS4zOTktNjUuODQ0eiIgLz48L2c+PC9zdmc+"
+  },
+  {
+    "id": "gems",
+    "linkCopyright": "https://game-icons.net/1x1/lorc/gems.html",
+    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4OC4wNCwxMy4wNCkgc2NhbGUoMC42NTYxKSI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTMwMy4yIDE5LjMzOGwtMTYxLjk2NiA5My41MSA5My41MTIgMTYxLjk2NiAxNjEuOTY3LTkzLjUxLTQuNjc0LTguMDkzLTQuODc0LTguNDQtNC4xMjctNy41NC0uMTg4LjA3LTc5LjY1LTEzNy45NjJ6bS0yMC42MiAzMy40ODZsLTUwLjI3IDkwLjE0Yy0xOS4xODQtNy42ODctMzcuODg3LTE3LjI4LTU2LjE2NS0yOC42OWwxMDYuNDM1LTYxLjQ1em0xOS45MTQgMi42NjRsNjMuMjM1IDEwOS41MjhjLTQwLjU2OCAyLjEtNzguOTkzLTMuMjktMTE1LjY1OC0xNS41MzZsNTIuNDIyLTkzLjk5MnptLTI1MS42MSAyNS42OEwyMy4wMzIgMTY3Ljk5bDc0LjMwMiA1MS4xMjMgMjcuODU0LTg2LjgyMi01LjcyMy0zLjkzNi02OC41NzgtNDcuMTg2em0xMC4xMTggMjkuNjQ2bDMyLjI5NSAyMi4yMi00NC4yMzMgMTQuOTkgMTEuOTM4LTM3LjIxem0zODUuODM2IDIyLjMzbC00Ni4xNDMgMTcuNDE4IDkuMDYgMTYuNTU3IDIwLjE2NS03LjYxNCAyLjk5MiA0My40NjMtMzkuOTQgMTUuMDc3LS44NzgtMTIuNzQ4LTE4LjAxNiAxMC40IDEuOTc3IDI4LjcxIDc2LjQ1Ny0yOC44NjUtNS42NzQtODIuNDAyem0tMjcwLjU1IDMuMDQ1YzMxLjg5NiAxOC42MTcgNjUuMzE2IDMyLjEyIDEwMC4yNjcgMzkuOTY0bC0zOS41MiA2NS4yNUwxNzYuMjkgMTM2LjE5em0tNzYuNjA0IDE0LjQxNGwtMTIuNDY3IDM4Ljg2My0zMy43My0yMy4yMDcgNDYuMTk3LTE1LjY1NnptMTk2LjQzNyAyOS4zMThjMTkuMDI4IDMuMDcgMzguNDk2IDQuNDc4IDU4LjQwMyA0LjE1OGwtOTMuNjc1IDU0LjA4NCAzNS4yNzMtNTguMjQyek0yMS4xODcgMjI0Ljc0NGwxLjk2IDE0LjMzNiAyMS42NzIgMTU4LjUyMiAxNjcuMDI2IDQ5LjQ4NC0xLjk5NC0xNC41OS0yMy41MjItMTIuNDYzTDc5Ljk5IDM4OC41M2w1OS41NjMtMjYuMDk4IDM0LjM5OC01NC41MjggNi45NDMgNTAuNzcgMTYuMDgyLTIwLjMzLTguNzY2LTY0LjExNC0xNjcuMDI0LTQ5LjQ4NnptMjIuNDM1IDI2LjE0bDEyMS40OTcgMzUuOTk3LTM4LjMxNCA2MC43MzMtNjYgMjguOTItMTcuMTgyLTEyNS42NXptMzEzLjA2NCA1LjIwNmwtODguOTE0IDIzLjgyNC0xLjkxNiAyLjM5NS04OS4yNjYgMTExLjU5NCAxOTcuMzY1IDEwMi45NjMgMTE4LjY2Mi0xODcuNjYtMTM1LjkzLTUzLjExN3ptLTEzLjYgMjIuOTg4bDMxLjMgNTUuMzE3LTg2LjA5IDIyLjY3MyAyLjUwNS02My45NzggNTIuMjg0LTE0LjAxMnptMjEuNTgyLjE5M2w4OC4xOCAzNC40Ni01OS43NzggMTUuNzQzLTI4LjQwMi01MC4yMDJ6bS05My4wMzUgMjUuNzM0bC0yLjIzMiA1Ny4wNC01NC45NzggMTQuNDggNTcuMjEtNzEuNTJ6bTE4NC4zMTMgMjcuMjM0bC03My41NDUgMTE2LjMxIDEzLjk0LTEwMC42MSA1OS42MDUtMTUuN3ptLTc5LjE4NSAyMC44NTZMMzYyLjc2MiA0NTQuMTFsLTY3LjM0Mi03OS41OTQgODEuMzM4LTIxLjQyMnpNMjc1LjQwMiAzNzkuNzlsNjcuNTMyIDc5LjgxNy0xMjQuMzI1LTY0Ljg2IDU2Ljc5Mi0xNC45NTh6IiAvPjwvZz48L3N2Zz4="
+  },
+  {
+    "id": "shadow-keep",
+    "url": "https://images.unsplash.com/photo-1505816014357-96b5ff457e9a?auto=format&fit=crop&w=600&q=70",
+    "author": "Stefan Steinbauer",
+    "authorLink": "https://unsplash.com/@usinglight"
+  },
+  {
+    "id": "forest-whispers",
+    "url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=70",
+    "author": "veeterzy",
+    "authorLink": "https://unsplash.com/@veeterzy"
+  },
+  {
+    "id": "desert-kings",
+    "url": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=600&q=70",
+    "author": "Wolfgang Hasselmann",
+    "authorLink": "https://unsplash.com/@wolfgang_hasselmann"
+  },
+  {
+    "id": "iron-throne",
+    "url": "https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=600&q=70",
+    "author": "Cedric Dhaenens",
+    "authorLink": "https://unsplash.com/@cedericvandenberghe"
+  },
+  {
+    "id": "seas-of-fire",
+    "url": "https://images.unsplash.com/photo-1505672678657-cc7037095e60?auto=format&fit=crop&w=600&q=70",
+    "author": "Jeremy Bishop",
+    "authorLink": "https://unsplash.com/@jeremybishop"
+  },
+  {
+    "id": "dark-cave",
+    "url": "https://images.unsplash.com/photo-1429704658776-3d38d9e931fa?auto=format&fit=crop&w=400&q=60",
+    "author": "Kedar Gadge",
+    "authorLink": "https://unsplash.com/@kedar9"
+  },
+  {
+    "id": "forest-location",
+    "url": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=400&q=60",
+    "author": "veeterzy",
+    "authorLink": "https://unsplash.com/@veeterzy"
+  },
+  {
+    "id": "castle-gate",
+    "url": "https://images.unsplash.com/photo-1480796927426-f609979314bd?auto=format&fit=crop&w=400&q=60",
+    "author": "Cedric Dhaenens",
+    "authorLink": "https://unsplash.com/@cedericvandenberghe"
+  },
+  {
+    "id": "tavern",
+    "url": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=60",
+    "author": "Stanislav Kondratiev",
+    "authorLink": "https://unsplash.com/@technobulka"
+  }
+]
