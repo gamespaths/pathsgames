@@ -1,9 +1,9 @@
 # Paths Games - Frontend React - Game
 
 # Version Control
-- Starting from 0.18.0 version, code is created with AI prompt (Claude Sonnet 4.6)
+- Starting from 0.18.0 version
 
-## Tech Stack (v0.18.0)
+## Tech Stack (v0.18.0) 
 - **React** 18.3.1 + **Vite** 5.3.1
 - **React Router** 6.23.1
 - **Axios** 1.7.2
