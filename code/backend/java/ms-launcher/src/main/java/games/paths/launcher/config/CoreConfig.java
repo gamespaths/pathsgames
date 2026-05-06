@@ -14,6 +14,12 @@ import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.port.story.ContentQueryPort;
+import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchPersistencePort;
+import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.port.match.MatchReadPort;
+import games.paths.core.port.match.SystemModePort;
+import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
@@ -22,6 +28,9 @@ import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
 import games.paths.core.service.story.ContentQueryService;
+import games.paths.core.service.match.MatchCommandService;
+import games.paths.core.service.match.MatchQueryService;
+import games.paths.core.service.match.PropertySystemModeService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -101,5 +110,28 @@ public class CoreConfig {
     @Bean
     public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort) {
         return new StoryCrudService(storyReadPort, storyPersistencePort);
+    }
+
+    // ───── Step 19: Single-player match creation ─────
+
+    @Bean
+    public SystemModePort systemModePort() {
+        return new PropertySystemModeService(serverStatus);
+    }
+
+    @Bean
+    public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
+                                             MatchPersistencePort matchPersistencePort,
+                                             UserAccessPort userAccessPort,
+                                             SystemModePort systemModePort) {
+        return new MatchCommandService(storyReadPort, matchPersistencePort,
+                userAccessPort, systemModePort);
+    }
+
+    @Bean
+    public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
+                                         StoryReadPort storyReadPort,
+                                         UserAccessPort userAccessPort) {
+        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
     }
 }

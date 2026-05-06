@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paths Games — Admin Match Inspector (v0.19.0)</title>
+    <meta name="description" content="Admin concept page demonstrating the match-info endpoint added in Step 19">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../v0.19.0/style.css">
+</head>
+
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-brand">
+                <span class="header-icon">🛠️</span>
+                <h1>Paths Games — Admin · Match Inspector</h1>
+            </div>
+            <div class="header-actions">
+                <span id="auth-status" class="badge badge-warning">Token missing</span>
+                <input type="text" id="api-url" class="input-sm" value="http://localhost:8042">
+                <input type="text" id="jwt-token" class="input-token" placeholder="Paste admin JWT...">
+                <button id="btn-connect" class="btn btn-primary btn-sm">Connect</button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <aside class="sidebar">
+                <h2 class="sidebar-title">Inspect a match</h2>
+                <label style="display:flex; flex-direction:column; gap:6px;">
+                    <span class="text-muted">Match UUID</span>
+                    <input type="text" id="match-uuid" class="input-sm" placeholder="00000000-0000-…">
+                </label>
+                <button id="btn-inspect" class="btn btn-primary btn-block" style="margin-top:12px">Load match</button>
+                <p class="text-muted" style="margin-top:16px">
+                    Step 19 ships <code>POST /api/matches</code> and
+                    <code>GET /api/match/{uuid}/info</code>. This admin
+                    concept reuses the same endpoints with an admin
+                    bearer token to peek at any match's runtime state.
+                </p>
+            </aside>
+
+            <main class="content">
+                <section class="welcome-panel" id="welcome-panel">
+                    <div class="welcome-icon">🔍</div>
+                    <h2>Match runtime inspector</h2>
+                    <p>Paste an ADMIN JWT, type the match uuid and click <em>Load match</em>.</p>
+                </section>
+
+                <section id="match-panel" class="entity-panel" style="display:none">
+                    <div class="entity-header">
+                        <h2 id="match-panel-title">Match</h2>
+                        <button id="btn-refresh-match" class="btn btn-outline btn-sm">🔄 Refresh</button>
+                    </div>
+                    <div id="match-summary" class="match-summary"></div>
+                    <h3 class="section-title">📍 Locations</h3>
+                    <div id="match-locations" class="cards"></div>
+                    <h3 class="section-title">🗝️ Registry</h3>
+                    <div id="match-registry" class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>Key</th><th>Value</th></tr></thead>
+                            <tbody id="match-registry-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

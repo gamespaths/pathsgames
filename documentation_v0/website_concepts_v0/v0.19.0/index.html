@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paths Games — Match Creation (v0.19.0)</title>
+    <meta name="description" content="Player-side prototype demonstrating POST /api/matches and GET /api/match/{uuid}/info">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-brand">
+                <span class="header-icon">⚔️</span>
+                <h1>Paths Games — Match Creation</h1>
+            </div>
+            <div class="header-actions">
+                <span id="auth-status" class="badge badge-warning">Logged out</span>
+                <input type="text" id="api-url" class="input-sm" value="http://localhost:8042">
+                <button id="btn-login-guest" class="btn btn-primary btn-sm">Login as guest</button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <aside class="sidebar">
+                <h2 class="sidebar-title">Stories</h2>
+                <div id="story-list" class="story-list">
+                    <p class="text-muted">Login to load stories</p>
+                </div>
+
+                <h2 class="sidebar-title" style="margin-top:24px">My matches</h2>
+                <div id="match-list" class="story-list">
+                    <p class="text-muted">No matches yet</p>
+                </div>
+            </aside>
+
+            <main class="content">
+                <section class="welcome-panel" id="welcome-panel">
+                    <div class="welcome-icon">🎮</div>
+                    <h2>Single-player match creation</h2>
+                    <p>Step 19 ships the runtime side of stories. Pick a story, choose a difficulty and start a match.</p>
+                    <div class="entity-types-grid">
+                        <div class="entity-chip">📖 Story select</div>
+                        <div class="entity-chip">⚖️ Difficulty</div>
+                        <div class="entity-chip">🚀 Create match</div>
+                        <div class="entity-chip">📍 Locations state</div>
+                        <div class="entity-chip">🗝️ Registry</div>
+                    </div>
+                </section>
+
+                <section id="create-panel" class="entity-panel" style="display:none">
+                    <div class="entity-header">
+                        <h2 id="create-panel-title">Story</h2>
+                    </div>
+                    <div id="create-panel-body" class="form-grid"></div>
+                    <div class="modal-footer">
+                        <button id="btn-create-match" class="btn btn-success">▶ Create match</button>
+                    </div>
+                    <p id="create-error" class="text-muted"></p>
+                </section>
+
+                <section id="match-panel" class="entity-panel" style="display:none">
+                    <div class="entity-header">
+                        <h2 id="match-panel-title">Match</h2>
+                        <button id="btn-refresh-match" class="btn btn-outline btn-sm">🔄 Refresh</button>
+                    </div>
+                    <div id="match-summary" class="match-summary"></div>
+                    <h3 class="section-title">📍 Locations</h3>
+                    <div id="match-locations" class="cards"></div>
+                    <h3 class="section-title">🗝️ Registry</h3>
+                    <div id="match-registry" class="table-container">
+                        <table class="data-table">
+                            <thead><tr><th>Key</th><th>Value</th></tr></thead>
+                            <tbody id="match-registry-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
