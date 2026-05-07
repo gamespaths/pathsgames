@@ -128,6 +128,16 @@ SEED_STORIES = [
         "location_count":   8,
         "event_count":      5,
         "item_count":       4,
+        # Step 19 — runtime seed data: locations and registry keys
+        "idLocationStart":   1,
+        "locations": [
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0},
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0},
+        ],
+        "keys": [
+            {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done", "keyValue": "0"},
+            {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed", "keyValue": "no"},
+        ],
         # Step 15 fields
         "characterTemplates": [],
         "classes":            [],
@@ -232,6 +242,18 @@ SEED_STORIES = [
         "location_count":   12,
         "event_count":      5,
         "item_count":       5,
+        # Step 19 — runtime seed data
+        "idLocationStart":   1,
+        "locations": [
+            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0},
+            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5},
+            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10},
+        ],
+        "keys": [
+            {"id": 1, "uuid": "key-demo1-1", "keyName": "main_quest_started", "keyValue": "0"},
+            {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure", "keyValue": "no"},
+            {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count", "keyValue": "0"},
+        ],
         # Step 15 fields
         "characterTemplates": [],
         "classes":            [],
@@ -295,6 +317,10 @@ def _seed_stories():
             "location_count":           s["location_count"],
             "event_count":              s["event_count"],
             "item_count":               s["item_count"],
+            # Step 19 — runtime data used by POST /api/matches
+            "idLocationStart":          s.get("idLocationStart"),
+            "locations":                s.get("locations", []),
+            "keys":                     s.get("keys", []),
             # Step 15 fields
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),

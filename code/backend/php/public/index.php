@@ -28,6 +28,15 @@ use Games\Paths\Adapter\Rest\Story\ContentController;
 use Games\Paths\Core\Service\Story\StoryCrudService;
 use Games\Paths\Adapter\Rest\Story\StoryCrudAdminController;
 
+// Step 19 — single-player match creation
+use Games\Paths\Adapter\Persistence\Matches\MatchMysqlPersistenceAdapter;
+use Games\Paths\Adapter\Persistence\Matches\StoryMatchMysqlReadAdapter;
+use Games\Paths\Adapter\Persistence\Matches\UserAccessMysqlAdapter;
+use Games\Paths\Core\Service\Matches\MatchCommandService;
+use Games\Paths\Core\Service\Matches\MatchQueryService;
+use Games\Paths\Core\Service\Matches\PropertySystemModeService;
+use Games\Paths\Adapter\Rest\Matches\MatchController;
+
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
 if ($appEnv === 'development') {
@@ -130,6 +139,23 @@ $storyImportService = new StoryImportService($storyPersistRepo);
 $contentQueryService = new ContentQueryService($storyReadRepo);
 $storyCrudService = new StoryCrudService($storyReadRepo, $storyPersistRepo);
 
+// Step 19 — match wiring
+$matchPersistenceRepo = new MatchMysqlPersistenceAdapter($pdo);
+$storyMatchReadRepo = new StoryMatchMysqlReadAdapter($pdo);
+$userAccessRepo = new UserAccessMysqlAdapter($pdo);
+$matchSystemModeService = new PropertySystemModeService('OK');
+$matchCommandService = new MatchCommandService(
+    $storyMatchReadRepo,
+    $matchPersistenceRepo,
+    $userAccessRepo,
+    $matchSystemModeService
+);
+$matchQueryService = new MatchQueryService(
+    $matchPersistenceRepo,
+    $storyMatchReadRepo,
+    $userAccessRepo
+);
+
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
 $guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $tokenRepo);
@@ -139,6 +165,7 @@ $storyController = new StoryController($storyQueryService);
 $storyAdminController = new StoryAdminController($storyQueryService, $storyImportService);
 $contentController = new ContentController($contentQueryService);
 $storyCrudAdminController = new StoryCrudAdminController($storyCrudService);
+$matchController = new MatchController($matchCommandService, $matchQueryService);
 
 // ─── Authentication Middleware ───
 $publicPaths = [
@@ -155,7 +182,8 @@ $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths)
 // ─── Define Routes ───
 $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $echoController, $guestAuthController, $guestAdminController, $sessionController,
-    $storyController, $storyAdminController, $contentController, $storyCrudAdminController
+    $storyController, $storyAdminController, $contentController, $storyCrudAdminController,
+    $matchController
 ) {
     
     // Echo (Public)
@@ -206,6 +234,10 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->put('/admin/stories/{uuidStory}/{entityType}/{entityUuid}', [$storyCrudAdminController, 'updateEntity']);
     $group->delete('/admin/stories/{uuidStory}/{entityType}/{entityUuid}', [$storyCrudAdminController, 'deleteEntity']);
 
+    // Step 19 — Single-player match creation
+    $group->post('/matches', [$matchController, 'createMatch']);
+    $group->get('/matches', [$matchController, 'listMatches']);
+    $group->get('/match/{uuidMatch}/info', [$matchController, 'getMatchInfo']);
 })->add($authMiddleware);
 
 $app->run();

@@ -28,6 +28,16 @@ from app.adapters.rest.story.content_controller import ContentController
 from app.core.services.story.story_crud_service import StoryCrudService
 from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminController
 
+# Step 19 — single-player match creation
+from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
+from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
+from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
+from app.core.services.match.match_command_service import MatchCommandService
+from app.core.services.match.match_query_service import MatchQueryService
+from app.core.services.match.property_system_mode_service import PropertySystemModeService
+from app.adapters.rest.match.match_controller import MatchController
+import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
+
 # 1. Initialize Database
 init_db()
 
@@ -60,6 +70,23 @@ story_import_service = StoryImportService(story_persistence_adapter)
 content_query_service = ContentQueryService(story_read_adapter)
 story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter)
 
+# Step 19 — match adapters and services
+match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
+story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
+user_access_adapter = UserAccessAdapter(SessionLocal)
+system_mode_service = PropertySystemModeService(server_status="OK")
+match_command_service = MatchCommandService(
+    story_match_read_adapter,
+    match_persistence_adapter,
+    user_access_adapter,
+    system_mode_service,
+)
+match_query_service = MatchQueryService(
+    match_persistence_adapter,
+    story_match_read_adapter,
+    user_access_adapter,
+)
+
 # 4. Initialize Controllers
 echo_controller = EchoController(echo_service)
 guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence)
@@ -69,6 +96,7 @@ story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
+match_controller = MatchController(match_command_service, match_query_service)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -127,6 +155,7 @@ app.include_router(story_controller.router)
 app.include_router(story_admin_controller.router)
 app.include_router(content_controller.router)
 app.include_router(story_crud_admin_controller.router)
+app.include_router(match_controller.router)
 
 if __name__ == "__main__":
     import uvicorn

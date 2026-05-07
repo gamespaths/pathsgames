@@ -108,6 +108,17 @@ Resources:
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
 
+  # Step 19 — single-player match creation
+  MatchModule:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: template/match.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+        JwtSecret: !Ref JwtSecret
+
   ContentModule:
     Type: AWS::Serverless::Application
     Properties:
