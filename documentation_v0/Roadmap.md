@@ -31,6 +31,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 16 | [Content details APIs](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
 | 17 | [Story Admin CRUD Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
 | 18 | [Frontend: Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
+| 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation |
 
 
 | Steps | Phase |
@@ -59,31 +60,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 100-101 | Documentation and V1 Launch |
 
 
-## Next steps
-For next steps use this prompt
-> Set Step/XX=1000  
-> starting from develop branch, commit and push all changes into branch develop_v0_XX_0 with user "gamespaths@gmail.com" "Paths.Games agent". use opus model
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX descripted into Step00_Roadmap file: write all java backend code into "code/backend/java" project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder with new/changed api, if some api changed write me into md files. create a new simple web example to use new api-interfaces inside new "documentation_v0/website_concepts_v0/v0.XX.0/" folder, if necessary create a new "documentation_v0/website_concepts_v0/v0.XX.0-admin/" folder for dedicated admin web-site sections, for websites use componentes by code/website/html and others last concepts (documentation_v0/website_concepts_v0). add new folder inside "code/tests/robot/test" and write new robot-framework test to check all apis and new components are ok (launcing java backend with sqlite profile to test all). don't look and don't change "backend/python" , "backend/php" , "backend/aws" and others concepts folder into "website". to execute robot command remember to use ".venv".  
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files outside "code/backend/php" and "code/backend/python" folders. my robot "code/tests/robot" must works with python and php project, check it with script inside "code/scripts/dev/" folder. to execute python project and robot command remember to use ".venv".  
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX for aws backend version inside "code/backend/aws" folder. please read all changes about step XX from java and python versions and write into aws project new code using tecnologies defined into README.md file inside projects and previus code. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. never change files outside "code/backend/aws" folder. my robot "code/tests/robot" must works with new code, never change robot test code.
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects. In this step never change files outside react projects. Rember to cover code with tests for have 100% sonar coverage. On editors components I wanna change all table column. 
-
-
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-19. Single-player match creation
-    - Implement POST /matches endpoint to create a new match with story and difficulty selection (and creator character select) (backend)
-    - Validate story exists, difficulty is valid, user is not banned, and system is not in maintenance (backend)
-    - Generate match UUID, set status to CREATED, persist gaming_match record with id_user_creator (backend)
-    - Initialize gaming_state_locations for all story locations with default counters (backend)
-    - Initialize gaming_state_registry with all story default key-value pairs (backend)
-    - Implement GET /match/{uuid_match}/info endpoint returning match details, location, events, choices, and registry (backend)
-    - Write backend unit tests for match creation covering validation, state initialization, and error scenarios (backend tests)
-21. Character template and class selection
+20. Character template and class selection
     - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
     - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
     - Validate character template belongs to the story and class is compatible with selected template (backend)
@@ -91,7 +70,7 @@ For next steps use this prompt
     - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
     - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
     - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
-22. Story validation and integrity checking
+21. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)
     - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)

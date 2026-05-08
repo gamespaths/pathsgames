@@ -270,8 +270,22 @@ The same suite passes against the Python and PHP backends — see
 
 ## Version Control
 - Created with AI prompts:
-  > Set Step/XX=19.   
+  ```  
+  Set Step/XX=19
 
+  Starting from the develop branch, checkout develop, create a new branch called develop_v0_19_0, and throughout this session commit and push all changes to that branch using git user email 'gamespaths@gmail.com' and git user name 'Paths.Games agent'.
+
+  --- PART 1: JAVA BACKEND ---
+  Read all documentation inside the 'documentation_v0' folder to have all information about the project. Read the Step00_Roadmap file to understand what Step 19 requires. Then implement Step 19 for the Java backend inside 'code/backend/java' using JPA. Never add a new Maven module. Complete all unit tests using Mockito to cover 100% of branch cases. Write a new markdown file inside the documentation_v0 folder with all details covering: endpoint APIs, DTOs, roles, tables, test cases, and business logic. Add or update the OpenAPI documentation inside '/code/backend/java/adapter-rest/src/main/resources/openapi' for any new or changed APIs — if an API changed, note it in the markdown file. Create a new simple web example to demonstrate the new API interfaces inside 'documentation_v0/website_concepts_v0/v0.19.0/' folder; if necessary create 'documentation_v0/website_concepts_v0/v0.19.0-admin/' for admin-specific sections. Use components from 'code/website/html' and other existing concepts in 'documentation_v0/website_concepts_v0'. Add a new folder inside 'code/tests/robot/tests' and write new Robot Framework tests to check all APIs and new components (launch Java backend with SQLite profile). To execute robot commands remember to use '.venv'. Do NOT look at or change 'backend/python', 'backend/php', 'backend/aws', or other concepts folders inside 'website'.
+
+  --- PART 2: PYTHON & PHP BACKENDS ---
+  Read all documentation inside the 'documentation_v0' folder to have all information about the project. Read all changes implemented in Step 19 for the Java backend above. Implement Step 19 for both the Python backend ('code/backend/python') and the PHP backend ('code/backend/php') using the technologies defined in each project's README.md. All APIs must be 100% compatible with the OpenAPI documentation in 'code/backend/java/adapter-rest/src/main/resources/openapi'. For PHP use PHPUnit and for Python use pytest — both must achieve 100% branch coverage. Never change files outside 'code/backend/php' and 'code/backend/python'. The Robot Framework tests in 'code/tests/robot' must work with both projects — verify using scripts inside 'code/script/dev/'. To execute Python and robot commands remember to use '.venv'.
+
+  --- PART 3: AWS BACKEND ---
+  Read all documentation inside the 'documentation_v0' folder to have all information about the project. Read all changes from Step 19 in the Java and Python versions. Implement Step 19 for the AWS serverless backend inside 'code/backend/aws' using the technologies defined in the project's README.md. All APIs must be 100% compatible with the OpenAPI documentation in 'code/backend/java/adapter-rest/src/main/resources/openapi'. Never change files outside 'code/backend/aws'. The Robot Framework tests in 'code/tests/robot' must work with the new code — never change robot test code.
+
+  After completing all three parts, commit and push everything to the develop_v0_19_0 branch.
+  ```
 - **Document Version**: 0.19.1
     | Version | Description | Date |
     | --- | --- | --- |
