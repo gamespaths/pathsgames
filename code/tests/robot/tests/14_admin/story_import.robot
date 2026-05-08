@@ -279,6 +279,14 @@ Import Explicit ID For list_cards Returns 201
     ...    cards
     ...    {"id":971004,"urlImmage":"img"}
 
+Import Card With Style Fields Returns 201
+    [Documentation]    Import a card with alternativeImage, styleMain and styleDetail set.
+    [Tags]    admin    step14
+    Import With Explicit List Entity Id
+    ...    64444444-4444-4444-8444-444444444445
+    ...    cards
+    ...    {"id":971006,"urlImmage":"img2.png","alternativeImage":"alt.png","awesomeIcon":"fa-book","styleMain":"dark-main","styleDetail":"dark-detail"}
+
 Import Explicit ID For list_keys Returns 201
     [Documentation]    Import accepts explicit id for list_keys rows.
     [Tags]    admin    step14

@@ -173,6 +173,14 @@ List Mission Steps Returns 200
     ${response}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/mission-steps
     Status Should Be    ${response}    200
 
+List Cards Returns 200
+    [Tags]    admin    crud    step17
+    ${response}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    ${type}=    Evaluate    type(${body}).__name__
+    Should Be Equal    ${type}    list
+
 # === CRUD cycles for new entity types ===
 
 Create And Delete Key
@@ -222,6 +230,36 @@ Create And Update Creator With idCard
 
     ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}
     Status Should Be    ${del_resp}    200
+
+Create And Delete Card With Style Fields
+    [Documentation]    Full CRUD cycle for cards. Verifies alternativeImage, styleMain and
+    ...                styleDetail are persisted and returned correctly.
+    [Tags]    admin    crud    step17
+    &{data}=    Create Dictionary
+    ...    urlImmage=https://example.com/card.png
+    ...    alternativeImage=alt_card.png
+    ...    awesomeIcon=fa-star
+    ...    styleMain=card-style-dark
+    ...    styleDetail=card-detail-border
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards    json=${data}
+    Status Should Be    ${create_resp}    201
+    ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
+    Response Field Should Equal    ${create_resp}    alternativeImage    alt_card.png
+    Response Field Should Equal    ${create_resp}    styleMain           card-style-dark
+    Response Field Should Equal    ${create_resp}    styleDetail         card-detail-border
+    # Get and verify persistence
+    ${get_resp}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}
+    Status Should Be    ${get_resp}    200
+    Response Field Should Equal    ${get_resp}    styleMain    card-style-dark
+    # Update one style field
+    &{upd}=    Create Dictionary    styleMain=card-style-light
+    ${upd_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}    json=${upd}
+    Status Should Be    ${upd_resp}    200
+    Response Field Should Equal    ${upd_resp}    styleMain    card-style-light
+    # Delete
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}
+    Status Should Be    ${del_resp}    200
+    Response Field Should Equal    ${del_resp}    status    DELETED
 
 # === Story update with new fields ===
 

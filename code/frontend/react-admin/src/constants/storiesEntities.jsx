@@ -71,6 +71,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'maxCharacters', label: 'Max Characters', type: 'number' },
     ],
     'location-neighbors': [
+      { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
+      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'idLocationFrom', label: 'Location From ID', type: 'number' },
       { key: 'idLocationTo', label: 'Location To ID', type: 'number' },
       { key: 'direction', label: 'Direction', type: 'select', options: LOCATION_NEIGHBOR_DIRECTION_OPTIONS },
@@ -363,7 +366,10 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'idTextTitle', label: 'Title',  type: 'idTextTitle' },
       { key: 'idTextDescription', label: 'Description', type: 'idTextDescription' },
       { key: 'urlImmage', label: 'Image URL' },
+      { key: 'alternativeImage', label: 'Alt Image' },
       { key: 'awesomeIcon', label: 'Icon' },
+      { key: 'styleMain', label: 'Style Main' },
+      { key: 'styleDetail', label: 'Style Detail' },
       { key: 'idCreator', label: 'Creator' },
     ],
     texts: [
