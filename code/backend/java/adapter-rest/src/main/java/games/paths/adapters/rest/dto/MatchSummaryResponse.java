@@ -6,12 +6,10 @@ import games.paths.core.model.match.MatchSummary;
  * MatchSummaryResponse - JSON projection of {@link MatchSummary}.
  * Step 19.
  */
-public class MatchSummaryResponse {
+public class MatchSummaryResponse extends AbstractUuidNameDto {
 
-    private String uuid;
     private String storyUuid;
     private String difficultyUuid;
-    private String name;
     private String status;
     private Integer currentClock;
     private Integer expCost;
@@ -24,10 +22,10 @@ public class MatchSummaryResponse {
     public static MatchSummaryResponse fromModel(MatchSummary m) {
         if (m == null) return null;
         MatchSummaryResponse r = new MatchSummaryResponse();
-        r.uuid = m.getUuid();
+        r.setUuid(m.getUuid());
         r.storyUuid = m.getStoryUuid();
         r.difficultyUuid = m.getDifficultyUuid();
-        r.name = m.getName();
+        r.setName(m.getName());
         r.status = m.getStatus();
         r.currentClock = m.getCurrentClock();
         r.expCost = m.getExpCost();
@@ -36,17 +34,11 @@ public class MatchSummaryResponse {
         return r;
     }
 
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
     public String getStoryUuid() { return storyUuid; }
     public void setStoryUuid(String storyUuid) { this.storyUuid = storyUuid; }
 
     public String getDifficultyUuid() { return difficultyUuid; }
     public void setDifficultyUuid(String difficultyUuid) { this.difficultyUuid = difficultyUuid; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

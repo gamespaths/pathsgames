@@ -44,11 +44,17 @@ abstract class DatabaseIntegrationTestCase extends TestCase
 
                 // Remove INDEX lines inside CREATE TABLE (SQLite wants separate CREATE INDEX)
                 $sql = preg_replace('/,\s*(?:INDEX|KEY|UNIQUE INDEX|UNIQUE KEY)\s+.*\(.*\)/i', '', $sql);
-                $sql = preg_replace('/,\s*CONSTRAINT\s+.*FOREIGN KEY\s+.*\(.*\)\s+REFERENCES\s+.*\(.*\).*/i', '', $sql);
-                $sql = preg_replace('/,\s*FOREIGN KEY\s+.*\(.*\)\s+REFERENCES\s+.*\(.*\).*/i', '', $sql);
+                // Remove any constraint/foreign key definitions (MySQL style) that SQLite can't parse
+                $sql = preg_replace('/^\s*,?\s*(?:CONSTRAINT\s+[^,]*?)?FOREIGN KEY\s*\([^)]*\)\s*REFERENCES\s*[^,\n;]*(?:\([^)]*\))?[^,;\n]*/im', '', $sql);
+                // Remove any remaining standalone FOREIGN KEY lines
+                $sql = preg_replace('/^\s*,?\s*FOREIGN KEY\s*\([^)]*\)\s*REFERENCES\s*[^,\n;]*(?:\([^)]*\))?[^,;\n]*/im', '', $sql);
+                // Remove ON DELETE / ON UPDATE clauses
+                $sql = preg_replace('/ON DELETE\s+CASCADE/i', '', $sql);
+                $sql = preg_replace('/ON UPDATE\s+CURRENT_TIMESTAMP/i', '', $sql);
 
-                // Remove trailing commas before closing parenthesis
-                $sql = preg_replace('/,\s*\)/', "\n)", $sql);
+                // Remove trailing commas before closing parenthesis (robust across blank lines/comments)
+                $sql = preg_replace('/,\h*(?:\R\h*)+\)/m', "\n)", $sql);
+                $sql = preg_replace('/,\s*\)/s', "\n)", $sql);
 
                 // Remove CHARACTER SET and ENGINE
                 $sql = preg_replace('/CHARACTER SET [^ ]+/i', '', $sql);

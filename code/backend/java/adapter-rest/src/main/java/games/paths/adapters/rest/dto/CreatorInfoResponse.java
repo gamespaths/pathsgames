@@ -5,10 +5,7 @@ package games.paths.adapters.rest.dto;
  *
  * <p>Added in Step 16.</p>
  */
-public class CreatorInfoResponse {
-
-    private String uuid;
-    private String name;
+public class CreatorInfoResponse extends AbstractUuidNameDto {
     private String link;
     private String url;
     private String urlImage;
@@ -19,20 +16,13 @@ public class CreatorInfoResponse {
 
     public CreatorInfoResponse(String uuid, String name, String link, String url,
                                String urlImage, String urlEmote, String urlInstagram) {
-        this.uuid = uuid;
-        this.name = name;
+        super(uuid, name);
         this.link = link;
         this.url = url;
         this.urlImage = urlImage;
         this.urlEmote = urlEmote;
         this.urlInstagram = urlInstagram;
     }
-
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 
     public String getLink() { return link; }
     public void setLink(String link) { this.link = link; }

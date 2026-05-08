@@ -3,10 +3,7 @@ package games.paths.adapters.rest.dto;
 /**
  * DifficultyResponse - REST response DTO for a story difficulty level.
  */
-public class DifficultyResponse {
-
-    private String uuid;
-    private String description;
+public class DifficultyResponse extends AbstractUuidDescriptionDto {
     private int expCost;
     private int maxWeight;
     private int minCharacter;
@@ -20,8 +17,7 @@ public class DifficultyResponse {
     public DifficultyResponse(String uuid, String description, int expCost, int maxWeight,
                               int minCharacter, int maxCharacter, int costHelpComa,
                               int costMaxCharacteristics, int numberMaxFreeAction) {
-        this.uuid = uuid;
-        this.description = description;
+        super(uuid, description);
         this.expCost = expCost;
         this.maxWeight = maxWeight;
         this.minCharacter = minCharacter;
@@ -30,12 +26,6 @@ public class DifficultyResponse {
         this.costMaxCharacteristics = costMaxCharacteristics;
         this.numberMaxFreeAction = numberMaxFreeAction;
     }
-
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
 
     public int getExpCost() { return expCost; }
     public void setExpCost(int expCost) { this.expCost = expCost; }

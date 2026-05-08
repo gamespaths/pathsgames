@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import CardDetailModal from './CardDetailModal'
 
+function sanitizeModalId(value, fallback) {
+  const raw = String(value ?? fallback)
+  const safe = raw.replace(/[^a-zA-Z0-9_-]/g, '')
+  return safe || String(fallback)
+}
+
+function sanitizeIconClass(iconClass, fallback) {
+  if (typeof iconClass !== 'string') return fallback
+  const normalized = iconClass.trim()
+  const valid = /^[a-zA-Z0-9\s_-]+$/.test(normalized)
+  return valid && normalized.length > 0 ? normalized : fallback
+}
+
 export default function ActionsRow({ actions }) {
   const { t } = useTranslation()
   const [activeAction, setActiveAction] = useState(null)
@@ -14,7 +27,8 @@ export default function ActionsRow({ actions }) {
 
       <div className="game-cards-row">
         {actions.map((action, i) => {
-          const modalId = `action-modal-${action.uuid ?? i}`
+          const modalId = `action-modal-${sanitizeModalId(action.uuid, i)}`
+          const iconClass = sanitizeIconClass(action.awesomeIcon, 'fas fa-bolt')
           return (
             <div key={action.uuid ?? i}>
               <div
@@ -24,7 +38,7 @@ export default function ActionsRow({ actions }) {
                 onClick={() => setActiveAction(action)}
               >
                 <div className="game-card-icon">
-                  <i className={action.awesomeIcon ?? 'fas fa-bolt'} />
+                  <i className={iconClass} />
                 </div>
                 <div className="game-card-name">{action.name}</div>
               </div>

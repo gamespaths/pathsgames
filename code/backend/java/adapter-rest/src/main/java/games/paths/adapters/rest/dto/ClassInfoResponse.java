@@ -3,11 +3,7 @@ package games.paths.adapters.rest.dto;
 /**
  * ClassInfoResponse - REST response DTO for a character class.
  */
-public class ClassInfoResponse {
-
-    private String uuid;
-    private String name;
-    private String description;
+public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
     private int weightMax;
     private int dexterityBase;
     private int intelligenceBase;
@@ -17,23 +13,12 @@ public class ClassInfoResponse {
 
     public ClassInfoResponse(String uuid, String name, String description,
                              int weightMax, int dexterityBase, int intelligenceBase, int constitutionBase) {
-        this.uuid = uuid;
-        this.name = name;
-        this.description = description;
+        super(uuid, name, description);
         this.weightMax = weightMax;
         this.dexterityBase = dexterityBase;
         this.intelligenceBase = intelligenceBase;
         this.constitutionBase = constitutionBase;
     }
-
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
 
     public int getWeightMax() { return weightMax; }
     public void setWeightMax(int weightMax) { this.weightMax = weightMax; }

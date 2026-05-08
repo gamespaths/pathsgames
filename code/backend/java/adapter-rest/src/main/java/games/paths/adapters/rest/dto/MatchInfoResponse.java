@@ -126,23 +126,16 @@ public class MatchInfoResponse {
         public void setIntValue(Integer intValue) { this.intValue = intValue; }
     }
 
-    public static class EventOptionDto {
-        private String uuid;
-        private String name;
+    public static class EventOptionDto extends AbstractUuidNameDto {
         private String type;
 
         public static EventOptionDto fromModel(MatchEventOption m) {
             EventOptionDto d = new EventOptionDto();
-            d.uuid = m.getUuid();
-            d.name = m.getName();
+            d.setUuid(m.getUuid());
+            d.setName(m.getName());
             d.type = m.getType();
             return d;
         }
-
-        public String getUuid() { return uuid; }
-        public void setUuid(String uuid) { this.uuid = uuid; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
         public String getType() { return type; }
         public void setType(String type) { this.type = type; }
     }

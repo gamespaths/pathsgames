@@ -2,6 +2,34 @@ import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import CardDetailModal from './CardDetailModal'
 
+function sanitizeModalId(value, fallback) {
+  const raw = String(value ?? fallback)
+  const safe = raw.replace(/[^a-zA-Z0-9_-]/g, '')
+  return safe || String(fallback)
+}
+
+function sanitizeIconClass(iconClass, fallback) {
+  if (typeof iconClass !== 'string') return fallback
+  const normalized = iconClass.trim()
+  const valid = /^[a-zA-Z0-9\s_-]+$/.test(normalized)
+  return valid && normalized.length > 0 ? normalized : fallback
+}
+
+function sanitizeImageUrl(imageUrl) {
+  if (typeof imageUrl !== 'string' || !imageUrl.trim()) return null
+
+  const value = imageUrl.trim()
+  if (value.startsWith('/')) return value
+
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 export default function NeighborRow({ locations }) {
   const { t } = useTranslation()
   const [activeLocation, setActiveLocation] = useState(null)
@@ -14,7 +42,9 @@ export default function NeighborRow({ locations }) {
 
       <div className="game-cards-row">
         {locations.map((loc, i) => {
-          const modalId = `neighbor-modal-${loc.uuid ?? i}`
+          const modalId = `neighbor-modal-${sanitizeModalId(loc.uuid, i)}`
+          const imageUrl = sanitizeImageUrl(loc.imageUrl)
+          const iconClass = sanitizeIconClass(loc.awesomeIcon, 'fas fa-map-marker-alt')
           return (
             <div key={loc.uuid ?? i}>
               <div
@@ -23,10 +53,10 @@ export default function NeighborRow({ locations }) {
                 data-bs-target={`#${modalId}`}
                 onClick={() => setActiveLocation(loc)}
               >
-                {loc.imageUrl ? (
-                  <img src={loc.imageUrl} alt={loc.name} className="game-card-img" />
+                {imageUrl ? (
+                  <img src={imageUrl} alt={loc.name} className="game-card-img" />
                 ) : (
-                  <div className="game-card-icon"><i className={loc.awesomeIcon ?? 'fas fa-map-marker-alt'} /></div>
+                  <div className="game-card-icon"><i className={iconClass} /></div>
                 )}
                 <div className="game-card-name">{loc.name}</div>
               </div>
