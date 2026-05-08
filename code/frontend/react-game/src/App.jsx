@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { LanguageProvider } from './i18n/context'
+import { ServerProvider } from './context/ServerContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import PrivacyModal from './components/modals/PrivacyModal'
@@ -10,6 +11,7 @@ import GamePage from './pages/GamePage'
 
 export default function App() {
   return (
+    <ServerProvider>
     <LanguageProvider>
       <BrowserRouter>
         <Navbar />
@@ -27,5 +29,6 @@ export default function App() {
         <CookiesModal />
       </BrowserRouter>
     </LanguageProvider>
+    </ServerProvider>
   )
 }

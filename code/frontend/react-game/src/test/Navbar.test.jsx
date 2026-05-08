@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import Navbar from '../components/layout/Navbar'
 
 const mockSetLang = vi.fn()
+const mockChangeServer = vi.fn()
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({
@@ -11,6 +12,19 @@ vi.mock('../i18n/context', () => ({
     lang: 'it',
     setLang: mockSetLang,
   }),
+}))
+
+vi.mock('../context/ServerContext', () => ({
+  useServer: () => ({
+    server: 'mock',
+    servers: [
+      { label: 'Mock (offline)', url: 'mock' },
+      { label: 'Local (8042)', url: 'http://localhost:8042' },
+    ],
+    probing: false,
+    changeServer: mockChangeServer,
+  }),
+  MOCK_SERVER: 'mock',
 }))
 
 function renderNavbar(initialRoute = '/') {
