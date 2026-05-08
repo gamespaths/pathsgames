@@ -396,3 +396,63 @@ CREATE TABLE IF NOT EXISTS list_creator (
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+
+
+-- Step 19: Gaming runtime tables (single-player match creation)
+
+CREATE TABLE IF NOT EXISTS gaming_match (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    id_story BIGINT NOT NULL,
+    id_difficulty BIGINT NOT NULL,
+    name VARCHAR(255) DEFAULT NULL,
+    exp_cost INT NOT NULL DEFAULT 5,
+    status VARCHAR(20) NOT NULL DEFAULT 'CREATED',
+    current_clock INT NOT NULL DEFAULT 0,
+    id_current_weather BIGINT DEFAULT NULL,
+    id_user_creator BIGINT NOT NULL,
+    timestamp_start DATETIME DEFAULT NULL,
+    timestamp_lock_expiration DATETIME DEFAULT NULL,
+    timestamp_gameover DATETIME DEFAULT NULL,
+    timestamp_end DATETIME DEFAULT NULL,
+    id_character_current_turn BIGINT DEFAULT NULL,
+    secure_location_param INT DEFAULT 0,
+    counter_consecutive_pass INT NOT NULL DEFAULT 0,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_match_user_creator (id_user_creator),
+    INDEX idx_match_uuid (uuid),
+    FOREIGN KEY (id_story) REFERENCES list_stories(id),
+    FOREIGN KEY (id_user_creator) REFERENCES gaming_user_sessions(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS gaming_state_locations (
+    id_match BIGINT NOT NULL,
+    id_location BIGINT NOT NULL,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    flag_already_actived INT NOT NULL DEFAULT 0,
+    clock_counter INT DEFAULT 0,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_match, id_location),
+    FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS gaming_state_registry (
+    id BIGINT NOT NULL,
+    id_match BIGINT NOT NULL,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    `key` VARCHAR(255) NOT NULL,
+    string_value TEXT DEFAULT NULL,
+    int_value INT DEFAULT NULL,
+    id_character BIGINT DEFAULT NULL,
+    id_event BIGINT DEFAULT NULL,
+    id_choice BIGINT DEFAULT NULL,
+    clock INT DEFAULT NULL,
+    id_mission BIGINT DEFAULT NULL,
+    id_mission_steps BIGINT DEFAULT NULL,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, id_match),
+    FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

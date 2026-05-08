@@ -117,7 +117,7 @@ sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$NAVBAR_FILE"
 # ────────────────────────────────────────────
 echo "  [9/6] React Game - Footer.jsx (versione in-code)"
 FOOTER_FILE="$ROOT/code/frontend/react-game/src/components/layout/Footer.jsx"
-sed -i "s|Version: ${CURRENT}|Version: ${NEW}|g" "$FOOTER_FILE"
+sed -i "s|v${CURRENT}|v${NEW}|g" "$FOOTER_FILE"
 
 # ────────────────────────────────────────────
 echo ""

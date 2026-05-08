@@ -1,0 +1,129 @@
+<?php
+
+namespace Games\Paths\Adapter\Persistence\Matches;
+
+use Games\Paths\Core\Port\Matches\MatchPersistencePort;
+use PDO;
+use Ramsey\Uuid\Uuid;
+
+class MatchMysqlPersistenceAdapter implements MatchPersistencePort
+{
+    public function __construct(private readonly PDO $pdo)
+    {
+    }
+
+    public function saveMatch(array $match): array
+    {
+        $now = date('Y-m-d H:i:s');
+        $uuid = Uuid::uuid4()->toString();
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO gaming_match
+              (uuid, id_story, id_difficulty, id_user_creator, name, exp_cost, status, current_clock,
+               secure_location_param, counter_consecutive_pass, ts_insert, ts_update)
+             VALUES
+              (:uuid, :id_story, :id_difficulty, :id_user_creator, :name, :exp_cost, :status, :current_clock,
+               :secure_location_param, :counter_consecutive_pass, :ts_insert, :ts_update)'
+        );
+        $stmt->execute([
+            ':uuid' => $uuid,
+            ':id_story' => (int)$match['id_story'],
+            ':id_difficulty' => (int)$match['id_difficulty'],
+            ':id_user_creator' => (int)$match['id_user_creator'],
+            ':name' => $match['name'] ?? null,
+            ':exp_cost' => (int)($match['exp_cost'] ?? 5),
+            ':status' => $match['status'] ?? 'CREATED',
+            ':current_clock' => (int)($match['current_clock'] ?? 0),
+            ':secure_location_param' => (int)($match['secure_location_param'] ?? 0),
+            ':counter_consecutive_pass' => (int)($match['counter_consecutive_pass'] ?? 0),
+            ':ts_insert' => $now,
+            ':ts_update' => $now,
+        ]);
+        return $this->findMatchByUuid($uuid) ?? [];
+    }
+
+    public function findMatchByUuid(string $uuid): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM gaming_match WHERE uuid = :uuid LIMIT 1');
+        $stmt->execute([':uuid' => $uuid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function findMatchesByUserId(int $userId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM gaming_match WHERE id_user_creator = :user ORDER BY ts_insert DESC'
+        );
+        $stmt->execute([':user' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function saveLocations(array $rows): void
+    {
+        if (empty($rows)) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO gaming_state_locations
+                (id_match, id_location, uuid, flag_already_actived, clock_counter, ts_insert, ts_update)
+             VALUES (:id_match, :id_location, :uuid, :flag_already_actived, :clock_counter, :ts_insert, :ts_update)'
+        );
+        foreach ($rows as $r) {
+            $stmt->execute([
+                ':id_match' => (int)$r['id_match'],
+                ':id_location' => (int)$r['id_location'],
+                ':uuid' => Uuid::uuid4()->toString(),
+                ':flag_already_actived' => (int)($r['flag_already_actived'] ?? 0),
+                ':clock_counter' => (int)($r['clock_counter'] ?? 0),
+                ':ts_insert' => $now,
+                ':ts_update' => $now,
+            ]);
+        }
+    }
+
+    public function saveRegistry(array $rows): void
+    {
+        if (empty($rows)) {
+            return;
+        }
+        $now = date('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO gaming_state_registry
+                (id, id_match, uuid, `key`, string_value, int_value, ts_insert, ts_update)
+             VALUES (:id, :id_match, :uuid, :key, :string_value, :int_value, :ts_insert, :ts_update)'
+        );
+        foreach ($rows as $r) {
+            $stmt->execute([
+                ':id' => (int)$r['id'],
+                ':id_match' => (int)$r['id_match'],
+                ':uuid' => Uuid::uuid4()->toString(),
+                ':key' => $r['key'] ?? '',
+                ':string_value' => $r['string_value'] ?? null,
+                ':int_value' => $r['int_value'] ?? null,
+                ':ts_insert' => $now,
+                ':ts_update' => $now,
+            ]);
+        }
+    }
+
+    public function findLocationsByMatchId(int $matchId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id_match, id_location, uuid, flag_already_actived, clock_counter
+             FROM gaming_state_locations WHERE id_match = :id'
+        );
+        $stmt->execute([':id' => $matchId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function findRegistryByMatchId(int $matchId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, id_match, uuid, `key`, string_value, int_value
+             FROM gaming_state_registry WHERE id_match = :id'
+        );
+        $stmt->execute([':id' => $matchId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+}

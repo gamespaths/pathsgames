@@ -142,7 +142,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     ```
 - Robot (PostgreSQL / local Java + Docker):
     ```bash
-    cd code/script/dev/run_robots
+    cd code/scripts/dev/run_robots
     ./run_robot_with_local_java_postgres.sh
     ```
 
