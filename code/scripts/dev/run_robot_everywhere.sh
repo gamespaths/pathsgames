@@ -6,17 +6,17 @@
 set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 WORKDIR="$PROJECT_ROOT"
-RESULTS_DIR="$WORKDIR/code/script/dev/run_robot_results"
+RESULTS_DIR="$WORKDIR/code/scripts/dev/run_robot_results"
 mkdir -p "$RESULTS_DIR"
 rm -f "$RESULTS_DIR"/*.log
 
 # Map: display name | script path | expected robot report dir (relative to code/tests/robot)
 declare -a ENVS
-ENVS+=("AWS|$WORKDIR/code/script/dev/run_robots/run_robot_with_aws_serverless.sh|reports-aws")
-ENVS+=("LOCAL_JAVA_POSTGRES|$WORKDIR/code/script/dev/run_robots/run_robot_with_local_java_postgres.sh|reports-local-java-postgres")
-ENVS+=("LOCAL_JAVA|$WORKDIR/code/script/dev/run_robots/run_robot_with_local_java.sh|reports-local-java")
-ENVS+=("LOCAL_PHP|$WORKDIR/code/script/dev/run_robots/run_robot_with_local_php.sh|reports-local-php")
-ENVS+=("LOCAL_PYTHON|$WORKDIR/code/script/dev/run_robots/run_robot_with_local_python.sh|reports-local-python")
+ENVS+=("AWS|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh|reports-aws")
+ENVS+=("LOCAL_JAVA_POSTGRES|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh|reports-local-java-postgres")
+ENVS+=("LOCAL_JAVA|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_java.sh|reports-local-java")
+ENVS+=("LOCAL_PHP|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_php.sh|reports-local-php")
+ENVS+=("LOCAL_PYTHON|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_python.sh|reports-local-python")
 
 # Results arrays
 declare -A STATUS
