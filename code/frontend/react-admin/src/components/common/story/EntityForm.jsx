@@ -216,7 +216,7 @@ export default function EntityForm({
                       checked={!!data[field.key]}
                       onChange={e => setData({...data, [field.key]: e.target.checked})}
                     />
-                    <span style={{ fontSize: '0.8rem' }}>{field.label}</span>
+                    <label htmlFor={`field-${field.key}`} style={{ fontSize: '0.8rem', cursor: 'pointer' }}>{field.label}</label>
                   </>
                 ) : field.type === 'textarea' ? (
                   <textarea

@@ -224,6 +224,46 @@ export default function StoryEditorPage() {
   const handleExportStory = async () => {
     try {
       setLoading(true)
+
+      // Map an entity list to include all fields defined in FIELDS[entityType],
+      // defaulting to null for missing ones. Also removes internal/DB-only fields.
+      const mapEntityList = (list, entityType) => {
+        const fieldKeys = (FIELDS[entityType] ?? []).map(f => f.key)
+        return (list ?? []).map(entity => {
+          const mapped = {}
+          for (const key of fieldKeys) {
+            mapped[key] = entity[key] ?? null
+          }
+          // Also keep 'id' for import reference if present
+          if (entity.id !== undefined) mapped.id = entity.id
+          return mapped
+        })
+      }
+
+      const [
+        difficultiesData,
+        characterTemplatesData,
+        locationNeighborsData,
+        eventEffectsData,
+        choiceConditionsData,
+        choiceEffectsData,
+        globalRandomEventsData,
+        missionStepsData,
+        itemEffectsData,
+        classBonusesData,
+      ] = await Promise.all([
+        listEntities(uuid, 'difficulties'),
+        listEntities(uuid, 'character-templates'),
+        listEntities(uuid, 'location-neighbors'),
+        listEntities(uuid, 'event-effects'),
+        listEntities(uuid, 'choice-conditions'),
+        listEntities(uuid, 'choice-effects'),
+        listEntities(uuid, 'global-random-events'),
+        listEntities(uuid, 'mission-steps'),
+        listEntities(uuid, 'item-effects'),
+        listEntities(uuid, 'class-bonuses'),
+      ])
+
       const fullStory = {
         story: {
           id: story.id,
@@ -250,44 +290,31 @@ export default function StoryEditorPage() {
           idCreator: story.idCreator,
           idCard: story.idCard,
         },
-        texts: texts.map(t => ({ id: t.idText, idText: t.idText, lang: t.lang, shortText: t.shortText, longText: t.longText })),
-        locations: locations.map(l => ({ ...l })),
-        events: eventsRef.map(e => ({ ...e })),
-        difficulties: await listEntities(uuid, 'difficulties'),
-        keys: keysRef.map(k => ({ ...k })),
-        items: itemsRef.map(i => ({ ...i })),
-        classes: classesRef.map(c => ({ ...c })),
-        traits: traitsRef.map(t => ({ ...t })),
-        characterTemplates: await listEntities(uuid, 'character-templates'),
-        locationNeighbors: await listEntities(uuid, 'location-neighbors'),
-        eventEffects: await listEntities(uuid, 'event-effects'),
-        choices: choicesRef.map(c => ({ ...c })),
-        choiceConditions: await listEntities(uuid, 'choice-conditions'),
-        choiceEffects: await listEntities(uuid, 'choice-effects'),
-        weatherRules: weatherRulesRef.map(w => ({ ...w })),
-        globalRandomEvents: await listEntities(uuid, 'global-random-events'),
-        missions: missionsRef.map(m => ({ ...m })),
-        missionSteps: await listEntities(uuid, 'mission-steps'),
-        creators: creators.map(c => ({ ...c })),
-        cards: cardsRef.map(c => ({ ...c })),
-        itemEffects: await listEntities(uuid, 'item-effects'),
-        classBonuses: await listEntities(uuid, 'class-bonuses'),
+        texts: mapEntityList(texts, 'texts'),
+        locations: mapEntityList(locations, 'locations'),
+        events: mapEntityList(eventsRef, 'events'),
+        difficulties: mapEntityList(difficultiesData, 'difficulties'),
+        keys: mapEntityList(keysRef, 'keys'),
+        items: mapEntityList(itemsRef, 'items'),
+        classes: mapEntityList(classesRef, 'classes'),
+        traits: mapEntityList(traitsRef, 'traits'),
+        characterTemplates: mapEntityList(characterTemplatesData, 'character-templates'),
+        locationNeighbors: mapEntityList(locationNeighborsData, 'location-neighbors'),
+        eventEffects: mapEntityList(eventEffectsData, 'event-effects'),
+        choices: mapEntityList(choicesRef, 'choices'),
+        choiceConditions: mapEntityList(choiceConditionsData, 'choice-conditions'),
+        choiceEffects: mapEntityList(choiceEffectsData, 'choice-effects'),
+        weatherRules: mapEntityList(weatherRulesRef, 'weather-rules'),
+        globalRandomEvents: mapEntityList(globalRandomEventsData, 'global-random-events'),
+        missions: mapEntityList(missionsRef, 'missions'),
+        missionSteps: mapEntityList(missionStepsData, 'mission-steps'),
+        creators: mapEntityList(creators, 'creators'),
+        cards: mapEntityList(cardsRef, 'cards'),
+        itemEffects: mapEntityList(itemEffectsData, 'item-effects'),
+        classBonuses: mapEntityList(classBonusesData, 'class-bonuses'),
       }
 
-      // Cleanup: remove fields that shouldn't be in the export (like id, ts_insert, etc.)
-      const cleanup = (obj) => {
-        if (Array.isArray(obj)) return obj.map(cleanup)
-        if (obj !== null && typeof obj === 'object') {
-          // eslint-disable-next-line no-unused-vars
-          const { ts_insert, ts_update, tsInsert, tsUpdate, uuid, id_story, idStory, ...rest } = obj
-          const cleaned = {}
-          for (const k in rest) {
-            cleaned[k] = cleanup(rest[k])
-          }
-          return cleaned
-        }
-        return obj
-      }
+      const cleanup = (obj) => obj  // mapping already handles field selection
 
       const finalJson = cleanup(fullStory)
       const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })

@@ -1,63 +1,53 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Layout from '../../../components/layout/Layout'
 import { AuthProvider } from '../../../context/AuthContext'
 
-// ── Mock API module ────────────────────────────────────────────
-vi.mock('../../../api/echoApi', () => ({
-  getServerStatus: vi.fn().mockResolvedValue({ properties: { version: '1.0.0' } }),
-}))
-
-function renderLayout(initialPath = '/') {
-  return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <AuthProvider>
-        <Layout>
-          <div data-testid="children">Content</div>
-        </Layout>
-      </AuthProvider>
-    </MemoryRouter>
-  )
-}
-
 describe('Layout', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+  it('renders navbar and children', () => {
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <Layout><div>Content</div></Layout>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Content')).toBeInTheDocument()
+    expect(screen.getByRole('navigation')).toBeInTheDocument()
   })
 
-  it('renders children and essential layout components', () => {
-    renderLayout()
-    expect(screen.getAllByText('Stories').length).toBeGreaterThan(0)
-    expect(screen.getByText('Server Status')).toBeInTheDocument()
-    expect(screen.getByTestId('children')).toBeInTheDocument()
-    expect(screen.getByText(/Admin Panel/i)).toBeInTheDocument()  // Footer
-  })
-
-  it('shows sidebar by default on dashboard', () => {
-    renderLayout('/')
-    expect(screen.getByRole('complementary')).toBeInTheDocument() // aside is Sidebar
-  })
-
-  it('hides sidebar when navigating to other pages (behavior test)', async () => {
-    // Layout logic uses useLocation and useEffect to handle visibility
-    renderLayout('/guests')
-    // On non-dashboard, sidebar might still be visible initially but can be toggled
-    // or set by navigation events.
-    // In Layout.jsx: useEffect(() => { if (isDashboard) setIsSidebarVisible(true) }, [isDashboard])
-    // If not dashboard, it stays whatever it was.
+  it('toggles sidebar when not on dashboard', async () => {
+    render(
+      <MemoryRouter initialEntries={['/stories']}>
+        <AuthProvider>
+          <Layout><div>Content</div></Layout>
+        </AuthProvider>
+      </MemoryRouter>
+    )
     
-    // On non-dashboard, sidebar can be toggled
-    const toggleBtn = screen.getByTitle(/Hide sidebar|Show sidebar/i)
-    fireEvent.click(toggleBtn)
-    expect(screen.queryByRole('complementary')).toBeNull()
+    // Sidebar should be visible initially
+    expect(screen.getByText('Hide menu')).toBeInTheDocument()
+    
+    await userEvent.click(screen.getByText('Hide menu'))
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    expect(screen.getByText('Show menu')).toBeInTheDocument()
+    
+    await userEvent.click(screen.getByText('Show menu'))
+    expect(screen.getByText('Hide menu')).toBeInTheDocument()
   })
 
-  it('sidebar cannot be toggled on dashboard', () => {
-    renderLayout('/')
-    const toggleBtn = screen.getByTitle(/Sidebar always visible on Dashboard/i)
-    fireEvent.click(toggleBtn)
-    // Should still be visible because onToggleSidebar is not called or logic prevents it
-    expect(screen.getByRole('complementary')).toBeInTheDocument()
+  it('always shows sidebar on dashboard and disables toggle', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AuthProvider>
+          <Layout><div>Dashboard</div></Layout>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+    
+    const toggleBtn = screen.getByTitle(/Sidebar always visible/i)
+    expect(toggleBtn).toBeDisabled()
   })
 })

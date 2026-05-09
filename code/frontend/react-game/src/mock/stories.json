@@ -127,52 +127,51 @@
           "style_detail": "top--20"
         }
       },
-  {
-    "uuid": "class-elf",
-    "name": "Sword man",
-    "icon": "fas fa-leaf",
-    "sub": "Graceful and ancient",
-    "card": {
-      "uuid": "card-class-elf",
-      "imageUrl": "https://images.unsplash.com/photo-1688857862460-a0c0fbc4c60c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwzfHxmYW50ZSUyMGNvbiUyMHNwYWRhJTIwZSUyMHNjdWRvfGVufDB8fHx8MTc3Nzk5MDEwOXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "title": "Sword man",
-      "description": "Graceful and ancient. The forest whispers their name.",
-      "awesomeIcon": "fas fa-leaf",
-      "copyrightText": "Godz1 — https://unsplash.com/@godz1",
-      "linkCopyright": "https://unsplash.com/photos/a-woman-holding-a-sword-in-front-of-a-stone-wall-Y2zXsRCjPfU"
-    }
-  },
-  {
-    "uuid": "class-dwarf",
-    "name": "knight",
-    "icon": "fas fa-mountain",
-    "sub": "Stubborn as stone",
-    "card": {
-      "uuid": "card-class-dwarf",
-      "imageUrl": "https://images.unsplash.com/photo-1595280102482-65d3cf5c1253?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHw5fHxrbmlnaHR8ZW58MHx8fHwxNzc3OTkwMjA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "title": "knight",
-      "description": "Stubborn as stone. Forged in the depths of the earth.",
-      "awesomeIcon": "fas fa-mountain",
-      "copyrightText": "Cas Holmes — https://unsplash.com/@cas1111",
-      "linkCopyright": "https://unsplash.com/photos/man-in-white-cowboy-hat-riding-white-horse-during-daytime-Z0z67PEJxIk"
-    }
-  },
-  {
-    "uuid": "class-hobbit",
-    "name": "Bandit",
-    "icon": "fas fa-home",
-    "sub": "Small but mighty",
-    "card": {
-      "uuid": "card-class-hobbit",
-      "imageUrl": "https://images.unsplash.com/photo-1627809510817-114b55f73a56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHw0fHxwdWxsb3ZlciUyMG1lZGlldmFsfGVufDB8fHx8MTc3Nzk5MDUzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
-      "title": "Bandit",
-      "description": "Small but mighty. The greatest adventures start from home.",
-      "awesomeIcon": "fas fa-home",
-      "copyrightText": "petr sidorov — https://unsplash.com/@m_malkovich",
-      "linkCopyright": "https://unsplash.com/photos/person-in-black-hoodie-standing-on-snow-covered-ground-during-daytime-lQ0oBd4IwAY"
-    }
-  },
-
+      {
+        "uuid": "class-elf",
+        "name": "Sword man",
+        "icon": "fas fa-leaf",
+        "sub": "Graceful and ancient",
+        "card": {
+          "uuid": "card-class-elf",
+          "imageUrl": "https://images.unsplash.com/photo-1688857862460-a0c0fbc4c60c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwzfHxmYW50ZSUyMGNvbiUyMHNwYWRhJTIwZSUyMHNjdWRvfGVufDB8fHx8MTc3Nzk5MDEwOXww&ixlib=rb-4.1.0&q=80&w=1080",
+          "title": "Sword man",
+          "description": "Graceful and ancient. The forest whispers their name.",
+          "awesomeIcon": "fas fa-leaf",
+          "copyrightText": "Godz1 — https://unsplash.com/@godz1",
+          "linkCopyright": "https://unsplash.com/photos/a-woman-holding-a-sword-in-front-of-a-stone-wall-Y2zXsRCjPfU"
+        }
+      },
+      {
+        "uuid": "class-dwarf",
+        "name": "knight",
+        "icon": "fas fa-mountain",
+        "sub": "Stubborn as stone",
+        "card": {
+          "uuid": "card-class-dwarf",
+          "imageUrl": "https://images.unsplash.com/photo-1595280102482-65d3cf5c1253?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHw5fHxrbmlnaHR8ZW58MHx8fHwxNzc3OTkwMjA1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+          "title": "knight",
+          "description": "Stubborn as stone. Forged in the depths of the earth.",
+          "awesomeIcon": "fas fa-mountain",
+          "copyrightText": "Cas Holmes — https://unsplash.com/@cas1111",
+          "linkCopyright": "https://unsplash.com/photos/man-in-white-cowboy-hat-riding-white-horse-during-daytime-Z0z67PEJxIk"
+        }
+      },
+      {
+        "uuid": "class-hobbit",
+        "name": "Bandit",
+        "icon": "fas fa-home",
+        "sub": "Small but mighty",
+        "card": {
+          "uuid": "card-class-hobbit",
+          "imageUrl": "https://images.unsplash.com/photo-1627809510817-114b55f73a56?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHw0fHxwdWxsb3ZlciUyMG1lZGlldmFsfGVufDB8fHx8MTc3Nzk5MDUzM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+          "title": "Bandit",
+          "description": "Small but mighty. The greatest adventures start from home.",
+          "awesomeIcon": "fas fa-home",
+          "copyrightText": "petr sidorov — https://unsplash.com/@m_malkovich",
+          "linkCopyright": "https://unsplash.com/photos/person-in-black-hoodie-standing-on-snow-covered-ground-during-daytime-lQ0oBd4IwAY"
+        }
+      },
       {
         "uuid": "class-human",
         "name": "Archer",
@@ -298,10 +297,14 @@
     ],
     "difficulties": [
       {
-        "uuid": "diff-easy", "name": "Easy", "icon": "fas fa-seedling", "sub": "A peaceful journey",
+        "uuid": "diff-easy",
+        "name": "Easy",
+        "icon": "fas fa-seedling",
+        "sub": "A peaceful journey",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?auto=format&fit=crop&w=600&q=70",
-          "title": "Easy", "description": "A peaceful journey through gentle lands.",
+          "title": "Easy",
+          "description": "A peaceful journey through gentle lands.",
           "awesomeIcon": "fas fa-seedling",
           "copyrightText": "Andriyko Podilnyk",
           "linkCopyright": "https://unsplash.com/photos/orange-tabby-kitten-in-grasses-RCfi7vgJjUY",
@@ -310,30 +313,42 @@
         }
       },
       {
-        "uuid": "diff-normal", "name": "Normal", "icon": "fas fa-balance-scale", "sub": "A balanced challenge",
+        "uuid": "diff-normal",
+        "name": "Normal",
+        "icon": "fas fa-balance-scale",
+        "sub": "A balanced challenge",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=70",
-          "title": "Normal", "description": "A balanced challenge for seasoned adventurers.",
+          "title": "Normal",
+          "description": "A balanced challenge for seasoned adventurers.",
           "awesomeIcon": "fas fa-balance-scale",
           "copyrightText": "Manja Vitolic",
           "linkCopyright": "https://unsplash.com/photos/black-and-white-cat-lying-on-brown-bamboo-chair-inside-room-gKXKBY-C-Dk"
         }
       },
       {
-        "uuid": "diff-hard", "name": "Hard", "icon": "fas fa-fire-alt", "sub": "Pain forges legends",
+        "uuid": "diff-hard",
+        "name": "Hard",
+        "icon": "fas fa-fire-alt",
+        "sub": "Pain forges legends",
         "card": {
           "imageUrl": "https://plus.unsplash.com/premium_photo-1664304310991-b43610000fc2?auto=format&fit=crop&w=600&q=70",
-          "title": "Hard", "description": "Pain forges legends. Only the strong survive.",
+          "title": "Hard",
+          "description": "Pain forges legends. Only the strong survive.",
           "awesomeIcon": "fas fa-fire-alt",
           "copyrightText": "Getty Images",
           "linkCopyright": "https://unsplash.com/photos/a-lion-standing-in-a-field-of-tall-grass-XTFJh5rrLLs"
         }
       },
       {
-        "uuid": "diff-legendary", "name": "Legendary", "icon": "fas fa-skull-crossbones", "sub": "Suffer and conquer",
+        "uuid": "diff-legendary",
+        "name": "Legendary",
+        "icon": "fas fa-skull-crossbones",
+        "sub": "Suffer and conquer",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1727188551588-4ec2bc2c4076?auto=format&fit=crop&w=600&q=70",
-          "title": "Legendary", "description": "Suffer and conquer. Few who enter ever return.",
+          "title": "Legendary",
+          "description": "Suffer and conquer. Few who enter ever return.",
           "awesomeIcon": "fas fa-skull-crossbones",
           "copyrightText": "Blake Meyer",
           "linkCopyright": "https://unsplash.com/photos/a-tiger-laying-on-the-ground-in-the-woods-0bveXmfqRWA"
@@ -548,30 +563,42 @@
     ],
     "difficulties": [
       {
-        "uuid": "diff-easy", "name": "Easy", "icon": "fas fa-seedling", "sub": "A peaceful journey",
+        "uuid": "diff-easy",
+        "name": "Easy",
+        "icon": "fas fa-seedling",
+        "sub": "A peaceful journey",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=70",
-          "title": "Easy", "description": "A peaceful journey through gentle lands.",
+          "title": "Easy",
+          "description": "A peaceful journey through gentle lands.",
           "awesomeIcon": "fas fa-seedling",
           "copyrightText": "Ales Krivec on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/green-hills-under-cloudy-sky-7wBFsHMz8NE"
         }
       },
       {
-        "uuid": "diff-normal", "name": "Normal", "icon": "fas fa-balance-scale", "sub": "A balanced challenge",
+        "uuid": "diff-normal",
+        "name": "Normal",
+        "icon": "fas fa-balance-scale",
+        "sub": "A balanced challenge",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=70",
-          "title": "Normal", "description": "A balanced challenge for seasoned adventurers.",
+          "title": "Normal",
+          "description": "A balanced challenge for seasoned adventurers.",
           "awesomeIcon": "fas fa-balance-scale",
           "copyrightText": "Benjamin Voros on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/person-standing-on-peak-of-mountain-phIFdC6lA4E"
         }
       },
       {
-        "uuid": "diff-hard", "name": "Hard", "icon": "fas fa-fire-alt", "sub": "Pain forges legends",
+        "uuid": "diff-hard",
+        "name": "Hard",
+        "icon": "fas fa-fire-alt",
+        "sub": "Pain forges legends",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=600&q=70",
-          "title": "Hard", "description": "Pain forges legends. Only the strong survive.",
+          "title": "Hard",
+          "description": "Pain forges legends. Only the strong survive.",
           "awesomeIcon": "fas fa-fire-alt",
           "copyrightText": "Timothy Eberly on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/orange-and-red-fire-illustration-lcBbFELCbco"
@@ -786,20 +813,28 @@
     ],
     "difficulties": [
       {
-        "uuid": "diff-normal", "name": "Normal", "icon": "fas fa-balance-scale", "sub": "A balanced challenge",
+        "uuid": "diff-normal",
+        "name": "Normal",
+        "icon": "fas fa-balance-scale",
+        "sub": "A balanced challenge",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=70",
-          "title": "Normal", "description": "A balanced challenge for seasoned adventurers.",
+          "title": "Normal",
+          "description": "A balanced challenge for seasoned adventurers.",
           "awesomeIcon": "fas fa-balance-scale",
           "copyrightText": "Benjamin Voros on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/person-standing-on-peak-of-mountain-phIFdC6lA4E"
         }
       },
       {
-        "uuid": "diff-hard", "name": "Hard", "icon": "fas fa-fire-alt", "sub": "Pain forges legends",
+        "uuid": "diff-hard",
+        "name": "Hard",
+        "icon": "fas fa-fire-alt",
+        "sub": "Pain forges legends",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=600&q=70",
-          "title": "Hard", "description": "Pain forges legends. Only the strong survive.",
+          "title": "Hard",
+          "description": "Pain forges legends. Only the strong survive.",
           "awesomeIcon": "fas fa-fire-alt",
           "copyrightText": "Timothy Eberly on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/orange-and-red-fire-illustration-lcBbFELCbco"
@@ -1014,40 +1049,56 @@
     ],
     "difficulties": [
       {
-        "uuid": "diff-easy", "name": "Easy", "icon": "fas fa-seedling", "sub": "A peaceful journey",
+        "uuid": "diff-easy",
+        "name": "Easy",
+        "icon": "fas fa-seedling",
+        "sub": "A peaceful journey",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=70",
-          "title": "Easy", "description": "A peaceful journey through gentle lands.",
+          "title": "Easy",
+          "description": "A peaceful journey through gentle lands.",
           "awesomeIcon": "fas fa-seedling",
           "copyrightText": "Ales Krivec on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/green-hills-under-cloudy-sky-7wBFsHMz8NE"
         }
       },
       {
-        "uuid": "diff-normal", "name": "Normal", "icon": "fas fa-balance-scale", "sub": "A balanced challenge",
+        "uuid": "diff-normal",
+        "name": "Normal",
+        "icon": "fas fa-balance-scale",
+        "sub": "A balanced challenge",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=70",
-          "title": "Normal", "description": "A balanced challenge for seasoned adventurers.",
+          "title": "Normal",
+          "description": "A balanced challenge for seasoned adventurers.",
           "awesomeIcon": "fas fa-balance-scale",
           "copyrightText": "Benjamin Voros on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/person-standing-on-peak-of-mountain-phIFdC6lA4E"
         }
       },
       {
-        "uuid": "diff-hard", "name": "Hard", "icon": "fas fa-fire-alt", "sub": "Pain forges legends",
+        "uuid": "diff-hard",
+        "name": "Hard",
+        "icon": "fas fa-fire-alt",
+        "sub": "Pain forges legends",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=600&q=70",
-          "title": "Hard", "description": "Pain forges legends. Only the strong survive.",
+          "title": "Hard",
+          "description": "Pain forges legends. Only the strong survive.",
           "awesomeIcon": "fas fa-fire-alt",
           "copyrightText": "Timothy Eberly on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/orange-and-red-fire-illustration-lcBbFELCbco"
         }
       },
       {
-        "uuid": "diff-legendary", "name": "Legendary", "icon": "fas fa-skull-crossbones", "sub": "Suffer and conquer",
+        "uuid": "diff-legendary",
+        "name": "Legendary",
+        "icon": "fas fa-skull-crossbones",
+        "sub": "Suffer and conquer",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?auto=format&fit=crop&w=600&q=70",
-          "title": "Legendary", "description": "Suffer and conquer. Few who enter ever return.",
+          "title": "Legendary",
+          "description": "Suffer and conquer. Few who enter ever return.",
           "awesomeIcon": "fas fa-skull-crossbones",
           "copyrightText": "Jr Korpa on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/purple-and-blue-light-digital-wallpaper-9XngoIpxcEo"
@@ -1262,30 +1313,42 @@
     ],
     "difficulties": [
       {
-        "uuid": "diff-normal", "name": "Normal", "icon": "fas fa-balance-scale", "sub": "A balanced challenge",
+        "uuid": "diff-normal",
+        "name": "Normal",
+        "icon": "fas fa-balance-scale",
+        "sub": "A balanced challenge",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=70",
-          "title": "Normal", "description": "A balanced challenge for seasoned adventurers.",
+          "title": "Normal",
+          "description": "A balanced challenge for seasoned adventurers.",
           "awesomeIcon": "fas fa-balance-scale",
           "copyrightText": "Benjamin Voros on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/person-standing-on-peak-of-mountain-phIFdC6lA4E"
         }
       },
       {
-        "uuid": "diff-hard", "name": "Hard", "icon": "fas fa-fire-alt", "sub": "Pain forges legends",
+        "uuid": "diff-hard",
+        "name": "Hard",
+        "icon": "fas fa-fire-alt",
+        "sub": "Pain forges legends",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1577563908411-5077b6dc7624?auto=format&fit=crop&w=600&q=70",
-          "title": "Hard", "description": "Pain forges legends. Only the strong survive.",
+          "title": "Hard",
+          "description": "Pain forges legends. Only the strong survive.",
           "awesomeIcon": "fas fa-fire-alt",
           "copyrightText": "Timothy Eberly on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/orange-and-red-fire-illustration-lcBbFELCbco"
         }
       },
       {
-        "uuid": "diff-legendary", "name": "Legendary", "icon": "fas fa-skull-crossbones", "sub": "Suffer and conquer",
+        "uuid": "diff-legendary",
+        "name": "Legendary",
+        "icon": "fas fa-skull-crossbones",
+        "sub": "Suffer and conquer",
         "card": {
           "imageUrl": "https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?auto=format&fit=crop&w=600&q=70",
-          "title": "Legendary", "description": "Suffer and conquer. Few who enter ever return.",
+          "title": "Legendary",
+          "description": "Suffer and conquer. Few who enter ever return.",
           "awesomeIcon": "fas fa-skull-crossbones",
           "copyrightText": "Jr Korpa on Unsplash",
           "linkCopyright": "https://unsplash.com/photos/purple-and-blue-light-digital-wallpaper-9XngoIpxcEo"

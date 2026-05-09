@@ -33,7 +33,7 @@ export default function PathsOptionsSelectorModal({
   if (!open) return null
 
   return (
-    <div className="pg-modal-backdrop" onClick={onClose}>
+    <div className="pg-modal-backdrop" onClick={onClose} data-testid="modal-backdrop">
       <div className="pg-modal" style={{ maxWidth: 800, width: '95vw' }} onClick={e => e.stopPropagation()}>
         <h3 className="pg-modal-title">
           <i className="fas fa-search me-2" /> {title}

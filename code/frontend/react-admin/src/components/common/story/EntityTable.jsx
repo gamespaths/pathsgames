@@ -135,6 +135,34 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
                     )
                   }
 
+                  if (col.type === 'monoId') {
+                    return (
+                      <td key={col.key}>
+                        <span className="font-mono text-gold-dark">#{ent[col.key]}</span>
+                      </td>
+                    )
+                  }
+
+                  if (col.type === 'langBadge') {
+                    return (
+                      <td key={col.key}>
+                        <span className="pg-badge pg-badge-info">{ent[col.key]}</span>
+                      </td>
+                    )
+                  }
+
+                  if (col.type === 'longTextIcon') {
+                    return (
+                      <td key={col.key}>
+                        {ent[col.key] ? <i className="fas fa-file-alt text-ash" title={ent[col.key]} /> : '—'}
+                      </td>
+                    )
+                  }
+
+                  if (col.type === 'boolean') {
+                    return <td key={col.key}>{ent[col.key] ? 'Yes' : 'No'}</td>
+                  }
+
                   if (col.render) {
                     content = col.render(ent)
                   }

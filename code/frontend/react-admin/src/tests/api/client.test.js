@@ -53,4 +53,27 @@ describe('apiClient', () => {
     const client = apiClient()
     expect(client.defaults.timeout).toBe(15000)
   })
+
+  it('interceptor handles error with message from response', async () => {
+    const client = apiClient()
+    const mockError = {
+      response: {
+        data: { message: 'Custom error message' }
+      }
+    }
+    
+    // We need to access the interceptor's error handler.
+    // apiClient() returns a new instance, so we can check its interceptors.
+    const errorHandler = client.interceptors.response.handlers[0].rejected
+    await expect(errorHandler(mockError)).rejects.toThrow('Custom error message')
+  })
+
+  it('interceptor handles error with fallback to err.message', async () => {
+    const client = apiClient()
+    const mockError = {
+      message: 'Network Error'
+    }
+    const errorHandler = client.interceptors.response.handlers[0].rejected
+    await expect(errorHandler(mockError)).rejects.toThrow('Network Error')
+  })
 })

@@ -292,7 +292,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     locations: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idTextDescription', label: 'Desc', type: 'idTextDescription' },
-      { key: 'isSafe', label: 'Safe', render: e => e.isSafe ? 'Yes' : 'No' },
+      { key: 'isSafe', label: 'Safe', type: 'boolean' },
       { key: 'idImage', label: 'Image' },
       { key: 'maxCharacters', label: 'Max Chars' },
     ],
@@ -371,10 +371,10 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'idCreator', label: 'Creator' },
     ],
     texts: [
-      { key: 'idText', label: 'ID Text', render: e => <span className="font-mono text-gold-dark">#{e.idText}</span> },
-      { key: 'lang', label: 'Lang', render: e => <span className="pg-badge pg-badge-info">{e.lang}</span> },
+      { key: 'idText', label: 'ID Text', type: 'monoId' },
+      { key: 'lang', label: 'Lang', type: 'langBadge' },
       { key: 'shortText', label: 'Short Text' },
-      { key: 'longText', label: 'Long Text', render: e => e.longText ? <i className="fas fa-file-alt text-ash" title={e.longText} /> : '—' },
+      { key: 'longText', label: 'Long Text', type: 'longTextIcon' },
       { key: 'idTextCopyright', label: 'Copyright ID' },
       { key: 'idCreator', label: 'Creator ID' },
     ],

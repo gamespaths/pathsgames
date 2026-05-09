@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import BookPageLeft from '../../components/book/BookPageLeft'
@@ -6,6 +6,7 @@ import BookPageRight from '../../components/book/BookPageRight'
 import ConfigView from './ConfigView'
 import SelectionView from './SelectionView'
 import CopyrightModal from '../../components/modals/CopyrightModal'
+import { getStoryDetail } from '../../api/stories'
 
 function buildInitialConfig(story) {
   return {
@@ -26,13 +27,28 @@ function getOptionsForType(type, story) {
 
 export default function StartBookModal({ story, onClose }) {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
 
+  const [detail, setDetail] = useState(null)
+  const [loadingDetail, setLoadingDetail] = useState(true)
   const [config, setConfig] = useState(() => buildInitialConfig(story))
   const [selectionType, setSelectionType] = useState(null)
   const [termsAccepted, setTermsAccepted] = useState(true)
 
+  useEffect(() => {
+    if (!story?.uuid) return
+    setLoadingDetail(true)
+    getStoryDetail(story.uuid, lang)
+      .then(data => {
+        setDetail(data)
+        setConfig(buildInitialConfig(data ?? story))
+      })
+      .finally(() => setLoadingDetail(false))
+  }, [story?.uuid, lang])
+
   if (!story) return null
+
+  const activeStory = detail ?? story
 
   function handleSelect(opt) {
     setConfig(prev => ({ ...prev, [selectionType]: opt }))
@@ -46,6 +62,7 @@ export default function StartBookModal({ story, onClose }) {
   }
 
   const configTypes = ['character', 'class', 'trait', 'difficulty']
+
 
   return (
     <>
@@ -63,23 +80,27 @@ export default function StartBookModal({ story, onClose }) {
           <div className="book-spine" />
 
           <BookPageLeft>
-            <StoryLeftContent story={story} />
+            <StoryLeftContent story={activeStory} loading={loadingDetail} />
           </BookPageLeft>
 
           <BookPageRight>
-            {selectionType ? (
+            {loadingDetail ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--color-ash)' }}>
+                <i className="fas fa-spinner fa-spin fa-2x" />
+              </div>
+            ) : selectionType ? (
               <SelectionView
                 type={selectionType}
-                options={getOptionsForType(selectionType, story)}
+                options={getOptionsForType(selectionType, activeStory)}
                 selected={config[selectionType]}
-                story={story}
+                story={activeStory}
                 onSelect={handleSelect}
                 onBack={() => setSelectionType(null)}
               />
             ) : (
               <ConfigView
                 config={config}
-                story={story}
+                story={activeStory}
                 onChangeClick={setSelectionType}
                 termsAccepted={termsAccepted}
                 onTermsChange={setTermsAccepted}
@@ -96,9 +117,9 @@ export default function StartBookModal({ story, onClose }) {
             <div style={{ width: '100%' }}>
               <SelectionView
                 type={selectionType}
-                options={getOptionsForType(selectionType, story)}
+                options={getOptionsForType(selectionType, activeStory)}
                 selected={config[selectionType]}
-                story={story}
+                story={activeStory}
                 onSelect={handleSelect}
                 onBack={() => setSelectionType(null)}
               />
@@ -107,15 +128,20 @@ export default function StartBookModal({ story, onClose }) {
             <>
               {/* Story card */}
               <div className="book-mobile-story-card">
-                <img src={story.card?.imageUrl} alt={story.title} className="book-mobile-story-img" />
+                <img src={activeStory.card?.imageUrl} alt={activeStory.title} className="book-mobile-story-img" />
                 <div className="book-mobile-story-body">
-                  <h3 className="story-card-full-title" style={{ fontSize: '1rem', marginBottom: 4 }}>{story.title}</h3>
-                  <p className="story-card-full-desc" style={{ fontSize: '0.82rem' }}>{story.description}</p>
+                  <h3 className="story-card-full-title" style={{ fontSize: '1rem', marginBottom: 4 }}>{activeStory.title}</h3>
+                  <p className="story-card-full-desc" style={{ fontSize: '0.82rem' }}>{activeStory.description}</p>
                 </div>
               </div>
 
               {/* Config cards */}
-              {configTypes.map(type => {
+              {loadingDetail ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--color-ash)' }}>
+                  <i className="fas fa-spinner fa-spin fa-2x" />
+                </div>
+              ) : null}
+              {!loadingDetail && configTypes.map(type => {
                 const val = config[type]
                 return (
                   <div key={type} className="book-mobile-config-card">
@@ -180,21 +206,26 @@ export default function StartBookModal({ story, onClose }) {
         </div>
       </div>
 
-      <CopyrightModal cardInfo={story.card} modalId="startBookCopyrightModal" />
+      <CopyrightModal cardInfo={activeStory.card} modalId="startBookCopyrightModal" />
     </>
   )
 }
 
-function StoryLeftContent({ story }) {
+function StoryLeftContent({ story, loading }) {
   return (
     <div className="pg-card pg-card--large story-card-full">
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, background: 'rgba(0,0,0,0.3)', borderRadius: 'inherit' }}>
+          <i className="fas fa-spinner fa-spin fa-2x" style={{ color: 'var(--color-gold)' }} />
+        </div>
+      )}
       <div className="story-card-full-img-wrap">
-        <img src={story.card?.imageUrl} alt={story.title} className="story-card-full-img" />
+        <img src={story.card?.imageUrl} alt={story.card?.title} className="story-card-full-img" />
         <div className="story-card-full-img-overlay" />
       </div>
       <div className="story-card-full-body">
-        <h2 className="story-card-full-title">{story.title}</h2>
-        <p className="story-card-full-desc">{story.description}</p>
+        <h2 className="story-card-full-title">{story.card?.title}</h2>
+        <p className="story-card-full-desc">{story.card?.description}</p>
         {story.card?.copyrightText && (
           <button
             className="card-info-btn story-card-info-btn"

@@ -225,4 +225,13 @@ describe('StoriesPage', () => {
     await userEvent.click(screen.getByText('Close'))
     await waitFor(() => expect(screen.queryByText('Close')).toBeNull())
   })
+
+  it('closes error alert when X is clicked', async () => {
+    listAllStories.mockRejectedValue(new Error('Persistent error'))
+    renderPage()
+    const errorMsg = await screen.findByText(/Persistent error/i)
+    const closeBtn = errorMsg.parentElement.querySelector('button')
+    await userEvent.click(closeBtn)
+    expect(screen.queryByText(/Persistent error/i)).toBeNull()
+  })
 })

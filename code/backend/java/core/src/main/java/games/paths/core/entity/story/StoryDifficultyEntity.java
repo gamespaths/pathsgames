@@ -9,11 +9,16 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_stories_difficulty")
 @AttributeOverride(name = "idStory", column = @Column(name = "id_story"))
+@IdClass(StoryScopedEntityId.class)
 public class StoryDifficultyEntity extends BaseStoryEntity {
 
     @Id
     @Column(name = "id")
     private Long id;
+
+    @Id
+    @Column(name = "id_story", insertable = false, updatable = false)
+    private Long idStoryPk;
 
     @Column(name = "exp_cost", nullable = false)
     private Integer expCost;
@@ -51,6 +56,15 @@ public class StoryDifficultyEntity extends BaseStoryEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    @Override
+    public Long getIdStory() { return super.getIdStory(); }
+
+    @Override
+    public void setIdStory(Long idStory) {
+        super.setIdStory(idStory);
+        this.idStoryPk = idStory;
+    }
 
 
 

@@ -1,6 +1,7 @@
 package games.paths.core.repository.story;
 
 import games.paths.core.entity.story.StoryDifficultyEntity;
+import games.paths.core.entity.story.StoryScopedEntityId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * Provides CRUD + custom query methods for story difficulty management.
  */
 @Repository
-public interface StoryDifficultyRepository extends JpaRepository<StoryDifficultyEntity, Long> {
+public interface StoryDifficultyRepository extends JpaRepository<StoryDifficultyEntity, StoryScopedEntityId> {
 
     List<StoryDifficultyEntity> findByIdStory(Long idStory);
 

@@ -43,8 +43,6 @@ describe('StoryEditorPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getStory.mockResolvedValue(MOCK_STORY)
-    listEntities.mockResolvedValue([])
-    // Initial load calls getEntity and listEntities('texts')
     listEntities.mockImplementation((uuid, type) => {
         if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
         return Promise.resolve([])
@@ -54,7 +52,6 @@ describe('StoryEditorPage', () => {
   it('renders story info by default', async () => {
     renderPage()
     expect(await screen.findByDisplayValue('Author')).toBeInTheDocument()
-    // The tab button has the class we're looking for
     expect(screen.getByRole('button', { name: /Story Info/i })).toHaveClass(/text-gold-light/i)
   })
 
@@ -129,6 +126,12 @@ describe('StoryEditorPage', () => {
     const startLocBtn = screen.getByTitle(/Select Start Location ID/i)
     await userEvent.click(startLocBtn)
     expect(screen.getByText(/Select Start Location/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Close'))
+
+    const creatorBtn = screen.getByTitle(/Select Creator ID/i)
+    await userEvent.click(creatorBtn)
+    expect(screen.getByText(/Select Creator/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Close'))
   })
 
   it('exports story and cleans up data', async () => {
@@ -139,7 +142,6 @@ describe('StoryEditorPage', () => {
     const exportBtn = screen.getByRole('button', { name: /Export JSON/i })
     await userEvent.click(exportBtn)
     
-    // It should call listEntities for many types
     await waitFor(() => expect(listEntities).toHaveBeenCalledWith('story-123', 'difficulties'))
     await waitFor(() => expect(screen.getByText(/exported successfully/i)).toBeInTheDocument())
     clickSpy.mockRestore()
@@ -149,7 +151,6 @@ describe('StoryEditorPage', () => {
     createEntity.mockResolvedValue({ status: 'CREATED' })
     listEntities.mockImplementation((uuid, type) => {
         if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
-        if (type === 'creators') return Promise.resolve([{ idCreator: 1, idTextName: 101 }])
         return Promise.resolve([])
     })
     
@@ -176,7 +177,6 @@ describe('StoryEditorPage', () => {
     listEntities.mockImplementation((uuid, type) => {
         if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
         if (type === 'cards') return Promise.resolve([{ idCard: 1, idTextTitle: 101 }])
-        if (type === 'creators') return Promise.resolve([{ idCreator: 1, idTextName: 101 }])
         return Promise.resolve([])
     })
     
@@ -184,10 +184,8 @@ describe('StoryEditorPage', () => {
     const cardBtn = await screen.findByTitle(/Select Card ID/i)
     await userEvent.click(cardBtn)
     
-    // Search for the title "Select Card"
     expect(await screen.findByText('Select Card')).toBeInTheDocument()
     
-    // The option should be "#1 Location Name"
     const row = await screen.findByText(/Location Name/i)
     const selectBtn = row.closest('tr').querySelector('button')
     await userEvent.click(selectBtn)
@@ -195,5 +193,27 @@ describe('StoryEditorPage', () => {
     await waitFor(() => {
         expect(screen.getByText(/#1 Location Name/i)).toBeInTheDocument()
     })
+  })
+
+  it('edits an existing entity', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+        if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+        if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101 }])
+        return Promise.resolve([])
+    })
+    updateEntity.mockResolvedValue({ status: 'UPDATED' })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    
+    const editBtn = await waitFor(() => {
+        const buttons = screen.getAllByRole('button')
+        return buttons.find(b => b.querySelector('.fa-edit'))
+    })
+    await userEvent.click(editBtn)
+    
+    expect(screen.getByText('Edit Entity')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Save'))
+    expect(updateEntity).toHaveBeenCalledWith('story-123', 'locations', 'loc-1', expect.any(Object))
   })
 })
