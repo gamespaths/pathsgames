@@ -135,10 +135,10 @@ class StoryCrudService(StoryCrudPort):
     # === Dispatch: list ===
     def _list_by_type(self, sid: int, entity_type: str) -> List[Dict[str, Any]]:
         dispatch = {
-            "difficulties": lambda: self.read_port.find_entities_for_story(sid, "list_stories_difficulty"),
-            "locations": lambda: self.read_port.find_entities_for_story(sid, "list_locations"),
+            "difficulties": lambda: self.read_port.find_difficulties_for_story(sid),
+            "locations": lambda: self.read_port.find_locations_for_story(sid),
             "location-neighbors": lambda: self.read_port.find_entities_for_story(sid, "list_locations_neighbors"),
-            "events": lambda: self.read_port.find_entities_for_story(sid, "list_events"),
+            "events": lambda: self.read_port.find_events_for_story(sid),
             "event-effects": lambda: self.read_port.find_entities_for_story(sid, "list_events_effects"),
             "items": lambda: self.read_port.find_items_for_story(sid),
             "item-effects": lambda: self.read_port.find_entities_for_story(sid, "list_items_effects"),

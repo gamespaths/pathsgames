@@ -76,7 +76,6 @@ public class StoryImportService implements StoryImportPort {
         savedStory.setIdTextName(getInteger(storyData, "idTextName"));
         savedStory.setIdTextDescription(getInteger(storyData, "idTextDescription"));
         savedStory.setIdTextCopyright(getInteger(storyData, "idTextCopyright"));
-        persistencePort.saveStory(savedStory);
 
         // Import cards before sub-entities because many tables have FK (id_card, id_story) -> list_cards
         importCards(storyData, storyId);
