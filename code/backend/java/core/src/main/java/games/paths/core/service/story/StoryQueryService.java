@@ -81,6 +81,8 @@ public class StoryQueryService implements StoryQueryPort {
                     .costHelpComa(diff.getCostHelpComa() != null ? diff.getCostHelpComa() : 3)
                     .costMaxCharacteristics(diff.getCostMaxCharacteristics() != null ? diff.getCostMaxCharacteristics() : 3)
                     .numberMaxFreeAction(diff.getNumberMaxFreeAction() != null ? diff.getNumberMaxFreeAction() : 1)
+                    .idCard(diff.getIdCard())
+                    .card(resolveCardInfo(story.getId(), diff.getIdCard(), lang))
                     .build());
         }
 
@@ -104,6 +106,8 @@ public class StoryQueryService implements StoryQueryPort {
                     .dexterityStart(ct.getDexterityStart() != null ? ct.getDexterityStart() : 1)
                     .intelligenceStart(ct.getIntelligenceStart() != null ? ct.getIntelligenceStart() : 1)
                     .constitutionStart(ct.getConstitutionStart() != null ? ct.getConstitutionStart() : 1)
+                    .idCard(ct.getIdCard())
+                    .card(resolveCardInfo(story.getId(), ct.getIdCard(), lang))
                     .build());
         }
 
@@ -120,6 +124,8 @@ public class StoryQueryService implements StoryQueryPort {
                     .dexterityBase(cl.getDexterityBase() != null ? cl.getDexterityBase() : 1)
                     .intelligenceBase(cl.getIntelligenceBase() != null ? cl.getIntelligenceBase() : 1)
                     .constitutionBase(cl.getConstitutionBase() != null ? cl.getConstitutionBase() : 1)
+                    .idCard(cl.getIdCard())
+                    .card(resolveCardInfo(story.getId(), cl.getIdCard(), lang))
                     .build());
         }
 
@@ -136,6 +142,8 @@ public class StoryQueryService implements StoryQueryPort {
                     .costNegative(tr.getCostNegative() != null ? tr.getCostNegative() : 0)
                     .idClassPermitted(tr.getIdClassPermitted())
                     .idClassProhibited(tr.getIdClassProhibited())
+                    .idCard(tr.getIdCard())
+                    .card(resolveCardInfo(story.getId(), tr.getIdCard(), lang))
                     .build());
         }
 
@@ -275,7 +283,7 @@ public class StoryQueryService implements StoryQueryPort {
         String cardCopyrightText = resolveText(storyId, card.getIdTextCopyright(), lang);
         return CardInfo.builder()
                 .uuid(card.getUuid())
-                .imageUrl(card.getUrlImmage())
+                .imageUrl(card.getUrlImage())
                 .alternativeImage(card.getAlternativeImage())
                 .awesomeIcon(card.getAwesomeIcon())
                 .styleMain(card.getStyleMain())

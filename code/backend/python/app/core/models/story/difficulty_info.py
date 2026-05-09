@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
+from app.core.models.story.card_info import CardInfo
 
 @dataclass
 class DifficultyInfo:
@@ -12,3 +13,5 @@ class DifficultyInfo:
     costHelpComa: int = 3
     costMaxCharacteristics: int = 3
     numberMaxFreeAction: int = 1
+    idCard: int | None = None
+    card: CardInfo | None = None

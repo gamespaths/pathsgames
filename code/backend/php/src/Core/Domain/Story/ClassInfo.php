@@ -13,7 +13,9 @@ class ClassInfo
         public int $weightMax = 0,
         public int $dexterityBase = 0,
         public int $intelligenceBase = 0,
-        public int $constitutionBase = 0
+        public int $constitutionBase = 0,
+        public ?int $idCard = null,
+        public ?CardInfo $card = null
     ) {
     }
 }

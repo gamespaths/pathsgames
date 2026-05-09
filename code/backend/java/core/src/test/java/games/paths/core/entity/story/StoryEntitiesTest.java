@@ -32,7 +32,7 @@ class StoryEntitiesTest {
             CardEntity e = new CardEntity();
             e.setId(1L);
             e.setIdStory(2L);
-            e.setUrlImmage("http://img.com/img.png");
+            e.setUrlImage("http://img.com/img.png");
             e.setIdTextTitle(10);
             e.setIdTextDescription(11);
             e.setIdTextCopyright(12);
@@ -46,7 +46,7 @@ class StoryEntitiesTest {
             assertAll(
                 () -> assertEquals(1L,  e.getId()),
                 () -> assertEquals(2L,  e.getIdStory()),
-                () -> assertEquals("http://img.com/img.png", e.getUrlImmage()),
+                () -> assertEquals("http://img.com/img.png", e.getUrlImage()),
                 () -> assertEquals(10,  e.getIdTextTitle()),
                 () -> assertEquals(11,  e.getIdTextDescription()),
                 () -> assertEquals(12,  e.getIdTextCopyright()),

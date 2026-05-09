@@ -15,7 +15,9 @@ class CharacterTemplateInfo
         public int $sadMax = 0,
         public int $dexterityStart = 0,
         public int $intelligenceStart = 0,
-        public int $constitutionStart = 0
+        public int $constitutionStart = 0,
+        public ?int $idCard = null,
+        public ?CardInfo $card = null
     ) {
     }
 }

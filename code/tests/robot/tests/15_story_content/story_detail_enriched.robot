@@ -129,6 +129,50 @@ Demo 2 Story Also Has Step 15 Fields
     ${body}=    Set Variable    ${response.json()}
     Story Detail Should Have Required Fields    ${body}
 
+Difficulties Have IdCard And Card Fields
+    [Documentation]    Each difficulty entry exposes idCard FK and card object (nullable).
+    [Tags]    stories    step15    detail    card
+    ${response}=    Get Story By UUID    ${DEMO_1_UUID}
+    ${body}=    Set Variable    ${response.json()}
+    ${diffs}=    Set Variable    ${body}[difficulties]
+    FOR    ${d}    IN    @{diffs}
+        Dictionary Should Contain Key    ${d}    idCard
+        Dictionary Should Contain Key    ${d}    card
+    END
+
+Character Templates Have IdCard And Card Fields
+    [Documentation]    Each character template entry exposes idCard FK and card object (nullable).
+    [Tags]    stories    step15    detail    card
+    ${response}=    Get Story By UUID    ${DEMO_1_UUID}
+    ${body}=    Set Variable    ${response.json()}
+    ${templates}=    Set Variable    ${body}[characterTemplates]
+    FOR    ${ct}    IN    @{templates}
+        Dictionary Should Contain Key    ${ct}    idCard
+        Dictionary Should Contain Key    ${ct}    card
+    END
+
+Classes Have IdCard And Card Fields
+    [Documentation]    Each class entry exposes idCard FK and card object (nullable).
+    [Tags]    stories    step15    detail    card
+    ${response}=    Get Story By UUID    ${DEMO_1_UUID}
+    ${body}=    Set Variable    ${response.json()}
+    ${classes}=    Set Variable    ${body}[classes]
+    FOR    ${cls}    IN    @{classes}
+        Dictionary Should Contain Key    ${cls}    idCard
+        Dictionary Should Contain Key    ${cls}    card
+    END
+
+Traits Have IdCard And Card Fields
+    [Documentation]    Each trait entry exposes idCard FK and card object (nullable).
+    [Tags]    stories    step15    detail    card
+    ${response}=    Get Story By UUID    ${DEMO_1_UUID}
+    ${body}=    Set Variable    ${response.json()}
+    ${traits}=    Set Variable    ${body}[traits]
+    FOR    ${tr}    IN    @{traits}
+        Dictionary Should Contain Key    ${tr}    idCard
+        Dictionary Should Contain Key    ${tr}    card
+    END
+
 Public Stories Have Card Field In Summary
     [Documentation]    GET /api/stories returns summaries with a 'card' field (object or null).
     [Tags]    stories    step15    detail

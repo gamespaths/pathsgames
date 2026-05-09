@@ -13,7 +13,9 @@ class TraitInfo
         public int $costPositive = 0,
         public int $costNegative = 0,
         public ?int $idClassPermitted = null,
-        public ?int $idClassProhibited = null
+        public ?int $idClassProhibited = null,
+        public ?int $idCard = null,
+        public ?CardInfo $card = null
     ) {
     }
 }

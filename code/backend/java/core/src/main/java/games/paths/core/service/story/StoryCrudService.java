@@ -940,7 +940,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idTextCopyright", cd.getIdTextCopyright());
             m.put("linkCopyright", cd.getLinkCopyright());
             m.put("idCreator", cd.getIdCreator());
-            m.put("urlImmage", cd.getUrlImmage());
+            m.put("urlImage", cd.getUrlImage());
             m.put("alternativeImage", cd.getAlternativeImage());
             m.put("awesomeIcon", cd.getAwesomeIcon());
             m.put("styleMain", cd.getStyleMain());
@@ -1243,8 +1243,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setLinkCopyright(str(d, "linkCopyright"));
         if (d.containsKey("idCreator"))
             e.setIdCreator(intVal(d, "idCreator"));
-        if (d.containsKey("urlImmage"))
-            e.setUrlImmage(str(d, "urlImmage"));
+        if (d.containsKey("urlImage"))
+            e.setUrlImage(str(d, "urlImage"));
         if (d.containsKey("alternativeImage"))
             e.setAlternativeImage(str(d, "alternativeImage"));
         if (d.containsKey("awesomeIcon"))

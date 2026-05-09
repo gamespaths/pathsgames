@@ -15,7 +15,9 @@ class DifficultyInfo
         public int $maxCharacter = 4,
         public int $costHelpComa = 3,
         public int $costMaxCharacteristics = 3,
-        public int $numberMaxFreeAction = 1
+        public int $numberMaxFreeAction = 1,
+        public ?int $idCard = null,
+        public ?CardInfo $card = null
     ) {
     }
 }

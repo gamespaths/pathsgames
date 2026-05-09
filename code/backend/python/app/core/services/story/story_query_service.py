@@ -62,7 +62,9 @@ class StoryQueryService(StoryQueryPort):
                 maxCharacter=rd.get("max_character", 4),
                 costHelpComa=rd.get("cost_help_coma", 3),
                 costMaxCharacteristics=rd.get("cost_max_characteristics", 3),
-                numberMaxFreeAction=rd.get("number_max_free_action", 1)
+                numberMaxFreeAction=rd.get("number_max_free_action", 1),
+                idCard=rd.get("id_card"),
+                card=self._resolve_card(story_id, texts, rd.get("id_card"), lang)
             ))
 
         # Counts
@@ -90,7 +92,9 @@ class StoryQueryService(StoryQueryPort):
                 weightMax=c.get("weight_max", 0) or 0,
                 dexterityBase=c.get("dexterity_base", 0) or 0,
                 intelligenceBase=c.get("intelligence_base", 0) or 0,
-                constitutionBase=c.get("constitution_base", 0) or 0
+                constitutionBase=c.get("constitution_base", 0) or 0,
+                idCard=c.get("id_card"),
+                card=self._resolve_card(story_id, texts, c.get("id_card"), lang)
             ))
 
         templates = []
@@ -106,7 +110,9 @@ class StoryQueryService(StoryQueryPort):
                 sadMax=t.get("sad_max", 0) or 0,
                 dexterityStart=t.get("dexterity_start", 0) or 0,
                 intelligenceStart=t.get("intelligence_start", 0) or 0,
-                constitutionStart=t.get("constitution_start", 0) or 0
+                constitutionStart=t.get("constitution_start", 0) or 0,
+                idCard=t.get("id_card"),
+                card=self._resolve_card(story_id, texts, t.get("id_card"), lang)
             ))
 
         traits = []
@@ -120,7 +126,9 @@ class StoryQueryService(StoryQueryPort):
                 costPositive=tr.get("cost_positive", 0) or 0,
                 costNegative=tr.get("cost_negative", 0) or 0,
                 idClassPermitted=tr.get("id_class_permitted"),
-                idClassProhibited=tr.get("id_class_prohibited")
+                idClassProhibited=tr.get("id_class_prohibited"),
+                idCard=tr.get("id_card"),
+                card=self._resolve_card(story_id, texts, tr.get("id_card"), lang)
             ))
 
         # Step 15: Card
@@ -221,6 +229,28 @@ class StoryQueryService(StoryQueryPort):
             card=card,
             idTextClockSingular=raw_story.get("id_text_clock_singular"),
             idTextClockPlural=raw_story.get("id_text_clock_plural")
+        )
+
+    def _resolve_card(self, story_id: int, texts: List[Dict[str, Any]], id_card: Optional[int], lang: str) -> Optional[CardInfo]:
+        if id_card is None:
+            return None
+        raw_card = self.read_port.find_card_for_story(story_id, id_card)
+        if not raw_card:
+            return None
+        card_title = self._resolve_text(texts, raw_card.get("id_text_title") or raw_card.get("id_text_name"), lang)
+        card_description = self._resolve_text(texts, raw_card.get("id_text_description"), lang)
+        card_copyright_text = self._resolve_text(texts, raw_card.get("id_text_copyright"), lang)
+        return CardInfo(
+            uuid=raw_card.get("uuid") or str(raw_card.get("id", "")),
+            imageUrl=raw_card.get("image_url"),
+            alternativeImage=raw_card.get("alternative_image"),
+            awesomeIcon=raw_card.get("awesome_icon"),
+            styleMain=raw_card.get("style_main"),
+            styleDetail=raw_card.get("style_detail"),
+            title=card_title,
+            description=card_description,
+            copyrightText=card_copyright_text,
+            linkCopyright=raw_card.get("link_copyright")
         )
 
     def _resolve_text(self, texts: List[Dict[str, Any]], txt_id: Optional[int], target_lang: str) -> Optional[str]:

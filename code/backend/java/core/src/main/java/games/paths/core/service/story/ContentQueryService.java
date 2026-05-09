@@ -55,7 +55,7 @@ public class ContentQueryService implements ContentQueryPort {
 
         return CardInfo.builder()
                 .uuid(card.getUuid())
-                .imageUrl(card.getUrlImmage())
+                .imageUrl(card.getUrlImage())
                 .alternativeImage(card.getAlternativeImage())
                 .awesomeIcon(card.getAwesomeIcon())
                 .styleMain(card.getStyleMain())

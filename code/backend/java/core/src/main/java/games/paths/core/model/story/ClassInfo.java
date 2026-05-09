@@ -13,6 +13,8 @@ public class ClassInfo {
     private final int dexterityBase;
     private final int intelligenceBase;
     private final int constitutionBase;
+    private final Integer idCard;
+    private final CardInfo card;
 
     private ClassInfo(Builder builder) {
         this.uuid = builder.uuid;
@@ -22,6 +24,8 @@ public class ClassInfo {
         this.dexterityBase = builder.dexterityBase;
         this.intelligenceBase = builder.intelligenceBase;
         this.constitutionBase = builder.constitutionBase;
+        this.idCard = builder.idCard;
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -31,6 +35,8 @@ public class ClassInfo {
     public int getDexterityBase() { return dexterityBase; }
     public int getIntelligenceBase() { return intelligenceBase; }
     public int getConstitutionBase() { return constitutionBase; }
+    public Integer getIdCard() { return idCard; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -42,6 +48,8 @@ public class ClassInfo {
         private int dexterityBase;
         private int intelligenceBase;
         private int constitutionBase;
+        private Integer idCard;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder name(String name) { this.name = name; return this; }
@@ -50,6 +58,8 @@ public class ClassInfo {
         public Builder dexterityBase(int dexterityBase) { this.dexterityBase = dexterityBase; return this; }
         public Builder intelligenceBase(int intelligenceBase) { this.intelligenceBase = intelligenceBase; return this; }
         public Builder constitutionBase(int constitutionBase) { this.constitutionBase = constitutionBase; return this; }
+        public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
 
         public ClassInfo build() {
             return new ClassInfo(this);

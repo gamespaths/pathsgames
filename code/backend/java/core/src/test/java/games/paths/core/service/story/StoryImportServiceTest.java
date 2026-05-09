@@ -226,7 +226,7 @@ class StoryImportServiceTest {
             data.put("items", List.of(Map.of("idTextName", 500)));
             data.put("choices", List.of(Map.of("idTextName", 600)));
             data.put("creators", List.of(Map.of("link", "creator-link")));
-            data.put("cards", List.of(Map.of("urlImmage", "img.png")));
+            data.put("cards", List.of(Map.of("urlImage", "img.png")));
             data.put("keys", List.of(Map.of("name", "key1", "value", "val1")));
             data.put("traits", List.of(Map.of("idTextName", 700)));
             data.put("characterTemplates", List.of(Map.of("lifeMax", 20)));

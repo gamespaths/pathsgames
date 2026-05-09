@@ -8,6 +8,8 @@ public class TraitInfoResponse extends AbstractUuidNameDescriptionDto {
     private int costNegative;
     private Integer idClassPermitted;
     private Integer idClassProhibited;
+    private Integer idCard;
+    private CardInfoResponse card;
 
     public TraitInfoResponse() {}
 
@@ -32,4 +34,10 @@ public class TraitInfoResponse extends AbstractUuidNameDescriptionDto {
 
     public Integer getIdClassProhibited() { return idClassProhibited; }
     public void setIdClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; }
+
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
 }

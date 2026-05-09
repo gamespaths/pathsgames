@@ -504,6 +504,15 @@ components:
         numberMaxFreeAction:
           type: integer
           example: 1
+        idCard:
+          type: integer
+          nullable: true
+          description: FK to list_cards(id) for this difficulty's visual card
+          example: 12
+        card:
+          nullable: true
+          description: Visual card details for this difficulty (null if no card)
+          $ref: '#/components/schemas/CardInfoResponse'
 
     CharacterTemplateResponse:
       type: object
@@ -547,6 +556,15 @@ components:
           type: integer
           description: Starting constitution value
           example: 3
+        idCard:
+          type: integer
+          nullable: true
+          description: FK to list_cards(id) for this template's visual card
+          example: 12
+        card:
+          nullable: true
+          description: Visual card details for this character template (null if no card)
+          $ref: '#/components/schemas/CardInfoResponse'
 
     ClassInfoResponse:
       type: object
@@ -582,6 +600,15 @@ components:
           type: integer
           description: Base constitution modifier
           example: 3
+        idCard:
+          type: integer
+          nullable: true
+          description: FK to list_cards(id) for this class's visual card
+          example: 12
+        card:
+          nullable: true
+          description: Visual card details for this class (null if no card)
+          $ref: '#/components/schemas/CardInfoResponse'
 
     TraitInfoResponse:
       type: object
@@ -617,6 +644,15 @@ components:
           type: integer
           nullable: true
           description: Class that is prohibited from using this trait
+        idCard:
+          type: integer
+          nullable: true
+          description: FK to list_cards(id) for this trait's visual card
+          example: 12
+        card:
+          nullable: true
+          description: Visual card details for this trait (null if no card)
+          $ref: '#/components/schemas/CardInfoResponse'
 
     CardInfoResponse:
       type: object

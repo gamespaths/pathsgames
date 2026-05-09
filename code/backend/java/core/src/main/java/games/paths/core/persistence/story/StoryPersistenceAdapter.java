@@ -116,6 +116,17 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
 
     @Override
     public void deleteStoryData(Long storyId) {
+        // Phase 0: clear FK references on list_stories to avoid constraint violations on PostgreSQL
+        storyRepository.findById(storyId).ifPresent(s -> {
+            s.setIdEventEndGame(null);
+            s.setIdEventAllPlayerComa(null);
+            s.setIdLocationStart(null);
+            s.setIdLocationAllPlayerComa(null);
+            s.setIdCard(null);
+            s.setIdCreator(null);
+            s.setIdImage(null);
+            storyRepository.saveAndFlush(s);
+        });
         // Delete in reverse dependency order to avoid FK violations
         missionStepRepository.deleteByIdStory(storyId);
         missionRepository.deleteByIdStory(storyId);

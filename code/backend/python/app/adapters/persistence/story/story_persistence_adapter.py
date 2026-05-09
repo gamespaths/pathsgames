@@ -116,7 +116,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_difficulties(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(StoryDifficultyEntity, story_id, items, {
-            "uuid": "uuid", "id_text_description": "idTextDescription",
+            "uuid": "uuid", "id_card": "idCard", "id_text_name": "idTextName",
+            "id_text_description": "idTextDescription",
             "exp_cost": "expCost", "max_weight": "maxWeight",
             "min_character": "minCharacter", "max_character": "maxCharacter",
             "cost_help_coma": "costHelpComa", "cost_max_characteristics": "costMaxCharacteristics",
@@ -166,6 +167,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     event_type=item.get("eventType", item.get("type")),
@@ -202,6 +204,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     weight=item.get("weight", 0),
@@ -232,6 +235,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 kwargs = dict(
                     id_story=story_id,
                     uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
+                    id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     weight_max=item.get("weightMax", 10),
@@ -264,6 +268,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    id_card=item.get("idCard"),
                     id_event=item.get("idEvent"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
@@ -315,20 +320,20 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_keys(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(KeyEntity, story_id, items, {
-            "key_name": "keyName", "key_value": "keyValue",
+            "id_card": "idCard", "key_name": "keyName", "key_value": "keyValue",
             "key_group": "keyGroup", "is_visible": "isVisible"
         })
 
     def save_traits(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(TraitEntity, story_id, items, {
-            "uuid": "uuid", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
+            "uuid": "uuid", "id_card": "idCard", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "cost_positive": "costPositive", "cost_negative": "costNegative",
             "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited"
         })
 
     def save_character_templates(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CharacterTemplateEntity, story_id, items, {
-            "uuid": "uuid", "id_tipo": "idTipo",
+            "uuid": "uuid", "id_tipo": "idTipo", "id_card": "idCard",
             "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "life_max": "lifeMax", "energy_max": "energyMax", "sad_max": "sadMax",
             "dexterity_start": "dexterityStart", "intelligence_start": "intelligenceStart",
@@ -337,7 +342,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_weather_rules(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(WeatherRuleEntity, story_id, items, {
-            "id_text_name": "idTextName", "probability": "probability", 
+            "id_card": "idCard", "id_text_name": "idTextName", "probability": "probability", 
             "delta_energy": "deltaEnergy", "id_event": "idEvent", 
             "condition_key": "conditionKey", "condition_value": "conditionValue",
             "time_start": "timeStart", "time_end": "timeEnd", "is_active": "isActive"
@@ -345,7 +350,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_global_random_events(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(GlobalRandomEventEntity, story_id, items, {
-            "id_event": "idEvent", "probability": "probability", 
+            "id_card": "idCard", "id_event": "idEvent", "probability": "probability", 
             "condition_key": "conditionKey", "condition_value": "conditionValue"
         })
 
@@ -356,6 +361,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     condition_key=item.get("conditionKey"),
@@ -385,7 +391,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_creators(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(CreatorEntity, story_id, items, {
-            "uuid": "uuid", "id_text": "idText",
+            "uuid": "uuid", "id_card": "idCard", "id_text": "idText",
             "creator_name": "creatorName", "creator_role": "creatorRole",
             "link": "link", "url": "url",
             "url_image": "urlImage", "url_emote": "urlEmote",

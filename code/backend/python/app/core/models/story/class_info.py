@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from app.core.models.story.card_info import CardInfo
 
 @dataclass
 class ClassInfo:
@@ -9,3 +10,5 @@ class ClassInfo:
     dexterityBase: int = 0
     intelligenceBase: int = 0
     constitutionBase: int = 0
+    idCard: int | None = None
+    card: CardInfo | None = None

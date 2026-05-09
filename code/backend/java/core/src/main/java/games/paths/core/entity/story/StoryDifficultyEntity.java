@@ -8,7 +8,7 @@ import jakarta.persistence.*;
  */
 @Entity
 @Table(name = "list_stories_difficulty")
-@AttributeOverride(name = "idStory", column = @Column(name = "id_story"))
+@AttributeOverride(name = "idStory", column = @Column(name = "id_story", insertable = false, updatable = false))
 @IdClass(StoryScopedEntityId.class)
 public class StoryDifficultyEntity extends BaseStoryEntity {
 

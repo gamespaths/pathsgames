@@ -190,31 +190,43 @@ public class StoryController {
     }
 
     private DifficultyResponse toDifficultyResponse(DifficultyInfo di) {
-        return new DifficultyResponse(
+        DifficultyResponse r = new DifficultyResponse(
                 di.getUuid(), di.getDescription(), di.getExpCost(), di.getMaxWeight(),
                 di.getMinCharacter(), di.getMaxCharacter(), di.getCostHelpComa(),
                 di.getCostMaxCharacteristics(), di.getNumberMaxFreeAction());
+        r.setIdCard(di.getIdCard());
+        r.setCard(di.getCard() != null ? toCardInfoResponse(di.getCard()) : null);
+        return r;
     }
 
     private CharacterTemplateResponse toCharacterTemplateResponse(CharacterTemplateInfo ct) {
-        return new CharacterTemplateResponse(
+        CharacterTemplateResponse r = new CharacterTemplateResponse(
                 ct.getUuid(), ct.getName(), ct.getDescription(),
                 ct.getLifeMax(), ct.getEnergyMax(), ct.getSadMax(),
                 ct.getDexterityStart(), ct.getIntelligenceStart(), ct.getConstitutionStart());
+        r.setIdCard(ct.getIdCard());
+        r.setCard(ct.getCard() != null ? toCardInfoResponse(ct.getCard()) : null);
+        return r;
     }
 
     private ClassInfoResponse toClassInfoResponse(ClassInfo ci) {
-        return new ClassInfoResponse(
+        ClassInfoResponse r = new ClassInfoResponse(
                 ci.getUuid(), ci.getName(), ci.getDescription(),
                 ci.getWeightMax(), ci.getDexterityBase(), ci.getIntelligenceBase(),
                 ci.getConstitutionBase());
+        r.setIdCard(ci.getIdCard());
+        r.setCard(ci.getCard() != null ? toCardInfoResponse(ci.getCard()) : null);
+        return r;
     }
 
     private TraitInfoResponse toTraitInfoResponse(TraitInfo ti) {
-        return new TraitInfoResponse(
+        TraitInfoResponse r = new TraitInfoResponse(
                 ti.getUuid(), ti.getName(), ti.getDescription(),
                 ti.getCostPositive(), ti.getCostNegative(),
                 ti.getIdClassPermitted(), ti.getIdClassProhibited());
+        r.setIdCard(ti.getIdCard());
+        r.setCard(ti.getCard() != null ? toCardInfoResponse(ti.getCard()) : null);
+        return r;
     }
 
     private CardInfoResponse toCardInfoResponse(CardInfo ci) {

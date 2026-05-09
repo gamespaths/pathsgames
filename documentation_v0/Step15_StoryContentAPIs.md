@@ -159,6 +159,10 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `traits` | array | List of trait summaries |
 | `card` | object\|null | Story card visual info (null if no card assigned) |
 
+> **v0.19.x enrichment**: each item inside `difficulties[]`, `characterTemplates[]`, `classes[]`,
+> and `traits[]` now also exposes its own `idCard` FK (nullable integer) and a fully resolved
+> `card` object (or `null`) using the same `CardInfoResponse` shape as the top-level story card.
+
 **Response (200 OK):**
 ```json
 {
@@ -416,6 +420,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
+    | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
 - **Last Updated**: April 16, 2026
 - **Status**: ✅ Complete
 

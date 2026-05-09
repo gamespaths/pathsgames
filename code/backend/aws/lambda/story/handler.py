@@ -172,10 +172,30 @@ def _story_detail(item, lang):
     """
     texts = item.get('texts', {})
 
+    def _build_card(id_card, fallback_lang):
+        if id_card is None:
+            return None
+        body = db_utils.get_item(f'CARD#{id_card}')
+        if not body:
+            return None
+        return {
+            'uuid':             body.get('uuid'),
+            'imageUrl':         body.get('imageUrl'),
+            'alternativeImage': body.get('alternativeImage'),
+            'awesomeIcon':      body.get('awesomeIcon'),
+            'styleMain':        body.get('styleMain'),
+            'styleDetail':      body.get('styleDetail'),
+            'title':            _resolve_text(body.get('texts', {}), fallback_lang, 'title'),
+            'description':      _resolve_text(body.get('texts', {}), fallback_lang, 'description'),
+            'copyrightText':    _resolve_text(body.get('texts', {}), fallback_lang, 'copyrightText'),
+            'linkCopyright':    body.get('linkCopyright'),
+        }
+
     # Difficulties
     raw_diffs = item.get('difficulties', [])
     difficulties = []
     for d in raw_diffs:
+        d_id_card = d.get('idCard')
         difficulties.append({
             'uuid':                  d.get('uuid'),
             'id':                    _safe_int(d.get('id')),
@@ -187,12 +207,15 @@ def _story_detail(item, lang):
             'costHelpComa':          _safe_int(d.get('costHelpComa')),
             'costMaxCharacteristics':_safe_int(d.get('costMaxCharacteristics')),
             'numberMaxFreeAction':   _safe_int(d.get('numberMaxFreeAction')),
+            'idCard':                _safe_int(d_id_card) if d_id_card is not None else None,
+            'card':                  _build_card(d_id_card, lang),
         })
 
     # Step 15: Character Templates
     raw_templates = item.get('characterTemplates', [])
     character_templates = []
     for ct in raw_templates:
+        ct_id_card = ct.get('idCard')
         character_templates.append({
             'uuid':              ct.get('uuid'),
             'id_tipo':           _safe_int(ct.get('id_tipo')),
@@ -204,12 +227,15 @@ def _story_detail(item, lang):
             'dexterityStart':    _safe_int(ct.get('dexterityStart')),
             'intelligenceStart': _safe_int(ct.get('intelligenceStart')),
             'constitutionStart': _safe_int(ct.get('constitutionStart')),
+            'idCard':            _safe_int(ct_id_card) if ct_id_card is not None else None,
+            'card':              _build_card(ct_id_card, lang),
         })
 
     # Step 15: Classes
     raw_classes = item.get('classes', [])
     classes = []
     for cl in raw_classes:
+        cl_id_card = cl.get('idCard')
         classes.append({
             'uuid':             cl.get('uuid'),
             'id':               _safe_int(cl.get('id')),
@@ -219,12 +245,15 @@ def _story_detail(item, lang):
             'dexterityBase':    _safe_int(cl.get('dexterityBase')),
             'intelligenceBase': _safe_int(cl.get('intelligenceBase')),
             'constitutionBase': _safe_int(cl.get('constitutionBase')),
+            'idCard':           _safe_int(cl_id_card) if cl_id_card is not None else None,
+            'card':             _build_card(cl_id_card, lang),
         })
 
     # Step 15: Traits
     raw_traits = item.get('traits', [])
     traits = []
     for tr in raw_traits:
+        tr_id_card = tr.get('idCard')
         traits.append({
             'uuid':              tr.get('uuid'),
             'id':                _safe_int(tr.get('id')),
@@ -234,6 +263,8 @@ def _story_detail(item, lang):
             'costNegative':      _safe_int(tr.get('costNegative')),
             'idClassPermitted':  tr.get('idClassPermitted'),
             'idClassProhibited': tr.get('idClassProhibited'),
+            'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
+            'card':              _build_card(tr_id_card, lang),
         })
 
     # Step 15: Card
@@ -515,6 +546,7 @@ def import_story(event):
             'costHelpComa':           d.get('costHelpComa', 0),
             'costMaxCharacteristics': d.get('costMaxCharacteristics', 0),
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
+            'idCard':                 d.get('idCard'),
         })
 
     # Step 15: Build character templates list
@@ -535,6 +567,7 @@ def import_story(event):
             'dexterityStart':    ct.get('dexterityStart', 0),
             'intelligenceStart': ct.get('intelligenceStart', 0),
             'constitutionStart': ct.get('constitutionStart', 0),
+            'idCard':            ct.get('idCard'),
         })
 
     # Step 15: Build classes list
@@ -553,6 +586,7 @@ def import_story(event):
             'dexterityBase':    cl.get('dexterityBase', 0),
             'intelligenceBase': cl.get('intelligenceBase', 0),
             'constitutionBase': cl.get('constitutionBase', 0),
+            'idCard':           cl.get('idCard'),
         })
 
     # Step 15: Build traits list
@@ -571,6 +605,7 @@ def import_story(event):
             'costNegative':      tr.get('costNegative', 0),
             'idClassPermitted':  tr.get('idClassPermitted'),
             'idClassProhibited': tr.get('idClassProhibited'),
+            'idCard':            tr.get('idCard'),
         })
 
     # Step 15: Build card info
@@ -604,7 +639,7 @@ def import_story(event):
                 card = {
                     'uuid':             card_uuid,
                     'texts':            card_texts,
-                    'imageUrl':         c.get('urlImmage') or c.get('imageUrl'),
+                    'imageUrl':         c.get('urlImage') or c.get('imageUrl'),
                     'alternativeImage': c.get('alternativeImage'),
                     'awesomeIcon':      c.get('awesomeIcon'),
                     'styleMain':        c.get('styleMain'),
@@ -642,7 +677,7 @@ def import_story(event):
             'idTextCopyright':   c.get('idTextCopyright'),
             'linkCopyright':     c.get('linkCopyright'),
             'idCreator':         c.get('idCreator'),
-            'imageUrl':          c.get('urlImmage') or c.get('imageUrl'),
+            'imageUrl':          c.get('urlImage') or c.get('imageUrl'),
             'alternativeImage':  c.get('alternativeImage'),
             'awesomeIcon':       c.get('awesomeIcon'),
             'styleMain':         c.get('styleMain'),

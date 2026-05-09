@@ -62,6 +62,7 @@ ${MIGRATION_DIR}    ${CURDIR}/../../../../backend/java/adapter-sqlite/src/main/r
 ${DEMO_3_FILE}   ${MIGRATION_DIR}/story_demo_3.json
 ${DEMO_4_FILE}       ${MIGRATION_DIR}/story_demo_4.json
 ${TUTORIAL_FILE}     ${MIGRATION_DIR}/tutorial_large.json
+${TUTORIAL_DEV_FILE}    ${MIGRATION_DIR}/tutorial_story_dev.json
 
 
 *** Test Cases ***
@@ -277,7 +278,7 @@ Import Explicit ID For list_cards Returns 201
     Import With Explicit List Entity Id
     ...    64444444-4444-4444-8444-444444444444
     ...    cards
-    ...    {"id":971004,"urlImmage":"img"}
+    ...    {"id":971004,"urlImage":"img"}
 
 Import Card With Style Fields Returns 201
     [Documentation]    Import a card with alternativeImage, styleMain and styleDetail set.
@@ -285,7 +286,7 @@ Import Card With Style Fields Returns 201
     Import With Explicit List Entity Id
     ...    64444444-4444-4444-8444-444444444445
     ...    cards
-    ...    {"id":971006,"urlImmage":"img2.png","alternativeImage":"alt.png","awesomeIcon":"fa-book","styleMain":"dark-main","styleDetail":"dark-detail"}
+    ...    {"id":971006,"urlImage":"img2.png","alternativeImage":"alt.png","awesomeIcon":"fa-book","styleMain":"dark-main","styleDetail":"dark-detail"}
 
 Import Explicit ID For list_keys Returns 201
     [Documentation]    Import accepts explicit id for list_keys rows.
@@ -522,18 +523,18 @@ Import Story and Verify All Header Fields
     ${id_event_end_game}=              Get From Dictionary    ${story}    idEventEndGame
     ${id_text_copyright}=              Get From Dictionary    ${story}    idTextCopyright
     ${id_creator}=                     Get From Dictionary    ${story}    idCreator
-    Run Keyword If    $id_location_start is not None           Should Be Equal As Integers    ${id_location_start}           1
-    Run Keyword If    $id_image is not None                    Should Be Equal As Integers    ${id_image}                    514
-    Run Keyword If    $id_card is not None                     Should Be Equal As Integers    ${id_card}                     2
-    Run Keyword If    $id_location_all_player_coma is not None    Should Be Equal As Integers    ${id_location_all_player_coma}    1
-    Run Keyword If    $id_event_all_player_coma is not None       Should Be Equal As Integers    ${id_event_all_player_coma}       1
-    Run Keyword If    $id_event_end_game is not None              Should Be Equal As Integers    ${id_event_end_game}              10
-    Run Keyword If    $id_text_copyright is not None              Should Be Equal As Integers    ${id_text_copyright}              513
-    Run Keyword If    $id_creator is not None                     Should Be Equal As Integers    ${id_creator}                     1
+    Should Be Equal As Integers    ${id_location_start}              1
+    Should Be Equal As Integers    ${id_image}                       514
+    Should Be Equal As Integers    ${id_card}                        2
+    Should Be Equal As Integers    ${id_location_all_player_coma}    1
+    Should Be Equal As Integers    ${id_event_all_player_coma}       1
+    Should Be Equal As Integers    ${id_event_end_game}              10
+    Should Be Equal As Integers    ${id_text_copyright}              513
+    Should Be Equal As Integers    ${id_creator}                     1
     ${clock_singular}=    Get From Dictionary    ${story}    idTextClockSingular
     ${clock_plural}=      Get From Dictionary    ${story}    idTextClockPlural
-    Run Keyword If    $clock_singular is not None    Should Be Equal As Integers    ${clock_singular}    10
-    Run Keyword If    $clock_plural is not None      Should Be Equal As Integers    ${clock_plural}      11
+    Should Be Equal As Integers    ${clock_singular}    10
+    Should Be Equal As Integers    ${clock_plural}      11
     
     # Cleanup after
     Delete Admin Story    ${uuid}
@@ -561,3 +562,44 @@ Import Two Stories With Colliding Entity IDs
     # Cleanup
     Delete Admin Story    ${u3}
     Delete Admin Story    ${u4}
+
+Import Story And Verify Sub Entity IdCard Fields
+    [Documentation]    After import, difficulties / events / locations have correct idCard values.
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    tutorial-uuid-001
+    ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+
+    # Clean up before
+    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    # Import tutorial_story_dev.json (has idCard on sub-entities)
+    ${payload}=    Get File    ${TUTORIAL_DEV_FILE}
+    ${resp_imp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp_imp.status_code}    201
+
+    # Verify difficulties idCard
+    ${d_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/difficulties
+    ...    headers=${headers}
+    ${diffs}=    Set Variable    ${d_resp.json()}
+    ${diff1}=    Evaluate    next((d for d in ${diffs} if d.get('id') == 1), None)
+    Should Be True    $diff1 is not None    msg=Difficulty id=1 not found
+    Should Be Equal As Integers    ${diff1}[idCard]    4
+
+    # Verify events idCard
+    ${e_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/events
+    ...    headers=${headers}
+    ${events}=    Set Variable    ${e_resp.json()}
+    ${ev1}=    Evaluate    next((e for e in ${events} if e.get('id') == 1), None)
+    Should Be True    $ev1 is not None    msg=Event id=1 not found
+    Should Be Equal As Integers    ${ev1}[idCard]    10
+
+    # Verify locations idCard
+    ${l_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/locations
+    ...    headers=${headers}
+    ${locs}=    Set Variable    ${l_resp.json()}
+    ${loc1}=    Evaluate    next((l for l in ${locs} if l.get('id') == 1), None)
+    Should Be True    $loc1 is not None    msg=Location id=1 not found
+    Should Be Equal As Integers    ${loc1}[idCard]    25
+
+    # Cleanup
+    Delete Admin Story    ${uuid}

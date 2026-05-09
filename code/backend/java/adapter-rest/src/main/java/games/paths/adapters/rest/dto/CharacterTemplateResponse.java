@@ -11,6 +11,8 @@ public class CharacterTemplateResponse extends AbstractUuidNameDescriptionDto {
     private int dexterityStart;
     private int intelligenceStart;
     private int constitutionStart;
+    private Integer idCard;
+    private CardInfoResponse card;
 
     public CharacterTemplateResponse() {}
 
@@ -43,4 +45,10 @@ public class CharacterTemplateResponse extends AbstractUuidNameDescriptionDto {
 
     public int getConstitutionStart() { return constitutionStart; }
     public void setConstitutionStart(int constitutionStart) { this.constitutionStart = constitutionStart; }
+
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
 }

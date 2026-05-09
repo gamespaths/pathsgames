@@ -80,7 +80,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($rd['max_character']) ? (int)$rd['max_character'] : 4,
                 isset($rd['cost_help_coma']) ? (int)$rd['cost_help_coma'] : 3,
                 isset($rd['cost_max_characteristics']) ? (int)$rd['cost_max_characteristics'] : 3,
-                isset($rd['number_max_free_action']) ? (int)$rd['number_max_free_action'] : 1
+                isset($rd['number_max_free_action']) ? (int)$rd['number_max_free_action'] : 1,
+                isset($rd['id_card']) ? (int)$rd['id_card'] : null,
+                $this->resolveCard($storyId, $texts, isset($rd['id_card']) ? (int)$rd['id_card'] : null, $lang)
             );
         }
 
@@ -108,7 +110,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($c['weight_max']) ? (int)$c['weight_max'] : 0,
                 isset($c['dexterity_base']) ? (int)$c['dexterity_base'] : 0,
                 isset($c['intelligence_base']) ? (int)$c['intelligence_base'] : 0,
-                isset($c['constitution_base']) ? (int)$c['constitution_base'] : 0
+                isset($c['constitution_base']) ? (int)$c['constitution_base'] : 0,
+                isset($c['id_card']) ? (int)$c['id_card'] : null,
+                $this->resolveCard($storyId, $texts, isset($c['id_card']) ? (int)$c['id_card'] : null, $lang)
             );
         }
 
@@ -125,7 +129,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($t['sad_max']) ? (int)$t['sad_max'] : 0,
                 isset($t['dexterity_start']) ? (int)$t['dexterity_start'] : 0,
                 isset($t['intelligence_start']) ? (int)$t['intelligence_start'] : 0,
-                isset($t['constitution_start']) ? (int)$t['constitution_start'] : 0
+                isset($t['constitution_start']) ? (int)$t['constitution_start'] : 0,
+                isset($t['id_card']) ? (int)$t['id_card'] : null,
+                $this->resolveCard($storyId, $texts, isset($t['id_card']) ? (int)$t['id_card'] : null, $lang)
             );
         }
 
@@ -140,7 +146,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($tr['cost_positive']) ? (int)$tr['cost_positive'] : 0,
                 isset($tr['cost_negative']) ? (int)$tr['cost_negative'] : 0,
                 isset($tr['id_class_permitted']) ? (int)$tr['id_class_permitted'] : null,
-                isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null
+                isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null,
+                isset($tr['id_card']) ? (int)$tr['id_card'] : null,
+                $this->resolveCard($storyId, $texts, isset($tr['id_card']) ? (int)$tr['id_card'] : null, $lang)
             );
         }
 
@@ -264,6 +272,33 @@ class StoryQueryService implements StoryQueryPort
      * @param string $targetLang
      * @return string|null
      */
+    private function resolveCard(int $storyId, array $texts, ?int $idCard, string $lang): ?CardInfo
+    {
+        if ($idCard === null) {
+            return null;
+        }
+        $rawCard = $this->readPort->findCardForStory($storyId, $idCard);
+        if (!$rawCard) {
+            return null;
+        }
+        $cardTitleTextId = isset($rawCard['id_text_title']) ? (int)$rawCard['id_text_title']
+            : (isset($rawCard['id_text_name']) ? (int)$rawCard['id_text_name'] : null);
+        $cardDescTextId = isset($rawCard['id_text_description']) ? (int)$rawCard['id_text_description'] : null;
+        $cardCopyrightTextId = isset($rawCard['id_text_copyright']) ? (int)$rawCard['id_text_copyright'] : null;
+        return new CardInfo(
+            $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+            $rawCard['image_url'] ?? null,
+            $rawCard['alternative_image'] ?? null,
+            $rawCard['awesome_icon'] ?? null,
+            $rawCard['style_main'] ?? null,
+            $rawCard['style_detail'] ?? null,
+            $this->resolveText($texts, $cardTitleTextId, $lang),
+            $this->resolveText($texts, $cardDescTextId, $lang),
+            $this->resolveText($texts, $cardCopyrightTextId, $lang),
+            $rawCard['link_copyright'] ?? null
+        );
+    }
+
     public function resolveText(array $texts, ?int $txtId, string $targetLang): ?string
     {
         if ($txtId === null) {

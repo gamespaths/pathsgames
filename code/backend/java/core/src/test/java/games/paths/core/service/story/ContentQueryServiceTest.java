@@ -52,7 +52,7 @@ class ContentQueryServiceTest {
         c.setId(10L);
         c.setUuid(uuid);
         c.setIdStory(storyId);
-        c.setUrlImmage("https://img.com/card.png");
+        c.setUrlImage("https://img.com/card.png");
         c.setAlternativeImage("alt.jpg");
         c.setAwesomeIcon("fa-star");
         c.setStyleMain("bg-primary");
@@ -196,7 +196,7 @@ class ContentQueryServiceTest {
             card.setId(10L);
             card.setUuid("card-uuid");
             card.setIdStory(1L);
-            card.setUrlImmage("https://img.com/card.png");
+            card.setUrlImage("https://img.com/card.png");
             // All text IDs and creator are null
 
             when(readPort.findStoryByUuid("story-uuid")).thenReturn(Optional.of(story));

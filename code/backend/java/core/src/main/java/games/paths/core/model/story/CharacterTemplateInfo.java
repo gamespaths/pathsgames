@@ -15,6 +15,8 @@ public class CharacterTemplateInfo {
     private final int dexterityStart;
     private final int intelligenceStart;
     private final int constitutionStart;
+    private final Integer idCard;
+    private final CardInfo card;
 
     private CharacterTemplateInfo(Builder builder) {
         this.uuid = builder.uuid;
@@ -26,6 +28,8 @@ public class CharacterTemplateInfo {
         this.dexterityStart = builder.dexterityStart;
         this.intelligenceStart = builder.intelligenceStart;
         this.constitutionStart = builder.constitutionStart;
+        this.idCard = builder.idCard;
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -37,6 +41,8 @@ public class CharacterTemplateInfo {
     public int getDexterityStart() { return dexterityStart; }
     public int getIntelligenceStart() { return intelligenceStart; }
     public int getConstitutionStart() { return constitutionStart; }
+    public Integer getIdCard() { return idCard; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -50,6 +56,8 @@ public class CharacterTemplateInfo {
         private int dexterityStart;
         private int intelligenceStart;
         private int constitutionStart;
+        private Integer idCard;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder name(String name) { this.name = name; return this; }
@@ -60,6 +68,8 @@ public class CharacterTemplateInfo {
         public Builder dexterityStart(int dexterityStart) { this.dexterityStart = dexterityStart; return this; }
         public Builder intelligenceStart(int intelligenceStart) { this.intelligenceStart = intelligenceStart; return this; }
         public Builder constitutionStart(int constitutionStart) { this.constitutionStart = constitutionStart; return this; }
+        public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
 
         public CharacterTemplateInfo build() {
             return new CharacterTemplateInfo(this);

@@ -8,6 +8,8 @@ public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
     private int dexterityBase;
     private int intelligenceBase;
     private int constitutionBase;
+    private Integer idCard;
+    private CardInfoResponse card;
 
     public ClassInfoResponse() {}
 
@@ -31,4 +33,10 @@ public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
 
     public int getConstitutionBase() { return constitutionBase; }
     public void setConstitutionBase(int constitutionBase) { this.constitutionBase = constitutionBase; }
+
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
 }

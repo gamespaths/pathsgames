@@ -71,7 +71,7 @@ class StoryCrudServiceTypesTest {
         m.put("weightMax", 1); m.put("dexterityBase", 1); m.put("intelligenceBase", 1); m.put("constitutionBase", 1);
         m.put("costPositive", 1); m.put("costNegative", 1); m.put("idText", 1); m.put("lang", "l"); m.put("shortText", "s");
         m.put("longText", "l"); m.put("idTextCopyright", 1); m.put("linkCopyright", "l"); m.put("idCreator", 1);
-        m.put("idTextTitle", 1); m.put("idTextDescription", 1); m.put("urlImmage", "u"); m.put("alternativeImage", "a");
+        m.put("idTextTitle", 1); m.put("idTextDescription", 1); m.put("urlImage", "u"); m.put("alternativeImage", "a");
         m.put("awesomeIcon", "a"); m.put("styleMain", "s"); m.put("styleDetail", "s"); m.put("link", "l"); m.put("url", "u");
         m.put("urlImage", "u"); m.put("urlEmote", "u"); m.put("urlInstagram", "u"); m.put("idLocationFrom", 1);
         m.put("idLocationTo", 1); m.put("direction", "d"); m.put("flagBack", 1); m.put("conditionRegistryKey", "c");

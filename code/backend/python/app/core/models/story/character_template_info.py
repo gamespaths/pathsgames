@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from app.core.models.story.card_info import CardInfo
 
 @dataclass
 class CharacterTemplateInfo:
@@ -11,3 +12,5 @@ class CharacterTemplateInfo:
     dexterityStart: int = 0
     intelligenceStart: int = 0
     constitutionStart: int = 0
+    idCard: int | None = None
+    card: CardInfo | None = None

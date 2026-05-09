@@ -18,7 +18,7 @@ public class CardEntity extends BaseStoryEntity {
     private Long idStoryPk;
 
     @Column(name = "url_immage")
-    private String urlImmage;
+    private String urlImage;
 
     @Column(name = "id_text_title")
     private Integer idTextTitle;
@@ -59,8 +59,8 @@ public class CardEntity extends BaseStoryEntity {
     }
 
 
-    public String getUrlImmage() { return urlImmage; }
-    public void setUrlImmage(String urlImmage) { this.urlImmage = urlImmage; }
+    public String getUrlImage() { return urlImage; }
+    public void setUrlImage(String urlImage) { this.urlImage = urlImage; }
 
     public Integer getIdTextTitle() { return idTextTitle; }
     public void setIdTextTitle(Integer idTextTitle) { this.idTextTitle = idTextTitle; }

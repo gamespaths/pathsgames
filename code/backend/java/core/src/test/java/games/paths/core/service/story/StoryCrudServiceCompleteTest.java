@@ -852,7 +852,7 @@ class StoryCrudServiceCompleteTest {
         data.put("idTextCopyright", 4);
         data.put("linkCopyright", "http://c");
         data.put("idCreator", 5);
-        data.put("urlImmage", "http://img");
+        data.put("urlImage", "http://img");
         data.put("alternativeImage", "alt");
         data.put("awesomeIcon", "fa-star");
         data.put("styleMain", "main");
@@ -1282,7 +1282,7 @@ class StoryCrudServiceCompleteTest {
         data.put("idTextCopyright", 3);
         data.put("linkCopyright", "http://c");
         data.put("idCreator", 4);
-        data.put("urlImmage", "http://img");
+        data.put("urlImage", "http://img");
         data.put("alternativeImage", "alt");
         data.put("awesomeIcon", "icon");
         data.put("styleMain", "m");

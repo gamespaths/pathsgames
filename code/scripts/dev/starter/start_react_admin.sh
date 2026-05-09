@@ -12,8 +12,8 @@ if [ -f "$ENV_FILE" ]; then
 fi
 echo "Env file loaded: ${ENV_FILE:-None}"   
 
-echo "Kill all process using 5173 port"
-fuser -k 5173/tcp || true
+echo "Kill all process using 5172 port"
+fuser -k 5172/tcp || true
 
 cd "$PROJECT_ROOT/code/frontend/react-admin" && npm run dev
 

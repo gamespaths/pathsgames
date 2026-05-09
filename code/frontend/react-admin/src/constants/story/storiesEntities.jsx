@@ -175,7 +175,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
       { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
       { key: 'idCreator', label: 'Creator ID', type: 'number' },
-      { key: 'urlImmage', label: 'Image URL', type: 'text' },
+      { key: 'urlImage', label: 'Image URL', type: 'text' },
       { key: 'alternativeImage', label: 'Alternative Image', type: 'text' },
       { key: 'awesomeIcon', label: 'Awesome Icon', type: 'text' },
       { key: 'styleMain', label: 'Style Main', type: 'text' },
@@ -366,7 +366,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     cards: [
       { key: 'idTextTitle', label: 'Title',  type: 'idTextTitle' },
       { key: 'idTextDescription', label: 'Description', type: 'idTextDescription' },
-      { key: 'urlImmage', label: 'Image URL' },
+      { key: 'urlImage', label: 'Image URL' },
       { key: 'awesomeIcon', label: 'Icon' },
       { key: 'idCreator', label: 'Creator' },
     ],

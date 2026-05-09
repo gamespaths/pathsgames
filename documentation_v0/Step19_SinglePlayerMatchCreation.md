@@ -286,11 +286,15 @@ The same suite passes against the Python and PHP backends — see
 
   After completing all three parts, commit and push everything to the develop_v0_19_0 branch.
   ```
+  > ciao, read MD files into documentation_v0 folder for project context, read code/backend/java/adapter-rest/src/main/resources/openapi/v0.15.0-story-content-api.yaml, i wanna add idCard and all cards informations into api  "/api/stories/{uuid}". I wanna you change java project, open api documentation, python backend project, php backend project and aws lambda project. I wanna you add robot test to check new field in api. update md documentation file. Let's go
+
 - **Document Version**: 0.19.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
     | 0.19.1 | Single player match creation | May 08, 2026 |
+    | 0.19.2 | Bug fix: story defailt for website, story export in admin project, sonar coverage | May 08, 2026 |
+    | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
     
 - **Last Updated**: May 08, 2026
 - **Status**: ✅ Complete

@@ -236,7 +236,7 @@ Create And Delete Card With Style Fields
     ...                styleDetail are persisted and returned correctly.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary
-    ...    urlImmage=https://example.com/card.png
+    ...    urlImage=https://example.com/card.png
     ...    alternativeImage=alt_card.png
     ...    awesomeIcon=fa-star
     ...    styleMain=card-style-dark

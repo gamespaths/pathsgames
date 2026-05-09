@@ -15,6 +15,8 @@ public class DifficultyInfo {
     private final int costHelpComa;
     private final int costMaxCharacteristics;
     private final int numberMaxFreeAction;
+    private final Integer idCard;
+    private final CardInfo card;
 
     private DifficultyInfo(Builder builder) {
         this.uuid = builder.uuid;
@@ -26,6 +28,8 @@ public class DifficultyInfo {
         this.costHelpComa = builder.costHelpComa;
         this.costMaxCharacteristics = builder.costMaxCharacteristics;
         this.numberMaxFreeAction = builder.numberMaxFreeAction;
+        this.idCard = builder.idCard;
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -37,6 +41,8 @@ public class DifficultyInfo {
     public int getCostHelpComa() { return costHelpComa; }
     public int getCostMaxCharacteristics() { return costMaxCharacteristics; }
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
+    public Integer getIdCard() { return idCard; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -50,6 +56,8 @@ public class DifficultyInfo {
         private int costHelpComa;
         private int costMaxCharacteristics;
         private int numberMaxFreeAction;
+        private Integer idCard;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder description(String description) { this.description = description; return this; }
@@ -60,6 +68,8 @@ public class DifficultyInfo {
         public Builder costHelpComa(int costHelpComa) { this.costHelpComa = costHelpComa; return this; }
         public Builder costMaxCharacteristics(int costMaxCharacteristics) { this.costMaxCharacteristics = costMaxCharacteristics; return this; }
         public Builder numberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; return this; }
+        public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
 
         public DifficultyInfo build() {
             return new DifficultyInfo(this);

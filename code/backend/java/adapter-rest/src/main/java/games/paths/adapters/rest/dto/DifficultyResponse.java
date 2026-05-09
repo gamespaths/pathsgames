@@ -11,6 +11,8 @@ public class DifficultyResponse extends AbstractUuidDescriptionDto {
     private int costHelpComa;
     private int costMaxCharacteristics;
     private int numberMaxFreeAction;
+    private Integer idCard;
+    private CardInfoResponse card;
 
     public DifficultyResponse() {}
 
@@ -47,4 +49,10 @@ public class DifficultyResponse extends AbstractUuidDescriptionDto {
 
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }
+
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
 }

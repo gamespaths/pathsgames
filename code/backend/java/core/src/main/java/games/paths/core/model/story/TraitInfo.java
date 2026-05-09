@@ -13,6 +13,8 @@ public class TraitInfo {
     private final int costNegative;
     private final Integer idClassPermitted;
     private final Integer idClassProhibited;
+    private final Integer idCard;
+    private final CardInfo card;
 
     private TraitInfo(Builder builder) {
         this.uuid = builder.uuid;
@@ -22,6 +24,8 @@ public class TraitInfo {
         this.costNegative = builder.costNegative;
         this.idClassPermitted = builder.idClassPermitted;
         this.idClassProhibited = builder.idClassProhibited;
+        this.idCard = builder.idCard;
+        this.card = builder.card;
     }
 
     public String getUuid() { return uuid; }
@@ -31,6 +35,8 @@ public class TraitInfo {
     public int getCostNegative() { return costNegative; }
     public Integer getIdClassPermitted() { return idClassPermitted; }
     public Integer getIdClassProhibited() { return idClassProhibited; }
+    public Integer getIdCard() { return idCard; }
+    public CardInfo getCard() { return card; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -42,6 +48,8 @@ public class TraitInfo {
         private int costNegative;
         private Integer idClassPermitted;
         private Integer idClassProhibited;
+        private Integer idCard;
+        private CardInfo card;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder name(String name) { this.name = name; return this; }
@@ -50,6 +58,8 @@ public class TraitInfo {
         public Builder costNegative(int costNegative) { this.costNegative = costNegative; return this; }
         public Builder idClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; return this; }
         public Builder idClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; return this; }
+        public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
+        public Builder card(CardInfo card) { this.card = card; return this; }
 
         public TraitInfo build() {
             return new TraitInfo(this);

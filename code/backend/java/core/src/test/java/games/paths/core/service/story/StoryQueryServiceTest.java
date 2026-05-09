@@ -141,7 +141,7 @@ class StoryQueryServiceTest {
         CardEntity c = new CardEntity();
         c.setIdStory(storyId);
         c.setUuid(uuid);
-        c.setUrlImmage("https://example.com/card.png");
+        c.setUrlImage("https://example.com/card.png");
         c.setAlternativeImage("alt-img");
         c.setAwesomeIcon("fa-star");
         c.setStyleMain("bg-primary");

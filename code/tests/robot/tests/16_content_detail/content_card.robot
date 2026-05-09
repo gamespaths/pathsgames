@@ -71,7 +71,7 @@ Card Info Returns 200 With All Required Fields
     [Tags]    content    step16    card
     # Create card via admin
     &{card_data}=    Create Dictionary
-    ...    urlImmage=https://example.com/test-card.png
+    ...    urlImage=https://example.com/test-card.png
     ...    alternativeImage=alt-test.png
     ...    awesomeIcon=fa-book
     ...    styleMain=test-style-main

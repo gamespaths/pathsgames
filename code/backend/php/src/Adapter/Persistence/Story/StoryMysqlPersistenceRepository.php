@@ -182,10 +182,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             if ($explicitId !== null) {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO list_stories_difficulty (
-                        id, id_story, uuid, id_text_description, exp_cost, max_weight,
+                        id, id_story, uuid, id_card, id_text_name, id_text_description, exp_cost, max_weight,
                         min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
                     ) VALUES (
-                        :id, :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
+                        :id, :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :exp_cost, :max_weight,
                         :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
                     )
                 ");
@@ -193,6 +193,8 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                     ':id' => $explicitId,
                     ':id_story' => $storyId,
                     ':uuid' => $d['uuid'] ?? null,
+                    ':id_card' => $d['idCard'] ?? null,
+                    ':id_text_name' => $d['idTextName'] ?? null,
                     ':id_text_description' => $d['idTextDescription'] ?? null,
                     ':exp_cost' => $d['expCost'] ?? null,
                     ':max_weight' => $d['maxWeight'] ?? null,
@@ -205,16 +207,18 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             } else {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO list_stories_difficulty (
-                        id_story, uuid, id_text_description, exp_cost, max_weight,
+                        id_story, uuid, id_card, id_text_name, id_text_description, exp_cost, max_weight,
                         min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
                     ) VALUES (
-                        :id_story, :uuid, :id_text_description, :exp_cost, :max_weight,
+                        :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :exp_cost, :max_weight,
                         :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
                     )
                 ");
                 $stmt->execute([
                     ':id_story' => $storyId,
                     ':uuid' => $d['uuid'] ?? null,
+                    ':id_card' => $d['idCard'] ?? null,
+                    ':id_text_name' => $d['idTextName'] ?? null,
                     ':id_text_description' => $d['idTextDescription'] ?? null,
                     ':exp_cost' => $d['expCost'] ?? null,
                     ':max_weight' => $d['maxWeight'] ?? null,
@@ -230,15 +234,6 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
 
     public function saveLocations(int $storyId, array $locations): void
     {
-        $stmtLoc = $this->pdo->prepare("
-            INSERT INTO list_locations (
-                id_story, id_text_name, id_text_description, is_safe, max_characters,
-                id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
-            ) VALUES (
-                :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
-                :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
-            )
-        ");
         $stmtNei = $this->pdo->prepare("
             INSERT INTO list_locations_neighbors (
                 id_story, id_location_from, id_location_to, direction, energy_cost, condition_key, condition_value
@@ -248,7 +243,8 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         ");
 
         foreach ($locations as $loc) {
-            $stmtLoc->execute([
+            $explicitId = self::getLong($loc, 'id');
+            $locParams = [
                 ':id_story' => $storyId,
                 ':id_text_name' => $loc['idTextName'] ?? null,
                 ':id_text_description' => $loc['idTextDescription'] ?? null,
@@ -258,7 +254,30 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':id_event_if_counter_zero' => $loc['idEventIfCounterZero'] ?? null,
                 ':counter_start' => $loc['counterStart'] ?? null,
                 ':id_card' => $loc['idCard'] ?? null,
-            ]);
+            ];
+            if ($explicitId !== null) {
+                $stmtLoc = $this->pdo->prepare("
+                    INSERT INTO list_locations (
+                        id, id_story, id_text_name, id_text_description, is_safe, max_characters,
+                        id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
+                    ) VALUES (
+                        :id, :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
+                        :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
+                    )
+                ");
+                $locParams[':id'] = $explicitId;
+            } else {
+                $stmtLoc = $this->pdo->prepare("
+                    INSERT INTO list_locations (
+                        id_story, id_text_name, id_text_description, is_safe, max_characters,
+                        id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
+                    ) VALUES (
+                        :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
+                        :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
+                    )
+                ");
+            }
+            $stmtLoc->execute($locParams);
             $locId = (int)$this->pdo->lastInsertId();
 
             if (!empty($loc['neighbors'])) {
@@ -279,15 +298,6 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
 
     public function saveEvents(int $storyId, array $events): void
     {
-        $stmtEv = $this->pdo->prepare("
-            INSERT INTO list_events (
-                id_story, id_text_name, id_text_description, event_type, trigger_type,
-                energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
-            ) VALUES (
-                :id_story, :id_text_name, :id_text_description, :event_type, :trigger_type,
-                :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
-            )
-        ");
         $stmtEf = $this->pdo->prepare("
             INSERT INTO list_events_effects (
                 id_story, id_event, effect_type, effect_value, flag_group
@@ -297,8 +307,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         ");
 
         foreach ($events as $ev) {
-            $stmtEv->execute([
+            $explicitId = self::getLong($ev, 'id');
+            $params = [
                 ':id_story' => $storyId,
+                ':id_card' => $ev['idCard'] ?? null,
                 ':id_text_name' => $ev['idTextName'] ?? null,
                 ':id_text_description' => $ev['idTextDescription'] ?? null,
                 ':event_type' => $ev['eventType'] ?? $ev['type'] ?? null,
@@ -309,7 +321,30 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':flag_interrupt' => $ev['flagInterrupt'] ?? 0,
                 ':flag_end_time' => $ev['flagEndTime'] ?? 0,
                 ':id_location' => $ev['idLocation'] ?? null,
-            ]);
+            ];
+            if ($explicitId !== null) {
+                $stmtEv = $this->pdo->prepare("
+                    INSERT INTO list_events (
+                        id, id_story, id_card, id_text_name, id_text_description, event_type, trigger_type,
+                        energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
+                    ) VALUES (
+                        :id, :id_story, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
+                        :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
+                    )
+                ");
+                $params[':id'] = $explicitId;
+            } else {
+                $stmtEv = $this->pdo->prepare("
+                    INSERT INTO list_events (
+                        id_story, id_card, id_text_name, id_text_description, event_type, trigger_type,
+                        energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
+                    ) VALUES (
+                        :id_story, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
+                        :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
+                    )
+                ");
+            }
+            $stmtEv->execute($params);
             $evId = (int)$this->pdo->lastInsertId();
 
             if (!empty($ev['effects'])) {
@@ -329,8 +364,8 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveItems(int $storyId, array $items): void
     {
         $stmtIt = $this->pdo->prepare("
-            INSERT INTO list_items (id_story, id_text_name, id_text_description, weight, id_class)
-            VALUES (:id_story, :id_text_name, :id_text_description, :weight, :id_class)
+            INSERT INTO list_items (id_story, id_card, id_text_name, id_text_description, weight, id_class)
+            VALUES (:id_story, :id_card, :id_text_name, :id_text_description, :weight, :id_class)
         ");
         $stmtEf = $this->pdo->prepare("
             INSERT INTO list_items_effects (id_story, id_item, effect_type, effect_value)
@@ -340,6 +375,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         foreach ($items as $it) {
             $stmtIt->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $it['idCard'] ?? null,
                 ':id_text_name' => $it['idTextName'] ?? null,
                 ':id_text_description' => $it['idTextDescription'] ?? null,
                 ':weight' => $it['weight'] ?? 0,
@@ -364,10 +400,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmtCls = $this->pdo->prepare("
             INSERT INTO list_classes (
-                id_story, uuid, id_text_name, id_text_description,
+                id_story, uuid, id_card, id_text_name, id_text_description,
                 weight_max, dexterity_base, intelligence_base, constitution_base
             ) VALUES (
-                :id_story, :uuid, :id_text_name, :id_text_description,
+                :id_story, :uuid, :id_card, :id_text_name, :id_text_description,
                 :weight_max, :dexterity_base, :intelligence_base, :constitution_base
             )
         ");
@@ -381,6 +417,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             $stmtCls->execute([
                 ':id_story' => $storyId,
                 ':uuid' => $uuid,
+                ':id_card' => $cls['idCard'] ?? null,
                 ':id_text_name' => $cls['idTextName'] ?? null,
                 ':id_text_description' => $cls['idTextDescription'] ?? null,
                 ':weight_max' => $cls['weightMax'] ?? 0,
@@ -407,9 +444,9 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmtCh = $this->pdo->prepare("
             INSERT INTO list_choices (
-                id_story, id_event, id_text_name, id_text_description, priority, is_otherwise, is_progress, id_event_torun
+                id_story, id_card, id_event, id_text_name, id_text_description, priority, is_otherwise, is_progress, id_event_torun
             ) VALUES (
-                :id_story, :id_event, :id_text_name, :id_text_description, :priority, :is_otherwise, :is_progress, :id_event_torun
+                :id_story, :id_card, :id_event, :id_text_name, :id_text_description, :priority, :is_otherwise, :is_progress, :id_event_torun
             )
         ");
         $stmtCo = $this->pdo->prepare("
@@ -430,6 +467,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         foreach ($choices as $ch) {
             $stmtCh->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $ch['idCard'] ?? null,
                 ':id_event' => $ch['idEvent'] ?? null,
                 ':id_text_name' => $ch['idTextName'] ?? null,
                 ':id_text_description' => $ch['idTextDescription'] ?? null,
@@ -471,11 +509,11 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_cards (
-                id_story, uuid, card_type, id_text_name, id_text_title, id_text_description,
+                id_story, uuid, id_card, card_type, id_text_name, id_text_title, id_text_description,
                 id_text_copyright, link_copyright, id_creator, image_url, id_reference,
                 alternative_image, awesome_icon, style_main, style_detail
             ) VALUES (
-                :id_story, :uuid, :card_type, :id_text_name, :id_text_title, :id_text_description,
+                :id_story, :uuid, :id_card, :card_type, :id_text_name, :id_text_title, :id_text_description,
                 :id_text_copyright, :link_copyright, :id_creator, :image_url, :id_reference,
                 :alternative_image, :awesome_icon, :style_main, :style_detail
             )
@@ -485,6 +523,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             $stmt->execute([
                 ':id_story' => $storyId,
                 ':uuid' => $uuid,
+                ':id_card' => $c['idCard'] ?? null,
                 ':card_type' => $c['cardType'] ?? null,
                 ':id_text_name' => $c['idTextName'] ?? null,
                 ':id_text_title' => $c['idTextTitle'] ?? null,
@@ -505,12 +544,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveKeys(int $storyId, array $keys): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO list_keys (id_story, key_name, key_value, key_group, is_visible)
-            VALUES (:id_story, :key_name, :key_value, :key_group, :is_visible)
+            INSERT INTO list_keys (id_story, id_card, key_name, key_value, key_group, is_visible)
+            VALUES (:id_story, :id_card, :key_name, :key_value, :key_group, :is_visible)
         ");
         foreach ($keys as $k) {
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $k['idCard'] ?? null,
                 ':key_name' => $k['keyName'] ?? null,
                 ':key_value' => $k['keyValue'] ?? null,
                 ':key_group' => $k['keyGroup'] ?? null,
@@ -523,10 +563,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_traits (
-                id_story, uuid, id_text_name, id_text_description,
+                id_story, uuid, id_card, id_text_name, id_text_description,
                 cost_positive, cost_negative, id_class_permitted, id_class_prohibited
             ) VALUES (
-                :id_story, :uuid, :id_text_name, :id_text_description,
+                :id_story, :uuid, :id_card, :id_text_name, :id_text_description,
                 :cost_positive, :cost_negative, :id_class_permitted, :id_class_prohibited
             )
         ");
@@ -535,6 +575,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             $stmt->execute([
                 ':id_story' => $storyId,
                 ':uuid' => $uuid,
+                ':id_card' => $t['idCard'] ?? null,
                 ':id_text_name' => $t['idTextName'] ?? null,
                 ':id_text_description' => $t['idTextDescription'] ?? null,
                 ':cost_positive' => $t['costPositive'] ?? 0,
@@ -549,10 +590,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_character_templates (
-                id_story, uuid, id_tipo, id_text_name, id_text_description,
+                id_story, uuid, id_tipo, id_card, id_text_name, id_text_description,
                 life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start
             ) VALUES (
-                :id_story, :uuid, :id_tipo, :id_text_name, :id_text_description,
+                :id_story, :uuid, :id_tipo, :id_card, :id_text_name, :id_text_description,
                 :life_max, :energy_max, :sad_max, :dexterity_start, :intelligence_start, :constitution_start
             )
         ");
@@ -562,6 +603,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':id_story' => $storyId,
                 ':uuid' => $uuid,
                 ':id_tipo' => $t['idTipo'] ?? null,
+                ':id_card' => $t['idCard'] ?? null,
                 ':id_text_name' => $t['idTextName'] ?? null,
                 ':id_text_description' => $t['idTextDescription'] ?? null,
                 ':life_max' => $t['lifeMax'] ?? 0,
@@ -578,14 +620,15 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_weather_rules (
-                id_story, id_text_name, probability, delta_energy, id_event, condition_key, condition_value, time_start, time_end, is_active
+                id_story, id_card, id_text_name, probability, delta_energy, id_event, condition_key, condition_value, time_start, time_end, is_active
             ) VALUES (
-                :id_story, :id_text_name, :probability, :delta_energy, :id_event, :condition_key, :condition_value, :time_start, :time_end, :is_active
+                :id_story, :id_card, :id_text_name, :probability, :delta_energy, :id_event, :condition_key, :condition_value, :time_start, :time_end, :is_active
             )
         ");
         foreach ($rules as $r) {
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $r['idCard'] ?? null,
                 ':id_text_name' => $r['idTextName'] ?? null,
                 ':probability' => $r['probability'] ?? null,
                 ':delta_energy' => $r['deltaEnergy'] ?? 0,
@@ -603,14 +646,15 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_global_random_events (
-                id_story, id_event, probability, condition_key, condition_value
+                id_story, id_card, id_event, probability, condition_key, condition_value
             ) VALUES (
-                :id_story, :id_event, :probability, :condition_key, :condition_value
+                :id_story, :id_card, :id_event, :probability, :condition_key, :condition_value
             )
         ");
         foreach ($events as $e) {
             $stmt->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $e['idCard'] ?? null,
                 ':id_event' => $e['idEvent'] ?? null,
                 ':probability' => $e['probability'] ?? null,
                 ':condition_key' => $e['conditionKey'] ?? null,
@@ -623,9 +667,9 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmtM = $this->pdo->prepare("
             INSERT INTO list_missions (
-                id_story, id_text_name, id_text_description, condition_key, condition_value_from, condition_value_to, id_event_completed
+                id_story, id_card, id_text_name, id_text_description, condition_key, condition_value_from, condition_value_to, id_event_completed
             ) VALUES (
-                :id_story, :id_text_name, :id_text_description, :condition_key, :condition_value_from, :condition_value_to, :id_event_completed
+                :id_story, :id_card, :id_text_name, :id_text_description, :condition_key, :condition_value_from, :condition_value_to, :id_event_completed
             )
         ");
         $stmtS = $this->pdo->prepare("
@@ -639,6 +683,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         foreach ($missions as $m) {
             $stmtM->execute([
                 ':id_story' => $storyId,
+                ':id_card' => $m['idCard'] ?? null,
                 ':id_text_name' => $m['idTextName'] ?? null,
                 ':id_text_description' => $m['idTextDescription'] ?? null,
                 ':condition_key' => $m['conditionKey'] ?? null,
@@ -668,10 +713,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO list_creator (
-                id_story, uuid, id_text, creator_name, creator_role, link,
+                id_story, uuid, id_card, id_text, creator_name, creator_role, link,
                 url, url_image, url_emote, url_instagram
             ) VALUES (
-                :id_story, :uuid, :id_text, :creator_name, :creator_role, :link,
+                :id_story, :uuid, :id_card, :id_text, :creator_name, :creator_role, :link,
                 :url, :url_image, :url_emote, :url_instagram
             )
         ");
@@ -679,6 +724,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             $stmt->execute([
                 ':id_story' => $storyId,
                 ':uuid' => $c['uuid'] ?? null,
+                ':id_card' => $c['idCard'] ?? null,
                 ':id_text' => $c['idText'] ?? null,
                 ':creator_name' => $c['creatorName'] ?? null,
                 ':creator_role' => $c['creatorRole'] ?? null,
@@ -813,27 +859,27 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         // Return known column sets for each table (MySQL-compatible)
         $columnMap = [
-            'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action'],
+            'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action'],
             'list_locations' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'is_safe', 'max_characters', 'id_event_on_enter', 'id_event_if_counter_zero', 'counter_start', 'id_card'],
             'list_locations_neighbors' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_location_from', 'id_location_to', 'direction', 'energy_cost', 'condition_key', 'condition_value'],
-            'list_events' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'event_type', 'trigger_type', 'energy_cost', 'coin_cost', 'id_event_next', 'flag_interrupt', 'flag_end_time', 'id_location'],
+            'list_events' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'event_type', 'trigger_type', 'energy_cost', 'coin_cost', 'id_event_next', 'flag_interrupt', 'flag_end_time', 'id_location'],
             'list_events_effects' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_event', 'effect_type', 'effect_value', 'flag_group'],
-            'list_items' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight', 'id_class'],
+            'list_items' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'weight', 'id_class'],
             'list_items_effects' => ['id', 'id_story', 'id_card', 'id_item', 'effect_type', 'effect_value'],
-            'list_character_templates' => ['id', 'id_story', 'uuid', 'id_tipo', 'id_text_name', 'id_text_description', 'life_max', 'energy_max', 'sad_max', 'dexterity_start', 'intelligence_start', 'constitution_start'],
-            'list_classes' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'weight_max', 'dexterity_base', 'intelligence_base', 'constitution_base'],
+            'list_character_templates' => ['id', 'id_story', 'uuid', 'id_tipo', 'id_card', 'id_text_name', 'id_text_description', 'life_max', 'energy_max', 'sad_max', 'dexterity_start', 'intelligence_start', 'constitution_start'],
+            'list_classes' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'weight_max', 'dexterity_base', 'intelligence_base', 'constitution_base'],
             'list_classes_bonus' => ['id', 'id_story', 'id_class', 'bonus_type', 'bonus_value'],
-            'list_traits' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
+            'list_traits' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
             'list_creator' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'creator_name', 'creator_role', 'link', 'url', 'url_image', 'url_emote', 'url_instagram'],
             'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'link_copyright', 'id_creator', 'id_reference'],
             'list_texts' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'lang', 'short_text', 'long_text', 'id_text_copyright', 'link_copyright', 'id_creator'],
-            'list_keys' => ['id', 'uuid', 'id_story', 'id_text_name', 'key_name', 'key_value', 'key_group', 'is_visible'],
-            'list_choices' => ['id', 'uuid', 'id_story', 'id_event', 'id_text_name', 'id_text_description', 'priority', 'is_otherwise', 'is_progress', 'id_event_torun'],
+            'list_keys' => ['id', 'uuid', 'id_story', 'id_card', 'id_text_name', 'key_name', 'key_value', 'key_group', 'is_visible'],
+            'list_choices' => ['id', 'uuid', 'id_story', 'id_card', 'id_event', 'id_text_name', 'id_text_description', 'priority', 'is_otherwise', 'is_progress', 'id_event_torun'],
             'list_choices_conditions' => ['id', 'id_story', 'id_card', 'id_choice', 'condition_type', 'condition_key', 'condition_value', 'condition_operator'],
             'list_choices_effects' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_choice', 'effect_type', 'effect_value', 'flag_group'],
-            'list_weather_rules' => ['id', 'id_story', 'id_text_name', 'probability', 'delta_energy', 'id_event', 'condition_key', 'condition_value', 'time_start', 'time_end', 'is_active'],
-            'list_global_random_events' => ['id', 'id_story', 'id_text_name', 'id_text_description', 'id_event', 'probability', 'condition_key', 'condition_value'],
-            'list_missions' => ['id', 'uuid', 'id_story', 'id_text_name', 'id_text_description', 'condition_key', 'condition_value_from', 'condition_value_to', 'id_event_completed'],
+            'list_weather_rules' => ['id', 'id_story', 'id_card', 'id_text_name', 'probability', 'delta_energy', 'id_event', 'condition_key', 'condition_value', 'time_start', 'time_end', 'is_active'],
+            'list_global_random_events' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_event', 'probability', 'condition_key', 'condition_value'],
+            'list_missions' => ['id', 'uuid', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'condition_key', 'condition_value_from', 'condition_value_to', 'id_event_completed'],
             'list_missions_steps' => ['id', 'id_story', 'id_mission', 'step_order', 'id_text_description', 'condition_key', 'condition_value', 'id_event_completed'],
         ];
         return $columnMap[$tableName] ?? [];
