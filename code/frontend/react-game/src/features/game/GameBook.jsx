@@ -5,7 +5,6 @@ import LocationCard from './LocationCard'
 import PlayerStats from './PlayerStats'
 import NeighborRow from './NeighborRow'
 import ActionsRow from './ActionsRow'
-import CopyrightModal from '../../components/modals/CopyrightModal'
 
 export default function GameBook({ gameData }) {
   const { t } = useTranslation()
@@ -73,12 +72,6 @@ export default function GameBook({ gameData }) {
         </div>
       </div>
 
-      {startLocation?.copyrightText && (
-        <CopyrightModal
-          cardInfo={startLocation}
-          modalId={`loc-copyright-${startLocation.uuid}`}
-        />
-      )}
     </>
   )
 }

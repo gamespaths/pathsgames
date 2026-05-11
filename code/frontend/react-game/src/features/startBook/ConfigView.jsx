@@ -34,7 +34,7 @@ export default function ConfigView({ config, story, onChangeClick, termsAccepted
           <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')} />
           <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} />
           <ConfigCard type="gameType"   value={gameTypeValue} locked />
-          <ConfigCard type="login"      value={loginValue}    locked />
+          <ConfigCard type="login"      value={loginValue}    locked  />
         </div>
       </div>
 

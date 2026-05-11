@@ -1,11 +1,10 @@
 import { useTranslation } from '../../i18n/context'
+import GameCardInfoButton from '../../components/layout/GameCardInfoButton'
 
 export default function LocationCard({ location }) {
   const { t } = useTranslation()
 
   if (!location) return null
-
-  const copyrightModalId = `loc-copyright-${location.uuid}`
 
   return (
     <div className="pg-card pg-card--large game-location-card" style={{ position: 'relative' }}>
@@ -17,14 +16,7 @@ export default function LocationCard({ location }) {
         <p className="game-loc-desc">{location.description}</p>
       </div>
       {location.copyrightText && (
-        <button
-          className="card-info-btn"
-          data-bs-toggle="modal"
-          data-bs-target={`#${copyrightModalId}`}
-          title="Photo credit"
-        >
-          <i className="fas fa-info-circle" />
-        </button>
+        <GameCardInfoButton card={location} />
       )}
     </div>
   )

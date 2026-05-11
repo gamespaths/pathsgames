@@ -24,7 +24,7 @@ describe('stories mock data', () => {
 
   it('stories have characters or difficulties', () => {
     for (const story of stories) {
-      const hasCharacters = Array.isArray(story.characters) && story.characters.length > 0
+      const hasCharacters = Array.isArray(story.characterTemplates) && story.characterTemplates.length > 0
       const hasDifficulties = Array.isArray(story.difficulties) && story.difficulties.length > 0
       expect(hasCharacters || hasDifficulties).toBe(true)
     }

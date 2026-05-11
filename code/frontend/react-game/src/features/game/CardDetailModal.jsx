@@ -1,10 +1,9 @@
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../i18n/context'
-import CopyrightModal from '../../components/modals/CopyrightModal'
+import GameCardInfoButton from '../../components/layout/GameCardInfoButton'
 
 export default function CardDetailModal({ card, modalId, actionLabel, onAction }) {
   const { t } = useTranslation()
-  const copyrightModalId = `${modalId}-copyright`
 
   if (!card) return null
 
@@ -43,14 +42,11 @@ export default function CardDetailModal({ card, modalId, actionLabel, onAction }
               <p className="card-detail-desc">{card.description}</p>
               {card.copyrightText && (
                 <div style={{ textAlign: 'right' }}>
-                  <button
-                    className="card-info-btn"
-                    style={{ position: 'static', display: 'inline-flex' }}
-                    data-bs-toggle="modal"
-                    data-bs-target={`#${copyrightModalId}`}
-                  >
-                    <i className="fas fa-info-circle" />
-                  </button>
+                  <GameCardInfoButton
+                    card={card}
+                    buttonClassName="card-info-btn"
+                    buttonStyle={{ position: 'static', display: 'inline-flex' }}
+                  />
                 </div>
               )}
             </div>
@@ -70,7 +66,6 @@ export default function CardDetailModal({ card, modalId, actionLabel, onAction }
           </div>
         </div>
       </div>
-      <CopyrightModal cardInfo={card} modalId={copyrightModalId} />
     </>,
     document.body
   )

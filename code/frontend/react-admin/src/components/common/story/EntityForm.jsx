@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import PathsSelector from './PathsSelector'
 import FastTextSelectorModal from './FastTextSelectorModal'
+import FastTextCreatorModal from './FastTextCreatorModal'
 import PathsOptionsSelectorModal from './PathsOptionsSelectorModal'
 
 /**
@@ -27,6 +28,7 @@ export default function EntityForm({
 }) {
   const [data, setData] = useState({})
   const [selectorState, setSelectorState] = useState(null)
+  const [textCreatorState, setTextCreatorState] = useState({ open: false, field: null, idText: null, values: null })
   const [descManuallySelected, setDescManuallySelected] = useState(false)
   const [isCreatingFastCard, setIsCreatingFastCard] = useState(false)
   const isEditMode = !!entity?.uuid
@@ -60,6 +62,31 @@ export default function EntityForm({
 
   const hasNameAndDesc = fields.some(field => field.key === 'idTextName')
     && fields.some(field => field.key === 'idTextDescription')
+
+  const getTextRow = (idText) => {
+    if (idText === null || idText === undefined || idText === '') return null
+    const en = texts?.find(item => Number(item.idText) === Number(idText) && item.lang === 'en') || null
+    const it = texts?.find(item => Number(item.idText) === Number(idText) && item.lang === 'it') || null
+    return { en, it }
+  }
+
+  const openTextSelector = (field) => {
+    const currentId = data[field.key]
+    if (currentId !== null && currentId !== undefined && currentId !== '') {
+      const row = getTextRow(currentId)
+      setTextCreatorState({
+        open: true,
+        field,
+        idText: Number(currentId),
+        values: {
+          en: { shortText: row?.en?.shortText || '', longText: row?.en?.longText || '' },
+          it: { shortText: row?.it?.shortText || '', longText: row?.it?.longText || '' },
+        },
+      })
+    } else {
+      setSelectorState({ field, startMode: 'list' })
+    }
+  }
 
   const getEnShortText = (idText) => {
     if (idText === null || idText === undefined || idText === '') return ''
@@ -155,7 +182,7 @@ export default function EntityForm({
                     value={data[field.key] ?? ''}
                     displayValue={getEnShortText(data[field.key])}
                     placeholder="No text selected"
-                    onOpenSelector={() => setSelectorState({ field, startMode: 'list' })}
+                    onOpenSelector={() => openTextSelector(field)}
                     onOpenCreator={() => setSelectorState({ field, startMode: 'input-generator' })}
                     onClear={() => setData(prev => ({ ...prev, [field.key]: '' }))}
                     showNewButton
@@ -247,6 +274,22 @@ export default function EntityForm({
           </div>
         </form>
       </div>
+
+      <FastTextCreatorModal
+        open={textCreatorState.open}
+        onClose={(result) => {
+          setTextCreatorState({ open: false, field: null, idText: null, values: null })
+          if (result && textCreatorState.field) {
+            applyTextSelection(textCreatorState.field.key, result.idText)
+          }
+        }}
+        onSave={onSaveFastText}
+        storyOptions={storyOptions || []}
+        initialStoryUuid={storyUuid}
+        initialTextId={textCreatorState.idText}
+        initialValues={textCreatorState.values}
+        mode="edit"
+      />
 
       <FastTextSelectorModal
         open={!!selectorState && selectorState.startMode !== 'options'}

@@ -1,6 +1,10 @@
 {
   "id": 43,
   "uuid": "story-001",
+  "idStory": null,
+  "idCard": 1,
+  "idTextName": null,
+  "idTextDescription": 2,
   "author": "Paths Games Team",
   "versionMin": "0.19.3",
   "versionMax": null,
@@ -10,20 +14,16 @@
   "priority": 1,
   "peghi": 3,
   "idTextTitle": 1,
-  "idTextDescription": 2,
-  "idTextCopyright": 3,
-  "idTextClockSingular": 4,
-  "idTextClockPlural": 5,
-  "clockSingularDescription": "turn",
-  "clockPluralDescription": "turns",
-  "idCard": 1,
-  "idCreator": 1,
-  "idImage": null,
   "idLocationStart": null,
+  "idImage": null,
   "idLocationAllPlayerComa": null,
   "idEventAllPlayerComa": null,
+  "idTextClockSingular": 4,
+  "idTextClockPlural": 5,
   "idEventEndGame": null,
+  "idTextCopyright": 3,
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+  "idCreator": 1,
   "texts": [
     {
       "id": 1,
@@ -149,11 +149,11 @@
       "idTextDescription": null,
       "idText": 10,
       "lang": "en",
-      "shortText": "Vitaliy Shevchenko on unsplash.com",
+      "shortText": "Vitaliy Shevchenko",
       "longText": "Vitaliy Shevchenko on unsplash.com",
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "linkCopyright": null,
-      "idCreator": null
+      "idCreator": 1
     },
     {
       "id": 11,
@@ -266,11 +266,11 @@
       "idTextDescription": null,
       "idText": 19,
       "lang": "en",
-      "shortText": "Alireza Sahebi — https://unsplash.com/@alirzasahb",
-      "longText": "Alireza Sahebi — https://unsplash.com/@alirzasahb",
-      "idTextCopyright": null,
+      "shortText": "Alireza Sahebi",
+      "longText": "Alireza Sahebi",
+      "idTextCopyright": 3,
       "linkCopyright": null,
-      "idCreator": null
+      "idCreator": 1
     },
     {
       "id": 20,
@@ -305,11 +305,11 @@
       "idTextDescription": null,
       "idText": 22,
       "lang": "en",
-      "shortText": "Godz1 — https://unsplash.com/@godz1",
+      "shortText": "Godz1",
       "longText": "Godz1 — https://unsplash.com/@godz1",
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "linkCopyright": null,
-      "idCreator": null
+      "idCreator": 1
     },
     {
       "id": 23,
@@ -344,11 +344,11 @@
       "idTextDescription": null,
       "idText": 25,
       "lang": "en",
-      "shortText": "Cas Holmes — https://unsplash.com/@cas1111",
-      "longText": "Cas Holmes — https://unsplash.com/@cas1111",
-      "idTextCopyright": null,
+      "shortText": "Cas Holmes",
+      "longText": "Cas Holmes",
+      "idTextCopyright": 3,
       "linkCopyright": null,
-      "idCreator": null
+      "idCreator": 1
     },
     {
       "id": 26,
@@ -383,11 +383,11 @@
       "idTextDescription": null,
       "idText": 28,
       "lang": "en",
-      "shortText": "petr sidorov — https://unsplash.com/@m_malkovich",
+      "shortText": "petr sidorov",
       "longText": "petr sidorov — https://unsplash.com/@m_malkovich",
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "linkCopyright": null,
-      "idCreator": null
+      "idCreator": 1
     },
     {
       "id": 29,
@@ -843,6 +843,136 @@
       "idTextCopyright": null,
       "linkCopyright": null,
       "idCreator": null
+    },
+    {
+      "id": 64,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 64,
+      "lang": "en",
+      "shortText": "BORED",
+      "longText": "BORED",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 65,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 65,
+      "lang": "en",
+      "shortText": "Getillustrations",
+      "longText": "Getillustrations",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 66,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 66,
+      "lang": "en",
+      "shortText": "Happy",
+      "longText": "Happy",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 67,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 67,
+      "lang": "en",
+      "shortText": "Happy",
+      "longText": "Happy",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 68,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 68,
+      "lang": "en",
+      "shortText": "Happy",
+      "longText": "Happy",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 25,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 25,
+      "lang": "it",
+      "shortText": "Cas Holmes",
+      "longText": "Cas Holmes",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 19,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 19,
+      "lang": "it",
+      "shortText": "Alireza Sahebi",
+      "longText": "Alireza Sahebi",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 22,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 22,
+      "lang": "it",
+      "shortText": "Godz1",
+      "longText": "",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 28,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 28,
+      "lang": "it",
+      "shortText": "petr sidorov",
+      "longText": "",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
+    },
+    {
+      "id": 10,
+      "idCard": null,
+      "idTextName": null,
+      "idTextDescription": null,
+      "idText": 10,
+      "lang": "it",
+      "shortText": "Vitaliy Shevchenko",
+      "longText": "",
+      "idTextCopyright": 3,
+      "linkCopyright": null,
+      "idCreator": 1
     }
   ],
   "difficulties": [
@@ -981,122 +1111,10 @@
       "constitutionBase": 0
     }
   ],
-  "traits": [
-    {
-      "id": 1,
-      "idCard": 16,
-      "idTextName": 31,
-      "idTextDescription": 56,
-      "costPositive": 0,
-      "costNegative": 0,
-      "idClassPermitted": null,
-      "idClassProhibited": null
-    },
-    {
-      "id": 2,
-      "idCard": 17,
-      "idTextName": 33,
-      "idTextDescription": 57,
-      "costPositive": 0,
-      "costNegative": 0,
-      "idClassPermitted": null,
-      "idClassProhibited": null
-    },
-    {
-      "id": 3,
-      "idCard": 18,
-      "idTextName": 35,
-      "idTextDescription": 58,
-      "costPositive": 0,
-      "costNegative": 0,
-      "idClassPermitted": null,
-      "idClassProhibited": null
-    },
-    {
-      "id": 4,
-      "idCard": 19,
-      "idTextName": 37,
-      "idTextDescription": 59,
-      "costPositive": 0,
-      "costNegative": 0,
-      "idClassPermitted": null,
-      "idClassProhibited": null
-    }
-  ],
-  "characterTemplates": [
-    {
-      "id": 1,
-      "idCard": 2,
-      "idTextName": 9,
-      "idTextDescription": 50,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    },
-    {
-      "id": 2,
-      "idCard": 3,
-      "idTextName": 9,
-      "idTextDescription": 50,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    },
-    {
-      "id": 3,
-      "idCard": 4,
-      "idTextName": 13,
-      "idTextDescription": 51,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    },
-    {
-      "id": 4,
-      "idCard": 5,
-      "idTextName": 13,
-      "idTextDescription": 51,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    },
-    {
-      "id": 5,
-      "idCard": 6,
-      "idTextName": 16,
-      "idTextDescription": 50,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    },
-    {
-      "id": 6,
-      "idCard": 7,
-      "idTextName": 16,
-      "idTextDescription": 50,
-      "lifeMax": 0,
-      "energyMax": 0,
-      "sadMax": 0,
-      "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "constitutionStart": 0
-    }
-  ],
+  "locations": [],
+  "events": [],
+  "items": [],
+  "choices": [],
   "creators": [
     {
       "id": 1,
@@ -1440,7 +1458,7 @@
       "alternativeImage": null,
       "awesomeIcon": "fas fa-fire-alt",
       "styleMain": null,
-      "styleDetail": null
+      "styleDetail": ""
     },
     {
       "id": 23,
@@ -1456,21 +1474,152 @@
       "awesomeIcon": "fas fa-skull-crossbones",
       "styleMain": null,
       "styleDetail": null
+    },
+    {
+      "id": 24,
+      "idCard": 24,
+      "idTextName": 64,
+      "idTextDescription": 67,
+      "idTextTitle": 66,
+      "idTextCopyright": 65,
+      "linkCopyright": "https://unsplash.com/illustrations/a-woman-is-jumping-up-in-the-air-h_tlGd-29VA",
+      "idCreator": 1,
+      "urlImage": "https://plus.unsplash.com/premium_vector-1721296174392-5022791324ed?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "styleMain": null,
+      "styleDetail": "top--20 bg-white padding-left-10"
     }
   ],
   "keys": [],
-  "locations": [],
-  "events": [],
-  "items": [],
-  "choices": [],
+  "traits": [
+    {
+      "id": 1,
+      "idCard": 16,
+      "idTextName": 31,
+      "idTextDescription": 56,
+      "idClassPermitted": null,
+      "idClassProhibited": null,
+      "costPositive": 0,
+      "costNegative": 0
+    },
+    {
+      "id": 2,
+      "idCard": 17,
+      "idTextName": 33,
+      "idTextDescription": 57,
+      "idClassPermitted": null,
+      "idClassProhibited": null,
+      "costPositive": 0,
+      "costNegative": 0
+    },
+    {
+      "id": 3,
+      "idCard": 18,
+      "idTextName": 35,
+      "idTextDescription": 58,
+      "idClassPermitted": null,
+      "idClassProhibited": null,
+      "costPositive": 0,
+      "costNegative": 0
+    },
+    {
+      "id": 4,
+      "idCard": 19,
+      "idTextName": 37,
+      "idTextDescription": 59,
+      "idClassPermitted": null,
+      "idClassProhibited": null,
+      "costPositive": 0,
+      "costNegative": 0
+    },
+    {
+      "id": 5,
+      "idCard": 24,
+      "idTextName": 68,
+      "idTextDescription": 68,
+      "idClassPermitted": null,
+      "idClassProhibited": null,
+      "costPositive": 0,
+      "costNegative": 0
+    }
+  ],
+  "characterTemplates": [
+    {
+      "idCard": 2,
+      "idTextName": 9,
+      "idTextDescription": 50,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    },
+    {
+      "idCard": 3,
+      "idTextName": 9,
+      "idTextDescription": 50,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    },
+    {
+      "idCard": 4,
+      "idTextName": 13,
+      "idTextDescription": 51,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    },
+    {
+      "idCard": 5,
+      "idTextName": 13,
+      "idTextDescription": 51,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    },
+    {
+      "idCard": 6,
+      "idTextName": 16,
+      "idTextDescription": 50,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    },
+    {
+      "idCard": 7,
+      "idTextName": 16,
+      "idTextDescription": 50,
+      "lifeMax": 0,
+      "energyMax": 0,
+      "sadMax": 0,
+      "dexterityStart": 0,
+      "intelligenceStart": 0,
+      "constitutionStart": 0
+    }
+  ],
   "weatherRules": [],
   "globalRandomEvents": [],
   "missions": [],
   "locationNeighbors": [],
   "eventEffects": [],
-  "itemEffects": [],
   "choiceConditions": [],
   "choiceEffects": [],
+  "itemEffects": [],
   "classBonuses": [],
   "missionSteps": []
 }

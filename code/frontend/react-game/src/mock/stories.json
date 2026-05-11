@@ -18,7 +18,7 @@
       "copyrightText": "Lili Popper on Unsplash",
       "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM"
     },
-    "characters": [
+    "characterTemplates": [
       {
         "uuid": "char-adult",
         "name": "Elf",
@@ -375,7 +375,7 @@
       "copyrightText": "Sebastian Unrau",
       "linkCopyright": "https://unsplash.com/photos/trees-on-forest-with-sun-rays-sp-p7uuT0tw"
     },
-    "characters": [
+    "characterTemplates": [
       {
         "uuid": "char-young-woman",
         "name": "Young Woman",
@@ -625,7 +625,7 @@
       "copyrightText": "Ganapathy Kumar",
       "linkCopyright": "https://unsplash.com/photos/landscape-photography-of-rock-formation-L75D18aVal8"
     },
-    "characters": [
+    "characterTemplates": [
       {
         "uuid": "char-young-woman",
         "name": "Young Woman",
@@ -861,7 +861,7 @@
       "copyrightText": "Sai Madhav",
       "linkCopyright": "https://unsplash.com/photos/a-gold-and-red-chair-sitting-on-top-of-a-wooden-floor-erbqWfzz1Hk"
     },
-    "characters": [
+    "characterTemplates": [
       {
         "uuid": "char-young-woman",
         "name": "Young Woman",
@@ -1125,7 +1125,7 @@
       "copyrightText": "Christopher Burns",
       "linkCopyright": "https://unsplash.com/photos/fire-with-black-smoke-during-night-gyrrWzwqm5Y"
     },
-    "characters": [
+    "characterTemplates": [
       {
         "uuid": "char-young-woman",
         "name": "Young Woman",

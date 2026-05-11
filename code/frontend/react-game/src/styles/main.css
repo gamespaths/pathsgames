@@ -759,7 +759,7 @@ html, body {
 }
 
 .config-card-disabled {
-  opacity: 0.45;
+  opacity: 0.75;
   filter: grayscale(40%);
   cursor: not-allowed;
 }
@@ -770,16 +770,16 @@ html, body {
 }
 
 .config-card-label {
-  font-size: 0.56rem;
+  font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--color-ash);
+  color: var(--color-parchment);
   font-family: var(--font-heading);
   flex-shrink: 0;
 }
 
 .config-card-icon {
-  font-size: clamp(1.1rem, 2.8vh, 1.8rem);
+  font-size: clamp(5rem, 2.8vh, 1.8rem);
   color: var(--color-gold-light);
   flex: 1;
   display: flex;
@@ -915,10 +915,11 @@ html, body {
 }
 
 .credits-view-btn {
-  display: inline-flex;
+  /*display: inline-flex;*/
   align-items: center;
-  font-size: 0.55rem;
+  font-size: 0.8rem;
   color: var(--color-gold-light);
+  text-align: center;
   text-decoration: none;
   border: 1px solid var(--color-gold-dark);
   padding: 2px 7px;
@@ -956,7 +957,7 @@ html, body {
 }
 
 .config-card-value {
-  font-size: clamp(0.6rem, 1.3vh, 0.78rem);
+  font-size: clamp(1rem, 1.3vh, 0.78rem);
   color: var(--color-parchment);
   font-family: var(--font-heading);
   font-weight: 600;
@@ -971,12 +972,12 @@ html, body {
 }
 
 .config-coming-soon-btn {
-  margin-top: 6px;
+  /*margin-top: 6px;*/
   flex-shrink: 0;
-  display: inline-flex;
+  /*display: inline-flex;*/
   align-items: center;
   gap: 4px;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-family: var(--font-heading);
   letter-spacing: 0.5px;
   color: var(--color-gold-light);
@@ -986,6 +987,7 @@ html, body {
   padding: 3px 8px;
   pointer-events: none;
   user-select: none;
+  text-align: center;
 }
 
 .config-change-btn {
@@ -994,7 +996,7 @@ html, body {
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 4px;
-  font-size: 0.65rem;
+  font-size: 1rem;
   padding: 2px 7px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
@@ -1046,6 +1048,7 @@ html, body {
   padding: 6px 4px 10px;
 }
 
+/* legacy 3-col grid (kept for any remaining usages) */
 .selection-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1053,6 +1056,122 @@ html, body {
   align-content: start;
   padding: 4px 2px;
   animation: slideInRight 0.3s ease;
+}
+
+/* ── CardBig — 2-col selection grid ─────────────────────────────── */
+.card-big-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.9rem;
+  align-content: start;
+  padding: 4px 2px;
+  animation: slideInRight 0.3s ease;
+}
+
+/* base: pg-card + card-big */
+.card-big {
+  cursor: pointer;
+  min-height: 0;
+  aspect-ratio: 2 / 3;
+}
+
+/* full-bleed cover image */
+.card-big__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.45s ease;
+}
+.card-big:not(.config-card-disabled):hover .card-big__img { transform: scale(1.07); }
+
+/* icon placeholder when no image */
+.card-big__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--color-gold-light);
+  opacity: 0.5;
+}
+
+/* footer gradient overlay */
+.card-big__footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 2;
+  background: linear-gradient(transparent, rgba(8,3,0,0.93) 35%);
+  padding: 28px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-big__name {
+  font-family: var(--font-heading);
+  font-size: clamp(0.72rem, 1.8vh, 0.95rem);
+  color: var(--color-gold-light);
+  font-weight: 700;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-big__desc {
+  font-size: clamp(0.58rem, 1.4vh, 0.72rem);
+  color: var(--color-parchment-dark);
+  font-style: italic;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-big__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.card-big__btn {
+  flex: 1;
+  background: linear-gradient(180deg, var(--color-brown-mid), var(--color-brown-dark));
+  border: 1px solid var(--color-gold-dark);
+  color: var(--color-gold-light);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: var(--font-heading);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  letter-spacing: 0.4px;
+}
+.card-big__btn:hover {
+  background: linear-gradient(180deg, var(--color-brown-warm), var(--color-brown-mid));
+  border-color: var(--color-gold);
+  color: var(--color-gold-shine);
+}
+.card-big__btn--selected {
+  background: linear-gradient(180deg, rgba(200,150,10,0.35), rgba(200,150,10,0.18));
+  border-color: var(--color-gold-shine);
+  color: var(--color-gold-shine);
+}
+
+.card-big__coming-soon {
+  font-size: 0.62rem;
+  color: var(--color-ash);
+  font-family: var(--font-heading);
+  letter-spacing: 0.5px;
+  opacity: 0.5;
 }
 
 .choice-card {

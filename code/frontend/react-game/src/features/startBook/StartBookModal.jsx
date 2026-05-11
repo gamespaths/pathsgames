@@ -5,12 +5,12 @@ import BookPageLeft from '../../components/book/BookPageLeft'
 import BookPageRight from '../../components/book/BookPageRight'
 import ConfigView from './ConfigView'
 import SelectionView from './SelectionView'
-import CopyrightModal from '../../components/modals/CopyrightModal'
 import { getStoryDetail } from '../../api/stories'
+import GameCardInfoButton from '../../components/layout/GameCardInfoButton'
 
 function buildInitialConfig(story) {
   return {
-    character: story?.characters?.[0] ?? null,
+    character: story?.characterTemplates?.[0] ?? null,
     class: story?.classes?.[0] ?? null,
     trait: story?.traits?.[0] ?? null,
     difficulty: story?.difficulties?.[0] ?? null,
@@ -19,7 +19,7 @@ function buildInitialConfig(story) {
 
 function getOptionsForType(type, story) {
   if (type === 'difficulty') return story?.difficulties ?? []
-  if (type === 'character') return story?.characters ?? []
+  if (type === 'character') return story?.characterTemplates ?? []
   if (type === 'class') return story?.classes ?? []
   if (type === 'trait') return story?.traits ?? []
   return []
@@ -205,8 +205,6 @@ export default function StartBookModal({ story, onClose }) {
           )}
         </div>
       </div>
-
-      <CopyrightModal cardInfo={activeStory.card} modalId="startBookCopyrightModal" />
     </>
   )
 }
@@ -227,14 +225,10 @@ function StoryLeftContent({ story, loading }) {
         <h2 className="story-card-full-title">{story.card?.title}</h2>
         <p className="story-card-full-desc">{story.card?.description}</p>
         {story.card?.copyrightText && (
-          <button
-            className="card-info-btn story-card-info-btn"
-            data-bs-toggle="modal"
-            data-bs-target="#startBookCopyrightModal"
-            aria-label="Photo credit"
-          >
-            <i className="fas fa-info-circle" />
-          </button>
+          <GameCardInfoButton
+            card={story.card}
+            buttonClassName="card-info-btn story-card-info-btn"
+          />
         )}
       </div>
     </div>

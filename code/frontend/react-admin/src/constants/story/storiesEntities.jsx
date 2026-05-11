@@ -365,10 +365,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     ],
     cards: [
       { key: 'idTextTitle', label: 'Title',  type: 'idTextTitle' },
-      { key: 'idTextDescription', label: 'Description', type: 'idTextDescription' },
-      { key: 'urlImage', label: 'Image URL' },
       { key: 'awesomeIcon', label: 'Icon' },
-      { key: 'idCreator', label: 'Creator' },
     ],
     texts: [
       { key: 'idText', label: 'ID Text', type: 'monoId' },

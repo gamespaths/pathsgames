@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n/context'
-import ConfigCard from './ConfigCard'
+import GameCard from '../../components/layout/GameCard'
 
 export default function SelectionView({ type, options, selected, story, onSelect, onBack }) {
   const { t } = useTranslation()
@@ -16,15 +16,20 @@ export default function SelectionView({ type, options, selected, story, onSelect
       </div>
 
       <div className="selection-scroll">
-        <div className="selection-list">
+        <div className="card-big-list">
           {options.map((opt, i) => (
-            <ConfigCard
+            <GameCard story={story}
               key={opt.uuid ?? opt.name ?? i}
-              type={type}
-              value={opt}
+              variant="big"
+              card={opt.card}
+              label={t(`book.${type}`)}
+              imageAlt={opt.name}
+              icon={opt.icon}
+              name={opt.card?.title ?? opt.card?.name ?? opt.name}
+              description={opt.card?.description ?? opt.description}
               selected={selected?.name === opt.name}
-              story={story}
               onSelect={() => onSelect(opt)}
+              selectLabel={t('book.select')}
             />
           ))}
         </div>
