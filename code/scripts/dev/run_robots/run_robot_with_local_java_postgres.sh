@@ -27,6 +27,9 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
+
 # PostgreSQL connection defaults (match application-prod.yml)
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"

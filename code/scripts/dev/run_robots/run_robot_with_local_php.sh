@@ -19,6 +19,8 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
 
 cd $PROJECT_ROOT && \
 python3 -m venv .venv && \
@@ -39,6 +41,12 @@ sleep 1
 echo "Kill all process using 8042 port"
 fuser -k 8042/tcp || true
 
+# Install PHP dependencies if vendor/ is missing
+if [ ! -f "$PROJECT_ROOT/code/backend/php/vendor/autoload.php" ]; then
+    echo "Running composer install..."
+    cd "$PROJECT_ROOT/code/backend/php" && composer install --no-interaction --prefer-dist
+fi
+
 # start local server
 php -S localhost:8042 -t "$PROJECT_ROOT/code/backend/php/public" &
 SERVER_PID=$!
@@ -47,7 +55,7 @@ SERVER_PID=$!
 cleanup() {
     echo "-------------- Cleanup"
 	echo "Stopping the server"
-    kill $SERVER_PID
+    kill $SERVER_PID || true
 }
 trap cleanup EXIT
 
@@ -66,5 +74,7 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variable
 # stop local server
 echo "Stopping the server"
 kill $SERVER_PID
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-php/"

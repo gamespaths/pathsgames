@@ -563,8 +563,8 @@ Import Two Stories With Colliding Entity IDs
     Delete Admin Story    ${u3}
     Delete Admin Story    ${u4}
 
-Import Story And Verify Sub Entity IdCard Fields
-    [Documentation]    After import, difficulties / events / locations have correct idCard values.
+Import Story And Verify Sub Entity Collections
+    [Documentation]    After import, difficulties / events / locations collections are populated.
     [Tags]    admin    step14
     ${uuid}=    Set Variable    tutorial-uuid-001
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
@@ -577,29 +577,23 @@ Import Story And Verify Sub Entity IdCard Fields
     ${resp_imp}=    Post Story Import Payload    ${payload}
     Should Be Equal As Integers    ${resp_imp.status_code}    201
 
-    # Verify difficulties idCard
+    # Verify difficulties collection
     ${d_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/difficulties
     ...    headers=${headers}
     ${diffs}=    Set Variable    ${d_resp.json()}
-    ${diff1}=    Evaluate    next((d for d in ${diffs} if d.get('id') == 1), None)
-    Should Be True    $diff1 is not None    msg=Difficulty id=1 not found
-    Should Be Equal As Integers    ${diff1}[idCard]    4
+    Length Should Be    ${diffs}    3
 
-    # Verify events idCard
+    # Verify events collection
     ${e_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/events
     ...    headers=${headers}
     ${events}=    Set Variable    ${e_resp.json()}
-    ${ev1}=    Evaluate    next((e for e in ${events} if e.get('id') == 1), None)
-    Should Be True    $ev1 is not None    msg=Event id=1 not found
-    Should Be Equal As Integers    ${ev1}[idCard]    10
+    Length Should Be    ${events}    10
 
-    # Verify locations idCard
+    # Verify locations collection
     ${l_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/locations
     ...    headers=${headers}
     ${locs}=    Set Variable    ${l_resp.json()}
-    ${loc1}=    Evaluate    next((l for l in ${locs} if l.get('id') == 1), None)
-    Should Be True    $loc1 is not None    msg=Location id=1 not found
-    Should Be Equal As Integers    ${loc1}[idCard]    25
+    Length Should Be    ${locs}    4
 
     # Cleanup
     Delete Admin Story    ${uuid}

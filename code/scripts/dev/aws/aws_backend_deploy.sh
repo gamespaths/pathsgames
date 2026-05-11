@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Load .env from repository root if present
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
     # shellcheck disable=SC1090
@@ -30,6 +30,13 @@ S3_BUCKET="${S3_BUCKET:-pathsgames-dev}"
 S3_PREFIX="${S3_PREFIX:-cloudformation-backend}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 
+#CONFIRM FLAG: if --confirm is passed as argument, the script will proceed without asking for confirmation
+CONFIRM="--confirm-changeset" # default to ask for confirmation before deploying changeset
+if [[ "${1:-}" == "--auto-confirm" ]]; then
+    CONFIRM="--no-confirm-changeset" # if --auto-confirm is passed, do not ask for confirmation before deploying changeset
+fi
+
+
 echo "Deploying stack '$STACK_NAME' to region '$AWS_REGION' (Environment: $ENVIRONMENT_NAME)"
 
 echo "SAM CLI found — building and deploying with sam"
@@ -52,6 +59,7 @@ sam deploy \
     --region "${AWS_REGION:-us-east-2}" \
     --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
     --parameter-overrides Environment="${ENVIRONMENT_NAME:-dev}" \
+    $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 
 

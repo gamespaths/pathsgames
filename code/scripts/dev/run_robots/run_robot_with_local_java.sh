@@ -59,5 +59,7 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variable
 
 # stop local server
 kill $SERVER_PID || true
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-java/"

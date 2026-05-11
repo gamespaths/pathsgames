@@ -18,30 +18,31 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
-echo "Uccido qualunque processo occupi la porta 8042"
-fuser -k 8042/tcp || true
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
 
-echo "Rimuovo il file database.sqlite"
+echo "Remove database.sqlite"
 rm "$PROJECT_ROOT/code/backend/python/database.sqlite" || true
 
-# start local server
-cd "$PROJECT_ROOT/code/backend/python" && \
-python3 -m venv .venv && \
-source .venv/bin/activate && \
-pip install -r requirements.txt && \
-python3 -m app.launcher & # python -m flask --app api --debug run --port 8042 &
-SERVER_PID=$!		
+# Setup venv and install dependencies BEFORE starting the server
+cd "$PROJECT_ROOT/code/backend/python"
+python3 -m venv .venv
+.venv/bin/pip install -q -r requirements.txt
 
-# Funzione per terminare l'applicazione in caso di errore
+echo "Execute script to seed stories in database"
+.venv/bin/python scripts/seed_stories.py
+
+# start local server
+.venv/bin/python -m app.launcher &
+SERVER_PID=$!
+
+# Function to terminate the application in case of error
 cleanup() {
     echo "-------------- Cleanup"
 	echo "Stopping the server"
-    kill $SERVER_PID
+    kill $SERVER_PID || true
 }
 trap cleanup EXIT
-
-echo "Execute script to seed stories in database"
-cd "$PROJECT_ROOT/code/backend/python" && .venv/bin/python scripts/seed_stories.py
 
 echo "Starting local Python server with PID $SERVER_PID..."
 
@@ -52,19 +53,20 @@ curl -s http://localhost:8042/api/echo/status > /dev/null || {
 	exit 1
 }	
 
-# run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.\
+# run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
 echo "Running Robot tests!"
 
-cd $PROJECT_ROOT && \
-python3 -m venv .venv && \
-source .venv/bin/activate
-
+cd "$PROJECT_ROOT" && python3 -m venv .venv
 
 cd "$PROJECT_ROOT/code/tests/robot" && \
-pip install -r requirements.txt && \
-ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/
+"$PROJECT_ROOT/.venv/bin/pip" install -q -r requirements.txt && \
+ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/
 
 # stop local server
 kill $SERVER_PID || true
+echo "Kill all process using 8042 port"
+fuser -k 8042/tcp || true   
+
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-python/"
+
