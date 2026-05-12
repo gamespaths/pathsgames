@@ -32,6 +32,7 @@ def seed():
         "versionMin": "0.14.0",
         "idTextTitle": 1,
         "idTextDescription": 2,
+        "idCard": 1,
         "texts": [
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL"},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL"},
@@ -41,6 +42,10 @@ def seed():
             {"idText": 100, "lang": "it", "shortText": "Sala di Benvenuto"},
             {"idText": 200, "lang": "en", "shortText": "Warrior"},
             {"idText": 200, "lang": "it", "shortText": "Guerriero"},
+            {"idText": 201, "lang": "en", "shortText": "Academy of Paths"},
+            {"idText": 201, "lang": "it", "shortText": "Accademia di Paths"},
+            {"idText": 202, "lang": "en", "shortText": "Your training starts here."},
+            {"idText": 202, "lang": "it", "shortText": "Il tuo addestramento inizia qui."},
             {"idText": 210, "lang": "en", "shortText": "Fighter"},
             {"idText": 210, "lang": "it", "shortText": "Combattente"},
             {"idText": 300, "lang": "en", "shortText": "Tutorial"},
@@ -72,6 +77,18 @@ def seed():
         ],
         "characterTemplates": [
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210}
+        ],
+        "cards": [
+            {
+                "id": 1,
+                "uuid": "card-tutorial-001",
+                "idTextTitle": 201,
+                "idTextDescription": 202,
+                "imageUrl": "https://paths.games/assets/cards/tutorial-academy.jpg",
+                "awesomeIcon": "fa-graduation-cap",
+                "styleMain": "card-tutorial",
+                "styleDetail": "card-tutorial-detail"
+            }
         ]
     }
     

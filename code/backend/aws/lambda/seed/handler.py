@@ -146,6 +146,8 @@ SEED_STORIES = [
         "class_count":        0,
         "template_count":     0,
         "trait_count":        0,
+        # idCard points to raw_cards[0].id
+        "idCard":             1,
         # Step 16: raw content data for content detail endpoints
         "raw_texts": [
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL", "longText": None,
@@ -172,8 +174,32 @@ SEED_STORIES = [
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 100, "lang": "it", "shortText": "Sala di Benvenuto", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # card texts
+            {"idText": 201, "lang": "en", "shortText": "Academy of Paths", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 201, "lang": "it", "shortText": "Accademia di Paths", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 202, "lang": "en", "shortText": "Your training starts here.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 202, "lang": "it", "shortText": "Il tuo addestramento inizia qui.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
         ],
-        "raw_cards":    [],
+        "raw_cards": [
+            {
+                "id":                1,
+                "uuid":             "card-tutorial-001",
+                "idTextTitle":      201,
+                "idTextDescription": 202,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "imageUrl":         "https://paths.games/assets/cards/tutorial-academy.jpg",
+                "alternativeImage": None,
+                "awesomeIcon":      "fa-graduation-cap",
+                "styleMain":        "card-tutorial",
+                "styleDetail":      "card-tutorial-detail",
+            },
+        ],
         "raw_creators": [],
     },
     {
@@ -326,6 +352,7 @@ def _seed_stories():
             "classes":                  s.get("classes", []),
             "traits":                   s.get("traits", []),
             "card":                     s.get("card"),
+            "idCard":                   s.get("idCard"),
             "class_count":              s.get("class_count", 0),
             "template_count":           s.get("template_count", 0),
             "trait_count":              s.get("trait_count", 0),

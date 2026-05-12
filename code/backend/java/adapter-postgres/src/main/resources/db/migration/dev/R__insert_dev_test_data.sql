@@ -265,7 +265,7 @@ INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, 
 INSERT INTO list_creator (id, id_story, link) VALUES (90001, 9001, 'https://paths.games');
 
 -- ── Story 1 Cards ───────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90001, 9001, 'fas fa-graduation-cap', 'tutorial');
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90001, 9001, 'https://paths.games/assets/cards/tutorial-academy.jpg', 'fas fa-graduation-cap', 'tutorial', 1, 2, 1);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90002, 9001, 'fas fa-book-open', 'learning');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90003, 9001, 'fas fa-lightbulb', 'tips');
 
@@ -364,7 +364,7 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (91003, 9002, 91004, 'ENERGY', 3);
 
 -- ── Story 2 Cards ───────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91001, 9002, 'fas fa-chess-rook', 'medieval');
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91001, 9002, 'https://paths.games/assets/cards/valvassore.jpg', 'fas fa-chess-rook', 'medieval', 1, 2, 1);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
 

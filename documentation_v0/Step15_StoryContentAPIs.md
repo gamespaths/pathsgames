@@ -27,6 +27,7 @@ This document describes the implementation of **Step 15: Story Content APIs — 
 | 15.6 | Implement domain service | `StoryQueryService` with category/group listing and enhanced detail resolution |
 | 15.7 | Create REST DTOs and controller | 4 new DTOs, 4 new endpoints, enriched detail mapping |
 | 15.8 | Write comprehensive unit tests | Domain model, service, controller tests with 100% branch coverage |
+| 15.9 | Sub-entity card enrichment (v0.19.2) | `idCard` FK stored on difficulties, characterTemplates, classes, traits during import; resolved `card` object returned in story detail for each sub-entity |
 
 
 ## Architecture
@@ -257,13 +258,17 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `CharacterTemplateResponse` | uuid, name, description, lifeMax, energyMax, sadMax, dexterityStart, intelligenceStart, constitutionStart | Character template in story detail |
 | `ClassInfoResponse` | uuid, name, description, weightMax, dexterityBase, intelligenceBase, constitutionBase | Character class in story detail |
 | `TraitInfoResponse` | uuid, name, description, costPositive, costNegative, idClassPermitted, idClassProhibited | Character trait in story detail |
-| `CardInfoResponse` | uuid, imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail, title | Visual card in story detail |
+| `CardInfoResponse` | uuid, imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail, title, description, copyrightText, linkCopyright | Visual card in story detail |
 
 ### Updated REST DTO
 
 | Class | New Fields | Purpose |
 |-------|------------|---------|
 | `StoryDetailResponse` | classCount, characterTemplateCount, traitCount, characterTemplates (list), classes (list), traits (list), card (object) | Enriched story view |
+| `CharacterTemplateResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `ClassInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `TraitInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `DifficultyResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 
 
 ## Roles and Permissions
@@ -416,12 +421,12 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
 - First version created with AI prompts:
     > Set Step/XX=15. write all java backend code into 'code/backend/java' project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into '/code/backend/java/adapter-rest/src/main/resources/openapi' folder with new/changed api. create a new simple web example to use new interfaces inside new code/website/concepts_v0/ folder. add new folder inside 'code/tests/robot/test' and write new robot-framework test. don't look and don't change 'backend/python', 'backend/php', 'backend/aws' and others concepts folder into 'website'
 
-- **Document Version**: 0.15.0
+- **Document Version**: 0.19.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
-- **Last Updated**: April 16, 2026
+- **Last Updated**: May 09, 2026
 - **Status**: ✅ Complete
 
 

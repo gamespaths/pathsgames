@@ -5,11 +5,13 @@ const AuthContext = createContext(null)
 const STORAGE_KEY = 'pg_admin_token'
 const SERVER_KEY = 'pg_admin_server'
 
+const normalizeUrl = (url) => (typeof url === 'string' && url.endsWith('/') ? url.slice(0, -1) : url)
+
 const getServers = () => {
   const envServers = import.meta.env.VITE_DEFAULT_SERVERS
   if (envServers) {
     try {
-      return JSON.parse(envServers)
+      return JSON.parse(envServers).map(s => ({ ...s, url: normalizeUrl(s.url) }))
     } catch (e) {
       console.error('Error parsing VITE_DEFAULT_SERVERS from .env', e)
     }
@@ -24,7 +26,7 @@ const DEFAULT_SERVERS = getServers()
 
 export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
-  const [server, setServerState] = useState(() => localStorage.getItem(SERVER_KEY) || DEFAULT_SERVERS[0].url)
+  const [server, setServerState] = useState(() => normalizeUrl(localStorage.getItem(SERVER_KEY)) || DEFAULT_SERVERS[0].url)
 
   const login = useCallback((jwt) => {
     // Sanitize token: ensure it's a string and remove any characters that shouldn't be in a JWT/token

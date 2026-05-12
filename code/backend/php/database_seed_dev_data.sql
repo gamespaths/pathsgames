@@ -296,8 +296,8 @@ INSERT INTO list_creator (id, id_story, creator_name, link) VALUES
 (90001, 9001, 'PathsMaster', 'https://paths.games');
 
 -- Story 1 Cards
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
-(90001, 9001, 'fas fa-graduation-cap', 'tutorial');
+INSERT INTO list_cards (id, id_story, image_url, awesome_icon, style_main, id_text_title, id_text_description) VALUES
+(90001, 9001, 'https://paths.games/assets/cards/tutorial-academy.jpg', 'fas fa-graduation-cap', 'tutorial', 1, 2);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
 (90002, 9001, 'fas fa-book-open', 'learning');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
@@ -456,12 +456,15 @@ INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight)
 (91005, 9002, 404, 404, 1);
 
 -- Story 2 Cards
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
-(91001, 9002, 'fas fa-chess-rook', 'medieval');
+INSERT INTO list_cards (id, id_story, image_url, awesome_icon, style_main, id_text_title, id_text_description) VALUES
+(91001, 9002, 'https://paths.games/assets/cards/valvassore.jpg', 'fas fa-chess-rook', 'medieval', 1, 2);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
 (91002, 9002, 'fas fa-scroll', 'evidence');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES
 (91003, 9002, 'fas fa-balance-scale', 'justice');
+
+UPDATE list_stories SET id_card = 90001 WHERE id = 9001;
+UPDATE list_stories SET id_card = 91001 WHERE id = 9002;
 
 -- Story 2 Creator
 INSERT INTO list_creator (id, id_story, creator_name, link) VALUES

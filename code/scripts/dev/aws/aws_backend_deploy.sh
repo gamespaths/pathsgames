@@ -59,6 +59,10 @@ sam deploy \
     --region "${AWS_REGION:-us-east-2}" \
     --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
     --parameter-overrides Environment="${ENVIRONMENT_NAME:-dev}" \
+        CustomDomainName="${AWS_CustomDomainName:-}" \
+        CustomDomainCertificateArn="${AWS_CustomDomainCertificateArn:-}" \
+        CustomDomainHostedZoneId="${AWS_CustomDomainHostedZoneId:-}" \
+        CorsAllowOrigins="${AWS_CorsAllowOrigins:-http://localhost:1234}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

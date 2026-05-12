@@ -123,29 +123,61 @@ def _safe_int(val, default=0):
         return default
 
 
+def _resolve_raw_text(raw_texts, id_text, lang):
+    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
+    if id_text is None:
+        return None
+    id_text_int = _safe_int(id_text)
+    fallback = None
+    for t in raw_texts:
+        if _safe_int(t.get('idText')) == id_text_int:
+            if t.get('lang') == lang:
+                return t.get('shortText') or t.get('longText')
+            if t.get('lang') == 'en':
+                fallback = t.get('shortText') or t.get('longText')
+    return fallback
+
+
+def _find_card_from_raw(raw_cards, raw_texts, id_card, lang):
+    """Look up a card by integer id from raw_cards and resolve text fields.
+
+    Cards are stored inline on the story item (not as separate DynamoDB items).
+    """
+    if id_card is None:
+        return None
+    id_card_int = _safe_int(id_card)
+    card = None
+    for c in raw_cards:
+        if _safe_int(c.get('id')) == id_card_int:
+            card = c
+            break
+    if not card:
+        return None
+    return {
+        'uuid':             card.get('uuid'),
+        'imageUrl':         card.get('imageUrl'),
+        'alternativeImage': card.get('alternativeImage'),
+        'awesomeIcon':      card.get('awesomeIcon'),
+        'styleMain':        card.get('styleMain'),
+        'styleDetail':      card.get('styleDetail'),
+        'title':            _resolve_raw_text(raw_texts, card.get('idTextTitle'), lang),
+        'description':      _resolve_raw_text(raw_texts, card.get('idTextDescription'), lang),
+        'copyrightText':    _resolve_raw_text(raw_texts, card.get('idTextCopyright'), lang),
+        'linkCopyright':    card.get('linkCopyright'),
+    }
+
+
 # ─── response builders ────────────────────────────────────────────────────────
 
 def _story_summary(item, lang):
     """Build StorySummaryResponse from a DynamoDB story item."""
     texts = item.get('texts', {})
 
-    # Card resolution
+    # Card resolution — cards are stored inline in raw_cards on the story item
+    raw_cards = item.get('raw_cards', [])
+    raw_texts_list = item.get('raw_texts', [])
     idCard = item.get('idCard')
-    card_body= db_utils.get_item(f'CARD#{idCard}')
-    card = None
-    if card_body:
-        card = {
-            'uuid':             card_body.get('uuid'),
-            'imageUrl':         card_body.get('imageUrl'),
-            'alternativeImage': card_body.get('alternativeImage'),
-            'awesomeIcon':      card_body.get('awesomeIcon'),
-            'styleMain':        card_body.get('styleMain'),
-            'styleDetail':      card_body.get('styleDetail'),
-            'title':            _resolve_text(card_body.get('texts', {}), lang, 'title'),
-            'description':      _resolve_text(card_body.get('texts', {}), lang, 'description'),
-            'copyrightText':    _resolve_text(card_body.get('texts', {}), lang, 'copyrightText'),
-            'linkCopyright':    card_body.get('linkCopyright'),
-        }
+    card = _find_card_from_raw(raw_cards, raw_texts_list, idCard, lang)
 
     return {
         'uuid':            item.get('uuid'),
@@ -172,24 +204,12 @@ def _story_detail(item, lang):
     """
     texts = item.get('texts', {})
 
+    # Cards/texts are stored inline on the story item
+    raw_cards = item.get('raw_cards', [])
+    raw_texts_list = item.get('raw_texts', [])
+
     def _build_card(id_card, fallback_lang):
-        if id_card is None:
-            return None
-        body = db_utils.get_item(f'CARD#{id_card}')
-        if not body:
-            return None
-        return {
-            'uuid':             body.get('uuid'),
-            'imageUrl':         body.get('imageUrl'),
-            'alternativeImage': body.get('alternativeImage'),
-            'awesomeIcon':      body.get('awesomeIcon'),
-            'styleMain':        body.get('styleMain'),
-            'styleDetail':      body.get('styleDetail'),
-            'title':            _resolve_text(body.get('texts', {}), fallback_lang, 'title'),
-            'description':      _resolve_text(body.get('texts', {}), fallback_lang, 'description'),
-            'copyrightText':    _resolve_text(body.get('texts', {}), fallback_lang, 'copyrightText'),
-            'linkCopyright':    body.get('linkCopyright'),
-        }
+        return _find_card_from_raw(raw_cards, raw_texts_list, id_card, fallback_lang)
 
     # Difficulties
     raw_diffs = item.get('difficulties', [])
@@ -267,23 +287,9 @@ def _story_detail(item, lang):
             'card':              _build_card(tr_id_card, lang),
         })
 
-    # Step 15: Card
+    # Step 15: story-level card
     idCard = item.get('idCard')
-    card_body= db_utils.get_item(f'CARD#{idCard}')
-    card = None
-    if card_body:
-        card = {
-            'uuid':             card_body.get('uuid'),
-            'imageUrl':         card_body.get('imageUrl'),
-            'alternativeImage': card_body.get('alternativeImage'),
-            'awesomeIcon':      card_body.get('awesomeIcon'),
-            'styleMain':        card_body.get('styleMain'),
-            'styleDetail':      card_body.get('styleDetail'),
-            'title':            _resolve_text(card_body.get('texts', {}), lang, 'title'),
-            'description':      _resolve_text(card_body.get('texts', {}), lang, 'description'),
-            'copyrightText':    _resolve_text(card_body.get('texts', {}), lang, 'copyrightText'),
-            'linkCopyright':    card_body.get('linkCopyright'),
-        }
+    card = _build_card(idCard, lang)
 
     return {
         'uuid':                       item.get('uuid'),
@@ -481,23 +487,26 @@ def import_story(event):
     if not story_uuid:
         story_uuid = str(uuid_lib.uuid4())
 
+    # If story already exists by UUID → delete it first (replace-on-conflict)
+    # Must happen before id collision check to avoid self-collision on re-import
+    existing = db_utils.get_item(f'STORY#{story_uuid}')
+    if existing:
+        db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
+
     # ID validation and generation for stories
     all_stories = db_utils.query_gsi('GSI1', 'STORY_LIST')
+    # Filter out the just-deleted story in case GSI is eventually consistent
+    all_stories = [s for s in all_stories if s.get('uuid') != story_uuid]
     input_id = data.get('id')
     if input_id is not None:
         input_id = _safe_int(input_id)
         # Check global collision
         for s in all_stories:
-            if s.get('uuid') != story_uuid and _safe_int(s.get('id')) == input_id:
+            if _safe_int(s.get('id')) == input_id:
                 return _err(400, 'INVALID_IMPORT_DATA', f'story/list_stories id={input_id} already present')
     else:
         max_story_id = max([_safe_int(s.get('id')) for s in all_stories], default=0)
         input_id = max_story_id + 1
-
-    # If story already exists by UUID → delete it first (replace-on-conflict)
-    existing = db_utils.get_item(f'STORY#{story_uuid}')
-    if existing:
-        db_utils.delete_all_by_pk(f'STORY#{story_uuid}')
 
     # Build multi-lang texts dict from the texts array
     raw_texts = data.get('texts', [])

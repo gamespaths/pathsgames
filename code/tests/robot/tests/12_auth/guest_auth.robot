@@ -81,8 +81,10 @@ Me Endpoint Returns 401 Without Token
 
 Guest Resume Without Cookie Returns 400
     [Documentation]    POST /api/auth/guest/resume without the guestToken cookie returns 400 (missing required cookie).
+    ...                Uses a fresh cookieless session to avoid inheriting cookies set by earlier login tests.
     [Tags]    auth    step12
-    ${response}=    POST On Session    public_session    /api/auth/guest/resume
+    Create Session    cookieless_session    ${BASE_URL}    verify=False
+    ${response}=    POST On Session    cookieless_session    /api/auth/guest/resume
     ...    expected_status=any
     Status Should Be    ${response}    400
 

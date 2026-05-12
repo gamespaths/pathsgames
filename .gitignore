@@ -54,6 +54,7 @@ target/
 
 # AWS CloudFormation
 .ebextensions/  
+code/backend/aws/samconfig.toml
 
 # Backend python!
 database.sqlite

@@ -20,8 +20,8 @@ The infrastructure is built entirely on managed AWS services:
 | HTTP API | — | `AWS::Serverless::HttpApi` |
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
-| Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes) |
-| Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data |
+| Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
+| Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Log Groups ×4 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
 
 ### Tagging
@@ -29,6 +29,33 @@ The infrastructure is built entirely on managed AWS services:
 All resources are tagged with:
 - `project` = `PathsGames`
 - `env` = `dev` | `prod`
+
+
+### Additional commands
+
+#### Create custom domain name
+
+```bash
+# Request a new ACM certificate
+aws acm request-certificate \
+    --domain-name "api-dev.paths.games" \
+    --validation-method DNS \
+    --region us-east-2
+```
+
+#### Yaml validation
+
+```bash
+# Validate the template
+sam validate --lint --region us-east-2 --config-env dev
+```
+
+### Custom Domain Name
+
+You can configure a custom domain name for the API by providing the following parameters at deployment time:
+- `CustomDomainName`: The custom domain name (e.g., `api-test.paths.games`)
+- `CustomDomainCertificateArn`: The ARN of the ACM certificate for the custom domain name
+- `CustomDomainHostedZoneId`: The Hosted Zone ID of the custom domain name
 
 ### Complete Cleanup
 
@@ -70,7 +97,10 @@ All entities coexist in the same table using a prefix for differentiation:
 | :--- | :--- | :--- | :--- |
 | **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` |
 | **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` |
+| **Card** | `CARD#<id>` | `METADATA` | — |
 | **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` |
+
+Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
 ## 🚀 Deployment with AWS SAM
 
@@ -121,6 +151,26 @@ AWS manages the scaling of a single table transparently.
 
 ### 4. Operational Simplicity 🛠️
 One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch. Fewer moving parts mean less chance of error.
+
+---
+
+## 📝 Changelog
+
+### v0.19.2 — Card resolution in story detail
+
+- **`lambda/story/handler.py`**: Added `_build_card(id_card, lang)` helper that fetches a `CARD#<id>` item from DynamoDB and returns a fully localised card object. Story detail now includes resolved `card` on every difficulty, characterTemplate, class, and trait sub-entity.
+- **`import_story`**: `idCard` field is now persisted for difficulties, characterTemplates, classes, and traits during story import, keeping parity with the Java reference backend.
+- **`lambda/seed/handler.py`**: Seed data updated — DEMO_1 difficulties now include card data (`idCard`, `imageUrl`) so the regression robot test `story_card_populated` passes on the AWS environment.
+
+### v0.19.1 — Match creation (single-player)
+
+- Added single-player match creation endpoints under `/api/gameplay/{uuid_match}/`.
+- Extended Auth Lambda with match-scoped token validation.
+
+### v0.19.0 — Story admin CRUD + Robot E2E baseline
+
+- Story admin CRUD (create, update, delete) via `StoryFunction`.
+- Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
 
 # < Paths Games />
 

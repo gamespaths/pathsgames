@@ -7,12 +7,34 @@ const STORAGE_KEY = 'pg_game_server'
 export const MOCK_SERVER = 'mock'
 // Note: client.js also defines MOCK_SERVER to avoid circular dependency
 
-const SERVERS = [
-  { label: 'Mock (offline)', url: MOCK_SERVER },
-  { label: 'Local (8042)',   url: 'http://localhost:8042' },
-  { label: 'api-test',       url: 'https://api-test.paths.games' },
-  { label: 'api (prod)',     url: 'https://api.paths.games' },
-]
+const normalizeUrl = (url) =>
+  (typeof url === 'string' && url !== MOCK_SERVER && url.endsWith('/') ? url.slice(0, -1) : url)
+
+const getServers = () => {
+  const envServers = import.meta.env.VITE_DEFAULT_SERVERS
+  let list = []
+  if (envServers) {
+    try {
+      const parsed = JSON.parse(envServers)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        list = parsed.map(s => ({ ...s, url: normalizeUrl(s.url) }))
+      }
+    } catch (e) {
+      console.error('Error parsing VITE_DEFAULT_SERVERS from .env', e)
+    }
+  }
+  if (list.length === 0) {
+    const apiUrl = normalizeUrl(import.meta.env.VITE_API_URL || 'http://localhost:8042')
+    list = [{ label: 'Local', url: apiUrl }]
+  }
+  // Always ensure Mock is first
+  if (!list.some(s => s.url === MOCK_SERVER)) {
+    list = [{ label: 'Mock (offline)', url: MOCK_SERVER }, ...list]
+  }
+  return list
+}
+
+const SERVERS = getServers()
 
 async function probeServer(url) {
   try {
@@ -24,7 +46,7 @@ async function probeServer(url) {
 }
 
 export function ServerProvider({ children }) {
-  const [server, setServerState] = useState(() => localStorage.getItem(STORAGE_KEY) || MOCK_SERVER)
+  const [server, setServerState] = useState(() => normalizeUrl(localStorage.getItem(STORAGE_KEY)) || MOCK_SERVER)
   const [probing, setProbing] = useState(false)
 
   // On mount: auto-detect first available real server (only if stored is mock or stale)
@@ -74,7 +96,9 @@ export function ServerProvider({ children }) {
 
   return (
     <ServerContext.Provider value={{ server, servers: SERVERS, probing, changeServer }}>
-      {children}
+      <div key={server}>
+        {children}
+      </div>
     </ServerContext.Provider>
   )
 }

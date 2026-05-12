@@ -35,12 +35,13 @@ S3_PREFIX="${S3_PREFIX:-cloudformation-backend}"
 AWS_REGION="${AWS_REGION:-us-east-2}"
 
 ## get url of the deployed API from CloudFormation outputs
-API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
-
+#API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+API_URL="https://${AWS_CustomDomainName:-}"
 if [ -z "${API_URL:-}" ] || [ "$API_URL" = "None" ]; then
-    echo "Error: could not determine ApiUrl from stack outputs. Check that stack '$STACK_NAME' exists and has an 'ApiUrl' output."
+    echo "Error: could not determine ApiUrl $API_URL. Check that stack '$STACK_NAME' exists and has an 'ApiUrl' output."
     exit 1
 fi
+echo "API URL: $API_URL"
 
 # quick health check
 if ! curl -s --fail "$API_URL/api/echo/status" > /dev/null; then

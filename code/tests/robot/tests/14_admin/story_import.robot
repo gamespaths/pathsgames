@@ -566,6 +566,7 @@ Import Two Stories With Colliding Entity IDs
 Import Story And Verify Sub Entity Collections
     [Documentation]    After import, difficulties / events / locations collections are populated.
     [Tags]    admin    step14
+    [Teardown]    Run Keyword And Ignore Error    Delete Admin Story    tutorial-uuid-001
     ${uuid}=    Set Variable    tutorial-uuid-001
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
 
