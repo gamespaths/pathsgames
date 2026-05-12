@@ -90,10 +90,11 @@ code/frontend/react-game/
     │   │   ├── StoryCard.jsx       # Home medium card (225px, hover scale + gold border)
     │   │   └── StoryCatalog.jsx    # Rows by category, responsive horizontal scroll
     │   ├── startBook/
-    │   │   ├── StartBookModal.jsx  # Book overlay orchestrator (desktop + mobile layout)
-    │   │   ├── ConfigView.jsx      # Right page: 2×3 config card grid
+    │   │   ├── StartBookModal.jsx  # Book overlay orchestrator (desktop); renders CardPreviewOverlay
+    │   │   ├── StartBookMobile.jsx # Mobile layout (extracted from StartBookModal)
+    │   │   ├── ConfigView.jsx      # Right page: 2-col big-card grid (card-big-list)
     │   │   ├── SelectionView.jsx   # Right page: options list for a single config type
-    │   │   └── ConfigCard.jsx      # Single config card (cover variant + plain variant)
+    │   │   └── ConfigCard.jsx      # Single config card; passes variant="big" + onPreview to GameCard
     │   └── game/
     │       ├── GameBook.jsx        # Book wrapper for game page
     │       ├── LocationCard.jsx    # Big card for current location (left page)
@@ -125,15 +126,23 @@ All design tokens live in `src/styles/variables.css` as CSS custom properties:
 
 ### Unified Card System
 
-All cards share a `1 : 1.4` aspect ratio enforced via `aspect-ratio: 1/1.4`. Four size variants:
+All size variants enforce `aspect-ratio: 2/3` (unified, replaces the previous `1/1.4`):
 
 | Class | Width | Usage |
 |-------|-------|-------|
-| `.pg-card--small` | 100px fixed | - |
+| `.pg-card--small` | 100px fixed | — |
 | `.pg-card--medium` | 150px fixed | Game rows (neighbors, actions) |
 | `.pg-card--home` | 225px fixed | Story catalog |
 | `.pg-card--large` | 100% fill | Left page big card |
-| `.pg-card--grid` | flex:1 | Config 2×3 grid (start book right page) |
+| `.pg-card--grid` | flex:1 | Config grid |
+
+Config view (`ConfigView`) uses a `card-big-list` 2-column layout (big cards) instead of the former `selection-list` 3-column grid. `ConfigCard` passes `variant="big"` and `onPreview` down to `GameCard`.
+
+`GameCard` new props:
+- `onPreview` — replaces the `(i)` info button with a magnifier (`fas fa-search-plus`); the parent (`StartBookModal`) renders a `CardPreviewOverlay` on the left page.
+- `previewLayout` — when true, the credits `(i)` button uses class `card-preview-info` (bottom-right).
+
+New CSS rules in `main.css`: `.card-preview-overlay`, `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`.
 
 Cards support `style_main` and `style_detail` fields in mock JSON to inject extra CSS classes on the wrapper and image respectively.
 
@@ -214,18 +223,22 @@ The language switcher in the Navbar toggles the context. All UI labels use `t()`
 │   LEFT PAGE        │   RIGHT PAGE       │
 │                    │                    │
 │  Big story card    │  ConfigView        │
-│  (image + title    │  2 × 3 grid of     │
-│   + description)   │  config cards      │
+│  (image + title +  │  2-col big cards   │
+│   description)     │  (card-big-list)   │
 │                    │                    │
-│  [✓] Accept Terms  │       [Start Game] │
+│  [CardPreviewOver- │                    │
+│   lay when active] │       [Start Game] │
+│  [✓] Accept Terms  │                    │
 └────────────────────┴────────────────────┘
 ```
 
 When the user clicks **Change** on a config card the right page switches to `SelectionView` (options list for that type). Selecting an option returns to `ConfigView` with the new value.
 
+When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page (`previewCard` state in `StartBookModal`, passed as `onPreview` through `ConfigView` → `ConfigCard` → `GameCard`).
+
 ### Mobile layout (≤767px)
 
-Vertical scroll list inside `.book-overlay`:
+Handled by `StartBookMobile` (extracted component). Vertical scroll list inside `.book-overlay`:
 1. Story card (image + title + description)
 2. Six config cards stacked (character, class, trait, difficulty, game type, login)
 3. Terms checkbox + Start Game button
@@ -359,13 +372,14 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.18.0
+- **Document Version**: 0.19.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
+    | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     
-- **Last Updated**: May 05, 2026
-- **Status**: ✅ Complete
+- **Last Updated**: May 12, 2026
+- **Status**: Active development
 
 
 

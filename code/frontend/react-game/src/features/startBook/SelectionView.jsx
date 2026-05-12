@@ -1,26 +1,28 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
 
-export default function SelectionView({ type, options, selected, story, onSelect, onBack }) {
+export default function SelectionView({ type, options, selected, story, onSelect, onBack , onPreview }) {
   const { t } = useTranslation()
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="selection-header">
-        <button className="btn-back" onClick={onBack}>
-          <i className="fas fa-arrow-left me-1" />{t('book.back')}
-        </button>
+      <div className="selection-header ">
         <h3 className="selection-title">
+          <button className=" float-left" onClick={onBack}>
+            <i className="fas fa-arrow-left me-1" />{ /*t('book.back')*/ }
+          </button>
           {t('book.selectTitle')} {t(`book.${type}`)}
         </h3>
       </div>
 
       <div className="selection-scroll">
-        <div className="card-big-list">
-          {options.map((opt, i) => (
+        <div className="selection-list">
+          {options.map((opt, i) => {
+            const previewHandler = onPreview && opt?.card ? () => onPreview(opt.card) : undefined
+            return (
             <GameCard story={story}
               key={opt.uuid ?? opt.name ?? i}
-              variant="big"
+              variant="little"
               card={opt.card}
               label={t(`book.${type}`)}
               imageAlt={opt.name}
@@ -29,9 +31,10 @@ export default function SelectionView({ type, options, selected, story, onSelect
               description={opt.card?.description ?? opt.description}
               selected={selected?.name === opt.name}
               onSelect={() => onSelect(opt)}
+              onPreview={previewHandler}
               selectLabel={t('book.select')}
             />
-          ))}
+          )})}
         </div>
       </div>
     </div>

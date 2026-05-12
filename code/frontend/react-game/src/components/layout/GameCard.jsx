@@ -50,6 +50,10 @@ export default function GameCard({
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
+  onPreview,
+
+  /* preview mode (rendered inside CardPreviewOverlay) */
+  previewLayout = false,
 
   /* extra overlay content */
   children,
@@ -66,10 +70,36 @@ export default function GameCard({
 
   const styleDetail = card?.styleDetail ?? '';
 
-  /* ── credits info button ── */
-  const infoButton = !hideCredits
-    ? <GameCardInfoButton card={card} story={story} />
-    : null
+  /* ── credits info button ─────────────────────────────────────────
+     - previewLayout: info button at bottom-right (inside CardPreviewOverlay)
+     - onPreview provided: magnifier replaces info button (top-right)
+     - otherwise: standard info button slot                        */
+  let infoButton = null
+  if (!hideCredits) {
+    if (onPreview) {
+      infoButton = (
+        <button
+          type="button"
+          className="card-magnify-btn"
+          onClick={(e) => { e.stopPropagation(); onPreview() }}
+          aria-label="Preview"
+        >
+          <i className="fas fa-search-plus" />
+        </button>
+      )
+    } else if (previewLayout) {
+      infoButton = (
+        <GameCardInfoButton
+          card={card}
+          story={story}
+          buttonClassName="card-info-btn card-preview-info"
+        />
+      )
+    } else {
+      infoButton = <GameCardInfoButton card={card} story={story} />
+    }
+  }
+  
 
   /* ── action button ── */
   let actionBtn = null
@@ -118,6 +148,7 @@ export default function GameCard({
 
   /* ══════════════ BIG ══════════════ */
   if (isBig) {
+
     return (
       <div className={['pg-card card-big', isDisabled ? 'config-card-disabled' : '', selected ? 'config-card-selected' : ''].filter(Boolean).join(' ')}>
         {imageUrl ? (
@@ -139,12 +170,12 @@ export default function GameCard({
       </div>
     )
   }
-
   /* ══════════════ LITTLE — with image ══════════════ */
   if (imageUrl) {
     return (
       <div className={['pg-card pg-card--grid config-card-cover', isDisabled ? 'config-card-disabled' : '', selected ? 'config-card-selected' : ''].filter(Boolean).join(' ')}>
         <img src={imageUrl} alt={imageAlt || name} className={['config-cover-img', styleDetail].filter(Boolean).join(' ')} />
+        
         {label && <div className="config-cover-badge">{label}</div>}
         
         {infoButton}

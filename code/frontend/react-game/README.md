@@ -42,10 +42,10 @@ src/
 ├── components/
 │   ├── layout/     # Navbar (lang switcher + user btn), Footer (social + legal links)
 │   ├── modals/     # PrivacyModal, TermsModal, CookiesModal, CopyrightModal
-│   └── book/       # BookWrapper, BookPageLeft, BookPageRight
+│   └── book/       # BookWrapper, BookPageLeft, BookPageRight, BookPageLeftContent
 ├── features/
 │   ├── home/       # StoryCard (Netflix card), StoryCatalog (rows by category)
-│   ├── startBook/  # StartBookModal, ConfigView, SelectionView, ConfigCard
+│   ├── startBook/  # StartBookModal, StartBookMobile, ConfigView, SelectionView, ConfigCard
 │   └── game/       # GameBook, LocationCard, PlayerStats, NeighborRow, ActionsRow, CardDetailModal
 └── pages/
     ├── HomePage.jsx    # /
@@ -54,7 +54,7 @@ src/
 
 ## Pages & Features
 1. **Home** (`/`) — Netflix-style story catalog grouped by category. Click story → book modal.
-2. **Start Book Modal** — book UI (desktop) / vertical list (mobile). Configure character, class, trait, difficulty. Locked: game type (Single) + login (Guest). Accept terms → Start Game.
+2. **Start Book Modal** — book UI (desktop) / `StartBookMobile` vertical list (mobile, extracted component). Configure character, class, trait, difficulty. Config grid uses 2-column big cards (`card-big-list`). The left page always renders `<BookPageLeftContent>` (chapter title + image + scrollable description + footer). Card preview via magnifier button (`fa-search-plus`) opens a `CardPreviewOverlay` (absolute overlay, solid book-page background) on top of the left page, also using `<BookPageLeftContent>`. Locked: game type (Single) + login (Guest). Accept terms → Start Game.
 3. **Game** (`/play/:storyId`) — book layout. Left: current location card. Right: player stats (Life/Energy/Sadness/XP/Food/Magic/Coins/Weight) + neighbor locations row + actions row. Click card → detail modal with move/execute button. Navbar + Footer always present.
 4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`.
 5. **API fallback** — If backend unreachable, falls back to `src/mock/` JSON automatically.
@@ -62,15 +62,23 @@ src/
 
 ## Card System
 
-All cards enforce `aspect-ratio: 1/1.4`. Four size variants:
+All card size variants enforce `aspect-ratio: 2/3` (updated from `1/1.4`):
 
 | Class | Width | Usage |
 |-------|-------|-------|
 | `.pg-card--small` | 100px | — |
 | `.pg-card--medium` | 150px | Game rows (neighbors, actions) |
 | `.pg-card--home` | 225px | Story catalog |
-| `.pg-card--grid` | flex:1 | Config 2×3 grid |
+| `.pg-card--grid` | flex:1 | Config grid |
 | `.pg-card--large` | 100% | Left page big card |
+
+Config view uses `card-big-list` (2-column big cards) instead of the previous `selection-list` 3-column grid.
+
+`GameCard` accepts two new props:
+- `onPreview` — when supplied, replaces the `(i)` info button with a magnifier button (`fas fa-search-plus`) that triggers a `CardPreviewOverlay` on the left page.
+- `previewLayout` — when true, the credits `(i)` button uses class `card-preview-info` (bottom-right positioning).
+
+New CSS in `main.css`: `.card-preview-overlay` (now `position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. Book page layout classes: `.book-page-content`, `.book-page-loading`, `.book-page-title`, `.book-page-img`, `.book-page-desc`, `.book-page-footer`, `.book-page-copyright`, `.book-page-credit-btn`. The old `.story-card-full*` rules have been removed.
 
 Cards support `style_main` (extra classes on wrapper) and `style_detail` (extra classes on image) in mock JSON for per-card visual overrides.
 
@@ -93,12 +101,14 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
 
 ---
 
-- **Document Version**: 0.18.0
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
     | 0.18.0 | Per-story options, card system, credits modals, locked card images, mobile fixes | May 05, 2026 |
-- **Last Updated**: May 5, 2026
+    | 0.19.2 | StartBookMobile extracted component; card-big-list config grid; CardPreviewOverlay with magnifier; aspect-ratio unified to 2/3 | May 12, 2026 |
+    | 0.19.3 | BookPageLeftContent dedicated component; book-page-* CSS classes; removed story-card-full* rules; CardPreviewOverlay refactored to solid absolute overlay | May 12, 2026 |
+- **Last Updated**: May 12, 2026
 - **Status**: Active development
 
 ---

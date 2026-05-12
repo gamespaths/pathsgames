@@ -80,14 +80,6 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - To remove all component run `/code/scripts/dev/aws_backend_remove.sh`
     - [SonarCloud](https://sonarcloud.io/project/overview?id=pathsgames_backend-aws-lambda): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda)
 
----
-<img src="https://img.shields.io/badge/Robot%20Framework-000000?logo=robotframework&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" />
-
-- **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
-    - To execute all test run script: `/code/scripts/dev/run_robot_everywhere.sh`
-        - Reports are created into `code/scripts/dev/run_robot_results` folder
-    - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
-        - Report is created into `code/tests/robot/reports/` folder.
 
 ---
 <img src="https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black" /> <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?logo=fontawesome&logoColor=white" /> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" /> <img src="https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white" /> <img src="https://img.shields.io/badge/React%20Router-CA4245?logo=reactrouter&logoColor=white" />
@@ -118,6 +110,18 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - CloudFront is set up as a CDN with HTTPS support, custom error pages, and geo-restrictions, using an ACM certificate for SSL.
     - Route53 DNS records and AWS SSM parameters are managed for domain routing and dynamic Content Security Policy (CSP) configuration.
     - Optional AWS WAF integration provides additional security, and all resources are defined as code for repeatable, automated deployments.
+
+
+
+---
+<img src="https://img.shields.io/badge/Robot%20Framework-000000?logo=robotframework&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" />
+
+- **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
+    - To execute all test run script: `/code/scripts/dev/run_robot_everywhere.sh`
+        - Reports are created into `code/scripts/dev/run_robot_results` folder
+    - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+        - Report is created into `code/tests/robot/reports/` folder.
+
 
 ---
 <img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" />

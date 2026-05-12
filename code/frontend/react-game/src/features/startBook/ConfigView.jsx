@@ -4,7 +4,7 @@ import images from '../../mock/images.json'
 
 const imgById = id => images.find(x => x.id === id)
 
-export default function ConfigView({ config, story, onChangeClick, termsAccepted, onTermsChange, onStartGame }) {
+export default function ConfigView({ config, story, onChangeClick, onPreview, termsAccepted, onTermsChange, onStartGame }) {
   const { t } = useTranslation()
 
   const personImg  = imgById('person')
@@ -24,17 +24,18 @@ export default function ConfigView({ config, story, onChangeClick, termsAccepted
   return (
     <div className="config-view-wrap">
       <h3 className="config-title">
-        <i className="fas fa-scroll me-2" />{t('book.configureAdventure')}
+        {/* <i className="fas fa-scroll me-2" /> */}
+        {t('book.configureAdventure')}
       </h3>
 
       <div className="config-cards-area mt-2">
         <div className="selection-list">
-          <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')} />
-          <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')} />
-          <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')} />
-          <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} />
-          <ConfigCard type="gameType"   value={gameTypeValue} locked />
-          <ConfigCard type="login"      value={loginValue}    locked  />
+          <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')} onPreview={onPreview} />
+          <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}     onPreview={onPreview} />
+          <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')}     onPreview={onPreview} />
+          <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={onPreview} />
+          <ConfigCard type="gameType"   value={gameTypeValue} locked onPreview={onPreview} />
+          <ConfigCard type="login"      value={loginValue}    locked onPreview={onPreview} />
         </div>
       </div>
 
