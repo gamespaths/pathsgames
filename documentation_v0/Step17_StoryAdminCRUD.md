@@ -187,8 +187,8 @@ Operational outcome:
 ### 7.1 Admin Panel (`react-admin`)
 The admin frontend provides a full management interface for Step 17 features:
 - **Story Editor**: A tabbed interface to edit metadata and manage all sub-entities.
-- **Generic Entity Table**: A reusable component (`EntityTable.jsx`) that handles listing, searching, and column rendering for all entity types.
-- **Text Resolution**: Automatic lookup of `short_text` for `idTextName` and `idTextDescription` columns by fetching the story's text collection.
+- **Generic Entity Table**: A reusable component (`EntityTable.jsx`) that handles listing, searching, and column rendering for all entity types. Columns of type `idTextName`, `idTextDescription`, and `idTextTitle` display `—` when the referenced text ID is null/empty (instead of `#null`).
+- **Text Resolution**: Automatic lookup of `short_text` for `idTextName`, `idTextDescription`, and `idTextTitle` columns by fetching the story's text collection.
 - **Generic Entity Form**: A dynamic form (`EntityForm.jsx`) to create or update any story sub-entity.
 
 ### 7.2 Game Client (`react-game`)
@@ -317,7 +317,7 @@ The admin frontend provides a full management interface for Step 17 features:
 
 cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspace/pathsgames/.venv/bin/activate && pip install -q -r requirements.txt && python -m robot --variablefile variables/dev.yaml tests/14_admin/story_import.robot
 
-- **Document Version**: 0.17.3
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
@@ -325,8 +325,9 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.17.2 | Fix Creator idCard field and admin web project on `react-admin` | April 28, 2026 |
     | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
     | 0.17.4 | Harmonize primary keys and import ID policy across backends | May 03, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     
-- **Last Updated**: May 03, 2026
+- **Last Updated**: May 14, 2026
 - **Status**: ✅ Complete
 
 

@@ -139,7 +139,7 @@ class StoryControllerTest {
                     .build();
 
             CardInfo card = CardInfo.builder()
-                    .uuid("card-1").imageUrl("https://example.com/card.png")
+                    .uuid("card-1").urlImage("https://example.com/card.png")
                     .alternativeImage("alt").awesomeIcon("fa-star")
                     .styleMain("bg-primary").styleDetail("text-light")
                     .title("Card Title").description(null)
@@ -198,7 +198,7 @@ class StoryControllerTest {
                     .andExpect(jsonPath("$.traits[0].costPositive").value(2))
                     // Card
                     .andExpect(jsonPath("$.card.uuid").value("card-1"))
-                    .andExpect(jsonPath("$.card.imageUrl").value("https://example.com/card.png"))
+                    .andExpect(jsonPath("$.card.urlImage").value("https://example.com/card.png"))
                     .andExpect(jsonPath("$.card.title").value("Card Title"));
         }
 

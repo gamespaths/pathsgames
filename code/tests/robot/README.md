@@ -22,7 +22,7 @@ robot/
     │   ├── story_list.robot       GET /api/stories — list, fields, UUIDs
     │   └── story_detail.robot     GET /api/stories/{uuid} — detail, 404
     └── 14_admin/
-        ├── story_import.robot     POST/GET/DELETE /api/admin/stories — import, idempotency
+        ├── story_import.robot     POST/GET/DELETE /api/admin/stories — import, idempotency, character-template FK round-trip
         └── guest_admin.robot      GET/DELETE /api/admin/guests — list, stats, single, expired
 ```
 

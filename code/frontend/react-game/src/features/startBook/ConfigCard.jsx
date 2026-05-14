@@ -4,7 +4,7 @@ import GameCard from '../../components/layout/GameCard'
 export default function ConfigCard({ type, value, locked, selected, story, onChangeClick, onSelect, onPreview }) {
   const { t } = useTranslation()
 
-  const previewHandler = onPreview && value?.card ? () => onPreview(value.card) : undefined
+  const previewHandler = onPreview ? () => onPreview(value, type) : undefined
 
   return (
     <GameCard

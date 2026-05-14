@@ -276,7 +276,7 @@
 
   /* ══════════════════════════════════════════
      RENDER CATALOG — Netflix-style rows
-     Cards show: card.imageUrl OR card.awesomeIcon,
+     Cards show: card.urlImage OR card.awesomeIcon,
      title, description. (i) on card cover corner.
      ══════════════════════════════════════════ */
   function renderCatalog() {
@@ -318,13 +318,13 @@
 
   function renderStoryCard(s) {
     const card = s.card || {};
-    const hasImage = !!card.imageUrl;
+    const hasImage = !!card.urlImage;
     const icon = card.awesomeIcon || getCategoryIcon(s.category);
 
     /* Cover: card image or FA icon */
     let coverHTML;
     if (hasImage) {
-      coverHTML = '<img src="' + esc(card.imageUrl) + '" alt="' + esc(s.title) + '" class="catalog-card-img"/>';
+      coverHTML = '<img src="' + esc(card.urlImage) + '" alt="' + esc(s.title) + '" class="catalog-card-img"/>';
     } else {
       coverHTML = '<i class="' + esc(icon) + ' catalog-card-icon"></i>';
     }
@@ -369,8 +369,8 @@
 
     /* Cover visual — use card image or icon */
     let coverHTML;
-    if (card.imageUrl) {
-      coverHTML = '<img src="' + esc(card.imageUrl) + '" alt="' + esc(story.title) + '" class="preview-visual-img" style="width:100%;height:100%;object-fit:cover;" />';
+    if (card.urlImage) {
+      coverHTML = '<img src="' + esc(card.urlImage) + '" alt="' + esc(story.title) + '" class="preview-visual-img" style="width:100%;height:100%;object-fit:cover;" />';
     } else if (card.awesomeIcon) {
       coverHTML = '<i class="' + esc(card.awesomeIcon) + '" style="font-size:6rem;color:var(--color-gold-light);"></i>';
     } else {

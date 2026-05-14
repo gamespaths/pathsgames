@@ -312,9 +312,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "uuid": "uuid", "id_card": "idCard", "card_type": "cardType",
             "id_text_name": "idTextName", "id_text_title": "idTextTitle",
             "id_text_description": "idTextDescription", "id_text_copyright": "idTextCopyright",
-            "image_url": "imageUrl", "alternative_image": "alternativeImage",
+            "url_image": "urlImage", "alternative_image": "alternativeImage",
             "awesome_icon": "awesomeIcon", "style_main": "styleMain",
-            "style_detail": "styleDetail", "link_copyright": "linkCopyright",
+            "style_detail": "styleDetail",
+            "style_image_little": "styleImageLittle",
+            "style_image_medium": "styleImageMedium",
+            "style_image_large": "styleImageLarge",
+            "link_copyright": "linkCopyright",
             "id_creator": "idCreator", "id_reference": "idReference"
         })
 

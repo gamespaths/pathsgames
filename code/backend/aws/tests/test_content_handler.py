@@ -26,7 +26,7 @@ STORY_ITEM = {
             'idTextTitle': 1,
             'idTextDescription': 2,
             'idCreator': None,
-            'imageUrl': 'http://img.test/1.png',
+            'urlImage': 'http://img.test/1.png',
             'awesomeIcon': 'fa-sword',
             'styleMain': 'dark',
             'styleDetail': 'detail',
@@ -72,7 +72,7 @@ def test_get_card_success():
     assert result['statusCode'] == 200
     body = _body(result)
     assert body['uuid'] == 'card-uuid-1'
-    assert body['imageUrl'] == 'http://img.test/1.png'
+    assert body['urlImage'] == 'http://img.test/1.png'
 
 def test_get_card_resolves_texts():
     with patch('content.handler.db_utils.get_item', return_value=STORY_ITEM):

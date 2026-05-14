@@ -73,7 +73,7 @@ paths:
                 $ref: '#/components/schemas/CardInfoResponse'
               example:
                 uuid: "card-uuid-001"
-                imageUrl: "https://img.paths.games/stories/demo/cards/forest.png"
+                urlImage: "https://img.paths.games/stories/demo/cards/forest.png"
                 alternativeImage: "forest_alt.jpg"
                 awesomeIcon: "fa-tree"
                 styleMain: "bg-success"
@@ -259,7 +259,14 @@ components:
         uuid:
           type: string
           description: Card UUID
-        imageUrl:
+        cardType:
+          type: string
+          nullable: true
+          description: |
+            Classifies which kind of entity this card represents. Free-form short string
+            referencing a story sub-entity (e.g. `character`, `class`, `trait`, `difficulty`,
+            `event`, `location`, `item`, `mission`, `choice`, `creator`, ...).
+        urlImage:
           type: string
           nullable: true
           description: Primary image URL for the card
@@ -279,6 +286,18 @@ components:
           type: string
           nullable: true
           description: CSS class for the card's detail style
+        styleImageLittle:
+          type: string
+          nullable: true
+          description: CSS class for the card image when rendered at little size
+        styleImageMedium:
+          type: string
+          nullable: true
+          description: CSS class for the card image when rendered at medium size
+        styleImageLarge:
+          type: string
+          nullable: true
+          description: CSS class for the card image when rendered at large size
         title:
           type: string
           nullable: true

@@ -936,6 +936,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("costNegative", tr.getCostNegative());
         } else if (e instanceof CardEntity) {
             CardEntity cd = (CardEntity) e;
+            m.put("cardType", cd.getCardType());
             m.put("idTextTitle", cd.getIdTextTitle());
             m.put("idTextCopyright", cd.getIdTextCopyright());
             m.put("linkCopyright", cd.getLinkCopyright());
@@ -945,6 +946,9 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("awesomeIcon", cd.getAwesomeIcon());
             m.put("styleMain", cd.getStyleMain());
             m.put("styleDetail", cd.getStyleDetail());
+            m.put("styleImageLittle", cd.getStyleImageLittle());
+            m.put("styleImageMedium", cd.getStyleImageMedium());
+            m.put("styleImageLarge", cd.getStyleImageLarge());
         } else if (e instanceof CreatorEntity) {
             CreatorEntity cr = (CreatorEntity) e;
             m.put("idText", cr.getIdText());
@@ -1233,6 +1237,8 @@ public class StoryCrudService implements StoryCrudPort {
     }
 
     private void applyCardFields(CardEntity e, Map<String, Object> d) {
+        if (d.containsKey("cardType"))
+            e.setCardType(str(d, "cardType"));
         if (d.containsKey("idTextTitle"))
             e.setIdTextTitle(intVal(d, "idTextTitle"));
         if (d.containsKey("idTextDescription"))
@@ -1253,6 +1259,12 @@ public class StoryCrudService implements StoryCrudPort {
             e.setStyleMain(str(d, "styleMain"));
         if (d.containsKey("styleDetail"))
             e.setStyleDetail(str(d, "styleDetail"));
+        if (d.containsKey("styleImageLittle"))
+            e.setStyleImageLittle(str(d, "styleImageLittle"));
+        if (d.containsKey("styleImageMedium"))
+            e.setStyleImageMedium(str(d, "styleImageMedium"));
+        if (d.containsKey("styleImageLarge"))
+            e.setStyleImageLarge(str(d, "styleImageLarge"));
     }
 
     private void applyCreatorFields(CreatorEntity e, Map<String, Object> d) {

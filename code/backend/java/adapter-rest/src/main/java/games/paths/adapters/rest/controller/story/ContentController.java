@@ -102,8 +102,9 @@ public class ContentController {
 
     private CardInfoResponse toCardInfoResponse(CardInfo ci) {
         return new CardInfoResponse(
-                ci.getUuid(), ci.getImageUrl(), ci.getAlternativeImage(),
+                ci.getUuid(), ci.getCardType(), ci.getUrlImage(), ci.getAlternativeImage(),
                 ci.getAwesomeIcon(), ci.getStyleMain(), ci.getStyleDetail(),
+                ci.getStyleImageLittle(), ci.getStyleImageMedium(), ci.getStyleImageLarge(),
                 ci.getTitle(), ci.getDescription(),
                 ci.getCopyrightText(), ci.getLinkCopyright(),
                 ci.getCreator() != null ? toCreatorInfoResponse(ci.getCreator()) : null);

@@ -4,17 +4,20 @@ import GameCardInfoButton from './GameCardInfoButton'
  * GameCard — unified card component.
  *
  * variant="little"  → compact grid card (1:1.4 ratio, flex:1)
+ * variant="medium"  → medium card
  * variant="big"     → tall portrait card (2:3 ratio)
  *
  * Primary data prop:
- *   card  → full card object { imageUrl, alternativeImage, awesomeIcon,
- *             title, description, copyrightText, linkCopyright, ... }
+ *   card  → full card object { urlImage, alternativeImage, awesomeIcon,
+ *             title, description, copyrightText, linkCopyright,
+ *             styleMain, styleDetail,
+ *             styleImageLittle, styleImageMedium, styleImageLarge, ... }
  *
- * credits  → array [{ label, imageUrl, icon, name, linkCopyright, disabled }]
+ * credits  → array [{ label, urlImage, icon, name, linkCopyright, disabled }]
  *            When provided, an (i) button is rendered that opens a credits modal.
  *
  * Overrides (optional, fall back to card.*):
- *   imageUrl, imageAlt, icon, name, description, linkCopyright, styleDetail
+ *   urlImage, imageAlt, icon, name, description, linkCopyright, styleDetail
  */
 export default function GameCard({
   /* variant */
@@ -22,11 +25,11 @@ export default function GameCard({
 
   /* primary data */
   card,
-  story = null,   // optional story object for credits (story.card.imageUrl, story.author)
+  story = null,   // optional story object for credits (story.card.urlImage, story.author)
 
   /* overrides / standalone props */
   label,
-  imageUrl: imageUrlProp,
+  urlImage: urlImageProp,
   imageAlt = '',
   icon: iconProp,
   name: nameProp,
@@ -59,7 +62,7 @@ export default function GameCard({
   children,
 }) {
   /* ── resolve card fields ── */
-  const imageUrl      = imageUrlProp ?? card?.imageUrl ?? card?.alternativeImage ?? null
+  const urlImage      = urlImageProp ?? card?.urlImage ?? card?.alternativeImage ?? null
   const icon          = iconProp     ?? card?.awesomeIcon ?? 'fas fa-question'
   const name          = nameProp     ?? card?.title     ?? card?.name ?? '—'
   const description   = descProp     ?? card?.description ?? null
@@ -67,8 +70,15 @@ export default function GameCard({
 
   const isDisabled = disabled || locked
   const isBig      = variant === 'big'
+  const isMedium   = variant === 'medium'
 
   const styleDetail = card?.styleDetail ?? '';
+  const sizedImageStyle = isBig
+    ? (card?.styleImageLarge ?? '')
+    : isMedium
+      ? (card?.styleImageMedium ?? '')
+      : (card?.styleImageLittle ?? '');
+  const imageClassName = [styleDetail, sizedImageStyle].filter(Boolean).join(' ');
 
   /* ── credits info button ─────────────────────────────────────────
      - previewLayout: info button at bottom-right (inside CardPreviewOverlay)
@@ -151,8 +161,8 @@ export default function GameCard({
 
     return (
       <div className={['pg-card card-big', isDisabled ? 'config-card-disabled' : '', selected ? 'config-card-selected' : ''].filter(Boolean).join(' ')}>
-        {imageUrl ? (
-          <img src={imageUrl} alt={imageAlt || name} className={['card-big__img', styleDetail].filter(Boolean).join(' ')} />
+        {urlImage ? (
+          <img src={urlImage} alt={imageAlt || name} className={['card-big__img', imageClassName].filter(Boolean).join(' ')} />
         ) : (
           <div className="card-big__placeholder"><i className={icon} /></div>
         )}
@@ -171,10 +181,10 @@ export default function GameCard({
     )
   }
   /* ══════════════ LITTLE — with image ══════════════ */
-  if (imageUrl) {
+  if (urlImage) {
     return (
       <div className={['pg-card pg-card--grid config-card-cover', isDisabled ? 'config-card-disabled' : '', selected ? 'config-card-selected' : ''].filter(Boolean).join(' ')}>
-        <img src={imageUrl} alt={imageAlt || name} className={['config-cover-img', styleDetail].filter(Boolean).join(' ')} />
+        <img src={urlImage} alt={imageAlt || name} className={['config-cover-img', imageClassName].filter(Boolean).join(' ')} />
         
         {label && <div className="config-cover-badge">{label}</div>}
         

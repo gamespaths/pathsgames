@@ -39,9 +39,12 @@ src/
 ├── api/            # Axios client with automatic mock fallback
 ├── mock/           # stories.json, gameData.json, images.json (Unsplash credits)
 ├── styles/         # variables.css (CSS tokens) + main.css (global + component styles)
+├── utils/
+│   └── bonusStats.js   # STAT_FIELDS map, STAT_CATEGORY map, STAT_CATEGORY_ORDER, getNonZeroStats(entity, entityType), aggregateBonusTotals(pairs)
 ├── components/
 │   ├── layout/     # Navbar (lang switcher + user btn), Footer (social + legal links)
 │   ├── modals/     # PrivacyModal, TermsModal, CookiesModal, CopyrightModal
+│   ├── common/     # BonusBadgeList (shared pill-badge row component)
 │   └── book/       # BookWrapper, BookPageLeft, BookPageRight, BookPageLeftContent
 ├── features/
 │   ├── home/       # StoryCard (Netflix card), StoryCatalog (rows by category)
@@ -54,9 +57,9 @@ src/
 
 ## Pages & Features
 1. **Home** (`/`) — Netflix-style story catalog grouped by category. Click story → book modal.
-2. **Start Book Modal** — book UI (desktop) / `StartBookMobile` vertical list (mobile, extracted component). Configure character, class, trait, difficulty. Config grid uses 2-column big cards (`card-big-list`). The left page always renders `<BookPageLeftContent>` (chapter title + image + scrollable description + footer). Card preview via magnifier button (`fa-search-plus`) opens a `CardPreviewOverlay` (absolute overlay, solid book-page background) on top of the left page, also using `<BookPageLeftContent>`. Locked: game type (Single) + login (Guest). Accept terms → Start Game.
+2. **Start Book Modal** — book UI (desktop) / `StartBookMobile` vertical list (mobile, extracted component). Configure character, class, trait, difficulty. Config grid uses 2-column big cards (`card-big-list`). The left page always renders `<BookPageContent>` (chapter title + image + scrollable description + optional stats panel + footer). Card preview via magnifier button (`fa-search-plus`) opens a `CardPreviewOverlay` (absolute overlay, solid book-page background) on top of the left page, also using `<BookPageContent>`. When a preview is active, `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** (`.book-page-stats`) **absolute-positioned top-right over the image area** (inside `.book-page-image-wrap`). The panel is rendered by the shared `BonusBadgeList` component (props: `items: [{ key, label, value }]`, optional `className`). Each pill (`<span class="badge bonus-badge">`) shows `.bonus-badge__label` + `.bonus-badge__value`; zero/null/undefined values are hidden. Stat fields per type are defined in `src/utils/bonusStats.js` (`STAT_FIELDS` map). `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached. Locked: game type (Single) + login (Guest). Accept terms → Start Game. Below the footer, `ConfigView` renders `<BonusBadgeList className="config-total-bonus" ...>` with one pill per stat category, each showing the sum of contributions from all four selected entities. Eight categories are defined: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`. Only categories with a non-zero total are shown. Category totals are computed by `aggregateBonusTotals(pairs)` in `bonusStats.js` using the `STAT_CATEGORY` bucket map (fields not in the map — e.g. `costPositive`/`costNegative` on traits, `minCharacter`/`maxCharacter` on difficulty — are intentionally excluded). Labels resolve via `book.stats.totals.<category>` i18n keys (English: Life / Energy / Sadness / Dexterity / Intelligence / Constitution / Weight / XP; Italian: Vita / Energia / Tristezza / Destrezza / Intelligenza / Costituzione / Peso / EXP).
 3. **Game** (`/play/:storyId`) — book layout. Left: current location card. Right: player stats (Life/Energy/Sadness/XP/Food/Magic/Coins/Weight) + neighbor locations row + actions row. Click card → detail modal with move/execute button. Navbar + Footer always present.
-4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`.
+4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`. The `book.stats.*` namespace holds labels for every bonus/stat field shown in the preview panel (`lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`) plus `book.stats.title` ("Bonuses"). The sub-object `book.stats.totals` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
 5. **API fallback** — If backend unreachable, falls back to `src/mock/` JSON automatically.
 6. **Legal modals** — Privacy, Terms, Cookies triggered by Footer links. Copyright (i) on every big card.
 
@@ -78,9 +81,9 @@ Config view uses `card-big-list` (2-column big cards) instead of the previous `s
 - `onPreview` — when supplied, replaces the `(i)` info button with a magnifier button (`fas fa-search-plus`) that triggers a `CardPreviewOverlay` on the left page.
 - `previewLayout` — when true, the credits `(i)` button uses class `card-preview-info` (bottom-right positioning).
 
-New CSS in `main.css`: `.card-preview-overlay` (now `position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. Book page layout classes: `.book-page-content`, `.book-page-loading`, `.book-page-title`, `.book-page-img`, `.book-page-desc`, `.book-page-footer`, `.book-page-copyright`, `.book-page-credit-btn`. The old `.story-card-full*` rules have been removed.
+New CSS in `main.css`: `.card-preview-overlay` (now `position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. Book page layout classes: `.book-page-content`, `.book-page-loading`, `.book-page-title`, `.book-page-image-wrap` (relative container for image + absolute stats overlay), `.book-page-img`, `.book-page-desc`, `.book-page-footer`, `.book-page-copyright`, `.book-page-credit-btn`. Shared badge classes (replaces all previous per-context badge classes): `.bonus-badge-list` (flex-wrap row), `.bonus-badge` (pill — gold bg, gold-dark border, brown-deep text, `border-radius: 3px`, heading font `0.65rem` uppercase), `.bonus-badge__label`, `.bonus-badge__value` (inverted chip — brown-deep bg, gold text). Modifier: `.book-page-stats` (absolute top-right within `.book-page-image-wrap`, `z-index: 2`, `justify-content: flex-end`). Modifier: `.config-total-bonus` (centered flex, `margin-top: 10px`). Removed: `.book-page-stats__badge`, `.book-page-stats__value`, `.config-total-bonus__badge`, `.config-total-bonus__value`, old two-column grid classes, `.story-card-full*` rules.
 
-Cards support `style_main` (extra classes on wrapper) and `style_detail` (extra classes on image) in mock JSON for per-card visual overrides.
+Cards support `style_main` (extra classes on wrapper), `style_detail` (extra classes on the image at any size), and three new size-specific image style fields: `style_image_little`, `style_image_medium`, `style_image_large` (extra classes applied to the `<img>` element when the card is rendered at the corresponding variant). The `GameCard` component selects the right size field based on the `variant` prop (`little` / `medium` / `big`) and joins it with `styleDetail` on the image `className`.
 
 ## Config Options (per story)
 
@@ -108,7 +111,13 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
     | 0.18.0 | Per-story options, card system, credits modals, locked card images, mobile fixes | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted component; card-big-list config grid; CardPreviewOverlay with magnifier; aspect-ratio unified to 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageLeftContent dedicated component; book-page-* CSS classes; removed story-card-full* rules; CardPreviewOverlay refactored to solid absolute overlay | May 12, 2026 |
-- **Last Updated**: May 12, 2026
+    | 0.19.3 | GameCard picks styleImageLittle/Medium/Large per variant alongside styleDetail | May 14, 2026 |
+    | 0.19.3 | StartBook desktop: lens on selectable cards opens preview + selection list together; back/close on either pane dismisses both | May 14, 2026 |
+    | 0.19.3 | BookPageContent bonus-stats panel: entity+entityType props, STAT_FIELDS map, book-page-stats CSS, book.stats.* i18n keys | May 14, 2026 |
+    | 0.19.3 | bonusStats.js util (STAT_FIELDS, getNonZeroStats, sumBonusValues); stats panel redesigned as pill badges above image; zero-value stats hidden; ConfigView total-bonus aggregate pill | May 14, 2026 |
+    | 0.19.3 | BonusBadgeList shared component extracted to components/common/; book-page-stats repositioned absolute top-right over image (book-page-image-wrap); unified badge CSS (.bonus-badge-list, .bonus-badge, .bonus-badge__label, .bonus-badge__value); removed old per-context badge classes | May 14, 2026 |
+    | 0.19.3 | ConfigView total bonus changed from single grand-total pill to one pill per stat category (life/energy/sad/dexterity/intelligence/constitution/weight/exp); sumBonusValues removed; STAT_CATEGORY map + STAT_CATEGORY_ORDER + aggregateBonusTotals added to bonusStats.js; book.stats.totals i18n sub-object added | May 14, 2026 |
+- **Last Updated**: May 14, 2026
 - **Status**: Active development
 
 ---

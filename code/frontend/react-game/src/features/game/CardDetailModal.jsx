@@ -22,8 +22,8 @@ export default function CardDetailModal({ card, modalId, actionLabel, onAction }
               </button>
             </div>
             <div className="modal-body">
-              {card.imageUrl ? (
-                <img src={card.imageUrl} alt={card.name} className="card-detail-img" />
+              {card.urlImage ? (
+                <img src={card.urlImage} alt={card.name} className="card-detail-img" />
               ) : (
                 <div style={{
                   width: '100%',

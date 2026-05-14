@@ -6,7 +6,7 @@ export default function StoryCard({ story, onClick }) {
         <i className="fas fa-play" />
       </div>
       <img
-        src={story.card?.imageUrl}
+        src={story.card?.urlImage}
         alt={story.title}
         className="story-card-img"
         loading="lazy"

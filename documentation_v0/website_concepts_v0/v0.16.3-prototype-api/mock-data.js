@@ -19,7 +19,7 @@ var MOCK_STORIES = [
     difficultyCount: 1,
     card: {
       uuid: 'card-tutorial-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-graduation-cap',
       styleMain: 'tutorial',
@@ -41,7 +41,7 @@ var MOCK_STORIES = [
     difficultyCount: 0,
     card: {
       uuid: 'card-march-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-chess-rook',
       styleMain: 'medieval',
@@ -63,7 +63,7 @@ var MOCK_STORIES = [
     difficultyCount: 2,
     card: {
       uuid: 'card-coast-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-anchor',
       styleMain: 'pirate',
@@ -85,7 +85,7 @@ var MOCK_STORIES = [
     difficultyCount: 3,
     card: {
       uuid: 'card-frost-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-mountain',
       styleMain: 'frost',
@@ -107,7 +107,7 @@ var MOCK_STORIES = [
     difficultyCount: 1,
     card: {
       uuid: 'card-shadow-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-skull-crossbones',
       styleMain: 'dark',
@@ -157,7 +157,7 @@ var MOCK_STORY_DETAILS = {
     ],
     card: {
       uuid: 'card-tutorial-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-graduation-cap',
       styleMain: 'tutorial',
@@ -218,7 +218,7 @@ var MOCK_STORY_DETAILS = {
     ],
     card: {
       uuid: 'card-march-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-chess-rook',
       styleMain: 'medieval',
@@ -275,7 +275,7 @@ var MOCK_STORY_DETAILS = {
     ],
     card: {
       uuid: 'card-coast-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-anchor',
       styleMain: 'pirate',
@@ -326,7 +326,7 @@ var MOCK_STORY_DETAILS = {
     ],
     card: {
       uuid: 'card-frost-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-mountain',
       styleMain: 'frost',
@@ -381,7 +381,7 @@ var MOCK_STORY_DETAILS = {
     ],
     card: {
       uuid: 'card-shadow-001',
-      imageUrl: null,
+      urlImage: null,
       alternativeImage: null,
       awesomeIcon: 'fas fa-skull-crossbones',
       styleMain: 'dark',
@@ -399,7 +399,7 @@ var MOCK_STORY_DETAILS = {
 var MOCK_CARD_DETAILS = {
   'card-tutorial-001': {
     uuid: 'card-tutorial-001',
-    imageUrl: null,
+    urlImage: null,
     alternativeImage: null,
     awesomeIcon: 'fas fa-graduation-cap',
     styleMain: 'tutorial',
@@ -420,7 +420,7 @@ var MOCK_CARD_DETAILS = {
   },
   'card-march-001': {
     uuid: 'card-march-001',
-    imageUrl: null,
+    urlImage: null,
     alternativeImage: null,
     awesomeIcon: 'fas fa-chess-rook',
     styleMain: 'medieval',
@@ -441,7 +441,7 @@ var MOCK_CARD_DETAILS = {
   },
   'card-coast-001': {
     uuid: 'card-coast-001',
-    imageUrl: null,
+    urlImage: null,
     alternativeImage: null,
     awesomeIcon: 'fas fa-anchor',
     styleMain: 'pirate',
@@ -454,7 +454,7 @@ var MOCK_CARD_DETAILS = {
   },
   'card-frost-001': {
     uuid: 'card-frost-001',
-    imageUrl: null,
+    urlImage: null,
     alternativeImage: null,
     awesomeIcon: 'fas fa-mountain',
     styleMain: 'frost',
@@ -475,7 +475,7 @@ var MOCK_CARD_DETAILS = {
   },
   'card-shadow-001': {
     uuid: 'card-shadow-001',
-    imageUrl: null,
+    urlImage: null,
     alternativeImage: null,
     awesomeIcon: 'fas fa-skull-crossbones',
     styleMain: 'dark',

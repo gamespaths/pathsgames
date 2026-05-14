@@ -15,7 +15,7 @@
    large  → 100% × ratio  (fills container)
    grid   → flex:1 × ratio (config 2×3 grid)
    ═══════════════════════════════════════════ */
-.pg-card {
+.pg-card , .book-page-img {
   position: relative;
   border-radius: 10px;
   border: 2px solid var(--color-gold-dark);
@@ -620,6 +620,11 @@ html, body {
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
+/*.book-page-img:hover {
+    transform: scale(1.1); 
+}*/
+
+
 
 .book-page-credit-btn {
   position: absolute !important;
@@ -660,6 +665,59 @@ html, body {
   margin: 0 0 10px;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* ── Bonus badge list — shared between BookPageContent and ConfigView ── */
+.bonus-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.bonus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px;
+  font-family: var(--font-heading);
+  font-weight: 1000;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 3px;
+  background: var(--color-gold);
+  color: var(--color-brown-deep);
+}
+.bonus-badge__label { line-height: 1; }
+.bonus-badge__value {
+  display: inline-block;
+  min-width: 16px;
+  padding: 1px 4px;
+  font-weight: 1000;
+  font-size: 0.65rem;
+  color: var(--color-gold);
+  background: var(--color-brown-deep);
+  border-radius: 2px;
+  text-align: center;
+}
+
+/* BookPageContent: stats list pinned to top-right of the image area */
+.book-page-image-wrap {
+  position: relative;
+}
+.book-page-stats {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  max-width: calc(100% - 12px);
+  justify-content: flex-end;
+}
+
+/* ConfigView: total bonus centered after the page-footer */
+.config-total-bonus {
+  justify-content: center;
+  margin-top: 10px;
 }
 
 .config-info-btn {
@@ -871,7 +929,7 @@ html, body {
   cursor: not-allowed;
 }
 
-.config-card-selected {
+.config-card-selected  {
   border-color: var(--color-gold-shine) !important;
   box-shadow: 0 0 16px rgba(255,215,0,0.4), 0 0 6px rgba(255,215,0,0.2);
 }

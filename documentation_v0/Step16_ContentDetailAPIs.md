@@ -94,7 +94,7 @@ Returns the full detail of a card within a story, including resolved title, desc
 ```json
 {
   "uuid": "card-uuid-001",
-  "imageUrl": "https://img.paths.games/cards/forest.png",
+  "urlImage": "https://img.paths.games/cards/forest.png",
   "alternativeImage": "forest_alt.jpg",
   "awesomeIcon": "fa-tree",
   "styleMain": "bg-success",
@@ -219,7 +219,7 @@ Returns the profile of a creator within a story. The creator's name is resolved 
 | Field | Type | Nullable | Description |
 |-------|------|----------|-------------|
 | `uuid` | string | no | Card UUID |
-| `imageUrl` | string | yes | Primary image URL |
+| `urlImage` | string | yes | Primary image URL |
 | `alternativeImage` | string | yes | Alternative image filename |
 | `awesomeIcon` | string | yes | FontAwesome icon class |
 | `styleMain` | string | yes | CSS class for main style |
@@ -449,15 +449,16 @@ Full API specification: `code/backend/java/adapter-rest/src/main/resources/opena
     > Get "code/website/concepts_v0/v0.15.4-prototype/" and create "v0.16.3-prototype-api". change proptotype to use APIs just developed with 0.16.x steps! in header remove "nav-badges" and add "server selector" = LOCAL / MOCK. with mock use a static json. with local use stories APIs to get stories list , show card (image, test, description). remove "catalog-info-footer" and move (i) icon on catalog-card-cover on right-bottom corner. the (i) modal must use link_copyright and id_text_copyright. if LOCAL server on story modal to use difficulties, character from APIs with relative card if possibile.      
 
 
-- **Document Version**: 0.16.2
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.0 | Card, test and authors details APIs | April 20, 2026 |
     | 0.16.1 | Refactor CardInfo and alternative backend card APIs | April 20, 2026 |
     | 0.16.2 | Add CardInfo to Stories APIs | April 20, 2026 | 
     | 0.16.3 | New Website concept with card informations from APIs | April 20, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     
-- **Last Updated**: April 20, 2026
+- **Last Updated**: May 14, 2026
 - **Status**: ✅ Complete
 
 

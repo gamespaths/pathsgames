@@ -139,7 +139,7 @@ class StoryDetailTest {
             TraitInfo ti = TraitInfo.builder()
                     .uuid("trait-1").name("Brave").build();
             CardInfo card = CardInfo.builder()
-                    .uuid("card-1").imageUrl("https://example.com/card.png").build();
+                    .uuid("card-1").urlImage("https://example.com/card.png").build();
 
             StoryDetail d = validBuilder()
                     .classCount(1)

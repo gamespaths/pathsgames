@@ -83,7 +83,7 @@ paths:
                   difficultyCount: 3
                   card:
                     uuid: "card-main-uuid"
-                    imageUrl: "https://example.com/card.png"
+                    urlImage: "https://example.com/card.png"
                     title: "The Lost Kingdom"
                 - uuid: "660e8400-e29b-41d4-a716-446655440001"
                   title: "Dark Secrets"
@@ -796,7 +796,14 @@ components:
           type: string
           format: uuid
           example: "card-main-uuid"
-        imageUrl:
+        cardType:
+          type: string
+          nullable: true
+          description: |
+            Classifies which kind of story sub-entity this card belongs to
+            (e.g. `character`, `class`, `trait`, `difficulty`, `event`, `location`,
+            `item`, `mission`, `choice`, `creator`, ...).
+        urlImage:
           type: string
           nullable: true
           description: URL to the card image
@@ -817,6 +824,18 @@ components:
           type: string
           nullable: true
           description: CSS style for the detail card view
+        styleImageLittle:
+          type: string
+          nullable: true
+          description: CSS class for the card image at little size
+        styleImageMedium:
+          type: string
+          nullable: true
+          description: CSS class for the card image at medium size
+        styleImageLarge:
+          type: string
+          nullable: true
+          description: CSS class for the card image at large size
         title:
           type: string
           nullable: true

@@ -17,6 +17,9 @@ public class CardEntity extends BaseStoryEntity {
     @Column(name = "id_story", insertable = false, updatable = false)
     private Long idStoryPk;
 
+    @Column(name = "card_type")
+    private String cardType;
+
     @Column(name = "url_immage")
     private String urlImage;
 
@@ -44,6 +47,15 @@ public class CardEntity extends BaseStoryEntity {
     @Column(name = "style_detail")
     private String styleDetail;
 
+    @Column(name = "style_image_little")
+    private String styleImageLittle;
+
+    @Column(name = "style_image_medium")
+    private String styleImageMedium;
+
+    @Column(name = "style_image_large")
+    private String styleImageLarge;
+
     // === Getters & Setters ===
 
     public Long getId() { return id; }
@@ -58,6 +70,9 @@ public class CardEntity extends BaseStoryEntity {
         this.idStoryPk = idStory;
     }
 
+
+    public String getCardType() { return cardType; }
+    public void setCardType(String cardType) { this.cardType = cardType; }
 
     public String getUrlImage() { return urlImage; }
     public void setUrlImage(String urlImage) { this.urlImage = urlImage; }
@@ -86,5 +101,14 @@ public class CardEntity extends BaseStoryEntity {
 
     public String getStyleDetail() { return styleDetail; }
     public void setStyleDetail(String styleDetail) { this.styleDetail = styleDetail; }
+
+    public String getStyleImageLittle() { return styleImageLittle; }
+    public void setStyleImageLittle(String styleImageLittle) { this.styleImageLittle = styleImageLittle; }
+
+    public String getStyleImageMedium() { return styleImageMedium; }
+    public void setStyleImageMedium(String styleImageMedium) { this.styleImageMedium = styleImageMedium; }
+
+    public String getStyleImageLarge() { return styleImageLarge; }
+    public void setStyleImageLarge(String styleImageLarge) { this.styleImageLarge = styleImageLarge; }
 
 }

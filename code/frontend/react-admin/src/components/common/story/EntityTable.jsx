@@ -102,34 +102,16 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
                 {visibleColumns.map(col => {
                   let content = ent[col.key]
 
-                  if (col.type === 'idTextName') {
-                    const textVal = resolveText(ent[col.key])
+                  if (col.type === 'idTextName' || col.type === 'idTextDescription' || col.type === 'idTextTitle') {
+                    const rawId = ent[col.key]
+                    if (rawId === null || rawId === undefined || rawId === '') {
+                      return <td key={col.key}>—</td>
+                    }
+                    const textVal = resolveText(rawId)
                     return (
                       <td key={col.key}>
                         <span className="pg-badge pg-badge-resolved" title={textVal}>
-                          #{ent[col.key]} {textVal}
-                        </span>
-                      </td>
-                    )
-                  }
-
-                  if (col.type === 'idTextDescription') {
-                    const textVal = resolveText(ent[col.key])
-                    return (
-                      <td key={col.key}>
-                        <span className="pg-badge pg-badge-resolved" title={textVal}>
-                          #{ent[col.key]} {textVal}
-                        </span>
-                      </td>
-                    )
-                  }
-
-                  if (col.type === 'idTextTitle') {
-                    const textVal = resolveText(ent[col.key])
-                    return (
-                      <td key={col.key}>
-                        <span className="pg-badge pg-badge-resolved" title={textVal}>
-                          #{ent[col.key]} {textVal}
+                          #{rawId} {textVal}
                         </span>
                       </td>
                     )

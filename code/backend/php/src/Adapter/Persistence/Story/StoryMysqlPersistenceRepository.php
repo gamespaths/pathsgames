@@ -511,11 +511,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             INSERT INTO list_cards (
                 id_story, uuid, id_card, card_type, id_text_name, id_text_title, id_text_description,
                 id_text_copyright, link_copyright, id_creator, image_url, id_reference,
-                alternative_image, awesome_icon, style_main, style_detail
+                alternative_image, awesome_icon, style_main, style_detail,
+                style_image_little, style_image_medium, style_image_large
             ) VALUES (
                 :id_story, :uuid, :id_card, :card_type, :id_text_name, :id_text_title, :id_text_description,
                 :id_text_copyright, :link_copyright, :id_creator, :image_url, :id_reference,
-                :alternative_image, :awesome_icon, :style_main, :style_detail
+                :alternative_image, :awesome_icon, :style_main, :style_detail,
+                :style_image_little, :style_image_medium, :style_image_large
             )
         ");
         foreach ($cards as $c) {
@@ -531,12 +533,15 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':id_text_copyright' => $c['idTextCopyright'] ?? null,
                 ':link_copyright' => $c['linkCopyright'] ?? null,
                 ':id_creator' => $c['idCreator'] ?? null,
-                ':image_url' => $c['imageUrl'] ?? null,
+                ':image_url' => $c['urlImage'] ?? null,
                 ':id_reference' => $c['idReference'] ?? null,
                 ':alternative_image' => $c['alternativeImage'] ?? null,
                 ':awesome_icon' => $c['awesomeIcon'] ?? null,
                 ':style_main' => $c['styleMain'] ?? null,
                 ':style_detail' => $c['styleDetail'] ?? null,
+                ':style_image_little' => $c['styleImageLittle'] ?? null,
+                ':style_image_medium' => $c['styleImageMedium'] ?? null,
+                ':style_image_large' => $c['styleImageLarge'] ?? null,
             ]);
         }
     }
@@ -871,7 +876,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             'list_classes_bonus' => ['id', 'id_story', 'id_class', 'bonus_type', 'bonus_value'],
             'list_traits' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
             'list_creator' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'creator_name', 'creator_role', 'link', 'url', 'url_image', 'url_emote', 'url_instagram'],
-            'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'link_copyright', 'id_creator', 'id_reference'],
+            'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'style_image_little', 'style_image_medium', 'style_image_large', 'link_copyright', 'id_creator', 'id_reference'],
             'list_texts' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'lang', 'short_text', 'long_text', 'id_text_copyright', 'link_copyright', 'id_creator'],
             'list_keys' => ['id', 'uuid', 'id_story', 'id_card', 'id_text_name', 'key_name', 'key_value', 'key_group', 'is_visible'],
             'list_choices' => ['id', 'uuid', 'id_story', 'id_card', 'id_event', 'id_text_name', 'id_text_description', 'priority', 'is_otherwise', 'is_progress', 'id_event_torun'],

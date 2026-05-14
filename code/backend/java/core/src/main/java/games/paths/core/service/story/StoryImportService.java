@@ -336,6 +336,7 @@ public class StoryImportService implements StoryImportPort {
             e.setId(resolveStoryScopedId(item, "story/list_cards", "list_cards", "id", storyId, "id"));
             e.setIdStory(storyId);
             e.setIdCreator(normalizeOptionalFk(getInteger(item, "idCreator")));
+            e.setCardType(getString(item, "cardType"));
             e.setUrlImage(getString(item, "urlImage"));
             e.setIdTextTitle(getInteger(item, "idTextTitle"));
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
@@ -345,6 +346,9 @@ public class StoryImportService implements StoryImportPort {
             e.setAwesomeIcon(getString(item, "awesomeIcon"));
             e.setStyleMain(getString(item, "styleMain"));
             e.setStyleDetail(getString(item, "styleDetail"));
+            e.setStyleImageLittle(getString(item, "styleImageLittle"));
+            e.setStyleImageMedium(getString(item, "styleImageMedium"));
+            e.setStyleImageLarge(getString(item, "styleImageLarge"));
             entities.add(e);
         }
         persistencePort.saveCards(entities);

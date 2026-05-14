@@ -1,11 +1,28 @@
 import GameCardInfoButton from '../layout/GameCardInfoButton'
+import BonusBadgeList from '../common/BonusBadgeList'
+import { useTranslation } from '../../i18n/context'
+import { getNonZeroStats } from '../../utils/bonusStats'
 
 /**
  * BookPageContent — content of the book page.
  * Renders as a book page (NOT a card): chapter title, image,
  * description text, footer with copyright + credits link.
+ *
+ * When `entity` + `entityType` are passed, renders a bonus-stats badges row
+ * absolute-positioned above the image, top-right. Zero/missing values are hidden.
  */
-export default function BookPageContent({ card, story,  loading , onClose }) {
+export default function BookPageContent({ card, story, loading, onClose, entity, entityType }) {
+  const { t } = useTranslation()
+
+  const statItems = getNonZeroStats(entity, entityType).map(s => ({
+    key: s.key,
+    label: t(`book.stats.${s.key}`),
+    value: s.value,
+  }))
+
+  const title = card?.title ?? entity?.name ?? null
+  const description = card?.description ?? entity?.description ?? null
+
   return (
     <div className="book-page-content">
       {loading && (
@@ -18,25 +35,26 @@ export default function BookPageContent({ card, story,  loading , onClose }) {
         {onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
           <i className="fas fa-arrow-left me-1" />{ /*t('book.back')*/ }
         </button>}
-        {card?.title}
+        {title}
+      </h2>
+
+        {card?.urlImage && (
+          <img src={card.urlImage} alt={title} className={"book-page-img " + (card?.styleImageLarge ?? '')} />
+        )}
+      
+      {description && (
+        <div className="book-page-desc">
+          <BonusBadgeList items={statItems} className="book-page-stats" />
+          {description}
+        </div>
+      )}
         {card?.linkCopyright && (
           <GameCardInfoButton
             story={story}
             card={card}
-            buttonClassName="float-right card-info-btn "
+            buttonClassName="position-absolute bottom-0 right-0 card-info-btn "
           />
         )}
-      </h2>
-     
-
-      {card?.imageUrl && (
-        <img src={card.imageUrl} alt={card?.title} className="book-page-img" />
-      )}
-
-      {card?.description && (
-        <p className="book-page-desc">{card.description}</p>
-      )}
-
     </div>
   )
 }

@@ -35,7 +35,7 @@ export default function StartBookModal({ story, onClose }) {
   const [config, setConfig] = useState(() => buildInitialConfig(story))
   const [selectionType, setSelectionType] = useState(null)
   const [termsAccepted, setTermsAccepted] = useState(true)
-  const [previewCard, setPreviewCard] = useState(null)
+  const [preview, setPreview] = useState(null) // { entity, type } or null
 
   useEffect(() => {
     if (!story?.uuid) return
@@ -54,6 +54,29 @@ export default function StartBookModal({ story, onClose }) {
 
   function handleSelect(opt) {
     setConfig(prev => ({ ...prev, [selectionType]: opt }))
+    setSelectionType(null)
+    setPreview(null)
+  }
+
+  // From ConfigView: clicking "Cambia" or the magnifying glass on a selectable
+  // card opens BOTH the selection list (right page) and the preview of the
+  // currently-selected option (left page).
+  function handleChangeFromConfig(type) {
+    setSelectionType(type)
+    const entity = config[type]
+    setPreview(entity ? { entity, type } : null)
+  }
+
+  // From SelectionView / ConfigView: clicking the magnifying glass on an option
+  // swaps the left-page preview without leaving the selection list.
+  function handleSelectionPreview(entity, type) {
+    setPreview(entity ? { entity, type } : null)
+  }
+
+  // Any "back" / "close" action — on either the preview or the selection list —
+  // exits the whole change flow and returns to ConfigView.
+  function handleBackOrClose() {
+    setPreview(null)
     setSelectionType(null)
   }
 
@@ -91,28 +114,36 @@ export default function StartBookModal({ story, onClose }) {
 
           <BookPageLeft>
             {/* StoryLeftContent always rendered underneath */}
-            <BookPageContent card={activeStory.card} loading={loadingDetail}  story={activeStory}/>
+            { preview ? (
+              <CardPreviewOverlay
+                card={preview.entity?.card}
+                entity={preview.entity}
+                entityType={preview.type}
+                story={activeStory}
+                onClose={handleBackOrClose}
+              />
+            ) : (
+              <BookPageContent card={activeStory.card} loading={loadingDetail}  story={activeStory}/>
+            )}
           </BookPageLeft>
 
           <BookPageRight>
-            { previewCard ? (
-              <CardPreviewOverlay card={previewCard} story={activeStory} onClose={() => setPreviewCard(null)} />
-            ) : selectionType ? (
+            { selectionType ? (
               <SelectionView
                 type={selectionType}
                 options={getOptionsForType(selectionType, activeStory)}
                 selected={config[selectionType]}
                 story={activeStory}
                 onSelect={handleSelect}
-                onBack={() => setSelectionType(null)}
-                onPreview={setPreviewCard}
+                onBack={handleBackOrClose}
+                onPreview={handleSelectionPreview}
               />
             ) : (
               <ConfigView
                 config={config}
                 story={activeStory}
-                onChangeClick={setSelectionType}
-                onPreview={setPreviewCard}
+                onChangeClick={handleChangeFromConfig}
+                onPreview={handleSelectionPreview}
                 termsAccepted={termsAccepted}
                 onTermsChange={setTermsAccepted}
                 onStartGame={handleStartGame}
@@ -141,10 +172,17 @@ export default function StartBookModal({ story, onClose }) {
   )
 }
 
-function CardPreviewOverlay({ card, story, onClose }) {
+function CardPreviewOverlay({ card, entity, entityType, story, onClose }) {
   return (
     <div className="card-preview-overlay">
-      <BookPageContent card={card} loading={false} story={story}  onClose={onClose}  />
+      <BookPageContent
+        card={card}
+        entity={entity}
+        entityType={entityType}
+        loading={false}
+        story={story}
+        onClose={onClose}
+      />
     </div>
   )
 }

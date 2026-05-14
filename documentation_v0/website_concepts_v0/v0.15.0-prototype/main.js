@@ -212,7 +212,7 @@
       category:      capitalize(apiStory.category || 'Uncategorized'),
       group:         apiStory.group || null,
       emote:         local.emote,
-      cover:         null,   // Will be enriched from story detail (card.imageUrl)
+      cover:         null,   // Will be enriched from story detail (card.urlImage)
       desc:          apiStory.description || '',
       startLocation: local.startLocation,
       author:        apiStory.author || null,
@@ -415,11 +415,11 @@
         console.log(`[API] Story detail loaded for "${story.title}":`, detail);
 
         /* Update cover image from card if available */
-        if (detail.card && detail.card.imageUrl && !story.cover) {
-          story.cover = detail.card.imageUrl;
+        if (detail.card && detail.card.urlImage && !story.cover) {
+          story.cover = detail.card.urlImage;
           const previewVisual = body.querySelector('.preview-visual');
           if (previewVisual) {
-            previewVisual.innerHTML = `<img src="${detail.card.imageUrl}" alt="${story.title}" class="preview-visual-img" style="width:100%;height:100%;object-fit:cover;" />`;
+            previewVisual.innerHTML = `<img src="${detail.card.urlImage}" alt="${story.title}" class="preview-visual-img" style="width:100%;height:100%;object-fit:cover;" />`;
           }
         }
       }

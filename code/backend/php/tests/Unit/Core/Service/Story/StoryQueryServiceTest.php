@@ -96,7 +96,7 @@ class StoryQueryServiceTest extends TestCase
         $this->assertNotNull($results[0]->card);
         $this->assertInstanceOf(CardInfo::class, $results[0]->card);
         $this->assertSame('card-uuid', $results[0]->card->uuid);
-        $this->assertSame('https://img.png', $results[0]->card->imageUrl);
+        $this->assertSame('https://img.png', $results[0]->card->urlImage);
         $this->assertSame('Card Title', $results[0]->card->title);
         $this->assertSame('Card Desc', $results[0]->card->description);
         $this->assertSame('fa-star', $results[0]->card->awesomeIcon);
@@ -385,7 +385,7 @@ class StoryQueryServiceTest extends TestCase
         $this->assertNotNull($detail->card);
         $this->assertInstanceOf(CardInfo::class, $detail->card);
         $this->assertSame('card-uuid', $detail->card->uuid);
-        $this->assertSame('https://img.png', $detail->card->imageUrl);
+        $this->assertSame('https://img.png', $detail->card->urlImage);
         $this->assertSame('alt-img', $detail->card->alternativeImage);
         $this->assertSame('fa-star', $detail->card->awesomeIcon);
         $this->assertSame('bg-dark', $detail->card->styleMain);

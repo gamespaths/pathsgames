@@ -66,7 +66,7 @@ def test_list_public_stories_with_card(mock_read_port):
     assert len(results) == 1
     assert results[0].card is not None
     assert results[0].card.uuid == "card-uuid"
-    assert results[0].card.imageUrl == "https://img.png"
+    assert results[0].card.urlImage == "https://img.png"
     assert results[0].card.title == "Card Title"
     assert results[0].card.description == "Card Desc"
     assert results[0].card.awesomeIcon == "fa-star"
@@ -324,7 +324,7 @@ def test_get_story_detail_with_card(mock_read_port):
     assert detail.card is not None
     assert isinstance(detail.card, CardInfo)
     assert detail.card.uuid == "card-uuid"
-    assert detail.card.imageUrl == "https://img.png"
+    assert detail.card.urlImage == "https://img.png"
     assert detail.card.alternativeImage == "alt-img"
     assert detail.card.awesomeIcon == "fa-star"
     assert detail.card.styleMain == "bg-dark"
@@ -368,7 +368,7 @@ def test_get_story_detail_card_uses_id_text_name_fallback(mock_read_port):
         {"id_text": 500, "lang": "en", "short_text": "Name Fallback"}
     ]
     mock_read_port.find_card_for_story.return_value = {
-        "id": 42, "uuid": "card-uuid", "image_url": None,
+        "id": 42, "uuid": "card-uuid", "url_image": None,
         "id_text_name": 500
     }
 

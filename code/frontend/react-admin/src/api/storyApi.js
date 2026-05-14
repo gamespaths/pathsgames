@@ -39,6 +39,7 @@ export const getEntity = (uuidStory, entityType, entityUuid) =>
 
 // PUT /api/admin/stories/:uuidStory/:entityType/:entityUuid
 export const updateEntity = (uuidStory, entityType, entityUuid, data) =>
+  console.log('Updating entity', { uuidStory, entityType, entityUuid, data }) ||
   apiClient().put(`/api/admin/stories/${uuidStory}/${entityType}/${entityUuid}`, data).then(r => r.data)
 
 // DELETE /api/admin/stories/:uuidStory/:entityType/:entityUuid

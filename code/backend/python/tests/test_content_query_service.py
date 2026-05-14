@@ -55,7 +55,7 @@ def test_get_card_card_not_found(mock_read_port):
 def test_get_card_success(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
     mock_read_port.find_card_by_story_id_and_uuid.return_value = {
-        "uuid": "card-uuid", "image_url": "https://img.png",
+        "uuid": "card-uuid", "url_image": "https://img.png",
         "alternative_image": "alt", "awesome_icon": "fa-star",
         "style_main": "bg-dark", "style_detail": "text-light",
         "id_text_title": 10, "id_text_description": 11,
@@ -74,7 +74,7 @@ def test_get_card_success(mock_read_port):
     assert card is not None
     assert isinstance(card, CardInfo)
     assert card.uuid == "card-uuid"
-    assert card.imageUrl == "https://img.png"
+    assert card.urlImage == "https://img.png"
     assert card.alternativeImage == "alt"
     assert card.awesomeIcon == "fa-star"
     assert card.styleMain == "bg-dark"
@@ -88,7 +88,7 @@ def test_get_card_success(mock_read_port):
 def test_get_card_with_creator(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
     mock_read_port.find_card_by_story_id_and_uuid.return_value = {
-        "uuid": "card-uuid", "image_url": None,
+        "uuid": "card-uuid", "url_image": None,
         "alternative_image": None, "awesome_icon": None,
         "style_main": None, "style_detail": None,
         "id_text_title": None, "id_text_description": None,
@@ -121,7 +121,7 @@ def test_get_card_with_creator(mock_read_port):
 def test_get_card_creator_not_in_list(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
     mock_read_port.find_card_by_story_id_and_uuid.return_value = {
-        "uuid": "card-uuid", "image_url": None,
+        "uuid": "card-uuid", "url_image": None,
         "alternative_image": None, "awesome_icon": None,
         "style_main": None, "style_detail": None,
         "id_text_title": None, "id_text_description": None,

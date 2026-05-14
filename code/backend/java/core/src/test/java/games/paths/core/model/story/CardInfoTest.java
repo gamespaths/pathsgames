@@ -18,7 +18,7 @@ class CardInfoTest {
     private CardInfo.Builder validBuilder() {
         return CardInfo.builder()
                 .uuid("card-1")
-                .imageUrl("https://example.com/card.png")
+                .urlImage("https://example.com/card.png")
                 .alternativeImage("alt-text")
                 .awesomeIcon("fa-star")
                 .styleMain("bg-primary")
@@ -41,7 +41,7 @@ class CardInfoTest {
 
             assertAll("CardInfo fields",
                 () -> assertEquals("card-1", ci.getUuid()),
-                () -> assertEquals("https://example.com/card.png", ci.getImageUrl()),
+                () -> assertEquals("https://example.com/card.png", ci.getUrlImage()),
                 () -> assertEquals("alt-text", ci.getAlternativeImage()),
                 () -> assertEquals("fa-star", ci.getAwesomeIcon()),
                 () -> assertEquals("bg-primary", ci.getStyleMain()),
@@ -62,7 +62,7 @@ class CardInfoTest {
         void build_allNullFields() {
             CardInfo ci = CardInfo.builder()
                     .uuid(null)
-                    .imageUrl(null)
+                    .urlImage(null)
                     .alternativeImage(null)
                     .awesomeIcon(null)
                     .styleMain(null)
@@ -76,7 +76,7 @@ class CardInfoTest {
 
             assertAll("All null fields",
                 () -> assertNull(ci.getUuid()),
-                () -> assertNull(ci.getImageUrl()),
+                () -> assertNull(ci.getUrlImage()),
                 () -> assertNull(ci.getAlternativeImage()),
                 () -> assertNull(ci.getAwesomeIcon()),
                 () -> assertNull(ci.getStyleMain()),
@@ -96,7 +96,7 @@ class CardInfoTest {
 
             assertAll("Default values",
                 () -> assertNull(ci.getUuid()),
-                () -> assertNull(ci.getImageUrl()),
+                () -> assertNull(ci.getUrlImage()),
                 () -> assertNull(ci.getAlternativeImage()),
                 () -> assertNull(ci.getAwesomeIcon()),
                 () -> assertNull(ci.getStyleMain()),

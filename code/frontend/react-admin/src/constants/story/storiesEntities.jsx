@@ -4,6 +4,7 @@ import {
   LOCATION_NEIGHBOR_FLAG_BACK_OPTIONS,
 } from './locationNeighbors'
 import {
+  CARD_TYPE_OPTIONS,
   CHOICE_CONDITION_OPERATOR_OPTIONS,
   CHOICE_CONDITION_TYPE_OPTIONS,
   EVENT_EFFECT_TARGET_OPTIONS,
@@ -127,6 +128,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'effectValue', label: 'Effect Value', type: 'number' },
     ],
     'character-templates': [
+      { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'lifeMax', label: 'Max Life', type: 'number' },
@@ -170,6 +172,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'urlInstagram', label: 'Instagram URL', type: 'text' },
     ],
     cards: [
+      { key: 'cardType', label: 'Card Type', type: 'select', options: CARD_TYPE_OPTIONS },
       { key: 'idTextTitle', label: 'Title Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
@@ -180,6 +183,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'awesomeIcon', label: 'Awesome Icon', type: 'text' },
       { key: 'styleMain', label: 'Style Main', type: 'text' },
       { key: 'styleDetail', label: 'Style Detail', type: 'text' },
+      { key: 'styleImageLittle', label: 'Style Image Little', type: 'text' },
+      { key: 'styleImageMedium', label: 'Style Image Medium', type: 'text' },
+      { key: 'styleImageLarge', label: 'Style Image Large', type: 'text' },
     ],
     texts: [
       { key: 'idText', label: 'Text ID', type: 'number' },

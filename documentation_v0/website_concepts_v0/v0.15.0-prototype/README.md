@@ -88,7 +88,7 @@ peghi                         →     peghi
 difficultyCount               →     difficultyCount
 ─ (not in API) ─              →     emote        ← LOCAL_STORY_CONFIG
 ─ (not in API) ─              →     startLocation ← LOCAL_STORY_CONFIG
-─ (not in API) ─              →     cover        ← story detail card.imageUrl
+─ (not in API) ─              →     cover        ← story detail card.urlImage
 ```
 
 
@@ -119,7 +119,7 @@ showStoryPreview(storyId)
   ├── If API available + story has UUID:
   │     GET /api/stories/{uuid}
   │     │
-  │     ├── Update cover image from card.imageUrl
+  │     ├── Update cover image from card.urlImage
   │     ├── Cache detail in storyDetails{}
   │     └── Show API detail badges (author, locations, events, etc.)
   │
@@ -209,7 +209,7 @@ The prototype matches API stories to local config by **title** (case-insensitive
 | Version | Description | Date |
 |---------|-------------|------|
 | 0.15.0-prototype | API-powered story catalog with static location fallback | April 16, 2026 |
-
+| 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
 
 ---
 

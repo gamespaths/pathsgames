@@ -33,7 +33,7 @@ export default function StartBookMobile({
       ) : (
         <>
           <div className="book-mobile-story-card">
-            <img src={activeStory.card?.imageUrl} alt={activeStory.title} className="book-mobile-story-img" />
+            <img src={activeStory.card?.urlImage} alt={activeStory.title} className="book-mobile-story-img" />
             <div className="book-mobile-story-body">
               <h3 className="story-card-full-title" style={{ fontSize: '1rem', marginBottom: 4 }}>{activeStory.title}</h3>
               <p className="story-card-full-desc" style={{ fontSize: '0.82rem' }}>{activeStory.description}</p>

@@ -169,7 +169,7 @@ Card Info Should Have Required Fields
     [Arguments]    ${body}
     Dictionary Should Contain Key    ${body}    uuid
     Dictionary Should Contain Key    ${body}    title
-    Dictionary Should Contain Key    ${body}    imageUrl
+    Dictionary Should Contain Key    ${body}    urlImage
     Dictionary Should Contain Key    ${body}    alternativeImage
     Dictionary Should Contain Key    ${body}    awesomeIcon
     Dictionary Should Contain Key    ${body}    styleMain

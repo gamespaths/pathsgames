@@ -180,7 +180,7 @@
       html += `<div class="detail-section">
         <h6><i class="fas fa-id-card me-1"></i>Story Card</h6>
         <div class="card-info-box">
-          ${d.card.imageUrl ? `<img src="${esc(d.card.imageUrl)}" alt="${esc(d.card.alternativeImage || '')}" class="card-img-preview" />` : ''}
+          ${d.card.urlImage ? `<img src="${esc(d.card.urlImage)}" alt="${esc(d.card.alternativeImage || '')}" class="card-img-preview" />` : ''}
           <div>
             <strong>${esc(d.card.title || '—')}</strong>
             ${d.card.awesomeIcon ? `<br/><i class="fas ${esc(d.card.awesomeIcon)}"></i>` : ''}

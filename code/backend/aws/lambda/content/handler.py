@@ -13,7 +13,7 @@ DynamoDB layout — data resides on the story item:
   PK = STORY#{uuid}, SK = METADATA
     raw_texts:    [{idText, lang, shortText, longText, idTextCopyright, linkCopyright, idCreator}, ...]
     raw_cards:    [{id, uuid, idTextTitle, idTextDescription, idTextCopyright, linkCopyright,
-                    idCreator, imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail}, ...]
+                    idCreator, urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail}, ...]
     raw_creators: [{id, uuid, idText, link, url, urlImage, urlEmote, urlInstagram}, ...]
 """
 
@@ -215,11 +215,16 @@ def get_card(event, story_uuid, card_uuid):
 
     return _ok({
         'uuid':             card.get('uuid'),
-        'imageUrl':         card.get('imageUrl'),
+        'cardType':         card.get('cardType'),
+        # Storage key is `urlImage`; legacy records may still have `imageUrl`.
+        'urlImage':         card.get('urlImage') or card.get('imageUrl'),
         'alternativeImage': card.get('alternativeImage'),
         'awesomeIcon':      card.get('awesomeIcon'),
         'styleMain':        card.get('styleMain'),
         'styleDetail':      card.get('styleDetail'),
+        'styleImageLittle': card.get('styleImageLittle'),
+        'styleImageMedium': card.get('styleImageMedium'),
+        'styleImageLarge':  card.get('styleImageLarge'),
         'title':            title,
         'description':      description,
         'copyrightText':    copyright_text,

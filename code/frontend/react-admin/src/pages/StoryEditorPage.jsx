@@ -746,6 +746,11 @@ export default function StoryEditorPage() {
         options: itemsOptions,
       },
     },
+    'character-templates': {
+      idCard: {
+        options: cardsOptions,
+      },
+    },
     'class-bonuses': {
       idClass: {
         options: classesOptions,

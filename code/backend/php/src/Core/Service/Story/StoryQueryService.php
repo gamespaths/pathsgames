@@ -167,11 +167,15 @@ class StoryQueryService implements StoryQueryPort
                 $cardCopyrightText = $this->resolveText($texts, $cardCopyrightTextId, $lang);
                 $card = new CardInfo(
                     $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+                    $rawCard['card_type'] ?? null,
                     $rawCard['image_url'] ?? null,
                     $rawCard['alternative_image'] ?? null,
                     $rawCard['awesome_icon'] ?? null,
                     $rawCard['style_main'] ?? null,
                     $rawCard['style_detail'] ?? null,
+                    $rawCard['style_image_little'] ?? null,
+                    $rawCard['style_image_medium'] ?? null,
+                    $rawCard['style_image_large'] ?? null,
                     $cardTitle,
                     $cardDescription,
                     $cardCopyrightText,
@@ -236,11 +240,15 @@ class StoryQueryService implements StoryQueryPort
                 $cardCopyrightText = $this->resolveText($texts, $cardCopyrightTextId, $lang);
                 $card = new CardInfo(
                     $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+                    $rawCard['card_type'] ?? null,
                     $rawCard['image_url'] ?? null,
                     $rawCard['alternative_image'] ?? null,
                     $rawCard['awesome_icon'] ?? null,
                     $rawCard['style_main'] ?? null,
                     $rawCard['style_detail'] ?? null,
+                    $rawCard['style_image_little'] ?? null,
+                    $rawCard['style_image_medium'] ?? null,
+                    $rawCard['style_image_large'] ?? null,
                     $cardTitle,
                     $cardDescription,
                     $cardCopyrightText,
@@ -287,11 +295,15 @@ class StoryQueryService implements StoryQueryPort
         $cardCopyrightTextId = isset($rawCard['id_text_copyright']) ? (int)$rawCard['id_text_copyright'] : null;
         return new CardInfo(
             $rawCard['uuid'] ?? (string)($rawCard['id'] ?? ''),
+            $rawCard['card_type'] ?? null,
             $rawCard['image_url'] ?? null,
             $rawCard['alternative_image'] ?? null,
             $rawCard['awesome_icon'] ?? null,
             $rawCard['style_main'] ?? null,
             $rawCard['style_detail'] ?? null,
+            $rawCard['style_image_little'] ?? null,
+            $rawCard['style_image_medium'] ?? null,
+            $rawCard['style_image_large'] ?? null,
             $this->resolveText($texts, $cardTitleTextId, $lang),
             $this->resolveText($texts, $cardDescTextId, $lang),
             $this->resolveText($texts, $cardCopyrightTextId, $lang),

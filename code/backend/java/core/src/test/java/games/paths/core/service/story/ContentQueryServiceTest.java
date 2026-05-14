@@ -173,7 +173,7 @@ class ContentQueryServiceTest {
             assertNotNull(result);
             assertAll("Card detail fields",
                 () -> assertEquals("card-uuid", result.getUuid()),
-                () -> assertEquals("https://img.com/card.png", result.getImageUrl()),
+                () -> assertEquals("https://img.com/card.png", result.getUrlImage()),
                 () -> assertEquals("alt.jpg", result.getAlternativeImage()),
                 () -> assertEquals("fa-star", result.getAwesomeIcon()),
                 () -> assertEquals("bg-primary", result.getStyleMain()),

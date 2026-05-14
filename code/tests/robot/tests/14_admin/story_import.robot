@@ -314,11 +314,47 @@ Import Explicit ID For list_traits Returns 201
 
 Import Explicit ID For list_character_templates Returns 201
     [Documentation]    Import accepts explicit id for list_character_templates rows.
+    ...                Includes idTextName and idTextDescription to verify they are accepted by the import.
+    ...                idCard is exercised by the round-trip test below (it needs a matching list_cards row to
+    ...                satisfy the Postgres FK constraint fk_char_templates_card).
     [Tags]    admin    step14
     Import With Explicit List Entity Id
     ...    68888888-8888-4888-8888-888888888888
     ...    characterTemplates
-    ...    {"id":971008,"lifeMax":1,"energyMax":0,"sadMax":0,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}
+    ...    {"id":971008,"idTextName":100,"idTextDescription":101,"lifeMax":1,"energyMax":0,"sadMax":0,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}
+
+Import list_character_templates Round-Trips idTextName And idTextDescription
+    [Documentation]    Imports a story with a character template having idCard, idTextName, idTextDescription
+    ...                set, then reads back the character-templates collection and asserts the three FK
+    ...                fields are persisted (consistent across Java, Python, PHP and AWS backends).
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    68888888-8888-4888-8888-888888888889
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-ct-fk",
+    ...    "texts":[{"id":1,"idText":100,"lang":"en","shortText":"Name"},{"id":2,"idText":101,"lang":"en","shortText":"Desc"}],
+    ...    "cards":[{"id":1,"urlImage":"ct.png"}],
+    ...    "characterTemplates":[{"id":1,"idCard":1,"idTextName":100,"idTextDescription":101,
+    ...    "lifeMax":12,"energyMax":8,"sadMax":4,"dexterityStart":2,"intelligenceStart":3,"constitutionStart":1}]}
+    ${resp_imp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp_imp.status_code}    201
+
+    ${ct_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/character-templates
+    ...    headers=${headers}
+    Should Be Equal As Integers    ${ct_resp.status_code}    200
+    ${cts}=    Set Variable    ${ct_resp.json()}
+    Length Should Be    ${cts}    1
+    ${ct}=    Set Variable    ${cts}[0]
+    Should Be Equal As Integers    ${ct}[idCard]               1
+    Should Be Equal As Integers    ${ct}[idTextName]           100
+    Should Be Equal As Integers    ${ct}[idTextDescription]    101
+    Should Be Equal As Integers    ${ct}[lifeMax]              12
+
+    Delete Admin Story    ${uuid}
 
 Import Explicit ID For list_locations Returns 201
     [Documentation]    Import accepts explicit id for list_locations rows.

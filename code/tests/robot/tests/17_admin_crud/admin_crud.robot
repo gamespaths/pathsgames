@@ -232,25 +232,36 @@ Create And Update Creator With idCard
     Status Should Be    ${del_resp}    200
 
 Create And Delete Card With Style Fields
-    [Documentation]    Full CRUD cycle for cards. Verifies alternativeImage, styleMain and
-    ...                styleDetail are persisted and returned correctly.
+    [Documentation]    Full CRUD cycle for cards. Verifies alternativeImage, styleMain,
+    ...                styleDetail and per-size styleImage* fields are persisted.
     [Tags]    admin    crud    step17
     &{data}=    Create Dictionary
+    ...    cardType=character
     ...    urlImage=https://example.com/card.png
     ...    alternativeImage=alt_card.png
     ...    awesomeIcon=fa-star
     ...    styleMain=card-style-dark
     ...    styleDetail=card-detail-border
+    ...    styleImageLittle=img-little-x
+    ...    styleImageMedium=img-medium-x
+    ...    styleImageLarge=img-large-x
     ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards    json=${data}
     Status Should Be    ${create_resp}    201
     ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
     Response Field Should Equal    ${create_resp}    alternativeImage    alt_card.png
+    Response Field Should Equal    ${create_resp}    cardType            character
     Response Field Should Equal    ${create_resp}    styleMain           card-style-dark
     Response Field Should Equal    ${create_resp}    styleDetail         card-detail-border
+    Response Field Should Equal    ${create_resp}    styleImageLittle    img-little-x
+    Response Field Should Equal    ${create_resp}    styleImageMedium    img-medium-x
+    Response Field Should Equal    ${create_resp}    styleImageLarge     img-large-x
     # Get and verify persistence
     ${get_resp}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}
     Status Should Be    ${get_resp}    200
     Response Field Should Equal    ${get_resp}    styleMain    card-style-dark
+    Response Field Should Equal    ${get_resp}    styleImageLittle    img-little-x
+    Response Field Should Equal    ${get_resp}    styleImageMedium    img-medium-x
+    Response Field Should Equal    ${get_resp}    styleImageLarge     img-large-x
     # Update one style field
     &{upd}=    Create Dictionary    styleMain=card-style-light
     ${upd_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/cards/${entity_uuid}    json=${upd}

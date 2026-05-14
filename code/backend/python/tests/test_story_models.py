@@ -15,11 +15,11 @@ def test_story_summary_defaults():
     assert s.card is None
 
 def test_story_summary_with_card():
-    card = CardInfo(uuid="c1", imageUrl="https://img.png", title="Card T")
+    card = CardInfo(uuid="c1", urlImage="https://img.png", title="Card T")
     s = StorySummary(uuid="u1", card=card)
     assert s.card is not None
     assert s.card.uuid == "c1"
-    assert s.card.imageUrl == "https://img.png"
+    assert s.card.urlImage == "https://img.png"
     assert s.card.title == "Card T"
 
 def test_difficulty_info_defaults():
@@ -41,11 +41,11 @@ def test_story_detail_defaults():
     assert d.card is None
 
 def test_story_detail_with_card():
-    card = CardInfo(uuid="c1", imageUrl="https://img.png", title="T")
+    card = CardInfo(uuid="c1", urlImage="https://img.png", title="T")
     d = StoryDetail(uuid="u1", card=card)
     assert d.card is not None
     assert d.card.uuid == "c1"
-    assert d.card.imageUrl == "https://img.png"
+    assert d.card.urlImage == "https://img.png"
 
 def test_story_import_result_defaults():
     r = StoryImportResult(storyUuid="u1", status="IMPORTED")
@@ -105,7 +105,7 @@ def test_trait_info_full():
 
 def test_card_info_defaults():
     c = CardInfo(uuid="cd1")
-    assert c.imageUrl is None
+    assert c.urlImage is None
     assert c.alternativeImage is None
     assert c.awesomeIcon is None
     assert c.styleMain is None
@@ -119,12 +119,12 @@ def test_card_info_defaults():
 def test_card_info_full():
     from app.core.models.story.creator_info import CreatorInfo
     cr = CreatorInfo(uuid="cr1", name="Author")
-    c = CardInfo(uuid="cd1", imageUrl="https://img.png", alternativeImage="alt",
+    c = CardInfo(uuid="cd1", urlImage="https://img.png", alternativeImage="alt",
                  awesomeIcon="fa-star", styleMain="bg-dark", styleDetail="text-light",
                  title="My Card", description="A card", copyrightText="(c) 2025",
                  linkCopyright="https://lic.example.com", creator=cr)
     assert c.uuid == "cd1"
-    assert c.imageUrl == "https://img.png"
+    assert c.urlImage == "https://img.png"
     assert c.awesomeIcon == "fa-star"
     assert c.title == "My Card"
     assert c.description == "A card"

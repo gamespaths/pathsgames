@@ -31,7 +31,38 @@
     "back": "Indietro",
     "acceptTerms": "Accetto i Termini e Condizioni",
     "startGame": "Inizia Gioco",
-    "selectTitle": "Seleziona"
+    "selectTitle": "Seleziona",
+    "stats": {
+      "title": "Bonus",
+      "lifeMax": "Vita Max",
+      "energyMax": "Energia Max",
+      "sadMax": "Tristezza Max",
+      "dexterityStart": "Destrezza",
+      "intelligenceStart": "Intelligenza",
+      "constitutionStart": "Costituzione",
+      "weightMax": "Peso Max",
+      "dexterityBase": "Destrezza",
+      "intelligenceBase": "Intelligenza",
+      "constitutionBase": "Costituzione",
+      "costPositive": "Costo Positivo",
+      "costNegative": "Costo Negativo",
+      "expCost": "Costo EXP",
+      "minCharacter": "Giocatori Min",
+      "maxCharacter": "Giocatori Max",
+      "costHelpComa": "Costo Aiuto Coma",
+      "costMaxCharacteristics": "Costo Carat. Max",
+      "numberMaxFreeAction": "Azioni Libere",
+      "totals": {
+        "life": "Vita",
+        "energy": "Energia",
+        "sad": "Tristezza",
+        "dexterity": "Destrezza",
+        "intelligence": "Intelligenza",
+        "constitution": "Costituzione",
+        "weight": "Peso",
+        "exp": "EXP"
+      }
+    }
   },
   "game": {
     "currentLocation": "Posizione Attuale",

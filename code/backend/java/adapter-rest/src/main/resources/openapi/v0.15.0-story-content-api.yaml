@@ -285,7 +285,7 @@ paths:
                     idClassProhibited: null
                 card:
                   uuid: "card-main-uuid"
-                  imageUrl: "https://example.com/card.png"
+                  urlImage: "https://example.com/card.png"
                   alternativeImage: "kingdom-icon"
                   awesomeIcon: "fa-castle"
                   styleMain: "bg-primary"
@@ -662,7 +662,15 @@ components:
           type: string
           format: uuid
           example: "card-main-uuid"
-        imageUrl:
+        cardType:
+          type: string
+          nullable: true
+          description: |
+            Classifies which kind of story sub-entity this card belongs to
+            (e.g. `character`, `class`, `trait`, `difficulty`, `event`, `location`,
+            `item`, `mission`, `choice`, `creator`, ...).
+          example: "character"
+        urlImage:
           type: string
           nullable: true
           description: URL to the card image
@@ -687,6 +695,21 @@ components:
           nullable: true
           description: CSS style for the detail card view
           example: "text-light"
+        styleImageLittle:
+          type: string
+          nullable: true
+          description: CSS class for the card image at little size
+          example: "img-fluid"
+        styleImageMedium:
+          type: string
+          nullable: true
+          description: CSS class for the card image at medium size
+          example: "img-fluid"
+        styleImageLarge:
+          type: string
+          nullable: true
+          description: CSS class for the card image at large size
+          example: "img-fluid"
         title:
           type: string
           nullable: true

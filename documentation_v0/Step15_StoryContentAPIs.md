@@ -238,11 +238,15 @@ Now returns additional fields: character templates, classes, traits, card info, 
   ],
   "card": {
     "uuid": "card-uuid-1",
-    "imageUrl": "https://example.com/card.png",
+    "urlImage": "https://example.com/card.png",
     "alternativeImage": "Kingdom card",
     "awesomeIcon": "fa-crown",
     "styleMain": "bg-primary",
     "styleDetail": "text-light",
+    "styleImageLittle": null,
+    "styleImageMedium": null,
+    "styleImageLarge": null,
+    "cardType": "story",
     "title": "The Lost Kingdom"
   }
 }
@@ -258,7 +262,7 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `CharacterTemplateResponse` | uuid, name, description, lifeMax, energyMax, sadMax, dexterityStart, intelligenceStart, constitutionStart | Character template in story detail |
 | `ClassInfoResponse` | uuid, name, description, weightMax, dexterityBase, intelligenceBase, constitutionBase | Character class in story detail |
 | `TraitInfoResponse` | uuid, name, description, costPositive, costNegative, idClassPermitted, idClassProhibited | Character trait in story detail |
-| `CardInfoResponse` | uuid, imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail, title, description, copyrightText, linkCopyright | Visual card in story detail |
+| `CardInfoResponse` | uuid, urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, title, description, copyrightText, linkCopyright | Visual card in story detail |
 
 ### Updated REST DTO
 
@@ -269,6 +273,7 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `ClassInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `TraitInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `DifficultyResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `CardInfoResponse` | + cardType (string\|null) | Declarative entity type tag added in v0.19.4; see [Step15_StoryContentHowAddFiledIntoCard.md](./Step15_StoryContentHowAddFiledIntoCard.md) for a guide on adding future fields |
 
 
 ## Roles and Permissions
@@ -359,7 +364,7 @@ Character templates, classes, and traits all follow the same text resolution pat
 3. If text entity not found, field defaults to `null`
 
 ### Card Resolution
-The card uses `idTextName` for title resolution. Other card fields (`imageUrl`, `alternativeImage`, `awesomeIcon`, `styleMain`, `styleDetail`) are taken directly from the `CardEntity` entity (no text resolution needed).
+The card uses `idTextName` for title resolution. Other card fields (`urlImage`, `alternativeImage`, `awesomeIcon`, `styleMain`, `styleDetail`, `styleImageLittle`, `styleImageMedium`, `styleImageLarge`) are taken directly from the `CardEntity` entity (no text resolution needed).
 
 
 ## File Structure
@@ -421,12 +426,13 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
 - First version created with AI prompts:
     > Set Step/XX=15. write all java backend code into 'code/backend/java' project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into '/code/backend/java/adapter-rest/src/main/resources/openapi' folder with new/changed api. create a new simple web example to use new interfaces inside new code/website/concepts_v0/ folder. add new folder inside 'code/tests/robot/test' and write new robot-framework test. don't look and don't change 'backend/python', 'backend/php', 'backend/aws' and others concepts folder into 'website'
 
-- **Document Version**: 0.19.2
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
-- **Last Updated**: May 09, 2026
+    | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
+- **Last Updated**: May 14, 2026
 - **Status**: ✅ Complete
 
 

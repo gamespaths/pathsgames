@@ -31,7 +31,38 @@
     "back": "Back",
     "acceptTerms": "I accept the Terms & Conditions",
     "startGame": "Start Game",
-    "selectTitle": "Select"
+    "selectTitle": "Select",
+    "stats": {
+      "title": "Bonuses",
+      "lifeMax": "Max Life",
+      "energyMax": "Max Energy",
+      "sadMax": "Max Sadness",
+      "dexterityStart": "Dexterity",
+      "intelligenceStart": "Intelligence",
+      "constitutionStart": "Constitution",
+      "weightMax": "Max Weight",
+      "dexterityBase": "Dexterity",
+      "intelligenceBase": "Intelligence",
+      "constitutionBase": "Constitution",
+      "costPositive": "Positive Cost",
+      "costNegative": "Negative Cost",
+      "expCost": "XP Cost",
+      "minCharacter": "Min Players",
+      "maxCharacter": "Max Players",
+      "costHelpComa": "Help Coma Cost",
+      "costMaxCharacteristics": "Max Char. Cost",
+      "numberMaxFreeAction": "Free Actions",
+      "totals": {
+        "life": "Life",
+        "energy": "Energy",
+        "sad": "Sadness",
+        "dexterity": "Dexterity",
+        "intelligence": "Intelligence",
+        "constitution": "Constitution",
+        "weight": "Weight",
+        "exp": "XP"
+      }
+    }
   },
   "game": {
     "currentLocation": "Current Location",

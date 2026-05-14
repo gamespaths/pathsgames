@@ -439,7 +439,7 @@ body {
   right: 0.3rem;
   z-index: 5;
 }
-/* FA icon for catalog cards without imageUrl */
+/* FA icon for catalog cards without urlImage */
 .catalog-card-icon {
   font-size: 3.5rem;
   color: var(--color-gold-light);

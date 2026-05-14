@@ -15,9 +15,9 @@ describe('stories mock data', () => {
     }
   })
 
-  it('each story card has imageUrl and title', () => {
+  it('each story card has urlImage and title', () => {
     for (const story of stories) {
-      expect(story.card).toHaveProperty('imageUrl')
+      expect(story.card).toHaveProperty('urlImage')
       expect(story.card).toHaveProperty('title')
     }
   })

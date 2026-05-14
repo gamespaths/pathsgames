@@ -43,11 +43,15 @@ class ContentQueryService implements ContentQueryPort
 
         return new CardInfo(
             $card['uuid'] ?? '',
+            $card['card_type'] ?? null,
             $card['image_url'] ?? null,
             $card['alternative_image'] ?? null,
             $card['awesome_icon'] ?? null,
             $card['style_main'] ?? null,
             $card['style_detail'] ?? null,
+            $card['style_image_little'] ?? null,
+            $card['style_image_medium'] ?? null,
+            $card['style_image_large'] ?? null,
             $title,
             $description,
             $copyrightText,

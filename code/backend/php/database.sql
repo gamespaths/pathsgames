@@ -278,6 +278,9 @@ CREATE TABLE IF NOT EXISTS list_cards (
     awesome_icon VARCHAR(100) DEFAULT NULL,
     style_main VARCHAR(100) DEFAULT NULL,
     style_detail VARCHAR(100) DEFAULT NULL,
+    style_image_little VARCHAR(100) DEFAULT NULL,
+    style_image_medium VARCHAR(100) DEFAULT NULL,
+    style_image_large VARCHAR(100) DEFAULT NULL,
     id_reference BIGINT DEFAULT NULL,
     PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE

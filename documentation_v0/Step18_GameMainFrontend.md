@@ -71,7 +71,7 @@ code/frontend/react-game/
     ├── mock/
     │   ├── stories.json            # 5 stories with characters/classes/traits/difficulties
     │   ├── gameData.json           # locations + actions
-    │   └── images.json             # SVG/Unsplash credits {id, imageUrl, linkCopyright, ...}
+    │   └── images.json             # SVG/Unsplash credits {id, urlImage, linkCopyright, ...}
     ├── components/
     │   ├── layout/
     │   │   ├── Navbar.jsx          # Sticky navbar: brand, lang switcher, guest button
@@ -82,9 +82,10 @@ code/frontend/react-game/
     │   │   ├── CookiesModal.jsx
     │   │   └── CopyrightModal.jsx  # Credits modal: image + text + sound cards
     │   └── book/
-    │       ├── BookWrapper.jsx     # .book-overlay → .book-wrapper with spine
-    │       ├── BookPageLeft.jsx    # Corner ornaments + page-inner slot
-    │       └── BookPageRight.jsx   # Corner ornaments + page-inner slot
+    │       ├── BookWrapper.jsx      # .book-overlay → .book-wrapper with spine
+    │       ├── BookPageLeft.jsx     # Corner ornaments + page-inner slot
+    │       ├── BookPageRight.jsx    # Corner ornaments + page-inner slot
+    │       └── BookPageContent.jsx  # Book page content: title, image, description, bonus-stats panel
     ├── features/
     │   ├── home/
     │   │   ├── StoryCard.jsx       # Home medium card (225px, hover scale + gold border)
@@ -142,7 +143,7 @@ Config view (`ConfigView`) uses a `card-big-list` 2-column layout (big cards) in
 - `onPreview` — replaces the `(i)` info button with a magnifier (`fas fa-search-plus`); the parent (`StartBookModal`) renders a `CardPreviewOverlay` on the left page.
 - `previewLayout` — when true, the credits `(i)` button uses class `card-preview-info` (bottom-right).
 
-New CSS rules in `main.css`: `.card-preview-overlay`, `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`.
+New CSS rules in `main.css`: `.card-preview-overlay`, `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. Bonus-stats panel: `.book-page-stats` (panel container), `.book-page-stats__title`, `.book-page-stats__list` (two-column grid), `.book-page-stats__item`, `.book-page-stats__label`, `.book-page-stats__value`.
 
 Cards support `style_main` and `style_detail` fields in mock JSON to inject extra CSS classes on the wrapper and image respectively.
 
@@ -178,6 +179,8 @@ export const fetchWithFallback = async (url, mockData) => {
 
 The language switcher in the Navbar toggles the context. All UI labels use `t()` — no hardcoded strings in components.
 
+The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, plus `book.stats.title` for the panel heading.
+
 ---
 
 ## 6. Story Entity Shape (from OpenAPI v0.14.0)
@@ -194,7 +197,7 @@ The language switcher in the Navbar toggles the context. All UI labels use `t()`
   "priority": 1,
   "card": {
     "uuid": "...",
-    "imageUrl": "...",
+    "urlImage": "...",
     "title": "...",
     "description": "...",
     "copyrightText": "...",
@@ -234,7 +237,16 @@ The language switcher in the Navbar toggles the context. All UI labels use `t()`
 
 When the user clicks **Change** on a config card the right page switches to `SelectionView` (options list for that type). Selecting an option returns to `ConfigView` with the new value.
 
-When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page (`previewCard` state in `StartBookModal`, passed as `onPreview` through `ConfigView` → `ConfigCard` → `GameCard`).
+When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page. `StartBookModal` now tracks `preview = { entity, type }` (replacing the former `previewCard` state). `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** below the description showing the numeric API fields relevant to that entity type:
+
+| `entityType` | Fields shown |
+|---|---|
+| `character` | `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`, `intelligenceStart`, `constitutionStart` |
+| `class` | `weightMax`, `dexterityBase`, `intelligenceBase`, `constitutionBase` |
+| `trait` | `costPositive`, `costNegative` |
+| `difficulty` | `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction` |
+
+Only fields with a non-null, non-empty value are rendered. Labels come from the `book.stats.*` i18n namespace. `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached to the entity.
 
 ### Mobile layout (≤767px)
 
@@ -329,8 +341,8 @@ GTM snippet is injected inline in `index.html`. The GTM container ID is read fro
 
 ```json
 [
-  { "id": "person", "imageUrl": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
-  { "id": "gems",   "imageUrl": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
+  { "id": "person", "urlImage": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
+  { "id": "gems",   "urlImage": "data:image/svg+xml;base64,...", "linkCopyright": "https://game-icons.net/..." },
   { "id": "shadow-keep", "url": "https://images.unsplash.com/...", "author": "Stefan Steinbauer", "authorLink": "https://unsplash.com/@usinglight" },
   ...
 ]
@@ -360,7 +372,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
   > **Iterative refinements (session log)**
     >
     > - **Unified card system**: all cards enforce `aspect-ratio: 1/1.4` via four size variants (`--small`, `--medium`, `--home`, `--grid`, `--large`). Hover interaction: scale 1.03 + gold border + `z-index: 10` so card renders above siblings in scroll rows.
-    > - **Per-story option lists**: `characters`, `classes`, `traits`, `difficulties` moved from a global static file into each story object in `stories.json`. Values are Young Woman / Young Man / Adult Woman / Adult Man (characters), Human / Elf / Dwarf / Hobbit (classes), Happy / Strong / Smart / Fast (traits). Each item has a `card` sub-object following the OpenAPI card shape (`imageUrl`, `copyrightText`, `linkCopyright`, `awesomeIcon`, `style_main`, `style_detail`).
+    > - **Per-story option lists**: `characters`, `classes`, `traits`, `difficulties` moved from a global static file into each story object in `stories.json`. Values are Young Woman / Young Man / Adult Woman / Adult Man (characters), Human / Elf / Dwarf / Hobbit (classes), Happy / Strong / Smart / Fast (traits). Each item has a `card` sub-object following the OpenAPI card shape (`urlImage`, `copyrightText`, `linkCopyright`, `awesomeIcon`, `style_main`, `style_detail`).
     > - **`style_main` / `style_detail` fields**: added to card JSON objects to inject additional CSS classes onto the card wrapper (`style_main`) and the image element (`style_detail`) at render time, enabling per-card image positioning or visual overrides without touching CSS.
     > - **ConfigView grid**: switched from two `config-row-fill` rows to the same `selection-list` grid used by `SelectionView`, giving uniform sizing and spacing across both views.
     > - **`(i)` info buttons**: rendered via `createPortal` to escape `overflow: hidden` stacking contexts. Positioned top-left (`position: absolute; top: 6px; left: 6px`). Visibility: `opacity: 0` by default, `opacity: 1` on parent `:hover`. On mobile (≤767px) always visible. Present on home story cards, config cards (desktop and selection view), and game location cards.
@@ -372,13 +384,14 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.19.2
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
+    | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 14, 2026 |
     
-- **Last Updated**: May 12, 2026
+- **Last Updated**: May 14, 2026
 - **Status**: Active development
 
 

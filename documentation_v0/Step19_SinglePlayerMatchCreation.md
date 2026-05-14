@@ -288,15 +288,23 @@ The same suite passes against the Python and PHP backends — see
   ```
   > ciao, read MD files into documentation_v0 folder for project context, read code/backend/java/adapter-rest/src/main/resources/openapi/v0.15.0-story-content-api.yaml, i wanna add idCard and all cards informations into api  "/api/stories/{uuid}". I wanna you change java project, open api documentation, python backend project, php backend project and aws lambda project. I wanna you add robot test to check new field in api. update md documentation file. Let's go
 
-- **Document Version**: 0.19.1
+  > Add image style columns to list_cards table
+  > add "card_type" field everywhere (Into react-admin i wanna a posibile values list = charater, classes, trait, difficulty, events, ...all table with card filed external reference ). after write me a MD file into "documentation_v0/Step15_StoryContentHowAddFiledIntoCard.md" to explain how and where add filed into card object into all project. Let's go
+
+  > edit only react-game project. on characters/classes/traits lists there are some bonus column/fieds, i wanna see this on big card component . on bonus hide fields with zero value, show with bootstrap badge stype and on top of big card. on ConfigView show sum of all bonus values (if different to zero) after "page-footer".
+
+  > 
+
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
     | 0.19.1 | Single player match creation | May 08, 2026 |
     | 0.19.2 | Bug fix: story defailt for website, story export in admin project, sonar coverage | May 08, 2026 |
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     
-- **Last Updated**: May 08, 2026
+- **Last Updated**: May 14, 2026
 - **Status**: ✅ Complete
 
 

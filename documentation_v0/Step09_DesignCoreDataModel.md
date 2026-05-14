@@ -85,7 +85,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **GlobalRandomEvent** | `list_global_random_events` | Random events triggered at time start: `id_card`, `id_story`, `condition_key`, `condition_value`, `probability`, `id_text`, `id_event`. |
 | **Mission** | `list_missions` | Mission definition: `id_card`, `id_story`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
 | **MissionStep** | `list_missions_steps` | Ordered mission steps: `id_card`, `id_story`, `id_mission`, `step`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
-| **Card** | `list_cards` | Visual card data: `id_story`, `id_card`, `url_immage`, `id_text_title`, `id_text_description`, `id_text_copyright`, `link_copyright`, `id_creator`, `alternative_image`, `awesome-icon`, `style_main`, `style_detail`. |
+| **Card** | `list_cards` | Visual card data: `id_story`, `id_card`, `url_immage`, `id_text_title`, `id_text_description`, `id_text_copyright`, `link_copyright`, `id_creator`, `alternative_image`, `awesome-icon`, `style_main`, `style_detail`, `style_image_little`, `style_image_medium`, `style_image_large`, `card_type` (VARCHAR(50)/TEXT, nullable — classifies which story entity the card belongs to; see Step15 how-to guide). |
 | **Text** | `list_texts` | Multi-language text catalog: `id_story`, `id_text`, `lang`, `short_text`, `long_text`, `id_text_copyright`, `link_copyright`, `id_creator`. |
 | **Creator** | `list_creator` | Creator/author information: `id_story`, `id_text`, `link`, `url`, `url_image`, `url_emote`, `url_instagram`. |
 
@@ -846,7 +846,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.17.3
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
@@ -854,6 +854,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.9.2 | aligned to Step0 file v0.9.2: added guest user state, guest columns, theme_selected, list_stories, ... | March 17, 2026 |
     | 0.10.12 | added `uuid` as standard column on all 52 tables — public API identifier to avoid exposing internal auto-increment IDs | March 19, 2026 |
     | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     
 - **Last Updated**: April 30, 2026
 - **Status**: Complete ✅

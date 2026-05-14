@@ -32,11 +32,15 @@ class ContentQueryService(ContentQueryPort):
 
         return CardInfo(
             uuid=card.get("uuid"),
-            imageUrl=card.get("image_url"),
+            cardType=card.get("card_type"),
+            urlImage=card.get("url_image"),
             alternativeImage=card.get("alternative_image"),
             awesomeIcon=card.get("awesome_icon"),
             styleMain=card.get("style_main"),
             styleDetail=card.get("style_detail"),
+            styleImageLittle=card.get("style_image_little"),
+            styleImageMedium=card.get("style_image_medium"),
+            styleImageLarge=card.get("style_image_large"),
             title=title,
             description=description,
             copyrightText=copyright_text,

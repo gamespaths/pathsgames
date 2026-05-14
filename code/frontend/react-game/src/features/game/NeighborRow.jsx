@@ -15,10 +15,10 @@ function sanitizeIconClass(iconClass, fallback) {
   return valid && normalized.length > 0 ? normalized : fallback
 }
 
-function sanitizeImageUrl(imageUrl) {
-  if (typeof imageUrl !== 'string' || !imageUrl.trim()) return null
+function sanitizeurlImage(urlImage) {
+  if (typeof urlImage !== 'string' || !urlImage.trim()) return null
 
-  const value = imageUrl.trim()
+  const value = urlImage.trim()
   if (value.startsWith('/')) return value
 
   try {
@@ -43,7 +43,7 @@ export default function NeighborRow({ locations }) {
       <div className="game-cards-row">
         {locations.map((loc, i) => {
           const modalId = `neighbor-modal-${sanitizeModalId(loc.uuid, i)}`
-          const imageUrl = sanitizeImageUrl(loc.imageUrl)
+          const urlImage = sanitizeurlImage(loc.urlImage)
           const iconClass = sanitizeIconClass(loc.awesomeIcon, 'fas fa-map-marker-alt')
           return (
             <div key={loc.uuid ?? i}>
@@ -53,8 +53,8 @@ export default function NeighborRow({ locations }) {
                 data-bs-target={`#${modalId}`}
                 onClick={() => setActiveLocation(loc)}
               >
-                {imageUrl ? (
-                  <img src={imageUrl} alt={loc.name} className="game-card-img" />
+                {urlImage ? (
+                  <img src={urlImage} alt={loc.name} className="game-card-img" />
                 ) : (
                   <div className="game-card-icon"><i className={iconClass} /></div>
                 )}

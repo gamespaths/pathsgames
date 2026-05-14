@@ -35,13 +35,13 @@ Story Detail Card Is Not Null
     Should Not Be Equal    ${body}[card]    ${None}
 
 Story Detail Card Has Required Fields
-    [Documentation]    The card object in StoryDetailResponse contains uuid, imageUrl,
+    [Documentation]    The card object in StoryDetailResponse contains uuid, urlImage,
     ...                awesomeIcon, styleMain, styleDetail, title, description.
     [Tags]    stories    step15    card    regression
     ${response}=    Get Story By UUID    ${DEMO_1_UUID}
     ${card}=    Set Variable    ${response.json()}[card]
     Dictionary Should Contain Key    ${card}    uuid
-    Dictionary Should Contain Key    ${card}    imageUrl
+    Dictionary Should Contain Key    ${card}    urlImage
     Dictionary Should Contain Key    ${card}    alternativeImage
     Dictionary Should Contain Key    ${card}    awesomeIcon
     Dictionary Should Contain Key    ${card}    styleMain
@@ -50,14 +50,14 @@ Story Detail Card Has Required Fields
     Dictionary Should Contain Key    ${card}    description
     Dictionary Should Contain Key    ${card}    linkCopyright
 
-Story Detail Card ImageUrl Is Not Empty
-    [Documentation]    The imageUrl field inside card is a non-empty string.
+Story Detail Card UrlImage Is Not Empty
+    [Documentation]    The UrlImage field inside card is a non-empty string.
     ...                This is the specific field that was missing in react-admin / DynamoDB view.
     [Tags]    stories    step15    card    regression
     ${response}=    Get Story By UUID    ${DEMO_1_UUID}
     ${card}=    Set Variable    ${response.json()}[card]
-    Should Not Be Equal    ${card}[imageUrl]    ${None}
-    Should Not Be Empty    ${card}[imageUrl]
+    Should Not Be Equal    ${card}[urlImage]    ${None}
+    Should Not Be Empty    ${card}[urlImage]
 
 Story Detail Card UUID Is Not Empty
     [Documentation]    The card uuid is a non-empty string (set during import).
@@ -95,16 +95,16 @@ Story Summary Card Is Not Null
     Should Not Be Equal    ${demo1}[card]    ${None}
     ...    msg=Expected DEMO_1 card to be non-null (seed has idCard=1)
 
-Story Summary Card ImageUrl Not Empty When Card Present
-    [Documentation]    In the story list, any non-null card object must have a non-empty imageUrl.
+Story Summary Card UrlImage Not Empty When Card Present
+    [Documentation]    In the story list, any non-null card object must have a non-empty urlImage.
     [Tags]    stories    step15    card    regression
     ${response}=    Get Public Stories
     ${items}=    Set Variable    ${response.json()}
     FOR    ${item}    IN    @{items}
         ${card}=    Set Variable    ${item}[card]
         IF    $card is not None
-            Should Not Be Equal    ${card}[imageUrl]    ${None}
-            Should Not Be Empty    ${card}[imageUrl]
+            Should Not Be Equal    ${card}[urlImage]    ${None}
+            Should Not Be Empty    ${card}[urlImage]
         END
     END
 

@@ -58,9 +58,10 @@ class StoryDetailResponseTest {
         r.setTraits(List.of(tr));
 
         CardInfoResponse card = new CardInfoResponse(
-                "card-1", "https://img.com/card.png", "alt.jpg",
-                "fa-star", "bg-dark", "text-light", "Card Title",
-                null, null, null, null);
+                "card-1", null, "https://img.com/card.png", "alt.jpg",
+                "fa-star", "bg-dark", "text-light",
+                null, null, null,
+                "Card Title", null, null, null, null);
         r.setCard(card);
 
         assertAll("StoryDetailResponse fields",

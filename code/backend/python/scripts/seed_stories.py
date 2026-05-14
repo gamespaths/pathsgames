@@ -84,7 +84,7 @@ def seed():
                 "uuid": "card-tutorial-001",
                 "idTextTitle": 201,
                 "idTextDescription": 202,
-                "imageUrl": "https://paths.games/assets/cards/tutorial-academy.jpg",
+                "urlImage": "https://paths.games/assets/cards/tutorial-academy.jpg",
                 "awesomeIcon": "fa-graduation-cap",
                 "styleMain": "card-tutorial",
                 "styleDetail": "card-tutorial-detail"

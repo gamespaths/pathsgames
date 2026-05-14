@@ -100,7 +100,7 @@ All entities coexist in the same table using a prefix for differentiation:
 | **Card** | `CARD#<id>` | `METADATA` | — |
 | **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` |
 
-Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (imageUrl, alternativeImage, awesomeIcon, styleMain, styleDetail, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
+Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
 ## 🚀 Deployment with AWS SAM
 
@@ -156,11 +156,35 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.19.4 — difficulties/classes/traits idTextName/idTextDescription cross-backend consistency
+
+- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `difficulties`, `classes`, and `traits` DynamoDB items. Previously these FK integers were discarded on import for all three entities, making the AWS backend inconsistent with Java (`list_stories_difficulty`, `list_classes`, `list_traits` all have `id_text_name`/`id_text_description` columns via `BaseStoryEntity`), Python, and PHP. The other inline-built entities (`characterTemplates`) were fixed in the same release (see below); pass-through entities built via `_assign_ids` already preserved all fields and did not need changes.
+
+### v0.19.4 — character_templates idTextName/idTextDescription cross-backend consistency
+
+- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `characterTemplates` DynamoDB item, alongside the existing `texts` dict. Previously these FK integers were discarded on import, making the AWS backend inconsistent with Java, Python, and PHP (all of which store `id_text_name`/`id_text_description` in `list_character_templates`).
+- **Robot**: `14_admin/story_import.robot` — "Import Explicit ID For list_character_templates Returns 201" extended to include `idCard`, `idTextName`, `idTextDescription` in the payload. New test "Import list_character_templates Round-Trips idTextName And idTextDescription" imports a story with a character template, reads it back via `GET /api/admin/stories/{uuid}/character-templates`, and asserts all three FK fields are present — validates consistency across all four backends.
+
+### v0.19.4 — Bug fix: card urlImage/imageUrl key normalization
+
+- **`lambda/story/handler.py`**: Canonical DynamoDB storage key is **`urlImage`** (matching Java import JSON and JPA); `imageUrl` is never stored. `import_story` writes only `urlImage`. `_normalize_entity_input` (admin write path) promotes a legacy `imageUrl` value to `urlImage` and drops the alias. `_normalize_entity_output` (admin read path) surfaces a legacy-only `imageUrl` as `urlImage` for the admin form. Public readers (`_find_card_from_raw`, `get_card`) read `card.get('urlImage') or card.get('imageUrl')` and emit `imageUrl` in the public API response.
+
+### v0.19.4 — card_type field on list_cards
+
+- **`lambda/content/handler.py`** and **`lambda/story/handler.py`**: New nullable `cardType` field added to the card model and mapped in `_build_card()`.
+- **`lambda/seed/handler.py`**: Seed card data updated to include `cardType` (set to `"character"` in the robot-facing seed entry to cover the round-trip Robot test).
+- **Robot**: `17_admin_crud/admin_crud.robot` extended to assert `cardType=character` round-trips through create and GET.
+
+### v0.19.3 — Card image-size style fields
+
+- **`lambda/content/handler.py`** and **`lambda/story/handler.py`**: Three new nullable fields (`styleImageLittle`, `styleImageMedium`, `styleImageLarge`) added to the card item model and mapped in `_build_card()`.
+- **`lambda/seed/handler.py`**: Seed card data updated to include the new columns (all `null` by default in seed).
+
 ### v0.19.2 — Card resolution in story detail
 
 - **`lambda/story/handler.py`**: Added `_build_card(id_card, lang)` helper that fetches a `CARD#<id>` item from DynamoDB and returns a fully localised card object. Story detail now includes resolved `card` on every difficulty, characterTemplate, class, and trait sub-entity.
 - **`import_story`**: `idCard` field is now persisted for difficulties, characterTemplates, classes, and traits during story import, keeping parity with the Java reference backend.
-- **`lambda/seed/handler.py`**: Seed data updated — DEMO_1 difficulties now include card data (`idCard`, `imageUrl`) so the regression robot test `story_card_populated` passes on the AWS environment.
+- **`lambda/seed/handler.py`**: Seed data updated — DEMO_1 difficulties now include card data (`idCard`, `urlImage`) so the regression robot test `story_card_populated` passes on the AWS environment.
 
 ### v0.19.1 — Match creation (single-player)
 

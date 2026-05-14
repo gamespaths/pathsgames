@@ -171,14 +171,17 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.17.1
+- **Document Version**: 0.19.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
     | 0.10.12 | Create initial DB schema | Mar 25, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.17.1 | Step 17 CRUD SQLite/PostgreSQL stabilization and validation | May 03, 2026 |
-- **Last Updated**: May 3, 2026
+    | 0.19.3 | list_cards: added style_image_little/medium/large columns (Flyway V0.19.3, CardEntity, CardInfo, CardInfoResponse, OpenAPI v0.14-0.16) | May 14, 2026 |
+    | 0.19.4 | list_cards: added card_type column (Flyway V0.19.4 on both adapters; CardEntity, CardInfo, CardInfoResponse, ContentController, StoryController, ContentQueryService, StoryQueryService, StoryImportService, StoryCrudService; OpenAPI v0.14-0.16) | May 14, 2026 |
+    | 0.19.4 | AWS backend FK consistency: difficulties/classes/traits now persist idTextName+idTextDescription on import, matching Java BaseStoryEntity (list_stories_difficulty, list_classes, list_traits) | May 14, 2026 |
+- **Last Updated**: May 14, 2026
 - **Status**: In progress
 
 

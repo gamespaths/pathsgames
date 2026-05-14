@@ -85,7 +85,7 @@ class ContentQueryServiceTest extends TestCase
         $this->assertNotNull($card);
         $this->assertInstanceOf(CardInfo::class, $card);
         $this->assertSame('card-uuid', $card->uuid);
-        $this->assertSame('https://img.png', $card->imageUrl);
+        $this->assertSame('https://img.png', $card->urlImage);
         $this->assertSame('Card Title', $card->title);
         $this->assertSame('Card Desc', $card->description);
         $this->assertSame('Card (c)', $card->copyrightText);

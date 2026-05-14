@@ -28,11 +28,11 @@ class StoryModelsTest extends TestCase
 
     public function testStorySummaryWithCard(): void
     {
-        $card = new CardInfo('c1', 'https://img.png', null, null, null, null, 'Card T');
+        $card = new CardInfo('c1', null, 'https://img.png', null, null, null, null, null, null, null, 'Card T');
         $summary = new StorySummary('u1', card: $card);
         $this->assertNotNull($summary->card);
         $this->assertSame('c1', $summary->card->uuid);
-        $this->assertSame('https://img.png', $summary->card->imageUrl);
+        $this->assertSame('https://img.png', $summary->card->urlImage);
         $this->assertSame('Card T', $summary->card->title);
     }
 
@@ -60,11 +60,11 @@ class StoryModelsTest extends TestCase
 
     public function testStoryDetailWithCard(): void
     {
-        $card = new CardInfo('c1', 'https://img.png', null, null, null, null, 'T');
+        $card = new CardInfo('c1', null, 'https://img.png', null, null, null, null, null, null, null, 'T');
         $detail = new StoryDetail('u1', card: $card);
         $this->assertNotNull($detail->card);
         $this->assertSame('c1', $detail->card->uuid);
-        $this->assertSame('https://img.png', $detail->card->imageUrl);
+        $this->assertSame('https://img.png', $detail->card->urlImage);
     }
 
     public function testStoryImportResultDefaults(): void
@@ -136,7 +136,8 @@ class StoryModelsTest extends TestCase
     public function testCardInfoDefaults(): void
     {
         $c = new CardInfo('cd1');
-        $this->assertNull($c->imageUrl);
+        $this->assertNull($c->cardType);
+        $this->assertNull($c->urlImage);
         $this->assertNull($c->alternativeImage);
         $this->assertNull($c->awesomeIcon);
         $this->assertNull($c->styleMain);
@@ -151,10 +152,10 @@ class StoryModelsTest extends TestCase
     public function testCardInfoFull(): void
     {
         $cr = new CreatorInfo('cr1', 'Author');
-        $c = new CardInfo('cd1', 'https://img.png', 'alt', 'fa-star', 'bg-dark', 'text-light',
-            'My Card', 'A card', '(c) 2025', 'https://lic.example.com', $cr);
+        $c = new CardInfo('cd1', 'character', 'https://img.png', 'alt', 'fa-star', 'bg-dark', 'text-light',
+            null, null, null, 'My Card', 'A card', '(c) 2025', 'https://lic.example.com', $cr);
         $this->assertSame('cd1', $c->uuid);
-        $this->assertSame('https://img.png', $c->imageUrl);
+        $this->assertSame('https://img.png', $c->urlImage);
         $this->assertSame('fa-star', $c->awesomeIcon);
         $this->assertSame('My Card', $c->title);
         $this->assertSame('A card', $c->description);
@@ -177,7 +178,7 @@ class StoryModelsTest extends TestCase
 
     public function testCardInfoJsonSerialize(): void
     {
-        $c = new CardInfo('cd1', 'https://img.png', null, 'fa-star', null, null, 'Title',
+        $c = new CardInfo('cd1', null, 'https://img.png', null, 'fa-star', null, null, null, null, null, 'Title',
             'Desc', '(c)', 'https://lic.example.com');
         $json = json_encode($c);
         $decoded = json_decode($json, true);

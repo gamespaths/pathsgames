@@ -155,11 +155,16 @@ def _find_card_from_raw(raw_cards, raw_texts, id_card, lang):
         return None
     return {
         'uuid':             card.get('uuid'),
-        'imageUrl':         card.get('imageUrl'),
+        'cardType':         card.get('cardType'),
+        # Storage key is `urlImage`; legacy records may still have `imageUrl`.
+        'urlImage':         card.get('urlImage'),# or card.get('imageUrl'),
         'alternativeImage': card.get('alternativeImage'),
         'awesomeIcon':      card.get('awesomeIcon'),
         'styleMain':        card.get('styleMain'),
         'styleDetail':      card.get('styleDetail'),
+        'styleImageLittle': card.get('styleImageLittle'),
+        'styleImageMedium': card.get('styleImageMedium'),
+        'styleImageLarge':  card.get('styleImageLarge'),
         'title':            _resolve_raw_text(raw_texts, card.get('idTextTitle'), lang),
         'description':      _resolve_raw_text(raw_texts, card.get('idTextDescription'), lang),
         'copyrightText':    _resolve_raw_text(raw_texts, card.get('idTextCopyright'), lang),
@@ -538,6 +543,7 @@ def import_story(event):
     for d in raw_diffs:
         diff_uuid = str(uuid_lib.uuid4())
         # Map idTextDescription to a stub text dict for description
+        id_diff_name = d.get('idTextName')
         id_diff_desc = d.get('idTextDescription')
         diff_texts = {}
         for t in raw_texts:
@@ -548,6 +554,8 @@ def import_story(event):
             'uuid':                   diff_uuid,
             'id':                     _safe_int(d.get('id')),
             'texts':                  diff_texts,
+            'idTextName':             _safe_int(id_diff_name) if id_diff_name is not None else None,
+            'idTextDescription':      _safe_int(id_diff_desc) if id_diff_desc is not None else None,
             'expCost':                d.get('expCost', 0),
             'maxWeight':              d.get('maxWeight', 0),
             'minCharacter':           d.get('minCharacter', 0),
@@ -570,6 +578,8 @@ def import_story(event):
             'uuid':              ct_uuid,
             'id_tipo':           _safe_int(ct.get('id_tipo')),
             'texts':             ct_texts,
+            'idTextName':        _safe_int(id_ct_name) if id_ct_name is not None else None,
+            'idTextDescription': _safe_int(id_ct_desc) if id_ct_desc is not None else None,
             'lifeMax':           ct.get('lifeMax', 0),
             'energyMax':         ct.get('energyMax', 0),
             'sadMax':            ct.get('sadMax', 0),
@@ -588,14 +598,16 @@ def import_story(event):
         id_cl_desc = cl.get('idTextDescription')
         cl_texts = _build_sub_entity_texts(raw_texts, id_cl_name, id_cl_desc)
         classes.append({
-            'uuid':             cl_uuid,
-            'id':               _safe_int(cl.get('id')),
-            'texts':            cl_texts,
-            'weightMax':        cl.get('weightMax', 0),
-            'dexterityBase':    cl.get('dexterityBase', 0),
-            'intelligenceBase': cl.get('intelligenceBase', 0),
-            'constitutionBase': cl.get('constitutionBase', 0),
-            'idCard':           cl.get('idCard'),
+            'uuid':              cl_uuid,
+            'id':                _safe_int(cl.get('id')),
+            'texts':             cl_texts,
+            'idTextName':        _safe_int(id_cl_name) if id_cl_name is not None else None,
+            'idTextDescription': _safe_int(id_cl_desc) if id_cl_desc is not None else None,
+            'weightMax':         cl.get('weightMax', 0),
+            'dexterityBase':     cl.get('dexterityBase', 0),
+            'intelligenceBase':  cl.get('intelligenceBase', 0),
+            'constitutionBase':  cl.get('constitutionBase', 0),
+            'idCard':            cl.get('idCard'),
         })
 
     # Step 15: Build traits list
@@ -610,6 +622,8 @@ def import_story(event):
             'uuid':              tr_uuid,
             'id':                _safe_int(tr.get('id')),
             'texts':             tr_texts,
+            'idTextName':        _safe_int(id_tr_name) if id_tr_name is not None else None,
+            'idTextDescription': _safe_int(id_tr_desc) if id_tr_desc is not None else None,
             'costPositive':      tr.get('costPositive', 0),
             'costNegative':      tr.get('costNegative', 0),
             'idClassPermitted':  tr.get('idClassPermitted'),
@@ -647,12 +661,16 @@ def import_story(event):
                         card_texts[lang_t]['copyrightText'] = val
                 card = {
                     'uuid':             card_uuid,
+                    'cardType':         c.get('cardType'),
                     'texts':            card_texts,
-                    'imageUrl':         c.get('urlImage') or c.get('imageUrl'),
+                    'urlImage':         c.get('urlImage'),# or c.get('imageUrl'),
                     'alternativeImage': c.get('alternativeImage'),
                     'awesomeIcon':      c.get('awesomeIcon'),
                     'styleMain':        c.get('styleMain'),
                     'styleDetail':      c.get('styleDetail'),
+                    'styleImageLittle': c.get('styleImageLittle'),
+                    'styleImageMedium': c.get('styleImageMedium'),
+                    'styleImageLarge':  c.get('styleImageLarge'),
                     'linkCopyright':    c.get('linkCopyright'),
                 }
                 break
@@ -681,16 +699,20 @@ def import_story(event):
         stored_cards.append({
             'id':                _safe_int(c.get('id')),
             'uuid':              c_uuid,
+            'cardType':          c.get('cardType'),
             'idTextTitle':       c.get('idTextName') or c.get('idTextTitle'),
             'idTextDescription': c.get('idTextDescription'),
             'idTextCopyright':   c.get('idTextCopyright'),
             'linkCopyright':     c.get('linkCopyright'),
             'idCreator':         c.get('idCreator'),
-            'imageUrl':          c.get('urlImage') or c.get('imageUrl'),
+            'urlImage':          c.get('urlImage'),# or c.get('imageUrl'),
             'alternativeImage':  c.get('alternativeImage'),
             'awesomeIcon':       c.get('awesomeIcon'),
             'styleMain':         c.get('styleMain'),
             'styleDetail':       c.get('styleDetail'),
+            'styleImageLittle':  c.get('styleImageLittle'),
+            'styleImageMedium':  c.get('styleImageMedium'),
+            'styleImageLarge':   c.get('styleImageLarge'),
         })
 
     priority = int(data.get('priority') or 0)
@@ -902,6 +924,23 @@ TYPE_MAP = {
 }
 
 
+def _normalize_entity_input(entity_type, data):
+    """Normalise an incoming entity body before storing in DynamoDB.
+
+    Card storage key is `urlImage` (matches the SQL column `url_immage` and
+    the import JSON convention). Legacy data may have arrived with `imageUrl`
+    (the public-API output shape) — promote it to the canonical `urlImage`
+    and drop the alias so storage stays clean.
+    """
+    if not isinstance(data, dict):
+        return data
+    if entity_type == 'cards':
+        if data.get('urlImage') is None and data.get('imageUrl') is not None:
+            data['urlImage'] = data.pop('imageUrl')
+        data.pop('imageUrl', None)
+    return data
+
+
 def _normalize_entity_output(entity_type, entity):
     if not isinstance(entity, dict):
         return entity
@@ -912,6 +951,13 @@ def _normalize_entity_output(entity_type, entity):
             normalized['idCard'] = normalized.get('id_card')
         if normalized.get('id_card') is None and normalized.get('idCard') is not None:
             normalized['id_card'] = normalized.get('idCard')
+
+    # Cards: storage key is `urlImage`. Legacy records may still have
+    # `urlImage` from before the keys were unified — surface it under
+    # `urlImage` so the admin form always sees the value.
+    if entity_type == 'cards':
+        if normalized.get('urlImage') is None and normalized.get('imageUrl') is not None:
+            normalized['urlImage'] = normalized.get('imageUrl')
 
     return normalized
 
@@ -1030,6 +1076,7 @@ def create_entity(event, story_uuid, entity_type):
     data['id'] = len(item[field]) + 1
     if entity_type=='cards':
         data['idCard']=data['id']
+    _normalize_entity_input(entity_type, data)
     item[field].append(data)
 
     db_utils.put_item(item)
@@ -1085,6 +1132,7 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
     for k, v in data.items():
         if k != 'uuid': # don't change uuid
             entities[found_idx][k] = v
+    _normalize_entity_input(entity_type, entities[found_idx])
     
     if entity_type=='cards':
         entities[found_idx]['idCard']=entities[found_idx]['id']

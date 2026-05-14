@@ -165,13 +165,20 @@ export default function EntityForm({
               paddingRight: 4,
               marginTop: 16,
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
               gap: '12px 16px',
               alignItems: 'start',
             }}
           >
             {fields.map(field => (
-              <div key={field.key} style={field.type === 'checkbox' ? { display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 } : {}}>
+              <div
+                key={field.key}
+                style={
+                  field.type === 'checkbox'
+                    ? { display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22, minWidth: 0 }
+                    : { minWidth: 0 }
+                }
+              >
                 {field.type !== 'checkbox' && !isPathsTextSelector(field) && !isPathsOptionSelector(field) && (
                   <label htmlFor={`field-${field.key}`} className="pg-label" style={{ fontSize: '0.75rem', marginBottom: 3 }}>{field.label}</label>
                 )}
@@ -226,7 +233,7 @@ export default function EntityForm({
                   <select
                     id={`field-${field.key}`}
                     className="pg-input"
-                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                     value={data[field.key] || ''}
                     onChange={e => setFieldValue(field, e.target.value)}
                   >
@@ -250,7 +257,7 @@ export default function EntityForm({
                     id={`field-${field.key}`}
                     className="pg-textarea"
                     rows={3}
-                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                     value={data[field.key] ?? ''}
                     onChange={e => setFieldValue(field, e.target.value)}
                   />
@@ -258,8 +265,9 @@ export default function EntityForm({
                   <input
                     id={`field-${field.key}`}
                     type={field.type || 'text'}
+                    size={1}
                     className="pg-input"
-                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                    style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                     value={data[field.key] ?? ''}
                     onChange={e => setFieldValue(field, e.target.value)}
                   />

@@ -181,12 +181,12 @@
   function renderStoryCard(story) {
     const icon = getCategoryIcon(story.category);
     console.log(story);
-    const imageUrl = story.imageUrl ? `background-image:url('${escapeHtml(story.card.imageUrl)}');` : '';
+    const urlImage = story.card.urlImage ? `background-image:url('${escapeHtml(story.card.urlImage)}');` : '';
     return `
       <div class="catalog-card card-3d card-dimension-normal"
            data-story-uuid="${escapeHtml(story.uuid)}"
            onclick="window._selectStory('${escapeHtml(story.uuid)}')">
-        <div class="catalog-card-cover" style="background-image:${imageUrl};background-size:cover;background-position:center;">
+        <div class="catalog-card-cover" style="background-image:${urlImage};background-size:cover;background-position:center;">
           
         </div>
         <div class="catalog-title-plate">
@@ -411,8 +411,8 @@
 
   function renderCardInfoCard(c, isHeaderCompact) {
     let visual = '';
-    if (c.imageUrl) {
-      visual = `<img src="${escapeHtml(c.imageUrl)}" alt="${escapeHtml(c.title || 'Card')}" onerror="this.style.display='none'" />`;
+    if (c.urlImage) {
+      visual = `<img src="${escapeHtml(c.urlImage)}" alt="${escapeHtml(c.title || 'Card')}" onerror="this.style.display='none'" />`;
     } else if (c.awesomeIcon) {
       visual = `<i class="${escapeHtml(c.awesomeIcon)} card-info-icon"></i>`;
     } else {

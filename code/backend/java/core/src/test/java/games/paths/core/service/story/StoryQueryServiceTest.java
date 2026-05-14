@@ -232,7 +232,7 @@ class StoryQueryServiceTest {
             assertNotNull(s.getCard());
             assertEquals("card-uuid", s.getCard().getUuid());
             assertEquals("Card Title", s.getCard().getTitle());
-            assertEquals("https://example.com/card.png", s.getCard().getImageUrl());
+            assertEquals("https://example.com/card.png", s.getCard().getUrlImage());
         }
 
         @Test
@@ -404,7 +404,7 @@ class StoryQueryServiceTest {
                     () -> assertEquals(2, detail.getTraits().get(0).getCostPositive()),
                     () -> assertNotNull(detail.getCard()),
                     () -> assertEquals("Card Title", detail.getCard().getTitle()),
-                    () -> assertEquals("https://example.com/card.png", detail.getCard().getImageUrl()));
+                    () -> assertEquals("https://example.com/card.png", detail.getCard().getUrlImage()));
         }
 
         @Test

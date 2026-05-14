@@ -349,6 +349,17 @@ The `StoryImportService` processes a structured JSON map:
 5. Import all 14 sub-entity types in order
 6. Return `StoryImportResult` with counts
 
+### FK Constraints vs. Soft References in Import Payloads
+
+Two categories of ID reference fields exist in import JSON:
+
+| Category | Examples | Enforcement |
+|----------|----------|-------------|
+| **Hard FK (PostgreSQL)** | `idCard` on `list_character_templates` (constraint `fk_char_templates_card`: `FOREIGN KEY (id_card, id_story) REFERENCES list_cards(id, id_story)`) | Referential integrity enforced by the database. Importing a character template with `idCard` set requires that the referenced `list_cards` row already exist for the same story. Must be included as a `cards` entry in the same import payload, or omitted. |
+| **Soft references (no FK)** | `idTextName`, `idTextDescription`, `idTextNarrative` | Logical references resolved at query time by `(id_story, id_text, lang)`. No database-level constraint. These fields can be set freely in the import payload without requiring the corresponding text row to exist in the same request. |
+
+This distinction affects Robot test design: a test that imports a bare `characterTemplates` entry must omit `idCard` (or set it to `null`) to avoid a FK violation on PostgreSQL. The `idTextName` and `idTextDescription` fields can safely remain in a minimal payload. The FK-enforced round-trip case is validated by the test that embeds a matching `cards:[{id:1,...}]` array in the same import payload.
+
 ### Cascading Delete
 When a story is deleted, all 22 sub-tables are cleared in reverse foreign-key dependency order before the story row itself is removed. This prevents constraint violations.
 
@@ -415,7 +426,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
 
 
-- **Document Version**: 0.14.3
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.14.0 | Create a website new prototype with React and Vite | April 8, 2026 |
@@ -423,7 +434,9 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     | 0.14.2 | Full backend implementation: JPA entities, services, API, tests | April 10, 2026 |
     | 0.14.3 | Create robot-test-framework components to test all APIs | April 10, 2026 | 
     | 0.17.4 | Harmonize ID policy across backends (explicit ID, sync sequences) | May 03, 2026 |
-- **Last Updated**: May 03, 2026
+    | 0.19.3 | Document hard FK vs. soft reference distinction in import payloads (`fk_char_templates_card`) | May 14, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
+- **Last Updated**: May 14, 2026
 - **Status**: ✅ Complete
 
 

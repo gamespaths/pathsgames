@@ -68,8 +68,8 @@ async function fetchCard() {
 
 function renderCardPreview(card, container) {
   let html = '<div class="card-preview">';
-  if (card.imageUrl) {
-    html += `<img src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.title || 'Card')}" onerror="this.style.display='none'" />`;
+  if (card.urlImage) {
+    html += `<img src="${escapeHtml(card.urlImage)}" alt="${escapeHtml(card.title || 'Card')}" onerror="this.style.display='none'" />`;
   }
   html += `<h4>${card.awesomeIcon ? '<i class="fas ' + escapeHtml(card.awesomeIcon) + ' me-2"></i>' : ''}${escapeHtml(card.title || '—')}</h4>`;
   if (card.description) {

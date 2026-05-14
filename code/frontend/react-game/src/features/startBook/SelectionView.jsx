@@ -18,7 +18,7 @@ export default function SelectionView({ type, options, selected, story, onSelect
       <div className="selection-scroll">
         <div className="selection-list">
           {options.map((opt, i) => {
-            const previewHandler = onPreview && opt?.card ? () => onPreview(opt.card) : undefined
+            const previewHandler = onPreview ? () => onPreview(opt, type) : undefined
             return (
             <GameCard story={story}
               key={opt.uuid ?? opt.name ?? i}

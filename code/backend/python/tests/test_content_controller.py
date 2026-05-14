@@ -19,7 +19,7 @@ def client(mock_query_port):
     return TestClient(app)
 
 def test_get_card_success(client, mock_query_port):
-    card = CardInfo(uuid="card-uuid", imageUrl="http://img.png", title="Card Title")
+    card = CardInfo(uuid="card-uuid", urlImage="http://img.png", title="Card Title")
     mock_query_port.get_card_by_story_and_card_uuid.return_value = card
     
     response = client.get("/api/content/story-uuid/cards/card-uuid")

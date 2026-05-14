@@ -35,11 +35,15 @@ class ContentController:
             })
         result = {
             "uuid": card.uuid,
-            "imageUrl": card.imageUrl,
+            "cardType": card.cardType,
+            "urlImage": card.urlImage,
             "alternativeImage": card.alternativeImage,
             "awesomeIcon": card.awesomeIcon,
             "styleMain": card.styleMain,
             "styleDetail": card.styleDetail,
+            "styleImageLittle": card.styleImageLittle,
+            "styleImageMedium": card.styleImageMedium,
+            "styleImageLarge": card.styleImageLarge,
             "title": card.title,
             "description": card.description,
             "copyrightText": card.copyrightText,

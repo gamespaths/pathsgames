@@ -30,7 +30,7 @@ class ContentControllerTest extends TestCase
 
     public function testGetCardSuccess(): void
     {
-        $card = new CardInfo('card-uuid', 'http://image.png', null, null, null, null, 'Card Title');
+        $card = new CardInfo('card-uuid', null, 'http://image.png', null, null, null, null, null, null, null, 'Card Title');
         $this->queryPort->method('getCardByStoryAndCardUuid')
             ->with('story-uuid', 'card-uuid', 'en')
             ->willReturn($card);

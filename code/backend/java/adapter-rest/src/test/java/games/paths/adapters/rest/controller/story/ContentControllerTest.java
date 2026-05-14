@@ -53,7 +53,7 @@ class ContentControllerTest {
     private CardInfo sampleCard() {
         return CardInfo.builder()
                 .uuid("card-uuid")
-                .imageUrl("https://img.com/card.png")
+                .urlImage("https://img.com/card.png")
                 .alternativeImage("alt.jpg")
                 .awesomeIcon("fa-star")
                 .styleMain("bg-primary")
@@ -94,7 +94,7 @@ class ContentControllerTest {
             mockMvc.perform(get("/api/content/story-uuid/cards/card-uuid"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.uuid").value("card-uuid"))
-                    .andExpect(jsonPath("$.imageUrl").value("https://img.com/card.png"))
+                    .andExpect(jsonPath("$.urlImage").value("https://img.com/card.png"))
                     .andExpect(jsonPath("$.alternativeImage").value("alt.jpg"))
                     .andExpect(jsonPath("$.awesomeIcon").value("fa-star"))
                     .andExpect(jsonPath("$.styleMain").value("bg-primary"))

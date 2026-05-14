@@ -9,7 +9,7 @@ export default function LocationCard({ location }) {
   return (
     <div className="pg-card pg-card--large game-location-card" style={{ position: 'relative' }}>
       <div className="game-loc-img-wrap">
-        <img src={location.imageUrl} alt={location.name} className="game-loc-img" />
+        <img src={location.urlImage} alt={location.name} className="game-loc-img" />
       </div>
       <div className="game-loc-body">
         <h4 className="game-loc-name">{location.name}</h4>

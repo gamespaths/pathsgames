@@ -20,12 +20,12 @@ vi.mock('./CardDetailModal', () => ({
 
 describe('NeighborRow', () => {
   const mockLocations = [
-    { uuid: 'loc-1', name: 'Location 1', imageUrl: '/path/to/img.png', awesomeIcon: 'fas fa-map' },
-    { uuid: 'loc-2', name: 'Location 2', imageUrl: 'https://example.com/img.jpg' },
-    { uuid: 'loc-3', name: 'Location 3', imageUrl: 'invalid-url', awesomeIcon: 'fas fa-home' },
-    { uuid: 'loc-4', name: 'Location 4', imageUrl: 'ftp://insecure.com', awesomeIcon: 'fas fa-mosque' },
-    { uuid: '!!!', name: 'Location 5', imageUrl: '   ', awesomeIcon: '   ' },
-    { uuid: null, name: 'Location 6', imageUrl: '' }
+    { uuid: 'loc-1', name: 'Location 1', urlImage: '/path/to/img.png', awesomeIcon: 'fas fa-map' },
+    { uuid: 'loc-2', name: 'Location 2', urlImage: 'https://example.com/img.jpg' },
+    { uuid: 'loc-3', name: 'Location 3', urlImage: 'invalid-url', awesomeIcon: 'fas fa-home' },
+    { uuid: 'loc-4', name: 'Location 4', urlImage: 'ftp://insecure.com', awesomeIcon: 'fas fa-mosque' },
+    { uuid: '!!!', name: 'Location 5', urlImage: '   ', awesomeIcon: '   ' },
+    { uuid: null, name: 'Location 6', urlImage: '' }
   ]
 
   it('renders locations correctly', () => {

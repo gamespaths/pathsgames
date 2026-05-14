@@ -17,18 +17,23 @@ class CardInfoResponseTest {
         CreatorInfoResponse creator = new CreatorInfoResponse(
                 "cr-1", "Author", null, null, null, null, null);
         CardInfoResponse r = new CardInfoResponse(
-                "card-1", "https://img.com/card.png", "alt.jpg",
+                "card-1", "character", "https://img.com/card.png", "alt.jpg",
                 "fa-star", "bg-dark", "text-light",
+                "img-little", "img-medium", "img-large",
                 "Card Title", "Card Description",
                 "© 2026", "https://copy.com", creator);
 
         assertAll("CardInfoResponse fields",
             () -> assertEquals("card-1", r.getUuid()),
-            () -> assertEquals("https://img.com/card.png", r.getImageUrl()),
+            () -> assertEquals("character", r.getCardType()),
+            () -> assertEquals("https://img.com/card.png", r.getUrlImage()),
             () -> assertEquals("alt.jpg", r.getAlternativeImage()),
             () -> assertEquals("fa-star", r.getAwesomeIcon()),
             () -> assertEquals("bg-dark", r.getStyleMain()),
             () -> assertEquals("text-light", r.getStyleDetail()),
+            () -> assertEquals("img-little", r.getStyleImageLittle()),
+            () -> assertEquals("img-medium", r.getStyleImageMedium()),
+            () -> assertEquals("img-large", r.getStyleImageLarge()),
             () -> assertEquals("Card Title", r.getTitle()),
             () -> assertEquals("Card Description", r.getDescription()),
             () -> assertEquals("© 2026", r.getCopyrightText()),
@@ -43,11 +48,15 @@ class CardInfoResponseTest {
     void noArgConstructorAndSetters() {
         CardInfoResponse r = new CardInfoResponse();
         r.setUuid("card-2");
-        r.setImageUrl("https://img.com/card2.png");
+        r.setCardType("trait");
+        r.setUrlImage("https://img.com/card2.png");
         r.setAlternativeImage("alt2.jpg");
         r.setAwesomeIcon("fa-heart");
         r.setStyleMain("bg-primary");
         r.setStyleDetail("text-dark");
+        r.setStyleImageLittle("img-l");
+        r.setStyleImageMedium("img-m");
+        r.setStyleImageLarge("img-xl");
         r.setTitle("Card Two");
         r.setDescription("Description Two");
         r.setCopyrightText("© 2026");
@@ -56,11 +65,15 @@ class CardInfoResponseTest {
 
         assertAll("Setter values",
             () -> assertEquals("card-2", r.getUuid()),
-            () -> assertEquals("https://img.com/card2.png", r.getImageUrl()),
+            () -> assertEquals("trait", r.getCardType()),
+            () -> assertEquals("https://img.com/card2.png", r.getUrlImage()),
             () -> assertEquals("alt2.jpg", r.getAlternativeImage()),
             () -> assertEquals("fa-heart", r.getAwesomeIcon()),
             () -> assertEquals("bg-primary", r.getStyleMain()),
             () -> assertEquals("text-dark", r.getStyleDetail()),
+            () -> assertEquals("img-l", r.getStyleImageLittle()),
+            () -> assertEquals("img-m", r.getStyleImageMedium()),
+            () -> assertEquals("img-xl", r.getStyleImageLarge()),
             () -> assertEquals("Card Two", r.getTitle()),
             () -> assertEquals("Description Two", r.getDescription()),
             () -> assertEquals("© 2026", r.getCopyrightText()),

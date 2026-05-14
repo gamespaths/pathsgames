@@ -40,8 +40,8 @@ export default function GameBook({ gameData }) {
       <div className="book-mobile-layout">
         {/* Current location card */}
         <div className="book-mobile-story-card">
-          {startLocation?.imageUrl && (
-            <img src={startLocation.imageUrl} alt={startLocation.name} className="book-mobile-story-img" />
+          {startLocation?.urlImage && (
+            <img src={startLocation.urlImage} alt={startLocation.name} className="book-mobile-story-img" />
           )}
           <div className="book-mobile-story-body">
             <h3 className="story-card-full-title" style={{ fontSize: '0.95rem', marginBottom: 4 }}>
