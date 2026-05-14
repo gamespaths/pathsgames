@@ -55,7 +55,7 @@ def test_list_public_stories_with_card(mock_read_port):
         {"id_text": 401, "lang": "en", "short_text": "Card Desc"}
     ]
     mock_read_port.find_card_for_story.return_value = {
-        "id": 42, "uuid": "card-uuid", "image_url": "https://img.png",
+        "id": 42, "uuid": "card-uuid", "url_image": "https://img.png",
         "alternative_image": "alt", "awesome_icon": "fa-star",
         "style_main": "bg-dark", "style_detail": "text-light",
         "id_text_title": 400, "id_text_description": 401,
@@ -311,7 +311,7 @@ def test_get_story_detail_with_card(mock_read_port):
         {"id_text": 402, "lang": "en", "short_text": "Card (c)"}
     ]
     mock_read_port.find_card_for_story.return_value = {
-        "id": 42, "uuid": "card-uuid", "image_url": "https://img.png",
+        "id": 42, "uuid": "card-uuid", "url_image": "https://img.png",
         "alternative_image": "alt-img", "awesome_icon": "fa-star",
         "style_main": "bg-dark", "style_detail": "text-light",
         "id_text_title": 400, "id_text_description": 401,
