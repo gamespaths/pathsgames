@@ -17,7 +17,9 @@ class CharacterTemplateInfo
         public int $intelligenceStart = 0,
         public int $constitutionStart = 0,
         public ?int $idCard = null,
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public ?int $idClassPermitted = null,
+        public ?int $idClassProhibited = null
     ) {
     }
 }

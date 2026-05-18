@@ -1,15 +1,20 @@
 package games.paths.adapters.rest.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * ClassInfoResponse - REST response DTO for a character class.
  */
 public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
+    private Long id;
     private int weightMax;
     private int dexterityBase;
     private int intelligenceBase;
     private int constitutionBase;
     private Integer idCard;
     private CardInfoResponse card;
+    private List<ClassBonusInfoResponse> bonuses = new ArrayList<>();
 
     public ClassInfoResponse() {}
 
@@ -21,6 +26,9 @@ public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
         this.intelligenceBase = intelligenceBase;
         this.constitutionBase = constitutionBase;
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public int getWeightMax() { return weightMax; }
     public void setWeightMax(int weightMax) { this.weightMax = weightMax; }
@@ -39,4 +47,9 @@ public class ClassInfoResponse extends AbstractUuidNameDescriptionDto {
 
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
+
+    public List<ClassBonusInfoResponse> getBonuses() { return bonuses; }
+    public void setBonuses(List<ClassBonusInfoResponse> bonuses) {
+        this.bonuses = bonuses != null ? bonuses : new ArrayList<>();
+    }
 }

@@ -105,9 +105,10 @@ class ClassBonusEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_class = Column(Integer)
-    bonus_type = Column(String(50))
-    bonus_value = Column(Integer)
+    statistic = Column(String(50))
+    value = Column(Integer)
 
 
 class TraitEntity(Base):
@@ -140,6 +141,8 @@ class CharacterTemplateEntity(Base):
     dexterity_start = Column(Integer, default=1)
     intelligence_start = Column(Integer, default=1)
     constitution_start = Column(Integer, default=1)
+    id_class_permitted = Column(Integer)
+    id_class_prohibited = Column(Integer)
 
 
 class LocationEntity(Base):

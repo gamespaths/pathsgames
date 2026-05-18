@@ -672,7 +672,7 @@ html, body {
   overflow-y: auto;
   min-height: 0;
   background: var(--color-parchment-light);
-  border-radius: 0 0 8px 8px;
+  /*border-radius: 0 0 8px 8px;*/
   border-top: 2px solid var(--color-gold-dark);
 }
 

@@ -6,6 +6,7 @@ namespace Games\Paths\Core\Service\Story;
 
 use Games\Paths\Core\Domain\Story\CardInfo;
 use Games\Paths\Core\Domain\Story\CharacterTemplateInfo;
+use Games\Paths\Core\Domain\Story\ClassBonusInfo;
 use Games\Paths\Core\Domain\Story\ClassInfo;
 use Games\Paths\Core\Domain\Story\DifficultyInfo;
 use Games\Paths\Core\Domain\Story\StoryDetail;
@@ -96,6 +97,7 @@ class StoryQueryService implements StoryQueryPort
 
         // Step 15: Classes, Templates, Traits
         $rawClasses = $this->readPort->findClassesForStory($storyId);
+        $rawClassBonuses = $this->readPort->findClassBonusesForStory($storyId);
         $rawTemplates = $this->readPort->findCharacterTemplatesForStory($storyId);
         $rawTraits = $this->readPort->findTraitsForStory($storyId);
 
@@ -103,6 +105,19 @@ class StoryQueryService implements StoryQueryPort
         foreach ($rawClasses as $c) {
             $clsName = $this->resolveText($texts, isset($c['id_text_name']) ? (int)$c['id_text_name'] : null, $lang);
             $clsDesc = $this->resolveText($texts, isset($c['id_text_description']) ? (int)$c['id_text_description'] : null, $lang);
+            $clsId = isset($c['id']) ? (int)$c['id'] : null;
+            $clsBonuses = [];
+            foreach ($rawClassBonuses as $b) {
+                if ($clsId !== null && isset($b['id_class']) && (int)$b['id_class'] === $clsId) {
+                    $statistic = $b['statistic'] ?? ($b['bonus_type'] ?? null);
+                    $value = $b['value'] ?? ($b['bonus_value'] ?? 0);
+                    $clsBonuses[] = new ClassBonusInfo(
+                        $b['uuid'] ?? null,
+                        $statistic,
+                        (int)$value
+                    );
+                }
+            }
             $classes[] = new ClassInfo(
                 $c['uuid'] ?? (string)($c['id'] ?? ''),
                 $clsName,
@@ -112,7 +127,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($c['intelligence_base']) ? (int)$c['intelligence_base'] : 0,
                 isset($c['constitution_base']) ? (int)$c['constitution_base'] : 0,
                 isset($c['id_card']) ? (int)$c['id_card'] : null,
-                $this->resolveCard($storyId, $texts, isset($c['id_card']) ? (int)$c['id_card'] : null, $lang)
+                $this->resolveCard($storyId, $texts, isset($c['id_card']) ? (int)$c['id_card'] : null, $lang),
+                $clsBonuses,
+                isset($c['id']) ? (int)$c['id'] : null
             );
         }
 
@@ -131,7 +148,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($t['intelligence_start']) ? (int)$t['intelligence_start'] : 0,
                 isset($t['constitution_start']) ? (int)$t['constitution_start'] : 0,
                 isset($t['id_card']) ? (int)$t['id_card'] : null,
-                $this->resolveCard($storyId, $texts, isset($t['id_card']) ? (int)$t['id_card'] : null, $lang)
+                $this->resolveCard($storyId, $texts, isset($t['id_card']) ? (int)$t['id_card'] : null, $lang),
+                isset($t['id_class_permitted']) ? (int)$t['id_class_permitted'] : null,
+                isset($t['id_class_prohibited']) ? (int)$t['id_class_prohibited'] : null
             );
         }
 

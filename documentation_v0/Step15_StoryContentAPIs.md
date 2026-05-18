@@ -156,9 +156,11 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `characterTemplateCount` | int | Number of character templates in the story |
 | `traitCount` | int | Number of character traits in the story |
 | `characterTemplates` | array | List of character template summaries |
-| `classes` | array | List of class summaries |
+| `classes` | array | List of class summaries (each entry includes a nested `bonuses[]` list) |
 | `traits` | array | List of trait summaries |
 | `card` | object\|null | Story card visual info (null if no card assigned) |
+
+> **v0.19.5 enrichment**: each entry in `classes[]` now includes a `bonuses[]` array of `{ uuid, statistic, value }` objects (rows from `list_classes_bonus`). Each entry in `characterTemplates[]` now exposes `idClassPermitted` and `idClassProhibited` (nullable integers). A new `ClassBonusInfoResponse` DTO was added in the Java adapter (`adapter-rest`) and the corresponding domain model `ClassBonusInfo` was added to `core`.
 
 > **v0.19.x enrichment**: each item inside `difficulties[]`, `characterTemplates[]`, `classes[]`,
 > and `traits[]` now also exposes its own `idCard` FK (nullable integer) and a fully resolved
@@ -211,7 +213,9 @@ Now returns additional fields: character templates, classes, traits, card info, 
       "sadMax": 5,
       "dexterityStart": 2,
       "intelligenceStart": 1,
-      "constitutionStart": 3
+      "constitutionStart": 3,
+      "idClassPermitted": null,
+      "idClassProhibited": null
     }
   ],
   "classes": [
@@ -222,7 +226,10 @@ Now returns additional fields: character templates, classes, traits, card info, 
       "weightMax": 15,
       "dexterityBase": 2,
       "intelligenceBase": 1,
-      "constitutionBase": 3
+      "constitutionBase": 3,
+      "bonuses": [
+        { "uuid": "bonus-uuid-1", "statistic": "life", "value": 2 }
+      ]
     }
   ],
   "traits": [
@@ -259,8 +266,9 @@ Now returns additional fields: character templates, classes, traits, card info, 
 
 | Class | Fields | Purpose |
 |-------|--------|---------|
-| `CharacterTemplateResponse` | uuid, name, description, lifeMax, energyMax, sadMax, dexterityStart, intelligenceStart, constitutionStart | Character template in story detail |
-| `ClassInfoResponse` | uuid, name, description, weightMax, dexterityBase, intelligenceBase, constitutionBase | Character class in story detail |
+| `CharacterTemplateResponse` | uuid, name, description, lifeMax, energyMax, sadMax, dexterityStart, intelligenceStart, constitutionStart, idClassPermitted, idClassProhibited | Character template in story detail |
+| `ClassInfoResponse` | uuid, name, description, weightMax, dexterityBase, intelligenceBase, constitutionBase, bonuses | Character class in story detail; `bonuses` is a list of `ClassBonusInfoResponse` objects |
+| `ClassBonusInfoResponse` | uuid, statistic, value | Single class bonus entry; `statistic` is one of `life, energy, sad, dex, int, cos, exp, food, magic, coin, weight` |
 | `TraitInfoResponse` | uuid, name, description, costPositive, costNegative, idClassPermitted, idClassProhibited | Character trait in story detail |
 | `CardInfoResponse` | uuid, urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, title, description, copyrightText, linkCopyright | Visual card in story detail |
 
@@ -270,7 +278,9 @@ Now returns additional fields: character templates, classes, traits, card info, 
 |-------|------------|---------|
 | `StoryDetailResponse` | classCount, characterTemplateCount, traitCount, characterTemplates (list), classes (list), traits (list), card (object) | Enriched story view |
 | `CharacterTemplateResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `CharacterTemplateResponse` | + idClassPermitted (int\|null), + idClassProhibited (int\|null) | Class restriction fields added (v0.19.5) |
 | `ClassInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `ClassInfoResponse` | + bonuses (list of ClassBonusInfoResponse) | Class bonuses nested in class detail (v0.19.5) |
 | `TraitInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `DifficultyResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `CardInfoResponse` | + cardType (string\|null) | Declarative entity type tag added in v0.19.4; see [Step15_StoryContentHowAddFiledIntoCard.md](./Step15_StoryContentHowAddFiledIntoCard.md) for a guide on adding future fields |
@@ -374,12 +384,14 @@ The card uses `idTextName` for title resolution. Other card fields (`urlImage`, 
 core/src/main/java/games/paths/core/model/story/
 ├── CharacterTemplateInfo.java
 ├── ClassInfo.java
+├── ClassBonusInfo.java                  (v0.19.5)
 ├── TraitInfo.java
 └── CardInfo.java
 
 adapter-rest/src/main/java/games/paths/adapters/rest/dto/
 ├── CharacterTemplateResponse.java
 ├── ClassInfoResponse.java
+├── ClassBonusInfoResponse.java          (v0.19.5)
 ├── TraitInfoResponse.java
 └── CardInfoResponse.java
 
@@ -426,13 +438,14 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
 - First version created with AI prompts:
     > Set Step/XX=15. write all java backend code into 'code/backend/java' project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into '/code/backend/java/adapter-rest/src/main/resources/openapi' folder with new/changed api. create a new simple web example to use new interfaces inside new code/website/concepts_v0/ folder. add new folder inside 'code/tests/robot/test' and write new robot-framework test. don't look and don't change 'backend/python', 'backend/php', 'backend/aws' and others concepts folder into 'website'
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.19.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.15.0 | Story content APIs: categories, groups, enriched detail | April 16, 2026 |
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
     | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
-- **Last Updated**: May 14, 2026
+    | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
+- **Last Updated**: May 18, 2026
 - **Status**: ✅ Complete
 
 

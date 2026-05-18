@@ -32,6 +32,8 @@ interface StoryReadPort
 
     public function findClassesForStory(int $storyId): array;
 
+    public function findClassBonusesForStory(int $storyId): array;
+
     public function findCharacterTemplatesForStory(int $storyId): array;
 
     public function findTraitsForStory(int $storyId): array;

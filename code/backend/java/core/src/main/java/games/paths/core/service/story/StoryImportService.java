@@ -412,6 +412,8 @@ public class StoryImportService implements StoryImportPort {
             e.setDexterityStart(getInteger(item, "dexterityStart"));
             e.setIntelligenceStart(getInteger(item, "intelligenceStart"));
             e.setConstitutionStart(getInteger(item, "constitutionStart"));
+            e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));
+            e.setIdClassProhibited(normalizeOptionalFk(getInteger(item, "idClassProhibited")));
             entities.add(e);
         }
         persistencePort.saveCharacterTemplates(entities);

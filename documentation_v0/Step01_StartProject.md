@@ -199,7 +199,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	7. `list_classes` (id, id_card, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base)
 	8. `list_classes_bonus` (id, id_card, id_story, id_class, statistic, value, id_text_name, id_text_description)
 	9. `list_traits` (id, id_card, id_story, id_class_permitted, id_class_prohibited, id_text_name, id_text_description, cost_positive, cost_negative)
-	10. `list_character_templates` (id_tipo, id_card, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start ), 
+	10. `list_character_templates` (id_tipo, id_card, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited), 
 	11. `list_locations` (id, id_card, id_story, id_text_name, id_text_description, id_text_narrative, id_image, is_safe,  (boolean), cost_energy_enter, counter_time, id_event_if_counter_zero, secure_param, id_event_if_character_start_time, id_event_if_character_enter_first_time, id_event_if_first_time, id_event_not_first_time, priority_automatic_event, id_audio, max_characters)
 	12. `list_locations_neighbors` (id, id_story, id_location_from, id_location_to, direction=NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY , flag_back (boolean), condition_registry_key, condition_registry_value, energy_cost, id_text_go, id_text_back
 	13. `list_items` (id, id_card, id_story, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited)
@@ -712,7 +712,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	| 0.9.1 | add "play without login" to enable anonymous/guest user | March 16, 2026 |
 	| 0.10.12 | traslated API and WebSocket and updated tables sections | March 19, 2026 |
 	| 0.16.3 | traslated stories service just developed! | April 20, 2026 |
-- **Last Updated**: April 20, 2026
+	| 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
+- **Last Updated**: May 18, 2026
 - **Status**: In progress, traslation *coming soon*
 
 

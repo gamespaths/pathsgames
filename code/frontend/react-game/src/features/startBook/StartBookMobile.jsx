@@ -26,6 +26,7 @@ export default function StartBookMobile({
             options={getOptionsForType(selectionType)}
             selected={config[selectionType]}
             story={activeStory}
+            config={config}
             onSelect={onSelect}
             onBack={() => setSelectionType(null)}
           />

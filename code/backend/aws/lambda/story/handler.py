@@ -254,16 +254,29 @@ def _story_detail(item, lang):
             'constitutionStart': _safe_int(ct.get('constitutionStart')),
             'idCard':            _safe_int(ct_id_card) if ct_id_card is not None else None,
             'card':              _build_card(ct_id_card, lang),
+            'idClassPermitted':  ct.get('idClassPermitted'),
+            'idClassProhibited': ct.get('idClassProhibited'),
         })
 
-    # Step 15: Classes
+    # Step 15: Classes (+ bonuses from list_classes_bonus)
     raw_classes = item.get('classes', [])
+    raw_class_bonuses = item.get('classBonuses', []) or []
     classes = []
     for cl in raw_classes:
         cl_id_card = cl.get('idCard')
+        cl_id = _safe_int(cl.get('id'))
+        cl_bonuses = []
+        for b in raw_class_bonuses:
+            b_class_id = _safe_int(b.get('idClass'))
+            if cl_id is not None and b_class_id == cl_id:
+                cl_bonuses.append({
+                    'uuid':      b.get('uuid'),
+                    'statistic': b.get('statistic') or b.get('bonusType'),
+                    'value':     _safe_int(b.get('value') if b.get('value') is not None else b.get('bonusValue')),
+                })
         classes.append({
             'uuid':             cl.get('uuid'),
-            'id':               _safe_int(cl.get('id')),
+            'id':               cl_id,
             'name':             _resolve_text(cl.get('texts', {}), lang, 'name'),
             'description':      _resolve_text(cl.get('texts', {}), lang, 'description'),
             'weightMax':        _safe_int(cl.get('weightMax')),
@@ -272,6 +285,7 @@ def _story_detail(item, lang):
             'constitutionBase': _safe_int(cl.get('constitutionBase')),
             'idCard':           _safe_int(cl_id_card) if cl_id_card is not None else None,
             'card':             _build_card(cl_id_card, lang),
+            'bonuses':          cl_bonuses,
         })
 
     # Step 15: Traits

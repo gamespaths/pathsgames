@@ -149,3 +149,4 @@ CREATE TABLE list_character_templates (
     ts_update           VARCHAR(50)    NOT NULL DEFAULT NOW()::text,
     PRIMARY KEY (id_tipo, id_story)
 );
+-- Note: id_class_permitted / id_class_prohibited columns are added in V0.19.5.

@@ -2,6 +2,7 @@ package games.paths.adapters.rest.controller.story;
 
 import games.paths.adapters.rest.dto.CardInfoResponse;
 import games.paths.adapters.rest.dto.CharacterTemplateResponse;
+import games.paths.adapters.rest.dto.ClassBonusInfoResponse;
 import games.paths.adapters.rest.dto.ClassInfoResponse;
 import games.paths.adapters.rest.dto.DifficultyResponse;
 import games.paths.adapters.rest.dto.StoryDetailResponse;
@@ -9,6 +10,7 @@ import games.paths.adapters.rest.dto.StorySummaryResponse;
 import games.paths.adapters.rest.dto.TraitInfoResponse;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.model.story.CharacterTemplateInfo;
+import games.paths.core.model.story.ClassBonusInfo;
 import games.paths.core.model.story.ClassInfo;
 import games.paths.core.model.story.DifficultyInfo;
 import games.paths.core.model.story.StoryDetail;
@@ -206,6 +208,8 @@ public class StoryController {
                 ct.getDexterityStart(), ct.getIntelligenceStart(), ct.getConstitutionStart());
         r.setIdCard(ct.getIdCard());
         r.setCard(ct.getCard() != null ? toCardInfoResponse(ct.getCard()) : null);
+        r.setIdClassPermitted(ct.getIdClassPermitted());
+        r.setIdClassProhibited(ct.getIdClassProhibited());
         return r;
     }
 
@@ -214,9 +218,17 @@ public class StoryController {
                 ci.getUuid(), ci.getName(), ci.getDescription(),
                 ci.getWeightMax(), ci.getDexterityBase(), ci.getIntelligenceBase(),
                 ci.getConstitutionBase());
+        r.setId(ci.getId());
         r.setIdCard(ci.getIdCard());
         r.setCard(ci.getCard() != null ? toCardInfoResponse(ci.getCard()) : null);
+        r.setBonuses(ci.getBonuses() != null
+                ? ci.getBonuses().stream().map(this::toClassBonusInfoResponse).collect(Collectors.toList())
+                : new java.util.ArrayList<>());
         return r;
+    }
+
+    private ClassBonusInfoResponse toClassBonusInfoResponse(ClassBonusInfo cb) {
+        return new ClassBonusInfoResponse(cb.getUuid(), cb.getStatistic(), cb.getValue());
     }
 
     private TraitInfoResponse toTraitInfoResponse(TraitInfo ti) {

@@ -1,7 +1,7 @@
 import GameCardInfoButton from '../layout/GameCardInfoButton'
 import BonusBadgeList from '../common/BonusBadgeList'
 import { useTranslation } from '../../i18n/context'
-import { getNonZeroStats } from '../../utils/bonusStats'
+import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import GameCardCreditsBar from '../layout/GameCardCreditsBar'
 
 /**
@@ -17,7 +17,9 @@ export default function BookPageContent({ card, story, loading, onClose, entity,
 
   const statItems = getNonZeroStats(entity, entityType).map(s => ({
     key: s.key,
-    label: t(`book.stats.${s.key}`),
+    label: STAT_CATEGORY_ORDER.includes(s.key)
+      ? t(`book.stats.totals.${s.key}`)
+      : t(`book.stats.${s.key}`),
     value: s.value,
   }))
 
@@ -46,7 +48,7 @@ export default function BookPageContent({ card, story, loading, onClose, entity,
       {description && (
         <div className="book-page-desc">
           <BonusBadgeList items={statItems} className="book-page-stats" />
-          {description}
+          <span dangerouslySetInnerHTML={{ __html: description }} />
         </div>
       )}
         {card?.linkCopyright && (

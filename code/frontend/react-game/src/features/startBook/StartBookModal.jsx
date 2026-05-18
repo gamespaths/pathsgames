@@ -134,6 +134,7 @@ export default function StartBookModal({ story, onClose }) {
                 options={getOptionsForType(selectionType, activeStory)}
                 selected={config[selectionType]}
                 story={activeStory}
+                config={config}
                 onSelect={handleSelect}
                 onBack={handleBackOrClose}
                 onPreview={handleSelectionPreview}

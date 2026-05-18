@@ -254,8 +254,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         id=next_cb_id(),
                         id_story=story_id,
                         id_class=cls.id,
-                        bonus_type=b.get("bonusType", b.get("type")),
-                        bonus_value=b.get("bonusValue", b.get("value"))
+                        statistic=b.get("statistic", b.get("bonusType", b.get("type"))),
+                        value=b.get("value", b.get("bonusValue")),
                     )
                     session.add(cb)
             session.commit()
@@ -341,7 +341,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "life_max": "lifeMax", "energy_max": "energyMax", "sad_max": "sadMax",
             "dexterity_start": "dexterityStart", "intelligence_start": "intelligenceStart",
-            "constitution_start": "constitutionStart"
+            "constitution_start": "constitutionStart",
+            "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited"
         })
 
     def save_weather_rules(self, story_id: int, items: List[Dict[str, Any]]) -> None:

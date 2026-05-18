@@ -565,11 +565,27 @@ components:
           nullable: true
           description: Visual card details for this character template (null if no card)
           $ref: '#/components/schemas/CardInfoResponse'
+        idClassPermitted:
+          type: integer
+          nullable: true
+          description: Optional id of the class permitted to pick this template (NULL = any)
+          example: 90002
+        idClassProhibited:
+          type: integer
+          nullable: true
+          description: Optional id of the class forbidden from picking this template (NULL = none)
+          example: 90001
 
     ClassInfoResponse:
       type: object
       description: Character class details
       properties:
+        id:
+          type: integer
+          nullable: true
+          description: Numeric class id (matches `idClassPermitted`/`idClassProhibited`
+            on traits and character templates).
+          example: 90001
         uuid:
           type: string
           format: uuid
@@ -609,6 +625,30 @@ components:
           nullable: true
           description: Visual card details for this class (null if no card)
           $ref: '#/components/schemas/CardInfoResponse'
+        bonuses:
+          type: array
+          description: Per-statistic bonuses applied when this class is selected
+            (rows from list_classes_bonus). Empty array if the class has no bonuses.
+          items:
+            $ref: '#/components/schemas/ClassBonusInfoResponse'
+
+    ClassBonusInfoResponse:
+      type: object
+      description: A single class bonus row (statistic and value)
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+          example: "bonus-knight-life-uuid"
+        statistic:
+          type: string
+          description: Statistic to which the bonus applies (life, energy, sad, dex, int, cos, ...)
+          example: "life"
+        value:
+          type: integer
+          description: Bonus amount applied to the statistic
+          example: 3
 
     TraitInfoResponse:
       type: object

@@ -137,6 +137,8 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'dexterityStart', label: 'Dexterity Start', type: 'number' },
       { key: 'intelligenceStart', label: 'Intelligence Start', type: 'number' },
       { key: 'constitutionStart', label: 'Constitution Start', type: 'number' },
+      { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
+      { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
     ],
     classes: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -342,6 +344,8 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'dexterityStart', label: 'Dex Start' },
       { key: 'intelligenceStart', label: 'Int Start' },
       { key: 'constitutionStart', label: 'Con Start' },
+      { key: 'idClassPermitted', label: 'Class Permitted' },
+      { key: 'idClassProhibited', label: 'Class Prohibited' },
     ],
     classes: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },

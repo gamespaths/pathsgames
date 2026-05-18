@@ -112,6 +112,13 @@ class StoryMysqlReadRepository implements StoryReadPort
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function findClassBonusesForStory(int $storyId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM list_classes_bonus WHERE id_story = :id_story");
+        $stmt->execute([':id_story' => $storyId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function findCharacterTemplatesForStory(int $storyId): array
     {
         $stmt = $this->pdo->prepare("SELECT * FROM list_character_templates WHERE id_story = :id_story");

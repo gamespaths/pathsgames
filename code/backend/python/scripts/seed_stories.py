@@ -70,13 +70,20 @@ def seed():
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}
         ],
         "classes": [
-            {"idTextName": 200, "idTextDescription": 200}
+            {
+                "idTextName": 200, "idTextDescription": 200,
+                "bonuses": [
+                    {"statistic": "life",   "value": 3},
+                    {"statistic": "energy", "value": 2},
+                ],
+            }
         ],
         "traits": [
             {"idTextName": 700, "idTextDescription": 700, "cost": 1}
         ],
         "characterTemplates": [
-            {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210}
+            {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,
+             "idClassPermitted": None, "idClassProhibited": None}
         ],
         "cards": [
             {
@@ -114,9 +121,19 @@ def seed():
         "locations": [],
         "events": [],
         "items": [],
-        "classes": [],
+        "classes": [
+            {
+                "idTextName": 200, "idTextDescription": 200,
+                "bonuses": [
+                    {"statistic": "dex", "value": 2},
+                ],
+            }
+        ],
         "traits": [],
-        "characterTemplates": []
+        "characterTemplates": [
+            {"idTipo": 91001, "idTextName": 210, "idTextDescription": 210,
+             "idClassPermitted": None, "idClassProhibited": None}
+        ]
     }
     
     import_service.import_story(tutorial_data)

@@ -4,6 +4,7 @@ from app.core.models.story.story_detail import StoryDetail
 from app.core.models.story.difficulty_info import DifficultyInfo
 from app.core.models.story.character_template_info import CharacterTemplateInfo
 from app.core.models.story.class_info import ClassInfo
+from app.core.models.story.class_bonus_info import ClassBonusInfo
 from app.core.models.story.trait_info import TraitInfo
 from app.core.models.story.card_info import CardInfo
 from app.core.ports.story.story_query_port import StoryQueryPort
@@ -78,15 +79,26 @@ class StoryQueryService(StoryQueryPort):
 
         # Step 15: Classes, Templates, Traits
         raw_classes = self.read_port.find_classes_for_story(story_id)
+        raw_class_bonuses = self.read_port.find_class_bonuses_for_story(story_id)
         raw_templates = self.read_port.find_character_templates_for_story(story_id)
         raw_traits = self.read_port.find_traits_for_story(story_id)
-        
+
         classes = []
         for c in raw_classes:
             cls_name = self._resolve_text(texts, c.get("id_text_name"), lang)
             cls_desc = self._resolve_text(texts, c.get("id_text_description"), lang)
+            cls_id = c.get("id")
+            cls_bonuses = []
+            for b in raw_class_bonuses:
+                if b.get("id_class") == cls_id:
+                    cls_bonuses.append(ClassBonusInfo(
+                        uuid=b.get("uuid") or str(b.get("id", "")),
+                        statistic=b.get("statistic") or b.get("bonus_type"),
+                        value=b.get("value") if b.get("value") is not None else (b.get("bonus_value") or 0),
+                    ))
             classes.append(ClassInfo(
                 uuid=c.get("uuid") or str(c.get("id", "")),
+                id=c.get("id"),
                 name=cls_name,
                 description=cls_desc,
                 weightMax=c.get("weight_max", 0) or 0,
@@ -94,7 +106,8 @@ class StoryQueryService(StoryQueryPort):
                 intelligenceBase=c.get("intelligence_base", 0) or 0,
                 constitutionBase=c.get("constitution_base", 0) or 0,
                 idCard=c.get("id_card"),
-                card=self._resolve_card(story_id, texts, c.get("id_card"), lang)
+                card=self._resolve_card(story_id, texts, c.get("id_card"), lang),
+                bonuses=cls_bonuses,
             ))
 
         templates = []
@@ -112,7 +125,9 @@ class StoryQueryService(StoryQueryPort):
                 intelligenceStart=t.get("intelligence_start", 0) or 0,
                 constitutionStart=t.get("constitution_start", 0) or 0,
                 idCard=t.get("id_card"),
-                card=self._resolve_card(story_id, texts, t.get("id_card"), lang)
+                card=self._resolve_card(story_id, texts, t.get("id_card"), lang),
+                idClassPermitted=t.get("id_class_permitted"),
+                idClassProhibited=t.get("id_class_prohibited"),
             ))
 
         traits = []

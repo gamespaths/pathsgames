@@ -13,6 +13,8 @@ public class CharacterTemplateResponse extends AbstractUuidNameDescriptionDto {
     private int constitutionStart;
     private Integer idCard;
     private CardInfoResponse card;
+    private Integer idClassPermitted;
+    private Integer idClassProhibited;
 
     public CharacterTemplateResponse() {}
 
@@ -51,4 +53,10 @@ public class CharacterTemplateResponse extends AbstractUuidNameDescriptionDto {
 
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
+
+    public Integer getIdClassPermitted() { return idClassPermitted; }
+    public void setIdClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; }
+
+    public Integer getIdClassProhibited() { return idClassProhibited; }
+    public void setIdClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; }
 }

@@ -6,6 +6,7 @@ namespace Games\Paths\Core\Domain\Story;
 
 class ClassInfo
 {
+    /** @param ClassBonusInfo[] $bonuses */
     public function __construct(
         public string $uuid,
         public ?string $name = null,
@@ -15,7 +16,9 @@ class ClassInfo
         public int $intelligenceBase = 0,
         public int $constitutionBase = 0,
         public ?int $idCard = null,
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public array $bonuses = [],
+        public ?int $id = null
     ) {
     }
 }

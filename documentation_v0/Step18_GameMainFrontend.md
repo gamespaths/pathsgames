@@ -240,7 +240,9 @@ The `card.*` namespace (added in v0.19.3) holds `card.info` ("Info") and `card.v
 
 When the user clicks **Change** on a config card the right page switches to `SelectionView` (options list for that type). Selecting an option returns to `ConfigView` with the new value.
 
-When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page. `StartBookModal` now tracks `preview = { entity, type }` (replacing the former `previewCard` state). `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** below the description showing the numeric API fields relevant to that entity type:
+When the user clicks the magnifier button on a config card, a `CardPreviewOverlay` is rendered on the left page. `StartBookModal` now tracks `preview = { entity, type }` (replacing the former `previewCard` state). `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** below the description showing the numeric API fields relevant to that entity type.
+
+The `description` field (from `card.description` or `entity.description`) is rendered using `dangerouslySetInnerHTML`. This means HTML markup embedded in translation strings — such as `<br />` line breaks in keys like `guestDesc` — is interpreted by the browser rather than escaped as plain text. Any i18n string that should display formatted text must use valid HTML.
 
 | `entityType` | Fields shown |
 |---|---|
@@ -393,6 +395,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.18.0 | First web main frontend project | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
+    | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     
 - **Last Updated**: May 18, 2026
 - **Status**: Active development

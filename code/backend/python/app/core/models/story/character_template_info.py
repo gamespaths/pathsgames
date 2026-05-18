@@ -14,3 +14,5 @@ class CharacterTemplateInfo:
     constitutionStart: int = 0
     idCard: int | None = None
     card: CardInfo | None = None
+    idClassPermitted: int | None = None
+    idClassProhibited: int | None = None

@@ -55,6 +55,10 @@ class StoryReadPort(ABC):
         pass
 
     @abstractmethod
+    def find_class_bonuses_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
     def find_character_templates_for_story(self, story_id: int) -> List[Dict[str, Any]]:
         pass
 

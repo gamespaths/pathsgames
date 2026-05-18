@@ -110,23 +110,23 @@ INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weigh
 (90003, 9001, 202, 202, 10, 5, 2, 4);
 
 -- Story 1 Classes Bonus
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90001, 9001, 90001, 'life', 3);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90002, 9001, 90001, 'energy', 3);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90003, 9001, 90001, 'exp', 2);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90004, 9001, 90002, 'int', 3);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90005, 9001, 90002, 'energy', 2);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90006, 9001, 90002, 'exp', 3);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90007, 9001, 90003, 'dex', 3);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90008, 9001, 90003, 'life', 2);
-INSERT INTO list_classes_bonus (id, id_story, id_class, bonus_type, bonus_value) VALUES
+INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 (90009, 9001, 90003, 'energy', 4);
 
 -- Story 1 Traits
@@ -138,12 +138,12 @@ INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_p
 (90003, 9001, 702, 702, 1, 0);
 
 -- Story 1 Character Templates
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9001, 90001, 210, 210, 12, 12, 8, 3, 3, 3);
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9001, 90002, 211, 211, 10, 10, 6, 2, 5, 2);
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9001, 90003, 212, 212, 11, 14, 7, 5, 2, 4);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9001, 90001, 210, 210, 12, 12, 8, 3, 3, 3, NULL,  NULL);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9001, 90002, 211, 211, 10, 10, 6, 2, 5, 2, 90002, NULL);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9001, 90003, 212, 212, 11, 14, 7, 5, 2, 4, NULL,  90001);
 
 -- Story 1 Keys
 INSERT INTO list_keys (id, id_story, key_name, key_value, key_group, is_visible) VALUES
@@ -398,12 +398,12 @@ INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_p
 (91003, 9002, 702, 702, 2, 0);
 
 -- Story 2 Character Templates
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9002, 91001, 210, 210, 12, 10, 8, 3, 3, 4);
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9002, 91002, 211, 211, 8, 8, 6, 1, 5, 2);
-INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES
-(9002, 91003, 212, 212, 14, 12, 10, 4, 1, 5);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9002, 91001, 210, 210, 12, 10, 8, 3, 3, 4, NULL,  NULL);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9002, 91002, 211, 211, 8, 8, 6, 1, 5, 2, 91002, NULL);
+INSERT INTO list_character_templates (id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
+(9002, 91003, 212, 212, 14, 12, 10, 4, 1, 5, NULL,  91001);
 
 -- Story 2 Locations
 INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES

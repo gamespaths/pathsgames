@@ -2,6 +2,7 @@ package games.paths.core.service.story;
 
 import games.paths.core.entity.story.CardEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ClassBonusEntity;
 import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
@@ -9,6 +10,7 @@ import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.model.story.CharacterTemplateInfo;
+import games.paths.core.model.story.ClassBonusInfo;
 import games.paths.core.model.story.ClassInfo;
 import games.paths.core.model.story.DifficultyInfo;
 import games.paths.core.model.story.StoryDetail;
@@ -108,15 +110,30 @@ public class StoryQueryService implements StoryQueryPort {
                     .constitutionStart(ct.getConstitutionStart() != null ? ct.getConstitutionStart() : 1)
                     .idCard(ct.getIdCard())
                     .card(resolveCardInfo(story.getId(), ct.getIdCard(), lang))
+                    .idClassPermitted(ct.getIdClassPermitted())
+                    .idClassProhibited(ct.getIdClassProhibited())
                     .build());
         }
 
         List<ClassEntity> classEntities = readPort.findClassesByStoryId(story.getId());
+        List<ClassBonusEntity> classBonusEntities = readPort.findClassBonusesByStoryId(story.getId());
         List<ClassInfo> classes = new ArrayList<>();
         for (ClassEntity cl : classEntities) {
             String clName = resolveText(story.getId(), cl.getIdTextName(), lang);
             String clDesc = resolveText(story.getId(), cl.getIdTextDescription(), lang);
+            List<ClassBonusInfo> bonusList = new ArrayList<>();
+            for (ClassBonusEntity cb : classBonusEntities) {
+                if (cb.getIdClass() != null && cl.getId() != null
+                        && cb.getIdClass().longValue() == cl.getId().longValue()) {
+                    bonusList.add(ClassBonusInfo.builder()
+                            .uuid(cb.getUuid())
+                            .statistic(cb.getStatistic())
+                            .value(cb.getValue() != null ? cb.getValue() : 0)
+                            .build());
+                }
+            }
             classes.add(ClassInfo.builder()
+                    .id(cl.getId())
                     .uuid(cl.getUuid())
                     .name(clName)
                     .description(clDesc)
@@ -126,6 +143,7 @@ public class StoryQueryService implements StoryQueryPort {
                     .constitutionBase(cl.getConstitutionBase() != null ? cl.getConstitutionBase() : 1)
                     .idCard(cl.getIdCard())
                     .card(resolveCardInfo(story.getId(), cl.getIdCard(), lang))
+                    .bonuses(bonusList)
                     .build());
         }
 

@@ -64,6 +64,8 @@ code/backend/java/
 │           │   ├── V0.10.10__create_snapshot.sql
 │           │   ├── V0.10.11__create_indexes.sql
 │           │   └── V0.10.12__insert_seed_data.sql
+│           ├── v0_19/
+│           │   └── V0.19.5__add_character_template_class_fields.sql
 │           └── dev/
 │               └── R__insert_dev_test_data.sql
 │
@@ -84,6 +86,8 @@ code/backend/java/
 │           │   ├── V0.10.10__create_snapshot.sql
 │           │   ├── V0.10.11__create_indexes.sql
 │           │   └── V0.10.12__insert_seed_data.sql
+│           ├── v0_19/
+│           │   └── V0.19.5__add_character_template_class_fields.sql
 │           └── dev/
 │               └── R__insert_dev_test_data.sql
 ```
@@ -629,14 +633,15 @@ ORDER BY installed_rank;
     > Read all files into documentation_v0 folder to have project overview. Create SQL files for PostgreSQL and SQLite, one file per table category. Write Step10_CreateDBschema.md documentation with Flyway description and usage guide.
 
     > Now i wanna add uuid item in all tables , the value will be a generated with a randon value when a row is added in a table, the uuid value will be used in API method (to avoid use ID value in public http api)
-- **Document Version**: 0.14.1
+- **Document Version**: 0.19.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.10.0 | Initial version: 52 tables, 13 migration files per dialect, indexes, seed data, Flyway guide | March 19, 2026 |
     | 0.10.12 | Added UUID column to all 52 tables for public API identifiers (gen_random_uuid / randomblob) | March 19, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.17.4 | Change primary keys on `list_` and `gaming_` tables to composite `(id, scope)` | May 03, 2026 |
-- **Last Updated**: May 03, 2026
+    | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
+- **Last Updated**: May 18, 2026
 - **Status**: Complete ✅
 
 

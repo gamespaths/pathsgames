@@ -24,13 +24,14 @@ export default function GameCard({
   imageAlt = '',
   icon: iconProp,
   name: nameProp,
-  value = '',
+//  value = '',
   linkCopyright: linkProp,
 
   /* state */
   disabled,
   selected,
   locked,
+  lockedReason,lockInfo,
   showLinkCopyright = false,
 
   /* actions */
@@ -44,6 +45,7 @@ export default function GameCard({
   /* extra overlay content */
   children,
 }) {
+  //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
 
   const urlImage      = urlImageProp ?? card?.urlImage ?? card?.alternativeImage ?? null
@@ -77,11 +79,23 @@ export default function GameCard({
   /* ── action button ── */
   let actionBtn = null
   if (locked) {
-    actionBtn = (
-      <span className="gc-footer__coming-soon">
-        <i className="fas fa-lock me-1" />{label}
+    actionBtn = ( <>
+      <button
+        className="gc-footer__btn gc-footer__btn--icon"
+        onClick={(e) => { e.stopPropagation(); onPreview && onPreview() }}
+        aria-label={t('card.info')}
+      >
+        <i className="fas fa-info" />
+        <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
+      </button>
+      <span
+        className="gc-footer__coming-soon"
+        title={lockedReason || undefined}
+        aria-label={lockedReason || undefined}
+      >
+        <i className="fas fa-lock me-1" />{lockInfo?.className ?? label ?? name}
       </span>
-    )
+    </>)
   } else if (onSelect) {
     actionBtn = (<>
       {onPreview && (
@@ -128,7 +142,7 @@ export default function GameCard({
   const cardClasses = [
     'pg-card',
     isBig ? 'card-big' : 'pg-card--grid',
-    isDisabled ? 'config-card-disabled' : '',
+    //isDisabled ? 'config-card-disabled' : '',
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')
 

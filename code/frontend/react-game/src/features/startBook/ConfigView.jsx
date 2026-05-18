@@ -27,12 +27,16 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
   const gameTypeValue = {
     name: t('book.single'),
     icon: 'fas fa-user',
-    card: { urlImage: personImg?.urlImage, copyrightText: 'Single Player', linkCopyright: personImg?.linkCopyright },
+    card: { urlImage: personImg?.urlImage, copyrightText: 'Delapouite on game-icons.net', 
+      linkCopyright: personImg?.linkCopyright, styleImageLarge: 'of-c ' },
+    description : t('book.singleDesc'),
   }
   const loginValue = {
     name: t('book.guest'),
     icon: 'fas fa-user-circle',
-    card: { urlImage: gemsImg?.urlImage, copyrightText: 'Guest', linkCopyright: gemsImg?.linkCopyright },
+    card: { urlImage: gemsImg?.urlImage, copyrightText: 'Lorc on game-icons.net', 
+      linkCopyright: gemsImg?.linkCopyright , styleImageLarge: 'of-c'},
+    description : t('book.guestDesc'),
   }
 
   return (

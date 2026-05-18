@@ -170,9 +170,9 @@ INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_p
 INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (90003, 9001, 702, 702, 1, 0);
 
 -- ── Story 1 Character Templates ─────────────────────────────────
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90001, 9001, 210, 210, 12, 12, 8, 3, 3, 3);
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90002, 9001, 211, 211, 10, 10, 6, 2, 5, 2);
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (90003, 9001, 212, 212, 11, 14, 7, 5, 2, 4);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 210, 210, 12, 12, 8, 3, 3, 3, NULL,  NULL);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (90002, 9001, 211, 211, 10, 10, 6, 2, 5, 2, 90002, NULL);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (90003, 9001, 212, 212, 11, 14, 7, 5, 2, 4, NULL,  90001);
 
 -- ── Story 1 Keys ────────────────────────────────────────────────
 INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90001, 9001, 'tutorial_progress', '0', 'tutorial');
@@ -325,9 +325,9 @@ INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_p
 INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES (91003, 9002, 702, 702, 2, 0);
 
 -- ── Story 2 Character Templates ─────────────────────────────────
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91001, 9002, 210, 210, 12, 10, 8, 3, 3, 4);
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91002, 9002, 211, 211, 8, 8, 6, 1, 5, 2);
-INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start) VALUES (91003, 9002, 212, 212, 14, 12, 10, 4, 1, 5);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (91001, 9002, 210, 210, 12, 10, 8, 3, 3, 4, NULL,  NULL);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (91002, 9002, 211, 211, 8, 8, 6, 1, 5, 2, 91002, NULL);
+INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (91003, 9002, 212, 212, 14, 12, 10, 4, 1, 5, NULL,  91001);
 
 -- ── Story 2 Locations ───────────────────────────────────────────
 INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 100, 100, 1, 10);

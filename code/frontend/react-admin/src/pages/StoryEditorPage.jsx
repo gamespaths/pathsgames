@@ -750,6 +750,12 @@ export default function StoryEditorPage() {
       idCard: {
         options: cardsOptions,
       },
+      idClassPermitted: {
+        options: classesOptions,
+      },
+      idClassProhibited: {
+        options: classesOptions,
+      },
     },
     'class-bonuses': {
       idClass: {

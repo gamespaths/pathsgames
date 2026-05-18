@@ -21,9 +21,23 @@ robot/
     ├── 14_stories/
     │   ├── story_list.robot       GET /api/stories — list, fields, UUIDs
     │   └── story_detail.robot     GET /api/stories/{uuid} — detail, 404
-    └── 14_admin/
-        ├── story_import.robot     POST/GET/DELETE /api/admin/stories — import, idempotency, character-template FK round-trip
-        └── guest_admin.robot      GET/DELETE /api/admin/guests — list, stats, single, expired
+    ├── 14_admin/
+    │   ├── story_import.robot     POST/GET/DELETE /api/admin/stories — import, idempotency, character-template FK round-trip
+    │   └── guest_admin.robot      GET/DELETE /api/admin/guests — list, stats, single, expired
+    ├── 15_story_content/
+    │   ├── story_categories.robot             GET /api/stories/categories and /category/{cat}
+    │   ├── story_groups.robot                 GET /api/stories/groups and /group/{group}
+    │   ├── story_detail_enriched.robot        Classes, templates, traits, card in story detail
+    │   ├── story_card_populated.robot         Card fields populated for sub-entities
+    │   └── story_detail_class_bonuses_and_templates.robot   bonuses[] on each class; idClassPermitted / idClassProhibited on character templates
+    ├── 16_content_detail/
+    │   ├── content_card.robot
+    │   ├── content_creator.robot
+    │   └── content_text.robot
+    ├── 17_admin_crud/
+    │   └── admin_crud.robot       Admin CRUD for all story entity types
+    └── 19_match/
+        └── match_creation.robot
 ```
 
 ## Setup
@@ -99,6 +113,7 @@ robot --variablefile variables/dev.yaml --outputdir reports/ tests/
 | `admin`   | 14_admin/story_import.robot, guest_admin.robot |
 | `step12`  | Auth and guest management tests      |
 | `step14`  | Story API and import tests           |
+| `step15`  | Story content: categories, groups, enriched detail, class bonuses, character template class fields |
 | `guests`  | Guest admin management tests         |
 
 ## Seed Data

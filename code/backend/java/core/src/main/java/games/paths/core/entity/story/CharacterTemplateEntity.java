@@ -36,6 +36,12 @@ public class CharacterTemplateEntity extends BaseStoryEntity {
     @Column(name = "constitution_start", nullable = false)
     private Integer constitutionStart;
 
+    @Column(name = "id_class_permitted")
+    private Integer idClassPermitted;
+
+    @Column(name = "id_class_prohibited")
+    private Integer idClassProhibited;
+
     @PrePersist
     protected void onCreate() {
         if (lifeMax == null) lifeMax = 10;
@@ -81,5 +87,11 @@ public class CharacterTemplateEntity extends BaseStoryEntity {
 
     public Integer getConstitutionStart() { return constitutionStart; }
     public void setConstitutionStart(Integer constitutionStart) { this.constitutionStart = constitutionStart; }
+
+    public Integer getIdClassPermitted() { return idClassPermitted; }
+    public void setIdClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; }
+
+    public Integer getIdClassProhibited() { return idClassProhibited; }
+    public void setIdClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; }
 
 }

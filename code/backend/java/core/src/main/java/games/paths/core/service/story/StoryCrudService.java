@@ -917,6 +917,8 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("dexterityStart", ct.getDexterityStart());
             m.put("intelligenceStart", ct.getIntelligenceStart());
             m.put("constitutionStart", ct.getConstitutionStart());
+            m.put("idClassPermitted", ct.getIdClassPermitted());
+            m.put("idClassProhibited", ct.getIdClassProhibited());
         } else if (e instanceof ClassBonusEntity) {
             ClassBonusEntity cb = (ClassBonusEntity) e;
             m.put("idClass", cb.getIdClass());
@@ -1195,6 +1197,10 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIntelligenceStart(intVal(d, "intelligenceStart"));
         if (d.containsKey("constitutionStart"))
             e.setConstitutionStart(intVal(d, "constitutionStart"));
+        if (d.containsKey("idClassPermitted"))
+            e.setIdClassPermitted(intVal(d, "idClassPermitted"));
+        if (d.containsKey("idClassProhibited"))
+            e.setIdClassProhibited(intVal(d, "idClassProhibited"));
     }
 
     private void applyClassFields(ClassEntity e, Map<String, Object> d) {

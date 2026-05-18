@@ -41,6 +41,9 @@ class StoryQueryServiceTest extends TestCase
         if (!isset($overrides['findClassesForStory'])) {
             $this->readPort->method('findClassesForStory')->willReturn([]);
         }
+        if (!isset($overrides['findClassBonusesForStory'])) {
+            $this->readPort->method('findClassBonusesForStory')->willReturn([]);
+        }
         if (!isset($overrides['findCharacterTemplatesForStory'])) {
             $this->readPort->method('findCharacterTemplatesForStory')->willReturn([]);
         }

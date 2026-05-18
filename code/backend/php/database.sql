@@ -210,10 +210,11 @@ CREATE TABLE IF NOT EXISTS list_classes (
 
 CREATE TABLE IF NOT EXISTS list_classes_bonus (
     id BIGINT AUTO_INCREMENT,
+    uuid VARCHAR(36) DEFAULT NULL,
     id_story BIGINT NOT NULL,
     id_class BIGINT DEFAULT NULL,
-    bonus_type VARCHAR(50) DEFAULT NULL,
-    bonus_value INT DEFAULT NULL,
+    statistic VARCHAR(50) DEFAULT NULL,
+    value INT DEFAULT NULL,
     PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -328,6 +329,8 @@ CREATE TABLE IF NOT EXISTS list_character_templates (
     dexterity_start INT DEFAULT 1,
     intelligence_start INT DEFAULT 1,
     constitution_start INT DEFAULT 1,
+    id_class_permitted BIGINT DEFAULT NULL,
+    id_class_prohibited BIGINT DEFAULT NULL,
     PRIMARY KEY (id_tipo, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

@@ -104,6 +104,11 @@ class StoryReadAdapter(StoryReadPort):
             classes = session.query(ClassEntity).filter(ClassEntity.id_story == story_id).all()
             return [self._to_dict(c) for c in classes]
 
+    def find_class_bonuses_for_story(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            bonuses = session.query(ClassBonusEntity).filter(ClassBonusEntity.id_story == story_id).all()
+            return [self._to_dict(b) for b in bonuses]
+
     def find_character_templates_for_story(self, story_id: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             tmps = session.query(CharacterTemplateEntity).filter(CharacterTemplateEntity.id_story == story_id).all()

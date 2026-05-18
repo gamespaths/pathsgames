@@ -17,6 +17,8 @@ public class CharacterTemplateInfo {
     private final int constitutionStart;
     private final Integer idCard;
     private final CardInfo card;
+    private final Integer idClassPermitted;
+    private final Integer idClassProhibited;
 
     private CharacterTemplateInfo(Builder builder) {
         this.uuid = builder.uuid;
@@ -30,6 +32,8 @@ public class CharacterTemplateInfo {
         this.constitutionStart = builder.constitutionStart;
         this.idCard = builder.idCard;
         this.card = builder.card;
+        this.idClassPermitted = builder.idClassPermitted;
+        this.idClassProhibited = builder.idClassProhibited;
     }
 
     public String getUuid() { return uuid; }
@@ -43,6 +47,8 @@ public class CharacterTemplateInfo {
     public int getConstitutionStart() { return constitutionStart; }
     public Integer getIdCard() { return idCard; }
     public CardInfo getCard() { return card; }
+    public Integer getIdClassPermitted() { return idClassPermitted; }
+    public Integer getIdClassProhibited() { return idClassProhibited; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -58,6 +64,8 @@ public class CharacterTemplateInfo {
         private int constitutionStart;
         private Integer idCard;
         private CardInfo card;
+        private Integer idClassPermitted;
+        private Integer idClassProhibited;
 
         public Builder uuid(String uuid) { this.uuid = uuid; return this; }
         public Builder name(String name) { this.name = name; return this; }
@@ -70,6 +78,8 @@ public class CharacterTemplateInfo {
         public Builder constitutionStart(int constitutionStart) { this.constitutionStart = constitutionStart; return this; }
         public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
         public Builder card(CardInfo card) { this.card = card; return this; }
+        public Builder idClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; return this; }
+        public Builder idClassProhibited(Integer idClassProhibited) { this.idClassProhibited = idClassProhibited; return this; }
 
         public CharacterTemplateInfo build() {
             return new CharacterTemplateInfo(this);

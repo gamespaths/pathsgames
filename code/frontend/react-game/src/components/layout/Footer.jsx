@@ -28,9 +28,12 @@ export default function Footer() {
             <i className="fab fa-youtube" /><span>{t('footer.youtube')}</span>
           </a>
         </div>
-
         <div className="footer-copy">
-          <span className="gold-light">Paths Games v0.19.3</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
+          Credits: all game content created by <a href="https://www.pathsgames.com/" target="_blank" rel="noopener" className="footer-link-inline">Paths Games</a>
+          &nbsp;&middot;&nbsp;  Icons and images from fontawesome.com, game-icons.net, splashbase.co and Pixabay
+        </div>
+        <div className="footer-copy">
+          <span className="gold-light">Paths Games v0.19.4</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
           {t('footer.madeWith')} <i className="fas fa-heart" /> {t('footer.byTeam')} &middot;&nbsp;
           <a
             href="#"
