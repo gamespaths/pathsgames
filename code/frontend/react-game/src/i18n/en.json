@@ -64,6 +64,10 @@
       }
     }
   },
+  "card": {
+    "info": "Info",
+    "viewOriginal": "View original"
+  },
   "game": {
     "currentLocation": "Current Location",
     "explore": "Explore",

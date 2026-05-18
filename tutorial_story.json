@@ -115,347 +115,200 @@
     {
       "dexterityStart": 0,
       "intelligenceStart": 0,
-      "idCard": 2,
-      "id_card": 2,
-      "sadMax": 0,
-      "idTextName": 9,
-      "lifeMax": 0,
-      "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Elf",
-          "description": "Steadfast and strong"
-        }
-      },
-      "id_tipo": 1,
+      "idCard": 25,
+      "id_card": 25,
+      "idTextName": 70,
+      "sadMax": 3,
+      "lifeMax": 6,
+      "constitutionStart": 2,
+      "idTextDescription": 70,
       "id": 1,
-      "idTextDescription": 9,
-      "energyMax": 0
+      "energyMax": 4
     },
     {
-      "dexterityStart": 0,
+      "dexterityStart": 3,
       "intelligenceStart": 0,
-      "idCard": 3,
-      "id_card": 3,
-      "sadMax": 0,
-      "idTextName": 9,
-      "lifeMax": 0,
+      "idCard": 26,
+      "id_card": 26,
+      "idTextName": 71,
+      "sadMax": 5,
+      "lifeMax": 3,
       "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Elf",
-          "description": "Steadfast and strong"
-        }
-      },
-      "id_tipo": 2,
+      "idTextDescription": 71,
       "id": 2,
-      "idTextDescription": 9,
-      "energyMax": 0
+      "energyMax": 7
     },
     {
       "dexterityStart": 0,
       "intelligenceStart": 0,
-      "idCard": 4,
-      "id_card": 4,
-      "sadMax": 0,
-      "idTextName": 13,
-      "lifeMax": 0,
-      "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Young",
-          "description": "Bold and unyielding"
-        }
-      },
-      "id_tipo": 3,
+      "idCard": 27,
+      "id_card": 27,
+      "idTextName": 72,
+      "sadMax": 1,
+      "lifeMax": 8,
+      "constitutionStart": 3,
+      "idTextDescription": 72,
       "id": 3,
-      "idTextDescription": 13,
-      "energyMax": 0
+      "energyMax": 3
     },
     {
-      "dexterityStart": 0,
+      "dexterityStart": 2,
       "intelligenceStart": 0,
-      "idCard": 5,
-      "id_card": 5,
-      "sadMax": 0,
-      "idTextName": 13,
-      "lifeMax": 0,
+      "idCard": 28,
+      "id_card": 28,
+      "idTextName": 73,
+      "sadMax": 6,
+      "lifeMax": 8,
       "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Young",
-          "description": "Bold and unyielding"
-        }
-      },
-      "id_tipo": 4,
+      "idTextDescription": 73,
       "id": 4,
-      "idTextDescription": 13,
-      "energyMax": 0
+      "energyMax": 5
     },
     {
-      "dexterityStart": 0,
+      "dexterityStart": 3,
       "intelligenceStart": 0,
-      "idCard": 6,
-      "id_card": 6,
-      "sadMax": 0,
-      "idTextName": 16,
-      "lifeMax": 0,
+      "idCard": 29,
+      "id_card": 29,
+      "idTextName": 74,
+      "sadMax": 2,
+      "lifeMax": 3,
       "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Adult",
-          "description": "Steadfast and strong"
-        }
-      },
-      "id_tipo": 5,
+      "idTextDescription": 74,
       "id": 5,
-      "idTextDescription": 16,
-      "energyMax": 0
+      "energyMax": 6
     },
     {
       "dexterityStart": 0,
-      "intelligenceStart": 0,
-      "idCard": 7,
-      "id_card": 7,
-      "sadMax": 0,
-      "idTextName": 16,
-      "lifeMax": 0,
+      "intelligenceStart": 4,
+      "idCard": 30,
+      "id_card": 30,
+      "idTextName": 75,
+      "sadMax": 4,
+      "lifeMax": 2,
       "constitutionStart": 0,
-      "texts": {
-        "en": {
-          "name": "Adult",
-          "description": "Steadfast and strong"
-        }
-      },
-      "id_tipo": 6,
+      "idTextDescription": 75,
       "id": 6,
-      "idTextDescription": 16,
-      "energyMax": 0
+      "energyMax": 8
     }
   ],
   "classes": [
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Archer",
-          "description": "Adaptable and resourceful"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 8,
-      "id_card": 8,
+      "constitutionBase": 9,
+      "intelligenceBase": 8,
+      "idCard": 31,
+      "id_card": 31,
+      "idTextDescription": 76,
+      "weightMax": 3,
+      "dexterityBase": 3,
       "id": 1,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 18,
-      "idTextName": 18
+      "idTextName": 76
     },
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Sword man",
-          "description": "Graceful and ancient"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 9,
-      "id_card": 9,
+      "constitutionBase": 5,
+      "intelligenceBase": 4,
+      "idCard": 32,
+      "id_card": 32,
+      "idTextDescription": 77,
+      "weightMax": 7,
+      "dexterityBase": 4,
       "id": 2,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 21,
-      "idTextName": 21
+      "idTextName": 77
     },
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "knight",
-          "description": "Stubborn as stone"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 10,
-      "id_card": 10,
+      "constitutionBase": 3,
+      "intelligenceBase": 2,
+      "idCard": 33,
+      "id_card": 33,
+      "idTextDescription": 78,
+      "weightMax": 2,
+      "dexterityBase": 8,
       "id": 3,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 24,
-      "idTextName": 24
+      "idTextName": 78
     },
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Bandit",
-          "description": "Small but mighty"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 11,
-      "id_card": 11,
+      "constitutionBase": 4,
+      "intelligenceBase": 3,
+      "idCard": 34,
+      "id_card": 34,
+      "idTextDescription": 79,
+      "weightMax": 8,
+      "dexterityBase": 5,
       "id": 4,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 27,
-      "idTextName": 27
+      "idTextName": 79
     },
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Archer",
-          "description": "Adaptable and resourceful"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 12,
-      "id_card": 12,
+      "constitutionBase": 8,
+      "intelligenceBase": 7,
+      "idCard": 35,
+      "id_card": 35,
+      "idTextDescription": 80,
+      "weightMax": 4,
+      "dexterityBase": 5,
       "id": 5,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 18,
-      "idTextName": 18
+      "idTextName": 80
     },
     {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Sword man",
-          "description": "Graceful and ancient"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 13,
-      "id_card": 13,
+      "constitutionBase": 5,
+      "intelligenceBase": 4,
+      "idCard": 36,
+      "id_card": 36,
+      "idTextDescription": 81,
+      "weightMax": 5,
+      "dexterityBase": 7,
       "id": 6,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 21,
-      "idTextName": 21
-    },
-    {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "knight",
-          "description": "Stubborn as stone"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 14,
-      "id_card": 14,
-      "id": 7,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 24,
-      "idTextName": 24
-    },
-    {
-      "constitutionBase": 0,
-      "texts": {
-        "en": {
-          "name": "Bandit",
-          "description": "Small but mighty"
-        }
-      },
-      "intelligenceBase": 0,
-      "idCard": 15,
-      "id_card": 15,
-      "id": 8,
-      "weightMax": 0,
-      "dexterityBase": 0,
-      "idTextDescription": 29,
-      "idTextName": 29
+      "idTextName": 81
     }
   ],
   "traits": [
     {
-      "texts": {
-        "en": {
-          "name": "Happy",
-          "description": "Joy is my armor"
-        }
-      },
-      "idClassProhibited": null,
-      "idCard": 16,
-      "idClassPermitted": null,
-      "id_card": 16,
+      "idCard": 37,
+      "id_card": 37,
+      "idTextDescription": 82,
       "id": 1,
-      "idTextDescription": 31,
-      "costNegative": 0,
-      "idTextName": 31,
-      "costPositive": 0
+      "idTextName": 82,
+      "costPositive": 2
     },
     {
-      "texts": {
-        "en": {
-          "name": "Strong",
-          "description": "Power is my weapon"
-        }
-      },
-      "idClassProhibited": null,
-      "idCard": 17,
-      "idClassPermitted": null,
-      "id_card": 17,
+      "idCard": 38,
+      "id_card": 38,
+      "idTextDescription": 83,
       "id": 2,
-      "idTextDescription": 33,
-      "costNegative": 0,
-      "idTextName": 33,
-      "costPositive": 0
+      "idTextName": 83,
+      "costPositive": 1
     },
     {
-      "texts": {
-        "en": {
-          "name": "Smart",
-          "description": "Knowledge is power"
-        }
-      },
-      "idClassProhibited": null,
-      "idCard": 18,
-      "idClassPermitted": null,
-      "id_card": 18,
+      "idCard": 39,
+      "id_card": 39,
+      "idTextDescription": 84,
       "id": 3,
-      "idTextDescription": 35,
-      "costNegative": 0,
-      "idTextName": 35,
-      "costPositive": 0
+      "idTextName": 84,
+      "costNegative": 3,
+      "costPositive": ""
     },
     {
-      "texts": {
-        "en": {
-          "name": "Fast",
-          "description": "Speed is survival"
-        }
-      },
-      "idClassProhibited": null,
-      "idCard": 19,
-      "idClassPermitted": null,
-      "id_card": 19,
+      "idCard": 40,
+      "id_card": 40,
+      "idTextDescription": 85,
       "id": 4,
-      "idTextDescription": 37,
-      "costNegative": 0,
-      "idTextName": 37,
-      "costPositive": 0
+      "idTextName": 85,
+      "costPositive": 3
     },
     {
-      "texts": {
-        "en": {
-          "name": "Happy",
-          "description": "Happy"
-        }
-      },
-      "idClassProhibited": null,
-      "idCard": 24,
-      "idClassPermitted": null,
-      "id_card": 24,
+      "idCard": 42,
+      "id_card": 42,
+      "idTextDescription": 86,
       "id": 5,
-      "idTextDescription": 64,
-      "costNegative": 0,
-      "idTextName": 64,
-      "costPositive": 0
+      "idTextName": 86,
+      "costNegative": 2
+    },
+    {
+      "idCard": 43,
+      "id_card": 43,
+      "idTextDescription": 87,
+      "id": 6,
+      "idTextName": 87,
+      "costNegative": 1,
+      "costPositive": 2
     }
   ],
   "card": {
@@ -1432,6 +1285,348 @@
       "lang": "en",
       "idText": 69,
       "idCreator": 1
+    },
+    {
+      "longText": "Soldier",
+      "shortText": "Soldier",
+      "idTextCopyright": 3,
+      "id": 70,
+      "lang": "en",
+      "idText": 70,
+      "idCreator": 1
+    },
+    {
+      "longText": "Forest Elf",
+      "shortText": "Forest Elf",
+      "idTextCopyright": 3,
+      "id": 71,
+      "lang": "en",
+      "idText": 71,
+      "idCreator": 1
+    },
+    {
+      "longText": "Dwarf",
+      "shortText": "Dwarf",
+      "idTextCopyright": 3,
+      "id": 72,
+      "lang": "en",
+      "idText": 72,
+      "idCreator": 1
+    },
+    {
+      "longText": "Orc",
+      "shortText": "Orc",
+      "idTextCopyright": 3,
+      "id": 73,
+      "lang": "en",
+      "idText": 73,
+      "idCreator": 1
+    },
+    {
+      "longText": "Halfling",
+      "shortText": "Halfling",
+      "idTextCopyright": 3,
+      "id": 74,
+      "lang": "en",
+      "idText": 74,
+      "idCreator": 1
+    },
+    {
+      "longText": "Wizard",
+      "shortText": "Wizard",
+      "idTextCopyright": 3,
+      "id": 75,
+      "lang": "en",
+      "idText": 75,
+      "idCreator": 1
+    },
+    {
+      "longText": "Knight",
+      "shortText": "Knight",
+      "idTextCopyright": 3,
+      "id": 76,
+      "lang": "en",
+      "idText": 76,
+      "idCreator": 1
+    },
+    {
+      "longText": "Archer",
+      "shortText": "Archer",
+      "idTextCopyright": 3,
+      "id": 77,
+      "lang": "en",
+      "idText": 77,
+      "idCreator": 1
+    },
+    {
+      "longText": "Mage",
+      "shortText": "Mage",
+      "idTextCopyright": 3,
+      "id": 78,
+      "lang": "en",
+      "idText": 78,
+      "idCreator": 1
+    },
+    {
+      "longText": "Rogue",
+      "shortText": "Rogue",
+      "idTextCopyright": 3,
+      "id": 79,
+      "lang": "en",
+      "idText": 79,
+      "idCreator": 1
+    },
+    {
+      "longText": "Paladin",
+      "shortText": "Paladin",
+      "idTextCopyright": 3,
+      "id": 80,
+      "lang": "en",
+      "idText": 80,
+      "idCreator": 1
+    },
+    {
+      "longText": "Bard",
+      "shortText": "Bard",
+      "idTextCopyright": 3,
+      "id": 81,
+      "lang": "en",
+      "idText": 81,
+      "idCreator": 1
+    },
+    {
+      "longText": "Brave",
+      "shortText": "Brave",
+      "idTextCopyright": 3,
+      "id": 82,
+      "lang": "en",
+      "idText": 82,
+      "idCreator": 1
+    },
+    {
+      "longText": "Cunning",
+      "shortText": "Cunning",
+      "idTextCopyright": 3,
+      "id": 83,
+      "lang": "en",
+      "idText": 83,
+      "idCreator": 1
+    },
+    {
+      "longText": "Cursed",
+      "shortText": "Cursed",
+      "idTextCopyright": 3,
+      "id": 84,
+      "lang": "en",
+      "idText": 84,
+      "idCreator": 1
+    },
+    {
+      "longText": "Blessed",
+      "shortText": "Blessed",
+      "idTextCopyright": 3,
+      "id": 85,
+      "lang": "en",
+      "idText": 85,
+      "idCreator": 1
+    },
+    {
+      "longText": "Coward",
+      "shortText": "Coward",
+      "idTextCopyright": 3,
+      "id": 86,
+      "lang": "en",
+      "idText": 86,
+      "idCreator": 1
+    },
+    {
+      "longText": "Ancident Blood",
+      "shortText": "Ancident",
+      "idTextCopyright": 3,
+      "id": 87,
+      "lang": "en",
+      "idText": 87,
+      "idCreator": 1
+    },
+    {
+      "longText": "João C",
+      "shortText": "João C",
+      "idTextCopyright": 3,
+      "id": 88,
+      "lang": "en",
+      "idText": 88,
+      "idCreator": 1
+    },
+    {
+      "longText": "",
+      "shortText": "",
+      "idTextCopyright": 3,
+      "id": 88,
+      "lang": "it",
+      "idText": 88,
+      "idCreator": 1
+    },
+    {
+      "longText": "Alireza Sahebi",
+      "shortText": "Alireza Sahebi",
+      "idTextCopyright": 3,
+      "id": 89,
+      "lang": "en",
+      "idText": 89,
+      "idCreator": 1
+    },
+    {
+      "longText": "Ivan Florendo",
+      "shortText": "Ivan Florendo",
+      "idTextCopyright": 3,
+      "id": 90,
+      "lang": "en",
+      "idText": 90,
+      "idCreator": 1
+    },
+    {
+      "longText": "",
+      "shortText": "",
+      "idTextCopyright": 3,
+      "id": 79,
+      "lang": "it",
+      "idText": 79,
+      "idCreator": 1
+    },
+    {
+      "longText": "Jason Mavrommatis",
+      "shortText": "Jason Mavrommatis",
+      "idTextCopyright": 3,
+      "id": 91,
+      "lang": "en",
+      "idText": 91,
+      "idCreator": 1
+    },
+    {
+      "longText": "Marius Karotkis",
+      "shortText": "Marius Karotkis",
+      "idTextCopyright": 3,
+      "id": 92,
+      "lang": "en",
+      "idText": 92,
+      "idCreator": 1
+    },
+    {
+      "longText": "Fotonio 2020",
+      "shortText": "Fotonio 2020",
+      "idTextCopyright": 3,
+      "id": 93,
+      "lang": "en",
+      "idText": 93,
+      "idCreator": 1
+    },
+    {
+      "longText": "Cristina Radulescu",
+      "shortText": "Cristina Radulescu",
+      "idTextCopyright": 3,
+      "id": 94,
+      "lang": "en",
+      "idText": 94,
+      "idCreator": 1
+    },
+    {
+      "longText": "Andrej Lišakov",
+      "shortText": "Andrej Lišakov",
+      "idTextCopyright": 3,
+      "id": 95,
+      "lang": "en",
+      "idText": 95,
+      "idCreator": 1
+    },
+    {
+      "longText": "Faustina Okeke",
+      "shortText": "Faustina Okeke",
+      "idTextCopyright": 3,
+      "id": 96,
+      "lang": "en",
+      "idText": 96,
+      "idCreator": 1
+    },
+    {
+      "longText": "Vitor Monthay",
+      "shortText": "Vitor Monthay",
+      "idTextCopyright": 3,
+      "id": 97,
+      "lang": "en",
+      "idText": 97,
+      "idCreator": 1
+    },
+    {
+      "longText": "Pascal Bernardon",
+      "shortText": "Pascal Bernardon",
+      "idTextCopyright": 3,
+      "id": 98,
+      "lang": "en",
+      "idText": 98,
+      "idCreator": 1
+    },
+    {
+      "longText": "Ronald Doucette",
+      "shortText": "Ronald Doucette",
+      "idTextCopyright": 3,
+      "id": 99,
+      "lang": "en",
+      "idText": 99,
+      "idCreator": 1
+    },
+    {
+      "longText": "Micah & Sammie Chaffin",
+      "shortText": "Micah & Sammie Chaffin",
+      "idTextCopyright": 3,
+      "id": 100,
+      "lang": "en",
+      "idText": 100,
+      "idCreator": 1
+    },
+    {
+      "longText": "Gary Bendig",
+      "shortText": "Gary Bendig",
+      "idTextCopyright": 3,
+      "id": 101,
+      "lang": "en",
+      "idText": 101,
+      "idCreator": 1
+    },
+    {
+      "longText": "sankavi",
+      "shortText": "sankavi",
+      "idTextCopyright": 3,
+      "id": 102,
+      "lang": "en",
+      "idText": 102,
+      "idCreator": 1
+    },
+    {
+      "longText": "Jyothisha R",
+      "shortText": "Jyothisha R",
+      "idTextCopyright": 3,
+      "id": 103,
+      "lang": "en",
+      "idText": 103,
+      "idCreator": 1
+    },
+    {
+      "longText": "Dylann Hendricks",
+      "shortText": "Dylann Hendricks",
+      "idTextCopyright": 3,
+      "id": 104,
+      "lang": "en",
+      "idText": 104,
+      "idCreator": 1
+    },
+    {
+      "longText": "Sangue Antico",
+      "shortText": "Ancestrale",
+      "idTextCopyright": 3,
+      "id": 87,
+      "lang": "it",
+      "idText": 87,
+      "idCreator": 1
     }
   ],
   "locations": [],
@@ -1869,6 +2064,242 @@
       "idCreator": 1,
       "urlImage": "https://plus.unsplash.com/premium_vector-1721296174392-5022791324ed?q=80&w=880&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "styleImageMedium": null
+    },
+    {
+      "idCard": 25,
+      "idTextTitle": 70,
+      "id_card": 25,
+      "styleImageLittle": "ob-c-10",
+      "idTextName": 70,
+      "idTextCopyright": 95,
+      "styleImageLarge": "ob-c-20",
+      "idTextDescription": 70,
+      "id": 25,
+      "idCreator": 1,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1698168385400-3b0cb7eb2b81?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-man-dressed-in-medieval-clothing-holding-a-sword-and-shield-4fSeZs1V6Hk"
+    },
+    {
+      "idCard": 26,
+      "idTextTitle": 71,
+      "id_card": 26,
+      "styleImageLittle": "ob-c-10",
+      "idTextName": 71,
+      "idTextCopyright": 96,
+      "styleImageLarge": "ob-c-10",
+      "idTextDescription": 71,
+      "id": 26,
+      "idCreator": 1,
+      "linkCopyright": "https://unsplash.com/photos/young-woman-with-elf-ears-smiling-amongst-green-leaves-Z4tpjrXCZzc",
+      "urlImage": "https://images.unsplash.com/photo-1763192952100-471c888f98db?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
+      "idCard": 27,
+      "idTextTitle": 72,
+      "idTextCopyright": 15,
+      "id_card": 27,
+      "idTextDescription": 72,
+      "id": 27,
+      "idTextName": 72,
+      "idCreator": 1,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1698170370717-7df047671c41?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-man-with-a-beard-wearing-a-helmet-and-holding-a-sword-aU3lo65KBaU"
+    },
+    {
+      "idCard": 28,
+      "idTextTitle": 73,
+      "idTextCopyright": 97,
+      "id_card": 28,
+      "idTextDescription": 73,
+      "id": 28,
+      "idTextName": 73,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1625631241105-98ff6461a3d5?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/woman-in-black-and-white-leopard-print-sleeveless-dress-standing-near-green-plant-07cKJ81EwkI"
+    },
+    {
+      "idCard": 29,
+      "idTextTitle": 74,
+      "id_card": 29,
+      "idTextName": 74,
+      "idTextCopyright": 98,
+      "styleImageLarge": "ob-c-10",
+      "idTextDescription": 74,
+      "id": 29,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1744801510532-cbf0735a4ea3?q=80&w=1021&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-man-in-medieval-costume-is-talking-9HUTY1epeSw"
+    },
+    {
+      "idCard": 30,
+      "idTextTitle": 75,
+      "id_card": 30,
+      "styleImageLittle": "ob-c-30",
+      "idTextName": 75,
+      "idTextCopyright": 99,
+      "styleImageLarge": "ob-c-30",
+      "idTextDescription": 75,
+      "id": 30,
+      "idCreator": 1,
+      "linkCopyright": "https://unsplash.com/photos/a-woman-dressed-as-a-witch-holding-a-lantern-LmEkpZPwTv8",
+      "urlImage": "https://images.unsplash.com/photo-1697590879902-a1f574f9dc63?q=80&w=743&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
+      "idCard": 31,
+      "idTextTitle": 76,
+      "idTextCopyright": 88,
+      "id_card": 31,
+      "idTextDescription": 76,
+      "id": 31,
+      "idTextName": 76,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1769291256753-03dbcc836056?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxMHx8c3RhdHVlJTIwS25pZ2h0fGVufDB8fHx8MTc3OTExNTA0MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "linkCopyright": "https://unsplash.com/photos/equestrian-statue-holding-a-sword-against-blue-sky-r9YTDBjasww"
+    },
+    {
+      "idCard": 32,
+      "idTextTitle": 77,
+      "idTextCopyright": 89,
+      "id_card": 32,
+      "idTextDescription": 77,
+      "id": 32,
+      "idTextName": 77,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1562008752-2459495a0c05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxfHxzdGF0dWUlMjBhcmNoZXJ8ZW58MHx8fHwxNzc5MTE1MTQ0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "linkCopyright": "https://unsplash.com/photos/man-holding-archer-statue-Bc5LK1XqbCc"
+    },
+    {
+      "idCard": 33,
+      "idTextTitle": 78,
+      "id_card": 33,
+      "idTextName": 78,
+      "idTextCopyright": 90,
+      "styleImageLarge": "ob-c-25",
+      "idTextDescription": 78,
+      "id": 33,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1618100653240-44d031f67d28?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwyNHx8c3RhdHVlJTIwbWFnZSUyMHdpdGglMjBib29rc3xlbnwwfHx8fDE3NzkxMTUzMzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "linkCopyright": "https://unsplash.com/photos/white-concrete-statue-under-blue-sky-during-daytime-NWA43UEMNxg"
+    },
+    {
+      "idCard": 34,
+      "idTextTitle": 79,
+      "idTextCopyright": 91,
+      "id_card": 34,
+      "idTextDescription": 79,
+      "id": 34,
+      "idTextName": 79,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1488223060687-648b43f5efc0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxNHx8YmFjayUyMFJvZ3VlfGVufDB8fHx8MTc3OTExNTU5Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "linkCopyright": "https://unsplash.com/photos/woman-carrying-brown-backpack-standing-in-front-of-mountains-during-daytime-iMJZ7wzLxYU"
+    },
+    {
+      "idCard": 35,
+      "idTextTitle": 80,
+      "idTextCopyright": 92,
+      "id_card": 35,
+      "idTextDescription": 80,
+      "id": 35,
+      "idTextName": 80,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1647890322597-48441b9b4de3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxfHxzdGF0dWUlMjBwYWxhZGlufGVufDB8fHx8MTc3OTExNTY2MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "linkCopyright": "https://unsplash.com/photos/a-statue-of-a-man-holding-a-shield-and-a-sword--RsKIkQxULg"
+    },
+    {
+      "awesomeIcon": "",
+      "idCard": 36,
+      "idTextTitle": 81,
+      "id_card": 36,
+      "idTextName": 81,
+      "idTextCopyright": 94,
+      "idTextDescription": 81,
+      "id": 36,
+      "idCreator": 1,
+      "linkCopyright": "https://unsplash.com/photos/a-statue-of-a-woman-holding-a-staff-xVGFOJfb2tA",
+      "urlImage": "https://images.unsplash.com/photo-1691496589492-5b5f629a9720?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwyNXx8c3RhdHVlJTIwYmFyZHxlbnwwfHx8fDE3NzkxMTU5MjR8MA&ixlib=rb-4.1.0&q=80&w=1080"
+    },
+    {
+      "idCard": 37,
+      "idTextTitle": 82,
+      "id_card": 37,
+      "styleImageLittle": "ob-c-25",
+      "idTextName": 82,
+      "idTextCopyright": 100,
+      "styleImageLarge": "ob-c-25",
+      "idTextDescription": 82,
+      "id": 37,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1517984922331-8dbaa8ffa9c1?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/person-jumping-on-big-rock-under-gray-and-white-sky-during-daytime-Zdf3zn5XXtU"
+    },
+    {
+      "idCard": 38,
+      "idTextTitle": 83,
+      "idTextCopyright": 101,
+      "id_card": 38,
+      "idTextDescription": 83,
+      "id": 38,
+      "idTextName": 83,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1480472684115-4966367dde1d?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/red-fox-Yu-qayee34c"
+    },
+    {
+      "idCard": 39,
+      "idTextTitle": 84,
+      "idTextCopyright": 102,
+      "id_card": 39,
+      "idTextDescription": 84,
+      "id": 39,
+      "idTextName": 84,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1534283465444-a996fc1ce9ea?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/silhouette-photography-of-human-hand-6ASpo3NMkHU"
+    },
+    {
+      "idCard": 40,
+      "idTextTitle": 85,
+      "idTextCopyright": 103,
+      "id_card": 40,
+      "idTextDescription": 85,
+      "id": 40,
+      "idTextName": 85,
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1741714296684-b6deb20e9a0e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/woman-appears-to-hold-the-sun-above-the-clouds-NLRTAt4ui7w"
+    },
+    {
+      "idCard": 41,
+      "idTextTitle": 86,
+      "idTextCopyright": 3,
+      "idTextDescription": 86,
+      "id": 41,
+      "idTextName": 86,
+      "idCreator": 1
+    },
+    {
+      "idCard": 42,
+      "idTextTitle": 86,
+      "idTextCopyright": 104,
+      "id_card": 42,
+      "idTextDescription": 86,
+      "id": 42,
+      "idTextName": 86,
+      "idCreator": 1,
+      "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-persons-face-through-a-window-nCLMcZoyjaM",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1695626049834-5df4822248ed?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
+      "idCard": 43,
+      "idTextTitle": 87,
+      "idTextCopyright": 3,
+      "id_card": 43,
+      "idTextDescription": 87,
+      "id": 43,
+      "idTextName": 87,
+      "idCreator": 1,
+      "linkCopyright": "https://unsplash.com/photos/a-dragon-is-flying-over-a-landscape-DCcQTmmtOr0",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1746727568540-eda53728fe4c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
     }
   ],
   "keys": [],
@@ -1880,6 +2311,13 @@
   "choiceConditions": [],
   "choiceEffects": [],
   "itemEffects": [],
-  "classBonuses": [],
+  "classBonuses": [
+    {
+      "idClass": 1,
+      "statistic": "LIFE",
+      "id": 1,
+      "value": 111
+    }
+  ],
   "missionSteps": []
 }

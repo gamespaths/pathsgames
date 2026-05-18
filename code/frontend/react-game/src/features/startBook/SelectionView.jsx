@@ -3,7 +3,7 @@ import GameCard from '../../components/layout/GameCard'
 
 export default function SelectionView({ type, options, selected, story, onSelect, onBack , onPreview }) {
   const { t } = useTranslation()
-
+console.log('SelectionView', { type, options, selected })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="selection-header ">
@@ -29,7 +29,7 @@ export default function SelectionView({ type, options, selected, story, onSelect
               icon={opt.icon}
               name={opt.card?.title ?? opt.card?.name ?? opt.name}
               description={opt.card?.description ?? opt.description}
-              selected={selected?.name === opt.name}
+              selected={selected?.uuid === opt.uuid && selected?.uuid}
               onSelect={() => onSelect(opt)}
               onPreview={previewHandler}
               selectLabel={t('book.select')}

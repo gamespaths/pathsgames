@@ -37,23 +37,17 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
 
   return (
     <div className="config-view-wrap">
-      <h3 className="config-title">
-        {/* <i className="fas fa-scroll me-2" /> */}
-        {t('book.configureAdventure')}
-      </h3>
 
-      <div className="config-cards-area mt-2">
-        <div className="selection-list">
-          {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
-              selection list + preview together (handled by onChangeClick). */}
-          <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')}  onPreview={() => onChangeClick('character')} />
-          <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}      onPreview={() => onChangeClick('class')} />
-          <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')}      onPreview={() => onChangeClick('trait')} />
-          <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} />
-          {/* Locked cards: lens is preview-only (no selection list to open). */}
-          <ConfigCard type="gameType"   value={gameTypeValue} locked onPreview={onPreview} />
-          <ConfigCard type="login"      value={loginValue}    locked onPreview={onPreview} />
-        </div>
+      <div className="config-cards-area selection-list">
+        {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
+            selection list + preview together (handled by onChangeClick). */}
+        <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}      onPreview={() => onChangeClick('class')} />
+        <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')}  onPreview={() => onChangeClick('character')} />          
+        <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')}      onPreview={() => onChangeClick('trait')} />
+        <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} />
+        {/* Locked cards: lens is preview-only (no selection list to open). */}
+        <ConfigCard type="gameType"   value={gameTypeValue} locked onPreview={onPreview} />
+        <ConfigCard type="login"      value={loginValue}    locked onPreview={onPreview} />
       </div>
       {totalItems.length > 0 && (
         <BonusBadgeList className="config-total-bonus" items={totalItems} />

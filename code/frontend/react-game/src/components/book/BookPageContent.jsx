@@ -2,11 +2,12 @@ import GameCardInfoButton from '../layout/GameCardInfoButton'
 import BonusBadgeList from '../common/BonusBadgeList'
 import { useTranslation } from '../../i18n/context'
 import { getNonZeroStats } from '../../utils/bonusStats'
+import GameCardCreditsBar from '../layout/GameCardCreditsBar'
 
 /**
  * BookPageContent — content of the book page.
- * Renders as a book page (NOT a card): chapter title, image,
- * description text, footer with copyright + credits link.
+ * Renders as a card (border + shadow): golden title bar, full-width image,
+ * description on parchment background, credits (i) button bottom-left.
  *
  * When `entity` + `entityType` are passed, renders a bonus-stats badges row
  * absolute-positioned above the image, top-right. Zero/missing values are hidden.
@@ -49,11 +50,7 @@ export default function BookPageContent({ card, story, loading, onClose, entity,
         </div>
       )}
         {card?.linkCopyright && (
-          <GameCardInfoButton
-            story={story}
-            card={card}
-            buttonClassName="position-absolute bottom-0 right-0 card-info-btn "
-          />
+          <GameCardCreditsBar card={card} story={story} />
         )}
     </div>
   )

@@ -64,6 +64,10 @@
       }
     }
   },
+  "card": {
+    "info": "Info",
+    "viewOriginal": "Vedi originale"
+  },
   "game": {
     "currentLocation": "Posizione Attuale",
     "explore": "Esplora",

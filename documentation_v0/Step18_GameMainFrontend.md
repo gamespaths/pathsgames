@@ -139,13 +139,14 @@ All size variants enforce `aspect-ratio: 2/3` (unified, replaces the previous `1
 
 Config view (`ConfigView`) uses a `card-big-list` 2-column layout (big cards) instead of the former `selection-list` 3-column grid. `ConfigCard` passes `variant="big"` and `onPreview` down to `GameCard`.
 
-`GameCard` new props:
-- `onPreview` — replaces the `(i)` info button with a magnifier (`fas fa-search-plus`); the parent (`StartBookModal`) renders a `CardPreviewOverlay` on the left page.
-- `previewLayout` — when true, the credits `(i)` button uses class `card-preview-info` (bottom-right).
+`GameCard` notable props:
+- `onPreview` — when supplied, a magnifier button (`fas fa-search-plus`) is shown in the title bar and triggers a `CardPreviewOverlay` on the left page. When not set the magnifier is not rendered. The `previewLayout` prop has been removed.
 
-New CSS rules in `main.css`: `.card-preview-overlay`, `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. Bonus-stats panel: `.book-page-stats` (panel container), `.book-page-stats__title`, `.book-page-stats__list` (two-column grid), `.book-page-stats__item`, `.book-page-stats__label`, `.book-page-stats__value`.
+`GameCard` uses `useTranslation` / `t()` for all button labels. New i18n keys: `card.info` (info button aria-label and label), `card.viewOriginal` (detail modal link).
 
-Cards support `style_main` and `style_detail` fields in mock JSON to inject extra CSS classes on the wrapper and image respectively.
+New CSS rules in `main.css`: `.card-preview-overlay` (`position: absolute; inset: 0` solid book-page overlay), `.card-preview-close`, `.card-preview-info`, `.card-magnify-btn`, `@keyframes fadeIn`. `gc-actions` uses `align-items: stretch` for equal-height buttons; `gc-footer__btn` is `display: flex` + `gap: 4px`; `gc-footer__btn-label` truncates text with ellipsis; `gc-footer__btn--icon` is the icon-only / fixed-width button modifier. Removed: `.book-page-stats__badge`, `.book-page-stats__value`, `.config-total-bonus__badge`, `.config-total-bonus__value`, old two-column grid classes, `.story-card-full*` rules.
+
+Cards support `style_main`, `style_detail`, and three size-specific image style fields (`style_image_little`, `style_image_medium`, `style_image_large`) in mock JSON to inject extra CSS classes on the wrapper and image respectively.
 
 ### Hover Interactions
 
@@ -179,7 +180,9 @@ export const fetchWithFallback = async (url, mockData) => {
 
 The language switcher in the Navbar toggles the context. All UI labels use `t()` — no hardcoded strings in components.
 
-The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, plus `book.stats.title` for the panel heading.
+The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
+
+The `card.*` namespace (added in v0.19.3) holds `card.info` ("Info") and `card.viewOriginal` ("View original") used by `GameCard` for the info button and the detail modal link respectively.
 
 ---
 
@@ -389,9 +392,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
-    | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 14, 2026 |
+    | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
     
-- **Last Updated**: May 14, 2026
+- **Last Updated**: May 18, 2026
 - **Status**: Active development
 
 
