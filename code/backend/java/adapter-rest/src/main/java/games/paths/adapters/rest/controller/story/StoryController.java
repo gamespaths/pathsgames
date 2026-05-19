@@ -196,6 +196,13 @@ public class StoryController {
                 di.getUuid(), di.getDescription(), di.getExpCost(), di.getMaxWeight(),
                 di.getMinCharacter(), di.getMaxCharacter(), di.getCostHelpComa(),
                 di.getCostMaxCharacteristics(), di.getNumberMaxFreeAction());
+        r.setLife(di.getLife());
+        r.setEnergy(di.getEnergy());
+        r.setSad(di.getSad());
+        r.setDexterity(di.getDexterity());
+        r.setIntelligence(di.getIntelligence());
+        r.setConstitution(di.getConstitution());
+        r.setWeight(di.getWeight());
         r.setIdCard(di.getIdCard());
         r.setCard(di.getCard() != null ? toCardInfoResponse(di.getCard()) : null);
         return r;

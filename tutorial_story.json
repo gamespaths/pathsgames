@@ -37,78 +37,106 @@
     {
       "numberMaxFreeAction": 0,
       "maxCharacter": 0,
+      "constitution": 0,
       "idCard": 20,
       "id_card": 20,
+      "weight": 0,
       "maxWeight": 0,
       "idTextName": 39,
+      "life": 0,
       "expCost": 0,
+      "intelligence": 0,
+      "dexterity": 0,
       "costHelpComa": 0,
       "texts": {
         "en": {
           "title": "A peaceful journey"
         }
       },
+      "sad": 0,
       "minCharacter": 0,
       "id": 1,
       "idTextDescription": 39,
-      "costMaxCharacteristics": 0
+      "costMaxCharacteristics": 0,
+      "energy": 4
     },
     {
       "numberMaxFreeAction": 0,
       "maxCharacter": 0,
+      "constitution": 0,
       "idCard": 21,
       "id_card": 21,
+      "weight": 0,
       "maxWeight": 0,
       "idTextName": 42,
+      "life": 0,
       "expCost": 0,
+      "intelligence": 0,
+      "dexterity": 0,
       "costHelpComa": 0,
       "texts": {
         "en": {
           "title": "A balanced challenge"
         }
       },
+      "sad": 0,
       "minCharacter": 0,
       "id": 2,
       "idTextDescription": 42,
-      "costMaxCharacteristics": 0
+      "costMaxCharacteristics": 0,
+      "energy": 3
     },
     {
       "numberMaxFreeAction": 0,
       "maxCharacter": 0,
+      "constitution": 0,
       "idCard": 22,
       "id_card": 22,
+      "weight": 0,
       "maxWeight": 0,
       "idTextName": 45,
+      "life": 0,
       "expCost": 0,
+      "intelligence": 0,
+      "dexterity": 0,
       "costHelpComa": 0,
       "texts": {
         "en": {
           "title": "Pain forges legends"
         }
       },
+      "sad": 0,
       "minCharacter": 0,
       "id": 3,
       "idTextDescription": 45,
-      "costMaxCharacteristics": 0
+      "costMaxCharacteristics": 0,
+      "energy": 2
     },
     {
       "numberMaxFreeAction": 0,
       "maxCharacter": 0,
+      "constitution": 0,
       "idCard": 23,
       "id_card": 23,
+      "weight": 0,
       "maxWeight": 0,
       "idTextName": 48,
+      "life": 0,
       "expCost": 0,
+      "intelligence": 0,
+      "dexterity": 0,
       "costHelpComa": 0,
       "texts": {
         "en": {
           "title": "Suffer and conquer"
         }
       },
+      "sad": 0,
       "minCharacter": 0,
       "id": 4,
       "idTextDescription": 48,
-      "costMaxCharacteristics": 0
+      "costMaxCharacteristics": 0,
+      "energy": 1
     }
   ],
   "characterTemplates": [

@@ -25,7 +25,14 @@ class DifficultyInfoTest {
                 .maxCharacter(4)
                 .costHelpComa(3)
                 .costMaxCharacteristics(3)
-                .numberMaxFreeAction(1);
+                .numberMaxFreeAction(1)
+                .life(120)
+                .energy(110)
+                .sad(0)
+                .dexterity(12)
+                .intelligence(13)
+                .constitution(14)
+                .weight(15);
     }
 
     @Nested
@@ -47,6 +54,13 @@ class DifficultyInfoTest {
                 () -> assertEquals(3, di.getCostHelpComa()),
                 () -> assertEquals(3, di.getCostMaxCharacteristics()),
                 () -> assertEquals(1, di.getNumberMaxFreeAction()),
+                () -> assertEquals(120, di.getLife()),
+                () -> assertEquals(110, di.getEnergy()),
+                () -> assertEquals(0, di.getSad()),
+                () -> assertEquals(12, di.getDexterity()),
+                () -> assertEquals(13, di.getIntelligence()),
+                () -> assertEquals(14, di.getConstitution()),
+                () -> assertEquals(15, di.getWeight()),
                 () -> assertTrue(di.toString().contains("diff-1")),
                 () -> assertTrue(di.toString().contains("5"))
             );
@@ -78,7 +92,14 @@ class DifficultyInfoTest {
                 () -> assertEquals(0, di.getMaxCharacter()),
                 () -> assertEquals(0, di.getCostHelpComa()),
                 () -> assertEquals(0, di.getCostMaxCharacteristics()),
-                () -> assertEquals(0, di.getNumberMaxFreeAction())
+                () -> assertEquals(0, di.getNumberMaxFreeAction()),
+                () -> assertEquals(0, di.getLife()),
+                () -> assertEquals(0, di.getEnergy()),
+                () -> assertEquals(0, di.getSad()),
+                () -> assertEquals(0, di.getDexterity()),
+                () -> assertEquals(0, di.getIntelligence()),
+                () -> assertEquals(0, di.getConstitution()),
+                () -> assertEquals(0, di.getWeight())
             );
         }
     }

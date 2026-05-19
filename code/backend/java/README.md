@@ -123,9 +123,9 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 
 ### Validation Status (May 2026)
 
-- Core module tests: **605 passed / 0 failed** (`mvn -pl core test -DskipITs`).
-- End-to-end Robot suite (local Java + PostgreSQL): **181 passed / 0 failed** (`run_robot_with_local_java_postgres.sh`).
-- End-to-end Robot suite (local Java + SQLite): **181 passed / 0 failed** (`run_robot_with_local_java.sh`).
+- Core module tests: **711 passed / 0 failed** (`mvn -pl core test -DskipITs`).
+- End-to-end Robot suite (local Java + PostgreSQL): **185 passed / 0 failed** (`run_robot_with_local_java_postgres.sh`).
+- End-to-end Robot suite (local Java + SQLite): **185 passed / 0 failed** (`run_robot_with_local_java.sh`).
 - Step 17 admin CRUD subset in PostgreSQL run: **29 passed / 0 failed**.
 
 ### Verification Commands
@@ -171,7 +171,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.19.4
+- **Document Version**: 0.19.7
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -181,7 +181,8 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | 0.19.3 | list_cards: added style_image_little/medium/large columns (Flyway V0.19.3, CardEntity, CardInfo, CardInfoResponse, OpenAPI v0.14-0.16) | May 14, 2026 |
     | 0.19.4 | list_cards: added card_type column (Flyway V0.19.4 on both adapters; CardEntity, CardInfo, CardInfoResponse, ContentController, StoryController, ContentQueryService, StoryQueryService, StoryImportService, StoryCrudService; OpenAPI v0.14-0.16) | May 14, 2026 |
     | 0.19.4 | AWS backend FK consistency: difficulties/classes/traits now persist idTextName+idTextDescription on import, matching Java BaseStoryEntity (list_stories_difficulty, list_classes, list_traits) | May 14, 2026 |
-- **Last Updated**: May 14, 2026
+    | 0.19.7 | list_stories_difficulty: added 7 stat columns (life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10) via Flyway V0.19.7 on both adapters; StoryDifficultyEntity, DifficultyInfo (builder), DifficultyResponse, StoryQueryService, StoryCrudService.applyDifficultyFields(), StoryImportService.importDifficulties(); OpenAPI v0.14.0 DifficultyResponse extended; core tests 711 pass | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: In progress
 
 

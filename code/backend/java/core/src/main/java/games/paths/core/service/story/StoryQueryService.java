@@ -83,6 +83,13 @@ public class StoryQueryService implements StoryQueryPort {
                     .costHelpComa(diff.getCostHelpComa() != null ? diff.getCostHelpComa() : 3)
                     .costMaxCharacteristics(diff.getCostMaxCharacteristics() != null ? diff.getCostMaxCharacteristics() : 3)
                     .numberMaxFreeAction(diff.getNumberMaxFreeAction() != null ? diff.getNumberMaxFreeAction() : 1)
+                    .life(diff.getLife() != null ? diff.getLife() : 100)
+                    .energy(diff.getEnergy() != null ? diff.getEnergy() : 100)
+                    .sad(diff.getSad() != null ? diff.getSad() : 0)
+                    .dexterity(diff.getDexterity() != null ? diff.getDexterity() : 10)
+                    .intelligence(diff.getIntelligence() != null ? diff.getIntelligence() : 10)
+                    .constitution(diff.getConstitution() != null ? diff.getConstitution() : 10)
+                    .weight(diff.getWeight() != null ? diff.getWeight() : 10)
                     .idCard(diff.getIdCard())
                     .card(resolveCardInfo(story.getId(), diff.getIdCard(), lang))
                     .build());

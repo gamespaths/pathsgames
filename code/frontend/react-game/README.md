@@ -121,7 +121,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
 
 ---
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.19.7
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -143,6 +143,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
     | 0.19.3 | GameCardCreditsBar new component: slim credits footer row (gc-credits / gc-credits__label / gc-credits__link) showing story author + image copyright; replaces GameCardInfoButton + hideCredits prop on GameCard; gc-footer loses bottom border-radius (moved to gc-credits) | May 18, 2026 |
     | 0.19.3 | BookPageContent description rendered via dangerouslySetInnerHTML: HTML tags in i18n strings (e.g. `<br />` in guestDesc) are now interpreted rather than escaped | May 18, 2026 |
     | 0.19.6 | bonusStats.js STAT_FIELDS.trait extended with seven stat-delta keys (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); non-zero values rendered automatically by existing `BonusBadgeList`; all seven keys contribute to ConfigView category totals via STAT_CATEGORY map | May 19, 2026 |
+    | 0.19.7 | bonusStats.js STAT_FIELDS.difficulty extended with the same seven stat-delta keys (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); BonusBadgeList renders the new bonus pills inside the BookPage difficulty preview; values flow into ConfigView category totals via existing STAT_CATEGORY mapping (no i18n change — labels use the existing `book.stats.totals.<key>` keys) | May 19, 2026 |
 - **Last Updated**: May 19, 2026
 - **Status**: Active development
 

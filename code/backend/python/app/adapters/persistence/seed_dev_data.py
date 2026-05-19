@@ -105,8 +105,8 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90103, 9001, 11, 'en', 'turns', 'turns');
 
 -- ── Story 1 Difficulties ────────────────────────────────────────
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110, 0, 12, 12, 12, 12);
 
 -- ── Story 1 Classes ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -380,12 +380,12 @@ INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_
 INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- ── Story 2 Difficulties ────────────────────────────────────────
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3);
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1);
-INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91003, 9002, 302, 8, 8, 2, 3, 5, 5, 0);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 300, 3, 20, 1, 4, 2, 2, 3, 130, 120, 0, 12, 12, 14, 14);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91002, 9002, 301, 5, 12, 1, 4, 3, 3, 1, 100, 100, 10, 10, 10, 10, 10);
+INSERT OR IGNORE INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91003, 9002, 302, 8, 8, 2, 3, 5, 5, 0, 80, 90, 20, 8, 8, 8, 8);
 
 -- ── Story 2 Classes ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES

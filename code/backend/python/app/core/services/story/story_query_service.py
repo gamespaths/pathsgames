@@ -65,7 +65,14 @@ class StoryQueryService(StoryQueryPort):
                 costMaxCharacteristics=rd.get("cost_max_characteristics", 3),
                 numberMaxFreeAction=rd.get("number_max_free_action", 1),
                 idCard=rd.get("id_card"),
-                card=self._resolve_card(story_id, texts, rd.get("id_card"), lang)
+                card=self._resolve_card(story_id, texts, rd.get("id_card"), lang),
+                life=rd.get("life", 100),
+                energy=rd.get("energy", 100),
+                sad=rd.get("sad", 0),
+                dexterity=rd.get("dexterity", 10),
+                intelligence=rd.get("intelligence", 10),
+                constitution=rd.get("constitution", 10),
+                weight=rd.get("weight", 10)
             ))
 
         # Counts

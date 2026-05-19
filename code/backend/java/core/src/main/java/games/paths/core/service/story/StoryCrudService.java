@@ -909,6 +909,13 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("costHelpComa", d.getCostHelpComa());
             m.put("costMaxCharacteristics", d.getCostMaxCharacteristics());
             m.put("numberMaxFreeAction", d.getNumberMaxFreeAction());
+            m.put("life", d.getLife());
+            m.put("energy", d.getEnergy());
+            m.put("sad", d.getSad());
+            m.put("dexterity", d.getDexterity());
+            m.put("intelligence", d.getIntelligence());
+            m.put("constitution", d.getConstitution());
+            m.put("weight", d.getWeight());
         } else if (e instanceof CharacterTemplateEntity) {
             CharacterTemplateEntity ct = (CharacterTemplateEntity) e;
             m.put("lifeMax", ct.getLifeMax());
@@ -1189,6 +1196,20 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
         if (d.containsKey("numberMaxFreeAction"))
             e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
+        if (d.containsKey("life"))
+            e.setLife(intVal(d, "life"));
+        if (d.containsKey("energy"))
+            e.setEnergy(intVal(d, "energy"));
+        if (d.containsKey("sad"))
+            e.setSad(intVal(d, "sad"));
+        if (d.containsKey("dexterity"))
+            e.setDexterity(intVal(d, "dexterity"));
+        if (d.containsKey("intelligence"))
+            e.setIntelligence(intVal(d, "intelligence"));
+        if (d.containsKey("constitution"))
+            e.setConstitution(intVal(d, "constitution"));
+        if (d.containsKey("weight"))
+            e.setWeight(intVal(d, "weight"));
     }
 
     private void applyCharacterTemplateFields(CharacterTemplateEntity e, Map<String, Object> d) {

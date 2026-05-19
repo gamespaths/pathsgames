@@ -15,6 +15,13 @@ public class DifficultyInfo {
     private final int costHelpComa;
     private final int costMaxCharacteristics;
     private final int numberMaxFreeAction;
+    private final int life;
+    private final int energy;
+    private final int sad;
+    private final int dexterity;
+    private final int intelligence;
+    private final int constitution;
+    private final int weight;
     private final Integer idCard;
     private final CardInfo card;
 
@@ -28,6 +35,13 @@ public class DifficultyInfo {
         this.costHelpComa = builder.costHelpComa;
         this.costMaxCharacteristics = builder.costMaxCharacteristics;
         this.numberMaxFreeAction = builder.numberMaxFreeAction;
+        this.life = builder.life;
+        this.energy = builder.energy;
+        this.sad = builder.sad;
+        this.dexterity = builder.dexterity;
+        this.intelligence = builder.intelligence;
+        this.constitution = builder.constitution;
+        this.weight = builder.weight;
         this.idCard = builder.idCard;
         this.card = builder.card;
     }
@@ -41,6 +55,13 @@ public class DifficultyInfo {
     public int getCostHelpComa() { return costHelpComa; }
     public int getCostMaxCharacteristics() { return costMaxCharacteristics; }
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
+    public int getLife() { return life; }
+    public int getEnergy() { return energy; }
+    public int getSad() { return sad; }
+    public int getDexterity() { return dexterity; }
+    public int getIntelligence() { return intelligence; }
+    public int getConstitution() { return constitution; }
+    public int getWeight() { return weight; }
     public Integer getIdCard() { return idCard; }
     public CardInfo getCard() { return card; }
 
@@ -56,6 +77,13 @@ public class DifficultyInfo {
         private int costHelpComa;
         private int costMaxCharacteristics;
         private int numberMaxFreeAction;
+        private int life;
+        private int energy;
+        private int sad;
+        private int dexterity;
+        private int intelligence;
+        private int constitution;
+        private int weight;
         private Integer idCard;
         private CardInfo card;
 
@@ -68,6 +96,13 @@ public class DifficultyInfo {
         public Builder costHelpComa(int costHelpComa) { this.costHelpComa = costHelpComa; return this; }
         public Builder costMaxCharacteristics(int costMaxCharacteristics) { this.costMaxCharacteristics = costMaxCharacteristics; return this; }
         public Builder numberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; return this; }
+        public Builder life(int life) { this.life = life; return this; }
+        public Builder energy(int energy) { this.energy = energy; return this; }
+        public Builder sad(int sad) { this.sad = sad; return this; }
+        public Builder dexterity(int dexterity) { this.dexterity = dexterity; return this; }
+        public Builder intelligence(int intelligence) { this.intelligence = intelligence; return this; }
+        public Builder constitution(int constitution) { this.constitution = constitution; return this; }
+        public Builder weight(int weight) { this.weight = weight; return this; }
         public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
         public Builder card(CardInfo card) { this.card = card; return this; }
 

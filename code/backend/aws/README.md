@@ -156,6 +156,12 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.19.7 — Seven stat fields on difficulties
+
+- **`lambda/story/handler.py`**: `DifficultyResponse` build path extended to include the 7 new stat fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) in the story detail response. Import path (`import_story`) persists the same 7 fields from the request payload, defaulting to `life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10` when absent.
+- **`lambda/seed/handler.py`**: All 3 demo stories in the seed dataset now include the 7 stat fields on each difficulty entry so Robot suite `14_stories/difficulty_stat_fields.robot` passes against the AWS endpoint.
+- **Robot**: New suite `code/tests/robot/tests/14_stories/difficulty_stat_fields.robot` — 4 tests covering presence/type, expected seed values for the tutorial, and sign constraints; all pass (4/4).
+
 ### v0.19.4 — difficulties/classes/traits idTextName/idTextDescription cross-backend consistency
 
 - **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `difficulties`, `classes`, and `traits` DynamoDB items. Previously these FK integers were discarded on import for all three entities, making the AWS backend inconsistent with Java (`list_stories_difficulty`, `list_classes`, `list_traits` all have `id_text_name`/`id_text_description` columns via `BaseStoryEntity`), Python, and PHP. The other inline-built entities (`characterTemplates`) were fixed in the same release (see below); pass-through entities built via `_assign_ids` already preserved all fields and did not need changes.

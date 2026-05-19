@@ -105,19 +105,28 @@ def test_get_story_detail_success(mock_read_port):
         {"id_text": 10, "lang": "en", "long_text": "Title Long"}
     ]
     mock_read_port.find_difficulties_for_story.return_value = [
-        {"uuid": "d1", "exp_cost": 5}
+        {"uuid": "d1", "exp_cost": 5,
+         "life": 150, "energy": 110, "sad": 5,
+         "dexterity": 11, "intelligence": 12, "constitution": 13, "weight": 14}
     ]
     mock_read_port.count_locations_for_story.return_value = 5
 
     service = StoryQueryService(mock_read_port)
     detail = service.get_story_detail("u1", "en")
-    
+
     assert detail is not None
     assert detail.title == "Title Long"
     assert detail.peghi == 2
     assert detail.locationCount == 5
     assert len(detail.difficulties) == 1
     assert detail.difficulties[0].expCost == 5
+    assert detail.difficulties[0].life == 150
+    assert detail.difficulties[0].energy == 110
+    assert detail.difficulties[0].sad == 5
+    assert detail.difficulties[0].dexterity == 11
+    assert detail.difficulties[0].intelligence == 12
+    assert detail.difficulties[0].constitution == 13
+    assert detail.difficulties[0].weight == 14
 
 def test_resolve_text_fallback(mock_read_port):
     mock_read_port.find_story_by_uuid.return_value = {"id": 1, "id_text_title": 10}

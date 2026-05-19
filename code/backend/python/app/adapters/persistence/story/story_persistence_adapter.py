@@ -121,7 +121,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "exp_cost": "expCost", "max_weight": "maxWeight",
             "min_character": "minCharacter", "max_character": "maxCharacter",
             "cost_help_coma": "costHelpComa", "cost_max_characteristics": "costMaxCharacteristics",
-            "number_max_free_action": "numberMaxFreeAction"
+            "number_max_free_action": "numberMaxFreeAction",
+            "life": "life", "energy": "energy", "sad": "sad",
+            "dexterity": "dexterity", "intelligence": "intelligence",
+            "constitution": "constitution", "weight": "weight"
         })
 
     def save_locations(self, story_id: int, items: List[Dict[str, Any]]) -> None:

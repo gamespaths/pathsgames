@@ -83,7 +83,14 @@ class StoryQueryService implements StoryQueryPort
                 isset($rd['cost_max_characteristics']) ? (int)$rd['cost_max_characteristics'] : 3,
                 isset($rd['number_max_free_action']) ? (int)$rd['number_max_free_action'] : 1,
                 isset($rd['id_card']) ? (int)$rd['id_card'] : null,
-                $this->resolveCard($storyId, $texts, isset($rd['id_card']) ? (int)$rd['id_card'] : null, $lang)
+                $this->resolveCard($storyId, $texts, isset($rd['id_card']) ? (int)$rd['id_card'] : null, $lang),
+                isset($rd['life']) ? (int)$rd['life'] : 100,
+                isset($rd['energy']) ? (int)$rd['energy'] : 100,
+                isset($rd['sad']) ? (int)$rd['sad'] : 0,
+                isset($rd['dexterity']) ? (int)$rd['dexterity'] : 10,
+                isset($rd['intelligence']) ? (int)$rd['intelligence'] : 10,
+                isset($rd['constitution']) ? (int)$rd['constitution'] : 10,
+                isset($rd['weight']) ? (int)$rd['weight'] : 10
             );
         }
 

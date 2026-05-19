@@ -19,8 +19,9 @@ robot/
     ├── 12_auth/
     │   └── guest_auth.robot       Guest login, /me, logout, PLAYER role guard
     ├── 14_stories/
-    │   ├── story_list.robot       GET /api/stories — list, fields, UUIDs
-    │   └── story_detail.robot     GET /api/stories/{uuid} — detail, 404
+    │   ├── story_list.robot              GET /api/stories — list, fields, UUIDs
+    │   ├── story_detail.robot            GET /api/stories/{uuid} — detail, 404
+    │   └── difficulty_stat_fields.robot  Seven stat fields (life/energy/sad/dexterity/intelligence/constitution/weight) on every difficulty entry; seed values for tutorial; sign constraints (4 tests)
     ├── 14_admin/
     │   ├── story_import.robot     POST/GET/DELETE /api/admin/stories — import, idempotency, character-template FK round-trip
     │   └── guest_admin.robot      GET/DELETE /api/admin/guests — list, stats, single, expired
@@ -110,10 +111,10 @@ robot --variablefile variables/dev.yaml --outputdir reports/ tests/
 |-----------|--------------------------------------|
 | `smoke`   | 01_smoke/smoke.robot                 |
 | `auth`    | 12_auth/guest_auth.robot             |
-| `stories` | 14_stories/story_list.robot, story_detail.robot |
+| `stories` | 14_stories/story_list.robot, story_detail.robot, difficulty_stat_fields.robot |
 | `admin`   | 14_admin/story_import.robot, guest_admin.robot |
 | `step12`  | Auth and guest management tests      |
-| `step14`  | Story API and import tests           |
+| `step14`  | Story list, story detail, difficulty stat fields (seven integer columns on `list_stories_difficulty`) |
 | `step15`  | Story content: categories, groups, enriched detail, class bonuses, character template class fields, trait stat-delta fields |
 | `guests`  | Guest admin management tests         |
 

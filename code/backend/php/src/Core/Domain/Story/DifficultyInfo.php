@@ -17,7 +17,14 @@ class DifficultyInfo
         public int $costMaxCharacteristics = 3,
         public int $numberMaxFreeAction = 1,
         public ?int $idCard = null,
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public int $life = 100,
+        public int $energy = 100,
+        public int $sad = 0,
+        public int $dexterity = 10,
+        public int $intelligence = 10,
+        public int $constitution = 10,
+        public int $weight = 10
     ) {
     }
 }

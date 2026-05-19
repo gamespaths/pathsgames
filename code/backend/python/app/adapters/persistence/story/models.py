@@ -51,6 +51,13 @@ class StoryDifficultyEntity(Base):
     cost_help_coma = Column(Integer)
     cost_max_characteristics = Column(Integer)
     number_max_free_action = Column(Integer)
+    life = Column(Integer, nullable=False, default=0)
+    energy = Column(Integer, nullable=False, default=0)
+    sad = Column(Integer, nullable=False, default=0)
+    dexterity = Column(Integer, nullable=False, default=0)
+    intelligence = Column(Integer, nullable=False, default=0)
+    constitution = Column(Integer, nullable=False, default=0)
+    weight = Column(Integer, nullable=False, default=0)
 
 
 class TextEntity(Base):

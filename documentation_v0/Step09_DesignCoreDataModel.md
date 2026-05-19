@@ -66,7 +66,7 @@ These tables are populated by a story importer and are **read-only** during game
 | Entity | Table | Description |
 |--------|-------|-------------|
 | **Story** | `list_stories` | A playable adventure: `id_card`, `id_text_title`, `id_text_description`, `author`, `version_min`, `version_max`, `id_location_start`, `id_image`, `id_location_all_player_coma`, `id_event_all_player_coma`, `id_text_clock_singular` (hour), `id_text_clock_plural` (hours), `id_event_end_game`, `id_text_copyright`, `link_copyright`, `id_creator`, `category`, `group`, `visibility`, `priority`, `peghi`. |
-| **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`. |
+| **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT` with defaults life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10 — added v0.19.7 via `V0.19.7__add_difficulty_stat_columns.sql`; represent the base stat values that apply when a player selects this difficulty). |
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
 | **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
@@ -855,8 +855,8 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.10.12 | added `uuid` as standard column on all 52 tables — public API identifier to avoid exposing internal auto-increment IDs | March 19, 2026 |
     | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
-    | 0.19.6 | Add style fileds columns into card tables and use into frontend | May 19, 2026 |
-
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
+    | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
 - **Last Updated**: May 19, 2026
 - **Status**: Complete ✅
 

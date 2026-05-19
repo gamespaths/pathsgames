@@ -98,8 +98,8 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90103, 9001, 11, 'en', 'turns', 'turns');
 
 -- Story 1 Difficulties
-INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(90001, 9001, 'db0d83f2-0ed6-437a-a55b-e110f4040273', 300, 1, 20, 1, 4, 1, 1, 3);
+INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(90001, 9001, 'db0d83f2-0ed6-437a-a55b-e110f4040273', 300, 1, 20, 1, 4, 1, 1, 3, 120, 110, 0, 12, 12, 12, 12);
 
 -- Story 1 Classes
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES
@@ -372,12 +372,12 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (91107, 9002, 11, 'en', 'hours', 'hours');
 
 -- Story 2 Difficulties
-INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91001, 9002, 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b', 300, 3, 20, 1, 4, 2, 2, 3);
-INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91002, 9002, 'f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c', 301, 5, 12, 1, 4, 3, 3, 1);
-INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action) VALUES
-(91003, 9002, 'a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d', 302, 8, 8, 2, 3, 5, 5, 0);
+INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b', 300, 3, 20, 1, 4, 2, 2, 3, 130, 120, 0, 12, 12, 14, 14);
+INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91002, 9002, 'f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c', 301, 5, 12, 1, 4, 3, 3, 1, 100, 100, 10, 10, 10, 10, 10);
+INSERT INTO list_stories_difficulty (id, id_story, uuid, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91003, 9002, 'a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d', 302, 8, 8, 2, 3, 5, 5, 0, 80, 90, 20, 8, 8, 8, 8);
 
 -- Story 2 Classes
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES

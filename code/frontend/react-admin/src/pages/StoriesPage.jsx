@@ -260,6 +260,10 @@ export default function StoriesPage() {
                 {detail.difficulties.map((d, i) => (
                   <div key={i} className="mb-1" style={{ fontSize: '0.8rem', color: 'var(--color-ash)' }}>
                     #{i + 1} — expCost: {d.expCost} | maxWeight: {d.maxWeight} | chars: {d.minCharacter}-{d.maxCharacter}
+                    <br />
+                    <span style={{ color: 'var(--color-amber, #c89f6a)' }}>
+                      stats — life:{d.life} energy:{d.energy} sad:{d.sad} dex:{d.dexterity} int:{d.intelligence} cos:{d.constitution} wei:{d.weight}
+                    </span>
                   </div>
                 ))}
               </div>

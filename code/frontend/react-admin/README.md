@@ -76,12 +76,13 @@ npm run test:coverage
     > ciao, into "code/frontend/react-admin" folder create a new project with react con vite e bootstrap e Tailwind e font awesome. Project is a administration frontend of project, read all documents into "documentation_v0" to understand my project. I wanna you create admin section to all admin APIs "code/backend/java/adapter-rest/src/main/resources/openapi". Let's go! Never change files outside  "code/frontend/react-admin" . for admin i wanna a login interface where user insert jwt token to be used in all api calls , use graphics from "documentation_v0/website_concepts_v0/v0.16.3-prototype-api"
 
     > mi fai uno script in .github/workflows per il progetto "react-admin" ? poi aggiorna il "documentation_v0/Step08_ConfigureMinimalCI.md"
-- **Document Version**: 0.19.4
+- **Document Version**: 0.19.7
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.16.4 | Created react-admin project | April 23, 2026 |
     | 0.19.4 | Card editor: added `cardType` select field driven by `CARD_TYPE_OPTIONS` in `storyFieldOptions.js`; catalogue covers 23 entity types (story, difficulty, creator, card, text, key, class, classBonus, trait, character, location, locationNeighbor, item, itemEffect, event, eventEffect, choice, choiceCondition, choiceEffect, weatherRule, globalRandomEvent, mission, missionStep); fixed `EntityForm` two-column grid expanding on long input values (`minmax(0,1fr)` columns, `minWidth:0` on cells and inputs); added `idCard` field to `character-templates` form definition and wired it to `cardsOptions` in `pathSelectorOptionsByTab`; fixed `EntityTable` null-guard for `idTextName`/`idTextDescription`/`idTextTitle` column types — renders `—` instead of `#null` when the referenced text ID is absent | May 14, 2026 |
-- **Last Updated**: May 14, 2026
+    | 0.19.7 | Difficulty editor extended with the seven stat fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) in both `STORIES_ENTITIES_FIELDS.difficulties` (form) and `STORIES_ENTITIES_COLUMNS.difficulties` (table); StoriesPage detail panel renders a second amber stats line per difficulty; StoryImportPage example payload includes the new defaults | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: In progress
 
 

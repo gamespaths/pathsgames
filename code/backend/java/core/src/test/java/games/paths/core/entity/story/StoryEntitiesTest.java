@@ -1015,7 +1015,7 @@ class StoryEntitiesTest {
     class StoryDifficultyEntityTests {
 
         @Test
-        @DisplayName("@PrePersist sets non-zero defaults: expCost=5, maxWeight=10, minCharacter=1, maxCharacter=4, costs=3, freeActions=1")
+        @DisplayName("@PrePersist sets non-zero defaults including stat columns (life/energy/sad/dexterity/intelligence/constitution/weight)")
         void prePersist_defaults() {
             StoryDifficultyEntity e = new StoryDifficultyEntity();
             e.onCreate();
@@ -1026,7 +1026,14 @@ class StoryEntitiesTest {
                 () -> assertEquals(4, e.getMaxCharacter()),
                 () -> assertEquals(3, e.getCostHelpComa()),
                 () -> assertEquals(3, e.getCostMaxCharacteristics()),
-                () -> assertEquals(1, e.getNumberMaxFreeAction())
+                () -> assertEquals(1, e.getNumberMaxFreeAction()),
+                () -> assertEquals(100, e.getLife()),
+                () -> assertEquals(100, e.getEnergy()),
+                () -> assertEquals(0, e.getSad()),
+                () -> assertEquals(10, e.getDexterity()),
+                () -> assertEquals(10, e.getIntelligence()),
+                () -> assertEquals(10, e.getConstitution()),
+                () -> assertEquals(10, e.getWeight())
             );
         }
 
@@ -1041,6 +1048,13 @@ class StoryEntitiesTest {
             e.setCostHelpComa(10);
             e.setCostMaxCharacteristics(5);
             e.setNumberMaxFreeAction(3);
+            e.setLife(200);
+            e.setEnergy(150);
+            e.setSad(25);
+            e.setDexterity(18);
+            e.setIntelligence(19);
+            e.setConstitution(20);
+            e.setWeight(21);
             e.onCreate();
             assertAll(
                 () -> assertEquals(100, e.getExpCost()),
@@ -1049,7 +1063,14 @@ class StoryEntitiesTest {
                 () -> assertEquals(8, e.getMaxCharacter()),
                 () -> assertEquals(10, e.getCostHelpComa()),
                 () -> assertEquals(5, e.getCostMaxCharacteristics()),
-                () -> assertEquals(3, e.getNumberMaxFreeAction())
+                () -> assertEquals(3, e.getNumberMaxFreeAction()),
+                () -> assertEquals(200, e.getLife()),
+                () -> assertEquals(150, e.getEnergy()),
+                () -> assertEquals(25, e.getSad()),
+                () -> assertEquals(18, e.getDexterity()),
+                () -> assertEquals(19, e.getIntelligence()),
+                () -> assertEquals(20, e.getConstitution()),
+                () -> assertEquals(21, e.getWeight())
             );
         }
 
@@ -1068,6 +1089,13 @@ class StoryEntitiesTest {
             e.setCostHelpComa(10);
             e.setCostMaxCharacteristics(5);
             e.setNumberMaxFreeAction(3);
+            e.setLife(200);
+            e.setEnergy(150);
+            e.setSad(25);
+            e.setDexterity(18);
+            e.setIntelligence(19);
+            e.setConstitution(20);
+            e.setWeight(21);
 
             assertAll(
                 () -> assertEquals(1L, e.getId()),
@@ -1077,7 +1105,14 @@ class StoryEntitiesTest {
                 () -> assertEquals(4, e.getMaxCharacter()),
                 () -> assertEquals(10, e.getCostHelpComa()),
                 () -> assertEquals(5, e.getCostMaxCharacteristics()),
-                () -> assertEquals(3, e.getNumberMaxFreeAction())
+                () -> assertEquals(3, e.getNumberMaxFreeAction()),
+                () -> assertEquals(200, e.getLife()),
+                () -> assertEquals(150, e.getEnergy()),
+                () -> assertEquals(25, e.getSad()),
+                () -> assertEquals(18, e.getDexterity()),
+                () -> assertEquals(19, e.getIntelligence()),
+                () -> assertEquals(20, e.getConstitution()),
+                () -> assertEquals(21, e.getWeight())
             );
         }
     }

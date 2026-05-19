@@ -41,6 +41,28 @@ class StoryModelsTest extends TestCase
         $diff = new DifficultyInfo('u1');
         $this->assertSame(5, $diff->expCost);
         $this->assertSame(10, $diff->maxWeight);
+        $this->assertSame(100, $diff->life);
+        $this->assertSame(100, $diff->energy);
+        $this->assertSame(0, $diff->sad);
+        $this->assertSame(10, $diff->dexterity);
+        $this->assertSame(10, $diff->intelligence);
+        $this->assertSame(10, $diff->constitution);
+        $this->assertSame(10, $diff->weight);
+    }
+
+    public function testDifficultyInfoStatFieldsExplicit(): void
+    {
+        $diff = new DifficultyInfo(
+            'u1', 'Hard', 8, 8, 2, 3, 5, 5, 0, null, null,
+            80, 90, 20, 7, 7, 7, 7
+        );
+        $this->assertSame(80, $diff->life);
+        $this->assertSame(90, $diff->energy);
+        $this->assertSame(20, $diff->sad);
+        $this->assertSame(7, $diff->dexterity);
+        $this->assertSame(7, $diff->intelligence);
+        $this->assertSame(7, $diff->constitution);
+        $this->assertSame(7, $diff->weight);
     }
 
     public function testStoryDetailDefaults(): void

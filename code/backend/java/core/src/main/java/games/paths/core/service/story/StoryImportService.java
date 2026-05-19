@@ -191,6 +191,13 @@ public class StoryImportService implements StoryImportPort {
             e.setCostHelpComa(getInteger(item, "costHelpComa"));
             e.setCostMaxCharacteristics(getInteger(item, "costMaxCharacteristics"));
             e.setNumberMaxFreeAction(getInteger(item, "numberMaxFreeAction"));
+            e.setLife(getInteger(item, "life"));
+            e.setEnergy(getInteger(item, "energy"));
+            e.setSad(getInteger(item, "sad"));
+            e.setDexterity(getInteger(item, "dexterity"));
+            e.setIntelligence(getInteger(item, "intelligence"));
+            e.setConstitution(getInteger(item, "constitution"));
+            e.setWeight(getInteger(item, "weight"));
             entities.add(e);
         }
         return persistencePort.saveDifficulties(entities).size();

@@ -185,13 +185,14 @@ vendor/bin/phpunit --configuration phpunit.xml
 - Starting from 0.12.4 version, code is created with AI prompt:
     > read all "documentation_v0" and "code/backend/python" content, now i wanna create "code/backend/php" project, let's go!
 
-- **Document Version**: 0.14.1
+- **Document Version**: 0.19.7
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.4 | First version of this document | April 1, 2026 |
     | 0.12.5 | Add Docker section, tests section, project structure update | April 1, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: April 1, 2026
+    | 0.19.7 | database.sql: 7 stat columns added to list_stories_difficulty (life, energy, sad, dexterity, intelligence, constitution, weight with defaults); DifficultyInfo, StoryMysqlPersistenceRepository (saveDifficulties + admin column allowlist), StoryQueryService updated; 51 unit tests pass | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: In progress
 
  

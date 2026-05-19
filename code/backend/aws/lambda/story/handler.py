@@ -232,6 +232,13 @@ def _story_detail(item, lang):
             'costHelpComa':          _safe_int(d.get('costHelpComa')),
             'costMaxCharacteristics':_safe_int(d.get('costMaxCharacteristics')),
             'numberMaxFreeAction':   _safe_int(d.get('numberMaxFreeAction')),
+            'life':                  _safe_int(d.get('life', 0)),
+            'energy':                _safe_int(d.get('energy', 0)),
+            'sad':                   _safe_int(d.get('sad', 0)),
+            'dexterity':             _safe_int(d.get('dexterity', 0)),
+            'intelligence':          _safe_int(d.get('intelligence', 0)),
+            'constitution':          _safe_int(d.get('constitution', 0)),
+            'weight':                _safe_int(d.get('weight', 0)),
             'idCard':                _safe_int(d_id_card) if d_id_card is not None else None,
             'card':                  _build_card(d_id_card, lang),
         })
@@ -584,6 +591,13 @@ def import_story(event):
             'costHelpComa':           d.get('costHelpComa', 0),
             'costMaxCharacteristics': d.get('costMaxCharacteristics', 0),
             'numberMaxFreeAction':    d.get('numberMaxFreeAction', 0),
+            'life':                   d.get('life', 100),
+            'energy':                 d.get('energy', 100),
+            'sad':                    d.get('sad', 0),
+            'dexterity':              d.get('dexterity', 10),
+            'intelligence':           d.get('intelligence', 10),
+            'constitution':           d.get('constitution', 10),
+            'weight':                 d.get('weight', 10),
             'idCard':                 d.get('idCard'),
         })
 

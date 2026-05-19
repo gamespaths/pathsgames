@@ -412,7 +412,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-    | 0.19.6 | `trait` entityType now exposes seven signed stat-delta fields in the bonus-stats panel; `STAT_FIELDS.trait` and `STAT_CATEGORY` extended in `bonusStats.js`; `book.stats.*` i18n keys added for the seven fields | May 19, 2026 |
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     
 - **Last Updated**: May 19, 2026
 - **Status**: Active development

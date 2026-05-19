@@ -15,3 +15,10 @@ class DifficultyInfo:
     numberMaxFreeAction: int = 1
     idCard: int | None = None
     card: CardInfo | None = None
+    life: int = 100
+    energy: int = 100
+    sad: int = 0
+    dexterity: int = 10
+    intelligence: int = 10
+    constitution: int = 10
+    weight: int = 10

@@ -47,6 +47,7 @@ class StoryReadAdapter(StoryReadPort):
             return [
                 {
                     "uuid": d.uuid,
+                    "id_card": d.id_card,
                     "id_text_description": d.id_text_description,
                     "exp_cost": d.exp_cost,
                     "max_weight": d.max_weight,
@@ -54,7 +55,14 @@ class StoryReadAdapter(StoryReadPort):
                     "max_character": d.max_character,
                     "cost_help_coma": d.cost_help_coma,
                     "cost_max_characteristics": d.cost_max_characteristics,
-                    "number_max_free_action": d.number_max_free_action
+                    "number_max_free_action": d.number_max_free_action,
+                    "life": d.life,
+                    "energy": d.energy,
+                    "sad": d.sad,
+                    "dexterity": d.dexterity,
+                    "intelligence": d.intelligence,
+                    "constitution": d.constitution,
+                    "weight": d.weight,
                 }
                 for d in diffs
             ]

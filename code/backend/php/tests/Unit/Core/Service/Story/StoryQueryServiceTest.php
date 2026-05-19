@@ -149,7 +149,7 @@ class StoryQueryServiceTest extends TestCase
             ['id_text' => 10, 'lang' => 'en', 'long_text' => 'Title Long']
         ]);
         $this->readPort->method('findDifficultiesForStory')->willReturn([
-            ['uuid' => 'd1', 'exp_cost' => 5]
+            ['uuid' => 'd1', 'exp_cost' => 5, 'life' => 150, 'energy' => 110, 'sad' => 5, 'dexterity' => 11, 'intelligence' => 12, 'constitution' => 13, 'weight' => 14]
         ]);
         $this->readPort->method('countLocationsForStory')->willReturn(5);
         $this->readPort->method('countEventsForStory')->willReturn(0);
@@ -166,6 +166,13 @@ class StoryQueryServiceTest extends TestCase
         $this->assertSame(5, $detail->locationCount);
         $this->assertCount(1, $detail->difficulties);
         $this->assertSame(5, $detail->difficulties[0]->expCost);
+        $this->assertSame(150, $detail->difficulties[0]->life);
+        $this->assertSame(110, $detail->difficulties[0]->energy);
+        $this->assertSame(5, $detail->difficulties[0]->sad);
+        $this->assertSame(11, $detail->difficulties[0]->dexterity);
+        $this->assertSame(12, $detail->difficulties[0]->intelligence);
+        $this->assertSame(13, $detail->difficulties[0]->constitution);
+        $this->assertSame(14, $detail->difficulties[0]->weight);
     }
 
     public function testResolveTextFallback(): void

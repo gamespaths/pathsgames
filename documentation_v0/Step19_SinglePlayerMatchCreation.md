@@ -304,7 +304,9 @@ The same suite passes against the Python and PHP backends — see
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-- **Last Updated**: May 18, 2026
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
+    | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: ✅ Complete
 
 

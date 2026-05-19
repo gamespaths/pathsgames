@@ -453,7 +453,7 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
     | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-    | 0.19.6 | TraitInfoResponse: seven stat-delta fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); OpenAPI, all backends, seeds, and Robot tests updated | May 19, 2026 |
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
 - **Last Updated**: May 19, 2026
 - **Status**: ✅ Complete
 

@@ -183,10 +183,12 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 $stmt = $this->pdo->prepare("
                     INSERT INTO list_stories_difficulty (
                         id, id_story, uuid, id_card, id_text_name, id_text_description, exp_cost, max_weight,
-                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
+                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action,
+                        life, energy, sad, dexterity, intelligence, constitution, weight
                     ) VALUES (
                         :id, :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :exp_cost, :max_weight,
-                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
+                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action,
+                        :life, :energy, :sad, :dexterity, :intelligence, :constitution, :weight
                     )
                 ");
                 $stmt->execute([
@@ -203,15 +205,24 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                     ':cost_help_coma' => $d['costHelpComa'] ?? null,
                     ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
                     ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
+                    ':life' => $d['life'] ?? 100,
+                    ':energy' => $d['energy'] ?? 100,
+                    ':sad' => $d['sad'] ?? 0,
+                    ':dexterity' => $d['dexterity'] ?? 10,
+                    ':intelligence' => $d['intelligence'] ?? 10,
+                    ':constitution' => $d['constitution'] ?? 10,
+                    ':weight' => $d['weight'] ?? 10,
                 ]);
             } else {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO list_stories_difficulty (
                         id_story, uuid, id_card, id_text_name, id_text_description, exp_cost, max_weight,
-                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action
+                        min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action,
+                        life, energy, sad, dexterity, intelligence, constitution, weight
                     ) VALUES (
                         :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :exp_cost, :max_weight,
-                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action
+                        :min_character, :max_character, :cost_help_coma, :cost_max_characteristics, :number_max_free_action,
+                        :life, :energy, :sad, :dexterity, :intelligence, :constitution, :weight
                     )
                 ");
                 $stmt->execute([
@@ -227,6 +238,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                     ':cost_help_coma' => $d['costHelpComa'] ?? null,
                     ':cost_max_characteristics' => $d['costMaxCharacteristics'] ?? null,
                     ':number_max_free_action' => $d['numberMaxFreeAction'] ?? null,
+                    ':life' => $d['life'] ?? 100,
+                    ':energy' => $d['energy'] ?? 100,
+                    ':sad' => $d['sad'] ?? 0,
+                    ':dexterity' => $d['dexterity'] ?? 10,
+                    ':intelligence' => $d['intelligence'] ?? 10,
+                    ':constitution' => $d['constitution'] ?? 10,
+                    ':weight' => $d['weight'] ?? 10,
                 ]);
             }
         }
@@ -877,7 +895,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     {
         // Return known column sets for each table (MySQL-compatible)
         $columnMap = [
-            'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action'],
+            'list_stories_difficulty' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'exp_cost', 'max_weight', 'min_character', 'max_character', 'cost_help_coma', 'cost_max_characteristics', 'number_max_free_action', 'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
             'list_locations' => ['id', 'id_story', 'uuid', 'id_text_name', 'id_text_description', 'is_safe', 'max_characters', 'id_event_on_enter', 'id_event_if_counter_zero', 'counter_start', 'id_card'],
             'list_locations_neighbors' => ['id', 'id_story', 'id_card', 'id_text_name', 'id_text_description', 'id_location_from', 'id_location_to', 'direction', 'energy_cost', 'condition_key', 'condition_value'],
             'list_events' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'event_type', 'trigger_type', 'energy_cost', 'coin_cost', 'id_event_next', 'flag_interrupt', 'flag_end_time', 'id_location'],

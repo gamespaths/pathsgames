@@ -58,7 +58,8 @@ def seed():
             {"idText": 700, "lang": "it", "shortText": "Coraggioso"}
         ],
         "difficulties": [
-            {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20}
+            {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20,
+             "life": 120, "energy": 110, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12}
         ],
         "locations": [
             {"idTextName": 100, "idTextDescription": 100, "isSafe": 1}
@@ -117,9 +118,19 @@ def seed():
             {"idText": 1, "lang": "en", "shortText": "The Valvassor of the March"},
             {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca"},
             {"idText": 2, "lang": "en", "shortText": "Travel across medieval Veneto."},
-            {"idText": 2, "lang": "it", "shortText": "Viaggia attraverso il Veneto medievale."}
+            {"idText": 2, "lang": "it", "shortText": "Viaggia attraverso il Veneto medievale."},
+            {"idText": 300, "lang": "en", "shortText": "Merciful Judge"},
+            {"idText": 301, "lang": "en", "shortText": "Just Trial"},
+            {"idText": 302, "lang": "en", "shortText": "Iron Inquisition"}
         ],
-        "difficulties": [],
+        "difficulties": [
+            {"uuid": "demo2-diff-1", "idTextDescription": 300, "expCost": 3, "maxWeight": 20,
+             "life": 130, "energy": 120, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 14, "weight": 14},
+            {"uuid": "demo2-diff-2", "idTextDescription": 301, "expCost": 5, "maxWeight": 12,
+             "life": 100, "energy": 100, "sad": 10, "dexterity": 10, "intelligence": 10, "constitution": 10, "weight": 10},
+            {"uuid": "demo2-diff-3", "idTextDescription": 302, "expCost": 8, "maxWeight": 8,
+             "life": 80,  "energy": 90,  "sad": 20, "dexterity": 8,  "intelligence": 8,  "constitution": 8,  "weight": 8}
+        ],
         "locations": [],
         "events": [],
         "items": [],

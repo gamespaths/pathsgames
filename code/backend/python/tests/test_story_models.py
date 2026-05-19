@@ -26,6 +26,24 @@ def test_difficulty_info_defaults():
     d = DifficultyInfo(uuid="u1")
     assert d.expCost == 5
     assert d.maxWeight == 10
+    assert d.life == 100
+    assert d.energy == 100
+    assert d.sad == 0
+    assert d.dexterity == 10
+    assert d.intelligence == 10
+    assert d.constitution == 10
+    assert d.weight == 10
+
+def test_difficulty_info_stat_fields_explicit():
+    d = DifficultyInfo(uuid="u2", life=80, energy=90, sad=20,
+                       dexterity=7, intelligence=7, constitution=7, weight=7)
+    assert d.life == 80
+    assert d.energy == 90
+    assert d.sad == 20
+    assert d.dexterity == 7
+    assert d.intelligence == 7
+    assert d.constitution == 7
+    assert d.weight == 7
 
 def test_story_detail_defaults():
     d = StoryDetail(uuid="u1")

@@ -570,6 +570,34 @@ components:
           type: integer
           description: Maximum free actions per turn
           example: 1
+        life:
+          type: integer
+          description: Starting life stat baseline
+          example: 100
+        energy:
+          type: integer
+          description: Starting energy stat baseline
+          example: 100
+        sad:
+          type: integer
+          description: Starting sadness baseline
+          example: 0
+        dexterity:
+          type: integer
+          description: Starting dexterity baseline
+          example: 10
+        intelligence:
+          type: integer
+          description: Starting intelligence baseline
+          example: 10
+        constitution:
+          type: integer
+          description: Starting constitution baseline
+          example: 10
+        weight:
+          type: integer
+          description: Starting weight baseline
+          example: 10
 
     StoryImportRequest:
       type: object
@@ -663,6 +691,20 @@ components:
               costMaxCharacteristics:
                 type: integer
               numberMaxFreeAction:
+                type: integer
+              life:
+                type: integer
+              energy:
+                type: integer
+              sad:
+                type: integer
+              dexterity:
+                type: integer
+              intelligence:
+                type: integer
+              constitution:
+                type: integer
+              weight:
                 type: integer
         locations:
           type: array

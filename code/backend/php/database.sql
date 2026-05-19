@@ -83,6 +83,13 @@ CREATE TABLE IF NOT EXISTS list_stories_difficulty (
     cost_help_coma INT DEFAULT NULL,
     cost_max_characteristics INT DEFAULT NULL,
     number_max_free_action INT DEFAULT NULL,
+    life INT NOT NULL DEFAULT 0,
+    energy INT NOT NULL DEFAULT 0,
+    sad INT NOT NULL DEFAULT 0,
+    dexterity INT NOT NULL DEFAULT 0,
+    intelligence INT NOT NULL DEFAULT 0,
+    constitution INT NOT NULL DEFAULT 0,
+    weight INT NOT NULL DEFAULT 0,
     PRIMARY KEY (id, id_story),
     FOREIGN KEY (id_story) REFERENCES list_stories(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
