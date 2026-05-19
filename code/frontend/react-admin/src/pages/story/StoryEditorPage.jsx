@@ -1,23 +1,33 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../api/storyApi'
-import LoadingSpinner from '../components/common/LoadingSpinner'
-import ErrorAlert from '../components/common/ErrorAlert'
-import EntityTable from '../components/common/story/EntityTable'
-import EntityForm from '../components/common/story/EntityForm'
-import ConfirmModal from '../components/common/ConfirmModal'
-import PathsSelector from '../components/common/story/PathsSelector'
-import FastTextSelectorModal from '../components/common/story/FastTextSelectorModal'
-import PathsOptionsSelectorModal from '../components/common/story/PathsOptionsSelectorModal'
+import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../../api/storyApi'
+import LoadingSpinner from '../../components/common/LoadingSpinner'
+import ErrorAlert from '../../components/common/ErrorAlert'
+import EntityTable from '../../components/common/story/EntityTable'
+import EntityForm from '../../components/common/story/EntityForm'
+import ConfirmModal from '../../components/common/ConfirmModal'
+import PathsSelector from '../../components/common/story/PathsSelector'
+import FastTextSelectorModal from '../../components/common/story/FastTextSelectorModal'
+import PathsOptionsSelectorModal from '../../components/common/story/PathsOptionsSelectorModal'
 import {
   STORIES_ENTITIES_TABS as TABS,
   STORIES_ENTITIES_COLUMNS as COLUMNS,
   STORIES_ENTITIES_FIELDS as FIELDS
-} from '../constants/story/storiesEntities'
+} from '../../constants/story/storiesEntities'
 
+import StoryEditorPageSidebar from './StoryEditorPageSidebar'
 import {
-  LOCATION_NEIGHBOR_DIRECTIONS,
-} from '../constants/story/locationNeighbors'
+  REFERENCE_REFRESH_TABS,
+  makeReferenceOptions as helperMakeReferenceOptions,
+  buildLocationOptions,
+  buildKeysOptions,
+  getOptionDisplay,
+  getTextDisplay as helperGetTextDisplay,
+  normalizeIdCardPayload,
+  normalizeEntityForForm,
+  getNewEntityDefaults as helperGetNewEntityDefaults,
+  mapEntityList as helperMapEntityList,
+} from './StoryEditorPageHelpers'
 
 
 
@@ -171,7 +181,7 @@ export default function StoryEditorPage() {
       if (entityTab === 'locations') {
         await refreshLocations(uuid)
       }
-      if (['events', 'traits', 'items', 'classes', 'choices', 'missions', 'keys', 'cards', 'weather-rules'].includes(entityTab)) {
+      if (REFERENCE_REFRESH_TABS.includes(entityTab)) {
         await refreshReferenceEntities(uuid)
       }
     } catch (e) { setError(e.message) }
@@ -180,21 +190,7 @@ export default function StoryEditorPage() {
   const handleSaveEntity = async (data) => {
     const entityTab = modal?.entityTab || activeTab
     try {
-      const payload = { ...data }
-
-      const hasCardKey = Object.prototype.hasOwnProperty.call(payload, 'idCard')
-        || Object.prototype.hasOwnProperty.call(payload, 'id_card')
-      if (hasCardKey) {
-        const rawIdCard = payload.idCard ?? payload.id_card
-        const normalizedIdCard = Number(rawIdCard)
-        if (rawIdCard === '' || rawIdCard === null || rawIdCard === undefined) {
-          payload.idCard = ''
-          payload.id_card = null
-        } else if (Number.isFinite(normalizedIdCard)) {
-          payload.idCard = normalizedIdCard
-          payload.id_card = normalizedIdCard
-        }
-      }
+      const payload = normalizeIdCardPayload(data)
 
       if (entityTab === 'texts' && payload.idText) {
         payload.id = Number(payload.idText)
@@ -214,7 +210,7 @@ export default function StoryEditorPage() {
       if (entityTab === 'locations') {
         await refreshLocations(uuid)
       }
-      if (['events', 'traits', 'items', 'classes', 'choices', 'missions', 'keys', 'cards', 'weather-rules'].includes(entityTab)) {
+      if (REFERENCE_REFRESH_TABS.includes(entityTab)) {
         await refreshReferenceEntities(uuid)
       }
       setTimeout(() => setSuccess(''), 3000)
@@ -225,20 +221,8 @@ export default function StoryEditorPage() {
     try {
       setLoading(true)
 
-      // Map an entity list to include all fields defined in FIELDS[entityType],
-      // defaulting to null for missing ones. Also removes internal/DB-only fields.
-      const mapEntityList = (list, entityType) => {
-        const fieldKeys = (FIELDS[entityType] ?? []).map(f => f.key)
-        return (list ?? []).map(entity => {
-          const mapped = {}
-          for (const key of fieldKeys) {
-            mapped[key] = entity[key] ?? null
-          }
-          // Also keep 'id' for import reference if present
-          if (entity.id !== undefined) mapped.id = entity.id
-          return mapped
-        })
-      }
+      // Projects each entity list onto its declared FIELDS set.
+      const mapEntityList = helperMapEntityList
 
       const [
         difficultiesData,
@@ -499,80 +483,21 @@ export default function StoryEditorPage() {
     { key: 'uuid', label: 'UUID', render: e => <small className="text-white/20">{e.uuid?.slice(0, 8)}...</small> }
   ]
 
-  const getTextDisplay = (idText) => {
-    if (idText === null || idText === undefined || idText === '') return ''
-    const target = texts.find(item => Number(item.idText) === Number(idText) && item.lang === 'en')
-    if (!target) return `Text #${idText} (EN not found)`
-    return `#${idText} ${target.shortText || '(empty)'}`
-  }
+  const getTextDisplay = (idText) => helperGetTextDisplay(texts, idText)
 
-  const extractNumericId = (entity, keys = []) => {
-    for (const key of keys) {
-      const value = entity?.[key]
-      if (value === null || value === undefined || value === '') continue
-      const parsed = Number(value)
-      if (Number.isFinite(parsed)) return parsed
-    }
-    return null
-  }
-
-  const getEnShortTextByEntity = (entity, textIdKeys = ['idTextName']) => {
-    const textId = extractNumericId(entity, textIdKeys)
-    if (textId === null) return ''
-    const textEntity = texts.find(item => Number(item.idText) === textId && item.lang === 'en')
-    return textEntity?.shortText || ''
-  }
-
-  const makeReferenceOptions = ({ entities, idKeys, textIdKeys = ['idTextName'] }) => {
-    return (entities || [])
-      .map(entity => {
-        const id = extractNumericId(entity, idKeys)
-        if (id === null) return null
-        const shortText = getEnShortTextByEntity(entity, textIdKeys)
-        return {
-          value: id,
-          label: shortText ? `#${id} ${shortText}` : `#${id}`,
-        }
-      })
-      .filter(Boolean)
-  }
+  const makeReferenceOptions = ({ entities, idKeys, textIdKeys = ['idTextName'] }) =>
+    helperMakeReferenceOptions({ entities, idKeys, textIdKeys, texts })
 
   const setStoryTextField = (key, idText) => {
     setStory(prev => ({ ...prev, [key]: Number(idText) }))
   }
 
-  const getCardDisplay = (idCard) => {
-    if (idCard === null || idCard === undefined || idCard === '') return ''
-    const match = cardsOptions.find(option => String(option.value) === String(idCard))
-    return match?.label || `#${idCard}`
-  }
+  const getCardDisplay = (idCard) => getOptionDisplay(cardsOptions, idCard)
+  const getCreatorDisplay = (idCreator) => getOptionDisplay(creatorsOptions, idCreator)
+  const getLocationDisplay = (idLocation) => getOptionDisplay(locationOptions, idLocation)
+  const getEventDisplay = (idEvent) => getOptionDisplay(eventOptions, idEvent)
 
-  const getCreatorDisplay = (idCreator) => {
-    if (idCreator === null || idCreator === undefined || idCreator === '') return ''
-    const match = creatorsOptions.find(option => String(option.value) === String(idCreator))
-    return match?.label || `#${idCreator}`
-  }
-
-  const getLocationDisplay = (idLocation) => {
-    if (idLocation === null || idLocation === undefined || idLocation === '') return ''
-    const match = locationOptions.find(option => String(option.value) === String(idLocation))
-    return match?.label || `#${idLocation}`
-  }
-
-  const getEventDisplay = (idEvent) => {
-    if (idEvent === null || idEvent === undefined || idEvent === '') return ''
-    const match = eventOptions.find(option => String(option.value) === String(idEvent))
-    return match?.label || `#${idEvent}`
-  }
-
-  const locationOptions = locations.map(location => {
-    const locationId = location.idLocation ?? location.id ?? location.id_location
-    const nameText = texts.find(item => Number(item.idText) === Number(location.idTextName) && item.lang === 'en')
-    return {
-      value: Number(locationId),
-      label: `#${locationId} ${nameText?.shortText || '(no name text)'}`,
-    }
-  }).filter(option => !Number.isNaN(option.value))
+  const locationOptions = buildLocationOptions(locations, texts)
 
   const eventOptions = makeReferenceOptions({
     entities: eventsRef,
@@ -628,17 +553,7 @@ export default function StoryEditorPage() {
     textIdKeys: ['idText', 'idTextDescription'],
   })
 
-  const keysOptions = (keysRef || [])
-    .map(keyEntity => {
-      const keyName = keyEntity?.name
-      if (!keyName) return null
-      const keyValue = keyEntity?.value
-      return {
-        value: keyName,
-        label: keyValue ? `${keyName} = ${keyValue}` : keyName,
-      }
-    })
-    .filter(Boolean)
+  const keysOptions = buildKeysOptions(keysRef)
 
   const pathSelectorOptionsByTab = {
     difficulties: {
@@ -901,50 +816,12 @@ export default function StoryEditorPage() {
     },
   }
 
-  const getNewEntityDefaults = () => {
-    if (activeTab === 'location-neighbors') {
-      return {
-        direction: LOCATION_NEIGHBOR_DIRECTIONS[0],
-        flagBack: 1,
-      }
-    }
-    return null
-  }
-
-  const normalizeEntityForForm = (entity, entityTab) => {
-    if (!entity) return entity
-
-    const normalizedEntity = { ...entity }
-    if (Object.prototype.hasOwnProperty.call(normalizedEntity, 'idCard')
-      || Object.prototype.hasOwnProperty.call(normalizedEntity, 'id_card')) {
-      const normalizedIdCard = Number(normalizedEntity.idCard ?? normalizedEntity.id_card)
-      normalizedEntity.idCard = Number.isFinite(normalizedIdCard) ? normalizedIdCard : ''
-      normalizedEntity.id_card = Number.isFinite(normalizedIdCard) ? normalizedIdCard : null
-    }
-
-    return normalizedEntity
-  }
+  const getNewEntityDefaults = () => helperGetNewEntityDefaults(activeTab)
 
   return (
     <div className="flex flex-col md:flex-row gap-6 align-item-start">
       {/* Sidebar Tabs */}
-      <div className="w-full md:w-64 flex-shrink-0">
-        <div className="pg-card sticky top-4" style={{ padding: '0.5rem' }}>
-          <nav className="flex flex-col gap-05">
-            {TABS.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1 px-1 py-1 rounded transition-all text-sm ${activeTab === tab.id ? 'bg-gold-dark/20 text-gold-light' : 'text-ash hover:bg-white/5'
-                  }`}
-              >
-                <i className={`fas ${tab.icon} w-5 text-center`} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
+      <StoryEditorPageSidebar tabs={TABS} activeTab={activeTab} onSelectTab={setActiveTab} />
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">

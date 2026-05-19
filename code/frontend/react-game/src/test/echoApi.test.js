@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import axios from 'axios'
-import { getServerStatus } from './echoApi'
+import { getServerStatus } from '../api/echoApi'
 
 vi.mock('axios')
 

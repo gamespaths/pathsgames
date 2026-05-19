@@ -34,6 +34,10 @@ export default function NeighborRow({ locations }) {
   const { t } = useTranslation()
   const [activeLocation, setActiveLocation] = useState(null)
 
+  const execute = (actionType, actionName) => {
+    alert(`Executing action: ${actionType} - ${actionName}`);
+  }
+
   return (
     <>
       <div className="game-section-label">
@@ -64,7 +68,7 @@ export default function NeighborRow({ locations }) {
                 card={loc}
                 modalId={modalId}
                 actionLabel={t('game.move')}
-                onAction={() => console.log('Move to', loc.name)}
+                onAction={() => execute('Move to', loc.name)}
               />
             </div>
           )

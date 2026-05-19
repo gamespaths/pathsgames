@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { importStory } from '../api/storyApi'
-import ErrorAlert from '../components/common/ErrorAlert'
+import { importStory } from '../../api/storyApi'
+import ErrorAlert from '../../components/common/ErrorAlert'
 
 const EXAMPLE = JSON.stringify({
   uuid: null,

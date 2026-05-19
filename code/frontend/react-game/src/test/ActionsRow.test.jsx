@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import ActionsRow from './ActionsRow'
+import ActionsRow from '../features/game/ActionsRow'
 
-vi.mock('../../i18n/context', () => ({
+vi.mock('../i18n/context', () => ({
   useTranslation: () => ({
     t: (key) => key,
   }),
@@ -10,7 +10,7 @@ vi.mock('../../i18n/context', () => ({
 
 // Mock CardDetailModal to avoid portal issues in simple tests if needed, 
 // but let's try without first.
-vi.mock('./CardDetailModal', () => ({
+vi.mock('../features/game/CardDetailModal', () => ({
   default: ({ card, modalId, actionLabel, onAction }) => (
     <div data-testid="mock-modal" id={modalId}>
       <span>{card.name}</span>
@@ -68,14 +68,15 @@ describe('ActionsRow', () => {
   })
 
   it('sets active action on click and triggers onAction', () => {
-    const consoleSpy = vi.spyOn(console, 'log')
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<ActionsRow actions={mockActions} />)
-    
+
     const card1 = screen.getAllByText('Action 1')[0].closest('.game-card')
     fireEvent.click(card1)
 
     const executeBtn = screen.getAllByText('Execute')[0]
     fireEvent.click(executeBtn)
-    expect(consoleSpy).toHaveBeenCalledWith('Execute', 'Action 1')
+    expect(alertSpy).toHaveBeenCalledWith('Executing action: Execute - Action 1')
+    alertSpy.mockRestore()
   })
 })

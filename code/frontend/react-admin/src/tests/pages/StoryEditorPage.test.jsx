@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import StoryEditorPage from '../../pages/StoryEditorPage'
+import StoryEditorPage from '../../pages/story/StoryEditorPage'
 
 // --- Mock API module ---
 vi.mock('../../api/storyApi', () => ({
@@ -215,5 +215,93 @@ describe('StoryEditorPage', () => {
     expect(screen.getByText('Edit Entity')).toBeInTheDocument()
     await userEvent.click(screen.getByText('Save'))
     expect(updateEntity).toHaveBeenCalledWith('story-123', 'locations', 'loc-1', expect.any(Object))
+  })
+
+  // ── error handling ───────────────────────────────────────────────────────────
+
+  it('shows an error when the story fails to load', async () => {
+    getStory.mockRejectedValue(new Error('boom-load'))
+    renderPage()
+    expect(await screen.findByText(/boom-load/i)).toBeInTheDocument()
+  })
+
+  it('shows an error when entities fail to load', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'difficulties') return Promise.reject(new Error('boom-entities'))
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Difficulties/i }))
+    expect(await screen.findByText(/boom-entities/i)).toBeInTheDocument()
+  })
+
+  it('surfaces an error when saving the story metadata fails', async () => {
+    updateStory.mockRejectedValue(new Error('save-fail'))
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByText(/Save Changes/i))
+    expect(await screen.findByText(/save-fail/i)).toBeInTheDocument()
+  })
+
+  // ── tab rendering ────────────────────────────────────────────────────────────
+
+  it('renders every entity tab without crashing', async () => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    const tabLabels = [
+      'Cards', 'Creators', 'Texts', 'Keys', 'Difficulties', 'Locations',
+      'Events', 'Items', 'Templates', 'Classes', 'Traits', 'Choices',
+      'Weather Rules', 'Missions', 'Mission Steps',
+    ]
+    for (const label of tabLabels) {
+      await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }))
+      expect(await screen.findByText(new RegExp(`Add ${label.slice(0, 3)}`, 'i'))).toBeInTheDocument()
+    }
+  })
+
+  // ── entity save/delete branches ──────────────────────────────────────────────
+
+  it('closes the create modal on cancel', async () => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Difficulties/i }))
+    await userEvent.click(screen.getByRole('button', { name: /Add Diff/i }))
+    expect(screen.getByText('Create Entity')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Cancel'))
+    expect(screen.queryByText('Create Entity')).not.toBeInTheDocument()
+  })
+
+  it('creates a difficulty entity', async () => {
+    createEntity.mockResolvedValue({ uuid: 'new-diff' })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Difficulties/i }))
+    await userEvent.click(screen.getByRole('button', { name: /Add Diff/i }))
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'difficulties', expect.any(Object))
+  })
+
+  it('deletes a text entity and refreshes texts', async () => {
+    let textsCalls = 0
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') { textsCalls++; return Promise.resolve(MOCK_TEXTS) }
+      return Promise.resolve([])
+    })
+    deleteEntity.mockResolvedValue({ status: 'DELETED' })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Texts/i }))
+    const trashBtn = await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      const found = buttons.find(b => b.querySelector('.fa-trash'))
+      if (!found) throw new Error('no trash button yet')
+      return found
+    })
+    const before = textsCalls
+    await userEvent.click(trashBtn)
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(textsCalls).toBeGreaterThan(before))
   })
 })

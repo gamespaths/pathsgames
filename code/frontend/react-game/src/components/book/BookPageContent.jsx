@@ -1,6 +1,7 @@
 import BonusBadgeList from '../common/BonusBadgeList'
 import { useTranslation } from '../../i18n/context'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
+import { sanitizeHtml } from '../../utils/sanitizeHtml'
 import GameCardCreditsBar from '../layout/GameCardCreditsBar'
 
 /**
@@ -47,7 +48,7 @@ export default function BookPageContent({ card, story, loading, onClose, entity,
       {description && (
         <div className="book-page-desc">
           <BonusBadgeList items={statItems} className="book-page-stats" />
-          <span dangerouslySetInnerHTML={{ __html: description }} />
+          <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }} />
         </div>
       )}
         {card?.linkCopyright && (

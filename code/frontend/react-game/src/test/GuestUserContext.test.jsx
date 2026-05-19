@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { GuestUserProvider, useGuestUser } from './GuestUserContext'
+import { GuestUserProvider, useGuestUser } from '../context/GuestUserContext'
 import * as authApi from '../api/auth'
 
-vi.mock('./ServerContext', () => {
+vi.mock('../context/ServerContext', () => {
   let current = 'mock'
   return {
     MOCK_SERVER: 'mock',
@@ -40,7 +40,7 @@ describe('GuestUserContext', () => {
   })
 
   it('uses resumeGuestSession when the backend still has a session', async () => {
-    const { __setServer } = await import('./ServerContext')
+    const { __setServer } = await import('../context/ServerContext')
     __setServer('http://api.test')
     vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({
       userUuid: 'resumed-uuid', username: 'guest_resumed',
@@ -55,7 +55,7 @@ describe('GuestUserContext', () => {
   })
 
   it('falls back to createGuestSession when resume fails', async () => {
-    const { __setServer } = await import('./ServerContext')
+    const { __setServer } = await import('../context/ServerContext')
     __setServer('http://api.test')
     vi.spyOn(authApi, 'resumeGuestSession').mockRejectedValue(new Error('401'))
     vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({

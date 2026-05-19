@@ -7,7 +7,7 @@ import {
   buildClassesById,
   getOptionLockInfo,
   STAT_CATEGORY_ORDER,
-} from './bonusStats'
+} from '../utils/bonusStats'
 
 describe('getNonZeroStats', () => {
   it('returns only non-zero base stats for a character', () => {

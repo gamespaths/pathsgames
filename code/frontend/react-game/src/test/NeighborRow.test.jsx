@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import NeighborRow from './NeighborRow'
+import NeighborRow from '../features/game/NeighborRow'
 
-vi.mock('../../i18n/context', () => ({
+vi.mock('../i18n/context', () => ({
   useTranslation: () => ({
     t: (key) => key,
   }),
 }))
 
-vi.mock('./CardDetailModal', () => ({
+vi.mock('../features/game/CardDetailModal', () => ({
   default: ({ card, modalId, actionLabel, onAction }) => (
     <div data-testid="mock-modal" id={modalId}>
       <span>{card.name}</span>
@@ -23,7 +23,7 @@ describe('NeighborRow', () => {
     { uuid: 'loc-1', name: 'Location 1', urlImage: '/path/to/img.png', awesomeIcon: 'fas fa-map' },
     { uuid: 'loc-2', name: 'Location 2', urlImage: 'https://example.com/img.jpg' },
     { uuid: 'loc-3', name: 'Location 3', urlImage: 'invalid-url', awesomeIcon: 'fas fa-home' },
-    { uuid: 'loc-4', name: 'Location 4', urlImage: 'ftp://insecure.com', awesomeIcon: 'fas fa-mosque' },
+    { uuid: 'loc-4', name: 'Location 4', urlImage: 'sftp://insecure.com', awesomeIcon: 'fas fa-mosque' },
     { uuid: '!!!', name: 'Location 5', urlImage: '   ', awesomeIcon: '   ' },
     { uuid: null, name: 'Location 6', urlImage: '' }
   ]
@@ -86,14 +86,15 @@ describe('NeighborRow', () => {
   })
 
   it('sets active location on click and triggers onAction', () => {
-    const consoleSpy = vi.spyOn(console, 'log')
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     render(<NeighborRow locations={mockLocations} />)
-    
+
     const card1 = screen.getAllByText('Location 1')[0].closest('.game-card')
     fireEvent.click(card1)
 
     const moveBtn = screen.getAllByText('Move')[0]
     fireEvent.click(moveBtn)
-    expect(consoleSpy).toHaveBeenCalledWith('Move to', 'Location 1')
+    expect(alertSpy).toHaveBeenCalledWith('Executing action: Move to - Location 1')
+    alertSpy.mockRestore()
   })
 })

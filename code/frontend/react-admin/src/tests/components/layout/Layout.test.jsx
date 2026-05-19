@@ -50,4 +50,31 @@ describe('Layout', () => {
     const toggleBtn = screen.getByTitle(/Sidebar always visible/i)
     expect(toggleBtn).toBeDisabled()
   })
+
+  it('hides the sidebar when navigating to a non-dashboard route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/stories']}>
+        <AuthProvider>
+          <Layout><div>Content</div></Layout>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+    await userEvent.click(screen.getByText('Server Status'))
+    expect(screen.getByText('Show menu')).toBeInTheDocument()
+  })
+
+  it('re-shows the sidebar when navigating back to the dashboard', async () => {
+    render(
+      <MemoryRouter initialEntries={['/stories']}>
+        <AuthProvider>
+          <Layout><div>Content</div></Layout>
+        </AuthProvider>
+      </MemoryRouter>
+    )
+    await userEvent.click(screen.getByText('Server Status'))
+    expect(screen.getByText('Show menu')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Show menu'))
+    await userEvent.click(screen.getByText('Dashboard'))
+    expect(screen.getByText('Hide menu')).toBeInTheDocument()
+  })
 })

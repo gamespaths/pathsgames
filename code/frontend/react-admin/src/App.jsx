@@ -4,9 +4,9 @@ import Layout from './components/layout/Layout'
 import LoginPage       from './pages/LoginPage'
 import DashboardPage   from './pages/DashboardPage'
 import GuestsPage      from './pages/GuestsPage'
-import StoriesPage     from './pages/StoriesPage'
-import StoryImportPage from './pages/StoryImportPage'
-import StoryEditorPage from './pages/StoryEditorPage'
+import StoriesPage     from './pages/story/StoriesPage'
+import StoryImportPage from './pages/story/StoryImportPage'
+import StoryEditorPage from './pages/story/StoryEditorPage'
 import EchoPage        from './pages/EchoPage'
 
 function ProtectedRoutes() {

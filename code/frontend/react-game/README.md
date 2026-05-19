@@ -128,7 +128,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
 
 ---
 
-- **Document Version**: 0.19.8
+- **Document Version**: 0.19.6
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -152,7 +152,8 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
     | 0.19.6 | bonusStats.js STAT_FIELDS.trait extended with seven stat-delta keys (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); non-zero values rendered automatically by existing `BonusBadgeList`; all seven keys contribute to ConfigView category totals via STAT_CATEGORY map | May 19, 2026 |
     | 0.19.7 | bonusStats.js STAT_FIELDS.difficulty extended with the same seven stat-delta keys (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); BonusBadgeList renders the new bonus pills inside the BookPage difficulty preview; values flow into ConfigView category totals via existing STAT_CATEGORY mapping (no i18n change — labels use the existing `book.stats.totals.<key>` keys) | May 19, 2026 |
     | 0.19.8 | Guest-user flow rewired: new `GuestUserProvider` (`src/context/GuestUserContext.jsx`) owns identity, persists a non-HttpOnly `paths.games.user` cookie ({userUuid, username}) with 30-day Max-Age, auto-calls `POST /api/auth/guest` on first visit and `POST /api/auth/guest/resume` when the cookie is present (`withCredentials:true` so the backend `pathsgames.guestcookie` HttpOnly cookie travels along). Mock-server mode synthesizes an offline guest locally. New `api/auth.js` wraps both endpoints. Navbar user-icon now shows the cached `username` and opens the new `GuestUserModal` (Bootstrap modal `#guestUserModal`) instead of the legacy toast; the modal renders a `BookPageContent` card with the username as title and `modals.guestUser.body` (HTML) as description plus the session UUID under a divider. New i18n keys `modals.guestUser.title/anonymous/uuidLabel/body` (EN+IT). New tests: `src/context/GuestUserContext.test.jsx` (cookie restore + mock-server synthesis); `src/test/Navbar.test.jsx` updated to mock the new context and assert the modal trigger. Cookie-consent banner intentionally not touched — handled externally by Cookies-Yes | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.19.6 | Code refactoring: all scattered test files (`echoApi.test.js`, `NeighborRow.test.jsx`, `ActionsRow.test.jsx`, `bonusStats.test.js`, `GuestUserContext.test.jsx`) moved from their source-adjacent locations (`api/`, `features/game/`, `utils/`, `context/`) into the central `src/test/` folder; relative imports updated accordingly | May 20, 2026 |
+- **Last Updated**: May 20, 2026
 - **Status**: Active development
 
 ---

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../api/storyApi'
-import LoadingSpinner from '../components/common/LoadingSpinner'
-import ErrorAlert from '../components/common/ErrorAlert'
-import ConfirmModal from '../components/common/ConfirmModal'
+import { listAllStories, deleteStory, createStory, getStory, listEntities } from '../../api/storyApi'
+import LoadingSpinner from '../../components/common/LoadingSpinner'
+import ErrorAlert from '../../components/common/ErrorAlert'
+import ConfirmModal from '../../components/common/ConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function StoriesPage() {

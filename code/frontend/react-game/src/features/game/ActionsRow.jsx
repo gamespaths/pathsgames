@@ -19,6 +19,11 @@ export default function ActionsRow({ actions }) {
   const { t } = useTranslation()
   const [activeAction, setActiveAction] = useState(null)
 
+  const execute = (actionType, actionName) => {
+    // console.log(`Executing action: ${actionType} - ${actionName}`)  ;
+    alert(`Executing action: ${actionType} - ${actionName}`)
+  }
+
   return (
     <>
       <div className="game-section-label">
@@ -46,7 +51,7 @@ export default function ActionsRow({ actions }) {
                 card={action}
                 modalId={modalId}
                 actionLabel={t('game.execute')}
-                onAction={() => console.log('Execute', action.name)}
+                onAction={() => execute('Execute', action.name)}
               />
             </div>
           )
