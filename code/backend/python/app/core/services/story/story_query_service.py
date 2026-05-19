@@ -143,7 +143,14 @@ class StoryQueryService(StoryQueryPort):
                 idClassPermitted=tr.get("id_class_permitted"),
                 idClassProhibited=tr.get("id_class_prohibited"),
                 idCard=tr.get("id_card"),
-                card=self._resolve_card(story_id, texts, tr.get("id_card"), lang)
+                card=self._resolve_card(story_id, texts, tr.get("id_card"), lang),
+                life=tr.get("life", 0) or 0,
+                energy=tr.get("energy", 0) or 0,
+                sad=tr.get("sad", 0) or 0,
+                dexterity=tr.get("dexterity", 0) or 0,
+                intelligence=tr.get("intelligence", 0) or 0,
+                constitution=tr.get("constitution", 0) or 0,
+                weight=tr.get("weight", 0) or 0,
             ))
 
         # Step 15: Card

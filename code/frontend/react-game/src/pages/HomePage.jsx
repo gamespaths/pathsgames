@@ -3,7 +3,6 @@ import { useTranslation } from '../i18n/context'
 import { getStories } from '../api/stories'
 import StoryCatalog from '../features/home/StoryCatalog'
 import StartBookModal from '../features/startBook/StartBookModal'
-import GameCardInfoButton from '../components/layout/GameCardInfoButton'
 //  url: 'https://images.unsplash.com/photo-1505816014357-96b5ff457e9a?auto=format&fit=crop&w=1400&q=80',
 /*
   url: 'https://images.unsplash.com/photo-1726576165400-b85a4f99a635?auto=format&fit=crop&w=1400&q=80',
@@ -37,10 +36,6 @@ export default function HomePage() {
           <h1 className="hero-title">{t('home.heroTitle')}</h1>
           <p className="hero-sub">{t('home.heroSub')}</p>
         </div>
-        <GameCardInfoButton
-          card={HERO_IMG}
-          buttonClassName="card-info-btn hero-info-btn"
-        />
       </section>
 
       {/* Catalog */}

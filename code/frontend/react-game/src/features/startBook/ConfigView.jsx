@@ -25,17 +25,15 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
   const gemsImg    = imgById('gems')
 
   const gameTypeValue = {
-    name: t('book.single'),
-    icon: 'fas fa-user',
-    card: { urlImage: personImg?.urlImage, copyrightText: 'Delapouite on game-icons.net', 
-      linkCopyright: personImg?.linkCopyright, styleImageLarge: 'of-c ' },
+    name: t('book.single'),//    icon: 'fas fa-user',
+    card: { urlImage: personImg?.urlImage, copyrightText: personImg?.copyrightText, 
+      linkCopyright: personImg?.linkCopyright, styleImageLarge: personImg?.styleImageLarge, },
     description : t('book.singleDesc'),
   }
   const loginValue = {
-    name: t('book.guest'),
-    icon: 'fas fa-user-circle',
-    card: { urlImage: gemsImg?.urlImage, copyrightText: 'Lorc on game-icons.net', 
-      linkCopyright: gemsImg?.linkCopyright , styleImageLarge: 'of-c'},
+    name: t('book.guest'),//    icon: 'fas fa-user-circle',
+    card: { urlImage: gemsImg?.urlImage, copyrightText: gemsImg?.copyrightText, 
+      linkCopyright: gemsImg?.linkCopyright, styleImageLarge: gemsImg?.styleImageLarge, },
     description : t('book.guestDesc'),
   }
 
@@ -45,10 +43,10 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
       <div className="config-cards-area selection-list">
         {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
             selection list + preview together (handled by onChangeClick). */}
-        <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}      onPreview={() => onChangeClick('class')} />
-        <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')}  onPreview={() => onChangeClick('character')} />          
-        <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')}      onPreview={() => onChangeClick('trait')} />
-        <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} />
+        <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}      onPreview={() => onChangeClick('class')}      count={story?.classes?.length}            onPagePreview={onPreview} />
+        <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')}  onPreview={() => onChangeClick('character')}  count={story?.characterTemplates?.length} onPagePreview={onPreview} />
+        <ConfigCard type="trait"      value={config.trait}      story={story} onChangeClick={() => onChangeClick('trait')}      onPreview={() => onChangeClick('trait')}      count={story?.traits?.length}             onPagePreview={onPreview} />
+        <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} count={story?.difficulties?.length}       onPagePreview={onPreview} />
         {/* Locked cards: lens is preview-only (no selection list to open). */}
         <ConfigCard type="gameType"   value={gameTypeValue} locked onPreview={onPreview} />
         <ConfigCard type="login"      value={loginValue}    locked onPreview={onPreview} />

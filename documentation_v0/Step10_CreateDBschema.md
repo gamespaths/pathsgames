@@ -65,7 +65,8 @@ code/backend/java/
 │           │   ├── V0.10.11__create_indexes.sql
 │           │   └── V0.10.12__insert_seed_data.sql
 │           ├── v0_19/
-│           │   └── V0.19.5__add_character_template_class_fields.sql
+│           │   ├── V0.19.5__add_character_template_class_fields.sql
+│           │   └── V0.19.6__add_trait_stat_columns.sql
 │           └── dev/
 │               └── R__insert_dev_test_data.sql
 │
@@ -87,7 +88,8 @@ code/backend/java/
 │           │   ├── V0.10.11__create_indexes.sql
 │           │   └── V0.10.12__insert_seed_data.sql
 │           ├── v0_19/
-│           │   └── V0.19.5__add_character_template_class_fields.sql
+│           │   ├── V0.19.5__add_character_template_class_fields.sql
+│           │   └── V0.19.6__add_trait_stat_columns.sql
 │           └── dev/
 │               └── R__insert_dev_test_data.sql
 ```
@@ -641,7 +643,8 @@ ORDER BY installed_rank;
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.17.4 | Change primary keys on `list_` and `gaming_` tables to composite `(id, scope)` | May 03, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-- **Last Updated**: May 18, 2026
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) to `list_traits` across PostgreSQL and SQLite adapters | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: Complete ✅
 
 

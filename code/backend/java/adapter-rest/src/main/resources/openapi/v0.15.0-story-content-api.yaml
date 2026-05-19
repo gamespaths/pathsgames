@@ -693,6 +693,34 @@ components:
           nullable: true
           description: Visual card details for this trait (null if no card)
           $ref: '#/components/schemas/CardInfoResponse'
+        life:
+          type: integer
+          description: Signed delta applied to the character's Life stat when the trait is picked (added v0.19.6)
+          example: 2
+        energy:
+          type: integer
+          description: Signed delta applied to the character's Energy stat when the trait is picked (added v0.19.6)
+          example: 0
+        sad:
+          type: integer
+          description: Signed delta applied to the character's Happiness/Sad stat when the trait is picked (added v0.19.6)
+          example: 0
+        dexterity:
+          type: integer
+          description: Signed delta applied to the character's Dexterity stat when the trait is picked (added v0.19.6)
+          example: 1
+        intelligence:
+          type: integer
+          description: Signed delta applied to the character's Intelligence stat when the trait is picked (added v0.19.6)
+          example: 0
+        constitution:
+          type: integer
+          description: Signed delta applied to the character's Physique/Constitution stat when the trait is picked (added v0.19.6)
+          example: 0
+        weight:
+          type: integer
+          description: Signed delta applied to the character's Carry/Weight capacity when the trait is picked (added v0.19.6)
+          example: 0
 
     CardInfoResponse:
       type: object

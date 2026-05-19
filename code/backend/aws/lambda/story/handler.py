@@ -304,6 +304,13 @@ def _story_detail(item, lang):
             'idClassProhibited': tr.get('idClassProhibited'),
             'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
             'card':              _build_card(tr_id_card, lang),
+            'life':              _safe_int(tr.get('life')),
+            'energy':            _safe_int(tr.get('energy')),
+            'sad':               _safe_int(tr.get('sad')),
+            'dexterity':         _safe_int(tr.get('dexterity')),
+            'intelligence':      _safe_int(tr.get('intelligence')),
+            'constitution':      _safe_int(tr.get('constitution')),
+            'weight':            _safe_int(tr.get('weight')),
         })
 
     # Step 15: story-level card
@@ -643,6 +650,13 @@ def import_story(event):
             'idClassPermitted':  tr.get('idClassPermitted'),
             'idClassProhibited': tr.get('idClassProhibited'),
             'idCard':            tr.get('idCard'),
+            'life':              tr.get('life', 0),
+            'energy':            tr.get('energy', 0),
+            'sad':               tr.get('sad', 0),
+            'dexterity':         tr.get('dexterity', 0),
+            'intelligence':      tr.get('intelligence', 0),
+            'constitution':      tr.get('constitution', 0),
+            'weight':            tr.get('weight', 0),
         })
 
     # Step 15: Build card info

@@ -32,37 +32,41 @@
     "change": "Cambia",
     "select": "Seleziona",
     "back": "Indietro",
+    "tts": {
+      "play": "Leggi ad alta voce",
+      "stop": "Interrompi lettura"
+    },
     "acceptTerms": "Accetto i Termini e Condizioni",
     "startGame": "Inizia Gioco",
     "selectTitle": "Seleziona",
     "stats": {
       "title": "Bonus",
-      "lifeMax": "Vita Max",
-      "energyMax": "Energia Max",
-      "sadMax": "Tristezza Max",
+      "lifeMax": "Vita",
+      "energyMax": "Energia",
+      "sadMax": "Felicità",
       "dexterityStart": "Destrezza",
       "intelligenceStart": "Intelligenza",
-      "constitutionStart": "Costituzione",
-      "weightMax": "Peso Max",
+      "constitutionStart": "Fisico",
+      "weightMax": "Trasporto",
       "dexterityBase": "Destrezza",
       "intelligenceBase": "Intelligenza",
-      "constitutionBase": "Costituzione",
+      "constitutionBase": "Fisico",
       "costPositive": "Costo Positivo",
       "costNegative": "Costo Negativo",
       "expCost": "Costo EXP",
       "minCharacter": "Giocatori Min",
-      "maxCharacter": "Giocatori Max",
+      "maxCharacter": "Giocatori",
       "costHelpComa": "Costo Aiuto Coma",
-      "costMaxCharacteristics": "Costo Carat. Max",
+      "costMaxCharacteristics": "Costo Carat.",
       "numberMaxFreeAction": "Azioni Libere",
       "totals": {
         "life": "Vita",
         "energy": "Energia",
-        "sad": "Tristezza",
+        "sad": "Felicità",
         "dexterity": "Destrezza",
         "intelligence": "Intelligenza",
-        "constitution": "Costituzione",
-        "weight": "Peso",
+        "constitution": "Fisico",
+        "weight": "Trasporto",
         "exp": "EXP"
       }
     }
@@ -80,12 +84,12 @@
     "stats": {
       "life": "Vita",
       "energy": "Energia",
-      "sadness": "Tristezza",
+      "sadness": "Felicità",
       "experience": "EXP",
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
-      "weight": "Peso"
+      "weight": "Trasporto"
     },
     "move": "Vai Qui",
     "execute": "Esegui"
@@ -97,6 +101,7 @@
     "privacy": "Privacy Policy",
     "terms": "Termini di Servizio",
     "cookies": "Cookie Policy",
+    "credits": "Crediti",
     "github": "GitHub",
     "roadmap": "Roadmap",
     "devlog": "Devlog",
@@ -118,6 +123,10 @@
     "cookies": {
       "title": "Cookie Policy",
       "body": "Questo sito utilizza solo cookie essenziali per mantenere attiva la sessione. Non vengono utilizzati cookie di tracciamento."
+    },
+    "credits": {
+      "title": "Crediti Immagini",
+      "body": "Ogni immagine usata da Paths Games — fotografie di Unsplash e icone SVG di game-icons.net — è accreditata di seguito. Clicca su una card per aprire la pagina originale dell'autore."
     },
     "copyright": {
       "title": "Crediti Foto",

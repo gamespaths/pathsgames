@@ -238,6 +238,13 @@ public class StoryController {
                 ti.getIdClassPermitted(), ti.getIdClassProhibited());
         r.setIdCard(ti.getIdCard());
         r.setCard(ti.getCard() != null ? toCardInfoResponse(ti.getCard()) : null);
+        r.setLife(ti.getLife());
+        r.setEnergy(ti.getEnergy());
+        r.setSad(ti.getSad());
+        r.setDexterity(ti.getDexterity());
+        r.setIntelligence(ti.getIntelligence());
+        r.setConstitution(ti.getConstitution());
+        r.setWeight(ti.getWeight());
         return r;
     }
 

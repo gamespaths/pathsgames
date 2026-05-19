@@ -936,6 +936,13 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idClassProhibited", tr.getIdClassProhibited());
             m.put("costPositive", tr.getCostPositive());
             m.put("costNegative", tr.getCostNegative());
+            m.put("life", tr.getLife());
+            m.put("energy", tr.getEnergy());
+            m.put("sad", tr.getSad());
+            m.put("dexterity", tr.getDexterity());
+            m.put("intelligence", tr.getIntelligence());
+            m.put("constitution", tr.getConstitution());
+            m.put("weight", tr.getWeight());
         } else if (e instanceof CardEntity) {
             CardEntity cd = (CardEntity) e;
             m.put("cardType", cd.getCardType());
@@ -1223,6 +1230,20 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostPositive(intVal(d, "costPositive"));
         if (d.containsKey("costNegative"))
             e.setCostNegative(intVal(d, "costNegative"));
+        if (d.containsKey("life"))
+            e.setLife(intVal(d, "life"));
+        if (d.containsKey("energy"))
+            e.setEnergy(intVal(d, "energy"));
+        if (d.containsKey("sad"))
+            e.setSad(intVal(d, "sad"));
+        if (d.containsKey("dexterity"))
+            e.setDexterity(intVal(d, "dexterity"));
+        if (d.containsKey("intelligence"))
+            e.setIntelligence(intVal(d, "intelligence"));
+        if (d.containsKey("constitution"))
+            e.setConstitution(intVal(d, "constitution"));
+        if (d.containsKey("weight"))
+            e.setWeight(intVal(d, "weight"));
     }
 
     private void applyTextFields(TextEntity e, Map<String, Object> d) {

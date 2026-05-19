@@ -121,6 +121,8 @@
       "sadMax": 3,
       "lifeMax": 6,
       "constitutionStart": 2,
+      "idClassProhibited": 3,
+      "idClassPermitted": "",
       "idTextDescription": 70,
       "id": 1,
       "energyMax": 4
@@ -134,6 +136,8 @@
       "sadMax": 5,
       "lifeMax": 3,
       "constitutionStart": 0,
+      "idClassProhibited": 1,
+      "idClassPermitted": "",
       "idTextDescription": 71,
       "id": 2,
       "energyMax": 7
@@ -147,6 +151,7 @@
       "sadMax": 1,
       "lifeMax": 8,
       "constitutionStart": 3,
+      "idClassProhibited": 6,
       "idTextDescription": 72,
       "id": 3,
       "energyMax": 3
@@ -160,6 +165,7 @@
       "sadMax": 6,
       "lifeMax": 8,
       "constitutionStart": 0,
+      "idClassProhibited": 5,
       "idTextDescription": 73,
       "id": 4,
       "energyMax": 5
@@ -173,6 +179,8 @@
       "sadMax": 2,
       "lifeMax": 3,
       "constitutionStart": 0,
+      "idClassProhibited": 1,
+      "idClassPermitted": 6,
       "idTextDescription": 74,
       "id": 5,
       "energyMax": 6
@@ -186,6 +194,7 @@
       "sadMax": 4,
       "lifeMax": 2,
       "constitutionStart": 0,
+      "idClassProhibited": 2,
       "idTextDescription": 75,
       "id": 6,
       "energyMax": 8
@@ -261,54 +270,73 @@
   ],
   "traits": [
     {
+      "dexterity": 1,
+      "constitution": -1,
       "idCard": 37,
       "id_card": 37,
+      "weight": "",
       "idTextDescription": 82,
       "id": 1,
       "idTextName": 82,
-      "costPositive": 2
+      "costPositive": 0
     },
     {
+      "constitution": -1,
+      "idClassProhibited": 6,
       "idCard": 38,
       "id_card": 38,
       "idTextDescription": 83,
       "id": 2,
       "idTextName": 83,
-      "costPositive": 1
+      "costPositive": 0,
+      "intelligence": 1
     },
     {
+      "idClassProhibited": 2,
       "idCard": 39,
+      "sad": -1,
       "id_card": 39,
       "idTextDescription": 84,
       "id": 3,
       "idTextName": 84,
-      "costNegative": 3,
-      "costPositive": ""
+      "costNegative": 0,
+      "costPositive": "",
+      "energy": 1
     },
     {
+      "constitution": -1,
+      "idClassProhibited": 4,
       "idCard": 40,
+      "sad": 1,
       "id_card": 40,
       "idTextDescription": 85,
       "id": 4,
       "idTextName": 85,
-      "costPositive": 3
+      "costNegative": 0,
+      "costPositive": 0
     },
     {
+      "dexterity": 1,
+      "idClassProhibited": 5,
       "idCard": 42,
+      "sad": -1,
       "id_card": 42,
       "idTextDescription": 86,
       "id": 5,
       "idTextName": 86,
-      "costNegative": 2
+      "costNegative": 0
     },
     {
+      "constitution": -1,
+      "idClassProhibited": 3,
       "idCard": 43,
       "id_card": 43,
       "idTextDescription": 87,
       "id": 6,
       "idTextName": 87,
-      "costNegative": 1,
-      "costPositive": 2
+      "costNegative": 0,
+      "life": 1,
+      "costPositive": 0
     }
   ],
   "card": {
@@ -2259,11 +2287,12 @@
     {
       "idCard": 40,
       "idTextTitle": 85,
-      "idTextCopyright": 103,
       "id_card": 40,
+      "idTextName": 85,
+      "idTextCopyright": 103,
+      "styleImageLarge": "ob-c-20",
       "idTextDescription": 85,
       "id": 40,
-      "idTextName": 85,
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1741714296684-b6deb20e9a0e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "linkCopyright": "https://unsplash.com/photos/woman-appears-to-hold-the-sun-above-the-clouds-NLRTAt4ui7w"
@@ -2314,9 +2343,9 @@
   "classBonuses": [
     {
       "idClass": 1,
-      "statistic": "LIFE",
+      "statistic": "DEXTERITY",
       "id": 1,
-      "value": 111
+      "value": -1
     }
   ],
   "missionSteps": []

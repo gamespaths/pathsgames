@@ -569,10 +569,12 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         $stmt = $this->pdo->prepare("
             INSERT INTO list_traits (
                 id_story, uuid, id_card, id_text_name, id_text_description,
-                cost_positive, cost_negative, id_class_permitted, id_class_prohibited
+                cost_positive, cost_negative, id_class_permitted, id_class_prohibited,
+                life, energy, sad, dexterity, intelligence, constitution, weight
             ) VALUES (
                 :id_story, :uuid, :id_card, :id_text_name, :id_text_description,
-                :cost_positive, :cost_negative, :id_class_permitted, :id_class_prohibited
+                :cost_positive, :cost_negative, :id_class_permitted, :id_class_prohibited,
+                :life, :energy, :sad, :dexterity, :intelligence, :constitution, :weight
             )
         ");
         foreach ($traits as $t) {
@@ -587,6 +589,13 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
                 ':cost_negative' => $t['costNegative'] ?? 0,
                 ':id_class_permitted' => $t['idClassPermitted'] ?? null,
                 ':id_class_prohibited' => $t['idClassProhibited'] ?? null,
+                ':life' => $t['life'] ?? 0,
+                ':energy' => $t['energy'] ?? 0,
+                ':sad' => $t['sad'] ?? 0,
+                ':dexterity' => $t['dexterity'] ?? 0,
+                ':intelligence' => $t['intelligence'] ?? 0,
+                ':constitution' => $t['constitution'] ?? 0,
+                ':weight' => $t['weight'] ?? 0,
             ]);
         }
     }
@@ -878,7 +887,7 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             'list_character_templates' => ['id', 'id_story', 'uuid', 'id_tipo', 'id_card', 'id_text_name', 'id_text_description', 'life_max', 'energy_max', 'sad_max', 'dexterity_start', 'intelligence_start', 'constitution_start', 'id_class_permitted', 'id_class_prohibited'],
             'list_classes' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'weight_max', 'dexterity_base', 'intelligence_base', 'constitution_base'],
             'list_classes_bonus' => ['id', 'id_story', 'uuid', 'id_class', 'statistic', 'value'],
-            'list_traits' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited'],
+            'list_traits' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'cost_positive', 'cost_negative', 'id_class_permitted', 'id_class_prohibited', 'life', 'energy', 'sad', 'dexterity', 'intelligence', 'constitution', 'weight'],
             'list_creator' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'creator_name', 'creator_role', 'link', 'url', 'url_image', 'url_emote', 'url_instagram'],
             'list_cards' => ['id', 'id_story', 'uuid', 'id_card', 'card_type', 'id_text_name', 'id_text_title', 'id_text_description', 'id_text_copyright', 'image_url', 'alternative_image', 'awesome_icon', 'style_main', 'style_detail', 'style_image_little', 'style_image_medium', 'style_image_large', 'link_copyright', 'id_creator', 'id_reference'],
             'list_texts' => ['id', 'id_story', 'uuid', 'id_card', 'id_text_name', 'id_text_description', 'id_text', 'lang', 'short_text', 'long_text', 'id_text_copyright', 'link_copyright', 'id_creator'],

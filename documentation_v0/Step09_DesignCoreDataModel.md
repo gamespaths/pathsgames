@@ -70,7 +70,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
 | **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
-| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`. |
+| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). |
 | **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`, `id_class_permitted` (nullable FK → `list_classes`), `id_class_prohibited` (nullable FK → `list_classes`). |
 | **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
 | **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
@@ -855,8 +855,9 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.10.12 | added `uuid` as standard column on all 52 tables — public API identifier to avoid exposing internal auto-increment IDs | March 19, 2026 |
     | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
-    
-- **Last Updated**: April 30, 2026
+    | 0.19.6 | Add style fileds columns into card tables and use into frontend | May 19, 2026 |
+
+- **Last Updated**: May 19, 2026
 - **Status**: Complete ✅
 
 

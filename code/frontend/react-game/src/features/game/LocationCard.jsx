@@ -1,5 +1,4 @@
 import { useTranslation } from '../../i18n/context'
-import GameCardInfoButton from '../../components/layout/GameCardInfoButton'
 
 export default function LocationCard({ location }) {
   const { t } = useTranslation()
@@ -15,9 +14,7 @@ export default function LocationCard({ location }) {
         <h4 className="game-loc-name">{location.name}</h4>
         <p className="game-loc-desc">{location.description}</p>
       </div>
-      {location.copyrightText && (
-        <GameCardInfoButton card={location} />
-      )}
+
     </div>
   )
 }

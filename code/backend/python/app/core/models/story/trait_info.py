@@ -12,3 +12,10 @@ class TraitInfo:
     idClassProhibited: int | None = None
     idCard: int | None = None
     card: CardInfo | None = None
+    life: int = 0
+    energy: int = 0
+    sad: int = 0
+    dexterity: int = 0
+    intelligence: int = 0
+    constitution: int = 0
+    weight: int = 0

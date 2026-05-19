@@ -13,7 +13,7 @@ class EchoService implements EchoPort
             'timestamp' => time() * 1000,
             'properties' => [
                 'env' => getenv('APP_ENV') ?: 'development',
-                'version' => getenv('APP_VERSION') ?: '0.19.4',
+                'version' => getenv('APP_VERSION') ?: '0.19.6',
                 'applicationName' => 'paths-game-backend-php',
                 'phpVersion' => PHP_VERSION,
             ]

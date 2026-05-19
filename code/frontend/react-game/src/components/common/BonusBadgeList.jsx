@@ -1,21 +1,75 @@
 /**
- * BonusBadgeList — renders a flex-wrap row of bonus pill badges.
- * Shared between BookPageContent (entity stats) and ConfigView (total bonus).
+ * BonusBadgeList — renders a row of stat badges using the same look as
+ * `features/game/PlayerStats.jsx` (player-stats-bar + stat-badge classes,
+ * with a coloured Font-Awesome icon for each stat).
+ *
+ * Shared between BookPageContent (entity stats) and ConfigView (total bonuses).
+ *
+ * Items with a zero or missing value are always hidden.
  *
  * @param {Array} items - [{ key, label, value }]
  * @param {string} className - optional extra class on the wrapper
  */
+
+const STAT_VISUAL = {
+  // Canonical categories (totals + class bonuses)
+  life:         { icon: 'fas fa-heart',         color: '#e74c3c' },
+  energy:       { icon: 'fas fa-bolt',          color: '#f39c12' },
+  sad:          { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  dexterity:    { icon: 'fas fa-running',       color: '#3498db' },
+  intelligence: { icon: 'fas fa-brain',         color: '#9b59b6' },
+  constitution: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
+  weight:       { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
+  exp:          { icon: 'fas fa-star',          color: '#9b59b6' },
+
+  // Character base stats
+  lifeMax:           { icon: 'fas fa-heart',         color: '#e74c3c' },
+  energyMax:         { icon: 'fas fa-bolt',          color: '#f39c12' },
+  sadMax:            { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  dexterityStart:    { icon: 'fas fa-running',       color: '#3498db' },
+  intelligenceStart: { icon: 'fas fa-brain',         color: '#9b59b6' },
+  constitutionStart: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
+
+  // Class base stats
+  weightMax:         { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
+  dexterityBase:     { icon: 'fas fa-running',       color: '#3498db' },
+  intelligenceBase:  { icon: 'fas fa-brain',         color: '#9b59b6' },
+  constitutionBase:  { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
+
+  // Trait / difficulty stats
+  costPositive:           { icon: 'fas fa-plus-circle',  color: '#27ae60' },
+  costNegative:           { icon: 'fas fa-minus-circle', color: '#c0392b' },
+  expCost:                { icon: 'fas fa-star',         color: '#9b59b6' },
+  maxWeight:              { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
+  minCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
+  maxCharacter:           { icon: 'fas fa-users',        color: '#34495e' },
+  costHelpComa:           { icon: 'fas fa-hand-holding-medical', color: '#16a085' },
+  costMaxCharacteristics: { icon: 'fas fa-arrow-up',     color: '#2980b9' },
+  numberMaxFreeAction:    { icon: 'fas fa-running',      color: '#3498db' },
+}
+
+const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
+
 export default function BonusBadgeList({ items, className = '' }) {
   if (!items || items.length === 0) return null
 
+  const visibleItems = items.filter(item => {
+    const v = Number(item?.value)
+    return Number.isFinite(v) && v !== 0
+  })
+  if (visibleItems.length === 0) return null
+
   return (
-    <div className={['bonus-badge-list', className].filter(Boolean).join(' ')}>
-      {items.map(item => (
-        <span key={item.key} className="badge bonus-badge">
-          <span className="bonus-badge__label">{item.label}</span>
-          <span className="bonus-badge__value">{item.value}</span>
-        </span>
-      ))}
+    <div className={['player-stats-bar', 'bonus-badge-list', className].filter(Boolean).join(' ')}>
+      {visibleItems.map(item => {
+        const visual = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
+        return (
+          <span key={item.key} className="stat-badge bonus-badge">
+            <i className={visual.icon} style={{ color: visual.color }} />
+            {item.label}: <strong>{item.value}</strong>
+          </span>
+        )
+      })}
     </div>
   )
 }

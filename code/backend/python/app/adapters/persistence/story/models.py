@@ -124,6 +124,13 @@ class TraitEntity(Base):
     cost_negative = Column(Integer, default=0)
     id_class_permitted = Column(Integer)
     id_class_prohibited = Column(Integer)
+    life = Column(Integer, default=0)
+    energy = Column(Integer, default=0)
+    sad = Column(Integer, default=0)
+    dexterity = Column(Integer, default=0)
+    intelligence = Column(Integer, default=0)
+    constitution = Column(Integer, default=0)
+    weight = Column(Integer, default=0)
 
 
 class CharacterTemplateEntity(Base):

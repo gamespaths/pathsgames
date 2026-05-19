@@ -8,6 +8,7 @@ import ConfigView from './ConfigView'
 import SelectionView from './SelectionView'
 import StartBookMobile from './StartBookMobile'
 import { getStoryDetail } from '../../api/stories'
+import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
 
 function buildInitialConfig(story) {
   return {
@@ -53,7 +54,26 @@ export default function StartBookModal({ story, onClose }) {
   const activeStory = detail ?? story
 
   function handleSelect(opt) {
-    setConfig(prev => ({ ...prev, [selectionType]: opt }))
+    const changedType = selectionType
+    setConfig(prev => {
+      const next = { ...prev, [changedType]: opt }
+      // When the class changes, re-validate character and trait against the
+      // new class. If the current selection becomes incompatible, replace it
+      // with the first compatible option from the story.
+      if (changedType === 'class') {
+        const classesById = buildClassesById(activeStory?.classes)
+        const reselect = (type, optionsList) => {
+          const current = next[type]
+          if (!current) return null
+          const currentLock = getOptionLockInfo({ type, option: current, config: next, classesById })
+          if (!currentLock) return current
+          return optionsList.find(o => !getOptionLockInfo({ type, option: o, config: next, classesById })) ?? null
+        }
+        next.character = reselect('character', activeStory?.characterTemplates ?? [])
+        next.trait = reselect('trait', activeStory?.traits ?? [])
+      }
+      return next
+    })
     setSelectionType(null)
     setPreview(null)
   }

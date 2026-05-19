@@ -29,7 +29,8 @@ robot/
     │   ├── story_groups.robot                 GET /api/stories/groups and /group/{group}
     │   ├── story_detail_enriched.robot        Classes, templates, traits, card in story detail
     │   ├── story_card_populated.robot         Card fields populated for sub-entities
-    │   └── story_detail_class_bonuses_and_templates.robot   bonuses[] on each class; idClassPermitted / idClassProhibited on character templates
+    │   ├── story_detail_class_bonuses_and_templates.robot   bonuses[] on each class; idClassPermitted / idClassProhibited on character templates
+    │   └── story_detail_trait_stats.robot     Seven stat-delta fields (life/energy/sad/dexterity/intelligence/constitution/weight) on every trait; seed sanity for non-zero bonus; Demo 2 coverage
     ├── 16_content_detail/
     │   ├── content_card.robot
     │   ├── content_creator.robot
@@ -113,7 +114,7 @@ robot --variablefile variables/dev.yaml --outputdir reports/ tests/
 | `admin`   | 14_admin/story_import.robot, guest_admin.robot |
 | `step12`  | Auth and guest management tests      |
 | `step14`  | Story API and import tests           |
-| `step15`  | Story content: categories, groups, enriched detail, class bonuses, character template class fields |
+| `step15`  | Story content: categories, groups, enriched detail, class bonuses, character template class fields, trait stat-delta fields |
 | `guests`  | Guest admin management tests         |
 
 ## Seed Data

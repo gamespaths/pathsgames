@@ -15,7 +15,14 @@ class TraitInfo
         public ?int $idClassPermitted = null,
         public ?int $idClassProhibited = null,
         public ?int $idCard = null,
-        public ?CardInfo $card = null
+        public ?CardInfo $card = null,
+        public int $life = 0,
+        public int $energy = 0,
+        public int $sad = 0,
+        public int $dexterity = 0,
+        public int $intelligence = 0,
+        public int $constitution = 0,
+        public int $weight = 0
     ) {
     }
 }

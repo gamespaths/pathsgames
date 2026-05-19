@@ -79,7 +79,9 @@ def seed():
             }
         ],
         "traits": [
-            {"idTextName": 700, "idTextDescription": 700, "cost": 1}
+            {"idTextName": 700, "idTextDescription": 700, "cost": 1,
+             "life": 2, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 0, "constitution": 1, "weight": 0}
         ],
         "characterTemplates": [
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,

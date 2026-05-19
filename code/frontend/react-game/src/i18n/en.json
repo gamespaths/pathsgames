@@ -35,6 +35,10 @@
     "change": "Change",
     "select": "Select",
     "back": "Back",
+    "tts": {
+      "play": "Read aloud",
+      "stop": "Stop reading"
+    },
     "acceptTerms": "I accept the Terms & Conditions",
     "startGame": "Start Game",
     "selectTitle": "Select",
@@ -42,30 +46,30 @@
       "title": "Bonuses",
       "lifeMax": "Life",
       "energyMax": "Energy",
-      "sadMax": "Sadness",
+      "sadMax": "Happiness",
       "dexterityStart": "Dexterity",
       "intelligenceStart": "Intelligence",
-      "constitutionStart": "Constitution",
-      "weightMax": "Weight",
+      "constitutionStart": "Physique",
+      "weightMax": "Carry",
       "dexterityBase": "Dexterity",
       "intelligenceBase": "Intelligence",
-      "constitutionBase": "Constitution",
+      "constitutionBase": "Physique",
       "costPositive": "Positive Cost",
       "costNegative": "Negative Cost",
       "expCost": "XP Cost",
       "minCharacter": "Min Players",
-      "maxCharacter": "Max Players",
+      "maxCharacter": "Players",
       "costHelpComa": "Help Coma Cost",
-      "costMaxCharacteristics": "Max Char. Cost",
+      "costMaxCharacteristics": "Char. Cost",
       "numberMaxFreeAction": "Free Actions",
       "totals": {
         "life": "Life",
         "energy": "Energy",
-        "sad": "Sadness",
+        "sad": "Happiness",
         "dexterity": "Dexterity",
         "intelligence": "Intelligence",
-        "constitution": "Constitution",
-        "weight": "Weight",
+        "constitution": "Physique",
+        "weight": "Carry",
         "exp": "XP"
       }
     }
@@ -83,12 +87,12 @@
     "stats": {
       "life": "Life",
       "energy": "Energy",
-      "sadness": "Sadness",
+      "sadness": "Happiness",
       "experience": "XP",
       "food": "Food",
       "magic": "Magic",
       "coins": "Coins",
-      "weight": "Weight"
+      "weight": "Carry"
     },
     "move": "Move Here",
     "execute": "Execute"
@@ -100,6 +104,7 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "cookies": "Cookies Policy",
+    "credits": "Credits",
     "github": "GitHub",
     "roadmap": "Roadmap",
     "devlog": "Devlog",
@@ -121,6 +126,10 @@
     "cookies": {
       "title": "Cookies Policy",
       "body": "This site uses essential cookies only to keep your session active. No tracking cookies are used."
+    },
+    "credits": {
+      "title": "Image Credits",
+      "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
     },
     "copyright": {
       "title": "Photo Credit",

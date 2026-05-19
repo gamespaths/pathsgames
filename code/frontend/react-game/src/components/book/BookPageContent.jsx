@@ -1,4 +1,3 @@
-import GameCardInfoButton from '../layout/GameCardInfoButton'
 import BonusBadgeList from '../common/BonusBadgeList'
 import { useTranslation } from '../../i18n/context'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'

@@ -389,6 +389,15 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setCostPositive(getInteger(item, "costPositive"));
             e.setCostNegative(getInteger(item, "costNegative"));
+            e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));
+            e.setIdClassProhibited(normalizeOptionalFk(getInteger(item, "idClassProhibited")));
+            e.setLife(getInteger(item, "life"));
+            e.setEnergy(getInteger(item, "energy"));
+            e.setSad(getInteger(item, "sad"));
+            e.setDexterity(getInteger(item, "dexterity"));
+            e.setIntelligence(getInteger(item, "intelligence"));
+            e.setConstitution(getInteger(item, "constitution"));
+            e.setWeight(getInteger(item, "weight"));
             entities.add(e);
         }
         persistencePort.saveTraits(entities);

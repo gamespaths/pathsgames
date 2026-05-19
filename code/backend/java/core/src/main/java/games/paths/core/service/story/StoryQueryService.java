@@ -162,6 +162,13 @@ public class StoryQueryService implements StoryQueryPort {
                     .idClassProhibited(tr.getIdClassProhibited())
                     .idCard(tr.getIdCard())
                     .card(resolveCardInfo(story.getId(), tr.getIdCard(), lang))
+                    .life(tr.getLife() != null ? tr.getLife() : 0)
+                    .energy(tr.getEnergy() != null ? tr.getEnergy() : 0)
+                    .sad(tr.getSad() != null ? tr.getSad() : 0)
+                    .dexterity(tr.getDexterity() != null ? tr.getDexterity() : 0)
+                    .intelligence(tr.getIntelligence() != null ? tr.getIntelligence() : 0)
+                    .constitution(tr.getConstitution() != null ? tr.getConstitution() : 0)
+                    .weight(tr.getWeight() != null ? tr.getWeight() : 0)
                     .build());
         }
 

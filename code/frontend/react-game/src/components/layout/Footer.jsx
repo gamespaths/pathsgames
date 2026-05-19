@@ -29,11 +29,7 @@ export default function Footer() {
           </a>
         </div>
         <div className="footer-copy">
-          Credits: all game content created by <a href="https://www.pathsgames.com/" target="_blank" rel="noopener" className="footer-link-inline">Paths Games</a>
-          &nbsp;&middot;&nbsp;  Icons and images from fontawesome.com, game-icons.net, splashbase.co and Pixabay
-        </div>
-        <div className="footer-copy">
-          <span className="gold-light">Paths Games v0.19.4</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
+          <span className="gold-light">Paths Games v0.19.6</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
           {t('footer.madeWith')} <i className="fas fa-heart" /> {t('footer.byTeam')} &middot;&nbsp;
           <a
             href="#"
@@ -60,6 +56,15 @@ export default function Footer() {
             data-bs-target="#cookiePolicyModal"
           >
             {t('footer.cookies')}
+          </a>
+          &nbsp;&middot;&nbsp;
+          <a
+            href="#"
+            className="footer-link-inline"
+            data-bs-toggle="modal"
+            data-bs-target="#creditsModal"
+          >
+            {t('footer.credits')}
           </a>
         </div>
       </div>

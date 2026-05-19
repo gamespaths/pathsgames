@@ -137,12 +137,12 @@ INSERT OR IGNORE INTO list_classes_bonus (id, id_story, id_class, statistic, val
 (90009, 9001, 90003, 'energy', 4);
 
 -- ── Story 1 Traits ──────────────────────────────────────────────
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(90001, 9001, 700, 700, 1, 0);
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(90002, 9001, 701, 701, 1, 0);
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(90003, 9001, 702, 702, 1, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(90001, 9001, 700, 700, 1, 0, 2, 0, 0, 0, 0, 1, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(90002, 9001, 701, 701, 1, 0, 0, 2, 0, 1, 0, 0, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(90003, 9001, 702, 702, 1, 0, 0, 0, 0, 0, 2, 0, 1);
 
 -- ── Story 1 Character Templates ─────────────────────────────────
 INSERT OR IGNORE INTO list_character_templates (id, id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES
@@ -398,12 +398,12 @@ INSERT OR IGNORE INTO list_classes (id, id_story, id_text_name, id_text_descript
 (91004, 9002, 203, 203, 8, 5, 2, 2);
 
 -- ── Story 2 Traits ──────────────────────────────────────────────
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(91001, 9002, 700, 700, 3, 0);
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(91002, 9002, 701, 701, 2, 0);
-INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative) VALUES
-(91003, 9002, 702, 702, 2, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91001, 9002, 700, 700, 3, 0, 3, 0, 0, 0, 0, 2, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91002, 9002, 701, 701, 2, 0, 0, 3, 0, 2, 0, 0, 0);
+INSERT OR IGNORE INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES
+(91003, 9002, 702, 702, 2, 0, 0, 0, 0, 0, 3, 0, 2);
 
 -- ── Story 2 Character Templates ─────────────────────────────────
 INSERT OR IGNORE INTO list_character_templates (id, id_story, id_tipo, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES

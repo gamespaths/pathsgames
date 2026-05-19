@@ -332,7 +332,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
         self._insert_batch(TraitEntity, story_id, items, {
             "uuid": "uuid", "id_card": "idCard", "id_text_name": "idTextName", "id_text_description": "idTextDescription",
             "cost_positive": "costPositive", "cost_negative": "costNegative",
-            "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited"
+            "id_class_permitted": "idClassPermitted", "id_class_prohibited": "idClassProhibited",
+            "life": "life", "energy": "energy", "sad": "sad",
+            "dexterity": "dexterity", "intelligence": "intelligence",
+            "constitution": "constitution", "weight": "weight"
         })
 
     def save_character_templates(self, story_id: int, items: List[Dict[str, Any]]) -> None:

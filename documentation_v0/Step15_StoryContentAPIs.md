@@ -240,7 +240,14 @@ Now returns additional fields: character templates, classes, traits, card info, 
       "costPositive": 2,
       "costNegative": 0,
       "idClassPermitted": null,
-      "idClassProhibited": null
+      "idClassProhibited": null,
+      "life": 1,
+      "energy": 0,
+      "sad": 0,
+      "dexterity": 2,
+      "intelligence": 0,
+      "constitution": 0,
+      "weight": 0
     }
   ],
   "card": {
@@ -269,7 +276,7 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `CharacterTemplateResponse` | uuid, name, description, lifeMax, energyMax, sadMax, dexterityStart, intelligenceStart, constitutionStart, idClassPermitted, idClassProhibited | Character template in story detail |
 | `ClassInfoResponse` | uuid, name, description, weightMax, dexterityBase, intelligenceBase, constitutionBase, bonuses | Character class in story detail; `bonuses` is a list of `ClassBonusInfoResponse` objects |
 | `ClassBonusInfoResponse` | uuid, statistic, value | Single class bonus entry; `statistic` is one of `life, energy, sad, dex, int, cos, exp, food, magic, coin, weight` |
-| `TraitInfoResponse` | uuid, name, description, costPositive, costNegative, idClassPermitted, idClassProhibited | Character trait in story detail |
+| `TraitInfoResponse` | uuid, name, description, costPositive, costNegative, idClassPermitted, idClassProhibited, life, energy, sad, dexterity, intelligence, constitution, weight | Character trait in story detail; the seven stat fields are signed integer deltas applied to the matching character statistic on trait selection (added v0.19.6) |
 | `CardInfoResponse` | uuid, urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, title, description, copyrightText, linkCopyright | Visual card in story detail |
 
 ### Updated REST DTO
@@ -282,6 +289,7 @@ Now returns additional fields: character templates, classes, traits, card info, 
 | `ClassInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `ClassInfoResponse` | + bonuses (list of ClassBonusInfoResponse) | Class bonuses nested in class detail (v0.19.5) |
 | `TraitInfoResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
+| `TraitInfoResponse` | + life, energy, sad, dexterity, intelligence, constitution, weight (int, DEFAULT 0) | Stat-delta columns propagated from `list_traits` (v0.19.6) |
 | `DifficultyResponse` | + idCard (int\|null), + card (object\|null) | Sub-entity card enrichment (v0.19.2) |
 | `CardInfoResponse` | + cardType (string\|null) | Declarative entity type tag added in v0.19.4; see [Step15_StoryContentHowAddFiledIntoCard.md](./Step15_StoryContentHowAddFiledIntoCard.md) for a guide on adding future fields |
 
@@ -445,7 +453,8 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-c
     | 0.19.2 | Add idCard and card object into stories API | May 09, 2026 |
     | 0.19.3 | Add cardType field to CardInfoResponse (all backends + OpenAPI) | May 14, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-- **Last Updated**: May 18, 2026
+    | 0.19.6 | TraitInfoResponse: seven stat-delta fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); OpenAPI, all backends, seeds, and Robot tests updated | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: ✅ Complete
 
 

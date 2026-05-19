@@ -1,6 +1,5 @@
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../i18n/context'
-import GameCardInfoButton from '../../components/layout/GameCardInfoButton'
 
 export default function CardDetailModal({ card, modalId, actionLabel, onAction }) {
   const { t } = useTranslation()
@@ -40,15 +39,7 @@ export default function CardDetailModal({ card, modalId, actionLabel, onAction }
               )}
               <h4 className="card-detail-title">{card.name}</h4>
               <p className="card-detail-desc">{card.description}</p>
-              {card.copyrightText && (
-                <div style={{ textAlign: 'right' }}>
-                  <GameCardInfoButton
-                    card={card}
-                    buttonClassName="card-info-btn"
-                    buttonStyle={{ position: 'static', display: 'inline-flex' }}
-                  />
-                </div>
-              )}
+
             </div>
             <div className="modal-footer">
               <button type="button" className="btn-secondary-pg" data-bs-dismiss="modal">

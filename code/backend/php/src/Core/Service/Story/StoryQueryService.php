@@ -167,7 +167,14 @@ class StoryQueryService implements StoryQueryPort
                 isset($tr['id_class_permitted']) ? (int)$tr['id_class_permitted'] : null,
                 isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null,
                 isset($tr['id_card']) ? (int)$tr['id_card'] : null,
-                $this->resolveCard($storyId, $texts, isset($tr['id_card']) ? (int)$tr['id_card'] : null, $lang)
+                $this->resolveCard($storyId, $texts, isset($tr['id_card']) ? (int)$tr['id_card'] : null, $lang),
+                isset($tr['life']) ? (int)$tr['life'] : 0,
+                isset($tr['energy']) ? (int)$tr['energy'] : 0,
+                isset($tr['sad']) ? (int)$tr['sad'] : 0,
+                isset($tr['dexterity']) ? (int)$tr['dexterity'] : 0,
+                isset($tr['intelligence']) ? (int)$tr['intelligence'] : 0,
+                isset($tr['constitution']) ? (int)$tr['constitution'] : 0,
+                isset($tr['weight']) ? (int)$tr['weight'] : 0
             );
         }
 

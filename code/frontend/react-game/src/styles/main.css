@@ -710,10 +710,11 @@ html, body {
 
 /* BookPageContent desc: badges inline, large as text */
 .book-page-desc .bonus-badge {
-  font-size: 1.2rem;
-  padding: 4px;
-  gap: 4px;
-  border-radius: 5px;
+  color: var(--color-parchment); /*quiqui todo check*/
+  /*font-size: 1.2rem;*/
+  padding: 4px 8px 4px 8px;
+  /*gap: 2px;*/
+  /*border-radius: 5px;*/
 }
 .book-page-desc .bonus-badge__label { 
   line-height: 1; 
@@ -734,6 +735,28 @@ html, body {
 /* BookPageContent: stats inline inside desc, flush left */
 .book-page-stats {
   margin-bottom: 8px;
+}
+
+.book-page-tts-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 4;
+  background: var(--color-bg-dark, #2a1e0e);
+  border: 1px solid var(--color-gold, #c9a84c);
+  color: var(--color-gold, #c9a84c);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+.book-page-tts-btn:hover {
+  opacity: 1;
 }
 
 /* ConfigView: total bonus centered after the page-footer */
@@ -1686,7 +1709,7 @@ html, body {
   color: var(--color-parchment);
   padding: 3px 7px;
   border-radius: 20px;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   font-family: var(--font-heading);
 }
 
@@ -1912,5 +1935,18 @@ html, body {
 @keyframes slideInLeft {
   from { opacity: 0; transform: translateX(-24px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* CreditsModal — grid of credit cards (3 per row desktop, 2 tablet, 1 phone) */
+.credits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 991px) {
+  .credits-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 575px) {
+  .credits-grid { grid-template-columns: 1fr; }
 }
 

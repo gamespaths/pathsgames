@@ -33,6 +33,7 @@ export default function GameCard({
   locked,
   lockedReason,lockInfo,
   showLinkCopyright = false,
+  singleOption = false,
 
   /* actions */
   onSelect,
@@ -105,7 +106,7 @@ export default function GameCard({
           aria-label={t('card.info')}
         >
           <i className="fas fa-info" />
-          <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
+          
         </button>
       )}
       <button
@@ -123,6 +124,17 @@ export default function GameCard({
         <span className="gc-footer__btn-label">{actionLabel}</span>
       </button>
     )
+  } else if (onPreview) {
+    actionBtn = (
+      <button
+        className="gc-footer__btn gc-footer__btn--icon"
+        onClick={(e) => { e.stopPropagation(); onPreview() }}
+        aria-label={t('card.info')}
+      >
+        <i className="fas fa-info  my-1" />
+        <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
+      </button>
+    )
   }
 
   /* ── copyright view link ── */
@@ -134,7 +146,7 @@ export default function GameCard({
       className="credits-view-btn"
       onClick={e => e.stopPropagation()}
     >
-      <i className="fas fa-external-link-alt me-1" />{t('card.viewOriginal')}
+      <i className="fas fa-external-link-alt me-1" />{ card.description ?? t('card.viewOriginal')}
     </a>
   )
 

@@ -180,9 +180,25 @@ export const fetchWithFallback = async (url, mockData) => {
 
 The language switcher in the Navbar toggles the context. All UI labels use `t()` — no hardcoded strings in components.
 
-The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
+The `book.stats.*` namespace (added in v0.19.3) holds labels for all entity bonus/stat fields displayed in the `BookPageContent` preview panel: `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (added v0.19.6), plus `book.stats.title` for the panel heading. `book.stats.totals.*` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`.
 
 The `card.*` namespace (added in v0.19.3) holds `card.info` ("Info") and `card.viewOriginal` ("View original") used by `GameCard` for the info button and the detail modal link respectively.
+
+### 5.1 Stat label vocabulary
+
+The displayed stat names use the in-fiction terminology below (renamed in v0.19.5 — the JSON keys are unchanged so the API contract is unaffected; only the labels seen by players are):
+
+| key                                                   | it (before)    | it (now)     | en (before) | en (now)  |
+|-------------------------------------------------------|----------------|--------------|-------------|-----------|
+| `book.stats.lifeMax` / `book.stats.totals.life`       | Vita Max / Vita | Vita         | Life        | Life      |
+| `book.stats.energyMax` / `book.stats.totals.energy`   | Energia Max / Energia | Energia | Energy      | Energy    |
+| `book.stats.sadMax` / `book.stats.totals.sad` / `game.stats.sadness` | Tristezza Max / Tristezza | **Felicità**  | Sadness     | **Happiness** |
+| `book.stats.weightMax` / `book.stats.totals.weight` / `game.stats.weight` | Peso Max / Peso | **Trasporto** | Weight      | **Carry** |
+| `book.stats.constitutionStart` / `constitutionBase` / `book.stats.totals.constitution` | Costituzione | **Fisico** | Constitution | **Physique** |
+| `book.stats.maxCharacter`                             | Giocatori Max  | Giocatori    | Max Players | Players   |
+| `book.stats.costMaxCharacteristics`                   | Costo Carat. Max | Costo Carat. | Max Char. Cost | Char. Cost |
+
+The "Max" qualifier was dropped from every label so the in-game UI shows the stat name directly. `book.stats.minCharacter` keeps its "Min" prefix (it is a lower bound, not an upper one).
 
 ---
 
@@ -248,7 +264,7 @@ The `description` field (from `card.description` or `entity.description`) is ren
 |---|---|
 | `character` | `lifeMax`, `energyMax`, `sadMax`, `dexterityStart`, `intelligenceStart`, `constitutionStart` |
 | `class` | `weightMax`, `dexterityBase`, `intelligenceBase`, `constitutionBase` |
-| `trait` | `costPositive`, `costNegative` |
+| `trait` | `costPositive`, `costNegative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (seven signed stat-delta fields, added v0.19.6; zero values hidden by `getNonZeroStats`) |
 | `difficulty` | `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction` |
 
 Only fields with a non-null, non-empty value are rendered. Labels come from the `book.stats.*` i18n namespace. `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached to the entity.
@@ -396,8 +412,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
+    | 0.19.6 | `trait` entityType now exposes seven signed stat-delta fields in the bonus-stats panel; `STAT_FIELDS.trait` and `STAT_CATEGORY` extended in `bonusStats.js`; `book.stats.*` i18n keys added for the seven fields | May 19, 2026 |
     
-- **Last Updated**: May 18, 2026
+- **Last Updated**: May 19, 2026
 - **Status**: Active development
 
 

@@ -1,10 +1,11 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
 
-export default function ConfigCard({ type, value, locked, selected, story, onChangeClick, onSelect, onPreview }) {
+export default function ConfigCard({ type, value, locked, selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview }) {
   const { t } = useTranslation()
-
-  const previewHandler = onPreview ? () => onPreview(value, type) : undefined
+  const singleOption = count === 1
+  const previewHandler = singleOption ? () => onPagePreview(value, type) : onPreview ? () => onPreview(value, type) : undefined
+  
 
   return (
     <GameCard
@@ -16,10 +17,11 @@ export default function ConfigCard({ type, value, locked, selected, story, onCha
       imageAlt={value?.name}
       name={value?.name}
       icon={value?.icon}
-      disabled={locked} locked={locked}
+      disabled={locked} locked={locked} 
+      singleOption={singleOption}
       selected={selected}
-      onSelect={onSelect}
-      onAction={onChangeClick}
+      onSelect={!singleOption ?  onSelect : undefined}
+      onAction={!singleOption ?  onChangeClick : undefined }
       onPreview={previewHandler}
       actionLabel={t('book.change')}
       actionIcon="fa-sync-alt"
