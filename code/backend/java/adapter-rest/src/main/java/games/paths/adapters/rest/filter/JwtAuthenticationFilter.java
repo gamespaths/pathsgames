@@ -88,10 +88,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Set user identity on the request for downstream controllers
-        request.setAttribute("userUuid", tokenInfo.getUserUuid());
-        request.setAttribute("username", tokenInfo.getUsername());
-        request.setAttribute("role", tokenInfo.getRole());
-        request.setAttribute("tokenId", tokenInfo.getTokenId());
+        request.setAttribute("userUuid", tokenInfo.userUuid());
+        request.setAttribute("username", tokenInfo.username());
+        request.setAttribute("role", tokenInfo.role());
+        request.setAttribute("tokenId", tokenInfo.tokenId());
 
         filterChain.doFilter(request, response);
     }

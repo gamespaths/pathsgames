@@ -1,112 +1,59 @@
 package games.paths.core.model.story;
 
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for {@link CardInfo}.
- * Validates builder logic, field defaults, and toString.
+ * Unit tests for the {@link CardInfo} record.
  */
-@ExtendWith(MockitoExtension.class)
 class CardInfoTest {
 
-    private CardInfo.Builder validBuilder() {
-        return CardInfo.builder()
-                .uuid("card-1")
-                .urlImage("https://example.com/card.png")
-                .alternativeImage("alt-text")
-                .awesomeIcon("fa-star")
-                .styleMain("bg-primary")
-                .styleDetail("text-light")
-                .title("Card Title")
-                .description("Card Description")
-                .copyrightText("© 2026")
-                .linkCopyright("https://example.com")
-                .creator(CreatorInfo.builder().uuid("cr-1").name("Author").build());
+    private CardInfo sample() {
+        return new CardInfo("card-1", "STORY", "https://example.com/card.png", "alt-text",
+                "fa-star", "bg-primary", "text-light", "little", "medium", "large",
+                "Card Title", "Card Description", "© 2026", "https://example.com",
+                new CreatorInfo("cr-1", "Author", null, null, null, null, null));
     }
 
-    @Nested
-    @DisplayName("Creation and Mapping Tests")
-    class CreationTests {
+    @Test
+    @DisplayName("Canonical constructor maps all components")
+    void constructor_mapsAllFields() {
+        CardInfo ci = sample();
+        assertAll(
+            () -> assertEquals("card-1", ci.uuid()),
+            () -> assertEquals("STORY", ci.cardType()),
+            () -> assertEquals("https://example.com/card.png", ci.urlImage()),
+            () -> assertEquals("alt-text", ci.alternativeImage()),
+            () -> assertEquals("fa-star", ci.awesomeIcon()),
+            () -> assertEquals("bg-primary", ci.styleMain()),
+            () -> assertEquals("text-light", ci.styleDetail()),
+            () -> assertEquals("little", ci.styleImageLittle()),
+            () -> assertEquals("medium", ci.styleImageMedium()),
+            () -> assertEquals("large", ci.styleImageLarge()),
+            () -> assertEquals("Card Title", ci.title()),
+            () -> assertEquals("Card Description", ci.description()),
+            () -> assertEquals("© 2026", ci.copyrightText()),
+            () -> assertEquals("https://example.com", ci.linkCopyright()),
+            () -> assertNotNull(ci.creator()),
+            () -> assertEquals("cr-1", ci.creator().uuid())
+        );
+    }
 
-        @Test
-        @DisplayName("Should build successfully and map all fields")
-        void build_success() {
-            CardInfo ci = validBuilder().build();
+    @Test
+    @DisplayName("Allows all null fields")
+    void constructor_allNull() {
+        CardInfo ci = new CardInfo(null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null);
+        assertNull(ci.uuid());
+        assertNull(ci.creator());
+    }
 
-            assertAll("CardInfo fields",
-                () -> assertEquals("card-1", ci.getUuid()),
-                () -> assertEquals("https://example.com/card.png", ci.getUrlImage()),
-                () -> assertEquals("alt-text", ci.getAlternativeImage()),
-                () -> assertEquals("fa-star", ci.getAwesomeIcon()),
-                () -> assertEquals("bg-primary", ci.getStyleMain()),
-                () -> assertEquals("text-light", ci.getStyleDetail()),
-                () -> assertEquals("Card Title", ci.getTitle()),
-                () -> assertEquals("Card Description", ci.getDescription()),
-                () -> assertEquals("© 2026", ci.getCopyrightText()),
-                () -> assertEquals("https://example.com", ci.getLinkCopyright()),
-                () -> assertNotNull(ci.getCreator()),
-                () -> assertEquals("cr-1", ci.getCreator().getUuid()),
-                () -> assertTrue(ci.toString().contains("card-1")),
-                () -> assertTrue(ci.toString().contains("https://example.com/card.png"))
-            );
-        }
-
-        @Test
-        @DisplayName("Should allow all null fields")
-        void build_allNullFields() {
-            CardInfo ci = CardInfo.builder()
-                    .uuid(null)
-                    .urlImage(null)
-                    .alternativeImage(null)
-                    .awesomeIcon(null)
-                    .styleMain(null)
-                    .styleDetail(null)
-                    .title(null)
-                    .description(null)
-                    .copyrightText(null)
-                    .linkCopyright(null)
-                    .creator(null)
-                    .build();
-
-            assertAll("All null fields",
-                () -> assertNull(ci.getUuid()),
-                () -> assertNull(ci.getUrlImage()),
-                () -> assertNull(ci.getAlternativeImage()),
-                () -> assertNull(ci.getAwesomeIcon()),
-                () -> assertNull(ci.getStyleMain()),
-                () -> assertNull(ci.getStyleDetail()),
-                () -> assertNull(ci.getTitle()),
-                () -> assertNull(ci.getDescription()),
-                () -> assertNull(ci.getCopyrightText()),
-                () -> assertNull(ci.getLinkCopyright()),
-                () -> assertNull(ci.getCreator())
-            );
-        }
-
-        @Test
-        @DisplayName("Should default all fields to null when not set")
-        void build_defaultFields() {
-            CardInfo ci = CardInfo.builder().build();
-
-            assertAll("Default values",
-                () -> assertNull(ci.getUuid()),
-                () -> assertNull(ci.getUrlImage()),
-                () -> assertNull(ci.getAlternativeImage()),
-                () -> assertNull(ci.getAwesomeIcon()),
-                () -> assertNull(ci.getStyleMain()),
-                () -> assertNull(ci.getStyleDetail()),
-                () -> assertNull(ci.getTitle()),
-                () -> assertNull(ci.getDescription()),
-                () -> assertNull(ci.getCopyrightText()),
-                () -> assertNull(ci.getLinkCopyright()),
-                () -> assertNull(ci.getCreator())
-            );
-        }
+    @Test
+    @DisplayName("equals/hashCode follow record value semantics")
+    void valueSemantics() {
+        assertEquals(sample(), sample());
+        assertEquals(sample().hashCode(), sample().hashCode());
     }
 }

@@ -172,19 +172,19 @@ class ContentQueryServiceTest {
 
             assertNotNull(result);
             assertAll("Card detail fields",
-                () -> assertEquals("card-uuid", result.getUuid()),
-                () -> assertEquals("https://img.com/card.png", result.getUrlImage()),
-                () -> assertEquals("alt.jpg", result.getAlternativeImage()),
-                () -> assertEquals("fa-star", result.getAwesomeIcon()),
-                () -> assertEquals("bg-primary", result.getStyleMain()),
-                () -> assertEquals("text-light", result.getStyleDetail()),
-                () -> assertEquals("Card Title", result.getTitle()),
-                () -> assertEquals("Card Description", result.getDescription()),
-                () -> assertEquals("© 2026", result.getCopyrightText()),
-                () -> assertEquals("https://copy.com", result.getLinkCopyright()),
-                () -> assertNotNull(result.getCreator()),
-                () -> assertEquals("cr-uuid", result.getCreator().getUuid()),
-                () -> assertEquals("Author Name", result.getCreator().getName())
+                () -> assertEquals("card-uuid", result.uuid()),
+                () -> assertEquals("https://img.com/card.png", result.urlImage()),
+                () -> assertEquals("alt.jpg", result.alternativeImage()),
+                () -> assertEquals("fa-star", result.awesomeIcon()),
+                () -> assertEquals("bg-primary", result.styleMain()),
+                () -> assertEquals("text-light", result.styleDetail()),
+                () -> assertEquals("Card Title", result.title()),
+                () -> assertEquals("Card Description", result.description()),
+                () -> assertEquals("© 2026", result.copyrightText()),
+                () -> assertEquals("https://copy.com", result.linkCopyright()),
+                () -> assertNotNull(result.creator()),
+                () -> assertEquals("cr-uuid", result.creator().uuid()),
+                () -> assertEquals("Author Name", result.creator().name())
             );
         }
 
@@ -206,10 +206,10 @@ class ContentQueryServiceTest {
 
             assertNotNull(result);
             assertAll("Null text fields",
-                () -> assertNull(result.getTitle()),
-                () -> assertNull(result.getDescription()),
-                () -> assertNull(result.getCopyrightText()),
-                () -> assertNull(result.getCreator())
+                () -> assertNull(result.title()),
+                () -> assertNull(result.description()),
+                () -> assertNull(result.copyrightText()),
+                () -> assertNull(result.creator())
             );
         }
 
@@ -243,9 +243,9 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "it");
 
             assertNotNull(result);
-            assertEquals("English Title", result.getTitle());
-            assertEquals("Descrizione", result.getDescription());
-            assertNull(result.getCreator());
+            assertEquals("English Title", result.title());
+            assertEquals("Descrizione", result.description());
+            assertNull(result.creator());
         }
 
         @Test
@@ -264,9 +264,9 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "fr");
 
             assertNotNull(result);
-            assertNull(result.getTitle());
-            assertNull(result.getDescription());
-            assertNull(result.getCopyrightText());
+            assertNull(result.title());
+            assertNull(result.description());
+            assertNull(result.copyrightText());
         }
 
         @Test
@@ -293,9 +293,9 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
 
             assertNotNull(result);
-            assertNotNull(result.getCreator());
-            assertEquals("cr-2", result.getCreator().getUuid());
-            assertEquals("Creator Two", result.getCreator().getName());
+            assertNotNull(result.creator());
+            assertEquals("cr-2", result.creator().uuid());
+            assertEquals("Creator Two", result.creator().name());
         }
 
         @Test
@@ -318,7 +318,7 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", null);
 
             assertNotNull(result);
-            assertEquals("English Title", result.getTitle());
+            assertEquals("English Title", result.title());
         }
 
         @Test
@@ -341,7 +341,7 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "  ");
 
             assertNotNull(result);
-            assertEquals("English Title", result.getTitle());
+            assertEquals("English Title", result.title());
         }
     }
 
@@ -398,12 +398,12 @@ class ContentQueryServiceTest {
 
             assertNotNull(result);
             assertAll("Text info fields",
-                () -> assertEquals(100, result.getIdText()),
-                () -> assertEquals("it", result.getLang()),
-                () -> assertEquals("it", result.getResolvedLang()),
-                () -> assertEquals("Ciao", result.getShortText()),
-                () -> assertEquals("Ciao Mondo", result.getLongText()),
-                () -> assertEquals("https://textcopy.com", result.getLinkCopyright())
+                () -> assertEquals(100, result.idText()),
+                () -> assertEquals("it", result.lang()),
+                () -> assertEquals("it", result.resolvedLang()),
+                () -> assertEquals("Ciao", result.shortText()),
+                () -> assertEquals("Ciao Mondo", result.longText()),
+                () -> assertEquals("https://textcopy.com", result.linkCopyright())
             );
         }
 
@@ -423,9 +423,9 @@ class ContentQueryServiceTest {
             TextInfo result = service.getTextByStoryAndIdText("story-uuid", 100, "fr");
 
             assertNotNull(result);
-            assertEquals("fr", result.getLang());
-            assertEquals("en", result.getResolvedLang());
-            assertEquals("Hello", result.getShortText());
+            assertEquals("fr", result.lang());
+            assertEquals("en", result.resolvedLang());
+            assertEquals("Hello", result.shortText());
         }
 
         @Test
@@ -468,8 +468,8 @@ class ContentQueryServiceTest {
             TextInfo result = service.getTextByStoryAndIdText("story-uuid", 100, null);
 
             assertNotNull(result);
-            assertEquals("en", result.getLang());
-            assertEquals("en", result.getResolvedLang());
+            assertEquals("en", result.lang());
+            assertEquals("en", result.resolvedLang());
         }
 
         @Test
@@ -486,7 +486,7 @@ class ContentQueryServiceTest {
             TextInfo result = service.getTextByStoryAndIdText("story-uuid", 100, "  ");
 
             assertNotNull(result);
-            assertEquals("en", result.getLang());
+            assertEquals("en", result.lang());
         }
 
         @Test
@@ -511,10 +511,10 @@ class ContentQueryServiceTest {
             TextInfo result = service.getTextByStoryAndIdText("story-uuid", 100, "en");
 
             assertNotNull(result);
-            assertEquals("© 2026", result.getCopyrightText());
-            assertNotNull(result.getCreator());
-            assertEquals("cr-uuid", result.getCreator().getUuid());
-            assertEquals("Author", result.getCreator().getName());
+            assertEquals("© 2026", result.copyrightText());
+            assertNotNull(result.creator());
+            assertEquals("cr-uuid", result.creator().uuid());
+            assertEquals("Author", result.creator().name());
         }
 
         @Test
@@ -535,8 +535,8 @@ class ContentQueryServiceTest {
             TextInfo result = service.getTextByStoryAndIdText("story-uuid", 100, "en");
 
             assertNotNull(result);
-            assertNull(result.getCopyrightText());
-            assertNull(result.getCreator());
+            assertNull(result.copyrightText());
+            assertNull(result.creator());
         }
     }
 
@@ -604,13 +604,13 @@ class ContentQueryServiceTest {
 
             assertNotNull(result);
             assertAll("Creator info fields",
-                () -> assertEquals("cr-uuid", result.getUuid()),
-                () -> assertEquals("Creator Name", result.getName()),
-                () -> assertEquals("https://creator.com", result.getLink()),
-                () -> assertEquals("https://creator.com/profile", result.getUrl()),
-                () -> assertEquals("https://creator.com/avatar.png", result.getUrlImage()),
-                () -> assertEquals("https://creator.com/emote.png", result.getUrlEmote()),
-                () -> assertEquals("https://instagram.com/creator", result.getUrlInstagram())
+                () -> assertEquals("cr-uuid", result.uuid()),
+                () -> assertEquals("Creator Name", result.name()),
+                () -> assertEquals("https://creator.com", result.link()),
+                () -> assertEquals("https://creator.com/profile", result.url()),
+                () -> assertEquals("https://creator.com/avatar.png", result.urlImage()),
+                () -> assertEquals("https://creator.com/emote.png", result.urlEmote()),
+                () -> assertEquals("https://instagram.com/creator", result.urlInstagram())
             );
         }
 
@@ -627,7 +627,7 @@ class ContentQueryServiceTest {
             CreatorInfo result = service.getCreatorByStoryAndCreatorUuid("story-uuid", "cr-uuid", "en");
 
             assertNotNull(result);
-            assertNull(result.getName());
+            assertNull(result.name());
         }
 
         @Test
@@ -647,7 +647,7 @@ class ContentQueryServiceTest {
             CreatorInfo result = service.getCreatorByStoryAndCreatorUuid("story-uuid", "cr-uuid", "it");
 
             assertNotNull(result);
-            assertEquals("English Name", result.getName());
+            assertEquals("English Name", result.name());
         }
 
         @Test
@@ -666,7 +666,7 @@ class ContentQueryServiceTest {
             CreatorInfo result = service.getCreatorByStoryAndCreatorUuid("story-uuid", "cr-uuid", null);
 
             assertNotNull(result);
-            assertEquals("English Name", result.getName());
+            assertEquals("English Name", result.name());
         }
 
         @Test
@@ -685,12 +685,12 @@ class ContentQueryServiceTest {
             CreatorInfo result = service.getCreatorByStoryAndCreatorUuid("story-uuid", "cr-uuid", "en");
 
             assertNotNull(result);
-            assertNull(result.getName());
-            assertNull(result.getLink());
-            assertNull(result.getUrl());
-            assertNull(result.getUrlImage());
-            assertNull(result.getUrlEmote());
-            assertNull(result.getUrlInstagram());
+            assertNull(result.name());
+            assertNull(result.link());
+            assertNull(result.url());
+            assertNull(result.urlImage());
+            assertNull(result.urlEmote());
+            assertNull(result.urlInstagram());
         }
     }
 
@@ -717,7 +717,7 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
 
             assertNotNull(result);
-            assertNull(result.getCreator());
+            assertNull(result.creator());
         }
 
         @Test
@@ -734,7 +734,7 @@ class ContentQueryServiceTest {
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
 
             assertNotNull(result);
-            assertNull(result.getCreator());
+            assertNull(result.creator());
         }
 
         @Test
@@ -769,7 +769,7 @@ class ContentQueryServiceTest {
             when(readPort.findCreatorsByStoryId(1L)).thenReturn(List.of(cr));
 
             CardInfo result = service.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en");
-            assertNull(result.getCreator());
+            assertNull(result.creator());
         }
     }
 }

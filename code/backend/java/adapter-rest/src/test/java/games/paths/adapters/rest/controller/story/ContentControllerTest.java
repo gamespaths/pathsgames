@@ -39,44 +39,21 @@ class ContentControllerTest {
     // === Helper builders ===
 
     private CreatorInfo sampleCreator() {
-        return CreatorInfo.builder()
-                .uuid("cr-uuid")
-                .name("Author Name")
-                .link("https://creator.com")
-                .url("https://creator.com/profile")
-                .urlImage("https://creator.com/avatar.png")
-                .urlEmote("https://creator.com/emote.png")
-                .urlInstagram("https://instagram.com/creator")
-                .build();
+        return new CreatorInfo("cr-uuid", "Author Name", "https://creator.com",
+                "https://creator.com/profile", "https://creator.com/avatar.png",
+                "https://creator.com/emote.png", "https://instagram.com/creator");
     }
 
     private CardInfo sampleCard() {
-        return CardInfo.builder()
-                .uuid("card-uuid")
-                .urlImage("https://img.com/card.png")
-                .alternativeImage("alt.jpg")
-                .awesomeIcon("fa-star")
-                .styleMain("bg-primary")
-                .styleDetail("text-light")
-                .title("Card Title")
-                .description("Card Description")
-                .copyrightText("© 2026")
-                .linkCopyright("https://copy.com")
-                .creator(sampleCreator())
-                .build();
+        return new CardInfo("card-uuid", null, "https://img.com/card.png", "alt.jpg",
+                "fa-star", "bg-primary", "text-light", null, null, null,
+                "Card Title", "Card Description", "© 2026", "https://copy.com",
+                sampleCreator());
     }
 
     private TextInfo sampleText() {
-        return TextInfo.builder()
-                .idText(100)
-                .lang("it")
-                .resolvedLang("en")
-                .shortText("Hello")
-                .longText("Hello World")
-                .copyrightText("© 2026")
-                .linkCopyright("https://copy.com")
-                .creator(sampleCreator())
-                .build();
+        return new TextInfo(100, "it", "en", "Hello", "Hello World",
+                "© 2026", "https://copy.com", sampleCreator());
     }
 
     // === GET /api/content/{uuidStory}/cards/{uuidCard} ===
@@ -146,11 +123,8 @@ class ContentControllerTest {
         @Test
         @DisplayName("Should return card with null creator when creator is null")
         void nullCreator() throws Exception {
-            CardInfo card = CardInfo.builder()
-                    .uuid("card-uuid")
-                    .title("Card Title")
-                    .creator(null)
-                    .build();
+            CardInfo card = new CardInfo("card-uuid", null, null, null, null, null, null,
+                    null, null, null, "Card Title", null, null, null, null);
 
             when(contentQueryPort.getCardByStoryAndCardUuid("story-uuid", "card-uuid", "en"))
                     .thenReturn(card);
@@ -223,13 +197,7 @@ class ContentControllerTest {
         @Test
         @DisplayName("Should return text with null creator when creator is null")
         void nullCreator() throws Exception {
-            TextInfo text = TextInfo.builder()
-                    .idText(100)
-                    .lang("en")
-                    .resolvedLang("en")
-                    .shortText("Hello")
-                    .creator(null)
-                    .build();
+            TextInfo text = new TextInfo(100, "en", "en", "Hello", null, null, null, null);
 
             when(contentQueryPort.getTextByStoryAndIdText("story-uuid", 100, "en"))
                     .thenReturn(text);
@@ -313,10 +281,8 @@ class ContentControllerTest {
         @Test
         @DisplayName("Should return creator with null fields when URLs are null")
         void nullUrls() throws Exception {
-            CreatorInfo creator = CreatorInfo.builder()
-                    .uuid("cr-uuid")
-                    .name("Author")
-                    .build();
+            CreatorInfo creator = new CreatorInfo("cr-uuid", "Author",
+                    null, null, null, null, null);
 
             when(contentQueryPort.getCreatorByStoryAndCreatorUuid("story-uuid", "cr-uuid", "en"))
                     .thenReturn(creator);

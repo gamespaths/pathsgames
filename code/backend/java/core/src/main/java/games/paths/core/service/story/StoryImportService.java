@@ -112,17 +112,16 @@ public class StoryImportService implements StoryImportPort {
         persistencePort.saveStory(savedStory);
         persistencePort.syncStorySequences();
 
-        return StoryImportResult.builder()
-                .storyUuid(savedStory.getUuid())
-                .status("IMPORTED")
-                .textsImported(textsImported)
-                .locationsImported(locationsImported)
-                .eventsImported(eventsImported)
-                .itemsImported(itemsImported)
-                .difficultiesImported(difficultiesImported)
-                .classesImported(classesImported)
-                .choicesImported(choicesImported)
-                .build();
+        return new StoryImportResult(
+                savedStory.getUuid(),
+                "IMPORTED",
+                textsImported,
+                locationsImported,
+                eventsImported,
+                itemsImported,
+                difficultiesImported,
+                classesImported,
+                choicesImported);
         } finally {
             scopedIdCache.remove();
         }

@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @IdClass(StoryScopedEntityId.class)
 @Table(name = "list_choices")
-public class ChoiceEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class ChoiceEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_event")
     private Integer idEvent;
@@ -63,20 +55,6 @@ public class ChoiceEntity extends BaseStoryEntity {
 
     // === Getters & Setters ===
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
-
     public Integer getIdEvent() { return idEvent; }
     public void setIdEvent(Integer idEvent) { this.idEvent = idEvent; }
 
@@ -85,8 +63,6 @@ public class ChoiceEntity extends BaseStoryEntity {
 
     public Integer getPriority() { return priority; }
     public void setPriority(Integer priority) { this.priority = priority; }
-
-
 
     public Integer getIdTextNarrative() { return idTextNarrative; }
     public void setIdTextNarrative(Integer idTextNarrative) { this.idTextNarrative = idTextNarrative; }

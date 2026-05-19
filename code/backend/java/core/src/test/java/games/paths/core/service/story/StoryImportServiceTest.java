@@ -80,8 +80,8 @@ class StoryImportServiceTest {
             StoryImportResult result = storyImportService.importStory(data);
 
             assertNotNull(result);
-            assertEquals("IMPORTED", result.getStatus());
-            assertNotNull(result.getStoryUuid());
+            assertEquals("IMPORTED", result.status());
+            assertNotNull(result.storyUuid());
             verify(persistencePort, times(2)).saveStory(any(StoryEntity.class));
         }
 
@@ -103,7 +103,7 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
 
-            assertEquals("existing-uuid", result.getStoryUuid());
+            assertEquals("existing-uuid", result.storyUuid());
             verify(persistencePort).deleteStoryData(1L);
         }
 
@@ -126,7 +126,7 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
 
-            assertEquals("explicit-id-uuid", result.getStoryUuid());
+            assertEquals("explicit-id-uuid", result.storyUuid());
             ArgumentCaptor<StoryEntity> captor = ArgumentCaptor.forClass(StoryEntity.class);
             verify(persistencePort, atLeastOnce()).saveStory(captor.capture());
             assertEquals(77L, captor.getAllValues().get(0).getId());
@@ -164,8 +164,8 @@ class StoryImportServiceTest {
             StoryImportResult r1 = storyImportService.importStory(story1);
             StoryImportResult r2 = storyImportService.importStory(story2);
 
-            assertEquals("story-uuid-1", r1.getStoryUuid());
-            assertEquals("story-uuid-2", r2.getStoryUuid());
+            assertEquals("story-uuid-1", r1.storyUuid());
+            assertEquals("story-uuid-2", r2.storyUuid());
 
             ArgumentCaptor<List<EventEntity>> eventsCaptor = ArgumentCaptor.forClass(List.class);
             verify(persistencePort, times(2)).saveEvents(eventsCaptor.capture());
@@ -259,15 +259,15 @@ class StoryImportServiceTest {
             StoryImportResult result = storyImportService.importStory(data);
 
             assertAll("Import result counts",
-                () -> assertEquals("full-uuid", result.getStoryUuid()),
-                () -> assertEquals("IMPORTED", result.getStatus()),
-                () -> assertEquals(1, result.getTextsImported()),
-                () -> assertEquals(1, result.getDifficultiesImported()),
-                () -> assertEquals(1, result.getClassesImported()),
-                () -> assertEquals(1, result.getLocationsImported()),
-                () -> assertEquals(1, result.getEventsImported()),
-                () -> assertEquals(1, result.getItemsImported()),
-                () -> assertEquals(1, result.getChoicesImported())
+                () -> assertEquals("full-uuid", result.storyUuid()),
+                () -> assertEquals("IMPORTED", result.status()),
+                () -> assertEquals(1, result.textsImported()),
+                () -> assertEquals(1, result.difficultiesImported()),
+                () -> assertEquals(1, result.classesImported()),
+                () -> assertEquals(1, result.locationsImported()),
+                () -> assertEquals(1, result.eventsImported()),
+                () -> assertEquals(1, result.itemsImported()),
+                () -> assertEquals(1, result.choicesImported())
             );
         }
 
@@ -302,13 +302,13 @@ class StoryImportServiceTest {
             StoryImportResult result = storyImportService.importStory(data);
 
             assertAll("Zero imports",
-                () -> assertEquals(0, result.getTextsImported()),
-                () -> assertEquals(0, result.getDifficultiesImported()),
-                () -> assertEquals(0, result.getLocationsImported()),
-                () -> assertEquals(0, result.getEventsImported()),
-                () -> assertEquals(0, result.getItemsImported()),
-                () -> assertEquals(0, result.getClassesImported()),
-                () -> assertEquals(0, result.getChoicesImported())
+                () -> assertEquals(0, result.textsImported()),
+                () -> assertEquals(0, result.difficultiesImported()),
+                () -> assertEquals(0, result.locationsImported()),
+                () -> assertEquals(0, result.eventsImported()),
+                () -> assertEquals(0, result.itemsImported()),
+                () -> assertEquals(0, result.classesImported()),
+                () -> assertEquals(0, result.choicesImported())
             );
         }
 
@@ -328,8 +328,8 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
 
-            assertNotNull(result.getStoryUuid());
-            assertFalse(result.getStoryUuid().isBlank());
+            assertNotNull(result.storyUuid());
+            assertFalse(result.storyUuid().isBlank());
         }
 
         @Test
@@ -348,7 +348,7 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
 
-            assertEquals(0, result.getTextsImported());
+            assertEquals(0, result.textsImported());
         }
 
         @Test
@@ -392,7 +392,7 @@ class StoryImportServiceTest {
 
             StoryImportResult result = storyImportService.importStory(data);
 
-            assertEquals(1, result.getTextsImported());
+            assertEquals(1, result.textsImported());
         }
     }
 

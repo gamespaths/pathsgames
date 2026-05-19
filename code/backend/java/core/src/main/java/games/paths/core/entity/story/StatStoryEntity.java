@@ -17,7 +17,7 @@ import jakarta.persistence.MappedSuperclass;
  * entities, eliminating ~55 duplicated lines per entity reported by SonarQube.</p>
  */
 @MappedSuperclass
-public abstract class StatStoryEntity extends BaseStoryEntity {
+public abstract class StatStoryEntity extends BaseStoryScopedEntity {
 
     @Column(name = "life", nullable = false)
     private Integer life;

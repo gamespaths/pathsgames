@@ -102,25 +102,25 @@ public class ContentController {
 
     private CardInfoResponse toCardInfoResponse(CardInfo ci) {
         return new CardInfoResponse(
-                ci.getUuid(), ci.getCardType(), ci.getUrlImage(), ci.getAlternativeImage(),
-                ci.getAwesomeIcon(), ci.getStyleMain(), ci.getStyleDetail(),
-                ci.getStyleImageLittle(), ci.getStyleImageMedium(), ci.getStyleImageLarge(),
-                ci.getTitle(), ci.getDescription(),
-                ci.getCopyrightText(), ci.getLinkCopyright(),
-                ci.getCreator() != null ? toCreatorInfoResponse(ci.getCreator()) : null);
+                ci.uuid(), ci.cardType(), ci.urlImage(), ci.alternativeImage(),
+                ci.awesomeIcon(), ci.styleMain(), ci.styleDetail(),
+                ci.styleImageLittle(), ci.styleImageMedium(), ci.styleImageLarge(),
+                ci.title(), ci.description(),
+                ci.copyrightText(), ci.linkCopyright(),
+                ci.creator() != null ? toCreatorInfoResponse(ci.creator()) : null);
     }
 
     private TextInfoResponse toTextInfoResponse(TextInfo ti) {
         return new TextInfoResponse(
-                ti.getIdText(), ti.getLang(), ti.getResolvedLang(),
-                ti.getShortText(), ti.getLongText(),
-                ti.getCopyrightText(), ti.getLinkCopyright(),
-                ti.getCreator() != null ? toCreatorInfoResponse(ti.getCreator()) : null);
+                ti.idText(), ti.lang(), ti.resolvedLang(),
+                ti.shortText(), ti.longText(),
+                ti.copyrightText(), ti.linkCopyright(),
+                ti.creator() != null ? toCreatorInfoResponse(ti.creator()) : null);
     }
 
     private CreatorInfoResponse toCreatorInfoResponse(CreatorInfo ci) {
         return new CreatorInfoResponse(
-                ci.getUuid(), ci.getName(), ci.getLink(), ci.getUrl(),
-                ci.getUrlImage(), ci.getUrlEmote(), ci.getUrlInstagram());
+                ci.uuid(), ci.name(), ci.link(), ci.url(),
+                ci.urlImage(), ci.urlEmote(), ci.urlInstagram());
     }
 }

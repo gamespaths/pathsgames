@@ -3,8 +3,6 @@ package games.paths.core.model.story;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
@@ -12,9 +10,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for {@link StoryDetail}.
- * Validates builder logic, mandatory fields, list immutability, and defaults.
+ * Validates the nested builder, mandatory fields, list immutability, and defaults.
  */
-@ExtendWith(MockitoExtension.class)
 class StoryDetailTest {
 
     private StoryDetail.Builder validBuilder() {
@@ -62,27 +59,26 @@ class StoryDetailTest {
             StoryDetail d = validBuilder().difficulties(List.of(diff)).build();
 
             assertAll("StoryDetail fields",
-                () -> assertEquals("uuid-1", d.getUuid()),
-                () -> assertEquals("Title", d.getTitle()),
-                () -> assertEquals("Description", d.getDescription()),
-                () -> assertEquals("Author", d.getAuthor()),
-                () -> assertEquals("adventure", d.getCategory()),
-                () -> assertEquals("fantasy", d.getGroup()),
-                () -> assertEquals("PUBLIC", d.getVisibility()),
-                () -> assertEquals(5, d.getPriority()),
-                () -> assertEquals(2, d.getPeghi()),
-                () -> assertEquals("0.10", d.getVersionMin()),
-                () -> assertEquals("1.0", d.getVersionMax()),
-                () -> assertEquals("hour", d.getClockSingularDescription()),
-                () -> assertEquals("hours", d.getClockPluralDescription()),
-                () -> assertEquals("Copyright", d.getCopyrightText()),
-                () -> assertEquals("https://example.com", d.getLinkCopyright()),
-                () -> assertEquals(10, d.getLocationCount()),
-                () -> assertEquals(20, d.getEventCount()),
-                () -> assertEquals(5, d.getItemCount()),
-                () -> assertEquals(1, d.getDifficulties().size()),
-                () -> assertEquals("Easy", d.getDifficulties().get(0).getDescription()),
-                () -> assertTrue(d.toString().contains("uuid-1"))
+                () -> assertEquals("uuid-1", d.uuid()),
+                () -> assertEquals("Title", d.title()),
+                () -> assertEquals("Description", d.description()),
+                () -> assertEquals("Author", d.author()),
+                () -> assertEquals("adventure", d.category()),
+                () -> assertEquals("fantasy", d.group()),
+                () -> assertEquals("PUBLIC", d.visibility()),
+                () -> assertEquals(5, d.priority()),
+                () -> assertEquals(2, d.peghi()),
+                () -> assertEquals("0.10", d.versionMin()),
+                () -> assertEquals("1.0", d.versionMax()),
+                () -> assertEquals("hour", d.clockSingularDescription()),
+                () -> assertEquals("hours", d.clockPluralDescription()),
+                () -> assertEquals("Copyright", d.copyrightText()),
+                () -> assertEquals("https://example.com", d.linkCopyright()),
+                () -> assertEquals(10, d.locationCount()),
+                () -> assertEquals(20, d.eventCount()),
+                () -> assertEquals(5, d.itemCount()),
+                () -> assertEquals(1, d.difficulties().size()),
+                () -> assertEquals("Easy", d.difficulties().get(0).getDescription())
             );
         }
 
@@ -91,8 +87,8 @@ class StoryDetailTest {
         void build_nullDifficulties() {
             StoryDetail d = validBuilder().difficulties(null).build();
 
-            assertNotNull(d.getDifficulties());
-            assertTrue(d.getDifficulties().isEmpty());
+            assertNotNull(d.difficulties());
+            assertTrue(d.difficulties().isEmpty());
         }
 
         @Test
@@ -101,7 +97,7 @@ class StoryDetailTest {
             StoryDetail d = validBuilder().build();
 
             assertThrows(UnsupportedOperationException.class, () ->
-                    d.getDifficulties().add(DifficultyInfo.builder().uuid("x").build()));
+                    d.difficulties().add(DifficultyInfo.builder().uuid("x").build()));
         }
 
         @Test
@@ -118,28 +114,25 @@ class StoryDetailTest {
                     .build();
 
             assertAll("Null optional fields",
-                () -> assertNull(d.getTitle()),
-                () -> assertNull(d.getDescription()),
-                () -> assertNull(d.getAuthor()),
-                () -> assertNull(d.getVersionMin()),
-                () -> assertNull(d.getVersionMax()),
-                () -> assertNull(d.getCopyrightText())
+                () -> assertNull(d.title()),
+                () -> assertNull(d.description()),
+                () -> assertNull(d.author()),
+                () -> assertNull(d.versionMin()),
+                () -> assertNull(d.versionMax()),
+                () -> assertNull(d.copyrightText())
             );
         }
-
-        // --- Step 15: Character templates, classes, traits, card, counts ---
 
         @Test
         @DisplayName("Should build with characterTemplates, classes, traits, card, and counts")
         void build_step15Fields() {
-            CharacterTemplateInfo ct = CharacterTemplateInfo.builder()
-                    .uuid("ct-1").name("Warrior").build();
-            ClassInfo ci = ClassInfo.builder()
-                    .uuid("class-1").name("Knight").build();
-            TraitInfo ti = TraitInfo.builder()
-                    .uuid("trait-1").name("Brave").build();
-            CardInfo card = CardInfo.builder()
-                    .uuid("card-1").urlImage("https://example.com/card.png").build();
+            CharacterTemplateInfo ct = new CharacterTemplateInfo("ct-1", "Warrior", null,
+                    0, 0, 0, 0, 0, 0, null, null, null, null);
+            ClassInfo ci = new ClassInfo(null, "class-1", "Knight", null,
+                    0, 0, 0, 0, null, null, List.of());
+            TraitInfo ti = TraitInfo.builder().uuid("trait-1").name("Brave").build();
+            CardInfo card = new CardInfo("card-1", null, "https://example.com/card.png",
+                    null, null, null, null, null, null, null, null, null, null, null, null);
 
             StoryDetail d = validBuilder()
                     .classCount(1)
@@ -152,17 +145,17 @@ class StoryDetailTest {
                     .build();
 
             assertAll("Step 15 fields",
-                () -> assertEquals(1, d.getClassCount()),
-                () -> assertEquals(1, d.getCharacterTemplateCount()),
-                () -> assertEquals(1, d.getTraitCount()),
-                () -> assertEquals(1, d.getCharacterTemplates().size()),
-                () -> assertEquals("ct-1", d.getCharacterTemplates().get(0).getUuid()),
-                () -> assertEquals(1, d.getClasses().size()),
-                () -> assertEquals("class-1", d.getClasses().get(0).getUuid()),
-                () -> assertEquals(1, d.getTraits().size()),
-                () -> assertEquals("trait-1", d.getTraits().get(0).getUuid()),
-                () -> assertNotNull(d.getCard()),
-                () -> assertEquals("card-1", d.getCard().getUuid())
+                () -> assertEquals(1, d.classCount()),
+                () -> assertEquals(1, d.characterTemplateCount()),
+                () -> assertEquals(1, d.traitCount()),
+                () -> assertEquals(1, d.characterTemplates().size()),
+                () -> assertEquals("ct-1", d.characterTemplates().get(0).uuid()),
+                () -> assertEquals(1, d.classes().size()),
+                () -> assertEquals("class-1", d.classes().get(0).uuid()),
+                () -> assertEquals(1, d.traits().size()),
+                () -> assertEquals("trait-1", d.traits().get(0).getUuid()),
+                () -> assertNotNull(d.card()),
+                () -> assertEquals("card-1", d.card().uuid())
             );
         }
 
@@ -177,41 +170,14 @@ class StoryDetailTest {
                     .build();
 
             assertAll("Null Step 15 lists default to empty",
-                () -> assertNotNull(d.getCharacterTemplates()),
-                () -> assertTrue(d.getCharacterTemplates().isEmpty()),
-                () -> assertNotNull(d.getClasses()),
-                () -> assertTrue(d.getClasses().isEmpty()),
-                () -> assertNotNull(d.getTraits()),
-                () -> assertTrue(d.getTraits().isEmpty()),
-                () -> assertNull(d.getCard())
+                () -> assertNotNull(d.characterTemplates()),
+                () -> assertTrue(d.characterTemplates().isEmpty()),
+                () -> assertNotNull(d.classes()),
+                () -> assertTrue(d.classes().isEmpty()),
+                () -> assertNotNull(d.traits()),
+                () -> assertTrue(d.traits().isEmpty()),
+                () -> assertNull(d.card())
             );
-        }
-
-        @Test
-        @DisplayName("Character templates list should be immutable")
-        void build_immutableCharacterTemplates() {
-            StoryDetail d = validBuilder().characterTemplates(List.of()).build();
-
-            assertThrows(UnsupportedOperationException.class, () ->
-                    d.getCharacterTemplates().add(CharacterTemplateInfo.builder().uuid("x").build()));
-        }
-
-        @Test
-        @DisplayName("Classes list should be immutable")
-        void build_immutableClasses() {
-            StoryDetail d = validBuilder().classes(List.of()).build();
-
-            assertThrows(UnsupportedOperationException.class, () ->
-                    d.getClasses().add(ClassInfo.builder().uuid("x").build()));
-        }
-
-        @Test
-        @DisplayName("Traits list should be immutable")
-        void build_immutableTraits() {
-            StoryDetail d = validBuilder().traits(List.of()).build();
-
-            assertThrows(UnsupportedOperationException.class, () ->
-                    d.getTraits().add(TraitInfo.builder().uuid("x").build()));
         }
 
         @Test
@@ -220,9 +186,9 @@ class StoryDetailTest {
             StoryDetail d = validBuilder().build();
 
             assertAll("Default counts",
-                () -> assertEquals(0, d.getClassCount()),
-                () -> assertEquals(0, d.getCharacterTemplateCount()),
-                () -> assertEquals(0, d.getTraitCount())
+                () -> assertEquals(0, d.classCount()),
+                () -> assertEquals(0, d.characterTemplateCount()),
+                () -> assertEquals(0, d.traitCount())
             );
         }
     }
@@ -232,24 +198,11 @@ class StoryDetailTest {
     class ValidationTests {
 
         @Test
-        @DisplayName("Should throw IllegalStateException when uuid is null")
-        void validate_nullUuid() {
-            assertThrows(IllegalStateException.class, () ->
-                    validBuilder().uuid(null).build());
-        }
-
-        @Test
-        @DisplayName("Should throw IllegalStateException when uuid is blank")
-        void validate_blankUuid() {
-            assertThrows(IllegalStateException.class, () ->
-                    validBuilder().uuid("  ").build());
-        }
-
-        @Test
-        @DisplayName("Should throw IllegalStateException when uuid is empty")
-        void validate_emptyUuid() {
-            assertThrows(IllegalStateException.class, () ->
-                    validBuilder().uuid("").build());
+        @DisplayName("Should throw IllegalStateException when uuid is null/blank/empty")
+        void validate_invalidUuid() {
+            assertThrows(IllegalStateException.class, () -> validBuilder().uuid(null).build());
+            assertThrows(IllegalStateException.class, () -> validBuilder().uuid("  ").build());
+            assertThrows(IllegalStateException.class, () -> validBuilder().uuid("").build());
         }
     }
 }

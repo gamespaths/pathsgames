@@ -410,13 +410,13 @@ class SessionServiceTest {
 
             assertNotNull(info);
             assertAll(
-                () -> assertEquals("u-1", info.getUserUuid()),
-                () -> assertEquals("guest_u1", info.getUsername()),
-                () -> assertEquals("PLAYER", info.getRole()),
-                () -> assertEquals("access", info.getType()),
-                () -> assertEquals("jti-123", info.getTokenId()),
-                () -> assertEquals(1000L, info.getIssuedAt()),
-                () -> assertEquals(2000L, info.getExpiresAt())
+                () -> assertEquals("u-1", info.userUuid()),
+                () -> assertEquals("guest_u1", info.username()),
+                () -> assertEquals("PLAYER", info.role()),
+                () -> assertEquals("access", info.type()),
+                () -> assertEquals("jti-123", info.tokenId()),
+                () -> assertEquals(1000L, info.issuedAt()),
+                () -> assertEquals(2000L, info.expiresAt())
             );
         }
 
@@ -434,8 +434,8 @@ class SessionServiceTest {
             TokenInfo info = sessionService.validateAccessToken("tok");
 
             assertNotNull(info);
-            assertEquals(1234L, info.getIssuedAt());
-            assertEquals(5678L, info.getExpiresAt());
+            assertEquals(1234L, info.issuedAt());
+            assertEquals(5678L, info.expiresAt());
         }
 
         @Test
@@ -451,8 +451,8 @@ class SessionServiceTest {
             TokenInfo info = sessionService.validateAccessToken("tok");
 
             assertNotNull(info);
-            assertEquals(0L, info.getIssuedAt());
-            assertEquals(0L, info.getExpiresAt());
+            assertEquals(0L, info.issuedAt());
+            assertEquals(0L, info.expiresAt());
         }
 
         @Test
@@ -469,8 +469,8 @@ class SessionServiceTest {
             TokenInfo info = sessionService.validateAccessToken("tok");
 
             assertNotNull(info);
-            assertEquals(0L, info.getIssuedAt());
-            assertEquals(0L, info.getExpiresAt());
+            assertEquals(0L, info.issuedAt());
+            assertEquals(0L, info.expiresAt());
         }
     }
 }

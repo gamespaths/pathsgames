@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_choices_conditions")
 @IdClass(StoryScopedEntityId.class)
-public class ChoiceConditionEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class ChoiceConditionEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_choices", nullable = false)
     private Integer idChoices;
@@ -39,19 +31,6 @@ public class ChoiceConditionEntity extends BaseStoryEntity {
 
     // === Getters & Setters ===
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
     public Integer getIdChoices() { return idChoices; }
     public void setIdChoices(Integer idChoices) { this.idChoices = idChoices; }
 
@@ -66,7 +45,5 @@ public class ChoiceConditionEntity extends BaseStoryEntity {
 
     public String getOperator() { return operator; }
     public void setOperator(String operator) { this.operator = operator; }
-
-
 
 }

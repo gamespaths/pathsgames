@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_classes_bonus")
 @IdClass(StoryScopedEntityId.class)
-public class ClassBonusEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class ClassBonusEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_class", nullable = false)
     private Integer idClass;
@@ -34,20 +26,6 @@ public class ClassBonusEntity extends BaseStoryEntity {
 
     // === Getters & Setters ===
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
-
     public Integer getIdClass() { return idClass; }
     public void setIdClass(Integer idClass) { this.idClass = idClass; }
 
@@ -56,7 +34,5 @@ public class ClassBonusEntity extends BaseStoryEntity {
 
     public Integer getValue() { return value; }
     public void setValue(Integer value) { this.value = value; }
-
-
 
 }

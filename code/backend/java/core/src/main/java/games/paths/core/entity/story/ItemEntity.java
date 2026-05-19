@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_items")
 @IdClass(StoryScopedEntityId.class)
-public class ItemEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class ItemEntity extends BaseStoryScopedEntity {
 
     @Column(nullable = false)
     private Integer weight;
@@ -37,22 +29,6 @@ public class ItemEntity extends BaseStoryEntity {
     }
 
     // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
-
-
 
     public Integer getWeight() { return weight; }
     public void setWeight(Integer weight) { this.weight = weight; }

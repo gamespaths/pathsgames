@@ -8,14 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_cards")
 @IdClass(StoryScopedEntityId.class)
-public class CardEntity extends BaseStoryEntity {
-
-    @Id
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class CardEntity extends BaseStoryScopedEntity {
 
     @Column(name = "card_type")
     private String cardType;
@@ -58,19 +51,6 @@ public class CardEntity extends BaseStoryEntity {
 
     // === Getters & Setters ===
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
     public String getCardType() { return cardType; }
     public void setCardType(String cardType) { this.cardType = cardType; }
 
@@ -79,7 +59,6 @@ public class CardEntity extends BaseStoryEntity {
 
     public Integer getIdTextTitle() { return idTextTitle; }
     public void setIdTextTitle(Integer idTextTitle) { this.idTextTitle = idTextTitle; }
-
 
     public Integer getIdTextCopyright() { return idTextCopyright; }
     public void setIdTextCopyright(Integer idTextCopyright) { this.idTextCopyright = idTextCopyright; }

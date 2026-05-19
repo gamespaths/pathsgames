@@ -52,8 +52,8 @@ class GuestAdminServiceTest {
             // Assert
             assertAll("Check list mapping",
                 () -> assertEquals(1, list.size()),
-                () -> assertEquals("u1", list.get(0).getUserUuid()),
-                () -> assertEquals("guest1", list.get(0).getUsername())
+                () -> assertEquals("u1", list.get(0).userUuid()),
+                () -> assertEquals("guest1", list.get(0).username())
             );
         }
 
@@ -88,7 +88,7 @@ class GuestAdminServiceTest {
             GuestInfo result = service.getGuestByUuid(uuid);
 
             // Assert
-            assertEquals(6, result.getState(), "State should fall back to default 6");
+            assertEquals(6, result.state(), "State should fall back to default 6");
         }
 
         @Test
@@ -107,7 +107,7 @@ class GuestAdminServiceTest {
             GuestInfo result = service.getGuestByUuid(uuid);
 
             // Assert
-            assertEquals(42, result.getState(), "State should use the value from the database");
+            assertEquals(42, result.state(), "State should use the value from the database");
         }
     }
 
@@ -130,9 +130,9 @@ class GuestAdminServiceTest {
             when(persistence.findGuestByUuid("u3")).thenReturn(blankData);
 
             // Act & Assert
-            assertTrue(service.getGuestByUuid("u1").isExpired(), "Past date should be expired");
-            assertFalse(service.getGuestByUuid("u2").isExpired(), "Invalid date should not be expired (catch block)");
-            assertFalse(service.getGuestByUuid("u3").isExpired(), "Blank date should not be expired");
+            assertTrue(service.getGuestByUuid("u1").expired(), "Past date should be expired");
+            assertFalse(service.getGuestByUuid("u2").expired(), "Invalid date should not be expired (catch block)");
+            assertFalse(service.getGuestByUuid("u3").expired(), "Blank date should not be expired");
         }
     }
 

@@ -142,52 +142,52 @@ public class StoryController {
     }
 
     private StorySummaryResponse toSummaryResponse(StorySummary s) {
-        CardInfoResponse cardResp = s.getCard() != null ? toCardInfoResponse(s.getCard()) : null;
+        CardInfoResponse cardResp = s.card() != null ? toCardInfoResponse(s.card()) : null;
         return new StorySummaryResponse(
-                s.getUuid(), s.getTitle(), s.getDescription(), s.getAuthor(),
-                s.getCategory(), s.getGroup(), s.getVisibility(),
-                s.getPriority(), s.getPeghi(), s.getDifficultyCount(),
+                s.uuid(), s.title(), s.description(), s.author(),
+                s.category(), s.group(), s.visibility(),
+                s.priority(), s.peghi(), s.difficultyCount(),
                 cardResp);
     }
 
     private StoryDetailResponse toDetailResponse(StoryDetail d) {
         StoryDetailResponse resp = new StoryDetailResponse();
-        resp.setUuid(d.getUuid());
-        resp.setTitle(d.getTitle());
-        resp.setDescription(d.getDescription());
-        resp.setAuthor(d.getAuthor());
-        resp.setCategory(d.getCategory());
-        resp.setGroup(d.getGroup());
-        resp.setVisibility(d.getVisibility());
-        resp.setPriority(d.getPriority());
-        resp.setPeghi(d.getPeghi());
-        resp.setVersionMin(d.getVersionMin());
-        resp.setVersionMax(d.getVersionMax());
-        resp.setClockSingularDescription(d.getClockSingularDescription());
-        resp.setClockPluralDescription(d.getClockPluralDescription());
-        resp.setIdTextClockSingular(d.getIdTextClockSingular());
-        resp.setIdTextClockPlural(d.getIdTextClockPlural());
-        resp.setCopyrightText(d.getCopyrightText());
-        resp.setLinkCopyright(d.getLinkCopyright());
-        resp.setLocationCount(d.getLocationCount());
-        resp.setEventCount(d.getEventCount());
-        resp.setItemCount(d.getItemCount());
-        resp.setClassCount(d.getClassCount());
-        resp.setCharacterTemplateCount(d.getCharacterTemplateCount());
-        resp.setTraitCount(d.getTraitCount());
-        resp.setDifficulties(d.getDifficulties().stream()
+        resp.setUuid(d.uuid());
+        resp.setTitle(d.title());
+        resp.setDescription(d.description());
+        resp.setAuthor(d.author());
+        resp.setCategory(d.category());
+        resp.setGroup(d.group());
+        resp.setVisibility(d.visibility());
+        resp.setPriority(d.priority());
+        resp.setPeghi(d.peghi());
+        resp.setVersionMin(d.versionMin());
+        resp.setVersionMax(d.versionMax());
+        resp.setClockSingularDescription(d.clockSingularDescription());
+        resp.setClockPluralDescription(d.clockPluralDescription());
+        resp.setIdTextClockSingular(d.idTextClockSingular());
+        resp.setIdTextClockPlural(d.idTextClockPlural());
+        resp.setCopyrightText(d.copyrightText());
+        resp.setLinkCopyright(d.linkCopyright());
+        resp.setLocationCount(d.locationCount());
+        resp.setEventCount(d.eventCount());
+        resp.setItemCount(d.itemCount());
+        resp.setClassCount(d.classCount());
+        resp.setCharacterTemplateCount(d.characterTemplateCount());
+        resp.setTraitCount(d.traitCount());
+        resp.setDifficulties(d.difficulties().stream()
                 .map(this::toDifficultyResponse)
                 .collect(Collectors.toList()));
-        resp.setCharacterTemplates(d.getCharacterTemplates().stream()
+        resp.setCharacterTemplates(d.characterTemplates().stream()
                 .map(this::toCharacterTemplateResponse)
                 .collect(Collectors.toList()));
-        resp.setClasses(d.getClasses().stream()
+        resp.setClasses(d.classes().stream()
                 .map(this::toClassInfoResponse)
                 .collect(Collectors.toList()));
-        resp.setTraits(d.getTraits().stream()
+        resp.setTraits(d.traits().stream()
                 .map(this::toTraitInfoResponse)
                 .collect(Collectors.toList()));
-        resp.setCard(d.getCard() != null ? toCardInfoResponse(d.getCard()) : null);
+        resp.setCard(d.card() != null ? toCardInfoResponse(d.card()) : null);
         return resp;
     }
 
@@ -210,32 +210,32 @@ public class StoryController {
 
     private CharacterTemplateResponse toCharacterTemplateResponse(CharacterTemplateInfo ct) {
         CharacterTemplateResponse r = new CharacterTemplateResponse(
-                ct.getUuid(), ct.getName(), ct.getDescription(),
-                ct.getLifeMax(), ct.getEnergyMax(), ct.getSadMax(),
-                ct.getDexterityStart(), ct.getIntelligenceStart(), ct.getConstitutionStart());
-        r.setIdCard(ct.getIdCard());
-        r.setCard(ct.getCard() != null ? toCardInfoResponse(ct.getCard()) : null);
-        r.setIdClassPermitted(ct.getIdClassPermitted());
-        r.setIdClassProhibited(ct.getIdClassProhibited());
+                ct.uuid(), ct.name(), ct.description(),
+                ct.lifeMax(), ct.energyMax(), ct.sadMax(),
+                ct.dexterityStart(), ct.intelligenceStart(), ct.constitutionStart());
+        r.setIdCard(ct.idCard());
+        r.setCard(ct.card() != null ? toCardInfoResponse(ct.card()) : null);
+        r.setIdClassPermitted(ct.idClassPermitted());
+        r.setIdClassProhibited(ct.idClassProhibited());
         return r;
     }
 
     private ClassInfoResponse toClassInfoResponse(ClassInfo ci) {
         ClassInfoResponse r = new ClassInfoResponse(
-                ci.getUuid(), ci.getName(), ci.getDescription(),
-                ci.getWeightMax(), ci.getDexterityBase(), ci.getIntelligenceBase(),
-                ci.getConstitutionBase());
-        r.setId(ci.getId());
-        r.setIdCard(ci.getIdCard());
-        r.setCard(ci.getCard() != null ? toCardInfoResponse(ci.getCard()) : null);
-        r.setBonuses(ci.getBonuses() != null
-                ? ci.getBonuses().stream().map(this::toClassBonusInfoResponse).collect(Collectors.toList())
+                ci.uuid(), ci.name(), ci.description(),
+                ci.weightMax(), ci.dexterityBase(), ci.intelligenceBase(),
+                ci.constitutionBase());
+        r.setId(ci.id());
+        r.setIdCard(ci.idCard());
+        r.setCard(ci.card() != null ? toCardInfoResponse(ci.card()) : null);
+        r.setBonuses(ci.bonuses() != null
+                ? ci.bonuses().stream().map(this::toClassBonusInfoResponse).collect(Collectors.toList())
                 : new java.util.ArrayList<>());
         return r;
     }
 
     private ClassBonusInfoResponse toClassBonusInfoResponse(ClassBonusInfo cb) {
-        return new ClassBonusInfoResponse(cb.getUuid(), cb.getStatistic(), cb.getValue());
+        return new ClassBonusInfoResponse(cb.uuid(), cb.statistic(), cb.value());
     }
 
     private TraitInfoResponse toTraitInfoResponse(TraitInfo ti) {
@@ -257,10 +257,10 @@ public class StoryController {
 
     private CardInfoResponse toCardInfoResponse(CardInfo ci) {
         return new CardInfoResponse(
-                ci.getUuid(), ci.getCardType(), ci.getUrlImage(), ci.getAlternativeImage(),
-                ci.getAwesomeIcon(), ci.getStyleMain(), ci.getStyleDetail(),
-                ci.getStyleImageLittle(), ci.getStyleImageMedium(), ci.getStyleImageLarge(),
-                ci.getTitle(), ci.getDescription(),
-                ci.getCopyrightText(), ci.getLinkCopyright(), null);
+                ci.uuid(), ci.cardType(), ci.urlImage(), ci.alternativeImage(),
+                ci.awesomeIcon(), ci.styleMain(), ci.styleDetail(),
+                ci.styleImageLittle(), ci.styleImageMedium(), ci.styleImageLarge(),
+                ci.title(), ci.description(),
+                ci.copyrightText(), ci.linkCopyright(), null);
     }
 }

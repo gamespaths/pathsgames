@@ -105,21 +105,20 @@ public class StoryQueryService implements StoryQueryPort {
         for (CharacterTemplateEntity ct : ctEntities) {
             String ctName = resolveText(story.getId(), ct.getIdTextName(), lang);
             String ctDesc = resolveText(story.getId(), ct.getIdTextDescription(), lang);
-            characterTemplates.add(CharacterTemplateInfo.builder()
-                    .uuid(ct.getUuid())
-                    .name(ctName)
-                    .description(ctDesc)
-                    .lifeMax(ct.getLifeMax() != null ? ct.getLifeMax() : 10)
-                    .energyMax(ct.getEnergyMax() != null ? ct.getEnergyMax() : 10)
-                    .sadMax(ct.getSadMax() != null ? ct.getSadMax() : 10)
-                    .dexterityStart(ct.getDexterityStart() != null ? ct.getDexterityStart() : 1)
-                    .intelligenceStart(ct.getIntelligenceStart() != null ? ct.getIntelligenceStart() : 1)
-                    .constitutionStart(ct.getConstitutionStart() != null ? ct.getConstitutionStart() : 1)
-                    .idCard(ct.getIdCard())
-                    .card(resolveCardInfo(story.getId(), ct.getIdCard(), lang))
-                    .idClassPermitted(ct.getIdClassPermitted())
-                    .idClassProhibited(ct.getIdClassProhibited())
-                    .build());
+            characterTemplates.add(new CharacterTemplateInfo(
+                    ct.getUuid(),
+                    ctName,
+                    ctDesc,
+                    ct.getLifeMax() != null ? ct.getLifeMax() : 10,
+                    ct.getEnergyMax() != null ? ct.getEnergyMax() : 10,
+                    ct.getSadMax() != null ? ct.getSadMax() : 10,
+                    ct.getDexterityStart() != null ? ct.getDexterityStart() : 1,
+                    ct.getIntelligenceStart() != null ? ct.getIntelligenceStart() : 1,
+                    ct.getConstitutionStart() != null ? ct.getConstitutionStart() : 1,
+                    ct.getIdCard(),
+                    resolveCardInfo(story.getId(), ct.getIdCard(), lang),
+                    ct.getIdClassPermitted(),
+                    ct.getIdClassProhibited()));
         }
 
         List<ClassEntity> classEntities = readPort.findClassesByStoryId(story.getId());
@@ -132,26 +131,24 @@ public class StoryQueryService implements StoryQueryPort {
             for (ClassBonusEntity cb : classBonusEntities) {
                 if (cb.getIdClass() != null && cl.getId() != null
                         && cb.getIdClass().longValue() == cl.getId().longValue()) {
-                    bonusList.add(ClassBonusInfo.builder()
-                            .uuid(cb.getUuid())
-                            .statistic(cb.getStatistic())
-                            .value(cb.getValue() != null ? cb.getValue() : 0)
-                            .build());
+                    bonusList.add(new ClassBonusInfo(
+                            cb.getUuid(),
+                            cb.getStatistic(),
+                            cb.getValue() != null ? cb.getValue() : 0));
                 }
             }
-            classes.add(ClassInfo.builder()
-                    .id(cl.getId())
-                    .uuid(cl.getUuid())
-                    .name(clName)
-                    .description(clDesc)
-                    .weightMax(cl.getWeightMax() != null ? cl.getWeightMax() : 10)
-                    .dexterityBase(cl.getDexterityBase() != null ? cl.getDexterityBase() : 1)
-                    .intelligenceBase(cl.getIntelligenceBase() != null ? cl.getIntelligenceBase() : 1)
-                    .constitutionBase(cl.getConstitutionBase() != null ? cl.getConstitutionBase() : 1)
-                    .idCard(cl.getIdCard())
-                    .card(resolveCardInfo(story.getId(), cl.getIdCard(), lang))
-                    .bonuses(bonusList)
-                    .build());
+            classes.add(new ClassInfo(
+                    cl.getId(),
+                    cl.getUuid(),
+                    clName,
+                    clDesc,
+                    cl.getWeightMax() != null ? cl.getWeightMax() : 10,
+                    cl.getDexterityBase() != null ? cl.getDexterityBase() : 1,
+                    cl.getIntelligenceBase() != null ? cl.getIntelligenceBase() : 1,
+                    cl.getConstitutionBase() != null ? cl.getConstitutionBase() : 1,
+                    cl.getIdCard(),
+                    resolveCardInfo(story.getId(), cl.getIdCard(), lang),
+                    bonusList));
         }
 
         List<TraitEntity> traitEntities = readPort.findTraitsByStoryId(story.getId());
@@ -255,19 +252,18 @@ public class StoryQueryService implements StoryQueryPort {
             List<StoryDifficultyEntity> diffs = readPort.findDifficultiesByStoryId(story.getId());
             CardInfo cardInfo = resolveCardInfo(story.getId(), story.getIdCard(), lang);
 
-            summaries.add(StorySummary.builder()
-                    .uuid(story.getUuid())
-                    .title(title)
-                    .description(description)
-                    .author(story.getAuthor())
-                    .category(story.getCategory())
-                    .group(story.getGroup())
-                    .visibility(story.getVisibility())
-                    .priority(story.getPriority() != null ? story.getPriority() : 0)
-                    .peghi(story.getPeghi() != null ? story.getPeghi() : 0)
-                    .difficultyCount(diffs.size())
-                    .card(cardInfo)
-                    .build());
+            summaries.add(new StorySummary(
+                    story.getUuid(),
+                    title,
+                    description,
+                    story.getAuthor(),
+                    story.getCategory(),
+                    story.getGroup(),
+                    story.getVisibility(),
+                    story.getPriority() != null ? story.getPriority() : 0,
+                    story.getPeghi() != null ? story.getPeghi() : 0,
+                    diffs.size(),
+                    cardInfo));
         }
         return summaries;
     }
@@ -313,21 +309,21 @@ public class StoryQueryService implements StoryQueryPort {
         String cardTitle = resolveText(storyId, card.getIdTextTitle(), lang);
         String cardDescription = resolveText(storyId, card.getIdTextDescription(), lang);
         String cardCopyrightText = resolveText(storyId, card.getIdTextCopyright(), lang);
-        return CardInfo.builder()
-                .uuid(card.getUuid())
-                .cardType(card.getCardType())
-                .urlImage(card.getUrlImage())
-                .alternativeImage(card.getAlternativeImage())
-                .awesomeIcon(card.getAwesomeIcon())
-                .styleMain(card.getStyleMain())
-                .styleDetail(card.getStyleDetail())
-                .styleImageLittle(card.getStyleImageLittle())
-                .styleImageMedium(card.getStyleImageMedium())
-                .styleImageLarge(card.getStyleImageLarge())
-                .description(cardDescription)
-                .title(cardTitle)
-                .copyrightText(cardCopyrightText)
-                .linkCopyright(card.getLinkCopyright())
-                .build();
+        return new CardInfo(
+                card.getUuid(),
+                card.getCardType(),
+                card.getUrlImage(),
+                card.getAlternativeImage(),
+                card.getAwesomeIcon(),
+                card.getStyleMain(),
+                card.getStyleDetail(),
+                card.getStyleImageLittle(),
+                card.getStyleImageMedium(),
+                card.getStyleImageLarge(),
+                cardTitle,
+                cardDescription,
+                cardCopyrightText,
+                card.getLinkCopyright(),
+                null);
     }
 }

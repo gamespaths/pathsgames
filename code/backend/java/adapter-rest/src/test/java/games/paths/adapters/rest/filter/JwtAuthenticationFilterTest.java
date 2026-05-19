@@ -292,13 +292,8 @@ class JwtAuthenticationFilterTest {
             when(request.getRequestURI()).thenReturn("/api/auth/me");
             when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt");
 
-            TokenInfo tokenInfo = TokenInfo.builder()
-                    .userUuid("u-1")
-                    .username("testuser")
-                    .role("PLAYER")
-                    .type("access")
-                    .tokenId("jti-123")
-                    .build();
+            TokenInfo tokenInfo = new TokenInfo("u-1", "testuser", "PLAYER",
+                    "access", "jti-123", 0L, 0L);
             when(sessionPort.validateAccessToken("valid-jwt")).thenReturn(tokenInfo);
 
             filter.doFilterInternal(request, response, filterChain);
@@ -326,12 +321,8 @@ class JwtAuthenticationFilterTest {
             when(request.getRequestURI()).thenReturn("/api/admin/users");
             when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt");
 
-            TokenInfo tokenInfo = TokenInfo.builder()
-                    .userUuid("u-1")
-                    .username("guest_1")
-                    .role("PLAYER")
-                    .type("access")
-                    .build();
+            TokenInfo tokenInfo = new TokenInfo("u-1", "guest_1", "PLAYER",
+                    "access", null, 0L, 0L);
             when(sessionPort.validateAccessToken("valid-jwt")).thenReturn(tokenInfo);
 
             StringWriter sw = new StringWriter();
@@ -351,12 +342,8 @@ class JwtAuthenticationFilterTest {
             when(request.getRequestURI()).thenReturn("/api/admin/users");
             when(request.getHeader("Authorization")).thenReturn("Bearer admin-jwt");
 
-            TokenInfo tokenInfo = TokenInfo.builder()
-                    .userUuid("u-admin")
-                    .username("admin")
-                    .role("ADMIN")
-                    .type("access")
-                    .build();
+            TokenInfo tokenInfo = new TokenInfo("u-admin", "admin", "ADMIN",
+                    "access", null, 0L, 0L);
             when(sessionPort.validateAccessToken("admin-jwt")).thenReturn(tokenInfo);
 
             filter.doFilterInternal(request, response, filterChain);
@@ -372,12 +359,8 @@ class JwtAuthenticationFilterTest {
             when(request.getRequestURI()).thenReturn("/api/auth/me");
             when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt");
 
-            TokenInfo tokenInfo = TokenInfo.builder()
-                    .userUuid("u-1")
-                    .username("guest_1")
-                    .role("PLAYER")
-                    .type("access")
-                    .build();
+            TokenInfo tokenInfo = new TokenInfo("u-1", "guest_1", "PLAYER",
+                    "access", null, 0L, 0L);
             when(sessionPort.validateAccessToken("valid-jwt")).thenReturn(tokenInfo);
 
             filter.doFilterInternal(request, response, filterChain);

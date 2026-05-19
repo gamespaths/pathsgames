@@ -69,15 +69,15 @@ public class StoryAdminController {
         try {
             StoryImportResult result = storyImportPort.importStory(storyData);
             StoryImportResponse response = new StoryImportResponse(
-                    result.getStoryUuid(),
-                    result.getStatus(),
-                    result.getTextsImported(),
-                    result.getLocationsImported(),
-                    result.getEventsImported(),
-                    result.getItemsImported(),
-                    result.getDifficultiesImported(),
-                    result.getClassesImported(),
-                    result.getChoicesImported());
+                    result.storyUuid(),
+                    result.status(),
+                    result.textsImported(),
+                    result.locationsImported(),
+                    result.eventsImported(),
+                    result.itemsImported(),
+                    result.difficultiesImported(),
+                    result.classesImported(),
+                    result.choicesImported());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new LinkedHashMap<>();
@@ -98,9 +98,9 @@ public class StoryAdminController {
         List<StorySummary> stories = storyQueryPort.listAllStories(lang);
         List<StorySummaryResponse> response = stories.stream()
                 .map(s -> new StorySummaryResponse(
-                        s.getUuid(), s.getTitle(), s.getDescription(), s.getAuthor(),
-                        s.getCategory(), s.getGroup(), s.getVisibility(),
-                        s.getPriority(), s.getPeghi(), s.getDifficultyCount()))
+                        s.uuid(), s.title(), s.description(), s.author(),
+                        s.category(), s.group(), s.visibility(),
+                        s.priority(), s.peghi(), s.difficultyCount()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(response);
     }

@@ -3,124 +3,83 @@ package games.paths.core.model.auth;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for {@link GuestInfo}.
- * Focuses on builder validation, field mapping, and branch coverage for required fields.
+ * Unit tests for the {@link GuestInfo} record.
+ * Covers canonical-constructor validation and field mapping.
  */
-@ExtendWith(MockitoExtension.class) // Abilita l'integrazione con Mockito
 class GuestInfoTest {
 
     private static final String VALID_UUID = "u1";
     private static final String VALID_USER = "guest";
 
-    // --- GRUPPO TEST MAPPATURA ---
+    private GuestInfo guest(String userUuid, String username) {
+        return new GuestInfo(userUuid, username, "nick42", "GUEST", 2,
+                "ct42", "2030-01-01T00:00:00Z", "it",
+                "2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z", true);
+    }
 
     @Nested
     @DisplayName("Field Mapping Tests")
     class MappingTests {
 
         @Test
-        @DisplayName("Should correctly map all provided fields via Builder")
-        void allGetters_returnCorrectValues() {
-            // Act
-            GuestInfo g = GuestInfo.builder()
-                    .userUuid("uuid42")
-                    .username("g42")
-                    .nickname("nick42")
-                    .role("GUEST")
-                    .state(2)
-                    .guestCookieToken("ct42")
-                    .guestExpiresAt("2030-01-01T00:00:00Z")
-                    .language("it")
-                    .tsRegistration("2024-01-01T00:00:00Z")
-                    .tsLastAccess("2024-01-02T00:00:00Z")
-                    .expired(true)
-                    .build();
-
-            // Assert
-            assertAll("Verify all GuestInfo properties",
-                () -> assertEquals("uuid42", g.getUserUuid()),
-                () -> assertEquals("g42", g.getUsername()),
-                () -> assertEquals("nick42", g.getNickname()),
-                () -> assertEquals("GUEST", g.getRole()),
-                () -> assertEquals(2, g.getState()),
-                () -> assertEquals("ct42", g.getGuestCookieToken()),
-                () -> assertEquals("2030-01-01T00:00:00Z", g.getGuestExpiresAt()),
-                () -> assertEquals("it", g.getLanguage()),
-                () -> assertEquals("2024-01-01T00:00:00Z", g.getTsRegistration()),
-                () -> assertEquals("2024-01-02T00:00:00Z", g.getTsLastAccess()),
-                () -> assertTrue(g.isExpired())
+        @DisplayName("Canonical constructor maps all components")
+        void allAccessors_returnCorrectValues() {
+            GuestInfo g = guest("uuid42", "g42");
+            assertAll(
+                () -> assertEquals("uuid42", g.userUuid()),
+                () -> assertEquals("g42", g.username()),
+                () -> assertEquals("nick42", g.nickname()),
+                () -> assertEquals("GUEST", g.role()),
+                () -> assertEquals(2, g.state()),
+                () -> assertEquals("ct42", g.guestCookieToken()),
+                () -> assertEquals("2030-01-01T00:00:00Z", g.guestExpiresAt()),
+                () -> assertEquals("it", g.language()),
+                () -> assertEquals("2024-01-01T00:00:00Z", g.tsRegistration()),
+                () -> assertEquals("2024-01-02T00:00:00Z", g.tsLastAccess()),
+                () -> assertTrue(g.expired())
             );
         }
 
         @Test
-        @DisplayName("Should ensure optional fields are null and primitives have defaults")
-        void optionalFields_and_defaults() {
-            // Act
-            GuestInfo g = GuestInfo.builder()
-                    .userUuid(VALID_UUID)
-                    .username(VALID_USER)
-                    .build();
-
-            // Assert
-            assertAll("Check defaults for non-provided fields",
-                () -> assertNull(g.getNickname()),
-                () -> assertEquals(0, g.getState()), // Default primitivo int
-                () -> assertFalse(g.isExpired()),   // Default primitivo boolean
-                () -> assertNull(g.getGuestCookieToken())
-            );
+        @DisplayName("Optional fields may be null, primitives keep their values")
+        void optionalFields() {
+            GuestInfo g = new GuestInfo(VALID_UUID, VALID_USER, null, null, 0,
+                    null, null, null, null, null, false);
+            assertNull(g.nickname());
+            assertEquals(0, g.state());
+            assertFalse(g.expired());
+            assertNull(g.guestCookieToken());
         }
     }
 
-    // --- GRUPPO TEST VALIDAZIONE (BRANCH COVERAGE) ---
-
     @Nested
-    @DisplayName("Builder Validation Tests (Branch Coverage)")
+    @DisplayName("Constructor Validation Tests")
     class ValidationTests {
 
         @Test
-        @DisplayName("Should throw exception if userUuid is null, empty or blank")
-        void validateUserUuid_Branches() {
-            // Branch: userUuid == null
-            assertThrows(IllegalArgumentException.class, () -> 
-                GuestInfo.builder().username(VALID_USER).build());
-
-            // Branch: userUuid.isBlank() (Empty)
-            assertThrows(IllegalArgumentException.class, () -> 
-                GuestInfo.builder().userUuid("").username(VALID_USER).build());
-
-            // Branch: userUuid.isBlank() (Spaces)
-            assertThrows(IllegalArgumentException.class, () -> 
-                GuestInfo.builder().userUuid("   ").username(VALID_USER).build());
+        @DisplayName("Throws when userUuid is null, empty or blank")
+        void validateUserUuid() {
+            assertThrows(IllegalArgumentException.class, () -> guest(null, VALID_USER));
+            assertThrows(IllegalArgumentException.class, () -> guest("", VALID_USER));
+            assertThrows(IllegalArgumentException.class, () -> guest("   ", VALID_USER));
         }
 
         @Test
-        @DisplayName("Should throw exception if username is null, empty or blank")
-        void validateUsername_Branches() {
-            // Branch: username == null
-            assertThrows(IllegalArgumentException.class, () -> 
-                GuestInfo.builder().userUuid(VALID_UUID).build());
-
-            // Branch: username.isBlank()
-            assertThrows(IllegalArgumentException.class, () -> 
-                GuestInfo.builder().userUuid(VALID_UUID).username(" ").build());
+        @DisplayName("Throws when username is null or blank")
+        void validateUsername() {
+            assertThrows(IllegalArgumentException.class, () -> guest(VALID_UUID, null));
+            assertThrows(IllegalArgumentException.class, () -> guest(VALID_UUID, " "));
         }
     }
 
     @Test
-    @DisplayName("Should successfully build with only required fields")
-    void build_withRequiredOnly() {
-        GuestInfo g = GuestInfo.builder()
-                .userUuid(VALID_UUID)
-                .username(VALID_USER)
-                .build();
-        
-        assertNotNull(g);
-        assertEquals(VALID_UUID, g.getUserUuid());
+    @DisplayName("equals/hashCode follow record value semantics")
+    void valueSemantics() {
+        assertEquals(guest("u", "n"), guest("u", "n"));
+        assertEquals(guest("u", "n").hashCode(), guest("u", "n").hashCode());
     }
 }

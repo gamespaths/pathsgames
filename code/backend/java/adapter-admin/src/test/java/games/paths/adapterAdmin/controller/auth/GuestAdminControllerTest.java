@@ -31,14 +31,10 @@ class GuestAdminControllerTest {
 
         @Test
         void listAllGuests_shouldReturn200WithList() throws Exception {
-                GuestInfo g1 = GuestInfo.builder()
-                                .userUuid("uuid-1").username("guest_1").nickname("guest_1")
-                                .role("PLAYER").state(6).language("en")
-                                .guestExpiresAt("2099-01-01T00:00:00Z").expired(false).build();
-                GuestInfo g2 = GuestInfo.builder()
-                                .userUuid("uuid-2").username("guest_2").nickname("guest_2")
-                                .role("PLAYER").state(6).language("en")
-                                .guestExpiresAt("2020-01-01T00:00:00Z").expired(true).build();
+                GuestInfo g1 = new GuestInfo("uuid-1", "guest_1", "guest_1", "PLAYER", 6,
+                                null, "2099-01-01T00:00:00Z", "en", null, null, false);
+                GuestInfo g2 = new GuestInfo("uuid-2", "guest_2", "guest_2", "PLAYER", 6,
+                                null, "2020-01-01T00:00:00Z", "en", null, null, true);
 
                 when(guestAdminPort.listAllGuests()).thenReturn(List.of(g1, g2));
 
@@ -77,10 +73,8 @@ class GuestAdminControllerTest {
 
         @Test
         void getGuestByUuid_shouldReturn200WhenFound() throws Exception {
-                GuestInfo guest = GuestInfo.builder()
-                                .userUuid("uuid-abc").username("guest_abc").nickname("guest_abc")
-                                .role("PLAYER").state(6).language("en")
-                                .guestExpiresAt("2099-01-01T00:00:00Z").expired(false).build();
+                GuestInfo guest = new GuestInfo("uuid-abc", "guest_abc", "guest_abc",
+                                "PLAYER", 6, null, "2099-01-01T00:00:00Z", "en", null, null, false);
 
                 when(guestAdminPort.getGuestByUuid("uuid-abc")).thenReturn(guest);
 

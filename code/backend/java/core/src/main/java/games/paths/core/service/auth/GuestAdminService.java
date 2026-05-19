@@ -71,19 +71,18 @@ public class GuestAdminService implements GuestAdminPort {
         String expiresAt = (String) data.get("guestExpiresAt");
         boolean expired = isExpired(expiresAt);
 
-        return GuestInfo.builder()
-                .userUuid((String) data.get("uuid"))
-                .username((String) data.get("username"))
-                .nickname((String) data.get("nickname"))
-                .role((String) data.get("role"))
-                .state(data.get("state") != null ? ((Number) data.get("state")).intValue() : 6)
-                .guestCookieToken((String) data.get("guestCookieToken"))
-                .guestExpiresAt(expiresAt)
-                .language((String) data.get("language"))
-                .tsRegistration((String) data.get("tsRegistration"))
-                .tsLastAccess((String) data.get("tsLastAccess"))
-                .expired(expired)
-                .build();
+        return new GuestInfo(
+                (String) data.get("uuid"),
+                (String) data.get("username"),
+                (String) data.get("nickname"),
+                (String) data.get("role"),
+                data.get("state") != null ? ((Number) data.get("state")).intValue() : 6,
+                (String) data.get("guestCookieToken"),
+                expiresAt,
+                (String) data.get("language"),
+                (String) data.get("tsRegistration"),
+                (String) data.get("tsLastAccess"),
+                expired);
     }
 
     private boolean isExpired(String expiresAt) {

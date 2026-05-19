@@ -196,17 +196,17 @@ class StoryQueryServiceTest {
             assertEquals(1, result.size());
             StorySummary s = result.get(0);
             assertAll("StorySummary fields",
-                    () -> assertEquals("uuid-1", s.getUuid()),
-                    () -> assertEquals("Title EN", s.getTitle()),
-                    () -> assertEquals("Desc EN", s.getDescription()),
-                    () -> assertEquals("Author1", s.getAuthor()),
-                    () -> assertEquals("adventure", s.getCategory()),
-                    () -> assertEquals("fantasy", s.getGroup()),
-                    () -> assertEquals("PUBLIC", s.getVisibility()),
-                    () -> assertEquals(5, s.getPriority()),
-                    () -> assertEquals(2, s.getPeghi()),
-                    () -> assertEquals(1, s.getDifficultyCount()),
-                    () -> assertNull(s.getCard()));
+                    () -> assertEquals("uuid-1", s.uuid()),
+                    () -> assertEquals("Title EN", s.title()),
+                    () -> assertEquals("Desc EN", s.description()),
+                    () -> assertEquals("Author1", s.author()),
+                    () -> assertEquals("adventure", s.category()),
+                    () -> assertEquals("fantasy", s.group()),
+                    () -> assertEquals("PUBLIC", s.visibility()),
+                    () -> assertEquals(5, s.priority()),
+                    () -> assertEquals(2, s.peghi()),
+                    () -> assertEquals(1, s.difficultyCount()),
+                    () -> assertNull(s.card()));
         }
 
         @Test
@@ -229,10 +229,10 @@ class StoryQueryServiceTest {
 
             assertEquals(1, result.size());
             StorySummary s = result.get(0);
-            assertNotNull(s.getCard());
-            assertEquals("card-uuid", s.getCard().getUuid());
-            assertEquals("Card Title", s.getCard().getTitle());
-            assertEquals("https://example.com/card.png", s.getCard().getUrlImage());
+            assertNotNull(s.card());
+            assertEquals("card-uuid", s.card().uuid());
+            assertEquals("Card Title", s.card().title());
+            assertEquals("https://example.com/card.png", s.card().urlImage());
         }
 
         @Test
@@ -249,7 +249,7 @@ class StoryQueryServiceTest {
             List<StorySummary> result = storyQueryService.listPublicStories("en");
 
             assertEquals(1, result.size());
-            assertNull(result.get(0).getCard());
+            assertNull(result.get(0).card());
         }
 
         @Test
@@ -262,10 +262,10 @@ class StoryQueryServiceTest {
             List<StorySummary> result = storyQueryService.listPublicStories("en");
 
             assertEquals(1, result.size());
-            assertEquals(0, result.get(0).getPriority());
-            assertEquals(0, result.get(0).getPeghi());
-            assertNull(result.get(0).getTitle());
-            assertNull(result.get(0).getDescription());
+            assertEquals(0, result.get(0).priority());
+            assertEquals(0, result.get(0).peghi());
+            assertNull(result.get(0).title());
+            assertNull(result.get(0).description());
         }
     }
 
@@ -375,36 +375,36 @@ class StoryQueryServiceTest {
 
             assertNotNull(detail);
             assertAll("StoryDetail fields",
-                    () -> assertEquals("uuid-1", detail.getUuid()),
-                    () -> assertEquals("Title", detail.getTitle()),
-                    () -> assertEquals("Description", detail.getDescription()),
-                    () -> assertEquals("Copyright", detail.getCopyrightText()),
-                    () -> assertEquals(5, detail.getLocationCount()),
-                    () -> assertEquals(10, detail.getEventCount()),
-                    () -> assertEquals(3, detail.getItemCount()),
-                    () -> assertEquals(1, detail.getDifficulties().size()),
-                    () -> assertEquals("Easy", detail.getDifficulties().get(0).getDescription()),
+                    () -> assertEquals("uuid-1", detail.uuid()),
+                    () -> assertEquals("Title", detail.title()),
+                    () -> assertEquals("Description", detail.description()),
+                    () -> assertEquals("Copyright", detail.copyrightText()),
+                    () -> assertEquals(5, detail.locationCount()),
+                    () -> assertEquals(10, detail.eventCount()),
+                    () -> assertEquals(3, detail.itemCount()),
+                    () -> assertEquals(1, detail.difficulties().size()),
+                    () -> assertEquals("Easy", detail.difficulties().get(0).getDescription()),
                     // Step 15: new fields
-                    () -> assertEquals(1, detail.getCharacterTemplateCount()),
-                    () -> assertEquals(1, detail.getClassCount()),
-                    () -> assertEquals(1, detail.getTraitCount()),
-                    () -> assertEquals("turn", detail.getClockSingularDescription()),
-                    () -> assertEquals("turns", detail.getClockPluralDescription()),
-                    () -> assertEquals(10, detail.getIdTextClockSingular()),
-                    () -> assertEquals(11, detail.getIdTextClockPlural()),
-                    () -> assertEquals(1, detail.getCharacterTemplates().size()),
-                    () -> assertEquals("Warrior", detail.getCharacterTemplates().get(0).getName()),
-                    () -> assertEquals("A strong fighter", detail.getCharacterTemplates().get(0).getDescription()),
-                    () -> assertEquals(20, detail.getCharacterTemplates().get(0).getLifeMax()),
-                    () -> assertEquals(1, detail.getClasses().size()),
-                    () -> assertEquals("Knight", detail.getClasses().get(0).getName()),
-                    () -> assertEquals(15, detail.getClasses().get(0).getWeightMax()),
-                    () -> assertEquals(1, detail.getTraits().size()),
-                    () -> assertEquals("Brave", detail.getTraits().get(0).getName()),
-                    () -> assertEquals(2, detail.getTraits().get(0).getCostPositive()),
-                    () -> assertNotNull(detail.getCard()),
-                    () -> assertEquals("Card Title", detail.getCard().getTitle()),
-                    () -> assertEquals("https://example.com/card.png", detail.getCard().getUrlImage()));
+                    () -> assertEquals(1, detail.characterTemplateCount()),
+                    () -> assertEquals(1, detail.classCount()),
+                    () -> assertEquals(1, detail.traitCount()),
+                    () -> assertEquals("turn", detail.clockSingularDescription()),
+                    () -> assertEquals("turns", detail.clockPluralDescription()),
+                    () -> assertEquals(10, detail.idTextClockSingular()),
+                    () -> assertEquals(11, detail.idTextClockPlural()),
+                    () -> assertEquals(1, detail.characterTemplates().size()),
+                    () -> assertEquals("Warrior", detail.characterTemplates().get(0).name()),
+                    () -> assertEquals("A strong fighter", detail.characterTemplates().get(0).description()),
+                    () -> assertEquals(20, detail.characterTemplates().get(0).lifeMax()),
+                    () -> assertEquals(1, detail.classes().size()),
+                    () -> assertEquals("Knight", detail.classes().get(0).name()),
+                    () -> assertEquals(15, detail.classes().get(0).weightMax()),
+                    () -> assertEquals(1, detail.traits().size()),
+                    () -> assertEquals("Brave", detail.traits().get(0).getName()),
+                    () -> assertEquals(2, detail.traits().get(0).getCostPositive()),
+                    () -> assertNotNull(detail.card()),
+                    () -> assertEquals("Card Title", detail.card().title()),
+                    () -> assertEquals("https://example.com/card.png", detail.card().urlImage()));
         }
 
         @Test
@@ -420,7 +420,7 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
             assertNotNull(detail);
-            assertNull(detail.getCard());
+            assertNull(detail.card());
         }
 
         @Test
@@ -437,7 +437,7 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
             assertNotNull(detail);
-            assertNull(detail.getCard());
+            assertNull(detail.card());
         }
 
         @Test
@@ -458,14 +458,14 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
-            CharacterTemplateInfo ctInfo = detail.getCharacterTemplates().get(0);
+            CharacterTemplateInfo ctInfo = detail.characterTemplates().get(0);
             assertAll("Default values for null CharacterTemplate fields",
-                    () -> assertEquals(10, ctInfo.getLifeMax()),
-                    () -> assertEquals(10, ctInfo.getEnergyMax()),
-                    () -> assertEquals(10, ctInfo.getSadMax()),
-                    () -> assertEquals(1, ctInfo.getDexterityStart()),
-                    () -> assertEquals(1, ctInfo.getIntelligenceStart()),
-                    () -> assertEquals(1, ctInfo.getConstitutionStart()));
+                    () -> assertEquals(10, ctInfo.lifeMax()),
+                    () -> assertEquals(10, ctInfo.energyMax()),
+                    () -> assertEquals(10, ctInfo.sadMax()),
+                    () -> assertEquals(1, ctInfo.dexterityStart()),
+                    () -> assertEquals(1, ctInfo.intelligenceStart()),
+                    () -> assertEquals(1, ctInfo.constitutionStart()));
         }
 
         @Test
@@ -486,12 +486,12 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
-            ClassInfo clInfo = detail.getClasses().get(0);
+            ClassInfo clInfo = detail.classes().get(0);
             assertAll("Default values for null Class fields",
-                    () -> assertEquals(10, clInfo.getWeightMax()),
-                    () -> assertEquals(1, clInfo.getDexterityBase()),
-                    () -> assertEquals(1, clInfo.getIntelligenceBase()),
-                    () -> assertEquals(1, clInfo.getConstitutionBase()));
+                    () -> assertEquals(10, clInfo.weightMax()),
+                    () -> assertEquals(1, clInfo.dexterityBase()),
+                    () -> assertEquals(1, clInfo.intelligenceBase()),
+                    () -> assertEquals(1, clInfo.constitutionBase()));
         }
 
         @Test
@@ -512,7 +512,7 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
-            TraitInfo trInfo = detail.getTraits().get(0);
+            TraitInfo trInfo = detail.traits().get(0);
             assertAll("Default values for null Trait fields",
                     () -> assertEquals(0, trInfo.getCostPositive()),
                     () -> assertEquals(0, trInfo.getCostNegative()),
@@ -532,12 +532,12 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
             assertAll("Empty sub-entity lists",
-                    () -> assertTrue(detail.getCharacterTemplates().isEmpty()),
-                    () -> assertTrue(detail.getClasses().isEmpty()),
-                    () -> assertTrue(detail.getTraits().isEmpty()),
-                    () -> assertEquals(0, detail.getCharacterTemplateCount()),
-                    () -> assertEquals(0, detail.getClassCount()),
-                    () -> assertEquals(0, detail.getTraitCount()));
+                    () -> assertTrue(detail.characterTemplates().isEmpty()),
+                    () -> assertTrue(detail.classes().isEmpty()),
+                    () -> assertTrue(detail.traits().isEmpty()),
+                    () -> assertEquals(0, detail.characterTemplateCount()),
+                    () -> assertEquals(0, detail.classCount()),
+                    () -> assertEquals(0, detail.traitCount()));
         }
 
         @Test
@@ -557,7 +557,7 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "it");
 
             assertNotNull(detail);
-            assertEquals("English Title", detail.getTitle());
+            assertEquals("English Title", detail.title());
         }
 
         @Test
@@ -574,7 +574,7 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "it");
 
             assertNotNull(detail);
-            assertNull(detail.getTitle());
+            assertNull(detail.title());
         }
 
         @Test
@@ -589,7 +589,7 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
-            assertNull(detail.getTitle());
+            assertNull(detail.title());
             // Should only call once for "en", no double fallback
             verify(readPort, times(1)).findTextByStoryIdTextAndLang(1L, 100, "en");
         }
@@ -607,7 +607,7 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", null);
 
-            assertEquals("Default", detail.getTitle());
+            assertEquals("Default", detail.title());
         }
 
         @Test
@@ -623,7 +623,7 @@ class StoryQueryServiceTest {
 
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "   ");
 
-            assertEquals("Default", detail.getTitle());
+            assertEquals("Default", detail.title());
         }
 
         @Test
@@ -639,8 +639,8 @@ class StoryQueryServiceTest {
 
             assertNotNull(detail);
             assertAll("Null priority/peghi defaults to 0 in detail",
-                    () -> assertEquals(0, detail.getPriority()),
-                    () -> assertEquals(0, detail.getPeghi()));
+                    () -> assertEquals(0, detail.priority()),
+                    () -> assertEquals(0, detail.peghi()));
         }
 
         @Test
@@ -660,7 +660,7 @@ class StoryQueryServiceTest {
             StoryDetail detail = storyQueryService.getStoryByUuid("uuid-1", "en");
 
             assertNotNull(detail);
-            DifficultyInfo di = detail.getDifficulties().get(0);
+            DifficultyInfo di = detail.difficulties().get(0);
             assertAll("Difficulty defaults for null fields",
                     () -> assertEquals(5, di.getExpCost()),
                     () -> assertEquals(10, di.getMaxWeight()),
@@ -725,8 +725,8 @@ class StoryQueryServiceTest {
             List<StorySummary> result = storyQueryService.listStoriesByCategory("adventure", "en");
 
             assertEquals(1, result.size());
-            assertEquals("uuid-1", result.get(0).getUuid());
-            assertEquals("adventure", result.get(0).getCategory());
+            assertEquals("uuid-1", result.get(0).uuid());
+            assertEquals("adventure", result.get(0).category());
         }
 
         @Test
@@ -814,7 +814,7 @@ class StoryQueryServiceTest {
             List<StorySummary> result = storyQueryService.listStoriesByGroup("fantasy", "en");
 
             assertEquals(1, result.size());
-            assertEquals("uuid-1", result.get(0).getUuid());
+            assertEquals("uuid-1", result.get(0).uuid());
         }
 
         @Test

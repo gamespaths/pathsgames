@@ -171,14 +171,6 @@ public class SessionService implements SessionPort {
             expiresAt = ((Number) expObj).longValue();
         }
 
-        return TokenInfo.builder()
-                .userUuid(userUuid)
-                .username(username)
-                .role(role)
-                .type(type)
-                .tokenId(tokenId)
-                .issuedAt(issuedAt)
-                .expiresAt(expiresAt)
-                .build();
+        return new TokenInfo(userUuid, username, role, type, tokenId, issuedAt, expiresAt);
     }
 }

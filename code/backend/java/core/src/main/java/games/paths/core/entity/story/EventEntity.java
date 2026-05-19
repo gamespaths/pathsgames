@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @IdClass(StoryScopedEntityId.class)
 @Table(name = "list_events")
-public class EventEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class EventEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_specific_location")
     private Integer idSpecificLocation;
@@ -64,24 +56,8 @@ public class EventEntity extends BaseStoryEntity {
 
     // === Getters & Setters ===
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
-
     public Integer getIdSpecificLocation() { return idSpecificLocation; }
     public void setIdSpecificLocation(Integer idSpecificLocation) { this.idSpecificLocation = idSpecificLocation; }
-
-
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }

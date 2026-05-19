@@ -4,22 +4,13 @@ import jakarta.persistence.*;
 
 /**
  * StoryDifficultyEntity - JPA entity mapped to the "list_stories_difficulty" table.
- * Schema defined by Flyway migration V0.10.2, stat columns added in V0.19.7
- * (centralised in {@link StatStoryEntity}).
+ * Composite-PK (id, id_story) handling lives in {@link BaseStoryScopedEntity};
+ * the seven stat columns live in {@link StatStoryEntity}.
  */
 @Entity
 @Table(name = "list_stories_difficulty")
-@AttributeOverride(name = "idStory", column = @Column(name = "id_story", insertable = false, updatable = false))
 @IdClass(StoryScopedEntityId.class)
 public class StoryDifficultyEntity extends StatStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
 
     @Column(name = "exp_cost", nullable = false)
     private Integer expCost;
@@ -52,20 +43,6 @@ public class StoryDifficultyEntity extends StatStoryEntity {
         if (costMaxCharacteristics == null) costMaxCharacteristics = 3;
         if (numberMaxFreeAction == null) numberMaxFreeAction = 1;
         initStatDefaults();
-    }
-
-    // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
     }
 
     public Integer getExpCost() { return expCost; }

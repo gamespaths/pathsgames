@@ -53,23 +53,22 @@ public class ContentQueryService implements ContentQueryPort {
         String copyrightText = resolveText(story.getId(), card.getIdTextCopyright(), lang);
         CreatorInfo creator = resolveCreator(story.getId(), card.getIdCreator(), lang);
 
-        return CardInfo.builder()
-                .uuid(card.getUuid())
-                .cardType(card.getCardType())
-                .urlImage(card.getUrlImage())
-                .alternativeImage(card.getAlternativeImage())
-                .awesomeIcon(card.getAwesomeIcon())
-                .styleMain(card.getStyleMain())
-                .styleDetail(card.getStyleDetail())
-                .styleImageLittle(card.getStyleImageLittle())
-                .styleImageMedium(card.getStyleImageMedium())
-                .styleImageLarge(card.getStyleImageLarge())
-                .title(title)
-                .description(description)
-                .copyrightText(copyrightText)
-                .linkCopyright(card.getLinkCopyright())
-                .creator(creator)
-                .build();
+        return new CardInfo(
+                card.getUuid(),
+                card.getCardType(),
+                card.getUrlImage(),
+                card.getAlternativeImage(),
+                card.getAwesomeIcon(),
+                card.getStyleMain(),
+                card.getStyleDetail(),
+                card.getStyleImageLittle(),
+                card.getStyleImageMedium(),
+                card.getStyleImageLarge(),
+                title,
+                description,
+                copyrightText,
+                card.getLinkCopyright(),
+                creator);
     }
 
     @Override
@@ -104,16 +103,15 @@ public class ContentQueryService implements ContentQueryPort {
         String copyrightText = resolveText(story.getId(), text.getIdTextCopyright(), effectiveLang);
         CreatorInfo creator = resolveCreator(story.getId(), text.getIdCreator(), effectiveLang);
 
-        return TextInfo.builder()
-                .idText(text.getIdText())
-                .lang(effectiveLang)
-                .resolvedLang(resolvedLang)
-                .shortText(text.getShortText())
-                .longText(text.getLongText())
-                .copyrightText(copyrightText)
-                .linkCopyright(text.getLinkCopyright())
-                .creator(creator)
-                .build();
+        return new TextInfo(
+                text.getIdText(),
+                effectiveLang,
+                resolvedLang,
+                text.getShortText(),
+                text.getLongText(),
+                copyrightText,
+                text.getLinkCopyright(),
+                creator);
     }
 
     @Override
@@ -139,15 +137,14 @@ public class ContentQueryService implements ContentQueryPort {
         CreatorEntity creator = creatorOpt.get();
         String name = resolveText(story.getId(), creator.getIdText(), lang);
 
-        return CreatorInfo.builder()
-                .uuid(creator.getUuid())
-                .name(name)
-                .link(creator.getLink())
-                .url(creator.getUrl())
-                .urlImage(creator.getUrlImage())
-                .urlEmote(creator.getUrlEmote())
-                .urlInstagram(creator.getUrlInstagram())
-                .build();
+        return new CreatorInfo(
+                creator.getUuid(),
+                name,
+                creator.getLink(),
+                creator.getUrl(),
+                creator.getUrlImage(),
+                creator.getUrlEmote(),
+                creator.getUrlInstagram());
     }
 
     // === Private helpers ===
@@ -199,15 +196,14 @@ public class ContentQueryService implements ContentQueryPort {
         for (games.paths.core.entity.story.CreatorEntity creator : creators) {
             if (creator.getId() != null && creator.getId().intValue() == idCreator) {
                 String name = resolveText(storyId, creator.getIdText(), lang);
-                return CreatorInfo.builder()
-                        .uuid(creator.getUuid())
-                        .name(name)
-                        .link(creator.getLink())
-                        .url(creator.getUrl())
-                        .urlImage(creator.getUrlImage())
-                        .urlEmote(creator.getUrlEmote())
-                        .urlInstagram(creator.getUrlInstagram())
-                        .build();
+                return new CreatorInfo(
+                        creator.getUuid(),
+                        name,
+                        creator.getLink(),
+                        creator.getUrl(),
+                        creator.getUrlImage(),
+                        creator.getUrlEmote(),
+                        creator.getUrlInstagram());
             }
         }
         return null;

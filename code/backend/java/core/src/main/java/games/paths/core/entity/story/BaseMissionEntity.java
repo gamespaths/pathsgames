@@ -16,7 +16,7 @@ import jakarta.persistence.MappedSuperclass;
  * </ul>
  */
 @MappedSuperclass
-public abstract class BaseMissionEntity extends BaseStoryEntity {
+public abstract class BaseMissionEntity extends BaseStoryScopedEntity {
 
     @Column(name = "condition_key")
     private String conditionKey;

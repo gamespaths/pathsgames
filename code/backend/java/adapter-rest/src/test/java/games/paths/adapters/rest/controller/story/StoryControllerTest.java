@@ -58,16 +58,10 @@ class StoryControllerTest {
         @Test
         @DisplayName("Should return 200 with list of story summaries")
         void listStories_withResults() throws Exception {
-            StorySummary s1 = StorySummary.builder()
-                    .uuid("uuid-1").title("Story One").description("Desc 1")
-                    .author("Author1").category("adventure").group("fantasy")
-                    .visibility("PUBLIC").priority(5).peghi(2).difficultyCount(3)
-                    .build();
-            StorySummary s2 = StorySummary.builder()
-                    .uuid("uuid-2").title("Story Two").description("Desc 2")
-                    .author("Author2").category("horror").group("dark")
-                    .visibility("PUBLIC").priority(3).peghi(1).difficultyCount(1)
-                    .build();
+            StorySummary s1 = new StorySummary("uuid-1", "Story One", "Desc 1",
+                    "Author1", "adventure", "fantasy", "PUBLIC", 5, 2, 3, null);
+            StorySummary s2 = new StorySummary("uuid-2", "Story Two", "Desc 2",
+                    "Author2", "horror", "dark", "PUBLIC", 3, 1, 1, null);
 
             when(storyQueryPort.listPublicStories("en")).thenReturn(List.of(s1, s2));
 
@@ -121,16 +115,11 @@ class StoryControllerTest {
                     .costMaxCharacteristics(3).numberMaxFreeAction(1)
                     .build();
 
-            CharacterTemplateInfo ct = CharacterTemplateInfo.builder()
-                    .uuid("ct-1").name("Warrior").description("Strong fighter")
-                    .lifeMax(20).energyMax(10).sadMax(5)
-                    .dexterityStart(2).intelligenceStart(1).constitutionStart(3)
-                    .build();
+            CharacterTemplateInfo ct = new CharacterTemplateInfo("ct-1", "Warrior",
+                    "Strong fighter", 20, 10, 5, 2, 1, 3, null, null, null, null);
 
-            ClassInfo ci = ClassInfo.builder()
-                    .uuid("class-1").name("Knight").description("Noble warrior")
-                    .weightMax(15).dexterityBase(2).intelligenceBase(1).constitutionBase(3)
-                    .build();
+            ClassInfo ci = new ClassInfo(null, "class-1", "Knight", "Noble warrior",
+                    15, 2, 1, 3, null, null, List.of());
 
             TraitInfo ti = TraitInfo.builder()
                     .uuid("trait-1").name("Brave").description("Fearless")
@@ -138,13 +127,9 @@ class StoryControllerTest {
                     .idClassPermitted(null).idClassProhibited(null)
                     .build();
 
-            CardInfo card = CardInfo.builder()
-                    .uuid("card-1").urlImage("https://example.com/card.png")
-                    .alternativeImage("alt").awesomeIcon("fa-star")
-                    .styleMain("bg-primary").styleDetail("text-light")
-                    .title("Card Title").description(null)
-                    .copyrightText(null).linkCopyright(null)
-                    .build();
+            CardInfo card = new CardInfo("card-1", null, "https://example.com/card.png",
+                    "alt", "fa-star", "bg-primary", "text-light", null, null, null,
+                    "Card Title", null, null, null, null);
 
             StoryDetail detail = StoryDetail.builder()
                     .uuid("uuid-1").title("Title").description("Desc")
@@ -300,11 +285,7 @@ class StoryControllerTest {
         @Test
         @DisplayName("Should return 200 with stories matching category")
         void listByCategory_success() throws Exception {
-            StorySummary s = StorySummary.builder()
-                    .uuid("uuid-1").title("Title").description("Desc")
-                    .author("Author").category("adventure").group("fantasy")
-                    .visibility("PUBLIC").priority(5).peghi(2).difficultyCount(1)
-                    .build();
+            StorySummary s = new StorySummary("uuid-1", "Title", "Desc", "Author", "adventure", "fantasy", "PUBLIC", 5, 2, 1, null);
 
             when(storyQueryPort.listStoriesByCategory("adventure", "en")).thenReturn(List.of(s));
 
@@ -386,11 +367,7 @@ class StoryControllerTest {
         @Test
         @DisplayName("Should return 200 with stories matching group")
         void listByGroup_success() throws Exception {
-            StorySummary s = StorySummary.builder()
-                    .uuid("uuid-1").title("Title").description("Desc")
-                    .author("Author").category("adventure").group("fantasy")
-                    .visibility("PUBLIC").priority(5).peghi(2).difficultyCount(1)
-                    .build();
+            StorySummary s = new StorySummary("uuid-1", "Title", "Desc", "Author", "adventure", "fantasy", "PUBLIC", 5, 2, 1, null);
 
             when(storyQueryPort.listStoriesByGroup("fantasy", "en")).thenReturn(List.of(s));
 

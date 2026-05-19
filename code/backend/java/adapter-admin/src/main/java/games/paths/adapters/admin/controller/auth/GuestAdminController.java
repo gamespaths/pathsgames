@@ -110,16 +110,16 @@ public class GuestAdminController {
 
     private GuestInfoResponse toResponse(GuestInfo guest) {
         return new GuestInfoResponse(
-                guest.getUserUuid(),
-                guest.getUsername(),
-                guest.getNickname(),
-                guest.getRole(),
-                guest.getState(),
-                guest.getGuestCookieToken(),
-                guest.getGuestExpiresAt(),
-                guest.getLanguage(),
-                guest.getTsRegistration(),
-                guest.getTsLastAccess(),
-                guest.isExpired());
+                guest.userUuid(),
+                guest.username(),
+                guest.nickname(),
+                guest.role(),
+                guest.state(),
+                guest.guestCookieToken(),
+                guest.guestExpiresAt(),
+                guest.language(),
+                guest.tsRegistration(),
+                guest.tsLastAccess(),
+                guest.expired());
     }
 }

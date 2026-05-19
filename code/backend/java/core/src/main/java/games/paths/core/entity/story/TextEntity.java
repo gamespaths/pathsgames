@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_texts", uniqueConstraints = @UniqueConstraint(columnNames = {"id_story", "id_text", "lang"}))
 @IdClass(StoryScopedEntityId.class)
-public class TextEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class TextEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_text", nullable = false)
     private Integer idText;
@@ -45,19 +37,6 @@ public class TextEntity extends BaseStoryEntity {
     }
 
     // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
 
     public Integer getIdText() { return idText; }
     public void setIdText(Integer idText) { this.idText = idText; }

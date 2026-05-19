@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_events_effects")
 @IdClass(StoryScopedEntityId.class)
-public class EventEffectEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class EventEffectEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_event", nullable = false)
     private Integer idEvent;
@@ -49,20 +41,6 @@ public class EventEffectEntity extends BaseStoryEntity {
     }
 
     // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
-
 
     public Integer getIdEvent() { return idEvent; }
     public void setIdEvent(Integer idEvent) { this.idEvent = idEvent; }

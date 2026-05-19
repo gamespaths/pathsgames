@@ -50,17 +50,8 @@ class StoryAdminControllerTest {
         @Test
         @DisplayName("Should return 201 with import result on success")
         void importStory_success() throws Exception {
-            StoryImportResult result = StoryImportResult.builder()
-                    .storyUuid("uuid-1")
-                    .status("IMPORTED")
-                    .textsImported(10)
-                    .locationsImported(5)
-                    .eventsImported(3)
-                    .itemsImported(7)
-                    .difficultiesImported(2)
-                    .classesImported(4)
-                    .choicesImported(6)
-                    .build();
+            StoryImportResult result = new StoryImportResult("uuid-1", "IMPORTED",
+                    10, 5, 3, 7, 2, 4, 6);
 
             when(storyImportPort.importStory(any())).thenReturn(result);
 
@@ -113,12 +104,10 @@ class StoryAdminControllerTest {
         @Test
         @DisplayName("Should return 200 with all stories")
         void listAll_success() throws Exception {
-            StorySummary s1 = StorySummary.builder()
-                    .uuid("uuid-1").title("Story 1").author("Author1")
-                    .visibility("PUBLIC").difficultyCount(2).build();
-            StorySummary s2 = StorySummary.builder()
-                    .uuid("uuid-2").title("Story 2").author("Author2")
-                    .visibility("PRIVATE").difficultyCount(1).build();
+            StorySummary s1 = new StorySummary("uuid-1", "Story 1", null, "Author1",
+                    null, null, "PUBLIC", 0, 0, 2, null);
+            StorySummary s2 = new StorySummary("uuid-2", "Story 2", null, "Author2",
+                    null, null, "PRIVATE", 0, 0, 1, null);
 
             when(storyQueryPort.listAllStories("en")).thenReturn(List.of(s1, s2));
 

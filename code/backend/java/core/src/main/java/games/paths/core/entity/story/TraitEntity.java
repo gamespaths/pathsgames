@@ -4,20 +4,13 @@ import jakarta.persistence.*;
 
 /**
  * TraitEntity - JPA entity mapped to the "list_traits" table.
- * The seven stat columns live in {@link StatStoryEntity}.
+ * Composite-PK (id, id_story) handling lives in {@link BaseStoryScopedEntity};
+ * the seven stat columns live in {@link StatStoryEntity}.
  */
 @Entity
 @Table(name = "list_traits")
 @IdClass(StoryScopedEntityId.class)
 public class TraitEntity extends StatStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
 
     @Column(name = "id_class_permitted")
     private Integer idClassPermitted;
@@ -36,20 +29,6 @@ public class TraitEntity extends StatStoryEntity {
         if (costPositive == null) costPositive = 0;
         if (costNegative == null) costNegative = 0;
         initStatDefaults();
-    }
-
-    // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
     }
 
     public Integer getIdClassPermitted() { return idClassPermitted; }

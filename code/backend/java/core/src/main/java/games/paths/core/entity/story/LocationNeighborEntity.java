@@ -8,15 +8,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "list_locations_neighbors")
 @IdClass(StoryScopedEntityId.class)
-public class LocationNeighborEntity extends BaseStoryEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_story", insertable = false, updatable = false)
-    private Long idStoryPk;
+public class LocationNeighborEntity extends BaseStoryScopedEntity {
 
     @Column(name = "id_location_from", nullable = false)
     private Integer idLocationFrom;
@@ -52,19 +44,6 @@ public class LocationNeighborEntity extends BaseStoryEntity {
     }
 
     // === Getters & Setters ===
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    @Override
-    public Long getIdStory() { return super.getIdStory(); }
-
-    @Override
-    public void setIdStory(Long idStory) {
-        super.setIdStory(idStory);
-        this.idStoryPk = idStory;
-    }
-
 
     public Integer getIdLocationFrom() { return idLocationFrom; }
     public void setIdLocationFrom(Integer idLocationFrom) { this.idLocationFrom = idLocationFrom; }
