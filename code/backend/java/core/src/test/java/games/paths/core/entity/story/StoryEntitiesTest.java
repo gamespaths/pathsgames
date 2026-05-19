@@ -1015,7 +1015,7 @@ class StoryEntitiesTest {
     class StoryDifficultyEntityTests {
 
         @Test
-        @DisplayName("@PrePersist sets non-zero defaults including stat columns (life/energy/sad/dexterity/intelligence/constitution/weight)")
+        @DisplayName("@PrePersist sets non-zero defaults including stat columns (all 0 — match DB migration DEFAULT 0)")
         void prePersist_defaults() {
             StoryDifficultyEntity e = new StoryDifficultyEntity();
             e.onCreate();
@@ -1027,13 +1027,13 @@ class StoryEntitiesTest {
                 () -> assertEquals(3, e.getCostHelpComa()),
                 () -> assertEquals(3, e.getCostMaxCharacteristics()),
                 () -> assertEquals(1, e.getNumberMaxFreeAction()),
-                () -> assertEquals(100, e.getLife()),
-                () -> assertEquals(100, e.getEnergy()),
+                () -> assertEquals(0, e.getLife()),
+                () -> assertEquals(0, e.getEnergy()),
                 () -> assertEquals(0, e.getSad()),
-                () -> assertEquals(10, e.getDexterity()),
-                () -> assertEquals(10, e.getIntelligence()),
-                () -> assertEquals(10, e.getConstitution()),
-                () -> assertEquals(10, e.getWeight())
+                () -> assertEquals(0, e.getDexterity()),
+                () -> assertEquals(0, e.getIntelligence()),
+                () -> assertEquals(0, e.getConstitution()),
+                () -> assertEquals(0, e.getWeight())
             );
         }
 

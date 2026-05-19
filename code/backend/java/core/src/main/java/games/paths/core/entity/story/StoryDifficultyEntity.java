@@ -4,13 +4,14 @@ import jakarta.persistence.*;
 
 /**
  * StoryDifficultyEntity - JPA entity mapped to the "list_stories_difficulty" table.
- * Schema defined by Flyway migration V0.10.2, stat columns added in V0.19.7.
+ * Schema defined by Flyway migration V0.10.2, stat columns added in V0.19.7
+ * (centralised in {@link StatStoryEntity}).
  */
 @Entity
 @Table(name = "list_stories_difficulty")
 @AttributeOverride(name = "idStory", column = @Column(name = "id_story", insertable = false, updatable = false))
 @IdClass(StoryScopedEntityId.class)
-public class StoryDifficultyEntity extends BaseStoryEntity {
+public class StoryDifficultyEntity extends StatStoryEntity {
 
     @Id
     @Column(name = "id")
@@ -41,27 +42,6 @@ public class StoryDifficultyEntity extends BaseStoryEntity {
     @Column(name = "number_max_free_action", nullable = false)
     private Integer numberMaxFreeAction;
 
-    @Column(name = "life", nullable = false)
-    private Integer life;
-
-    @Column(name = "energy", nullable = false)
-    private Integer energy;
-
-    @Column(name = "sad", nullable = false)
-    private Integer sad;
-
-    @Column(name = "dexterity", nullable = false)
-    private Integer dexterity;
-
-    @Column(name = "intelligence", nullable = false)
-    private Integer intelligence;
-
-    @Column(name = "constitution", nullable = false)
-    private Integer constitution;
-
-    @Column(name = "weight", nullable = false)
-    private Integer weight;
-
     @PrePersist
     protected void onCreate() {
         if (expCost == null) expCost = 5;
@@ -71,13 +51,7 @@ public class StoryDifficultyEntity extends BaseStoryEntity {
         if (costHelpComa == null) costHelpComa = 3;
         if (costMaxCharacteristics == null) costMaxCharacteristics = 3;
         if (numberMaxFreeAction == null) numberMaxFreeAction = 1;
-        if (life == null) life = 100;
-        if (energy == null) energy = 100;
-        if (sad == null) sad = 0;
-        if (dexterity == null) dexterity = 10;
-        if (intelligence == null) intelligence = 10;
-        if (constitution == null) constitution = 10;
-        if (weight == null) weight = 10;
+        initStatDefaults();
     }
 
     // === Getters & Setters ===
@@ -93,9 +67,6 @@ public class StoryDifficultyEntity extends BaseStoryEntity {
         super.setIdStory(idStory);
         this.idStoryPk = idStory;
     }
-
-
-
 
     public Integer getExpCost() { return expCost; }
     public void setExpCost(Integer expCost) { this.expCost = expCost; }
@@ -117,26 +88,4 @@ public class StoryDifficultyEntity extends BaseStoryEntity {
 
     public Integer getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(Integer numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }
-
-    public Integer getLife() { return life; }
-    public void setLife(Integer life) { this.life = life; }
-
-    public Integer getEnergy() { return energy; }
-    public void setEnergy(Integer energy) { this.energy = energy; }
-
-    public Integer getSad() { return sad; }
-    public void setSad(Integer sad) { this.sad = sad; }
-
-    public Integer getDexterity() { return dexterity; }
-    public void setDexterity(Integer dexterity) { this.dexterity = dexterity; }
-
-    public Integer getIntelligence() { return intelligence; }
-    public void setIntelligence(Integer intelligence) { this.intelligence = intelligence; }
-
-    public Integer getConstitution() { return constitution; }
-    public void setConstitution(Integer constitution) { this.constitution = constitution; }
-
-    public Integer getWeight() { return weight; }
-    public void setWeight(Integer weight) { this.weight = weight; }
-
 }

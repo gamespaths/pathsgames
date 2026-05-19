@@ -2,8 +2,9 @@ package games.paths.adapters.rest.dto;
 
 /**
  * DifficultyResponse - REST response DTO for a story difficulty level.
+ * The seven stat fields live in {@link AbstractStatBlockUuidDescriptionDto}.
  */
-public class DifficultyResponse extends AbstractUuidDescriptionDto {
+public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
     private int expCost;
     private int maxWeight;
     private int minCharacter;
@@ -11,13 +12,6 @@ public class DifficultyResponse extends AbstractUuidDescriptionDto {
     private int costHelpComa;
     private int costMaxCharacteristics;
     private int numberMaxFreeAction;
-    private int life;
-    private int energy;
-    private int sad;
-    private int dexterity;
-    private int intelligence;
-    private int constitution;
-    private int weight;
     private Integer idCard;
     private CardInfoResponse card;
 
@@ -56,27 +50,6 @@ public class DifficultyResponse extends AbstractUuidDescriptionDto {
 
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }
-
-    public int getLife() { return life; }
-    public void setLife(int life) { this.life = life; }
-
-    public int getEnergy() { return energy; }
-    public void setEnergy(int energy) { this.energy = energy; }
-
-    public int getSad() { return sad; }
-    public void setSad(int sad) { this.sad = sad; }
-
-    public int getDexterity() { return dexterity; }
-    public void setDexterity(int dexterity) { this.dexterity = dexterity; }
-
-    public int getIntelligence() { return intelligence; }
-    public void setIntelligence(int intelligence) { this.intelligence = intelligence; }
-
-    public int getConstitution() { return constitution; }
-    public void setConstitution(int constitution) { this.constitution = constitution; }
-
-    public int getWeight() { return weight; }
-    public void setWeight(int weight) { this.weight = weight; }
 
     public Integer getIdCard() { return idCard; }
     public void setIdCard(Integer idCard) { this.idCard = idCard; }
