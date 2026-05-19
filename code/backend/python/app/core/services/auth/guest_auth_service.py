@@ -9,7 +9,7 @@ from app.core.ports.auth.guest_persistence_port import GuestPersistencePort
 class GuestAuthService(GuestAuthPort):
     GUEST_ROLE = "PLAYER"
     GUEST_USERNAME_PREFIX = "guest_"
-    GUEST_SESSION_DAYS = 30
+    GUEST_SESSION_DAYS = 180
 
     def __init__(self, jwt_port: JwtPort, persistence_port: GuestPersistencePort):
         self.jwt_port = jwt_port

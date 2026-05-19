@@ -128,6 +128,12 @@
       "title": "Crediti Immagini",
       "body": "Ogni immagine usata da Paths Games — fotografie di Unsplash e icone SVG di game-icons.net — è accreditata di seguito. Clicca su una card per aprire la pagina originale dell'autore."
     },
+    "guestUser": {
+      "title": "Il tuo profilo",
+      "anonymous": "Viaggiatore anonimo",
+      "uuidLabel": "ID Sessione",
+      "body": "<p>Sei un ospite, pronto a giocare le avventure di questo bellissimo gioco.</p><p>Nessuna partita per ora — avvia un'avventura dalla home e le tue storie giocate compariranno qui.</p><br /><br /><p align='center'><i>Account completo, salvataggi e lista amici in arrivo.</i></p>"
+    },
     "copyright": {
       "title": "Crediti Foto",
       "photoBy": "Foto di",

@@ -59,7 +59,7 @@ class SessionController
             $response,
             'pathsgames.refreshToken',
             $refreshed->getRefreshToken(),
-            7 * 24 * 60 * 60, // 7 days
+            180 * 24 * 60 * 60, // 6 months
             '/'
         );
 

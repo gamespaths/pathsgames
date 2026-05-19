@@ -231,7 +231,7 @@ class CookieHelperTest {
     void constants_haveExpectedValues() {
         assertEquals("pathsgames.refreshToken", CookieHelper.REFRESH_TOKEN_COOKIE);
         assertEquals("pathsgames.guestcookie",  CookieHelper.GUEST_COOKIE_TOKEN);
-        assertEquals(7 * 24 * 60 * 60,  CookieHelper.REFRESH_MAX_AGE_SECONDS);
-        assertEquals(30 * 24 * 60 * 60, CookieHelper.GUEST_COOKIE_MAX_AGE_SECONDS);
+        assertEquals(180 * 24 * 60 * 60, CookieHelper.REFRESH_MAX_AGE_SECONDS);
+        assertEquals(180 * 24 * 60 * 60, CookieHelper.GUEST_COOKIE_MAX_AGE_SECONDS);
     }
 }

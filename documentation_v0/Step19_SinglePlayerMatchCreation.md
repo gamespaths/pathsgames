@@ -293,9 +293,9 @@ The same suite passes against the Python and PHP backends — see
 
   > edit only react-game project. on characters/classes/traits lists there are some bonus column/fieds, i wanna see this on big card component . on bonus hide fields with zero value, show with bootstrap badge stype and on top of big card. on ConfigView show sum of all bonus values (if different to zero) after "page-footer".
 
-  > 
+  > "v0.19.8" on website react-game we need manage guest-user information: when user enter without any cookies (paths.games.user) i need create a new guest user with dedicated APIs, it there is the cookies load information from cookie. on nav bar button open modal (new component) with user card (BookPageContent) where see "guest user name" and description (for now use a new text , in future we will use for match stories and others informations). Note: cookie consent banner will be managed by cookies yes so don't worry about that.
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.19.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -306,6 +306,8 @@ The same suite passes against the Python and PHP backends — see
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
+    | 0.19.8 | Added guest user management into game frontend project | May 19, 2026 |
+
 - **Last Updated**: May 19, 2026
 - **Status**: ✅ Complete
 

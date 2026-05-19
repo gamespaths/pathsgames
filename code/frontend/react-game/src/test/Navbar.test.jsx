@@ -27,6 +27,16 @@ vi.mock('../context/ServerContext', () => ({
   MOCK_SERVER: 'mock',
 }))
 
+vi.mock('../context/GuestUserContext', () => ({
+  useGuestUser: () => ({
+    user: { userUuid: 'mock-uuid-0001', username: 'guest_mock0001' },
+    loading: false,
+    error: null,
+    refreshGuest: vi.fn(),
+    clearGuest: vi.fn(),
+  }),
+}))
+
 function renderNavbar(initialRoute = '/') {
   return render(
     <MemoryRouter initialEntries={[initialRoute]}>
@@ -53,9 +63,16 @@ describe('Navbar', () => {
     expect(mockSetLang).toHaveBeenCalledWith('en')
   })
 
-  it('renders guest button', () => {
+  it('renders guest username from cookie when available', () => {
     renderNavbar()
-    expect(screen.getByText('nav.guest')).toBeInTheDocument()
+    expect(screen.getByText('guest_mock0001')).toBeInTheDocument()
+  })
+
+  it('guest button targets the guest user modal', () => {
+    renderNavbar()
+    const btn = screen.getByText('guest_mock0001').closest('button')
+    expect(btn).toHaveAttribute('data-bs-toggle', 'modal')
+    expect(btn).toHaveAttribute('data-bs-target', '#guestUserModal')
   })
 
   it('does not show exit button on home page', () => {

@@ -46,11 +46,11 @@ public final class CookieHelper {
     /** Path scope — cookies are only sent for /api/auth/** requests. */
     private static final String COOKIE_PATH = "/api/auth";
 
-    /** Default max-age for the refresh-token cookie (7 days). */
-    public static final int REFRESH_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;   // 604 800
+    /** Default max-age for the refresh-token cookie (6 months ≈ 180 days). */
+    public static final int REFRESH_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;   // 15 552 000
 
-    /** Default max-age for the guest-cookie-token cookie (30 days). */
-    public static final int GUEST_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;  // 2 592 000
+    /** Default max-age for the guest-cookie-token cookie (6 months ≈ 180 days). */
+    public static final int GUEST_COOKIE_MAX_AGE_SECONDS = 180 * 24 * 60 * 60;  // 15 552 000
 
     /** Applied cookie policy — overridden at startup by CookiePolicyInitializer. */
     //private static boolean secure  = false;

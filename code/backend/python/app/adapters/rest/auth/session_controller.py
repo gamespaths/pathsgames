@@ -62,7 +62,7 @@ class SessionController:
             samesite="none",
             secure=True,
             path="/",
-            max_age=7 * 24 * 60 * 60  # 7 days
+            max_age=180 * 24 * 60 * 60  # 6 months
         )
 
         return response

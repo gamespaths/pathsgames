@@ -19,7 +19,7 @@ public class GuestAuthService implements GuestAuthPort {
 
     private static final String GUEST_ROLE = "PLAYER";
     private static final String GUEST_USERNAME_PREFIX = "guest_";
-    private static final int GUEST_SESSION_DAYS = 30;
+    private static final int GUEST_SESSION_DAYS = 180;
 
     private final JwtPort jwtPort;
     private final GuestPersistencePort persistencePort;
@@ -36,7 +36,7 @@ public class GuestAuthService implements GuestAuthPort {
         String username = GUEST_USERNAME_PREFIX + userUuid.substring(0, 8);
         String guestCookieToken = UUID.randomUUID().toString();
 
-        // 2. Calculate guest session expiration (30 days)
+        // 2. Calculate guest session expiration (6 months / 180 days)
         Instant expiresAt = Instant.now().plus(GUEST_SESSION_DAYS, ChronoUnit.DAYS);
         String expiresAtIso = expiresAt.toString();
 

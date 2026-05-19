@@ -31,8 +31,8 @@ Parameters:
     Description: "Optional. Global Route53 Hosted Zone ID for automatic Alias record"
   CorsAllowOrigins:
     Type: CommaDelimitedList
-    Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500"
-    Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173)"
+    Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games"
+    Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173,http://localhost:5174)"
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]

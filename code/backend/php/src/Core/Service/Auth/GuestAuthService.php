@@ -20,7 +20,7 @@ class GuestAuthService implements GuestAuthPort
 {
     private const GUEST_ROLE = 'PLAYER';
     private const GUEST_USERNAME_PREFIX = 'guest_';
-    private const GUEST_SESSION_DAYS = 30;
+    private const GUEST_SESSION_DAYS = 180;
 
     private GuestRepositoryPort $guestRepository;
     private JwtPort $jwtPort;
@@ -38,7 +38,7 @@ class GuestAuthService implements GuestAuthPort
         $username = self::GUEST_USERNAME_PREFIX . substr($userUuid, 0, 8);
         $guestCookieToken = Uuid::uuid4()->toString();
 
-        // 2. Calculate guest session expiration (30 days, like Python)
+        // 2. Calculate guest session expiration (6 months / 180 days)
         $now = new \DateTimeImmutable();
         $expiresAt = $now->modify('+' . self::GUEST_SESSION_DAYS . ' days');
         $guestExpiresAtIso = $expiresAt->format('Y-m-d H:i:s');

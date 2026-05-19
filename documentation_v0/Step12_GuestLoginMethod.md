@@ -221,6 +221,51 @@ All **28 tests** pass (18 core + 10 adapter-rest).
 - A standalone Javasript frontend demo for admin is available at: `code/website/concepts_v0/v0.12.0-admin/`
 
 
+## React-game client-side guest flow (v0.19.8)
+
+The react-game frontend (`code/frontend/react-game/`) received a fully integrated guest identity layer in v0.19.8 that wraps the backend endpoints above.
+
+### Cookie: `paths.games.user`
+
+A non-HttpOnly cookie named `paths.games.user` carries `{userUuid, username}` in JSON form. Attributes: Max-Age = 30 days, Path=/, SameSite=Lax. This cookie is readable by JavaScript and serves as the client-side identity cache. It is distinct from the backend HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`) which are set by the server and travel via `withCredentials: true` but are not accessible to JS.
+
+### `GuestUserProvider` — mount behaviour
+
+`src/context/GuestUserContext.jsx` implements the following logic on mount:
+
+| Condition | Action |
+|-----------|--------|
+| `paths.games.user` cookie present | Calls `POST /api/auth/guest/resume` (background, `withCredentials:true`). On success the server refreshes its HttpOnly cookies. On failure the cached cookie is kept — the player remains identified client-side. |
+| Cookie absent AND server is real | Calls `POST /api/auth/guest` (new session). On 201 response, persists `{userUuid, username}` to the cookie. |
+| Server is `mock` | Synthesises an offline guest locally using `crypto.randomUUID()`. No network call is made. |
+
+Context value exposed via `useGuestUser()`: `{ user, loading, error, refreshGuest, clearGuest }`.
+
+The cookie name constant is re-exported as `GUEST_USER_COOKIE` for use by other modules.
+
+### API helpers
+
+`src/api/auth.js` provides thin axios wrappers:
+- `createGuestSession()` — `POST /api/auth/guest`
+- `resumeGuestSession()` — `POST /api/auth/guest/resume`
+
+Both calls include `withCredentials: true` so the backend HttpOnly cookies travel with the request.
+
+### Navbar and `GuestUserModal`
+
+The Navbar reads the cached `username` via `useGuestUser()` and displays it as the user-icon button label. Clicking the button opens Bootstrap modal `#guestUserModal` (`data-bs-toggle="modal"`, `data-bs-target="#guestUserModal"`). The legacy "Login not yet available" toast was removed.
+
+`src/components/modals/GuestUserModal.jsx` renders a `BookPageContent` card with `username` as the title and `t('modals.guestUser.body')` (HTML) as the description. Below a divider the session UUID is shown (CSS class `.guest-user-uuid`, monospaced, divider above). i18n keys: `modals.guestUser.title`, `modals.guestUser.anonymous`, `modals.guestUser.uuidLabel`, `modals.guestUser.body` (EN + IT).
+
+### App wiring
+
+`App.jsx` wraps the router in `<GuestUserProvider>` and mounts `<GuestUserModal />` alongside the other global modals.
+
+### Cookie-consent
+
+Cookie-consent banner is managed externally by the Cookies-Yes service. The `paths.games.user` cookie must be listed as a functional/necessary cookie in that configuration — no code changes required here.
+
+
 
 ## Version Control
 - First version created with AI prompts:
@@ -232,7 +277,7 @@ All **28 tests** pass (18 core + 10 adapter-rest).
 
     > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/java/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
 
-- **Document Version**: 0.14.1
+- **Document Version**: 0.19.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
@@ -240,7 +285,8 @@ All **28 tests** pass (18 core + 10 adapter-rest).
     | 0.12.4 | Create backend php code | April 1, 2026 |
     | 0.13.0 | Write OpenAPI file | April 2, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-- **Last Updated**: April 9, 2026
+    | 0.19.8 | React-game client-side guest flow: GuestUserProvider, paths.games.user cookie, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: ✅ Complete
 
 

@@ -131,6 +131,12 @@
       "title": "Image Credits",
       "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
     },
+    "guestUser": {
+      "title": "Your Profile",
+      "anonymous": "Anonymous traveller",
+      "uuidLabel": "Session ID",
+      "body": "<p>You are a guest, ready to play the adventures of this beautiful game.</p><p>No matches yet — start an adventure from the home page and your played stories will appear here.</p><br/><br/><p align='center'><i>Full account, saved progress and friends list coming soon.</i></p>"
+    },
     "copyright": {
       "title": "Photo Credit",
       "photoBy": "Photo by",

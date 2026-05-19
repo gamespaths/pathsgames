@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { LanguageProvider } from './i18n/context'
 import { ServerProvider } from './context/ServerContext'
+import { GuestUserProvider } from './context/GuestUserContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import PrivacyModal from './components/modals/PrivacyModal'
 import TermsModal from './components/modals/TermsModal'
 import CookiesModal from './components/modals/CookiesModal'
 import CreditsModal from './components/modals/CreditsModal'
+import GuestUserModal from './components/modals/GuestUserModal'
 import HomePage from './pages/HomePage'
 import GamePage from './pages/GamePage'
 
@@ -14,6 +16,7 @@ export default function App() {
   return (
     <ServerProvider>
     <LanguageProvider>
+      <GuestUserProvider>
       <BrowserRouter>
         <Navbar />
         <main>
@@ -29,7 +32,9 @@ export default function App() {
         <TermsModal />
         <CookiesModal />
         <CreditsModal />
+        <GuestUserModal />
       </BrowserRouter>
+      </GuestUserProvider>
     </LanguageProvider>
     </ServerProvider>
   )

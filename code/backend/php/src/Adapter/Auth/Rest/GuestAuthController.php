@@ -52,7 +52,7 @@ class GuestAuthController
             $response,
             'pathsgames.refreshToken',
             $refreshToken,
-            7 * 24 * 60 * 60, // 7 days
+            180 * 24 * 60 * 60, // 6 months
             '/'
         );
 
@@ -61,7 +61,7 @@ class GuestAuthController
             $response,
             'pathsgames.guestcookie',
             $session->getCookieToken(),
-            30 * 24 * 60 * 60, // 30 days
+            180 * 24 * 60 * 60, // 6 months
             '/'
         );
 

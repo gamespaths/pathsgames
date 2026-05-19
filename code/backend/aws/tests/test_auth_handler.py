@@ -78,6 +78,12 @@ def test_create_guest_sets_cookies():
     cookie_str = ' '.join(result['cookies'])
     assert 'pathsgames.refreshToken' in cookie_str
     assert 'pathsgames.guestcookie' in cookie_str
+    # Cross-origin from http://localhost:5174 requires SameSite=None; Secure
+    # otherwise Chrome drops the cookies. See lambda/auth/handler.py
+    # docstring for the rationale.
+    assert 'SameSite=None' in cookie_str
+    assert 'Secure' in cookie_str
+    assert 'SameSite=Lax' not in cookie_str
 
 
 # ── resume_guest ──────────────────────────────────────────────────────────────

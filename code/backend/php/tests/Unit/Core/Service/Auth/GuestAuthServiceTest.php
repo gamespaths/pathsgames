@@ -45,15 +45,15 @@ class GuestAuthServiceTest extends TestCase
         $this->assertSame($expectedUsername, $session->getUsername());
     }
 
-    public function testCreateGuestSessionExpiresIn30Days(): void
+    public function testCreateGuestSessionExpiresIn180Days(): void
     {
         $this->guestRepo->method('save');
 
         $session = $this->service->createGuestSession();
         $diff = $session->getExpiresAt()->diff(new DateTimeImmutable());
 
-        // Should be approximately 30 days in the future — at least 29 days
-        $this->assertGreaterThanOrEqual(29, $diff->days);
+        // Should be approximately 180 days in the future — at least 179 days
+        $this->assertGreaterThanOrEqual(179, $diff->days);
     }
 
     public function testResumeGuestSessionReturnsSessionWhenValid(): void

@@ -48,9 +48,9 @@ def _dumps(obj):
 
 HEADERS = {"Content-Type": "application/json"}
 
-COOKIE_MAX_ACCESS  = 1_800       # 30 min  (access token lifetime)
-COOKIE_MAX_REFRESH = 604_800     # 7 days  (refresh token)
-COOKIE_MAX_GUEST   = 2_592_000   # 30 days (guest cookie)
+COOKIE_MAX_ACCESS  = 1_800        # 30 min  (access token lifetime)
+COOKIE_MAX_REFRESH = 15_552_000   # 6 months (refresh token; 180 * 86400)
+COOKIE_MAX_GUEST   = 15_552_000   # 6 months (guest cookie; 180 * 86400)
 
 def _now_ms():
     return int(time.time() * 1000)
@@ -157,17 +157,24 @@ def _guest_info(user):
     }
 
 def _refresh_cookies(user_uuid, guest_token):
-    """Return two Set-Cookie strings (refresh + guest)."""
+    """Return two Set-Cookie strings (refresh + guest).
+
+    Uses ``SameSite=None; Secure`` so the browser keeps the cookies on cross-
+    origin requests (e.g. ``http://localhost:5174`` → ``https://api-dev.paths.games``).
+    Chrome rejects Lax cookies on cross-site fetch/XHR and would silently drop
+    them, which would block ``POST /api/auth/guest/resume`` with 400
+    MISSING_GUEST_COOKIE on every reload.
+    """
     refresh_token = f'MOCK_REFRESH_{user_uuid}'
     return [
-        f'pathsgames.refreshToken={refresh_token}; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age={COOKIE_MAX_REFRESH}',
-        f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age={COOKIE_MAX_GUEST}',
+        f'pathsgames.refreshToken={refresh_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
+        f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_GUEST}',
     ]
 
 def _clear_cookies():
     return [
-        'pathsgames.refreshToken=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0',
-        'pathsgames.guestcookie=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0',
+        'pathsgames.refreshToken=; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age=0',
+        'pathsgames.guestcookie=; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age=0',
     ]
 
 # ─── router ──────────────────────────────────────────────────────────────────

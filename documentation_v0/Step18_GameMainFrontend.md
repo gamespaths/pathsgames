@@ -54,10 +54,10 @@ code/frontend/react-game/
 ├── postcss.config.js
 └── src/
     ├── main.jsx                    # React root mount
-    ├── App.jsx                     # Router: / → HomePage, /play/:storyId → GamePage
+    ├── App.jsx                     # GuestUserProvider + Router: / → HomePage, /play/:storyId → GamePage
     ├── styles/
     │   ├── variables.css           # CSS custom properties (colors, fonts, spacing)
-    │   ├── main.css                # All component styles + animations
+    │   ├── main.css                # All component styles + animations (incl. .guest-user-uuid)
     │   ├── mobile.css              # Responsive overrides (≤767px)
     │   └── abbrev.css              # Tailwind-style shorthand utilities
     ├── i18n/
@@ -67,20 +67,24 @@ code/frontend/react-game/
     ├── api/
     │   ├── client.js               # Axios instance + mock fallback helper
     │   ├── stories.js              # getStories(), getStory(id)
-    │   └── game.js                 # getLocations(storyId), getActions(locationId)
+    │   ├── game.js                 # getLocations(storyId), getActions(locationId)
+    │   └── auth.js                 # createGuestSession(), resumeGuestSession() — withCredentials:true
+    ├── context/
+    │   └── GuestUserContext.jsx    # GuestUserProvider + useGuestUser(); manages paths.games.user cookie
     ├── mock/
     │   ├── stories.json            # 5 stories with characters/classes/traits/difficulties
     │   ├── gameData.json           # locations + actions
     │   └── images.json             # SVG/Unsplash credits {id, urlImage, linkCopyright, ...}
     ├── components/
     │   ├── layout/
-    │   │   ├── Navbar.jsx          # Sticky navbar: brand, lang switcher, guest button
+    │   │   ├── Navbar.jsx          # Sticky navbar: brand, lang switcher, guest-username button → #guestUserModal
     │   │   └── Footer.jsx          # Social links, legal modal triggers, version
     │   ├── modals/
     │   │   ├── PrivacyModal.jsx
     │   │   ├── TermsModal.jsx
     │   │   ├── CookiesModal.jsx
-    │   │   └── CopyrightModal.jsx  # Credits modal: image + text + sound cards
+    │   │   ├── CopyrightModal.jsx  # Credits modal: image + text + sound cards
+    │   │   └── GuestUserModal.jsx  # Bootstrap modal #guestUserModal: BookPageContent card with username + UUID
     │   └── book/
     │       ├── BookWrapper.jsx      # .book-overlay → .book-wrapper with spine
     │       ├── BookPageLeft.jsx     # Corner ornaments + page-inner slot
@@ -171,6 +175,43 @@ export const fetchWithFallback = async (url, mockData) => {
   }
 }
 ```
+
+`src/api/auth.js` (added v0.19.8) provides dedicated wrappers for the guest auth endpoints with `withCredentials: true` so the backend HttpOnly cookies travel with each request:
+- `createGuestSession()` — `POST /api/auth/guest`
+- `resumeGuestSession()` — `POST /api/auth/guest/resume`
+
+---
+
+## 4a. Guest Identity (v0.19.8)
+
+`src/context/GuestUserContext.jsx` provides `GuestUserProvider` and the `useGuestUser()` hook. The provider is mounted at the root of `App.jsx` around the router.
+
+### Cookie: `paths.games.user`
+
+A non-HttpOnly cookie named `paths.games.user` holds `{userUuid, username}` in JSON. Attributes: Max-Age 30 days, Path=/, SameSite=Lax. The cookie is readable by JavaScript and caches the guest identity across page reloads.
+
+### Mount logic
+
+| Condition | Behaviour |
+|-----------|-----------|
+| `paths.games.user` cookie present | Calls `resumeGuestSession()` in the background. On success the backend refreshes its HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`). On failure the cached cookie is kept so the player stays identified client-side. |
+| Cookie absent, server is real | Calls `createGuestSession()`. On success persists `{userUuid, username}` to the cookie. |
+| Server is `mock` | Synthesises an offline guest locally via `crypto.randomUUID()` — no network call. |
+
+`useGuestUser()` returns `{ user, loading, error, refreshGuest, clearGuest }`.
+
+### Navbar
+
+The Navbar reads the cached `username` via `useGuestUser()` and shows it as the user-button label. Clicking the button opens `GuestUserModal` using Bootstrap `data-bs-toggle="modal"` / `data-bs-target="#guestUserModal"`. The legacy "Login not yet available" toast was removed in v0.19.8.
+
+### `GuestUserModal`
+
+`src/components/modals/GuestUserModal.jsx` — Bootstrap modal `#guestUserModal`. Renders a `BookPageContent` card:
+- Title: `username`
+- Description: `t('modals.guestUser.body')` (HTML, informs the player they are a guest ready to play)
+- Below a divider: session UUID rendered in `.guest-user-uuid` (monospaced, defined in `main.css`)
+
+i18n keys (EN + IT): `modals.guestUser.title`, `modals.guestUser.anonymous`, `modals.guestUser.uuidLabel`, `modals.guestUser.body`.
 
 ---
 
@@ -405,15 +446,16 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.19.8
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
     | 0.19.2 | StartBookMobile extracted; card-big-list config grid; CardPreviewOverlay + magnifier; aspect-ratio 2/3 | May 12, 2026 |
     | 0.19.3 | BookPageContent: entity+entityType props & bonus-stats panel | May 18, 2026 |
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
-    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
-    
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits` | May 19, 2026 |
+    | 0.19.8 | Guest identity: GuestUserProvider, paths.games.user cookie, api/auth.js, GuestUserModal, Navbar modal trigger | May 19, 2026 |
+
 - **Last Updated**: May 19, 2026
 - **Status**: Active development
 

@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import { useServer, MOCK_SERVER } from '../../context/ServerContext'
+import { useGuestUser } from '../../context/GuestUserContext'
 import { getServerStatus } from '../../api/echoApi'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const [guestToast, setGuestToast] = useState(false)
   const { server, servers, probing, changeServer } = useServer()
+  const { user: guestUser, loading: guestLoading } = useGuestUser()
   const [status, setStatus] = useState('loading')  // 'online' | 'offline' | 'loading' | 'mock'
   const [version, setVersion] = useState('')
 
@@ -35,10 +36,9 @@ export default function Navbar() {
 
   const isGamePage = location.pathname.startsWith('/play/')
 
-  function handleGuestClick() {
-    setGuestToast(true)
-    setTimeout(() => setGuestToast(false), 3000)
-  }
+  const guestLabel = guestLoading
+    ? '…'
+    : (guestUser?.username ?? t('nav.guest'))
 
   return (
     <nav className="navbar-medieval">
@@ -92,20 +92,16 @@ export default function Navbar() {
           EN
         </button>
 
-        <button className="nav-user-btn" title={t('nav.login')} onClick={handleGuestClick}>
+        <button
+          className="nav-user-btn"
+          title={guestUser?.username ?? t('nav.login')}
+          data-bs-toggle="modal"
+          data-bs-target="#guestUserModal"
+        >
           <i className="fas fa-user-circle" />
-          <span>{t('nav.guest')}</span>
+          <span>{guestLabel}</span>
         </button>
       </div>
-
-      {guestToast && (
-        <div className="navbar-toast">
-          <i className="fas fa-info-circle me-2" />
-          {lang === 'it'
-            ? '✦ Accesso non ancora disponibile — continui come ospite ✦'
-            : '✦ Login not yet available — continuing as guest ✦'}
-        </div>
-      )}
     </nav>
   )
 }
