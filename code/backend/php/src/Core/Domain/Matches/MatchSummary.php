@@ -4,6 +4,9 @@ namespace Games\Paths\Core\Domain\Matches;
 
 class MatchSummary
 {
+    /**
+     * @param string[] $traitUuids Step 0.19.9 — selected trait uuids.
+     */
     public function __construct(
         public readonly string $uuid,
         public readonly ?string $storyUuid,
@@ -13,7 +16,11 @@ class MatchSummary
         public readonly int $currentClock,
         public readonly int $expCost,
         public readonly string $userCreatorUuid,
-        public readonly string $tsInsert
+        public readonly string $tsInsert,
+        public readonly ?int $singlePlayer = null,
+        public readonly ?string $characterTemplateUuid = null,
+        public readonly ?string $classUuid = null,
+        public readonly array $traitUuids = []
     ) {
     }
 
@@ -29,6 +36,10 @@ class MatchSummary
             'expCost' => $this->expCost,
             'userCreatorUuid' => $this->userCreatorUuid,
             'tsInsert' => $this->tsInsert,
+            'singlePlayer' => $this->singlePlayer,
+            'characterTemplateUuid' => $this->characterTemplateUuid,
+            'classUuid' => $this->classUuid,
+            'traitUuids' => $this->traitUuids,
         ];
     }
 }

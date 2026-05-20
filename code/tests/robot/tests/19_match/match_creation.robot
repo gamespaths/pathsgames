@@ -111,6 +111,29 @@ Get Match Info From Other User Returns 404
     ${response}=    Get Match Info    ${other_token}    ${MATCH_UUID}
     Status Should Be    ${response}    404
 
+Create Match With Loadout Persists Character Class Traits And Flag
+    [Documentation]    POST /api/matches with characterTemplateUuid, classUuid,
+    ...                traitUuids and singlePlayer returns 201; the loadout is
+    ...                persisted and read back via GET /api/match/{uuid}/info.
+    [Tags]    matches    step19
+    ${traits}=    Create List
+    ...    11111111-1111-1111-1111-111111111111
+    ...    22222222-2222-2222-2222-222222222222
+    ${response}=    Create Match With Loadout    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
+    ...    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb    ${traits}    ${1}
+    Status Should Be    ${response}    201
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${body}[singlePlayer]    1
+    Should Be Equal As Strings    ${body}[characterTemplateUuid]    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+    Should Be Equal As Strings    ${body}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
+    Length Should Be    ${body}[traitUuids]    2
+    ${info}=    Get Match Info    ${TOKEN}    ${body}[uuid]
+    Status Should Be    ${info}    200
+    ${match}=    Set Variable    ${info.json()}[match]
+    Should Be Equal As Integers    ${match}[singlePlayer]    1
+    Should Be Equal As Strings    ${match}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
+    Length Should Be    ${match}[traitUuids]    2
+
 
 *** Keywords ***
 

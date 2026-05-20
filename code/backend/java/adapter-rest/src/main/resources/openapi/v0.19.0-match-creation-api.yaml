@@ -8,11 +8,15 @@ info:
     introduces the endpoints required to create a match, list the user's
     matches and retrieve the runtime state needed to render the in-game UI.
 
+    Version 0.19.9 extends the match creation request with the creator
+    loadout — character template, class, traits and a single-player flag —
+    which is now persisted on the match.
+
     The endpoints are protected by the JWT bearer token issued by the guest
     or credential authentication flows (Step 12 / Step 13). The current user
     uuid is read from the access token; clients never need to send it
     explicitly.
-  version: 0.19.0
+  version: 0.19.9
   contact:
     name: Paths Games
     url: https://paths.games
@@ -43,6 +47,10 @@ paths:
         generates a uuid, persists the match (status `CREATED`) and seeds the
         runtime state tables (`gaming_state_locations`,
         `gaming_state_registry`).
+
+        Step 0.19.9 — the optional loadout fields (`characterTemplateUuid`,
+        `classUuid`, `traitUuids`, `singlePlayer`) are persisted on the
+        `gaming_match` row.
       operationId: createMatch
       requestBody:
         required: true
@@ -177,8 +185,33 @@ components:
           format: uuid
           nullable: true
           description: |
-            Optional UUID of the character template selected by the creator;
-            ignored in Step 19 and persisted only for forward-compatibility.
+            Optional UUID of the character template selected by the creator.
+            Persisted on the match (column `character_template_uuid`).
+        classUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            Optional UUID of the class selected by the creator.
+            Persisted on the match (column `class_uuid`).
+        traitUuids:
+          type: array
+          nullable: true
+          items:
+            type: string
+            format: uuid
+          description: |
+            Optional list of trait UUIDs selected by the creator. Persisted
+            on the match as a comma-separated list (column `trait_uuids`).
+        singlePlayer:
+          type: integer
+          format: int32
+          nullable: true
+          enum: [0, 1]
+          default: 1
+          description: |
+            Match mode flag — `1` single-player (default), `0` multiplayer.
+            Persisted on the match (column `single_player`).
 
     MatchSummary:
       type: object
@@ -210,6 +243,27 @@ components:
         tsInsert:
           type: string
           description: ISO-8601 timestamp the match was created at
+        singlePlayer:
+          type: integer
+          format: int32
+          nullable: true
+          description: Match mode flag persisted at creation (1 single-player, 0 multiplayer)
+        characterTemplateUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: Character template selected by the creator
+        classUuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: Class selected by the creator
+        traitUuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Trait UUIDs selected by the creator
 
     LocationState:
       type: object

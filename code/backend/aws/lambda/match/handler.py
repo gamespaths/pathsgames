@@ -145,6 +145,11 @@ def _summary_from_item(item):
         "expCost": int(item.get("expCost", 0)),
         "userCreatorUuid": item.get("userCreatorUuid"),
         "tsInsert": item.get("tsInsert"),
+        # Step 0.19.9 — creator loadout chosen at match creation.
+        "singlePlayer": item.get("singlePlayer"),
+        "characterTemplateUuid": item.get("characterTemplateUuid"),
+        "classUuid": item.get("classUuid"),
+        "traitUuids": item.get("traitUuids") or [],
     }
 
 
@@ -193,6 +198,9 @@ def _create_match(user, body):
     now_ms = _ts_ms()
     match_uuid = _new_match_uuid()
 
+    raw_single_player = (body or {}).get('singlePlayer')
+    single_player = int(raw_single_player) if raw_single_player is not None else 1
+
     location_states = []
     for loc in locations:
         location_states.append({
@@ -227,6 +235,10 @@ def _create_match(user, body):
         "storyUuid": story_uuid,
         "difficultyUuid": difficulty_uuid,
         "name": (body or {}).get('name'),
+        "singlePlayer": single_player,
+        "characterTemplateUuid": (body or {}).get('characterTemplateUuid'),
+        "classUuid": (body or {}).get('classUuid'),
+        "traitUuids": (body or {}).get('traitUuids') or [],
         "status": "CREATED",
         "currentClock": 0,
         "expCost": int(matched_diff.get('expCost') or 5),

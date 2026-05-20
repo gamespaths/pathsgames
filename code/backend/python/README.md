@@ -182,14 +182,15 @@ PYTHONPATH=. pytest -v tests/
 
     > add into readme file a "test" section with all curl calls
 
-- **Document Version**: 0.19.7
+- **Document Version**: 0.19.9
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.3 | First version of this document | March 31, 2026 |
     | 0.12.5 | Add Docker section, fix production port, update project structure | April 1, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.19.7 | list_stories_difficulty: added 7 stat columns (life, energy, sad, dexterity, intelligence, constitution, weight) to SQLAlchemy StoryDifficultyEntity; DifficultyInfo dataclass updated; story_query_service and persistence adapter save_difficulties updated; seed_dev_data and seed_stories include new fields; 48 unit tests pass | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.19.9 | gaming_match: 4 loadout columns added (single_player, character_template_uuid, class_uuid, trait_uuids) via SQLAlchemy create_all (model updated); MatchCreateRequest and MatchSummary extended with classUuid, traitUuids, singlePlayer (characterTemplateUuid now persisted); trait list encoded as comma-separated string; 67 unit tests pass | May 20, 2026 |
+- **Last Updated**: May 20, 2026
 - **Status**: In progress
 
 

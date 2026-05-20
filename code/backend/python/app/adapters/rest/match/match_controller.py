@@ -1,7 +1,7 @@
 """Step 19 — FastAPI controller for the match endpoints."""
 import time
 from dataclasses import asdict
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
@@ -30,6 +30,9 @@ class MatchCreateRequestBody(BaseModel):
     difficultyUuid: Optional[str] = None
     name: Optional[str] = None
     characterTemplateUuid: Optional[str] = None
+    classUuid: Optional[str] = None
+    traitUuids: Optional[List[str]] = None
+    singlePlayer: Optional[int] = None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -50,6 +53,10 @@ def _summary_to_camel(summary):
         "expCost": summary.exp_cost,
         "userCreatorUuid": summary.user_creator_uuid,
         "tsInsert": summary.ts_insert,
+        "singlePlayer": summary.single_player,
+        "characterTemplateUuid": summary.character_template_uuid,
+        "classUuid": summary.class_uuid,
+        "traitUuids": summary.trait_uuids,
     }
 
 
@@ -110,6 +117,9 @@ class MatchController:
             difficulty_uuid=body.difficultyUuid,
             name=body.name,
             character_template_uuid=body.characterTemplateUuid,
+            class_uuid=body.classUuid,
+            trait_uuids=body.traitUuids or [],
+            single_player=body.singlePlayer,
         )
         try:
             summary = self.command_port.create_match(command)

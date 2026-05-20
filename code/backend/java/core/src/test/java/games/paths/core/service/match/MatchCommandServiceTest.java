@@ -50,7 +50,8 @@ class MatchCommandServiceTest {
     }
 
     private MatchCreateCommand cmd(String userUuid, String storyUuid, String diffUuid) {
-        return new MatchCreateCommand(userUuid, storyUuid, diffUuid, "My match", "char-tpl");
+        return new MatchCreateCommand(userUuid, storyUuid, diffUuid,
+                "My match", "char-tpl", null, null, null);
     }
 
     private UserAccessPort.UserView activeUser() {
@@ -316,6 +317,10 @@ class MatchCommandServiceTest {
             assertEquals(0, result.getCurrentClock());
             assertEquals(5, result.getExpCost());
             assertEquals("My match", result.getName());
+            assertEquals(1, result.getSinglePlayer());
+            assertEquals("char-tpl", result.getCharacterTemplateUuid());
+            assertNull(result.getClassUuid());
+            assertTrue(result.getTraitUuids().isEmpty());
 
             verify(persistencePort).saveLocations(argThat(list ->
                     list != null && list.size() == 2
@@ -326,6 +331,24 @@ class MatchCommandServiceTest {
             verify(persistencePort).saveRegistry(argThat(list ->
                     list != null && list.size() == 4
             ));
+        }
+
+        @Test
+        @DisplayName("persists the creator loadout (class, traits, single-player flag)")
+        void createsWithLoadout() {
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+
+            MatchCreateCommand command = new MatchCreateCommand(
+                    "user-uuid", "story-uuid", "diff-uuid", "My match", "char-tpl",
+                    "class-uuid", List.of("trait-1", "trait-2"), 0);
+            MatchSummary result = service.createMatch(command);
+
+            assertEquals(0, result.getSinglePlayer());
+            assertEquals("char-tpl", result.getCharacterTemplateUuid());
+            assertEquals("class-uuid", result.getClassUuid());
+            assertEquals(List.of("trait-1", "trait-2"), result.getTraitUuids());
         }
 
         @Test

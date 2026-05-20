@@ -31,6 +31,28 @@ Create Match
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
+Create Match With Loadout
+    [Documentation]    POST /api/matches with the full creator loadout —
+    ...                character template, class, traits and single-player flag.
+    [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
+    ...    ${character_uuid}    ${class_uuid}    ${trait_uuids}    ${single_player}
+    ...    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    Set To Dictionary    ${headers}    Content-Type=application/json
+    &{body}=    Create Dictionary
+    ...    storyUuid=${story_uuid}
+    ...    difficultyUuid=${difficulty_uuid}
+    ...    name=Robot loadout match
+    ...    characterTemplateUuid=${character_uuid}
+    ...    classUuid=${class_uuid}
+    ...    traitUuids=${trait_uuids}
+    ...    singlePlayer=${single_player}
+    ${response}=    POST On Session    public_session    /api/matches
+    ...    headers=${headers}
+    ...    json=${body}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
 List Matches
     [Documentation]    GET /api/matches with the given Bearer token.
     [Arguments]    ${token}    ${expected_status}=any

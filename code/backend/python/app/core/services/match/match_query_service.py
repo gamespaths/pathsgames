@@ -108,4 +108,8 @@ class MatchQueryService(MatchQueryPort):
             exp_cost=row["exp_cost"],
             user_creator_uuid=user_uuid,
             ts_insert=row["ts_insert"],
+            single_player=row.get("single_player"),
+            character_template_uuid=row.get("character_template_uuid"),
+            class_uuid=row.get("class_uuid"),
+            trait_uuids=row.get("trait_uuids") or [],
         )

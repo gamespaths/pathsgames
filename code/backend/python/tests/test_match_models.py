@@ -23,6 +23,9 @@ def test_match_create_command_defaults():
     cmd = MatchCreateCommand("u", "s", "d")
     assert cmd.name is None
     assert cmd.character_template_uuid is None
+    assert cmd.class_uuid is None
+    assert cmd.trait_uuids == []
+    assert cmd.single_player is None
 
 
 def test_match_summary_fields():
@@ -30,6 +33,29 @@ def test_match_summary_fields():
     assert s.uuid == "u"
     assert s.status == "CREATED"
     assert s.exp_cost == 5
+    assert s.trait_uuids == []
+
+
+def test_match_create_command_loadout_fields():
+    cmd = MatchCreateCommand(
+        "u", "s", "d", "n", "ct",
+        class_uuid="cl", trait_uuids=["t1", "t2"], single_player=0,
+    )
+    assert cmd.class_uuid == "cl"
+    assert cmd.trait_uuids == ["t1", "t2"]
+    assert cmd.single_player == 0
+
+
+def test_match_summary_loadout_fields():
+    s = MatchSummary(
+        "u", "s", "d", "name", "CREATED", 0, 5, "user", "ts",
+        single_player=1, character_template_uuid="ct",
+        class_uuid="cl", trait_uuids=["t1"],
+    )
+    assert s.single_player == 1
+    assert s.character_template_uuid == "ct"
+    assert s.class_uuid == "cl"
+    assert s.trait_uuids == ["t1"]
 
 
 def test_match_detail_defaults():

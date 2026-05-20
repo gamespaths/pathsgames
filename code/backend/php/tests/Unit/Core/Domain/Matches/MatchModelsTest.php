@@ -17,12 +17,15 @@ class MatchModelsTest extends TestCase
 {
     public function testCreateCommand(): void
     {
-        $cmd = new MatchCreateCommand('u', 's', 'd', 'n', 'ct');
+        $cmd = new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'cl', ['t1', 't2'], 0);
         $this->assertSame('u', $cmd->getUserUuid());
         $this->assertSame('s', $cmd->getStoryUuid());
         $this->assertSame('d', $cmd->getDifficultyUuid());
         $this->assertSame('n', $cmd->getName());
         $this->assertSame('ct', $cmd->getCharacterTemplateUuid());
+        $this->assertSame('cl', $cmd->getClassUuid());
+        $this->assertSame(['t1', 't2'], $cmd->getTraitUuids());
+        $this->assertSame(0, $cmd->getSinglePlayer());
     }
 
     public function testCreateCommandDefaults(): void
@@ -30,15 +33,22 @@ class MatchModelsTest extends TestCase
         $cmd = new MatchCreateCommand('u', 's', 'd');
         $this->assertNull($cmd->getName());
         $this->assertNull($cmd->getCharacterTemplateUuid());
+        $this->assertNull($cmd->getClassUuid());
+        $this->assertSame([], $cmd->getTraitUuids());
+        $this->assertNull($cmd->getSinglePlayer());
     }
 
     public function testSummaryToArray(): void
     {
-        $summary = new MatchSummary('u', 's', 'd', 'n', 'CREATED', 0, 5, 'uc', 'ts');
+        $summary = new MatchSummary('u', 's', 'd', 'n', 'CREATED', 0, 5, 'uc', 'ts', 1, 'ct', 'cl', ['t1']);
         $arr = $summary->toArray();
         $this->assertSame('u', $arr['uuid']);
         $this->assertSame('CREATED', $arr['status']);
         $this->assertSame(5, $arr['expCost']);
+        $this->assertSame(1, $arr['singlePlayer']);
+        $this->assertSame('ct', $arr['characterTemplateUuid']);
+        $this->assertSame('cl', $arr['classUuid']);
+        $this->assertSame(['t1'], $arr['traitUuids']);
     }
 
     public function testLocationStateToArray(): void

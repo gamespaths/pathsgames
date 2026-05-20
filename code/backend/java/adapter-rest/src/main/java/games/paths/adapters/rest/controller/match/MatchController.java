@@ -60,7 +60,10 @@ public class MatchController {
                 body.getStoryUuid(),
                 body.getDifficultyUuid(),
                 body.getName(),
-                body.getCharacterTemplateUuid());
+                body.getCharacterTemplateUuid(),
+                body.getClassUuid(),
+                body.getTraitUuids(),
+                body.getSinglePlayer());
 
         try {
             MatchSummary created = matchCommandPort.createMatch(command);

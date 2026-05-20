@@ -21,10 +21,16 @@ class MatchDtosTest {
         r.setDifficultyUuid("d");
         r.setName("n");
         r.setCharacterTemplateUuid("ct");
+        r.setClassUuid("cl");
+        r.setTraitUuids(List.of("t1", "t2"));
+        r.setSinglePlayer(1);
         assertEquals("s", r.getStoryUuid());
         assertEquals("d", r.getDifficultyUuid());
         assertEquals("n", r.getName());
         assertEquals("ct", r.getCharacterTemplateUuid());
+        assertEquals("cl", r.getClassUuid());
+        assertEquals(List.of("t1", "t2"), r.getTraitUuids());
+        assertEquals(1, r.getSinglePlayer());
     }
 
     @Test
@@ -44,6 +50,10 @@ class MatchDtosTest {
         m.setExpCost(5);
         m.setUserCreatorUuid("uc");
         m.setTsInsert("ts");
+        m.setSinglePlayer(1);
+        m.setCharacterTemplateUuid("ct");
+        m.setClassUuid("cl");
+        m.setTraitUuids(List.of("t1", "t2"));
 
         MatchSummaryResponse r = MatchSummaryResponse.fromModel(m);
         assertEquals("u", r.getUuid());
@@ -55,6 +65,10 @@ class MatchDtosTest {
         assertEquals(5, r.getExpCost());
         assertEquals("uc", r.getUserCreatorUuid());
         assertEquals("ts", r.getTsInsert());
+        assertEquals(1, r.getSinglePlayer());
+        assertEquals("ct", r.getCharacterTemplateUuid());
+        assertEquals("cl", r.getClassUuid());
+        assertEquals(List.of("t1", "t2"), r.getTraitUuids());
 
         // setters
         r.setUuid("u2");
@@ -66,9 +80,17 @@ class MatchDtosTest {
         r.setExpCost(7);
         r.setUserCreatorUuid("uc2");
         r.setTsInsert("ts2");
+        r.setSinglePlayer(0);
+        r.setCharacterTemplateUuid("ct2");
+        r.setClassUuid("cl2");
+        r.setTraitUuids(List.of("t3"));
         assertEquals("u2", r.getUuid());
         assertEquals("RUNNING", r.getStatus());
         assertEquals("ts2", r.getTsInsert());
+        assertEquals(0, r.getSinglePlayer());
+        assertEquals("ct2", r.getCharacterTemplateUuid());
+        assertEquals("cl2", r.getClassUuid());
+        assertEquals(List.of("t3"), r.getTraitUuids());
     }
 
     @Test

@@ -19,6 +19,21 @@ def _new_uuid() -> str:
     return str(uuid_lib.uuid4())
 
 
+def _join_trait_uuids(values) -> Optional[str]:
+    """Join trait uuids into the comma-separated gaming_match.trait_uuids column."""
+    if not values:
+        return None
+    cleaned = [str(v).strip() for v in values if v is not None and str(v).strip()]
+    return ",".join(cleaned) if cleaned else None
+
+
+def _split_trait_uuids(csv) -> List[str]:
+    """Split the comma-separated gaming_match.trait_uuids column into a list."""
+    if not csv:
+        return []
+    return [p.strip() for p in str(csv).split(",") if p and p.strip()]
+
+
 class MatchPersistenceAdapter(MatchPersistencePort):
     def __init__(self, session_factory):
         self.session_factory = session_factory
@@ -37,6 +52,10 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 current_clock=match.get("current_clock", 0),
                 secure_location_param=match.get("secure_location_param", 0),
                 counter_consecutive_pass=match.get("counter_consecutive_pass", 0),
+                single_player=match.get("single_player", 1),
+                character_template_uuid=match.get("character_template_uuid"),
+                class_uuid=match.get("class_uuid"),
+                trait_uuids=_join_trait_uuids(match.get("trait_uuids")),
                 ts_insert=now,
                 ts_update=now,
             )
@@ -148,4 +167,8 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             "exp_cost": entity.exp_cost or 0,
             "ts_insert": entity.ts_insert,
             "ts_update": entity.ts_update,
+            "single_player": entity.single_player,
+            "character_template_uuid": entity.character_template_uuid,
+            "class_uuid": entity.class_uuid,
+            "trait_uuids": _split_trait_uuids(entity.trait_uuids),
         }

@@ -21,6 +21,10 @@ def _match(creator=7, mid=99, story=2, diff=3, mu="match-uuid"):
         "exp_cost": 5,
         "ts_insert": "now",
         "ts_update": "now",
+        "single_player": 1,
+        "character_template_uuid": "ct",
+        "class_uuid": "cl",
+        "trait_uuids": ["t1", "t2"],
     }
 
 
@@ -62,6 +66,10 @@ def test_list_user_matches_returns_summaries():
     assert len(summaries) == 1
     assert summaries[0].uuid == "match-uuid"
     assert summaries[0].user_creator_uuid == "user-uuid"
+    assert summaries[0].single_player == 1
+    assert summaries[0].character_template_uuid == "ct"
+    assert summaries[0].class_uuid == "cl"
+    assert summaries[0].trait_uuids == ["t1", "t2"]
 
 
 def test_get_match_info_blank_inputs():

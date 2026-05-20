@@ -31,9 +31,12 @@ Step 19 covers the following items from the roadmap:
   `int_value` based on parse-ability).
 - Backend unit tests with **100 %** branch coverage on all new code paths.
 
-The character template selection requested by the creator is accepted in the
-request body but persisted only for forward compatibility; the actual
-character creation flow is delivered by Steps 21–23.
+**v0.19.9** — the match creation request also records the creator loadout:
+the selected character template, class, trait uuids and a single-player flag
+(`1` single-player / `0` multiplayer). All four are persisted on
+`gaming_match` (columns `character_template_uuid`, `class_uuid`,
+`trait_uuids`, `single_player`) and echoed back on `MatchSummary`. The actual
+character creation flow is still delivered by Steps 21–23.
 
 ---
 
@@ -59,9 +62,16 @@ Request body (`MatchCreateRequest`):
   "storyUuid": "f93b…",
   "difficultyUuid": "8d12…",
   "name": "Saturday adventure",
-  "characterTemplateUuid": "1a2b…"
+  "characterTemplateUuid": "1a2b…",
+  "classUuid": "5c7e…",
+  "traitUuids": ["9f01…", "9f02…"],
+  "singlePlayer": 1
 }
 ```
+
+`storyUuid` and `difficultyUuid` are mandatory; every other field — including
+the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
+`singlePlayer`) — is optional. `singlePlayer` defaults to `1` when omitted.
 
 | HTTP status | Cause                                                |
 |-------------|------------------------------------------------------|
@@ -139,8 +149,11 @@ The user state taxonomy (column `users.state`) drives the ban check:
 
 ## 5. Tables
 
-Step 19 only **uses** existing tables — no Flyway migration is added. The
-involved tables are:
+Step 19 originally only **used** existing tables. **v0.19.9** adds Flyway
+migration `V0.19.9__add_match_loadout_columns.sql` (SQLite + PostgreSQL) that
+appends four loadout columns to `gaming_match`: `single_player`,
+`character_template_uuid`, `class_uuid` and `trait_uuids` (the trait list is
+stored comma-separated). The involved tables are:
 
 | Table                       | Read | Write | Notes                                         |
 |-----------------------------|:----:|:-----:|-----------------------------------------------|
@@ -170,7 +183,9 @@ involved tables are:
 5. Load the story locations. An empty list returns 400
    `STORY_HAS_NO_LOCATIONS` because the runtime cannot place the player.
 6. Persist a new `GamingMatchEntity` with `status = CREATED`, `currentClock = 0`,
-   `expCost` copied from the difficulty.
+   `expCost` copied from the difficulty, and the creator loadout
+   (`single_player` defaulting to `1`, plus `character_template_uuid`,
+   `class_uuid` and the comma-separated `trait_uuids`).
 7. Create one `GamingStateLocationsEntity` per location, copying
    `counter_time` into `clock_counter` (defaults to 0 when null) and setting
    `flagAlreadyActived = 0`.
@@ -215,16 +230,18 @@ Total tests added: **96**. All pass in the local CI run.
 
 ## 8. API Changes Summary
 
-Only **new** endpoints are introduced. No previously published API has been
-modified. The new OpenAPI document is published as
-`v0.19.0-match-creation-api.yaml` so existing v0.14 → v0.17 documents stay
-unchanged.
+Step 19 introduced three new endpoints. **v0.19.9** additively extends the
+`MatchCreateRequest` and `MatchSummary` schemas with the creator loadout
+fields (`classUuid`, `traitUuids`, `singlePlayer`; `characterTemplateUuid` is
+now persisted instead of being ignored). The change is backward compatible —
+every new field is optional. The OpenAPI document
+`v0.19.0-match-creation-api.yaml` is bumped to version `0.19.9`.
 
-| Endpoint                              | Status |
-|---------------------------------------|--------|
-| `POST /api/matches`                   | NEW    |
-| `GET /api/matches`                    | NEW    |
-| `GET /api/match/{uuidMatch}/info`     | NEW    |
+| Endpoint                              | Status                                             |
+|---------------------------------------|----------------------------------------------------|
+| `POST /api/matches`                   | NEW (v0.19.0); request body extended (v0.19.9)     |
+| `GET /api/matches`                    | NEW (v0.19.0); response extended (v0.19.9)         |
+| `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9) |
 
 ---
 
@@ -254,6 +271,9 @@ multiplayer admin work in Step 77+).
 Tests live under `code/tests/robot/tests/19_match/`. They exercise:
 
 - Match creation (happy path, missing fields, missing token).
+- Match creation with the full creator loadout (v0.19.9 — character,
+  class, traits and the single-player flag) verified end-to-end via
+  `GET /api/match/{uuid}/info`.
 - Match listing.
 - Match info retrieval (own match, foreign match returning 404).
 
@@ -295,7 +315,9 @@ The same suite passes against the Python and PHP backends — see
 
   > "v0.19.8" on website react-game we need manage guest-user information: when user enter without any cookies (paths.games.user) i need create a new guest user with dedicated APIs, it there is the cookies load information from cookie. on nav bar button open modal (new component) with user card (BookPageContent) where see "guest user name" and description (for now use a new text , in future we will use for match stories and others informations). Note: cookie consent banner will be managed by cookies yes so don't worry about that.
 
-- **Document Version**: 0.19.8
+  > ciao, check documentation_v0 files and all projects. i wanna check/add into MatchCreate Requests character, difficulty, traits, Class and flag singlePlayer=YES/NO. If there aren't add them. Check all backend and all frontend. Update openapi, robot test and tests.
+  
+- **Document Version**: 0.19.9
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -307,8 +329,9 @@ The same suite passes against the Python and PHP backends — see
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
     | 0.19.8 | Added guest user management into game frontend project | May 19, 2026 |
+    | 0.19.9 | Added character/class/traits/singlePlayer loadout fields to the match creation request, persisted on gaming_match | May 20, 2026 |
 
-- **Last Updated**: May 19, 2026
+- **Last Updated**: May 20, 2026
 - **Status**: ✅ Complete
 
 

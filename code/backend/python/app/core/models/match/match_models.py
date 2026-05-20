@@ -10,6 +10,10 @@ class MatchCreateCommand:
     difficulty_uuid: str
     name: Optional[str] = None
     character_template_uuid: Optional[str] = None
+    # Step 0.19.9 — creator loadout persisted on gaming_match.
+    class_uuid: Optional[str] = None
+    trait_uuids: List[str] = field(default_factory=list)
+    single_player: Optional[int] = None
 
 
 @dataclass
@@ -23,6 +27,11 @@ class MatchSummary:
     exp_cost: int
     user_creator_uuid: str
     ts_insert: str
+    # Step 0.19.9 — creator loadout persisted on gaming_match.
+    single_player: Optional[int] = None
+    character_template_uuid: Optional[str] = None
+    class_uuid: Optional[str] = None
+    trait_uuids: List[str] = field(default_factory=list)
 
 
 @dataclass

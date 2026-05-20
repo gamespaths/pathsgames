@@ -36,7 +36,10 @@ class MatchControllerTest extends TestCase
 
     private function summary(): MatchSummary
     {
-        return new MatchSummary('match-uuid', 'story-uuid', 'diff-uuid', 'n', 'CREATED', 0, 5, 'user-uuid', 'now');
+        return new MatchSummary(
+            'match-uuid', 'story-uuid', 'diff-uuid', 'n', 'CREATED', 0, 5, 'user-uuid', 'now',
+            1, 'ct', 'cl', ['t1', 't2']
+        );
     }
 
     private function detail(): MatchDetail
@@ -103,6 +106,34 @@ class MatchControllerTest extends TestCase
         $this->assertSame(201, $result->getStatusCode());
         $body = json_decode((string)$result->getBody(), true);
         $this->assertSame('match-uuid', $body['uuid']);
+        $this->assertSame(1, $body['singlePlayer']);
+        $this->assertSame('cl', $body['classUuid']);
+        $this->assertSame(['t1', 't2'], $body['traitUuids']);
+    }
+
+    public function testCreateMatchPassesLoadoutToCommand(): void
+    {
+        $captured = null;
+        $this->commandPort->method('createMatch')->willReturnCallback(
+            function ($command) use (&$captured) {
+                $captured = $command;
+                return $this->summary();
+            }
+        );
+        $request = $this->authedRequest('POST', '/api/matches', [
+            'storyUuid' => 's',
+            'difficultyUuid' => 'd',
+            'characterTemplateUuid' => 'ct',
+            'classUuid' => 'cl',
+            'traitUuids' => ['t1', 't2'],
+            'singlePlayer' => 0,
+        ]);
+        $result = $this->controller->createMatch($request, $this->responseFactory->createResponse());
+        $this->assertSame(201, $result->getStatusCode());
+        $this->assertSame('ct', $captured->getCharacterTemplateUuid());
+        $this->assertSame('cl', $captured->getClassUuid());
+        $this->assertSame(['t1', 't2'], $captured->getTraitUuids());
+        $this->assertSame(0, $captured->getSinglePlayer());
     }
 
     /**

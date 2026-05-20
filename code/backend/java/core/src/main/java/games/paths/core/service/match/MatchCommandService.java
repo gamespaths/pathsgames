@@ -9,6 +9,7 @@ import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
@@ -94,6 +95,10 @@ public class MatchCommandService implements MatchCommandPort {
         match.setExpCost(difficulty.getExpCost() != null ? difficulty.getExpCost() : 5);
         match.setSecureLocationParam(0);
         match.setCounterConsecutivePass(0);
+        match.setSinglePlayer(command.getSinglePlayer() != null ? command.getSinglePlayer() : 1);
+        match.setCharacterTemplateUuid(command.getCharacterTemplateUuid());
+        match.setClassUuid(command.getClassUuid());
+        match.setTraitUuids(MatchTraitCodec.join(command.getTraitUuids()));
 
         GamingMatchEntity saved = persistencePort.saveMatch(match);
 
@@ -153,6 +158,10 @@ public class MatchCommandService implements MatchCommandPort {
         s.setExpCost(match.getExpCost());
         s.setUserCreatorUuid(userUuid);
         s.setTsInsert(match.getTsInsert());
+        s.setSinglePlayer(match.getSinglePlayer());
+        s.setCharacterTemplateUuid(match.getCharacterTemplateUuid());
+        s.setClassUuid(match.getClassUuid());
+        s.setTraitUuids(MatchTraitCodec.split(match.getTraitUuids()));
         return s;
     }
 

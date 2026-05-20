@@ -282,4 +282,47 @@ class MatchCommandServiceTest extends TestCase
         $this->service->createMatch(new MatchCreateCommand('u', 's', 'd'));
         $this->assertSame(-5, $savedRegistry[0]['int_value']);
     }
+
+    public function testCreatorLoadoutPersisted(): void
+    {
+        $this->systemMode->method('isMaintenance')->willReturn(false);
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryByUuid')->willReturn($this->story());
+        $this->storyRead->method('findDifficultyByUuid')->willReturn($this->difficulty());
+        $this->storyRead->method('findLocationsByStoryId')->willReturn([['id' => 10, 'uuid' => 'l', 'counter_start' => 0]]);
+        $this->storyRead->method('findKeysByStoryId')->willReturn([]);
+
+        $savedArg = [];
+        $this->persistence->method('saveMatch')->willReturnCallback(function ($match) use (&$savedArg) {
+            $savedArg = $match;
+            return $this->saved();
+        });
+
+        $command = new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'class-uuid', ['t1', 't2'], 0);
+        $this->service->createMatch($command);
+
+        $this->assertSame(0, $savedArg['single_player']);
+        $this->assertSame('ct', $savedArg['character_template_uuid']);
+        $this->assertSame('class-uuid', $savedArg['class_uuid']);
+        $this->assertSame(['t1', 't2'], $savedArg['trait_uuids']);
+    }
+
+    public function testSinglePlayerDefaultsToOneWhenNotProvided(): void
+    {
+        $this->systemMode->method('isMaintenance')->willReturn(false);
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryByUuid')->willReturn($this->story());
+        $this->storyRead->method('findDifficultyByUuid')->willReturn($this->difficulty());
+        $this->storyRead->method('findLocationsByStoryId')->willReturn([['id' => 10, 'uuid' => 'l', 'counter_start' => 0]]);
+        $this->storyRead->method('findKeysByStoryId')->willReturn([]);
+
+        $savedArg = [];
+        $this->persistence->method('saveMatch')->willReturnCallback(function ($match) use (&$savedArg) {
+            $savedArg = $match;
+            return $this->saved();
+        });
+
+        $this->service->createMatch(new MatchCreateCommand('u', 's', 'd'));
+        $this->assertSame(1, $savedArg['single_player']);
+    }
 }

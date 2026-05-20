@@ -57,6 +57,10 @@ class MatchQueryServiceTest {
         m.setExpCost(5);
         m.setName("test");
         m.setTsInsert("2024-01-01");
+        m.setSinglePlayer(1);
+        m.setCharacterTemplateUuid("char-tpl");
+        m.setClassUuid("class-uuid");
+        m.setTraitUuids("t1,t2");
         return m;
     }
 
@@ -138,6 +142,10 @@ class MatchQueryServiceTest {
             assertEquals(1, result.size());
             assertEquals("m1", result.get(0).getUuid());
             assertEquals("u", result.get(0).getUserCreatorUuid());
+            assertEquals(1, result.get(0).getSinglePlayer());
+            assertEquals("char-tpl", result.get(0).getCharacterTemplateUuid());
+            assertEquals("class-uuid", result.get(0).getClassUuid());
+            assertEquals(List.of("t1", "t2"), result.get(0).getTraitUuids());
         }
     }
 

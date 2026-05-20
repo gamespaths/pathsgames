@@ -40,12 +40,16 @@ class MatchController
             return $this->error($response, 'INVALID_INPUT', 'storyUuid and difficultyUuid are required', 400);
         }
 
+        $traitUuids = $body['traitUuids'] ?? [];
         $command = new MatchCreateCommand(
             userUuid: $userUuid,
             storyUuid: $storyUuid,
             difficultyUuid: $difficultyUuid,
             name: $body['name'] ?? null,
-            characterTemplateUuid: $body['characterTemplateUuid'] ?? null
+            characterTemplateUuid: $body['characterTemplateUuid'] ?? null,
+            classUuid: $body['classUuid'] ?? null,
+            traitUuids: is_array($traitUuids) ? $traitUuids : [],
+            singlePlayer: isset($body['singlePlayer']) ? (int)$body['singlePlayer'] : null
         );
 
         try {

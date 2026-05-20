@@ -1,9 +1,15 @@
 package games.paths.core.model.match;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * MatchSummary - Domain model returned by {@code MatchCommandPort.createMatch}
  * and {@code MatchQueryPort.listUserMatches}. Summary projection of a
  * {@code gaming_match} row.
+ *
+ * <p>Step 0.19.9: exposes the creator loadout persisted at match creation
+ * (single-player flag, character template, class and trait uuids).</p>
  */
 public class MatchSummary {
 
@@ -16,6 +22,10 @@ public class MatchSummary {
     private Integer expCost;
     private String userCreatorUuid;
     private String tsInsert;
+    private Integer singlePlayer;
+    private String characterTemplateUuid;
+    private String classUuid;
+    private List<String> traitUuids = new ArrayList<>();
 
     public MatchSummary() {
     }
@@ -46,4 +56,20 @@ public class MatchSummary {
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }
+
+    public Integer getSinglePlayer() { return singlePlayer; }
+    public void setSinglePlayer(Integer singlePlayer) { this.singlePlayer = singlePlayer; }
+
+    public String getCharacterTemplateUuid() { return characterTemplateUuid; }
+    public void setCharacterTemplateUuid(String characterTemplateUuid) {
+        this.characterTemplateUuid = characterTemplateUuid;
+    }
+
+    public String getClassUuid() { return classUuid; }
+    public void setClassUuid(String classUuid) { this.classUuid = classUuid; }
+
+    public List<String> getTraitUuids() { return traitUuids; }
+    public void setTraitUuids(List<String> traitUuids) {
+        this.traitUuids = traitUuids != null ? traitUuids : new ArrayList<>();
+    }
 }

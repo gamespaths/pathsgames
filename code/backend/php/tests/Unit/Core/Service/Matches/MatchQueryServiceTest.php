@@ -40,6 +40,8 @@ class MatchQueryServiceTest extends TestCase
             'id' => 99, 'uuid' => 'match-uuid', 'id_story' => 2, 'id_difficulty' => 3,
             'id_user_creator' => $creator, 'name' => 'n', 'status' => 'CREATED',
             'current_clock' => 0, 'exp_cost' => 5, 'ts_insert' => 'now',
+            'single_player' => 1, 'character_template_uuid' => 'ct',
+            'class_uuid' => 'cl', 'trait_uuids' => ['t1', 't2'],
         ];
     }
 
@@ -62,6 +64,10 @@ class MatchQueryServiceTest extends TestCase
         $rows = $this->service->listUserMatches('u');
         $this->assertCount(1, $rows);
         $this->assertSame('match-uuid', $rows[0]->uuid);
+        $this->assertSame(1, $rows[0]->singlePlayer);
+        $this->assertSame('ct', $rows[0]->characterTemplateUuid);
+        $this->assertSame('cl', $rows[0]->classUuid);
+        $this->assertSame(['t1', 't2'], $rows[0]->traitUuids);
     }
 
     public function testGetMatchInfoBlankInputs(): void

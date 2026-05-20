@@ -28,6 +28,11 @@ class GamingMatchEntity(Base):
     id_character_current_turn = Column(Integer)
     secure_location_param = Column(Integer, default=0)
     counter_consecutive_pass = Column(Integer, default=0, nullable=False)
+    # Step 0.19.9 — creator loadout chosen at match creation.
+    single_player = Column(Integer, default=1, nullable=False)
+    character_template_uuid = Column(String(36))
+    class_uuid = Column(String(36))
+    trait_uuids = Column(String(512))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

@@ -12,7 +12,8 @@ robot/
 ├── resources/
 │   ├── common.resource            Shared keywords (sessions, assertions)
 │   ├── auth.resource              Auth flow keywords (guest login, token helpers)
-│   └── stories.resource           Story API keywords (import, list, detail, delete)
+│   ├── stories.resource           Story API keywords (import, list, detail, delete)
+│   └── matches.resource           Match API keywords (Create Match, Create Match With Loadout)
 └── tests/
     ├── 01_smoke/
     │   └── smoke.robot            Server up, public reachable, admin guard works
@@ -39,7 +40,7 @@ robot/
     ├── 17_admin_crud/
     │   └── admin_crud.robot       Admin CRUD for all story entity types
     └── 19_match/
-        └── match_creation.robot
+        └── match_creation.robot   POST /api/matches happy path, missing fields, no token, full loadout round-trip (v0.19.9)
 ```
 
 ## Setup

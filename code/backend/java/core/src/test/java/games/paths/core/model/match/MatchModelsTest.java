@@ -10,12 +10,16 @@ class MatchModelsTest {
 
     @Test
     void matchCreateCommandStoresAllFields() {
-        MatchCreateCommand c = new MatchCreateCommand("u", "s", "d", "n", "ct");
+        MatchCreateCommand c = new MatchCreateCommand(
+                "u", "s", "d", "n", "ct", "cl", List.of("t1", "t2"), 0);
         assertEquals("u", c.getUserUuid());
         assertEquals("s", c.getStoryUuid());
         assertEquals("d", c.getDifficultyUuid());
         assertEquals("n", c.getName());
         assertEquals("ct", c.getCharacterTemplateUuid());
+        assertEquals("cl", c.getClassUuid());
+        assertEquals(List.of("t1", "t2"), c.getTraitUuids());
+        assertEquals(0, c.getSinglePlayer());
     }
 
     @Test
@@ -30,6 +34,10 @@ class MatchModelsTest {
         s.setExpCost(5);
         s.setUserCreatorUuid("uc");
         s.setTsInsert("ts");
+        s.setSinglePlayer(1);
+        s.setCharacterTemplateUuid("ct");
+        s.setClassUuid("cl");
+        s.setTraitUuids(List.of("t1", "t2"));
         assertEquals("u", s.getUuid());
         assertEquals("st", s.getStoryUuid());
         assertEquals("d", s.getDifficultyUuid());
@@ -39,6 +47,15 @@ class MatchModelsTest {
         assertEquals(5, s.getExpCost());
         assertEquals("uc", s.getUserCreatorUuid());
         assertEquals("ts", s.getTsInsert());
+        assertEquals(1, s.getSinglePlayer());
+        assertEquals("ct", s.getCharacterTemplateUuid());
+        assertEquals("cl", s.getClassUuid());
+        assertEquals(List.of("t1", "t2"), s.getTraitUuids());
+
+        // null trait list is normalised to an empty list
+        s.setTraitUuids(null);
+        assertNotNull(s.getTraitUuids());
+        assertTrue(s.getTraitUuids().isEmpty());
     }
 
     @Test

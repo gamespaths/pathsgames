@@ -20,6 +20,7 @@ class MatchEntitiesTest {
         assertEquals(5, e.getExpCost());
         assertEquals(0, e.getSecureLocationParam());
         assertEquals(0, e.getCounterConsecutivePass());
+        assertEquals(1, e.getSinglePlayer());
         assertNotNull(e.getTsInsert());
         assertNotNull(e.getTsUpdate());
 
@@ -52,6 +53,10 @@ class MatchEntitiesTest {
         e.setIdCharacterCurrentTurn(6L);
         e.setSecureLocationParam(1);
         e.setCounterConsecutivePass(2);
+        e.setSinglePlayer(0);
+        e.setCharacterTemplateUuid("ct");
+        e.setClassUuid("cl");
+        e.setTraitUuids("t1,t2");
         e.setTsInsert("ins");
         e.setTsUpdate("upd");
 
@@ -72,6 +77,10 @@ class MatchEntitiesTest {
         assertEquals(6L, e.getIdCharacterCurrentTurn());
         assertEquals(1, e.getSecureLocationParam());
         assertEquals(2, e.getCounterConsecutivePass());
+        assertEquals(0, e.getSinglePlayer());
+        assertEquals("ct", e.getCharacterTemplateUuid());
+        assertEquals("cl", e.getClassUuid());
+        assertEquals("t1,t2", e.getTraitUuids());
         assertEquals("ins", e.getTsInsert());
         assertEquals("upd", e.getTsUpdate());
     }

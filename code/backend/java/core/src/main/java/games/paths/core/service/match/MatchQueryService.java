@@ -11,6 +11,7 @@ import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
@@ -159,6 +160,10 @@ public class MatchQueryService implements MatchQueryPort {
         s.setExpCost(match.getExpCost());
         s.setUserCreatorUuid(userUuid);
         s.setTsInsert(match.getTsInsert());
+        s.setSinglePlayer(match.getSinglePlayer());
+        s.setCharacterTemplateUuid(match.getCharacterTemplateUuid());
+        s.setClassUuid(match.getClassUuid());
+        s.setTraitUuids(MatchTraitCodec.split(match.getTraitUuids()));
         if (story != null) {
             s.setStoryUuid(story.getUuid());
             Optional<StoryDifficultyEntity> diff = storyReadPort

@@ -1,6 +1,7 @@
 package games.paths.adapters.rest.controller.match;
 
 import games.paths.adapters.rest.dto.MatchInfoResponse;
+import games.paths.core.model.match.MatchCreateCommand;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchLocationState;
@@ -11,6 +12,7 @@ import games.paths.core.port.match.MatchQueryPort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -51,6 +53,10 @@ class MatchControllerTest {
         s.setUserCreatorUuid("user-uuid");
         s.setName("name");
         s.setTsInsert("ts");
+        s.setSinglePlayer(1);
+        s.setCharacterTemplateUuid("char-tpl");
+        s.setClassUuid("class-uuid");
+        s.setTraitUuids(List.of("trait-1", "trait-2"));
         return s;
     }
 
@@ -95,7 +101,31 @@ class MatchControllerTest {
                         .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\",\"name\":\"n\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.uuid").value("match-uuid"))
-                .andExpect(jsonPath("$.storyUuid").value("story-uuid"));
+                .andExpect(jsonPath("$.storyUuid").value("story-uuid"))
+                .andExpect(jsonPath("$.singlePlayer").value(1))
+                .andExpect(jsonPath("$.characterTemplateUuid").value("char-tpl"))
+                .andExpect(jsonPath("$.classUuid").value("class-uuid"))
+                .andExpect(jsonPath("$.traitUuids[0]").value("trait-1"));
+    }
+
+    @Test
+    void createMatch_passesLoadoutToCommand() throws Exception {
+        when(commandPort.createMatch(any())).thenReturn(summary());
+        ArgumentCaptor<MatchCreateCommand> captor = ArgumentCaptor.forClass(MatchCreateCommand.class);
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\","
+                                + "\"characterTemplateUuid\":\"ct\",\"classUuid\":\"cl\","
+                                + "\"traitUuids\":[\"t1\",\"t2\"],\"singlePlayer\":0}"))
+                .andExpect(status().isCreated());
+
+        verify(commandPort).createMatch(captor.capture());
+        MatchCreateCommand cmd = captor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("ct", cmd.getCharacterTemplateUuid());
+        org.junit.jupiter.api.Assertions.assertEquals("cl", cmd.getClassUuid());
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("t1", "t2"), cmd.getTraitUuids());
+        org.junit.jupiter.api.Assertions.assertEquals(0, cmd.getSinglePlayer());
     }
 
     @Test

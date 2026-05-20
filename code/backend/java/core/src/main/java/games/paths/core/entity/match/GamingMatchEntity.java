@@ -65,6 +65,20 @@ public class GamingMatchEntity {
     @Column(name = "counter_consecutive_pass", nullable = false)
     private Integer counterConsecutivePass;
 
+    /** Step 0.19.9 — player loadout chosen at match creation. */
+    @Column(name = "single_player", nullable = false)
+    private Integer singlePlayer;
+
+    @Column(name = "character_template_uuid")
+    private String characterTemplateUuid;
+
+    @Column(name = "class_uuid")
+    private String classUuid;
+
+    /** Comma-separated list of trait uuids; see {@code MatchTraitCodec}. */
+    @Column(name = "trait_uuids")
+    private String traitUuids;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -80,6 +94,7 @@ public class GamingMatchEntity {
         if (expCost == null) expCost = 5;
         if (secureLocationParam == null) secureLocationParam = 0;
         if (counterConsecutivePass == null) counterConsecutivePass = 0;
+        if (singlePlayer == null) singlePlayer = 1;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
     }
@@ -147,4 +162,18 @@ public class GamingMatchEntity {
 
     public String getTsUpdate() { return tsUpdate; }
     public void setTsUpdate(String tsUpdate) { this.tsUpdate = tsUpdate; }
+
+    public Integer getSinglePlayer() { return singlePlayer; }
+    public void setSinglePlayer(Integer singlePlayer) { this.singlePlayer = singlePlayer; }
+
+    public String getCharacterTemplateUuid() { return characterTemplateUuid; }
+    public void setCharacterTemplateUuid(String characterTemplateUuid) {
+        this.characterTemplateUuid = characterTemplateUuid;
+    }
+
+    public String getClassUuid() { return classUuid; }
+    public void setClassUuid(String classUuid) { this.classUuid = classUuid; }
+
+    public String getTraitUuids() { return traitUuids; }
+    public void setTraitUuids(String traitUuids) { this.traitUuids = traitUuids; }
 }

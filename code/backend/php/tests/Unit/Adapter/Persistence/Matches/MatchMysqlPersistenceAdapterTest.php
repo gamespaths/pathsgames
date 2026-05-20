@@ -32,6 +32,10 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
                 current_clock INTEGER NOT NULL DEFAULT 0,
                 secure_location_param INTEGER DEFAULT 0,
                 counter_consecutive_pass INTEGER NOT NULL DEFAULT 0,
+                single_player INTEGER NOT NULL DEFAULT 1,
+                character_template_uuid TEXT,
+                class_uuid TEXT,
+                trait_uuids TEXT,
                 ts_insert TEXT NOT NULL,
                 ts_update TEXT NOT NULL
             )'
@@ -125,6 +129,33 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
         $found = $adapter->findMatchByUuid($saved['uuid']);
         $this->assertSame((int)$saved['id'], (int)$found['id']);
         $this->assertNull($adapter->findMatchByUuid('missing'));
+    }
+
+    public function testSaveMatchPersistsLoadout(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $saved = $adapter->saveMatch([
+            'id_story' => 1, 'id_difficulty' => 2, 'id_user_creator' => 3,
+            'single_player' => 0, 'character_template_uuid' => 'ct',
+            'class_uuid' => 'cl', 'trait_uuids' => ['t1', 't2'],
+        ]);
+        $this->assertSame(0, (int)$saved['single_player']);
+        $this->assertSame('ct', $saved['character_template_uuid']);
+        $this->assertSame('cl', $saved['class_uuid']);
+        $this->assertSame(['t1', 't2'], $saved['trait_uuids']);
+
+        $found = $adapter->findMatchByUuid($saved['uuid']);
+        $this->assertSame(['t1', 't2'], $found['trait_uuids']);
+    }
+
+    public function testSaveMatchLoadoutDefaults(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $saved = $adapter->saveMatch(['id_story' => 1, 'id_difficulty' => 2, 'id_user_creator' => 3]);
+        $this->assertSame(1, (int)$saved['single_player']);
+        $this->assertNull($saved['character_template_uuid']);
+        $this->assertNull($saved['class_uuid']);
+        $this->assertSame([], $saved['trait_uuids']);
     }
 
     public function testFindMatchesByUserId(): void

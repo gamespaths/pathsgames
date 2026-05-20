@@ -233,3 +233,39 @@ def test_apply_default_falls_back_to_string_for_unknown_types():
     row = {"int_value": None, "string_value": None}
     MatchCommandService._apply_default(row, ["nope"])
     assert row["string_value"] == "['nope']"
+
+
+def test_happy_path_persists_creator_loadout():
+    service, mocks = _build_service(
+        user=_user(),
+        story=_story(),
+        difficulty=_difficulty(),
+        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        keys=[],
+        saved_match=_saved(),
+    )
+    cmd = MatchCreateCommand(
+        "u", "s", "d", "n", "ct",
+        class_uuid="class-uuid", trait_uuids=["t1", "t2"], single_player=0,
+    )
+    service.create_match(cmd)
+
+    saved_arg = mocks["persistence"].save_match.call_args[0][0]
+    assert saved_arg["single_player"] == 0
+    assert saved_arg["character_template_uuid"] == "ct"
+    assert saved_arg["class_uuid"] == "class-uuid"
+    assert saved_arg["trait_uuids"] == ["t1", "t2"]
+
+
+def test_single_player_defaults_to_one_when_not_provided():
+    service, mocks = _build_service(
+        user=_user(),
+        story=_story(),
+        difficulty=_difficulty(),
+        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        keys=[],
+        saved_match=_saved(),
+    )
+    service.create_match(MatchCreateCommand("u", "s", "d"))
+    saved_arg = mocks["persistence"].save_match.call_args[0][0]
+    assert saved_arg["single_player"] == 1

@@ -89,6 +89,10 @@ class MatchCommandService implements MatchCommandPort
             'status' => 'CREATED',
             'current_clock' => 0,
             'exp_cost' => $expCost,
+            'single_player' => $command->getSinglePlayer() ?? 1,
+            'character_template_uuid' => $command->getCharacterTemplateUuid(),
+            'class_uuid' => $command->getClassUuid(),
+            'trait_uuids' => $command->getTraitUuids(),
         ]);
 
         $locationRows = [];
@@ -126,7 +130,11 @@ class MatchCommandService implements MatchCommandPort
             currentClock: (int)($saved['current_clock'] ?? 0),
             expCost: (int)($saved['exp_cost'] ?? 0),
             userCreatorUuid: $user['uuid'],
-            tsInsert: $saved['ts_insert']
+            tsInsert: $saved['ts_insert'],
+            singlePlayer: isset($saved['single_player']) ? (int)$saved['single_player'] : null,
+            characterTemplateUuid: $saved['character_template_uuid'] ?? null,
+            classUuid: $saved['class_uuid'] ?? null,
+            traitUuids: $saved['trait_uuids'] ?? []
         );
     }
 

@@ -44,6 +44,10 @@ def _summary():
         exp_cost=5,
         user_creator_uuid="user-uuid",
         ts_insert="now",
+        single_player=1,
+        character_template_uuid="ct",
+        class_uuid="cl",
+        trait_uuids=["t1", "t2"],
     )
 
 
@@ -104,6 +108,30 @@ def test_create_match_success(env):
     body = response.json()
     assert body["uuid"] == "match-uuid"
     assert body["storyUuid"] == "story-uuid"
+    assert body["singlePlayer"] == 1
+    assert body["characterTemplateUuid"] == "ct"
+    assert body["classUuid"] == "cl"
+    assert body["traitUuids"] == ["t1", "t2"]
+
+
+def test_create_match_passes_loadout_to_command(env):
+    client, command_port, _ = env
+    command_port.create_match.return_value = _summary()
+    response = client.post(
+        "/api/matches",
+        headers={"x-user": "u"},
+        json={
+            "storyUuid": "s", "difficultyUuid": "d",
+            "characterTemplateUuid": "ct", "classUuid": "cl",
+            "traitUuids": ["t1", "t2"], "singlePlayer": 0,
+        },
+    )
+    assert response.status_code == 201
+    cmd = command_port.create_match.call_args[0][0]
+    assert cmd.character_template_uuid == "ct"
+    assert cmd.class_uuid == "cl"
+    assert cmd.trait_uuids == ["t1", "t2"]
+    assert cmd.single_player == 0
 
 
 @pytest.mark.parametrize(

@@ -49,6 +49,49 @@ def test_save_and_find_match(session_factory):
     assert adapter.find_match_by_uuid("missing") is None
 
 
+def test_save_match_persists_loadout(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({
+        "id_story": 1,
+        "id_difficulty": 2,
+        "id_user_creator": 7,
+        "single_player": 0,
+        "character_template_uuid": "ct",
+        "class_uuid": "cl",
+        "trait_uuids": ["t1", "t2"],
+    })
+    assert saved["single_player"] == 0
+    assert saved["character_template_uuid"] == "ct"
+    assert saved["class_uuid"] == "cl"
+    assert saved["trait_uuids"] == ["t1", "t2"]
+
+    found = adapter.find_match_by_uuid(saved["uuid"])
+    assert found["trait_uuids"] == ["t1", "t2"]
+
+
+def test_save_match_loadout_defaults(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7})
+    assert saved["single_player"] == 1
+    assert saved["character_template_uuid"] is None
+    assert saved["class_uuid"] is None
+    assert saved["trait_uuids"] == []
+
+
+def test_trait_uuids_codec_edge_cases():
+    from app.adapters.persistence.match.match_persistence_adapter import (
+        _join_trait_uuids,
+        _split_trait_uuids,
+    )
+    assert _join_trait_uuids(None) is None
+    assert _join_trait_uuids([]) is None
+    assert _join_trait_uuids([None, "", "  "]) is None
+    assert _join_trait_uuids([" a ", None, "b"]) == "a,b"
+    assert _split_trait_uuids(None) == []
+    assert _split_trait_uuids("") == []
+    assert _split_trait_uuids(" a , ,b ") == ["a", "b"]
+
+
 def test_find_matches_by_user_id(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7})

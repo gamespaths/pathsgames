@@ -121,7 +121,11 @@ class MatchQueryService implements MatchQueryPort
             currentClock: (int)($row['current_clock'] ?? 0),
             expCost: (int)($row['exp_cost'] ?? 0),
             userCreatorUuid: $userUuid,
-            tsInsert: $row['ts_insert']
+            tsInsert: $row['ts_insert'],
+            singlePlayer: isset($row['single_player']) ? (int)$row['single_player'] : null,
+            characterTemplateUuid: $row['character_template_uuid'] ?? null,
+            classUuid: $row['class_uuid'] ?? null,
+            traitUuids: $row['trait_uuids'] ?? []
         );
     }
 }

@@ -96,6 +96,10 @@ class MatchCommandService(MatchCommandPort):
             "exp_cost": exp_cost,
             "secure_location_param": 0,
             "counter_consecutive_pass": 0,
+            "single_player": command.single_player if command.single_player is not None else 1,
+            "character_template_uuid": command.character_template_uuid,
+            "class_uuid": command.class_uuid,
+            "trait_uuids": command.trait_uuids,
         })
 
         location_rows: List[Dict[str, Any]] = []
@@ -133,6 +137,10 @@ class MatchCommandService(MatchCommandPort):
             exp_cost=saved["exp_cost"],
             user_creator_uuid=user["uuid"],
             ts_insert=saved["ts_insert"],
+            single_player=saved.get("single_player"),
+            character_template_uuid=saved.get("character_template_uuid"),
+            class_uuid=saved.get("class_uuid"),
+            trait_uuids=saved.get("trait_uuids") or [],
         )
 
     @staticmethod

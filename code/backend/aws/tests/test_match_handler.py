@@ -261,6 +261,42 @@ def test_create_match_happy_path(create_env):
     assert persisted['registry'][3]['intValue'] is None
 
 
+def test_create_match_persists_creator_loadout(create_env):
+    create_env['configure'](story=STORY_ITEM)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+        'characterTemplateUuid': 'ct', 'classUuid': 'cl',
+        'traitUuids': ['t1', 't2'], 'singlePlayer': 0,
+    })
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    body = _body(result)
+    assert body['singlePlayer'] == 0
+    assert body['characterTemplateUuid'] == 'ct'
+    assert body['classUuid'] == 'cl'
+    assert body['traitUuids'] == ['t1', 't2']
+
+    persisted = create_env['put'].call_args.args[0]
+    assert persisted['singlePlayer'] == 0
+    assert persisted['characterTemplateUuid'] == 'ct'
+    assert persisted['classUuid'] == 'cl'
+    assert persisted['traitUuids'] == ['t1', 't2']
+
+
+def test_create_match_single_player_defaults_to_1(create_env):
+    create_env['configure'](story=STORY_ITEM)
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+    })
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    persisted = create_env['put'].call_args.args[0]
+    assert persisted['singlePlayer'] == 1
+    assert persisted['traitUuids'] == []
+
+
 def test_create_match_no_difficulty_exp_defaults_to_5(create_env):
     story = dict(STORY_ITEM)
     story['difficulties'] = [{'uuid': 'diff-uuid-1', 'expCost': None}]

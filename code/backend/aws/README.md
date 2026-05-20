@@ -156,6 +156,12 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.19.9 — Match creation loadout fields
+
+- **`lambda/match/handler.py`** (or the relevant Lambda function): `POST /api/matches` now accepts and persists `characterTemplateUuid`, `classUuid`, `traitUuids` (stored comma-separated in DynamoDB item attribute `trait_uuids`), and `singlePlayer` (integer flag, defaults to `1`). Previously `characterTemplateUuid` was accepted but discarded; the other three fields are new. All four are echoed back on `MatchSummary` / `GET /api/match/{uuid}/info`.
+- **Unit tests**: 27 Lambda unit tests pass.
+- **Robot**: `code/tests/robot/tests/19_match/match_creation.robot` — new `Create Match With Loadout` keyword in `matches.resource`; new test verifies the complete loadout round-trips through `GET /api/match/{uuid}/info`.
+
 ### v0.19.7 — Seven stat fields on difficulties
 
 - **`lambda/story/handler.py`**: `DifficultyResponse` build path extended to include the 7 new stat fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) in the story detail response. Import path (`import_story`) persists the same 7 fields from the request payload, defaulting to `life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10` when absent.
