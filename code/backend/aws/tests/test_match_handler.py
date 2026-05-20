@@ -494,3 +494,62 @@ def test_normalize_path_handles_stage_prefix(mock_jwt, mock_get):
         mock_query.return_value = []
         result = lambda_handler(event, {})
         assert result['statusCode'] == 200
+
+
+# ── admin: list all matches ──────────────────────────────────────────────────
+
+ADMIN_USER = {
+    'PK': 'USER#admin-uuid-001',
+    'SK': 'METADATA',
+    'uuid': 'admin-uuid-001',
+    'username': 'admin',
+    'role': 'ADMIN',
+    'state': 2,
+}
+
+
+@patch('match.handler.db_utils.scan_pk_prefix')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_as_admin_returns_all(mock_jwt, mock_get, mock_scan):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    mock_scan.return_value = [
+        {'uuid': 'm1', 'status': 'CREATED', 'currentClock': 0, 'expCost': 5, 'tsInsert': 100},
+        {'uuid': 'm2', 'status': 'RUNNING', 'currentClock': 0, 'expCost': 5, 'tsInsert': 200},
+    ]
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
+    mock_scan.assert_called_once_with('MATCH#')
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_non_admin_returns_403(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.return_value = PLAYER_USER
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_player'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 403
+
+
+@patch('match.handler.db_utils.scan_pk_prefix')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_empty(mock_jwt, mock_get, mock_scan):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    mock_scan.return_value = []
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert _body(result) == []

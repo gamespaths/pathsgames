@@ -191,6 +191,26 @@ class MatchControllerTest extends TestCase
         $this->assertCount(1, $body);
     }
 
+    public function testListAllMatchesReturnsArray(): void
+    {
+        $this->queryPort->method('listAllMatches')->willReturn([$this->summary()]);
+        $request = $this->requestFactory->createServerRequest('GET', '/api/admin/matches');
+        $result = $this->controller->listAllMatches($request, $this->responseFactory->createResponse());
+        $this->assertSame(200, $result->getStatusCode());
+        $body = json_decode((string)$result->getBody(), true);
+        $this->assertCount(1, $body);
+        $this->assertSame('match-uuid', $body[0]['uuid']);
+    }
+
+    public function testListAllMatchesEmpty(): void
+    {
+        $this->queryPort->method('listAllMatches')->willReturn([]);
+        $request = $this->requestFactory->createServerRequest('GET', '/api/admin/matches');
+        $result = $this->controller->listAllMatches($request, $this->responseFactory->createResponse());
+        $this->assertSame(200, $result->getStatusCode());
+        $this->assertSame([], json_decode((string)$result->getBody(), true));
+    }
+
     public function testGetMatchInfoUnauthenticated(): void
     {
         $request = $this->requestFactory->createServerRequest('GET', '/api/match/abc/info');

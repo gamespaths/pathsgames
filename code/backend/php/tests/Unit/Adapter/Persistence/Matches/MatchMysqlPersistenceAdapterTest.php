@@ -167,6 +167,21 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
         $this->assertSame([], $adapter->findMatchesByUserId(404));
     }
 
+    public function testFindAllMatches(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $adapter->saveMatch(['id_story' => 1, 'id_difficulty' => 2, 'id_user_creator' => 7]);
+        $adapter->saveMatch(['id_story' => 1, 'id_difficulty' => 2, 'id_user_creator' => 9]);
+        $rows = $adapter->findAllMatches();
+        $this->assertCount(2, $rows);
+    }
+
+    public function testFindAllMatchesEmpty(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $this->assertSame([], $adapter->findAllMatches());
+    }
+
     public function testSaveLocationsRegistryNoOpsOnEmpty(): void
     {
         $adapter = new MatchMysqlPersistenceAdapter($this->pdo);

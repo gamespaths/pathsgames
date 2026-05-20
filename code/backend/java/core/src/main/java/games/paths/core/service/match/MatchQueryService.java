@@ -62,6 +62,16 @@ public class MatchQueryService implements MatchQueryPort {
     }
 
     @Override
+    public List<MatchSummary> listAllMatches() {
+        List<GamingMatchEntity> matches = matchReadPort.findAllMatches();
+        List<MatchSummary> result = new ArrayList<>();
+        for (GamingMatchEntity m : matches) {
+            result.add(toSummary(m, null));
+        }
+        return result;
+    }
+
+    @Override
     public MatchDetail getMatchInfo(String matchUuid, String userUuid) {
         if (matchUuid == null || matchUuid.isBlank() || userUuid == null || userUuid.isBlank()) {
             return null;

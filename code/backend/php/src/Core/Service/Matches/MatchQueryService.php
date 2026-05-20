@@ -37,6 +37,16 @@ class MatchQueryService implements MatchQueryPort
         return $out;
     }
 
+    public function listAllMatches(): array
+    {
+        $rows = $this->persistencePort->findAllMatches();
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = $this->toSummary($row, null, null, null);
+        }
+        return $out;
+    }
+
     public function getMatchInfo(string $matchUuid, string $userUuid): ?MatchDetail
     {
         if ($matchUuid === '' || $userUuid === '') {
@@ -110,7 +120,7 @@ class MatchQueryService implements MatchQueryPort
         );
     }
 
-    private function toSummary(array $row, string $userUuid, ?string $storyUuid, ?string $difficultyUuid): MatchSummary
+    private function toSummary(array $row, ?string $userUuid, ?string $storyUuid, ?string $difficultyUuid): MatchSummary
     {
         return new MatchSummary(
             uuid: $row['uuid'],

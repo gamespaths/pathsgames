@@ -102,6 +102,9 @@ class MatchController:
             "/api/matches", self.list_matches, methods=["GET"]
         )
         self.router.add_api_route(
+            "/api/admin/matches", self.list_all_matches, methods=["GET"]
+        )
+        self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
         )
 
@@ -132,6 +135,12 @@ class MatchController:
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
         results = self.query_port.list_user_matches(user_uuid)
+        return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
+
+    def list_all_matches(self):
+        """GET /api/admin/matches — every match in the platform (admin view).
+        The admin role is enforced by the JWT middleware for /api/admin/ paths."""
+        results = self.query_port.list_all_matches()
         return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
 
     def get_match_info(self, uuid_match: str, request: Request):

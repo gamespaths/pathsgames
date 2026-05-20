@@ -31,6 +31,7 @@ cp .env.example .env
 |---|---|---|
 | `VITE_GTM_ID` | `GTM-T52SH6JQ` | Google Tag Manager ID |
 | `VITE_API_URL` | (empty, uses vite proxy) | Backend base URL |
+| `VITE_MATCH_START_DELAY` | `20` | Seconds to wait before/after calling `POST /api/matches` on the StartMatchPage |
 
 ## Project Structure
 ```
@@ -40,9 +41,10 @@ src/
 │   ├── client.js   # Base Axios instance + mock fallback helper
 │   ├── stories.js  # getStories(), getStory(id)
 │   ├── game.js     # getLocations(storyId), getActions(locationId)
-│   └── auth.js     # createGuestSession(), resumeGuestSession() — withCredentials:true
+│   ├── auth.js     # createGuestSession(), resumeGuestSession() — withCredentials:true
+│   └── matches.js  # createMatch(), listMatches(), getMatchInfo() — with mock fallback
 ├── context/
-│   └── GuestUserContext.jsx  # GuestUserProvider + useGuestUser() hook; owns cookie paths.games.user
+│   └── GuestUserContext.jsx  # GuestUserProvider + useGuestUser() hook; owns cookie paths.games.user; persists accessToken for match API calls
 ├── mock/           # stories.json, gameData.json, images.json (Unsplash credits)
 ├── styles/         # variables.css (CSS tokens) + main.css (global + component styles)
 ├── utils/
@@ -54,18 +56,20 @@ src/
 │   └── book/       # BookWrapper, BookPageLeft, BookPageRight, BookPageLeftContent
 ├── features/
 │   ├── home/       # StoryCard (Netflix card), StoryCatalog (rows by category)
-│   ├── startBook/  # StartBookModal, StartBookMobile, ConfigView, SelectionView, ConfigCard
+│   ├── startBook/  # StartBookModal, StartBookMobile, ConfigView, SelectionView, ConfigCard, loadoutCards.js (shared loadout helper)
 │   └── game/       # GameBook, LocationCard, PlayerStats, NeighborRow, ActionsRow, CardDetailModal
 └── pages/
-    ├── HomePage.jsx    # /
-    └── GamePage.jsx    # /play/:storyId
+    ├── HomePage.jsx        # /
+    ├── StartMatchPage.jsx  # /start-match/:storyId
+    └── GamePage.jsx        # /play/:storyId
 ```
 
 ## Pages & Features
 1. **Home** (`/`) — Netflix-style story catalog grouped by category. Click story → book modal.
 2. **Start Book Modal** — book UI (desktop) / `StartBookMobile` vertical list (mobile, extracted component). Configure character, class, trait, difficulty. Config grid uses 2-column big cards (`card-big-list`). The left page always renders `<BookPageContent>` (chapter title + image + scrollable description + optional stats panel + footer). Card preview via magnifier button (`fa-search-plus`) opens a `CardPreviewOverlay` (absolute overlay, solid book-page background) on top of the left page, also using `<BookPageContent>`. The `description` field in `BookPageContent` is rendered via `dangerouslySetInnerHTML`, so HTML markup in i18n strings (e.g. `<br />` line breaks in `guestDesc`) is interpreted rather than escaped. When a preview is active, `BookPageContent` receives `entity` + `entityType` props and renders a **bonus-stats panel** (`.book-page-stats`) **inline inside the description area** (`.book-page-desc`), after the gold `border-top` separator. The panel is rendered by the shared `BonusBadgeList` component (props: `items: [{ key, label, value }]`, optional `className`). Each pill (`<span class="badge bonus-badge">`) shows `.bonus-badge__label` + `.bonus-badge__value` at `1.3rem` to match description text; the value uses gold text-shadow with no background; zero/null/undefined values are hidden. Stat fields per type are defined in `src/utils/bonusStats.js` (`STAT_FIELDS` map). `title` and `description` fall back to `entity.name` / `entity.description` when no card is attached. Locked: game type (Single) + login (Guest). Accept terms → Start Game. Below the footer, `ConfigView` renders `<BonusBadgeList className="config-total-bonus" ...>` with one pill per stat category, each showing the sum of contributions from all four selected entities. Eight categories are defined: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`. Only categories with a non-zero total are shown. Category totals are computed by `aggregateBonusTotals(pairs)` in `bonusStats.js` using the `STAT_CATEGORY` bucket map. The seven trait stat-delta fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) are included in the map and contribute to category totals (v0.19.6); fields intentionally excluded from totals — e.g. `costPositive`/`costNegative` on traits, `minCharacter`/`maxCharacter` on difficulty — remain outside the map. Labels resolve via `book.stats.totals.<category>` i18n keys (English: Life / Energy / Sadness / Dexterity / Intelligence / Constitution / Weight / XP; Italian: Vita / Energia / Tristezza / Destrezza / Intelligenza / Costituzione / Peso / EXP).
-3. **Game** (`/play/:storyId`) — book layout. Left: current location card. Right: player stats (Life/Energy/Sadness/XP/Food/Magic/Coins/Weight) + neighbor locations row + actions row. Click card → detail modal with move/execute button. Navbar + Footer always present.
-4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`. The `book.stats.*` namespace holds labels for every bonus/stat field shown in the preview panel (`lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` added v0.19.6) plus `book.stats.title` ("Bonuses"). The sub-object `book.stats.totals` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`. The `card.*` namespace holds labels used by `GameCard`: `card.info` ("Info" / "Info") for the circular info button and `card.viewOriginal` ("View original" / "Vedi originale") for the detail modal link. The `modals.guestUser.*` namespace (added v0.19.8) holds `title`, `anonymous`, `uuidLabel`, and `body` (HTML) for the `GuestUserModal`.
+3. **Start Match** (`/start-match/:storyId`) — full-screen book page between configuration and gameplay. Receives `{ story, config }` via React Router `state` from the Start Book Modal's "Start Game" button. Left page: story card. Right page: the six selected loadout cards (class, character, trait, difficulty, game-type, login) from `src/features/startBook/loadoutCards.js` plus the aggregated bonus-totals list. Flow: shows a countdown ("Starting match…"), waits `VITE_MATCH_START_DELAY` seconds, then calls `POST /api/matches` with the full loadout payload. On success shows "Match created, the story book is loading…" and navigates to `GamePage` after another delay. On failure shows an error with **Retry** and **Back-to-home** actions. The JWT bearer token for the API call is read from `GuestUserContext.accessToken`.
+4. **Game** (`/play/:storyId`) — book layout. Left: current location card. Right: player stats (Life/Energy/Sadness/XP/Food/Magic/Coins/Weight) + neighbor locations row + actions row. Click card → detail modal with move/execute button. Navbar + Footer always present.
+4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`. The `book.stats.*` namespace holds labels for every bonus/stat field shown in the preview panel (`lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` added v0.19.6) plus `book.stats.title` ("Bonuses"). The sub-object `book.stats.totals` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`. The `card.*` namespace holds labels used by `GameCard`: `card.info` ("Info" / "Info") for the circular info button and `card.viewOriginal` ("View original" / "Vedi originale") for the detail modal link. The `modals.guestUser.*` namespace (added v0.19.8) holds `title`, `anonymous`, `uuidLabel`, and `body` (HTML) for the `GuestUserModal`. The `startMatch.*` namespace (added v0.19.10) holds labels for the StartMatchPage countdown and status messages; also added missing Italian `book.singleDesc` / `book.guestDesc` keys.
 5. **API fallback** — If backend unreachable, falls back to `src/mock/` JSON automatically.
 6. **Legal modals** — Privacy, Terms, Cookies triggered by Footer links. Copyright (i) on every big card.
 7. **Guest identity** — `GuestUserProvider` (v0.19.8) wraps the entire app and manages guest session state. On mount it reads the `paths.games.user` cookie (`{userUuid, username}`): if present, calls `POST /api/auth/guest/resume` in the background to refresh server-side HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`); if absent, calls `POST /api/auth/guest` and persists the returned identity into the cookie (Max-Age 30 days, Path=/, SameSite=Lax). In mock-server mode a guest is synthesised locally via `crypto.randomUUID()` without any network call. The Navbar user-icon button displays the cached `username` and opens `GuestUserModal` (`#guestUserModal`) via Bootstrap `data-bs-toggle`. `GuestUserModal` renders a `BookPageContent` card showing the username as title and the session UUID under a divider. Cookie-consent banner is managed externally by Cookies-Yes and is out of scope here.
@@ -128,7 +132,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
 
 ---
 
-- **Document Version**: 0.19.6
+- **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -153,6 +157,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
     | 0.19.7 | bonusStats.js STAT_FIELDS.difficulty extended with the same seven stat-delta keys (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`); BonusBadgeList renders the new bonus pills inside the BookPage difficulty preview; values flow into ConfigView category totals via existing STAT_CATEGORY mapping (no i18n change — labels use the existing `book.stats.totals.<key>` keys) | May 19, 2026 |
     | 0.19.8 | Guest-user flow rewired: new `GuestUserProvider` (`src/context/GuestUserContext.jsx`) owns identity, persists a non-HttpOnly `paths.games.user` cookie ({userUuid, username}) with 30-day Max-Age, auto-calls `POST /api/auth/guest` on first visit and `POST /api/auth/guest/resume` when the cookie is present (`withCredentials:true` so the backend `pathsgames.guestcookie` HttpOnly cookie travels along). Mock-server mode synthesizes an offline guest locally. New `api/auth.js` wraps both endpoints. Navbar user-icon now shows the cached `username` and opens the new `GuestUserModal` (Bootstrap modal `#guestUserModal`) instead of the legacy toast; the modal renders a `BookPageContent` card with the username as title and `modals.guestUser.body` (HTML) as description plus the session UUID under a divider. New i18n keys `modals.guestUser.title/anonymous/uuidLabel/body` (EN+IT). New tests: `src/context/GuestUserContext.test.jsx` (cookie restore + mock-server synthesis); `src/test/Navbar.test.jsx` updated to mock the new context and assert the modal trigger. Cookie-consent banner intentionally not touched — handled externally by Cookies-Yes | May 19, 2026 |
     | 0.19.6 | Code refactoring: all scattered test files (`echoApi.test.js`, `NeighborRow.test.jsx`, `ActionsRow.test.jsx`, `bonusStats.test.js`, `GuestUserContext.test.jsx`) moved from their source-adjacent locations (`api/`, `features/game/`, `utils/`, `context/`) into the central `src/test/` folder; relative imports updated accordingly | May 20, 2026 |
+    | 0.19.10 | New `StartMatchPage` at `/start-match/:storyId`: full-screen book page with countdown, loadout summary, and `POST /api/matches` call before navigating to GamePage. New `src/api/matches.js` (createMatch/listMatches/getMatchInfo). New `src/features/startBook/loadoutCards.js` shared helper. `GuestUserContext` now stores `accessToken`. New `VITE_MATCH_START_DELAY` env var (default 20s). New `startMatch.*` i18n keys; Italian `book.singleDesc`/`book.guestDesc` added. 62 tests pass. | May 20, 2026 |
 - **Last Updated**: May 20, 2026
 - **Status**: Active development
 

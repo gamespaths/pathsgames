@@ -1966,3 +1966,60 @@ html, body {
   .credits-grid { grid-template-columns: 1fr; }
 }
 
+/* ═══════════════════════════════════════════
+   START MATCH PAGE (v0.19.10)
+   Book layout shown between the start book and the game.
+   ═══════════════════════════════════════════ */
+.start-match-wrapper {
+  position: relative;
+  display: flex;
+  width: min(96vw, 1080px);
+  height: min(88vh, 680px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.8);
+  animation: bookOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Right page column: card grid (scrolls) above a pinned status block */
+.start-match-right {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.start-match-status {
+  flex-shrink: 0;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-brown-mid);
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--color-gold-super-deep);
+}
+.start-match-status p { margin: 4px 0; }
+.start-match-status--ok { color: var(--color-gold-deep); }
+.start-match-status--error { color: #c0392b; }
+.start-match-countdown { opacity: 0.65; }
+.start-match-error-detail {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--color-ash);
+}
+.start-match-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 767px) {
+  .start-match-wrapper {
+    flex-direction: column;
+    height: auto;
+    width: 100%;
+    max-width: 500px;
+  }
+  .start-match-wrapper .book-page { width: 100%; height: auto; min-height: 280px; }
+  .start-match-wrapper .book-spine { display: none; }
+}
+

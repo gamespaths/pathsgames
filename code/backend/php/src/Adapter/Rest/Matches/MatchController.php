@@ -75,6 +75,15 @@ class MatchController
         return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
     }
 
+    public function listAllMatches(Request $request, Response $response): Response
+    {
+        // The admin role is enforced by JwtAuthenticationMiddleware for /api/admin/ paths.
+        $matches = $this->queryPort->listAllMatches();
+        $body = array_map(fn($m) => $m->toArray(), $matches);
+        $response->getBody()->write(json_encode($body));
+        return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+    }
+
     public function getMatchInfo(Request $request, Response $response, array $args): Response
     {
         $userUuid = (string)($request->getAttribute('userUuid') ?? '');

@@ -12,11 +12,14 @@ info:
     loadout — character template, class, traits and a single-player flag —
     which is now persisted on the match.
 
+    Version 0.19.10 adds the admin-only `GET /api/admin/matches` endpoint,
+    which lists every match in the platform for the admin console.
+
     The endpoints are protected by the JWT bearer token issued by the guest
     or credential authentication flows (Step 12 / Step 13). The current user
     uuid is read from the access token; clients never need to send it
     explicitly.
-  version: 0.19.9
+  version: 0.19.10
   contact:
     name: Paths Games
     url: https://paths.games
@@ -107,6 +110,36 @@ paths:
                   $ref: '#/components/schemas/MatchSummary'
         '401':
           description: Missing or invalid bearer token
+
+  /api/admin/matches:
+    get:
+      tags: [Matches]
+      summary: List every match in the platform (admin)
+      description: |
+        Admin-only view returning every match created on the platform,
+        newest first. Unlike `GET /api/matches` — which is scoped to the
+        caller — this endpoint is not filtered by owner. The bearer token
+        must belong to a user whose role is `ADMIN`.
+
+        Step 0.19.10 — added so the admin console can list all matches.
+      operationId: listAllMatches
+      responses:
+        '200':
+          description: Matches list (newest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchSummary'
+        '401':
+          description: Missing or invalid bearer token
+        '403':
+          description: Caller is not an administrator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/match/{uuidMatch}/info:
     get:

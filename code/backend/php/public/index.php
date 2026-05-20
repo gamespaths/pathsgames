@@ -237,6 +237,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     // Step 19 — Single-player match creation
     $group->post('/matches', [$matchController, 'createMatch']);
     $group->get('/matches', [$matchController, 'listMatches']);
+    $group->get('/admin/matches', [$matchController, 'listAllMatches']);
     $group->get('/match/{uuidMatch}/info', [$matchController, 'getMatchInfo']);
 })->add($authMiddleware);
 

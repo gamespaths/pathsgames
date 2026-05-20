@@ -88,6 +88,20 @@ public class MatchController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * GET /api/admin/matches — lists every match in the platform (admin view).
+     * The admin role is enforced by {@code JwtAuthenticationFilter} for any
+     * path under {@code /api/admin/}.
+     */
+    @GetMapping("/api/admin/matches")
+    public ResponseEntity<Object> listAllMatches() {
+        List<MatchSummary> models = matchQueryPort.listAllMatches();
+        List<MatchSummaryResponse> result = models.stream()
+                .map(MatchSummaryResponse::fromModel)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/api/match/{uuidMatch}/info")
     public ResponseEntity<Object> getMatchInfo(@PathVariable String uuidMatch,
                                                HttpServletRequest request) {

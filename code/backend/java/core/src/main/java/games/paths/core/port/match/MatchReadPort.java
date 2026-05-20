@@ -16,6 +16,9 @@ public interface MatchReadPort {
 
     List<GamingMatchEntity> findMatchesByUserId(Long userId);
 
+    /** Returns every match in the platform, newest first (admin view). */
+    List<GamingMatchEntity> findAllMatches();
+
     List<GamingStateLocationsEntity> findLocationsByMatchId(Long matchId);
 
     List<GamingStateRegistryEntity> findRegistryByMatchId(Long matchId);

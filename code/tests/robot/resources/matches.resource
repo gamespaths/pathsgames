@@ -6,6 +6,9 @@
 #   POST /api/matches                  → 201, MatchSummary
 #   GET  /api/matches                  → 200, MatchSummary[]
 #   GET  /api/match/{uuidMatch}/info   → 200 MatchInfo | 404
+#
+# Admin (Bearer access token with role ADMIN):
+#   GET  /api/admin/matches            → 200, MatchSummary[] | 403
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
@@ -58,6 +61,15 @@ List Matches
     [Arguments]    ${token}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    public_session    /api/matches
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+List All Matches
+    [Documentation]    GET /api/admin/matches with the given Bearer token (admin-only).
+    [Arguments]    ${token}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/admin/matches
     ...    headers=${headers}
     ...    expected_status=${expected_status}
     RETURN    ${response}

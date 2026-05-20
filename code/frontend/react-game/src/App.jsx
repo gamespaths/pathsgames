@@ -10,6 +10,7 @@ import CookiesModal from './components/modals/CookiesModal'
 import CreditsModal from './components/modals/CreditsModal'
 import GuestUserModal from './components/modals/GuestUserModal'
 import HomePage from './pages/HomePage'
+import StartMatchPage from './pages/StartMatchPage'
 import GamePage from './pages/GamePage'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/start-match/:storyId" element={<StartMatchPage />} />
             <Route path="/play/:storyId" element={<GamePage />} />
           </Routes>
         </main>

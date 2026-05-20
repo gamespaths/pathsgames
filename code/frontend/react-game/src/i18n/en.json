@@ -74,6 +74,13 @@
       }
     }
   },
+  "startMatch": {
+    "starting": "Starting match…",
+    "created": "Match created, the story book is loading…",
+    "error": "The match could not be created.",
+    "retry": "Try again",
+    "home": "Back to home"
+  },
   "card": {
     "info": "Info",
     "viewOriginal": "View original"

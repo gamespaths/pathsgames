@@ -48,6 +48,11 @@ public class MatchReadAdapter implements MatchReadPort {
     }
 
     @Override
+    public List<GamingMatchEntity> findAllMatches() {
+        return matchRepository.findAllByOrderByTsInsertDesc();
+    }
+
+    @Override
     public List<GamingStateLocationsEntity> findLocationsByMatchId(Long matchId) {
         if (matchId == null) {
             return List.of();

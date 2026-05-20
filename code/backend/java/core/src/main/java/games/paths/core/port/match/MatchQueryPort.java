@@ -17,6 +17,12 @@ public interface MatchQueryPort {
     List<MatchSummary> listUserMatches(String userUuid);
 
     /**
+     * Returns every match in the platform, newest first. Admin-only view
+     * exposed at GET /api/admin/matches.
+     */
+    List<MatchSummary> listAllMatches();
+
+    /**
      * Returns the full match detail (summary + state) by match uuid.
      * @return {@code null} when the match does not exist or the user
      *         is not allowed to access it.

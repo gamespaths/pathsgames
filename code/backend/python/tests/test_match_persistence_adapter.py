@@ -101,6 +101,20 @@ def test_find_matches_by_user_id(session_factory):
     assert adapter.find_matches_by_user_id(404) == []
 
 
+def test_find_all_matches(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7})
+    adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 9})
+    rows = adapter.find_all_matches()
+    assert len(rows) == 2
+    assert {r["id_user_creator"] for r in rows} == {7, 9}
+
+
+def test_find_all_matches_empty(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    assert adapter.find_all_matches() == []
+
+
 def test_save_locations_and_registry_no_op_when_empty(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     adapter.save_locations([])

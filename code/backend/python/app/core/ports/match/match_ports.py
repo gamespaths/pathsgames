@@ -18,6 +18,10 @@ class MatchQueryPort(ABC):
         ...
 
     @abstractmethod
+    def list_all_matches(self) -> List[MatchSummary]:
+        """Return every match in the platform, newest first (admin view)."""
+
+    @abstractmethod
     def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
         ...
 
@@ -35,6 +39,10 @@ class MatchPersistencePort(ABC):
     @abstractmethod
     def find_matches_by_user_id(self, user_id: int) -> List[Dict[str, Any]]:
         ...
+
+    @abstractmethod
+    def find_all_matches(self) -> List[Dict[str, Any]]:
+        """Return every ``gaming_match`` row, newest first."""
 
     @abstractmethod
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:

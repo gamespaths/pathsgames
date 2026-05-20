@@ -20,9 +20,11 @@
     "gameType": "Tipo di Gioco",
     "login": "Accesso",
     "single": "Singolo",
+    "singleDesc": "Intraprendi un viaggio in solitaria attraverso le nostre storie immersive. Compi scelte, affronta sfide e plasma il tuo destino in un mondo di infinite possibilità.<br /><br /><p align='center'>Modalità multigiocatore in arrivo!</p>",
     "multiplayer": "Multigiocatore",
     "competitive": "Competitivo",
     "guest": "Ospite",
+    "guestDesc": "Gioca come ospite e immergiti nelle nostre storie avvincenti senza bisogno di un account. Vivi l'emozione dell'avventura con un solo clic.<br /><br /><p align='center'>Accesso in arrivo per un'esperienza personalizzata!</p>",
     "register": "Registrati",
     "comingSoon": "Prossimamente",
     "locked": "Bloccato",
@@ -70,6 +72,13 @@
         "exp": "EXP"
       }
     }
+  },
+  "startMatch": {
+    "starting": "Avvio della partita…",
+    "created": "Partita creata, il libro della storia si sta caricando…",
+    "error": "Impossibile creare la partita.",
+    "retry": "Riprova",
+    "home": "Torna alla home"
   },
   "card": {
     "info": "Info",

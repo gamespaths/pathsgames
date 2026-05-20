@@ -79,6 +79,15 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             )
             return [self._match_to_dict(r) for r in rows]
 
+    def find_all_matches(self) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = (
+                session.query(GamingMatchEntity)
+                .order_by(GamingMatchEntity.ts_insert.desc())
+                .all()
+            )
+            return [self._match_to_dict(r) for r in rows]
+
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:
         if not rows:
             return

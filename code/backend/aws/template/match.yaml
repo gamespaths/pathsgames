@@ -77,6 +77,13 @@ Resources:
       RouteKey: "GET /api/matches"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  ListAllMatchesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   GetMatchInfoRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

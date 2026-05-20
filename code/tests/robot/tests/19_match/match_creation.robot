@@ -5,6 +5,7 @@
 # Endpoints under test:
 #   POST /api/matches                  → 201
 #   GET  /api/matches                  → 200
+#   GET  /api/admin/matches            → 200 | 403
 #   GET  /api/match/{uuidMatch}/info   → 200 | 404
 #
 # Tags: matches, step19
@@ -82,6 +83,30 @@ List Matches Returns Created Match
         END
     END
     Should Be True    ${found}
+
+List All Matches As Admin Returns Created Match
+    [Documentation]    GET /api/admin/matches with an ADMIN token lists every
+    ...                match on the platform, including the one created above.
+    [Tags]    matches    step19
+    ${admin_token}=    Generate Admin Token
+    ${response}=    List All Matches    ${admin_token}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Not Be Empty    ${body}
+    ${found}=    Set Variable    ${False}
+    FOR    ${m}    IN    @{body}
+        IF    "${m}[uuid]" == "${MATCH_UUID}"
+            ${found}=    Set Variable    ${True}
+            BREAK
+        END
+    END
+    Should Be True    ${found}
+
+List All Matches As Non Admin Returns 403
+    [Documentation]    GET /api/admin/matches with a non-admin (guest) token → 403.
+    [Tags]    matches    step19
+    ${response}=    List All Matches    ${TOKEN}
+    Status Should Be    ${response}    403
 
 Get Match Info Returns Runtime State
     [Documentation]    GET /api/match/{uuid}/info returns the runtime state created at POST time.

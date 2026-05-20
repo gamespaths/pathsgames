@@ -1,10 +1,8 @@
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
 import BonusBadgeList from '../../components/common/BonusBadgeList'
-import images from '../../mock/images.json'
 import { aggregateBonusTotals } from '../../utils/bonusStats'
-
-const imgById = id => images.find(x => x.id === id)
+import { buildGameTypeCard, buildLoginCard } from './loadoutCards'
 
 export default function ConfigView({ config, story, onChangeClick, onPreview, termsAccepted, onTermsChange, onStartGame }) {
   const { t } = useTranslation()
@@ -21,21 +19,8 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
     value,
   }))
 
-  const personImg  = imgById('person')
-  const gemsImg    = imgById('gems')
-
-  const gameTypeValue = {
-    name: t('book.single'),//    icon: 'fas fa-user',
-    card: { urlImage: personImg?.urlImage, copyrightText: personImg?.copyrightText, 
-      linkCopyright: personImg?.linkCopyright, styleImageLarge: personImg?.styleImageLarge, },
-    description : t('book.singleDesc'),
-  }
-  const loginValue = {
-    name: t('book.guest'),//    icon: 'fas fa-user-circle',
-    card: { urlImage: gemsImg?.urlImage, copyrightText: gemsImg?.copyrightText, 
-      linkCopyright: gemsImg?.linkCopyright, styleImageLarge: gemsImg?.styleImageLarge, },
-    description : t('book.guestDesc'),
-  }
+  const gameTypeValue = buildGameTypeCard(t)
+  const loginValue    = buildLoginCard(t)
 
   return (
     <div className="config-view-wrap">

@@ -8,6 +8,8 @@ const MENU = [
   { section: 'Stories' },
   { to: '/stories',   icon: 'fas fa-book-open',      label: 'Stories'      },
   { to: '/stories/import', icon: 'fas fa-file-import', label: 'Import Story' },
+  { section: 'Matches' },
+  { to: '/matches',   icon: 'fas fa-gamepad',        label: 'Matches'      },
   { section: 'System' },
   { to: '/echo',      icon: 'fas fa-heartbeat',      label: 'Server Status'},
 ]

@@ -72,6 +72,23 @@ def test_list_user_matches_returns_summaries():
     assert summaries[0].trait_uuids == ["t1", "t2"]
 
 
+def test_list_all_matches_empty():
+    service, mocks = _build()
+    mocks["persistence"].find_all_matches.return_value = []
+    assert service.list_all_matches() == []
+
+
+def test_list_all_matches_returns_all_summaries():
+    service, mocks = _build()
+    mocks["persistence"].find_all_matches.return_value = [
+        _match(creator=7, mu="m1"),
+        _match(creator=8, mu="m2"),
+    ]
+    summaries = service.list_all_matches()
+    assert [s.uuid for s in summaries] == ["m1", "m2"]
+    assert summaries[0].single_player == 1
+
+
 def test_get_match_info_blank_inputs():
     service, _ = _build()
     assert service.get_match_info("", "u") is None

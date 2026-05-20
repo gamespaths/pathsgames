@@ -122,6 +122,10 @@ code/backend/php/
 | GET | `/api/admin/stories` | List all stories (including non-public) |
 | POST | `/api/admin/stories/import` | Import a JSON story tree |
 | DELETE | `/api/admin/stories/{uuid}` | Delete story by UUID |
+| POST | `/api/matches` | Create a new single-player match |
+| GET | `/api/matches` | List matches owned by the authenticated user |
+| GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
+| GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) |
 
 ## Architecture
 
@@ -185,7 +189,7 @@ vendor/bin/phpunit --configuration phpunit.xml
 - Starting from 0.12.4 version, code is created with AI prompt:
     > read all "documentation_v0" and "code/backend/python" content, now i wanna create "code/backend/php" project, let's go!
 
-- **Document Version**: 0.19.9
+- **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.4 | First version of this document | April 1, 2026 |
@@ -193,6 +197,7 @@ vendor/bin/phpunit --configuration phpunit.xml
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.19.7 | database.sql: 7 stat columns added to list_stories_difficulty (life, energy, sad, dexterity, intelligence, constitution, weight with defaults); DifficultyInfo, StoryMysqlPersistenceRepository (saveDifficulties + admin column allowlist), StoryQueryService updated; 51 unit tests pass | May 19, 2026 |
     | 0.19.9 | database.sql: 4 loadout columns added to gaming_match (single_player, character_template_uuid, class_uuid, trait_uuids); MatchCreateRequest and MatchSummary extended; MatchTraitCodec handles comma-separated trait list; 72 unit tests pass | May 20, 2026 |
+    | 0.19.10 | GET /api/admin/matches: MatchController::listAllMatches, MatchQueryService::listAllMatches, MatchMysqlPersistenceAdapter::findAllMatches; route added in public/index.php; 404 unit tests pass | May 20, 2026 |
 - **Last Updated**: May 20, 2026
 - **Status**: In progress
 

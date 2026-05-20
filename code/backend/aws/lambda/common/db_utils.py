@@ -120,6 +120,15 @@ def scan_filter(attr_name, attr_value):
         print(f"Error scanning filter {attr_name}={attr_value}: {e}")
         return []
 
+def scan_pk_prefix(prefix):
+    """Scan the table returning every item whose PK starts with the prefix."""
+    try:
+        response = _get_table().scan(FilterExpression=Attr('PK').begins_with(prefix))
+        return response.get('Items', [])
+    except ClientError as e:
+        print(f"Error scanning PK prefix {prefix}: {e}")
+        return []
+
 def update_ts_last_access(pk, now_ms, sk='METADATA'):
     """Update the ts_last_access timestamp of an item."""
     try:

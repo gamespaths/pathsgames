@@ -9,6 +9,7 @@ Routes registered in ``template/match.yaml``:
 
   POST /api/matches                  → create_match
   GET  /api/matches                  → list_user_matches
+  GET  /api/admin/matches            → list_all_matches (ADMIN)
   GET  /api/match/{uuidMatch}/info   → get_match_info
 
 DynamoDB layout:
@@ -263,6 +264,13 @@ def _list_user_matches(user):
     return _ok([_summary_from_item(i) for i in items_sorted])
 
 
+def _list_all_matches():
+    """Admin view — every match in the table, newest first."""
+    items = db_utils.scan_pk_prefix('MATCH#') or []
+    items_sorted = sorted(items, key=lambda i: i.get('tsInsert', 0), reverse=True)
+    return _ok([_summary_from_item(i) for i in items_sorted])
+
+
 def _get_match_info(user, match_uuid):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
@@ -287,6 +295,11 @@ def lambda_handler(event, context):
     user, err = _resolve_user(event)
     if err is not None:
         return err
+
+    if path == '/api/admin/matches' and method == 'GET':
+        if str(user.get('role', '')).upper() != 'ADMIN':
+            return _err(403, 'FORBIDDEN', 'Admin access required')
+        return _list_all_matches()
 
     if path == '/api/matches' and method == 'POST':
         try:

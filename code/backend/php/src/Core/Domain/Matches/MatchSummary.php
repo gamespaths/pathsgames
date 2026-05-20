@@ -15,7 +15,7 @@ class MatchSummary
         public readonly string $status,
         public readonly int $currentClock,
         public readonly int $expCost,
-        public readonly string $userCreatorUuid,
+        public readonly ?string $userCreatorUuid,
         public readonly string $tsInsert,
         public readonly ?int $singlePlayer = null,
         public readonly ?string $characterTemplateUuid = null,

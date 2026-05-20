@@ -221,6 +221,22 @@ class MatchControllerTest {
     }
 
     @Test
+    void listAllMatches_returnsArray() throws Exception {
+        when(queryPort.listAllMatches()).thenReturn(List.of(summary()));
+        mockMvc.perform(get("/api/admin/matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value("match-uuid"));
+    }
+
+    @Test
+    void listAllMatches_emptyArray() throws Exception {
+        when(queryPort.listAllMatches()).thenReturn(List.of());
+        mockMvc.perform(get("/api/admin/matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
     void getMatchInfo_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/match/abc/info"))
                 .andExpect(status().isUnauthorized());

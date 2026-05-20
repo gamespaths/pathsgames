@@ -35,6 +35,10 @@ class MatchQueryService(MatchQueryPort):
         rows = self.match_persistence_port.find_matches_by_user_id(user["id"])
         return [self._to_summary(r, user["uuid"], None, None) for r in rows]
 
+    def list_all_matches(self) -> List[MatchSummary]:
+        rows = self.match_persistence_port.find_all_matches()
+        return [self._to_summary(r, None, None, None) for r in rows]
+
     def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
         if not match_uuid or not user_uuid:
             return None

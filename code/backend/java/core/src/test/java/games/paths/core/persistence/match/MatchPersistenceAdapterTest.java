@@ -97,6 +97,13 @@ class MatchPersistenceAdapterTest {
     }
 
     @Test
+    void readAdapter_findAllMatches_delegates() {
+        when(matchRepository.findAllByOrderByTsInsertDesc())
+                .thenReturn(List.of(new GamingMatchEntity()));
+        assertEquals(1, readAdapter.findAllMatches().size());
+    }
+
+    @Test
     void readAdapter_findLocationsByMatchId_nullReturnsEmpty() {
         assertTrue(readAdapter.findLocationsByMatchId(null).isEmpty());
     }

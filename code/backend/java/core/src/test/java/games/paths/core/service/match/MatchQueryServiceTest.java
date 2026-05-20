@@ -150,6 +150,31 @@ class MatchQueryServiceTest {
     }
 
     @Nested
+    @DisplayName("listAllMatches")
+    class ListAllMatches {
+
+        @Test
+        @DisplayName("empty when there are no matches")
+        void empty() {
+            when(matchReadPort.findAllMatches()).thenReturn(List.of());
+            assertTrue(service.listAllMatches().isEmpty());
+        }
+
+        @Test
+        @DisplayName("maps every match regardless of owner")
+        void mapsAll() {
+            when(matchReadPort.findAllMatches())
+                    .thenReturn(List.of(match(1L, "m1", 7L, 2L, 3L),
+                                        match(2L, "m2", 8L, 2L, 3L)));
+            List<MatchSummary> result = service.listAllMatches();
+            assertEquals(2, result.size());
+            assertEquals("m1", result.get(0).getUuid());
+            assertEquals("m2", result.get(1).getUuid());
+            assertEquals(1, result.get(0).getSinglePlayer());
+        }
+    }
+
+    @Nested
     @DisplayName("getMatchInfo")
     class GetMatchInfo {
 

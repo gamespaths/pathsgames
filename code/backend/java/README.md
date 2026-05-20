@@ -114,6 +114,10 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | Method | Endpoint | Description |
     |--------|----------|-------------|
     | GET | `/api/echo/status` | Server status, timestamp, and properties |
+    | POST | `/api/matches` | Create a new single-player match |
+    | GET | `/api/matches` | List matches owned by the authenticated user |
+    | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
+    | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) |
 
 ## Recent Fixes (Step 17 CRUD)
 
@@ -171,7 +175,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.19.9
+- **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -183,6 +187,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | 0.19.4 | AWS backend FK consistency: difficulties/classes/traits now persist idTextName+idTextDescription on import, matching Java BaseStoryEntity (list_stories_difficulty, list_classes, list_traits) | May 14, 2026 |
     | 0.19.7 | list_stories_difficulty: added 7 stat columns (life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10) via Flyway V0.19.7 on both adapters; StoryDifficultyEntity, DifficultyInfo (builder), DifficultyResponse, StoryQueryService, StoryCrudService.applyDifficultyFields(), StoryImportService.importDifficulties(); OpenAPI v0.14.0 DifficultyResponse extended; core tests 711 pass | May 19, 2026 |
     | 0.19.9 | gaming_match: 4 loadout columns added (single_player, character_template_uuid, class_uuid, trait_uuids) via Flyway V0.19.9 on both adapters; MatchCreateRequest extended (classUuid, traitUuids, singlePlayer new; characterTemplateUuid now persisted); MatchSummary echoes loadout; MatchTraitCodec handles comma-separated trait list; OpenAPI v0.19.0-match-creation-api.yaml bumped to 0.19.9; 152 adapter-rest unit tests + core pass | May 20, 2026 |
+    | 0.19.10 | GET /api/admin/matches: MatchController.listAllMatches, MatchQueryService.listAllMatches, MatchReadPort.findAllMatches, GamingMatchRepository.findAllByOrderByTsInsertDesc; OpenAPI bumped to 0.19.10; 154 adapter-rest unit tests pass | May 20, 2026 |
 - **Last Updated**: May 20, 2026
 - **Status**: In progress
 

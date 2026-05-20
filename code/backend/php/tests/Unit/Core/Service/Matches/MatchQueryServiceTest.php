@@ -70,6 +70,25 @@ class MatchQueryServiceTest extends TestCase
         $this->assertSame(['t1', 't2'], $rows[0]->traitUuids);
     }
 
+    public function testListAllMatchesEmpty(): void
+    {
+        $this->persistence->method('findAllMatches')->willReturn([]);
+        $this->assertSame([], $this->service->listAllMatches());
+    }
+
+    public function testListAllMatchesReturnsSummaries(): void
+    {
+        $this->persistence->method('findAllMatches')->willReturn([
+            $this->match(7),
+            $this->match(8),
+        ]);
+        $rows = $this->service->listAllMatches();
+        $this->assertCount(2, $rows);
+        $this->assertSame('match-uuid', $rows[0]->uuid);
+        $this->assertNull($rows[0]->userCreatorUuid);
+        $this->assertSame(1, $rows[0]->singlePlayer);
+    }
+
     public function testGetMatchInfoBlankInputs(): void
     {
         $this->assertNull($this->service->getMatchInfo('', 'u'));

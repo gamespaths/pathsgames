@@ -18,5 +18,7 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
 
     List<GamingMatchEntity> findByIdUserCreatorOrderByTsInsertDesc(Long idUserCreator);
 
+    List<GamingMatchEntity> findAllByOrderByTsInsertDesc();
+
     long countByIdUserCreatorAndStatusIn(Long idUserCreator, List<String> statuses);
 }

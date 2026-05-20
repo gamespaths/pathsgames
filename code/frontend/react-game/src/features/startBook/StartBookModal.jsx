@@ -103,7 +103,9 @@ export default function StartBookModal({ story, onClose }) {
   function handleStartGame() {
     if (!termsAccepted) return
     onClose()
-    navigate(`/play/${story.uuid}`)
+    // Hand the chosen story + loadout to the StartMatch page, which creates the
+    // match (POST /api/matches) before entering the game.
+    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config } })
   }
 
   const configTypes = ['character', 'class', 'trait', 'difficulty']

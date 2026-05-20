@@ -10,6 +10,8 @@ interface MatchPersistencePort
 
     public function findMatchesByUserId(int $userId): array;
 
+    public function findAllMatches(): array;
+
     public function saveLocations(array $rows): void;
 
     public function saveRegistry(array $rows): void;

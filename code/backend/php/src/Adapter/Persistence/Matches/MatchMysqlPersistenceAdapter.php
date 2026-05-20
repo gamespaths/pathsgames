@@ -66,6 +66,13 @@ class MatchMysqlPersistenceAdapter implements MatchPersistencePort
         return array_map(static fn(array $row): array => self::hydrateMatch($row), $rows);
     }
 
+    public function findAllMatches(): array
+    {
+        $stmt = $this->pdo->query('SELECT * FROM gaming_match ORDER BY ts_insert DESC');
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(static fn(array $row): array => self::hydrateMatch($row), $rows);
+    }
+
     public function saveLocations(array $rows): void
     {
         if (empty($rows)) {

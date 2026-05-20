@@ -185,6 +185,16 @@ def test_list_matches_returns_list(env):
     assert body[0]["uuid"] == "match-uuid"
 
 
+def test_list_all_matches_returns_list(env):
+    client, _, query_port = env
+    query_port.list_all_matches.return_value = [_summary()]
+    response = client.get("/api/admin/matches")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["uuid"] == "match-uuid"
+
+
 def test_get_match_info_unauthenticated(env):
     client, _, _ = env
     response = client.get("/api/match/abc/info")

@@ -21,8 +21,9 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
+| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches`) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
-| Log Groups ×4 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
+| Log Groups ×5 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
 
 ### Tagging
 
@@ -84,6 +85,7 @@ code/backend/aws/
 │   ├── common/           # Shared code (db_utils, jwt_utils)
 │   ├── auth/             # Guest login, sessions, admin guests (11 routes)
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
+│   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches)
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
 └── README.md             # This file
@@ -155,6 +157,13 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.19.10 — Admin-wide match listing
+
+- **`lambda/match/handler.py`**: New `_list_all_matches` handler implements `GET /api/admin/matches`. Requires ADMIN role (checked explicitly from the decoded JWT claims). Uses `db_utils.scan_pk_prefix` to scan all `MATCH#` items in DynamoDB, returning them newest-first. Returns the same `MatchSummary` shape as `GET /api/matches` but covers all players.
+- **`template/match.yaml`**: New `ListAllMatchesRoute` event registered on the Lambda.
+- **Unit tests**: 160 Lambda unit tests pass.
+- **Robot**: `code/tests/robot/tests/19_match/match_creation.robot` — new tests for admin 200 and non-admin 403. New `List All Matches` keyword in `resources/matches.resource`.
 
 ### v0.19.9 — Match creation loadout fields
 

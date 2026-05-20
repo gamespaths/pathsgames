@@ -47,7 +47,13 @@ function buildMockGuest() {
 
 function toIdentity(payload) {
   if (!payload) return null
-  return { userUuid: payload.userUuid, username: payload.username }
+  // `accessToken` is the JWT bearer token needed to call the protected match
+  // endpoints (see api/matches.js). Mock guests have no token.
+  return {
+    userUuid: payload.userUuid,
+    username: payload.username,
+    accessToken: payload.accessToken ?? null,
+  }
 }
 
 export function GuestUserProvider({ children }) {

@@ -86,7 +86,34 @@ the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
 
 Returns the matches owned by the authenticated user, newest first.
 
-### 2.3 `GET /api/match/{uuidMatch}/info`
+### 2.3 `GET /api/admin/matches` *(v0.19.10)*
+
+Returns **all** matches on the platform (newest first), regardless of creator. Requires `ADMIN` role.
+
+| Header          | Required | Description                              |
+|-----------------|----------|------------------------------------------|
+| `Authorization` | yes      | `Bearer <accessToken>` (ADMIN only)      |
+
+| HTTP status | Cause                                           |
+|-------------|--------------------------------------------------|
+| `200`       | Array of `MatchSummary` (same schema as 2.2)    |
+| `401`       | Missing / invalid bearer token                  |
+| `403`       | Caller does not hold the ADMIN role             |
+
+Admin role enforcement is handled by each backend's existing JWT filter / middleware (the AWS Lambda handler checks the role field explicitly). This endpoint was introduced so the react-admin Matches section can display matches created by guest players, which the user-scoped `GET /api/matches` cannot surface when called with an admin token.
+
+Implementation by backend:
+
+| Backend | Controller method | Service method | Persistence method |
+|---------|-------------------|----------------|--------------------|
+| Java    | `MatchController.listAllMatches` | `MatchQueryService.listAllMatches` | `MatchReadPort.findAllMatches` → `GamingMatchRepository.findAllByOrderByTsInsertDesc` |
+| Python  | `MatchController.list_all_matches` | `MatchQueryService.list_all_matches` | `MatchPersistenceAdapter.find_all_matches` |
+| PHP     | `MatchController::listAllMatches` | `MatchQueryService::listAllMatches` | `MatchMysqlPersistenceAdapter::findAllMatches`; route in `public/index.php` |
+| AWS     | `match/handler.py` `_list_all_matches` | — | `db_utils.scan_pk_prefix`; route `ListAllMatchesRoute` in `template/match.yaml` |
+
+Note: for SQL-based backends (Java, Python, PHP) the response leaves `userCreatorUuid`, `storyUuid` and `difficultyUuid` null, mirroring the behaviour of `GET /api/matches`. The AWS backend populates all three fields from DynamoDB.
+
+### 2.4 `GET /api/match/{uuidMatch}/info`
 
 Returns the runtime state needed to render the in-game UI:
 
@@ -233,15 +260,17 @@ Total tests added: **96**. All pass in the local CI run.
 Step 19 introduced three new endpoints. **v0.19.9** additively extends the
 `MatchCreateRequest` and `MatchSummary` schemas with the creator loadout
 fields (`classUuid`, `traitUuids`, `singlePlayer`; `characterTemplateUuid` is
-now persisted instead of being ignored). The change is backward compatible —
-every new field is optional. The OpenAPI document
-`v0.19.0-match-creation-api.yaml` is bumped to version `0.19.9`.
+now persisted instead of being ignored). **v0.19.10** adds the admin-wide
+listing endpoint. All changes are backward compatible — every new field is
+optional. The OpenAPI document `v0.19.0-match-creation-api.yaml` is bumped to
+version `0.19.10`.
 
-| Endpoint                              | Status                                             |
-|---------------------------------------|----------------------------------------------------|
-| `POST /api/matches`                   | NEW (v0.19.0); request body extended (v0.19.9)     |
-| `GET /api/matches`                    | NEW (v0.19.0); response extended (v0.19.9)         |
-| `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9) |
+| Endpoint                              | Status                                                    |
+|---------------------------------------|-----------------------------------------------------------|
+| `POST /api/matches`                   | NEW (v0.19.0); request body extended (v0.19.9)            |
+| `GET /api/matches`                    | NEW (v0.19.0); response extended (v0.19.9)                |
+| `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9)        |
+| `GET /api/admin/matches`              | NEW (v0.19.10) — admin-wide list, all backends            |
 
 ---
 
@@ -264,6 +293,65 @@ The admin concept lists every match found in the new gaming tables (this
 listing reuses the existing admin filter; a richer version is part of the
 multiplayer admin work in Step 77+).
 
+### 9.1 react-game: StartMatchPage (v0.19.10)
+
+The `StartMatchPage` (`src/pages/StartMatchPage.jsx`) is a new full-screen
+book page that sits between the story configuration modal and the actual game.
+It is reached at the route `/start-match/:storyId`; the start book's
+"Start Game" button navigates here, passing `{ story, config }` via React
+Router `state`.
+
+Layout — left page: the story card. Right page: the six chosen loadout cards
+(class, character, trait, difficulty, game-type, login) plus the aggregated
+bonus-totals list.
+
+Flow:
+1. Renders "Starting match…" with a countdown timer.
+2. Waits `VITE_MATCH_START_DELAY` seconds (default 20, configured in `.env` /
+   `.env.example`).
+3. Calls `POST /api/matches` with the full loadout payload (`storyUuid`,
+   `difficultyUuid`, `name`, `characterTemplateUuid`, `classUuid`,
+   `traitUuids`, `singlePlayer`). The bearer token is taken from the
+   `accessToken` field now stored in `GuestUserContext`.
+4. On success, shows "Match created, the story book is loading…", waits X
+   more seconds, then navigates to `GamePage`.
+5. On failure, shows an error message with **Retry** and **Back-to-home**
+   buttons.
+
+New files introduced:
+- `src/api/matches.js` — `createMatch`, `listMatches`, `getMatchInfo` with
+  automatic mock fallback when the backend is unreachable.
+- `src/features/startBook/loadoutCards.js` — shared helper that builds the
+  ordered array of six loadout card descriptors; adopted by both
+  `StartMatchPage` and `ConfigView`.
+- `src/test/matches.test.js` and `src/test/StartMatchPage.test.jsx` — unit
+  tests (62 tests total passing after this step).
+
+The `GuestUserContext` now persists the JWT `accessToken` alongside
+`userUuid`/`username` so that `StartMatchPage` can attach the bearer token
+to the `POST /api/matches` call without an extra login round-trip.
+
+### 9.2 react-admin: Matches section (v0.19.10)
+
+A new **Matches** section is accessible via the sidebar at route `/matches`
+and rendered by `src/pages/MatchesPage.jsx`. It provides:
+- A filterable, refreshable table of matches (filter by text or status, stat
+  summary cards at the top).
+- A detail modal that loads `GET /api/match/{uuid}/info` and displays the
+  match summary, current location, locations state and registry.
+
+New files:
+- `src/api/matchApi.js` — `listMatches` (`GET /api/admin/matches`) and
+  `getMatchInfo` (`GET /api/match/{uuid}/info`).
+- `src/tests/api/matchApi.test.js` and
+  `src/tests/pages/MatchesPage.test.jsx` — unit tests (236 tests total
+  passing after this step).
+
+Note: `listMatches` in `matchApi.js` calls `GET /api/admin/matches` (added in
+v0.19.10) so the react-admin table shows matches created by all players, not
+just the admin token owner. The user-scoped `GET /api/matches` is still
+available for the player-facing frontend (`react-game`).
+
 ---
 
 ## 10. Robot Framework Coverage
@@ -274,7 +362,8 @@ Tests live under `code/tests/robot/tests/19_match/`. They exercise:
 - Match creation with the full creator loadout (v0.19.9 — character,
   class, traits and the single-player flag) verified end-to-end via
   `GET /api/match/{uuid}/info`.
-- Match listing.
+- Match listing (`GET /api/matches` — user-scoped).
+- Admin match listing (`GET /api/admin/matches`): asserts 200 for an ADMIN token and 403 for a non-admin token.
 - Match info retrieval (own match, foreign match returning 404).
 
 Run them against the Java backend with:
@@ -316,8 +405,10 @@ The same suite passes against the Python and PHP backends — see
   > "v0.19.8" on website react-game we need manage guest-user information: when user enter without any cookies (paths.games.user) i need create a new guest user with dedicated APIs, it there is the cookies load information from cookie. on nav bar button open modal (new component) with user card (BookPageContent) where see "guest user name" and description (for now use a new text , in future we will use for match stories and others informations). Note: cookie consent banner will be managed by cookies yes so don't worry about that.
 
   > ciao, check documentation_v0 files and all projects. i wanna check/add into MatchCreate Requests character, difficulty, traits, Class and flag singlePlayer=YES/NO. If there aren't add them. Check all backend and all frontend. Update openapi, robot test and tests.
+
+  > using "0.19.10" version, read documentation_v0. Into react-game project when "start game" jump to another page "StartMatch" with book style (left and right page), on left the story card, on right the 6 little card selected in startBook. after bonus lists show "starting match", wait X seconds (X on env file , default 20 seconds)  and call the match POST API to create the match (pass all information to API), show "Match created, story book is loading" and jump after X seconds to GamePage. update the react-admin project: create a new section "match" to see all match from GET API and details/operatons . Let's go
   
-- **Document Version**: 0.19.9
+- **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -330,6 +421,7 @@ The same suite passes against the Python and PHP backends — see
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
     | 0.19.8 | Added guest user management into game frontend project | May 19, 2026 |
     | 0.19.9 | Added character/class/traits/singlePlayer loadout fields to the match creation request, persisted on gaming_match | May 20, 2026 |
+    | 0.19.10 | react-game: StartMatchPage (countdown + match creation + navigation to GamePage); react-admin: Matches section with list table and detail modal; GET /api/admin/matches added to all four backends | May 20, 2026 |
 
 - **Last Updated**: May 20, 2026
 - **Status**: ✅ Complete
