@@ -21,6 +21,7 @@ class GuestAuthService implements GuestAuthPort
     private const GUEST_ROLE = 'PLAYER';
     private const GUEST_USERNAME_PREFIX = 'guest_';
     private const GUEST_SESSION_DAYS = 180;
+    private const MAX_MARKER_LENGTH = 30;
 
     private GuestRepositoryPort $guestRepository;
     private JwtPort $jwtPort;
@@ -31,11 +32,11 @@ class GuestAuthService implements GuestAuthPort
         $this->jwtPort = $jwtPort;
     }
 
-    public function createGuestSession(): GuestSession
+    public function createGuestSession(?string $testMarker = null): GuestSession
     {
         // 1. Generate anonymous UUID identity (matches Python)
         $userUuid = Uuid::uuid4()->toString();
-        $username = self::GUEST_USERNAME_PREFIX . substr($userUuid, 0, 8);
+        $username = $this->resolveUsernamePrefix($testMarker) . substr($userUuid, 0, 8);
         $guestCookieToken = Uuid::uuid4()->toString();
 
         // 2. Calculate guest session expiration (6 months / 180 days)
@@ -63,6 +64,23 @@ class GuestAuthService implements GuestAuthPort
         $this->guestRepository->save($session);
 
         return $session;
+    }
+
+    /**
+     * Resolves the username prefix. With a non-blank test marker the sanitized
+     * marker becomes the prefix, so the guest can later be removed by the
+     * dev-only test-data cleanup. Otherwise the standard "guest_" prefix is used.
+     */
+    private function resolveUsernamePrefix(?string $testMarker): string
+    {
+        if ($testMarker === null || trim($testMarker) === '') {
+            return self::GUEST_USERNAME_PREFIX;
+        }
+        $sanitized = preg_replace('/[^a-z0-9]/', '', strtolower($testMarker));
+        if ($sanitized === '') {
+            return self::GUEST_USERNAME_PREFIX;
+        }
+        return substr($sanitized, 0, self::MAX_MARKER_LENGTH) . '_';
     }
 
     /**

@@ -13,10 +13,10 @@
   "versionMax": null,
   "idTextTitle": 1,
   "idTextDescription": 2,
-  "idLocationStart": 0,
+  "idLocationStart": 1,
   "idImage": 0,
   "idCard": 1,
-  "idLocationAllPlayerComa": 0,
+  "idLocationAllPlayerComa": 1,
   "idEventAllPlayerComa": 0,
   "idEventEndGame": 0,
   "idTextCopyright": 3,
@@ -1686,9 +1686,28 @@
       "lang": "it",
       "idText": 87,
       "idCreator": 1
+    },
+    {
+      "longText": "Tutorial start location",
+      "shortText": "Tutorial start location",
+      "idTextCopyright": 3,
+      "id": 105,
+      "lang": "en",
+      "idText": 105,
+      "idCreator": 1
     }
   ],
-  "locations": [],
+  "locations": [
+    {
+      "counterTime": 0,
+      "idCard": 44,
+      "costEnergyEnter": 0,
+      "id_card": 44,
+      "idTextDescription": 105,
+      "id": 1,
+      "idTextName": 105
+    }
+  ],
   "events": [],
   "items": [],
   "choices": [],
@@ -2360,6 +2379,15 @@
       "idCreator": 1,
       "linkCopyright": "https://unsplash.com/photos/a-dragon-is-flying-over-a-landscape-DCcQTmmtOr0",
       "urlImage": "https://plus.unsplash.com/premium_photo-1746727568540-eda53728fe4c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+    },
+    {
+      "idCard": 44,
+      "idTextTitle": 105,
+      "idTextCopyright": 3,
+      "idTextDescription": 105,
+      "id": 44,
+      "idTextName": 105,
+      "idCreator": 1
     }
   ],
   "keys": [],

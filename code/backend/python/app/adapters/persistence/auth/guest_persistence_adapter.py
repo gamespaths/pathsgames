@@ -65,6 +65,27 @@ class GuestPersistenceAdapter(GuestPersistencePort, GuestAdminPersistencePort):
             session.commit()
             return deleted_count
 
+    def delete_guests_by_username_like(self, username_like_pattern: str) -> int:
+        # Delete the tokens of the matching guests first, then the guests.
+        with self.session_factory() as session:
+            ids = [
+                row[0]
+                for row in session.query(User.id).filter(
+                    User.state == 6,
+                    User.username.like(username_like_pattern),
+                ).all()
+            ]
+            if ids:
+                session.query(UserToken).filter(
+                    UserToken.id_user.in_(ids)
+                ).delete(synchronize_session=False)
+            deleted_count = session.query(User).filter(
+                User.state == 6,
+                User.username.like(username_like_pattern),
+            ).delete(synchronize_session=False)
+            session.commit()
+            return deleted_count
+
     # Admin methods
     def find_all_guests(self) -> List[Dict[str, Any]]:
         with self.session_factory() as session:

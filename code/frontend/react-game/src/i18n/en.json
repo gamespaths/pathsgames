@@ -81,6 +81,23 @@
     "retry": "Try again",
     "home": "Back to home"
   },
+  "matches": {
+    "title": "Your Matches",
+    "loading": "Loading matches…",
+    "noMatches": "No matches yet. Start an adventure!",
+    "unknownStory": "Unknown story",
+    "resume": "Resume",
+    "statusLabel": "Status",
+    "created": "Started",
+    "clock": "Clock",
+    "status": {
+      "CREATED":  "Ready",
+      "RUNNING":  "In Progress",
+      "PAUSED":   "Paused",
+      "ENDED":    "Ended",
+      "GAMEOVER": "Game Over"
+    }
+  },
   "card": {
     "info": "Info",
     "viewOriginal": "View original"

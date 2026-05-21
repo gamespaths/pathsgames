@@ -10,7 +10,7 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { server, servers, probing, changeServer } = useServer()
-  const { user: guestUser, loading: guestLoading } = useGuestUser()
+  const { user: guestUser, loading: guestLoading, openGuestModal } = useGuestUser()
   const [status, setStatus] = useState('loading')  // 'online' | 'offline' | 'loading' | 'mock'
   const [version, setVersion] = useState('')
 
@@ -95,8 +95,7 @@ export default function Navbar() {
         <button
           className="nav-user-btn"
           title={guestUser?.username ?? t('nav.login')}
-          data-bs-toggle="modal"
-          data-bs-target="#guestUserModal"
+          onClick={openGuestModal}
         >
           <i className="fas fa-user-circle" />
           <span>{guestLabel}</span>

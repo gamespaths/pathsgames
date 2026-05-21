@@ -8,6 +8,7 @@ import games.paths.core.port.auth.GuestAuthPort;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +31,12 @@ import java.util.Map;
 public class GuestAuthController {
 
     private final GuestAuthPort guestAuthPort;
+    private final boolean testEndpointsEnabled;
 
-    public GuestAuthController(GuestAuthPort guestAuthPort) {
+    public GuestAuthController(GuestAuthPort guestAuthPort,
+                               @Value("${game.dev.test-endpoints-enabled:false}") boolean testEndpointsEnabled) {
         this.guestAuthPort = guestAuthPort;
+        this.testEndpointsEnabled = testEndpointsEnabled;
     }
 
     /**
@@ -40,10 +44,17 @@ public class GuestAuthController {
      * Creates a new anonymous guest session.
      * No request body required — the server generates the identity.
      * The refreshToken and guestCookieToken are set as HttpOnly cookies.
+     *
+     * <p>The optional {@code X-Test-Marker} header tags the generated guest so
+     * it can later be removed by {@code POST /api/dev/cleanup}. It is honoured
+     * only when dev test endpoints are enabled, and ignored in production.</p>
      */
     @PostMapping("/guest")
-    public ResponseEntity<GuestLoginResponse> createGuestSession(HttpServletResponse httpResponse) {
-        GuestSession session = guestAuthPort.createGuestSession();
+    public ResponseEntity<GuestLoginResponse> createGuestSession(
+            @RequestHeader(value = "X-Test-Marker", required = false) String testMarker,
+            HttpServletResponse httpResponse) {
+        String marker = testEndpointsEnabled ? testMarker : null;
+        GuestSession session = guestAuthPort.createGuestSession(marker);
 
         // Set tokens in HttpOnly cookies (invisible to JavaScript)
         CookieHelper.setRefreshTokenCookie(httpResponse, session.getRefreshToken());

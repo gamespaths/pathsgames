@@ -33,7 +33,7 @@ class GuestAuthControllerTest {
         @BeforeEach
         void setup() {
                 guestAuthPort = mock(GuestAuthPort.class);
-                mockMvc = MockMvcBuilders.standaloneSetup(new GuestAuthController(guestAuthPort)).build();
+                mockMvc = MockMvcBuilders.standaloneSetup(new GuestAuthController(guestAuthPort, true)).build();
         }
 
         @Test
@@ -48,7 +48,7 @@ class GuestAuthControllerTest {
                                 .guestCookieToken("cookie-token-123")
                                 .build();
 
-                when(guestAuthPort.createGuestSession()).thenReturn(session);
+                when(guestAuthPort.createGuestSession(any())).thenReturn(session);
 
                 MvcResult result = mockMvc.perform(post("/api/auth/guest"))
                                 .andExpect(status().isCreated())
@@ -136,10 +136,52 @@ class GuestAuthControllerTest {
                                 .guestCookieToken("cookie")
                                 .build();
 
-                when(guestAuthPort.createGuestSession()).thenReturn(session);
+                when(guestAuthPort.createGuestSession(any())).thenReturn(session);
 
                 mockMvc.perform(post("/api/auth/guest"))
                                 .andExpect(status().isCreated())
                                 .andExpect(content().contentTypeCompatibleWith("application/json"));
+        }
+
+        @Test
+        void createGuestSession_shouldForwardTestMarkerHeaderWhenDevEnabled() throws Exception {
+                GuestSession session = GuestSession.builder()
+                                .userUuid("uuid")
+                                .username("robottest_uuid1234")
+                                .accessToken("token")
+                                .refreshToken("refresh")
+                                .accessTokenExpiresAt(1700000000000L)
+                                .refreshTokenExpiresAt(1700600000000L)
+                                .guestCookieToken("cookie")
+                                .build();
+                when(guestAuthPort.createGuestSession(any())).thenReturn(session);
+
+                mockMvc.perform(post("/api/auth/guest").header("X-Test-Marker", "robottest"))
+                                .andExpect(status().isCreated());
+
+                // The dev-enabled controller forwards the marker to the domain port.
+                verify(guestAuthPort).createGuestSession("robottest");
+        }
+
+        @Test
+        void createGuestSession_shouldIgnoreTestMarkerHeaderWhenDevDisabled() throws Exception {
+                MockMvc disabledMvc = MockMvcBuilders
+                                .standaloneSetup(new GuestAuthController(guestAuthPort, false)).build();
+                GuestSession session = GuestSession.builder()
+                                .userUuid("uuid")
+                                .username("guest_uuid1234")
+                                .accessToken("token")
+                                .refreshToken("refresh")
+                                .accessTokenExpiresAt(1700000000000L)
+                                .refreshTokenExpiresAt(1700600000000L)
+                                .guestCookieToken("cookie")
+                                .build();
+                when(guestAuthPort.createGuestSession(any())).thenReturn(session);
+
+                disabledMvc.perform(post("/api/auth/guest").header("X-Test-Marker", "robottest"))
+                                .andExpect(status().isCreated());
+
+                // With dev endpoints disabled the marker is dropped (null forwarded).
+                verify(guestAuthPort).createGuestSession(isNull());
         }
 }

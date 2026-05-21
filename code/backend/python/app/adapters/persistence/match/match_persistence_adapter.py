@@ -162,6 +162,64 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 for r in rows
             ]
 
+    def delete_matches_by_name_like(self, name_like_pattern: str) -> int:
+        # Locate the matching matches, remove their derived runtime state
+        # (locations + registry) first, then delete the matches themselves.
+        with self.session_factory() as session:
+            ids = [
+                row[0]
+                for row in session.query(GamingMatchEntity.id).filter(
+                    GamingMatchEntity.name.like(name_like_pattern)
+                ).all()
+            ]
+            if not ids:
+                return 0
+            session.query(GamingStateLocationEntity).filter(
+                GamingStateLocationEntity.id_match.in_(ids)
+            ).delete(synchronize_session=False)
+            session.query(GamingStateRegistryEntity).filter(
+                GamingStateRegistryEntity.id_match.in_(ids)
+            ).delete(synchronize_session=False)
+            deleted_count = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.name.like(name_like_pattern)
+            ).delete(synchronize_session=False)
+            session.commit()
+            return deleted_count
+
+    def update_match_fields(self, uuid: str, status: Optional[str], name: Optional[str]) -> bool:
+        with self.session_factory() as session:
+            entity = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.uuid == uuid
+            ).first()
+            if entity is None:
+                return False
+            if status is not None:
+                entity.status = status
+            if name is not None:
+                entity.name = name
+            entity.ts_update = _now_iso()
+            session.commit()
+            return True
+
+    def delete_match_by_uuid(self, uuid: str) -> bool:
+        with self.session_factory() as session:
+            entity = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.uuid == uuid
+            ).first()
+            if entity is None:
+                return False
+            match_id = entity.id
+            # Remove the derived runtime state (locations + registry) first.
+            session.query(GamingStateLocationEntity).filter(
+                GamingStateLocationEntity.id_match == match_id
+            ).delete(synchronize_session=False)
+            session.query(GamingStateRegistryEntity).filter(
+                GamingStateRegistryEntity.id_match == match_id
+            ).delete(synchronize_session=False)
+            session.delete(entity)
+            session.commit()
+            return True
+
     @staticmethod
     def _match_to_dict(entity: GamingMatchEntity) -> Dict[str, Any]:
         return {

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Request, Response
+from fastapi import APIRouter, HTTPException, status, Request, Response, Header
 from pydantic import BaseModel
 from typing import Optional
 from app.core.ports.auth.guest_auth_port import GuestAuthPort
@@ -11,10 +11,12 @@ class GuestResumeRequest(BaseModel):
     guestCookieToken: Optional[str] = None
 
 class GuestAuthController:
-    def __init__(self, guest_auth_port: GuestAuthPort, jwt_port: JwtPort, token_persistence: TokenPersistencePort):
+    def __init__(self, guest_auth_port: GuestAuthPort, jwt_port: JwtPort, token_persistence: TokenPersistencePort,
+                 test_endpoints_enabled: bool = False):
         self.guest_auth_port = guest_auth_port
         self.jwt_port = jwt_port
         self.token_persistence = token_persistence
+        self.test_endpoints_enabled = test_endpoints_enabled
         self.router = APIRouter(prefix="/api/auth/guest")
         self.router.add_api_route("", self.create_guest, methods=["POST"], status_code=status.HTTP_201_CREATED)
         self.router.add_api_route("/resume", self.resume_guest, methods=["POST"])
@@ -67,8 +69,13 @@ class GuestAuthController:
 
         return response
 
-    def create_guest(self, request: Request):
-        session = self.guest_auth_port.create_guest_session()
+    def create_guest(self, request: Request,
+                     x_test_marker: Optional[str] = Header(default=None)):
+        # The X-Test-Marker header tags the guest as test data so it can be
+        # removed by POST /api/dev/cleanup. Honoured only when dev test
+        # endpoints are enabled; ignored in production.
+        marker = x_test_marker if self.test_endpoints_enabled else None
+        session = self.guest_auth_port.create_guest_session(marker)
         response = self._process_session_response(session)
         response.status_code = status.HTTP_201_CREATED
         return response

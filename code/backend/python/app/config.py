@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
     port: int = 8042
-    version: str = "0.19.10"  
+    version: str = "0.19.12"  
     
 
     # >0.12.5 change version here
@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     jwt_secret: str = "PathsGamesDevSecret2026_MustBeAtLeast32Chars!"
     access_token_minutes: int = 30
     refresh_token_days: int = 7
+
+    # Dev-only test endpoints: POST /api/dev/cleanup and the optional
+    # X-Test-Marker header on POST /api/auth/guest. Disable in production by
+    # setting the env var DEV_TEST_ENDPOINTS_ENABLED=false.
+    dev_test_endpoints_enabled: bool = True
 
     # CORS — comma-separated list of allowed origins, or "*" for all
     cors_allowed_origins: str = "*"

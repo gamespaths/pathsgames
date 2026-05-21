@@ -325,4 +325,46 @@ class MatchCommandServiceTest extends TestCase
         $this->service->createMatch(new MatchCreateCommand('u', 's', 'd'));
         $this->assertSame(1, $savedArg['single_player']);
     }
+
+    // ── admin update / delete ─────────────────────────────────────────────────
+
+    public function testUpdateMatchValidStatusReturnsUpdated(): void
+    {
+        $this->persistence->method('updateMatchFields')->willReturn(true);
+        $this->assertSame('UPDATED', $this->service->updateMatch('m1', 'ENDED', 'n'));
+    }
+
+    public function testUpdateMatchInvalidStatusReturnsInvalidStatus(): void
+    {
+        $this->persistence->expects($this->never())->method('updateMatchFields');
+        $this->assertSame('INVALID_STATUS', $this->service->updateMatch('m1', 'BOGUS', null));
+    }
+
+    public function testUpdateMatchNotFound(): void
+    {
+        $this->persistence->method('updateMatchFields')->willReturn(false);
+        $this->assertSame('NOT_FOUND', $this->service->updateMatch('m1', null, 'n'));
+    }
+
+    public function testDeleteMatchTerminalStatusDeletes(): void
+    {
+        $this->persistence->method('findMatchByUuid')
+            ->willReturn(['uuid' => 'm1', 'status' => 'ENDED']);
+        $this->persistence->expects($this->once())->method('deleteMatchByUuid')->with('m1');
+        $this->assertSame('DELETED', $this->service->deleteMatch('m1'));
+    }
+
+    public function testDeleteMatchNonTerminalReturnsNotStopped(): void
+    {
+        $this->persistence->method('findMatchByUuid')
+            ->willReturn(['uuid' => 'm1', 'status' => 'RUNNING']);
+        $this->persistence->expects($this->never())->method('deleteMatchByUuid');
+        $this->assertSame('NOT_STOPPED', $this->service->deleteMatch('m1'));
+    }
+
+    public function testDeleteMatchUnknownReturnsNotFound(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn(null);
+        $this->assertSame('NOT_FOUND', $this->service->deleteMatch('m1'));
+    }
 }

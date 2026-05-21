@@ -59,4 +59,50 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         }
         registryRepository.saveAll(entities);
     }
+
+    @Override
+    public int deleteMatchesByNameLike(String nameLikePattern) {
+        // Locate the matching matches, remove their derived runtime state
+        // (locations + registry) first, then delete the matches themselves.
+        // Explicit child deletion keeps the operation correct on SQLite, where
+        // foreign-key cascades are not enforced.
+        List<Long> matchIds = matchRepository.findMatchIdsByNameLike(nameLikePattern);
+        if (matchIds.isEmpty()) {
+            return 0;
+        }
+        locationsRepository.deleteByMatchIdIn(matchIds);
+        registryRepository.deleteByMatchIdIn(matchIds);
+        return matchRepository.deleteByNameLike(nameLikePattern);
+    }
+
+    @Override
+    public boolean updateMatchFields(String uuid, String status, String name) {
+        Optional<GamingMatchEntity> opt = matchRepository.findByUuid(uuid);
+        if (opt.isEmpty()) {
+            return false;
+        }
+        GamingMatchEntity match = opt.get();
+        if (status != null) {
+            match.setStatus(status);
+        }
+        if (name != null) {
+            match.setName(name);
+        }
+        matchRepository.save(match);
+        return true;
+    }
+
+    @Override
+    public boolean deleteMatchByUuid(String uuid) {
+        Optional<GamingMatchEntity> opt = matchRepository.findByUuid(uuid);
+        if (opt.isEmpty()) {
+            return false;
+        }
+        // Remove the derived runtime state (locations + registry) first.
+        List<Long> matchIds = List.of(opt.get().getId());
+        locationsRepository.deleteByMatchIdIn(matchIds);
+        registryRepository.deleteByMatchIdIn(matchIds);
+        matchRepository.delete(opt.get());
+        return true;
+    }
 }

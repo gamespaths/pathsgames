@@ -60,7 +60,25 @@ class MatchQueryService implements MatchQueryPort
         if ($match === null || (int)$match['id_user_creator'] !== (int)$user['id']) {
             return null;
         }
+        return $this->buildDetail($match, $user['uuid']);
+    }
 
+    public function getMatchInfoForAdmin(string $matchUuid): ?MatchDetail
+    {
+        if ($matchUuid === '') {
+            return null;
+        }
+        $match = $this->persistencePort->findMatchByUuid($matchUuid);
+        if ($match === null) {
+            return null;
+        }
+        // Admin view — no ownership check. userCreatorUuid is left null,
+        // consistent with the admin list (listAllMatches).
+        return $this->buildDetail($match, null);
+    }
+
+    private function buildDetail(array $match, ?string $userCreatorUuid): MatchDetail
+    {
         $story = $this->storyReadPort->findStoryById((int)$match['id_story']);
         $difficulty = $story !== null
             ? $this->storyReadPort->findDifficultyById((int)$match['id_story'], (int)$match['id_difficulty'])
@@ -106,7 +124,7 @@ class MatchQueryService implements MatchQueryPort
         return new MatchDetail(
             match: $this->toSummary(
                 $match,
-                $user['uuid'],
+                $userCreatorUuid,
                 $story['uuid'] ?? null,
                 $difficulty['uuid'] ?? null
             ),

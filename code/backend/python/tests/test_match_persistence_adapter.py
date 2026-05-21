@@ -192,3 +192,49 @@ def test_user_access_adapter(session_factory):
         "role": "PLAYER",
         "state": 2,
     }
+
+
+# ── admin update / delete ─────────────────────────────────────────────────────
+
+def test_update_match_fields(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                "name": "old", "status": "CREATED"})
+    assert adapter.update_match_fields(saved["uuid"], "ENDED", "new") is True
+    reloaded = adapter.find_match_by_uuid(saved["uuid"])
+    assert reloaded["status"] == "ENDED"
+    assert reloaded["name"] == "new"
+
+
+def test_update_match_fields_null_fields_keep_values(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                "name": "keep", "status": "RUNNING"})
+    adapter.update_match_fields(saved["uuid"], None, None)
+    reloaded = adapter.find_match_by_uuid(saved["uuid"])
+    assert reloaded["status"] == "RUNNING"
+    assert reloaded["name"] == "keep"
+
+
+def test_update_match_fields_unknown_uuid(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    assert adapter.update_match_fields("nope", "ENDED", None) is False
+
+
+def test_delete_match_by_uuid_removes_match_and_children(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    saved = adapter.save_match({"id_story": 1, "id_difficulty": 1, "id_user_creator": 1,
+                                "name": "m", "status": "ENDED"})
+    adapter.save_locations([{"id_match": saved["id"], "id_location": 1}])
+    adapter.save_registry([{"id": 1, "id_match": saved["id"], "key": "k"}])
+
+    assert adapter.delete_match_by_uuid(saved["uuid"]) is True
+
+    assert adapter.find_match_by_uuid(saved["uuid"]) is None
+    assert adapter.find_locations_by_match_id(saved["id"]) == []
+    assert adapter.find_registry_by_match_id(saved["id"]) == []
+
+
+def test_delete_match_by_uuid_unknown(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    assert adapter.delete_match_by_uuid("nope") is False

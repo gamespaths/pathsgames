@@ -245,4 +245,50 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
         $this->assertSame('alice', $user['username']);
         $this->assertSame(2, $user['state']);
     }
+
+    // ── admin update / delete ─────────────────────────────────────────────────
+
+    public function testUpdateMatchFields(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $saved = $adapter->saveMatch([
+            'id_story' => 1, 'id_difficulty' => 1, 'id_user_creator' => 1,
+            'name' => 'old', 'status' => 'CREATED',
+        ]);
+
+        $this->assertTrue($adapter->updateMatchFields($saved['uuid'], 'ENDED', 'new'));
+
+        $reloaded = $adapter->findMatchByUuid($saved['uuid']);
+        $this->assertSame('ENDED', $reloaded['status']);
+        $this->assertSame('new', $reloaded['name']);
+    }
+
+    public function testUpdateMatchFieldsUnknownUuid(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $this->assertFalse($adapter->updateMatchFields('nope', 'ENDED', null));
+    }
+
+    public function testDeleteMatchByUuidRemovesMatchAndChildren(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $saved = $adapter->saveMatch([
+            'id_story' => 1, 'id_difficulty' => 1, 'id_user_creator' => 1,
+            'name' => 'm', 'status' => 'ENDED',
+        ]);
+        $adapter->saveLocations([['id_match' => (int)$saved['id'], 'id_location' => 1]]);
+        $adapter->saveRegistry([['id' => 1, 'id_match' => (int)$saved['id'], 'key' => 'k']]);
+
+        $this->assertTrue($adapter->deleteMatchByUuid($saved['uuid']));
+
+        $this->assertNull($adapter->findMatchByUuid($saved['uuid']));
+        $this->assertCount(0, $adapter->findLocationsByMatchId((int)$saved['id']));
+        $this->assertCount(0, $adapter->findRegistryByMatchId((int)$saved['id']));
+    }
+
+    public function testDeleteMatchByUuidUnknown(): void
+    {
+        $adapter = new MatchMysqlPersistenceAdapter($this->pdo);
+        $this->assertFalse($adapter->deleteMatchByUuid('nope'));
+    }
 }

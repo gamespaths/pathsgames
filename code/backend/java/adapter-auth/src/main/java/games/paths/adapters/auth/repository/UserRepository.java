@@ -30,6 +30,14 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query("DELETE FROM UserEntity u WHERE u.state = :state AND u.guestExpiresAt < :now")
     int deleteExpiredGuests(@Param("state") Integer state, @Param("now") String now);
 
+    /**
+     * Delete all guest users whose username matches the given SQL LIKE pattern.
+     * Used by the dev-only test-data cleanup. Returns the count of deleted rows.
+     */
+    @Modifying
+    @Query("DELETE FROM UserEntity u WHERE u.state = :state AND u.username LIKE :pattern")
+    int deleteGuestsByUsernameLike(@Param("state") Integer state, @Param("pattern") String pattern);
+
     // === Admin queries ===
 
     /**

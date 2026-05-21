@@ -27,6 +27,7 @@ vi.mock('../context/ServerContext', () => ({
   MOCK_SERVER: 'mock',
 }))
 
+const mockOpenGuestModal = vi.fn()
 vi.mock('../context/GuestUserContext', () => ({
   useGuestUser: () => ({
     user: { userUuid: 'mock-uuid-0001', username: 'guest_mock0001' },
@@ -34,6 +35,9 @@ vi.mock('../context/GuestUserContext', () => ({
     error: null,
     refreshGuest: vi.fn(),
     clearGuest: vi.fn(),
+    openGuestModal: mockOpenGuestModal,
+    guestModalOpen: false,
+    closeGuestModal: vi.fn(),
   }),
 }))
 
@@ -68,11 +72,11 @@ describe('Navbar', () => {
     expect(screen.getByText('guest_mock0001')).toBeInTheDocument()
   })
 
-  it('guest button targets the guest user modal', () => {
+  it('guest button calls openGuestModal on click', () => {
     renderNavbar()
     const btn = screen.getByText('guest_mock0001').closest('button')
-    expect(btn).toHaveAttribute('data-bs-toggle', 'modal')
-    expect(btn).toHaveAttribute('data-bs-target', '#guestUserModal')
+    fireEvent.click(btn)
+    expect(mockOpenGuestModal).toHaveBeenCalledOnce()
   })
 
   it('does not show exit button on home page', () => {

@@ -3,6 +3,7 @@ Unit tests for auth/handler.py.
 db_utils functions are patched so no real DynamoDB calls are made.
 """
 import json
+import os
 import pytest
 from unittest.mock import patch, MagicMock
 from helpers import make_event, admin_event
@@ -84,6 +85,25 @@ def test_create_guest_sets_cookies():
     assert 'SameSite=None' in cookie_str
     assert 'Secure' in cookie_str
     assert 'SameSite=Lax' not in cookie_str
+
+
+def test_create_guest_with_test_marker_uses_marker_prefix():
+    with patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch.dict(os.environ, {'ENV': 'dev'}):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/guest', headers={'x-test-marker': 'robottest'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    assert _body(result)['username'].startswith('robottest_')
+
+
+def test_create_guest_ignores_test_marker_when_not_dev():
+    with patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch.dict(os.environ, {'ENV': 'prod'}):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/guest', headers={'x-test-marker': 'robottest'})
+        result = lambda_handler(event, {})
+    assert _body(result)['username'].startswith('guest_')
 
 
 # ── resume_guest ──────────────────────────────────────────────────────────────

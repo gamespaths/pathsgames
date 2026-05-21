@@ -1,60 +1,49 @@
+import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import { useGuestUser } from '../../context/GuestUserContext'
+import Book from '../book/Book'
 import BookPageContent from '../book/BookPageContent'
+import UserMatchesList from '../../features/matches/UserMatchesList'
 
 /**
- * GuestUserModal — shows the current guest identity as a BookPageContent card.
+ * GuestUserModal — book-style overlay showing the guest identity on the left
+ * page and the user's match history on the right page.
  *
- * Title:        guest username
- * Description:  i18n `modals.guestUser.body` (HTML, rendered with the same
- *               dangerouslySetInnerHTML path used for stories). Includes a
- *               placeholder text about played matches until match history is
- *               wired up.
- *
- * Triggered from `Navbar.jsx` (`data-bs-target="#guestUserModal"`).
+ * Clicking (i) on a MatchCard updates the left page with the story card.
+ * A back-arrow in BookPageContent returns to the user identity card.
  */
 export default function GuestUserModal() {
   const { t } = useTranslation()
-  const { user, loading } = useGuestUser()
+  const { user, loading, guestModalOpen, closeGuestModal } = useGuestUser()
+  const [previewInfo, setPreviewInfo] = useState(null) // { card, story, statusLabel, match }
 
-  const username = user?.username ?? t('modals.guestUser.anonymous')
+  if (!guestModalOpen) return null
+
+  const username    = user?.username ?? t('modals.guestUser.anonymous')
   const description = t('modals.guestUser.body')
+  const userCard    = { title: username, description, urlImage: null, linkCopyright: null }
 
-  const card = {
-    title: username,
-    description,
-    urlImage: null,
-    linkCopyright: null,
-  }
+  const leftPage = previewInfo
+    ? (
+      <BookPageContent
+        card={previewInfo.card ?? { title: previewInfo.story?.title ?? t('matches.unknownStory'), description: previewInfo.statusLabel }}
+        story={previewInfo.story}
+        loading={false}
+        onClose={() => setPreviewInfo(null)}
+      />
+    )
+    : <BookPageContent card={userCard} loading={loading} />
 
   return (
-    <div className="modal fade" id="guestUserModal" tabIndex="-1" aria-hidden="true">
-      <div className="modal-dialog modal-lg modal-dialog-centered">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
-              <i className="fas fa-user-circle me-2" />{t('modals.guestUser.title')}
-            </h5>
-            <button type="button" className="modal-custom-close" data-bs-dismiss="modal">
-              <i className="fas fa-times" />
-            </button>
-          </div>
-          <div className="modal-body">
-            <BookPageContent card={card} loading={loading} />
-            {/*user?.userUuid && (
-              <p className="guest-user-uuid">
-                <i className="fas fa-fingerprint me-1" />
-                <span>{t('modals.guestUser.uuidLabel')}:</span> <code>{user.userUuid}</code>
-              </p>
-            )*/}
-          </div>
-          <div className="modal-footer">
-            <button type="button" className="modal-close-btn" data-bs-dismiss="modal">
-              {t('modals.close')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Book
+      onClose={closeGuestModal}
+      left={leftPage}
+      right={
+        <UserMatchesList
+          accessToken={user?.accessToken}
+          onPreviewCard={setPreviewInfo}
+        />
+      }
+    />
   )
 }

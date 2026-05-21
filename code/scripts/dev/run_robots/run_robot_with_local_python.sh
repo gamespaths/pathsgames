@@ -58,15 +58,22 @@ echo "Running Robot tests!"
 
 cd "$PROJECT_ROOT" && python3 -m venv .venv
 
-cd "$PROJECT_ROOT/code/tests/robot" && \
-"$PROJECT_ROOT/.venv/bin/pip" install -q -r requirements.txt && \
-ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/
+cd "$PROJECT_ROOT/code/tests/robot" && "$PROJECT_ROOT/.venv/bin/pip" install -q -r requirements.txt
+ROBOT_EXIT=0
+ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" "$PROJECT_ROOT/.venv/bin/robot" --variablefile variables/dev.yaml --outputdir reports-local-python/ tests/ || ROBOT_EXIT=$?
+
+# Remove the rows created by this Robot run (guests + matches tagged "robottest"),
+# preserving every other row. Runs whether the tests passed or failed.
+echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
+curl -s -X POST http://localhost:8042/api/dev/cleanup || echo "  cleanup request failed"
+echo
 
 # stop local server
 kill $SERVER_PID || true
 echo "Kill all process using 8042 port"
-fuser -k 8042/tcp || true   
+fuser -k 8042/tcp || true
 
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-python/"
+exit $ROBOT_EXIT
 

@@ -26,6 +26,8 @@ Response shapes follow:
 """
 
 import json
+import os
+import re
 import uuid
 import time
 import decimal
@@ -219,11 +221,32 @@ def lambda_handler(event, context):
 
 # ─── endpoint handlers ────────────────────────────────────────────────────────
 
+ROBOT_TEST_MARKER_MAX_LEN = 30
+
+
+def _test_marker(event):
+    """Returns the sanitized X-Test-Marker header value, or None.
+
+    The header tags the guest as test data so it can be removed by
+    POST /api/dev/cleanup. Honoured only when ENV=dev, so production guests
+    are never affected.
+    """
+    if os.environ.get("ENV", "dev") != "dev":
+        return None
+    headers = event.get('headers') or {}
+    raw = headers.get('x-test-marker') or headers.get('X-Test-Marker')
+    if not raw or not raw.strip():
+        return None
+    sanitized = re.sub(r'[^a-z0-9]', '', raw.lower())
+    return sanitized[:ROBOT_TEST_MARKER_MAX_LEN] or None
+
+
 def create_guest(event):
     now       = _now_ms()
     user_uuid = str(uuid.uuid4())
     guest_tok = str(uuid.uuid4())
-    username  = f'guest_{user_uuid[:8]}'
+    marker    = _test_marker(event)
+    username  = (f'{marker}_' if marker else 'guest_') + user_uuid[:8]
 
     db_utils.put_item({
         'PK':              f'USER#{user_uuid}',

@@ -8,6 +8,7 @@ import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchCreateCommand;
+import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.MatchCommandPort;
@@ -128,6 +129,29 @@ public class MatchCommandService implements MatchCommandPort {
         persistencePort.saveRegistry(registryRows);
 
         return toSummary(saved, story, difficulty, user.uuid());
+    }
+
+    @Override
+    public UpdateOutcome updateMatch(String uuidMatch, String status, String name) {
+        if (status != null && !MatchStatuses.isValid(status)) {
+            return UpdateOutcome.INVALID_STATUS;
+        }
+        boolean found = persistencePort.updateMatchFields(uuidMatch, status, name);
+        return found ? UpdateOutcome.UPDATED : UpdateOutcome.NOT_FOUND;
+    }
+
+    @Override
+    public DeleteOutcome deleteMatch(String uuidMatch) {
+        Optional<GamingMatchEntity> match = persistencePort.findMatchByUuid(uuidMatch);
+        if (match.isEmpty()) {
+            return DeleteOutcome.NOT_FOUND;
+        }
+        // Only a stopped (terminal) match may be deleted.
+        if (!MatchStatuses.isTerminal(match.get().getStatus())) {
+            return DeleteOutcome.NOT_STOPPED;
+        }
+        persistencePort.deleteMatchByUuid(uuidMatch);
+        return DeleteOutcome.DELETED;
     }
 
     private void applyKeyDefaultValue(GamingStateRegistryEntity r, String rawValue) {

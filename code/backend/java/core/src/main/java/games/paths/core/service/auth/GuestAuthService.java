@@ -20,6 +20,8 @@ public class GuestAuthService implements GuestAuthPort {
     private static final String GUEST_ROLE = "PLAYER";
     private static final String GUEST_USERNAME_PREFIX = "guest_";
     private static final int GUEST_SESSION_DAYS = 180;
+    /** Maximum length of a sanitized test marker used as a username prefix. */
+    private static final int MAX_MARKER_LENGTH = 30;
 
     private final JwtPort jwtPort;
     private final GuestPersistencePort persistencePort;
@@ -30,10 +32,10 @@ public class GuestAuthService implements GuestAuthPort {
     }
 
     @Override
-    public GuestSession createGuestSession() {
+    public GuestSession createGuestSession(String testMarker) {
         // 1. Generate anonymous UUID identity
         String userUuid = UUID.randomUUID().toString();
-        String username = GUEST_USERNAME_PREFIX + userUuid.substring(0, 8);
+        String username = resolveUsernamePrefix(testMarker) + userUuid.substring(0, 8);
         String guestCookieToken = UUID.randomUUID().toString();
 
         // 2. Calculate guest session expiration (6 months / 180 days)
@@ -121,5 +123,30 @@ public class GuestAuthService implements GuestAuthPort {
     @Override
     public int cleanupExpiredGuestSessions() {
         return persistencePort.deleteExpiredGuests();
+    }
+
+    /**
+     * Resolves the username prefix for a new guest.
+     *
+     * <p>With a non-blank test marker (only forwarded by the REST adapter when
+     * dev endpoints are enabled) the sanitized marker becomes the prefix, so the
+     * guest can later be removed by the test-data cleanup. Otherwise the
+     * standard {@code guest_} prefix is used.</p>
+     *
+     * @param testMarker the raw marker, or {@code null}
+     * @return the username prefix, always ending with an underscore
+     */
+    private String resolveUsernamePrefix(String testMarker) {
+        if (testMarker == null || testMarker.isBlank()) {
+            return GUEST_USERNAME_PREFIX;
+        }
+        String sanitized = testMarker.toLowerCase().replaceAll("[^a-z0-9]", "");
+        if (sanitized.isEmpty()) {
+            return GUEST_USERNAME_PREFIX;
+        }
+        if (sanitized.length() > MAX_MARKER_LENGTH) {
+            sanitized = sanitized.substring(0, MAX_MARKER_LENGTH);
+        }
+        return sanitized + "_";
     }
 }

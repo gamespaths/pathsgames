@@ -22,6 +22,49 @@ public interface MatchCommandPort {
     MatchSummary createMatch(MatchCreateCommand command);
 
     /**
+     * Outcome of an admin match update ({@code PUT}/{@code POST} actions).
+     */
+    enum UpdateOutcome {
+        /** The match was updated. */
+        UPDATED,
+        /** No match exists with the given uuid. */
+        NOT_FOUND,
+        /** The requested status is not one of the valid match statuses. */
+        INVALID_STATUS
+    }
+
+    /**
+     * Updates the admin-editable fields of a match (status and/or name).
+     *
+     * @param uuidMatch the match uuid
+     * @param status    the new status, or {@code null} to leave it unchanged
+     * @param name      the new name, or {@code null} to leave it unchanged
+     * @return the outcome of the update
+     */
+    UpdateOutcome updateMatch(String uuidMatch, String status, String name);
+
+    /**
+     * Outcome of an admin match deletion.
+     */
+    enum DeleteOutcome {
+        /** The match (and its runtime state) was deleted. */
+        DELETED,
+        /** No match exists with the given uuid. */
+        NOT_FOUND,
+        /** The match is not in a terminal (stopped) status, so it cannot be deleted. */
+        NOT_STOPPED
+    }
+
+    /**
+     * Deletes a match together with its derived runtime state. Only matches in
+     * a terminal status (ENDED / GAMEOVER) may be deleted.
+     *
+     * @param uuidMatch the match uuid
+     * @return the outcome of the deletion
+     */
+    DeleteOutcome deleteMatch(String uuidMatch);
+
+    /**
      * MatchCreationException - thrown when a match cannot be created
      * because of a domain error. The {@link #getCode()} value drives the
      * HTTP status mapping inside the controller layer.

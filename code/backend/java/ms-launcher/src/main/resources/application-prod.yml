@@ -29,3 +29,7 @@ game:
   auth:
     cors:
       allowed-origins: https://paths.games,https://www.paths.games,https://pathsgames.com
+  dev:
+    # Dev-only endpoints (POST /api/dev/cleanup) and the X-Test-Marker header
+    # are disabled in production: the cleanup endpoint returns 403.
+    test-endpoints-enabled: false

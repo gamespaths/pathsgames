@@ -63,6 +63,14 @@ Resources:
       RouteKey: "POST /api/dev/seed"
       Target: !Sub "integrations/${SeedIntegration}"
 
+  # POST /api/dev/cleanup — served by the same function (routes by path).
+  CleanupRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/dev/cleanup"
+      Target: !Sub "integrations/${SeedIntegration}"
+
   SeedPermission:
     Type: AWS::Lambda::Permission
     Properties:

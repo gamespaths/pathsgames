@@ -33,6 +33,11 @@ HEADERS = {"Content-Type": "application/json"}
 _BANNED_STATES = {3, 4}
 _MAINTENANCE_VALUE = "MAINTENANCE"
 
+# Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
+# ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
+MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
+TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
+
 
 class _DecimalEncoder(json.JSONEncoder):
     def default(self, obj):  # pragma: no cover - exercised via _dumps
@@ -280,6 +285,54 @@ def _get_match_info(user, match_uuid):
     return _ok(_detail_from_item(item))
 
 
+# ─── admin match control ─────────────────────────────────────────────────────
+
+def _get_admin_match_info(match_uuid):
+    """Admin match detail — full runtime state without the per-user ownership
+    check enforced by GET /api/match/{uuid}/info."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    return _ok(_detail_from_item(item))
+
+
+def _list_match_statuses():
+    """The valid match statuses, each flagged ``terminal`` when a match in that
+    status is stopped (deletable)."""
+    return _ok([
+        {"value": s, "terminal": s in TERMINAL_STATUSES} for s in MATCH_STATUSES
+    ])
+
+
+def _update_match(match_uuid, status, name):
+    """Admin update of a match's status and/or name."""
+    if status is not None and status not in MATCH_STATUSES:
+        return _err(400, 'INVALID_STATUS', f'status must be one of {MATCH_STATUSES}')
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    if status is not None:
+        item['status'] = status
+    if name is not None:
+        item['name'] = name
+    db_utils.put_item(item)
+    return _ok({'status': 'UPDATED', 'uuid': match_uuid})
+
+
+def _delete_match(match_uuid):
+    """Admin deletion of a match. Only terminal (stopped) matches may be removed."""
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    if str(item.get('status')) not in TERMINAL_STATUSES:
+        return _err(409, 'MATCH_NOT_STOPPED',
+                    'Only stopped matches (ENDED or GAMEOVER) can be deleted')
+    db_utils.delete_item(item['PK'], item.get('SK', 'METADATA'))
+    return _ok({'status': 'DELETED', 'uuid': match_uuid})
+
+
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -296,10 +349,46 @@ def lambda_handler(event, context):
     if err is not None:
         return err
 
-    if path == '/api/admin/matches' and method == 'GET':
+    # ── admin match routes (all require the ADMIN role) ──
+    if path.startswith('/api/admin/matches'):
         if str(user.get('role', '')).upper() != 'ADMIN':
             return _err(403, 'FORBIDDEN', 'Admin access required')
-        return _list_all_matches()
+
+        if path == '/api/admin/matches' and method == 'GET':
+            return _list_all_matches()
+        if path == '/api/admin/matches/statuses' and method == 'GET':
+            return _list_match_statuses()
+
+        # Parameterised routes: /api/admin/matches/{uuid}[/action]
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')
+            match_uuid = segments[4] if len(segments) > 4 else ''
+
+        if path.endswith('/info') and method == 'GET':
+            return _get_admin_match_info(match_uuid)
+        if path.endswith('/stop') and method == 'POST':
+            return _update_match(match_uuid, 'ENDED', None)
+        if path.endswith('/pause') and method == 'POST':
+            return _update_match(match_uuid, 'PAUSED', None)
+        if path.endswith('/resume') and method == 'POST':
+            return _update_match(match_uuid, 'RUNNING', None)
+        if method == 'PUT':
+            try:
+                body = json.loads(event.get('body') or '{}')
+            except (TypeError, ValueError):
+                return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+            status_val = body.get('status')
+            name_val = body.get('name')
+            if status_val is None and name_val is None:
+                return _err(400, 'INVALID_INPUT',
+                            'At least one of status or name must be provided')
+            return _update_match(match_uuid, status_val, name_val)
+        if method == 'DELETE':
+            return _delete_match(match_uuid)
+
+        return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')
 
     if path == '/api/matches' and method == 'POST':
         try:

@@ -18,15 +18,18 @@ class GuestAuthController
     private GuestAuthPort $guestAuthService;
     private JwtPort $jwtPort;
     private TokenPersistencePort $tokenPersistence;
+    private bool $testEndpointsEnabled;
 
     public function __construct(
         GuestAuthPort $guestAuthService,
         JwtPort $jwtPort,
-        TokenPersistencePort $tokenPersistence
+        TokenPersistencePort $tokenPersistence,
+        bool $testEndpointsEnabled = false
     ) {
         $this->guestAuthService = $guestAuthService;
         $this->jwtPort = $jwtPort;
         $this->tokenPersistence = $tokenPersistence;
+        $this->testEndpointsEnabled = $testEndpointsEnabled;
     }
 
     /**
@@ -81,7 +84,13 @@ class GuestAuthController
 
     public function createGuest(Request $request, Response $response): Response
     {
-        $session = $this->guestAuthService->createGuestSession();
+        // The X-Test-Marker header tags the guest as test data so it can be
+        // removed by POST /api/dev/cleanup. Honoured only when dev test
+        // endpoints are enabled; ignored in production.
+        $marker = $this->testEndpointsEnabled
+            ? ($request->getHeaderLine('X-Test-Marker') ?: null)
+            : null;
+        $session = $this->guestAuthService->createGuestSession($marker);
         $result = $this->processSessionResponse($response, $session);
         
         $newResponse = $result['response'];

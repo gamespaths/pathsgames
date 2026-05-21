@@ -5,10 +5,25 @@ import { MemoryRouter } from 'react-router-dom'
 import MatchesPage from '../../pages/MatchesPage'
 
 vi.mock('../../api/matchApi', () => ({
-  listMatches:  vi.fn(),
-  getMatchInfo: vi.fn(),
+  listMatches:       vi.fn(),
+  getMatchInfo:      vi.fn(),
+  listMatchStatuses: vi.fn(),
+  updateMatch:       vi.fn(),
+  stopMatch:         vi.fn(),
+  pauseMatch:        vi.fn(),
+  resumeMatch:       vi.fn(),
+  deleteMatch:       vi.fn(),
 }))
-import { listMatches, getMatchInfo } from '../../api/matchApi'
+vi.mock('../../api/storyApi', () => ({
+  getStory:     vi.fn(),
+  listEntities: vi.fn(),
+}))
+// MatchDetailModal is a shared component — mock its storyApi deps at the source level above
+import {
+  listMatches, getMatchInfo, listMatchStatuses,
+  updateMatch, stopMatch, deleteMatch,
+} from '../../api/matchApi'
+import { getStory, listEntities } from '../../api/storyApi'
 
 const MOCK_MATCHES = [
   {
@@ -21,6 +36,14 @@ const MOCK_MATCHES = [
     difficultyUuid: 'd2', status: 'RUNNING', singlePlayer: 0,
     currentClock: 12, expCost: 8, tsInsert: '2026-05-19T10:00:00Z',
   },
+]
+
+const MOCK_STATUSES = [
+  { value: 'CREATED',  terminal: false },
+  { value: 'RUNNING',  terminal: false },
+  { value: 'PAUSED',   terminal: false },
+  { value: 'ENDED',    terminal: true },
+  { value: 'GAMEOVER', terminal: true },
 ]
 
 const MOCK_INFO = {
@@ -40,6 +63,12 @@ describe('MatchesPage', () => {
     vi.clearAllMocks()
     listMatches.mockResolvedValue(MOCK_MATCHES)
     getMatchInfo.mockResolvedValue(MOCK_INFO)
+    listMatchStatuses.mockResolvedValue(MOCK_STATUSES)
+    updateMatch.mockResolvedValue({ status: 'UPDATED' })
+    stopMatch.mockResolvedValue({ status: 'UPDATED' })
+    deleteMatch.mockResolvedValue({ status: 'DELETED' })
+    getStory.mockResolvedValue({ uuid: 'story-1-uuid', title: 'The Lost Kingdom', author: 'Admin' })
+    listEntities.mockResolvedValue([])
   })
 
   it('shows loading spinner initially', () => {
@@ -84,6 +113,8 @@ describe('MatchesPage', () => {
     await waitFor(() => expect(getMatchInfo).toHaveBeenCalledWith('m1-uuid-aaaa'))
     expect(await screen.findByText(/Tavern/)).toBeInTheDocument()
     expect(screen.getByText('act_1_done')).toBeInTheDocument()
+    expect(screen.getByText('The Lost Kingdom')).toBeInTheDocument()
+    expect(screen.getByText('Admin')).toBeInTheDocument()
   })
 
   it('shows an error alert when listMatches fails', async () => {
@@ -105,5 +136,46 @@ describe('MatchesPage', () => {
     listMatches.mockResolvedValue([])
     renderPage()
     expect(await screen.findByText('No matches found.')).toBeInTheDocument()
+  })
+
+  it('edits a match status and name', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Edit match')[0])
+    expect(await screen.findByText('Edit match')).toBeInTheDocument()
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'PAUSED')
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() =>
+      expect(updateMatch).toHaveBeenCalledWith('m1-uuid-aaaa', { status: 'PAUSED', name: 'Saturday run' })
+    )
+  })
+
+  it('stops a match after confirmation', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Stop match')[0])
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(stopMatch).toHaveBeenCalledWith('m1-uuid-aaaa'))
+  })
+
+  it('disables delete for a non-terminal match', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    // both seeded matches are CREATED / RUNNING — not deletable
+    screen.getAllByTitle(/Stop the match before deleting/i)
+      .forEach(btn => expect(btn).toBeDisabled())
+  })
+
+  it('deletes a stopped match after confirmation', async () => {
+    listMatches.mockResolvedValue([
+      { ...MOCK_MATCHES[0], status: 'ENDED' },
+    ])
+    renderPage()
+    await screen.findByText('Saturday run')
+    await waitFor(() => expect(listMatchStatuses).toHaveBeenCalled())
+    const deleteBtn = await screen.findByTitle('Delete match')
+    await userEvent.click(deleteBtn)
+    await userEvent.click(screen.getByText('Confirm'))
+    await waitFor(() => expect(deleteMatch).toHaveBeenCalledWith('m1-uuid-aaaa'))
   })
 })

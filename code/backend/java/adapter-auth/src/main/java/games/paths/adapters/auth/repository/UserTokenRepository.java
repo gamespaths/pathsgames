@@ -26,6 +26,15 @@ public interface UserTokenRepository extends JpaRepository<UserTokenEntity, Long
     int deleteTokensOfExpiredGuests(@Param("state") Integer state, @Param("now") String now);
 
     /**
+     * Delete all tokens belonging to guest users whose username matches the
+     * given SQL LIKE pattern. Used by the dev-only test-data cleanup.
+     */
+    @Modifying
+    @Query("DELETE FROM UserTokenEntity t WHERE t.idUser IN " +
+           "(SELECT u.id FROM UserEntity u WHERE u.state = :state AND u.username LIKE :pattern)")
+    int deleteTokensOfGuestsByUsernameLike(@Param("state") Integer state, @Param("pattern") String pattern);
+
+    /**
      * Delete all tokens belonging to a specific user.
      */
     @Modifying

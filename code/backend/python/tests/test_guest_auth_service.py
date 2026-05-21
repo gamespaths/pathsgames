@@ -43,6 +43,23 @@ def test_create_guest_session_username_format(mock_jwt_port, mock_persistence_po
     assert session.username == f"guest_{session.user_uuid[:8]}"
 
 
+def test_create_guest_session_with_test_marker(mock_jwt_port, mock_persistence_port):
+    """A test marker prefixes the username with the sanitized marker."""
+    service = GuestAuthService(mock_jwt_port, mock_persistence_port)
+    session = service.create_guest_session("Robot-Test!")
+
+    assert session.username.startswith("robottest_")
+    assert not session.username.startswith("guest_")
+
+
+def test_create_guest_session_blank_marker_uses_guest_prefix(mock_jwt_port, mock_persistence_port):
+    """A blank marker falls back to the standard guest_ prefix."""
+    service = GuestAuthService(mock_jwt_port, mock_persistence_port)
+    session = service.create_guest_session("   ")
+
+    assert session.username.startswith("guest_")
+
+
 def test_create_guest_session_tokens_stored(mock_jwt_port, mock_persistence_port):
     """Refresh token must be stored in persistence."""
     service = GuestAuthService(mock_jwt_port, mock_persistence_port)

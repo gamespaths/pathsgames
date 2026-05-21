@@ -269,3 +269,44 @@ def test_single_player_defaults_to_one_when_not_provided():
     service.create_match(MatchCreateCommand("u", "s", "d"))
     saved_arg = mocks["persistence"].save_match.call_args[0][0]
     assert saved_arg["single_player"] == 1
+
+
+# ── admin update / delete ─────────────────────────────────────────────────────
+
+def test_update_match_valid_status_returns_updated():
+    service, mocks = _build_service()
+    mocks["persistence"].update_match_fields.return_value = True
+    assert service.update_match("m1", "ENDED", "n") == "UPDATED"
+    mocks["persistence"].update_match_fields.assert_called_once_with("m1", "ENDED", "n")
+
+
+def test_update_match_invalid_status_returns_invalid():
+    service, mocks = _build_service()
+    assert service.update_match("m1", "BOGUS", None) == "INVALID_STATUS"
+    mocks["persistence"].update_match_fields.assert_not_called()
+
+
+def test_update_match_not_found():
+    service, mocks = _build_service()
+    mocks["persistence"].update_match_fields.return_value = False
+    assert service.update_match("m1", None, "n") == "NOT_FOUND"
+
+
+def test_delete_match_terminal_status_deletes():
+    service, mocks = _build_service()
+    mocks["persistence"].find_match_by_uuid.return_value = {"uuid": "m1", "status": "ENDED"}
+    assert service.delete_match("m1") == "DELETED"
+    mocks["persistence"].delete_match_by_uuid.assert_called_once_with("m1")
+
+
+def test_delete_match_non_terminal_returns_not_stopped():
+    service, mocks = _build_service()
+    mocks["persistence"].find_match_by_uuid.return_value = {"uuid": "m1", "status": "RUNNING"}
+    assert service.delete_match("m1") == "NOT_STOPPED"
+    mocks["persistence"].delete_match_by_uuid.assert_not_called()
+
+
+def test_delete_match_unknown_returns_not_found():
+    service, mocks = _build_service()
+    mocks["persistence"].find_match_by_uuid.return_value = None
+    assert service.delete_match("m1") == "NOT_FOUND"

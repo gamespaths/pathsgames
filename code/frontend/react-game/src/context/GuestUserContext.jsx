@@ -61,7 +61,11 @@ export function GuestUserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [guestModalOpen, setGuestModalOpen] = useState(false)
   const initRef = useRef(false)
+
+  const openGuestModal  = useCallback(() => setGuestModalOpen(true),  [])
+  const closeGuestModal = useCallback(() => setGuestModalOpen(false), [])
 
   useEffect(() => {
     if (initRef.current) return
@@ -117,7 +121,7 @@ export function GuestUserProvider({ children }) {
   }, [])
 
   return (
-    <GuestUserContext.Provider value={{ user, loading, error, refreshGuest, clearGuest }}>
+    <GuestUserContext.Provider value={{ user, loading, error, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal }}>
       {children}
     </GuestUserContext.Provider>
   )

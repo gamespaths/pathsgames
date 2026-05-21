@@ -15,7 +15,21 @@ public interface GuestAuthPort {
      *
      * @return a GuestSession containing the user UUID, tokens, and expiration info
      */
-    GuestSession createGuestSession();
+    default GuestSession createGuestSession() {
+        return createGuestSession(null);
+    }
+
+    /**
+     * Creates a new guest session, optionally tagging the generated username
+     * with a test marker so the row can later be removed by the dev-only
+     * test-data cleanup ({@code POST /api/dev/cleanup}).
+     *
+     * @param testMarker an optional marker (e.g. {@code "robottest"}); when
+     *                   {@code null} or blank the standard {@code guest_}
+     *                   username prefix is used
+     * @return a GuestSession containing the user UUID, tokens, and expiration info
+     */
+    GuestSession createGuestSession(String testMarker);
 
     /**
      * Resumes an existing guest session using the guest cookie token.

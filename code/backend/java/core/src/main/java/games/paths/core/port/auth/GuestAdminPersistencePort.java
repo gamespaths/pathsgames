@@ -36,6 +36,16 @@ public interface GuestAdminPersistencePort {
     int deleteExpiredGuests();
 
     /**
+     * Deletes all guest users (state=6) whose username matches the given SQL
+     * LIKE pattern, together with their tokens. Used by the dev-only
+     * test-data cleanup to remove guests created by automated test runs.
+     *
+     * @param usernameLikePattern an SQL LIKE pattern (e.g. {@code "robottest%"})
+     * @return the number of guest users removed
+     */
+    int deleteGuestsByUsernameLike(String usernameLikePattern);
+
+    /**
      * Counts total guest users (state=6).
      */
     long countAllGuests();

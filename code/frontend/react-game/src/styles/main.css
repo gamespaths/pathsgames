@@ -170,7 +170,9 @@ html, body {
   text-decoration: none;
   letter-spacing: 0.05em;
 }
-
+.navbar-brand-text{
+  white-space: nowrap;
+}
 /* Dice icon — animated bounce (from website/html) */
 .navbar-dice {
   display: inline-block;
@@ -2023,3 +2025,92 @@ html, body {
   .start-match-wrapper .book-spine { display: none; }
 }
 
+
+/* ═══════════════════════════════════
+   USER MATCHES LIST (GuestUserModal right page)
+   ═══════════════════════════════════ */
+.matches-list-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0.5rem 0.25rem;
+  overflow: hidden;
+}
+.matches-list-title {
+  font-family: var(--font-heading);
+  color: var(--color-gold-super-deep);
+  font-size: 0.95rem;
+  margin: 0 0 0.6rem;
+  flex-shrink: 0;
+}
+.matches-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 100px);
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: flex-start;
+  padding-right: 4px;
+}
+.matches-list-state {
+  padding: 1rem;
+  font-family: var(--font-heading);
+  color: var(--color-ash);
+  font-size: 0.85rem;
+}
+.matches-list-error { color: #c0392b; }
+.matches-list-empty {
+  font-family: var(--font-body);
+  color: var(--color-ash);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+/* MatchCard overlays */
+.match-card-wrap { position: relative; }
+
+.match-status-overlay {
+  position: absolute;
+  bottom: 28px;
+  left: 0; right: 0;
+  background: rgba(10,4,0,0.82);
+  text-align: center;
+  padding: 2px 4px;
+  pointer-events: none;
+}
+.match-status-label {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  color: var(--color-gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.match-info-popover {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,4,0,0.92);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.match-info-popover p {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  color: var(--color-parchment);
+  margin: 2px 0;
+}
+.match-info-popover b { color: var(--color-gold-light); }
+.match-info-close {
+  position: absolute;
+  top: 4px; right: 6px;
+  background: none;
+  border: none;
+  color: var(--color-ash);
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+.match-info-close:hover { color: var(--color-gold); }

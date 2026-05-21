@@ -553,3 +553,197 @@ def test_list_all_matches_empty(mock_jwt, mock_get, mock_scan):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     assert _body(result) == []
+
+
+# ── admin match control (statuses / update / stop / delete) ───────────────────
+
+def _admin_get_side(match_item):
+    """get_item side-effect: USER# -> admin user, MATCH# -> the given item."""
+    def _side(pk, sk='METADATA'):
+        if pk == 'USER#admin-uuid-001':
+            return ADMIN_USER
+        if pk.startswith('MATCH#'):
+            return match_item
+        return None
+    return _side
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_match_statuses(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/statuses',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body[0] == {'value': 'CREATED', 'terminal': False}
+    assert {'value': 'ENDED', 'terminal': True} in body
+
+
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_update_match_returns_200(mock_jwt, mock_get, mock_put):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(
+        {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'CREATED'})
+    from match.handler import lambda_handler
+    event = make_event('PUT', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       body={'status': 'ENDED', 'name': 'x'}, path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert _body(result)['status'] == 'UPDATED'
+    saved = mock_put.call_args[0][0]
+    assert saved['status'] == 'ENDED'
+    assert saved['name'] == 'x'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_update_match_invalid_status_returns_400(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    from match.handler import lambda_handler
+    event = make_event('PUT', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       body={'status': 'BOGUS'}, path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_STATUS'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_update_match_empty_body_returns_400(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    from match.handler import lambda_handler
+    event = make_event('PUT', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       body={}, path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_INPUT'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_update_match_not_found_returns_404(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(None)
+    from match.handler import lambda_handler
+    event = make_event('PUT', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       body={'name': 'x'}, path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+
+
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_stop_match_sets_ended(mock_jwt, mock_get, mock_put):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(
+        {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING'})
+    from match.handler import lambda_handler
+    event = make_event('POST', '/api/admin/matches/m1/stop',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert mock_put.call_args[0][0]['status'] == 'ENDED'
+
+
+@patch('match.handler.db_utils.delete_item')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_delete_match_terminal_returns_200(mock_jwt, mock_get, mock_del):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(
+        {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'ENDED'})
+    from match.handler import lambda_handler
+    event = make_event('DELETE', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert _body(result)['status'] == 'DELETED'
+    mock_del.assert_called_once_with('MATCH#m1', 'METADATA')
+
+
+@patch('match.handler.db_utils.delete_item')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_delete_match_non_terminal_returns_409(mock_jwt, mock_get, mock_del):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(
+        {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING'})
+    from match.handler import lambda_handler
+    event = make_event('DELETE', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 409
+    assert _body(result)['error'] == 'MATCH_NOT_STOPPED'
+    mock_del.assert_not_called()
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_delete_match_not_found_returns_404(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(None)
+    from match.handler import lambda_handler
+    event = make_event('DELETE', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_admin_match_route_rejects_non_admin(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.return_value = PLAYER_USER
+    from match.handler import lambda_handler
+    event = make_event('DELETE', '/api/admin/matches/m1',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_player'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 403
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_get_admin_match_info_returns_200_for_any_owner(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    # match created by another user — admin info skips the ownership check
+    mock_get.side_effect = _admin_get_side(
+        {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'CREATED',
+         'userCreatorUuid': 'someone-else'})
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert _body(result)['match']['uuid'] == 'm1'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_get_admin_match_info_not_found_returns_404(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.side_effect = _admin_get_side(None)
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 404

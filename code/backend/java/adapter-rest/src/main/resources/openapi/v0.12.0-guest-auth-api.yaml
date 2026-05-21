@@ -52,7 +52,23 @@ paths:
 
         Clients must use `credentials: 'include'` on subsequent requests so the browser
         sends these cookies automatically.
+
+        **Test-data tagging:** the optional `X-Test-Marker` request header tags the
+        generated guest so it can later be removed by `POST /api/dev/cleanup`. It is
+        honoured only when dev test endpoints are enabled (`game.dev.test-endpoints-enabled`)
+        and ignored in production. When sent with the value `robottest`, the generated
+        username uses the `robottest_` prefix instead of `guest_`.
       operationId: createGuestSession
+      parameters:
+        - name: X-Test-Marker
+          in: header
+          required: false
+          description: |
+            Optional marker that tags the guest as test data (dev only).
+            Robot test suites send `robottest`.
+          schema:
+            type: string
+            example: robottest
       responses:
         '201':
           description: Guest session created successfully

@@ -30,7 +30,7 @@ export default function GameCard({
   /* state */
   disabled,
   selected,
-  locked,
+  locked, lockedIcon='fas fa-lock ',
   lockedReason,lockInfo,
   showLinkCopyright = false,
   singleOption = false,
@@ -56,6 +56,7 @@ export default function GameCard({
 
   const isDisabled = disabled || locked
   const isBig      = variant === 'big'
+  const isSmall    = variant === 'small'
 
   const styleDetail = card?.styleDetail ?? ''
   const sizedImageStyle = isBig
@@ -94,7 +95,7 @@ export default function GameCard({
         title={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
-        <i className="fas fa-lock me-1" />{lockInfo?.className ?? label ?? name}
+        <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? label ?? name}
       </span>
     </>)
   } else if (onSelect) {
@@ -153,7 +154,7 @@ export default function GameCard({
 
   const cardClasses = [
     'pg-card',
-    isBig ? 'card-big' : 'pg-card--grid',
+    isBig ? 'card-big' : isSmall ? 'pg-card--small' : 'pg-card--grid',
     //isDisabled ? 'config-card-disabled' : '',
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../i18n/context'
 import { getStories } from '../api/stories'
+import { listMatches } from '../api/matches'
+import { useGuestUser } from '../context/GuestUserContext'
 import StoryCatalog from '../features/home/StoryCatalog'
 import StartBookModal from '../features/startBook/StartBookModal'
 //  url: 'https://images.unsplash.com/photo-1505816014357-96b5ff457e9a?auto=format&fit=crop&w=1400&q=80',
@@ -15,8 +17,11 @@ const HERO_IMG = {
   linkCopyright: 'https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM',
 }
 
+const ACTIVE_STATUSES = new Set(['CREATED', 'RUNNING'])
+
 export default function HomePage() {
   const { t } = useTranslation()
+  const { user, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedStory, setSelectedStory] = useState(null)
@@ -27,6 +32,22 @@ export default function HomePage() {
       setLoading(false)
     })
   }, [])
+
+  async function handleStoryClick(story) {
+    try {
+      const matches = await listMatches(user?.accessToken)
+      const hasActive = Array.isArray(matches) && matches.some(
+        m => m.storyUuid === story.uuid && ACTIVE_STATUSES.has(m.status)
+      )
+      if (hasActive) {
+        openGuestModal()
+      } else {
+        setSelectedStory(story)
+      }
+    } catch {
+      setSelectedStory(story)
+    }
+  }
 
   return (
     <>
@@ -44,7 +65,7 @@ export default function HomePage() {
           <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
         </div>
       ) : (
-        <StoryCatalog stories={stories} onStoryClick={setSelectedStory} />
+        <StoryCatalog stories={stories} onStoryClick={handleStoryClick} />
       )}
 
       {/* Book modal */}

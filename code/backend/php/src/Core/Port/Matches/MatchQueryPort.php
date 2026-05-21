@@ -19,4 +19,10 @@ interface MatchQueryPort
     public function listAllMatches(): array;
 
     public function getMatchInfo(string $matchUuid, string $userUuid): ?MatchDetail;
+
+    /**
+     * Returns the full match detail for the admin view — without the per-user
+     * ownership check. Returns null only when the match does not exist.
+     */
+    public function getMatchInfoForAdmin(string $matchUuid): ?MatchDetail;
 }

@@ -181,3 +181,31 @@ def test_get_match_info_story_missing():
     assert detail is not None
     assert detail.match.story_uuid is None
     assert detail.match.difficulty_uuid is None
+
+
+# ── get_match_info_for_admin (no ownership check) ─────────────────────────────
+
+def test_get_match_info_for_admin_blank_uuid():
+    service, _ = _build()
+    assert service.get_match_info_for_admin("") is None
+    assert service.get_match_info_for_admin(None) is None
+
+
+def test_get_match_info_for_admin_match_not_found():
+    service, _ = _build(match=None)
+    assert service.get_match_info_for_admin("m") is None
+
+
+def test_get_match_info_for_admin_returns_detail_of_any_owner():
+    # match created by user 99 — admin info skips the ownership check
+    service, _ = _build(
+        match=_match(creator=99),
+        story={"id": 2, "uuid": "story-uuid", "id_location_start": None},
+        difficulty={"id": 3, "uuid": "diff-uuid"},
+        registry=[{"uuid": "r1", "key": "k", "string_value": None, "int_value": 0}],
+    )
+    detail = service.get_match_info_for_admin("m")
+    assert detail is not None
+    assert detail.match.uuid == "match-uuid"
+    assert detail.match.story_uuid == "story-uuid"
+    assert len(detail.registry) == 1

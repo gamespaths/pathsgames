@@ -529,4 +529,65 @@ class MatchCommandServiceTest {
             assertNull(saved.get(0).getIntValue());
         }
     }
+
+    @Nested
+    @DisplayName("Admin update / delete")
+    class AdminUpdateDelete {
+
+        private GamingMatchEntity matchWithStatus(String status) {
+            GamingMatchEntity m = new GamingMatchEntity();
+            m.setStatus(status);
+            return m;
+        }
+
+        @Test
+        @DisplayName("updateMatch with a valid status delegates and returns UPDATED")
+        void updateMatch_validStatus_returnsUpdated() {
+            when(persistencePort.updateMatchFields("m1", "ENDED", "n")).thenReturn(true);
+            assertEquals(MatchCommandPort.UpdateOutcome.UPDATED,
+                    service.updateMatch("m1", "ENDED", "n"));
+        }
+
+        @Test
+        @DisplayName("updateMatch with an invalid status returns INVALID_STATUS without persisting")
+        void updateMatch_invalidStatus_returnsInvalidStatus() {
+            assertEquals(MatchCommandPort.UpdateOutcome.INVALID_STATUS,
+                    service.updateMatch("m1", "BOGUS", null));
+            verify(persistencePort, never()).updateMatchFields(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("updateMatch returns NOT_FOUND when the match does not exist")
+        void updateMatch_notFound_returnsNotFound() {
+            when(persistencePort.updateMatchFields(any(), any(), any())).thenReturn(false);
+            assertEquals(MatchCommandPort.UpdateOutcome.NOT_FOUND,
+                    service.updateMatch("m1", null, "n"));
+        }
+
+        @Test
+        @DisplayName("deleteMatch deletes a match in a terminal status")
+        void deleteMatch_terminalStatus_deletes() {
+            when(persistencePort.findMatchByUuid("m1"))
+                    .thenReturn(Optional.of(matchWithStatus("ENDED")));
+            when(persistencePort.deleteMatchByUuid("m1")).thenReturn(true);
+            assertEquals(MatchCommandPort.DeleteOutcome.DELETED, service.deleteMatch("m1"));
+            verify(persistencePort).deleteMatchByUuid("m1");
+        }
+
+        @Test
+        @DisplayName("deleteMatch rejects a non-terminal match with NOT_STOPPED")
+        void deleteMatch_nonTerminalStatus_returnsNotStopped() {
+            when(persistencePort.findMatchByUuid("m1"))
+                    .thenReturn(Optional.of(matchWithStatus("RUNNING")));
+            assertEquals(MatchCommandPort.DeleteOutcome.NOT_STOPPED, service.deleteMatch("m1"));
+            verify(persistencePort, never()).deleteMatchByUuid(any());
+        }
+
+        @Test
+        @DisplayName("deleteMatch returns NOT_FOUND for an unknown match")
+        void deleteMatch_unknownMatch_returnsNotFound() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.empty());
+            assertEquals(MatchCommandPort.DeleteOutcome.NOT_FOUND, service.deleteMatch("m1"));
+        }
+    }
 }

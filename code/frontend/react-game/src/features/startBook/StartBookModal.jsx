@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
-import BookPageLeft from '../../components/book/BookPageLeft'
-import BookPageRight from '../../components/book/BookPageRight'
+import Book from '../../components/book/Book'
 import BookPageContent from '../../components/book/BookPageContent'
 import ConfigView from './ConfigView'
 import SelectionView from './SelectionView'
@@ -119,63 +118,47 @@ export default function StartBookModal({ story, onClose }) {
       </div>
     )
   }
+  const leftContent = preview ? (
+    <CardPreviewOverlay
+      card={preview.entity?.card}
+      entity={preview.entity}
+      entityType={preview.type}
+      story={activeStory}
+      onClose={handleBackOrClose}
+    />
+  ) : (
+    <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
+  )
+
+  const rightContent = selectionType ? (
+    <SelectionView
+      type={selectionType}
+      options={getOptionsForType(selectionType, activeStory)}
+      selected={config[selectionType]}
+      story={activeStory}
+      config={config}
+      onSelect={handleSelect}
+      onBack={handleBackOrClose}
+      onPreview={handleSelectionPreview}
+    />
+  ) : (
+    <ConfigView
+      config={config}
+      story={activeStory}
+      onChangeClick={handleChangeFromConfig}
+      onPreview={handleSelectionPreview}
+      termsAccepted={termsAccepted}
+      onTermsChange={setTermsAccepted}
+      onStartGame={handleStartGame}
+    />
+  )
+
   return (
-    <>
-      <div className="book-overlay">
-        <button
-          className="book-close-btn"
-          style={{ position: 'fixed', top: 16, right: 16, zIndex: 1100 }}
-          onClick={onClose}
-        >
-          <i className="fas fa-times" />
-        </button>
-
-        {/* ── DESKTOP: book ── */}
-        <div className="book-wrapper">
-          <div className="book-spine" />
-
-          <BookPageLeft>
-            {/* StoryLeftContent always rendered underneath */}
-            { preview ? (
-              <CardPreviewOverlay
-                card={preview.entity?.card}
-                entity={preview.entity}
-                entityType={preview.type}
-                story={activeStory}
-                onClose={handleBackOrClose}
-              />
-            ) : (
-              <BookPageContent card={activeStory.card} loading={loadingDetail}  story={activeStory}/>
-            )}
-          </BookPageLeft>
-
-          <BookPageRight>
-            { selectionType ? (
-              <SelectionView
-                type={selectionType}
-                options={getOptionsForType(selectionType, activeStory)}
-                selected={config[selectionType]}
-                story={activeStory}
-                config={config}
-                onSelect={handleSelect}
-                onBack={handleBackOrClose}
-                onPreview={handleSelectionPreview}
-              />
-            ) : (
-              <ConfigView
-                config={config}
-                story={activeStory}
-                onChangeClick={handleChangeFromConfig}
-                onPreview={handleSelectionPreview}
-                termsAccepted={termsAccepted}
-                onTermsChange={setTermsAccepted}
-                onStartGame={handleStartGame}
-              />
-            )}
-          </BookPageRight>
-        </div>
-
-        {/* ── MOBILE: vertical layout ── */}
+    <Book
+      onClose={onClose}
+      left={leftContent}
+      right={rightContent}
+      mobile={
         <StartBookMobile
           activeStory={activeStory}
           config={config}
@@ -190,8 +173,8 @@ export default function StartBookModal({ story, onClose }) {
           onSelect={handleSelect}
           getOptionsForType={(type) => getOptionsForType(type, activeStory)}
         />
-      </div>
-    </>
+      }
+    />
   )
 }
 

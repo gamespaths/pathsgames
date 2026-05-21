@@ -80,6 +80,23 @@
     "retry": "Riprova",
     "home": "Torna alla home"
   },
+  "matches": {
+    "title": "Le tue Partite",
+    "loading": "Caricamento partite…",
+    "noMatches": "Nessuna partita ancora. Inizia un'avventura!",
+    "unknownStory": "Storia sconosciuta",
+    "resume": "Riprendi",
+    "statusLabel": "Stato",
+    "created": "Iniziata",
+    "clock": "Orologio",
+    "status": {
+      "CREATED":  "Pronta",
+      "RUNNING":  "In Corso",
+      "PAUSED":   "In Pausa",
+      "ENDED":    "Terminata",
+      "GAMEOVER": "Game Over"
+    }
+  },
   "card": {
     "info": "Info",
     "viewOriginal": "Vedi originale"

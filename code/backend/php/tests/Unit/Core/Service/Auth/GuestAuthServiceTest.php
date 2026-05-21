@@ -45,6 +45,26 @@ class GuestAuthServiceTest extends TestCase
         $this->assertSame($expectedUsername, $session->getUsername());
     }
 
+    public function testCreateGuestSessionWithTestMarkerUsesMarkerPrefix(): void
+    {
+        $this->guestRepo->method('save');
+
+        // A marker with mixed case and punctuation is sanitized to [a-z0-9].
+        $session = $this->service->createGuestSession('Robot-Test!');
+
+        $this->assertStringStartsWith('robottest_', $session->getUsername());
+        $this->assertStringStartsNotWith('guest_', $session->getUsername());
+    }
+
+    public function testCreateGuestSessionWithBlankMarkerUsesGuestPrefix(): void
+    {
+        $this->guestRepo->method('save');
+
+        $session = $this->service->createGuestSession('   ');
+
+        $this->assertStringStartsWith('guest_', $session->getUsername());
+    }
+
     public function testCreateGuestSessionExpiresIn180Days(): void
     {
         $this->guestRepo->method('save');

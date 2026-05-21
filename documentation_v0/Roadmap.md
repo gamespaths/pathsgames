@@ -31,7 +31,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 16 | [Content details APIs](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
 | 17 | [Story Admin CRUD Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
 | 18 | [Frontend: Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
-| 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation |
+| 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) & [Utils](./Step19_SinglePlayerMatchUtils.md) | ✅ | Single player match creation |
+
 
 
 | Steps | Phase |
@@ -765,7 +766,8 @@ For next steps use this prompt
     | 0.10.12 | step 10: create initial DB schema | March 19, 2026 |
     | 0.11.1 | expanded roadmap from 30 to 42 steps, Version 1 launch at step number 42 | March 24, 2026 |
     | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
-- **Last Updated**: April 9, 2026
+    | 0.19.2 | added step 19.1 (dev test-data cleanup) and step 19.2 (admin match control) to completed steps table | May 21, 2026 |
+- **Last Updated**: May 21, 2026
 - **Status**: In progress
 
 

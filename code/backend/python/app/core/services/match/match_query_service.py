@@ -48,7 +48,19 @@ class MatchQueryService(MatchQueryPort):
         match = self.match_persistence_port.find_match_by_uuid(match_uuid)
         if match is None or match.get("id_user_creator") != user["id"]:
             return None
+        return self._build_detail(match, user["uuid"])
 
+    def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
+        if not match_uuid:
+            return None
+        match = self.match_persistence_port.find_match_by_uuid(match_uuid)
+        if match is None:
+            return None
+        # Admin view — no ownership check. user_creator_uuid is left None,
+        # consistent with the admin list (list_all_matches).
+        return self._build_detail(match, None)
+
+    def _build_detail(self, match, user_creator_uuid) -> MatchDetail:
         story = self.story_read_port.find_story_by_id(match["id_story"])
         difficulty = self.story_read_port.find_difficulty_by_id(
             match["id_story"], match["id_difficulty"]
@@ -84,7 +96,7 @@ class MatchQueryService(MatchQueryPort):
 
         summary = self._to_summary(
             match,
-            user["uuid"],
+            user_creator_uuid,
             story["uuid"] if story else None,
             difficulty["uuid"] if difficulty else None,
         )

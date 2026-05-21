@@ -125,10 +125,23 @@ class GuestAdminPersistenceAdapterTest {
             when(userRepository.deleteExpiredGuests(eq(6), anyString())).thenReturn(5);
 
             int deleted = adapter.deleteExpiredGuests();
-            
+
             assertEquals(5, deleted);
             verify(userTokenRepository).deleteTokensOfExpiredGuests(eq(6), anyString());
             verify(userRepository).deleteExpiredGuests(eq(6), anyString());
+        }
+
+        @Test
+        @DisplayName("Should delete tokens then guests matching the username pattern")
+        void deleteGuestsByUsernameLike_logic() {
+            when(userTokenRepository.deleteTokensOfGuestsByUsernameLike(6, "robottest%")).thenReturn(4);
+            when(userRepository.deleteGuestsByUsernameLike(6, "robottest%")).thenReturn(4);
+
+            int deleted = adapter.deleteGuestsByUsernameLike("robottest%");
+
+            assertEquals(4, deleted);
+            verify(userTokenRepository).deleteTokensOfGuestsByUsernameLike(6, "robottest%");
+            verify(userRepository).deleteGuestsByUsernameLike(6, "robottest%");
         }
     }
 

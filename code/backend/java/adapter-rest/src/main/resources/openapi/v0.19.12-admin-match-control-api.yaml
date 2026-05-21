@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Admin Match Control API
+  description: |
+    OpenAPI specification for the **admin match control** endpoints introduced
+    in version 0.19.12.
+
+    The admin console can already list every match (`GET /api/admin/matches`,
+    v0.19.10). Version 0.19.12 makes the Matches section actionable: an admin
+    can modify a match (status and/or name), stop / pause / resume it, and
+    delete a match that has been stopped.
+
+    A match moves through these lifecycle statuses:
+    `CREATED → RUNNING → PAUSED → ENDED → GAMEOVER`. `ENDED` and `GAMEOVER`
+    are **terminal** ("stopped"): only a match in a terminal status may be
+    deleted.
+
+    All endpoints require the `ADMIN` role; role enforcement is handled by each
+    backend's JWT filter / middleware (the AWS Lambda handler checks the role
+    field explicitly).
+  version: 0.19.12
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Admin Matches
+    description: Admin-only match control
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/admin/matches/statuses:
+    get:
+      tags: [Admin Matches]
+      summary: List the valid match statuses
+      description: |
+        Returns every valid match status, each flagged `terminal` when a match
+        in that status is "stopped" (and therefore deletable).
+      operationId: listMatchStatuses
+      responses:
+        '200':
+          description: The valid match statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchStatus'
+        '403':
+          description: Caller does not hold the ADMIN role
+
+  /api/admin/matches/{uuidMatch}/info:
+    get:
+      tags: [Admin Matches]
+      summary: Get the full detail of any match (admin)
+      description: |
+        Returns the full match detail (summary + runtime state: locations and
+        registry) for the admin console. Unlike `GET /api/match/{uuidMatch}/info`
+        — which is scoped to the calling player and returns `404` for matches
+        created by other users — this endpoint has **no ownership check** and
+        works for every match.
+      operationId: getAdminMatchInfo
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The full match detail (same shape as GET /api/match/{uuidMatch}/info)
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: No match exists with the given uuid
+
+  /api/admin/matches/{uuidMatch}:
+    put:
+      tags: [Admin Matches]
+      summary: Update a match (status and/or name)
+      description: |
+        Updates the admin-editable fields of a match. Both body fields are
+        optional, but at least one must be provided. A `null`/absent field is
+        left unchanged.
+      operationId: updateMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchUpdateRequest'
+      responses:
+        '200':
+          description: Match updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchActionResult'
+        '400':
+          description: No field provided, or an invalid status value
+        '404':
+          description: No match exists with the given uuid
+    delete:
+      tags: [Admin Matches]
+      summary: Delete a stopped match
+      description: |
+        Deletes a match together with its derived runtime state (locations and
+        registry). Only matches in a terminal status (`ENDED` / `GAMEOVER`)
+        may be deleted — a non-terminal match returns `409 MATCH_NOT_STOPPED`.
+      operationId: deleteMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Match deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchActionResult'
+        '404':
+          description: No match exists with the given uuid
+        '409':
+          description: The match is not stopped (status is not ENDED/GAMEOVER)
+
+  /api/admin/matches/{uuidMatch}/stop:
+    post:
+      tags: [Admin Matches]
+      summary: Stop a match (set status to ENDED)
+      operationId: stopMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Match stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchActionResult'
+        '404':
+          description: No match exists with the given uuid
+
+  /api/admin/matches/{uuidMatch}/pause:
+    post:
+      tags: [Admin Matches]
+      summary: Pause a match (set status to PAUSED)
+      operationId: pauseMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Match paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchActionResult'
+        '404':
+          description: No match exists with the given uuid
+
+  /api/admin/matches/{uuidMatch}/resume:
+    post:
+      tags: [Admin Matches]
+      summary: Resume a match (set status to RUNNING)
+      operationId: resumeMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Match resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchActionResult'
+        '404':
+          description: No match exists with the given uuid
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      description: The match uuid
+      schema:
+        type: string
+  schemas:
+    MatchStatus:
+      type: object
+      properties:
+        value:
+          type: string
+          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+          example: ENDED
+        terminal:
+          type: boolean
+          description: True when a match in this status is stopped (deletable)
+          example: true
+    MatchUpdateRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+          description: New status; omit to leave unchanged
+        name:
+          type: string
+          description: New name; omit to leave unchanged
+    MatchActionResult:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The operation outcome
+          enum: [UPDATED, DELETED]
+          example: UPDATED
+        uuid:
+          type: string
+          example: 3f7ec2f9-d9e7-4d20-a19e-2a9e9da9e9f4

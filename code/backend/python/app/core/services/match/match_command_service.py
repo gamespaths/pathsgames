@@ -1,6 +1,7 @@
 """Step 19 — single-player match creation service."""
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from app.core.models.match import match_statuses
 from app.core.models.match.match_models import (
     MatchCreateCommand,
     MatchCreationError,
@@ -142,6 +143,22 @@ class MatchCommandService(MatchCommandPort):
             class_uuid=saved.get("class_uuid"),
             trait_uuids=saved.get("trait_uuids") or [],
         )
+
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+        if status is not None and not match_statuses.is_valid(status):
+            return "INVALID_STATUS"
+        found = self.match_persistence_port.update_match_fields(uuid_match, status, name)
+        return "UPDATED" if found else "NOT_FOUND"
+
+    def delete_match(self, uuid_match: str) -> str:
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is None:
+            return "NOT_FOUND"
+        # Only a stopped (terminal) match may be deleted.
+        if not match_statuses.is_terminal(match.get("status")):
+            return "NOT_STOPPED"
+        self.match_persistence_port.delete_match_by_uuid(uuid_match)
+        return "DELETED"
 
     @staticmethod
     def _apply_default(row: Dict[str, Any], raw_value):

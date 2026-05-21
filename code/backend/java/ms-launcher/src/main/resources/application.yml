@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.19.10
+    version: 0.19.12
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -19,7 +19,7 @@ game:
       refresh-token-days: 7
     max-tokens-per-user: 5
     admin-path-prefix: /api/admin/
-    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**,/api/content/**
+    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
       same-site: Lax
   admin:
@@ -27,3 +27,7 @@ game:
       guest:
         cleanup:
           cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler
+  dev:
+    # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
+    # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.
+    test-endpoints-enabled: true

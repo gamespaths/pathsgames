@@ -90,13 +90,34 @@ public class MatchQueryService implements MatchQueryPort {
         if (!match.getIdUserCreator().equals(user.id())) {
             return null;
         }
+        return buildDetail(match, user.uuid());
+    }
 
+    @Override
+    public MatchDetail getMatchInfoForAdmin(String matchUuid) {
+        if (matchUuid == null || matchUuid.isBlank()) {
+            return null;
+        }
+        Optional<GamingMatchEntity> matchOpt = matchReadPort.findMatchByUuid(matchUuid);
+        if (matchOpt.isEmpty()) {
+            return null;
+        }
+        // Admin view — no per-user ownership check. userCreatorUuid is left
+        // null, consistent with the admin list (listAllMatches).
+        return buildDetail(matchOpt.get(), null);
+    }
+
+    /**
+     * Builds the full {@link MatchDetail} for a match. Shared by the per-user
+     * and the admin info endpoints.
+     */
+    private MatchDetail buildDetail(GamingMatchEntity match, String userCreatorUuid) {
         Optional<StoryEntity> storyOpt = storyReadPort.findAllStories().stream()
                 .filter(s -> s.getId().equals(match.getIdStory()))
                 .findFirst();
 
         MatchDetail detail = new MatchDetail();
-        detail.setMatch(toSummary(match, user.uuid(), storyOpt.orElse(null), match.getIdDifficulty()));
+        detail.setMatch(toSummary(match, userCreatorUuid, storyOpt.orElse(null), match.getIdDifficulty()));
 
         List<LocationEntity> storyLocations = storyOpt.isPresent()
                 ? storyReadPort.findLocationsByStoryId(storyOpt.get().getId())

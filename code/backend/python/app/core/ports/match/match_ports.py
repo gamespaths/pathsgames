@@ -11,6 +11,19 @@ class MatchCommandPort(ABC):
         """Persist a new match for the given user. Raises
         :class:`MatchCreationError` for validation failures."""
 
+    @abstractmethod
+    def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
+        """Update a match's status and/or name (admin operation).
+
+        Returns one of ``'UPDATED'``, ``'NOT_FOUND'`` or ``'INVALID_STATUS'``."""
+
+    @abstractmethod
+    def delete_match(self, uuid_match: str) -> str:
+        """Delete a match together with its runtime state (admin operation).
+        Only matches in a terminal status (ENDED / GAMEOVER) may be deleted.
+
+        Returns one of ``'DELETED'``, ``'NOT_FOUND'`` or ``'NOT_STOPPED'``."""
+
 
 class MatchQueryPort(ABC):
     @abstractmethod
@@ -23,6 +36,12 @@ class MatchQueryPort(ABC):
 
     @abstractmethod
     def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
+        ...
+
+    @abstractmethod
+    def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
+        """Return the full match detail for the admin view — without the
+        per-user ownership check. Returns None only when the match is unknown."""
         ...
 
 
@@ -58,6 +77,26 @@ class MatchPersistencePort(ABC):
 
     @abstractmethod
     def find_registry_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def delete_matches_by_name_like(self, name_like_pattern: str) -> int:
+        """Delete all matches whose name matches the given SQL LIKE pattern,
+        together with their derived runtime state (locations and registry
+        rows). Used by the dev-only test-data cleanup. Returns the number of
+        matches removed."""
+        ...
+
+    @abstractmethod
+    def update_match_fields(self, uuid: str, status: Optional[str], name: Optional[str]) -> bool:
+        """Update the status and/or name of a single match. A ``None`` field is
+        left unchanged. Returns ``False`` when no match has the given uuid."""
+        ...
+
+    @abstractmethod
+    def delete_match_by_uuid(self, uuid: str) -> bool:
+        """Delete a single match by uuid together with its derived runtime
+        state. Returns ``False`` when no match has the given uuid."""
         ...
 
 

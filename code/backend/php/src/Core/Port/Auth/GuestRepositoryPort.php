@@ -12,6 +12,13 @@ interface GuestRepositoryPort
     public function findAll(): array;
     public function deleteByUuid(string $uuid): bool;
     public function deleteExpired(\DateTimeImmutable $now): int;
+
+    /**
+     * Delete all guest users whose username matches the given SQL LIKE
+     * pattern, together with their tokens. Used by the dev-only test-data
+     * cleanup. Returns the number of guest users removed.
+     */
+    public function deleteGuestsByUsernameLike(string $usernameLikePattern): int;
     public function countAll(): int;
     public function countActive(): int;
     public function countExpired(): int;

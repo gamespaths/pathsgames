@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../i18n/context'
 import { useGuestUser } from '../context/GuestUserContext'
-import BookPageLeft from '../components/book/BookPageLeft'
-import BookPageRight from '../components/book/BookPageRight'
+import Book from '../components/book/Book'
 import BookPageContent from '../components/book/BookPageContent'
 import BonusBadgeList from '../components/common/BonusBadgeList'
 import ConfigCard from '../features/startBook/ConfigCard'
@@ -117,38 +116,31 @@ export default function StartMatchPage() {
   }))
 
   return (
-    <div className="book-overlay start-match-overlay">
-      <div className="start-match-wrapper">
-        <div className="book-spine" />
-
-        {/* Left page: the story card */}
-        <BookPageLeft>
-          <BookPageContent card={story.card} story={story} loading={false} />
-        </BookPageLeft>
-
-        {/* Right page: the six chosen loadout cards + status */}
-        <BookPageRight>
-          <div className="start-match-right">
-            <div className="config-cards-area selection-list">
-              {cards.map(c => (
-                <ConfigCard key={c.type} type={c.type} value={c.value} story={story} />
-              ))}
-            </div>
-            {totalItems.length > 0 && (
-              <BonusBadgeList className="config-total-bonus" items={totalItems} />
-            )}
-            <StartMatchStatus
-              phase={phase}
-              countdown={countdown}
-              errorMsg={errorMsg}
-              onRetry={() => { setErrorMsg(''); setPhase('starting') }}
-              onHome={() => navigate('/')}
-              t={t}
-            />
+    <Book
+      overlayClass="book-overlay start-match-overlay"
+      wrapperClass="start-match-wrapper"
+      left={<BookPageContent card={story.card} story={story} loading={false} />}
+      right={
+        <div className="start-match-right">
+          <div className="config-cards-area selection-list">
+            {cards.map(c => (
+              <ConfigCard key={c.type} type={c.type} value={c.value} story={story} />
+            ))}
           </div>
-        </BookPageRight>
-      </div>
-    </div>
+          {totalItems.length > 0 && (
+            <BonusBadgeList className="config-total-bonus" items={totalItems} />
+          )}
+          <StartMatchStatus
+            phase={phase}
+            countdown={countdown}
+            errorMsg={errorMsg}
+            onRetry={() => { setErrorMsg(''); setPhase('starting') }}
+            onHome={() => navigate('/')}
+            t={t}
+          />
+        </div>
+      }
+    />
   )
 }
 

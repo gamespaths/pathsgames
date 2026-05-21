@@ -1,23 +1,29 @@
 import { useEffect, useState } from 'react'
 import { listGuests, getGuestStats, deleteGuest, deleteExpiredGuests } from '../api/guestApi'
+import {
+  listMatches, getMatchInfo,
+  stopMatch, pauseMatch, resumeMatch,
+} from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
+import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
-function fmtDate(iso) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString()
-}
+const TERMINAL_STATUSES = new Set(['ENDED', 'GAMEOVER'])
+const isTerminal = (s) => TERMINAL_STATUSES.has(s)
 
 export default function GuestsPage() {
-  const [guests,    setGuests]    = useState([])
-  const [stats,     setStats]     = useState(null)
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState('')
-  const [success,   setSuccess]   = useState('')
-  const [filter,    setFilter]    = useState('')
-  const [modal,     setModal]     = useState(null) // { type: 'single'|'cleanup', uuid? }
-  const [detail,    setDetail]    = useState(null) // guest detail modal
+  const [guests,       setGuests]       = useState([])
+  const [stats,        setStats]        = useState(null)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState('')
+  const [success,      setSuccess]      = useState('')
+  const [filter,       setFilter]       = useState('')
+  const [modal,        setModal]        = useState(null) // { type: 'single'|'cleanup', uuid? }
+  const [guestDetail,  setGuestDetail]  = useState(null) // guest object
+  const [userMatches,  setUserMatches]  = useState({ loading: false, list: [], error: '' })
+  const [matchDetail,  setMatchDetail]  = useState(null) // { uuid, loading, info, error, storyCtx }
+  const [matchError,   setMatchError]   = useState('')   // inline action error
 
   const load = () => {
     setLoading(true)
@@ -32,6 +38,54 @@ export default function GuestsPage() {
   }
 
   useEffect(load, [])
+
+  const openGuestDetail = async (guest) => {
+    setGuestDetail(guest)
+    setUserMatches({ loading: true, list: [], error: '' })
+    setMatchError('')
+    try {
+      const all = await listMatches()
+      const list = (Array.isArray(all) ? all : []).filter(m => m.userCreatorUuid === guest.userUuid)
+      setUserMatches({ loading: false, list, error: '' })
+    } catch (e) {
+      setUserMatches({ loading: false, list: [], error: e.message || 'Failed to load matches' })
+    }
+  }
+
+  const closeGuestDetail = () => {
+    setGuestDetail(null)
+    setUserMatches({ loading: false, list: [], error: '' })
+    setMatchDetail(null)
+    setMatchError('')
+  }
+
+  const openMatchDetail = async (m) => {
+    setMatchDetail({ uuid: m.uuid, loading: true, info: null, error: '', storyCtx: null })
+    try {
+      const [info, storyCtx] = await Promise.all([
+        getMatchInfo(m.uuid),
+        fetchStoryCtx(m.storyUuid),
+      ])
+      setMatchDetail({ uuid: m.uuid, loading: false, info, error: '', storyCtx })
+    } catch (e) {
+      setMatchDetail({ uuid: m.uuid, loading: false, info: null, error: e.message || 'Failed to load match info', storyCtx: null })
+    }
+  }
+
+  const doMatchAction = async (action, matchUuid) => {
+    setMatchError('')
+    try {
+      if (action === 'stop')   await stopMatch(matchUuid)
+      if (action === 'pause')  await pauseMatch(matchUuid)
+      if (action === 'resume') await resumeMatch(matchUuid)
+      // Refresh user matches list
+      const all = await listMatches()
+      const list = (Array.isArray(all) ? all : []).filter(m => m.userCreatorUuid === guestDetail.userUuid)
+      setUserMatches(prev => ({ ...prev, list }))
+    } catch (e) {
+      setMatchError(e.response?.data?.message || e.message || `Failed to ${action} match`)
+    }
+  }
 
   const confirmDelete = (uuid) => setModal({ type: 'single', uuid })
   const confirmCleanup = ()    => setModal({ type: 'cleanup' })
@@ -154,7 +208,7 @@ export default function GuestsPage() {
                       <button
                         className="pg-btn pg-btn-ghost pg-btn-sm me-1"
                         title="View detail"
-                        onClick={() => setDetail(g)}
+                        onClick={() => openGuestDetail(g)}
                       >
                         <i className="fas fa-eye" />
                       </button>
@@ -192,34 +246,131 @@ export default function GuestsPage() {
         />
       )}
 
-      {/* Detail modal */}
-      {detail && (
-        <div className="pg-modal-backdrop" onClick={() => setDetail(null)}>
-          <div className="pg-modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+      {/* Guest detail modal */}
+      {guestDetail && (
+        <div className="pg-modal-backdrop" onClick={closeGuestDetail}>
+          <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
             <p className="pg-modal-title">
               <i className="fas fa-user-secret me-2" />
-              {detail.username}
+              {guestDetail.username}
             </p>
-            <table className="pg-table" style={{ fontSize: '0.85rem' }}>
-              <tbody>
-                {Object.entries(detail).map(([k, v]) => (
-                  <tr key={k}>
-                    <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)', whiteSpace: 'nowrap' }}>{k}</td>
-                    <td style={{ wordBreak: 'break-all', color: 'var(--color-parchment)' }}>
-                      {v === null ? <em style={{ color: 'var(--color-ash)' }}>null</em>
-                        : v === true ? <span className="pg-badge pg-badge-success">true</span>
-                        : v === false ? <span className="pg-badge pg-badge-danger">false</span>
-                        : String(v)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+            <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {/* Guest fields */}
+              <p className="pg-card-title mb-2"><i className="fas fa-id-card me-1" />User info</p>
+              <table className="pg-table" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                <tbody>
+                  {Object.entries(guestDetail).map(([k, v]) => (
+                    <tr key={k}>
+                      <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)', whiteSpace: 'nowrap' }}>{k}</td>
+                      <td style={{ wordBreak: 'break-all', color: 'var(--color-parchment)' }}>
+                        {v === null ? <em style={{ color: 'var(--color-ash)' }}>null</em>
+                          : v === true ? <span className="pg-badge pg-badge-success">true</span>
+                          : v === false ? <span className="pg-badge pg-badge-danger">false</span>
+                          : String(v)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Matches section */}
+              <p className="pg-card-title mb-2"><i className="fas fa-gamepad me-1" />Matches</p>
+
+              {matchError && <ErrorAlert message={matchError} onClose={() => setMatchError('')} />}
+
+              {userMatches.loading && <LoadingSpinner text="Loading matches…" />}
+              {userMatches.error && <ErrorAlert message={userMatches.error} />}
+
+              {!userMatches.loading && (
+                <table className="pg-table" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Status</th>
+                      <th>Story UUID</th>
+                      <th>Created</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userMatches.list.length === 0 && (
+                      <tr>
+                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
+                          No matches for this user.
+                        </td>
+                      </tr>
+                    )}
+                    {userMatches.list.map(m => (
+                      <tr key={m.uuid}>
+                        <td>
+                          {m.name || <em style={{ color: 'var(--color-ash)' }}>untitled</em>}
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: 'var(--color-ash)', marginLeft: 6 }}>
+                            {shortUuid(m.uuid)}
+                          </span>
+                        </td>
+                        <td><StatusBadge status={m.status} /></td>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--color-ash)' }}>
+                          {shortUuid(m.storyUuid)}
+                        </td>
+                        <td style={{ fontSize: '0.75rem' }}>{fmtDate(m.tsInsert)}</td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {/* View match detail */}
+                          <button
+                            className="pg-btn pg-btn-ghost pg-btn-sm"
+                            title="View match detail"
+                            onClick={() => openMatchDetail(m)}
+                          >
+                            <i className="fas fa-eye" />
+                          </button>
+                          {/* Active-match state transitions */}
+                          {!isTerminal(m.status) && (
+                            <>
+                              {m.status === 'RUNNING' && (
+                                <button
+                                  className="pg-btn pg-btn-ghost pg-btn-sm"
+                                  title="Pause match"
+                                  onClick={() => doMatchAction('pause', m.uuid)}
+                                >
+                                  <i className="fas fa-pause" />
+                                </button>
+                              )}
+                              {m.status === 'PAUSED' && (
+                                <button
+                                  className="pg-btn pg-btn-ghost pg-btn-sm"
+                                  title="Resume match"
+                                  onClick={() => doMatchAction('resume', m.uuid)}
+                                >
+                                  <i className="fas fa-play" />
+                                </button>
+                              )}
+                              <button
+                                className="pg-btn pg-btn-ghost pg-btn-sm"
+                                title="Stop match"
+                                onClick={() => doMatchAction('stop', m.uuid)}
+                              >
+                                <i className="fas fa-stop" />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
             <div className="flex justify-end mt-3">
-              <button className="pg-btn pg-btn-ghost" onClick={() => setDetail(null)}>Close</button>
+              <button className="pg-btn pg-btn-ghost" onClick={closeGuestDetail}>Close</button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Stacked match detail modal */}
+      {matchDetail && (
+        <MatchDetailModal detail={matchDetail} onClose={() => setMatchDetail(null)} />
       )}
     </div>
   )

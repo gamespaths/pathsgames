@@ -115,10 +115,16 @@ curl -s http://localhost:8042/api/echo/status > /dev/null || {
 }
 
 echo "Running Robot tests!"
-cd "$PROJECT_ROOT/code/tests/robot" && \
-pip install -r requirements.txt && \
+cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
+ROBOT_EXIT=0
 ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" \
-	robot --variablefile variables/dev.yaml --outputdir reports-local-java-postgres/ tests/
+	robot --variablefile variables/dev.yaml --outputdir reports-local-java-postgres/ tests/ || ROBOT_EXIT=$?
+
+# Remove the rows created by this Robot run (guests + matches tagged "robottest"),
+# preserving every other row. Runs whether the tests passed or failed.
+echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
+curl -s -X POST http://localhost:8042/api/dev/cleanup || echo "  cleanup request failed"
+echo
 
 kill "$SERVER_PID" 2>/dev/null || true
 
@@ -128,3 +134,4 @@ if [ "${DOCKER_STARTED:-false}" = "true" ]; then
 fi
 
 echo "Robot tests completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-java-postgres/"
+exit $ROBOT_EXIT

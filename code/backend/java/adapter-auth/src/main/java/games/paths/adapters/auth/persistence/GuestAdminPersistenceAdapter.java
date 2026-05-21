@@ -71,6 +71,13 @@ public class GuestAdminPersistenceAdapter implements GuestAdminPersistencePort {
     }
 
     @Override
+    public int deleteGuestsByUsernameLike(String usernameLikePattern) {
+        // Delete the tokens of the matching guests first, then the guests.
+        userTokenRepository.deleteTokensOfGuestsByUsernameLike(GUEST_STATE, usernameLikePattern);
+        return userRepository.deleteGuestsByUsernameLike(GUEST_STATE, usernameLikePattern);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public long countAllGuests() {
         return userRepository.countByState(GUEST_STATE);

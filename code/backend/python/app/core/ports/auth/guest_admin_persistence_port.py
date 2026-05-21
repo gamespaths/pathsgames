@@ -19,6 +19,13 @@ class GuestAdminPersistencePort(ABC):
         pass
 
     @abstractmethod
+    def delete_guests_by_username_like(self, username_like_pattern: str) -> int:
+        """Delete all guest users (state=6) whose username matches the given
+        SQL LIKE pattern, together with their tokens. Used by the dev-only
+        test-data cleanup. Returns the number of guest users removed."""
+        pass
+
+    @abstractmethod
     def count_all_guests(self) -> int:
         pass
 

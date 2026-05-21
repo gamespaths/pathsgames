@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.core.models.match import match_statuses
 from app.core.models.match.match_models import (
     MatchCreateCommand,
     MatchCreationError,
@@ -33,6 +34,12 @@ class MatchCreateRequestBody(BaseModel):
     classUuid: Optional[str] = None
     traitUuids: Optional[List[str]] = None
     singlePlayer: Optional[int] = None
+
+
+class MatchUpdateRequestBody(BaseModel):
+    """Body for PUT /api/admin/matches/{uuid}. Both fields optional."""
+    status: Optional[str] = None
+    name: Optional[str] = None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -105,6 +112,27 @@ class MatchController:
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
         )
         self.router.add_api_route(
+            "/api/admin/matches/statuses", self.list_match_statuses, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/info", self.get_admin_match_info, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}", self.update_match, methods=["PUT"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/stop", self.stop_match, methods=["POST"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/pause", self.pause_match, methods=["POST"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/resume", self.resume_match, methods=["POST"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}", self.delete_match, methods=["DELETE"]
+        )
+        self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
         )
 
@@ -142,6 +170,57 @@ class MatchController:
         The admin role is enforced by the JWT middleware for /api/admin/ paths."""
         results = self.query_port.list_all_matches()
         return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
+
+    def list_match_statuses(self):
+        """GET /api/admin/matches/statuses — valid statuses, each flagged
+        ``terminal`` when a match in that status is stopped (deletable)."""
+        return JSONResponse(status_code=200, content=[
+            {"value": s, "terminal": match_statuses.is_terminal(s)}
+            for s in match_statuses.ALL
+        ])
+
+    def update_match(self, uuid_match: str, body: Optional[MatchUpdateRequestBody] = None):
+        """PUT /api/admin/matches/{uuid} — update a match's status and/or name."""
+        status_val = body.status if body else None
+        name_val = body.name if body else None
+        if status_val is None and name_val is None:
+            return _error("INVALID_INPUT", "At least one of status or name must be provided", 400)
+        return self._apply_update(uuid_match, status_val, name_val)
+
+    def stop_match(self, uuid_match: str):
+        return self._apply_update(uuid_match, match_statuses.ENDED, None)
+
+    def pause_match(self, uuid_match: str):
+        return self._apply_update(uuid_match, match_statuses.PAUSED, None)
+
+    def resume_match(self, uuid_match: str):
+        return self._apply_update(uuid_match, match_statuses.RUNNING, None)
+
+    def delete_match(self, uuid_match: str):
+        """DELETE /api/admin/matches/{uuid} — delete a stopped match."""
+        outcome = self.command_port.delete_match(uuid_match)
+        if outcome == "DELETED":
+            return JSONResponse(status_code=200, content={"status": "DELETED", "uuid": uuid_match})
+        if outcome == "NOT_STOPPED":
+            return _error("MATCH_NOT_STOPPED",
+                          "Only stopped matches (ENDED or GAMEOVER) can be deleted", 409)
+        return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+
+    def get_admin_match_info(self, uuid_match: str):
+        """GET /api/admin/matches/{uuid}/info — full match detail for the admin
+        console, without the per-user ownership check."""
+        detail = self.query_port.get_match_info_for_admin(uuid_match)
+        if detail is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        return JSONResponse(status_code=200, content=_detail_to_camel(detail))
+
+    def _apply_update(self, uuid_match: str, status_val, name_val):
+        outcome = self.command_port.update_match(uuid_match, status_val, name_val)
+        if outcome == "UPDATED":
+            return JSONResponse(status_code=200, content={"status": "UPDATED", "uuid": uuid_match})
+        if outcome == "INVALID_STATUS":
+            return _error("INVALID_STATUS", f"status must be one of {match_statuses.ALL}", 400)
+        return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
 
     def get_match_info(self, uuid_match: str, request: Request):
         user_uuid = getattr(request.state, "user_uuid", None)

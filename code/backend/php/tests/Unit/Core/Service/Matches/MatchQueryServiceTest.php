@@ -189,4 +189,33 @@ class MatchQueryServiceTest extends TestCase
         $this->assertNull($detail->match->storyUuid);
         $this->assertNull($detail->match->difficultyUuid);
     }
+
+    // ── getMatchInfoForAdmin (no ownership check) ──────────────────────────────
+
+    public function testGetMatchInfoForAdminBlankUuid(): void
+    {
+        $this->assertNull($this->service->getMatchInfoForAdmin(''));
+    }
+
+    public function testGetMatchInfoForAdminMatchNotFound(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn(null);
+        $this->assertNull($this->service->getMatchInfoForAdmin('m'));
+    }
+
+    public function testGetMatchInfoForAdminReturnsDetailOfAnyOwner(): void
+    {
+        // match created by user 99 — admin info skips the ownership check
+        $this->persistence->method('findMatchByUuid')->willReturn($this->match(99));
+        $this->storyRead->method('findStoryById')->willReturn(['id' => 2, 'uuid' => 'story-uuid']);
+        $this->storyRead->method('findDifficultyById')->willReturn(['id' => 3, 'uuid' => 'diff-uuid']);
+        $this->storyRead->method('findLocationsByStoryId')->willReturn([]);
+        $this->persistence->method('findLocationsByMatchId')->willReturn([]);
+        $this->persistence->method('findRegistryByMatchId')->willReturn([]);
+
+        $detail = $this->service->getMatchInfoForAdmin('m');
+        $this->assertNotNull($detail);
+        $this->assertSame('match-uuid', $detail->match->uuid);
+        $this->assertSame('story-uuid', $detail->match->storyUuid);
+    }
 }

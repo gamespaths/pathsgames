@@ -38,6 +38,10 @@ from app.core.services.match.property_system_mode_service import PropertySystemM
 from app.adapters.rest.match.match_controller import MatchController
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
+# Dev-only test-data cleanup
+from app.core.services.dev.test_data_cleanup_service import TestDataCleanupService
+from app.adapters.rest.dev.dev_controller import DevController
+
 # 1. Initialize Database
 init_db()
 
@@ -87,9 +91,12 @@ match_query_service = MatchQueryService(
     user_access_adapter,
 )
 
+# Dev-only test-data cleanup service
+test_data_cleanup_service = TestDataCleanupService(persistence_adapter, match_persistence_adapter)
+
 # 4. Initialize Controllers
 echo_controller = EchoController(echo_service)
-guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence)
+guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, token_persistence, settings.dev_test_endpoints_enabled)
 guest_admin_controller = GuestAdminController(guest_admin_service)
 session_controller = SessionController(session_service)
 story_controller = StoryController(story_query_service)
@@ -97,6 +104,7 @@ story_admin_controller = StoryAdminController(story_query_service, story_import_
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_controller = MatchController(match_command_service, match_query_service)
+dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -127,7 +135,8 @@ public_paths = [
     "/api/echo/status",
     "/api/auth/guest",
     "/api/auth/guest/resume",
-    "/api/auth/refresh"
+    "/api/auth/refresh",
+    "/api/dev/**"
 ]
 app.add_middleware(JwtMiddleware, session_service=session_service, public_paths=public_paths)
 
@@ -156,6 +165,7 @@ app.include_router(story_admin_controller.router)
 app.include_router(content_controller.router)
 app.include_router(story_crud_admin_controller.router)
 app.include_router(match_controller.router)
+app.include_router(dev_controller.router)
 
 if __name__ == "__main__":
     import uvicorn

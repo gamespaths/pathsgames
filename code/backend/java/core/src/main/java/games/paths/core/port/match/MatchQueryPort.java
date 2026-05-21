@@ -28,4 +28,13 @@ public interface MatchQueryPort {
      *         is not allowed to access it.
      */
     MatchDetail getMatchInfo(String matchUuid, String userUuid);
+
+    /**
+     * Returns the full match detail (summary + state) by match uuid for the
+     * admin view — without the per-user ownership check. Exposed at
+     * GET /api/admin/matches/{uuidMatch}/info.
+     *
+     * @return {@code null} only when the match does not exist.
+     */
+    MatchDetail getMatchInfoForAdmin(String matchUuid);
 }

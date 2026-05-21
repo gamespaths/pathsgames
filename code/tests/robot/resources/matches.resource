@@ -21,7 +21,7 @@ Resource   auth.resource
 Create Match
     [Documentation]    POST /api/matches with the given Bearer token and body.
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
-    ...    ${name}=Robot match    ${expected_status}=any
+    ...    ${name}=robottest_match    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     Set To Dictionary    ${headers}    Content-Type=application/json
     &{body}=    Create Dictionary
@@ -45,7 +45,7 @@ Create Match With Loadout
     &{body}=    Create Dictionary
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
-    ...    name=Robot loadout match
+    ...    name=robottest_loadout_match
     ...    characterTemplateUuid=${character_uuid}
     ...    classUuid=${class_uuid}
     ...    traitUuids=${trait_uuids}

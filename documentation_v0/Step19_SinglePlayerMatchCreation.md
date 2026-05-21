@@ -271,6 +271,7 @@ version `0.19.10`.
 | `GET /api/matches`                    | NEW (v0.19.0); response extended (v0.19.9)                |
 | `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9)        |
 | `GET /api/admin/matches`              | NEW (v0.19.10) — admin-wide list, all backends            |
+| `GET /api/admin/matches/{uuid}/info`  | NEW (v0.19.12) — admin detail without ownership check; see [Step21_AdminMatchControl.md](Step21_AdminMatchControl.md) |
 
 ---
 
@@ -342,7 +343,9 @@ and rendered by `src/pages/MatchesPage.jsx`. It provides:
 
 New files:
 - `src/api/matchApi.js` — `listMatches` (`GET /api/admin/matches`) and
-  `getMatchInfo` (`GET /api/match/{uuid}/info`).
+  `getMatchInfo` (`GET /api/admin/matches/{uuid}/info` since v0.19.12; was
+  `GET /api/match/{uuid}/info` in v0.19.10 — changed as a bug fix because the
+  per-user endpoint returned 404 when an admin opened a guest's match).
 - `src/tests/api/matchApi.test.js` and
   `src/tests/pages/MatchesPage.test.jsx` — unit tests (236 tests total
   passing after this step).
@@ -408,6 +411,8 @@ The same suite passes against the Python and PHP backends — see
 
   > using "0.19.10" version, read documentation_v0. Into react-game project when "start game" jump to another page "StartMatch" with book style (left and right page), on left the story card, on right the 6 little card selected in startBook. after bonus lists show "starting match", wait X seconds (X on env file , default 20 seconds)  and call the match POST API to create the match (pass all information to API), show "Match created, story book is loading" and jump after X seconds to GamePage. update the react-admin project: create a new section "match" to see all match from GET API and details/operatons . Let's go
   
+  > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
+
 - **Document Version**: 0.19.10
     | Version | Description | Date |
     | --- | --- | --- |
@@ -420,11 +425,13 @@ The same suite passes against the Python and PHP backends — see
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
     | 0.19.8 | Added guest user management into game frontend project | May 19, 2026 |
-    | 0.19.9 | Added character/class/traits/singlePlayer loadout fields to the match creation request, persisted on gaming_match | May 20, 2026 |
-    | 0.19.10 | react-game: StartMatchPage (countdown + match creation + navigation to GamePage); react-admin: Matches section with list table and detail modal; GET /api/admin/matches added to all four backends | May 20, 2026 |
+    | 0.19.9 | Added character/class/traits/singlePlayer fields into creation request and gaming_match | May 20, 2026 |
+    | 0.19.10 | StartMatchPage on react-game, Matches list on react-admin and GET /api/admin/matches | May 20, 2026 |
+    | 0.19.11 | Dev-only test-data cleanup | May 21, 2026 |
+    | 0.19.12 | Admin match control (update/stop/pause/resume/delete) | May 21, 2026 |
 
-- **Last Updated**: May 20, 2026
-- **Status**: ✅ Complete
+- **Last Updated**: May 21, 2026
+- **Status**: Complete
 
 
 

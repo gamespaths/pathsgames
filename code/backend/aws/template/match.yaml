@@ -90,3 +90,53 @@ Resources:
       ApiId: !Ref ApiId
       RouteKey: "GET /api/match/{uuidMatch}/info"
       Target: !Sub "integrations/${MatchIntegration}"
+
+  # ── admin match control (modify / stop / delete) ──
+  ListMatchStatusesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches/statuses"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  AdminMatchInfoRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/info"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  UpdateMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PUT /api/admin/matches/{uuidMatch}"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  StopMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/stop"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  PauseMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/pause"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  ResumeMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/resume"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  DeleteMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "DELETE /api/admin/matches/{uuidMatch}"
+      Target: !Sub "integrations/${MatchIntegration}"

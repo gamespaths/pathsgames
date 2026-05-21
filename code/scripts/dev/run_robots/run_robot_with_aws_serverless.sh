@@ -83,11 +83,19 @@ if [ -f "$PROJECT_ROOT/code/tests/robot/requirements.txt" ]; then
 fi
 
 echo "Running Robot tests!"
-cd "$PROJECT_ROOT/code/tests/robot" && \
+cd "$PROJECT_ROOT/code/tests/robot"
+ROBOT_EXIT=0
 robot --variablefile variables/dev.yaml \
     --variable BASE_URL:"$API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
-    --outputdir reports-aws/ tests/
+    --outputdir reports-aws/ tests/ || ROBOT_EXIT=$?
+
+# Remove the rows created by this Robot run (guests + matches tagged "robottest"),
+# preserving every other row. Runs whether the tests passed or failed.
+echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
+curl -s -X POST "$API_URL/api/dev/cleanup" || echo "  cleanup request failed"
+echo
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-aws/"
+exit $ROBOT_EXIT
 

@@ -301,5 +301,40 @@ class MatchQueryServiceTest {
             assertNull(detail.getMatch().getStoryUuid());
             assertNull(detail.getMatch().getDifficultyUuid());
         }
+
+        @Test
+        @DisplayName("getMatchInfoForAdmin: blank uuid → null")
+        void adminBlankUuid() {
+            assertNull(service.getMatchInfoForAdmin(null));
+            assertNull(service.getMatchInfoForAdmin("  "));
+        }
+
+        @Test
+        @DisplayName("getMatchInfoForAdmin: match not found → null")
+        void adminMatchNotFound() {
+            when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.empty());
+            assertNull(service.getMatchInfoForAdmin("m"));
+        }
+
+        @Test
+        @DisplayName("getMatchInfoForAdmin: returns detail of a match owned by another user")
+        void adminAnyOwner() {
+            // match created by user 99 — the admin info endpoint skips the
+            // ownership check that GET /api/match/{uuid}/info enforces.
+            GamingMatchEntity m = match(1L, "m", 99L, 2L, 3L);
+            when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
+            when(storyReadPort.findAllStories()).thenReturn(List.of(story(2L, "story-uuid", 10)));
+            when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of(location(10L, "loc-10")));
+            when(storyReadPort.findDifficultiesByStoryId(2L))
+                    .thenReturn(List.of(difficulty(3L, "diff-uuid")));
+            when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of(locState(1L, 10L)));
+            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of(regEntry(20L, 1L, "k")));
+
+            MatchDetail detail = service.getMatchInfoForAdmin("m");
+            assertNotNull(detail);
+            assertEquals("m", detail.getMatch().getUuid());
+            assertEquals("story-uuid", detail.getMatch().getStoryUuid());
+            assertEquals(1, detail.getRegistry().size());
+        }
     }
 }

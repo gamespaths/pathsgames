@@ -8,6 +8,7 @@ import games.paths.core.port.auth.GuestAdminPort;
 import games.paths.core.port.auth.GuestAuthPort;
 import games.paths.core.port.auth.SessionPort;
 import games.paths.core.port.auth.TokenPersistencePort;
+import games.paths.core.port.dev.TestDataCleanupPort;
 import games.paths.core.port.story.StoryCrudPort;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
@@ -24,6 +25,7 @@ import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
 import games.paths.core.service.auth.SessionService;
+import games.paths.core.service.dev.TestDataCleanupService;
 import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
@@ -133,5 +135,13 @@ public class CoreConfig {
                                          StoryReadPort storyReadPort,
                                          UserAccessPort userAccessPort) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
+    }
+
+    // ───── Dev-only test-data cleanup ─────
+
+    @Bean
+    public TestDataCleanupPort testDataCleanupPort(GuestAdminPersistencePort guestAdminPersistencePort,
+                                                   MatchPersistencePort matchPersistencePort) {
+        return new TestDataCleanupService(guestAdminPersistencePort, matchPersistencePort);
     }
 }

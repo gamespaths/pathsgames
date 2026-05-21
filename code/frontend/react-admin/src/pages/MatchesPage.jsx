@@ -1,48 +1,45 @@
 import { useEffect, useState } from 'react'
-import { listMatches, getMatchInfo } from '../api/matchApi'
+import {
+  listMatches, getMatchInfo, listMatchStatuses,
+  updateMatch, stopMatch, deleteMatch,
+} from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
+import ConfirmModal from '../components/common/ConfirmModal'
+import MatchDetailModal, { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
 
 /**
- * MatchesPage (v0.19.10) — admin view of the single-player matches.
+ * MatchesPage — admin view of the matches.
  *
- * Lists the matches returned by GET /api/matches and opens the per-match
- * runtime state (GET /api/match/{uuid}/info) in a detail modal. The match
- * endpoints expose no mutating operations yet, so the available operation is
- * inspecting a match.
+ * Lists every match (GET /api/admin/matches) and lets an admin:
+ *   - inspect the runtime state (GET /api/match/{uuid}/info);
+ *   - edit a match — status and name (PUT /api/admin/matches/{uuid});
+ *   - stop a running match (POST /api/admin/matches/{uuid}/stop);
+ *   - delete a stopped match (DELETE /api/admin/matches/{uuid}).
  */
 
-function fmtDate(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString()
-}
-
-function shortUuid(uuid) {
-  return uuid ? `${uuid.slice(0, 8)}…` : '—'
-}
-
-const STATUS_BADGE = {
-  CREATED:  'pg-badge-info',
-  RUNNING:  'pg-badge-success',
-  PAUSED:   'pg-badge-gold',
-  ENDED:    'pg-badge-gold',
-  GAMEOVER: 'pg-badge-danger',
-}
-
-const STATUSES = ['CREATED', 'RUNNING', 'PAUSED', 'ENDED', 'GAMEOVER']
-
-function StatusBadge({ status }) {
-  return <span className={`pg-badge ${STATUS_BADGE[status] || 'pg-badge-info'}`}>{status || '—'}</span>
-}
+// Fallback used until GET /api/admin/matches/statuses resolves (or if it fails).
+const DEFAULT_STATUSES = [
+  { value: 'CREATED',  terminal: false },
+  { value: 'RUNNING',  terminal: false },
+  { value: 'PAUSED',   terminal: false },
+  { value: 'ENDED',    terminal: true },
+  { value: 'GAMEOVER', terminal: true },
+]
 
 export default function MatchesPage() {
   const [matches,      setMatches]      = useState([])
+  const [statuses,     setStatuses]     = useState(DEFAULT_STATUSES)
   const [loading,      setLoading]      = useState(true)
   const [error,        setError]        = useState('')
   const [filter,       setFilter]       = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [detail,       setDetail]       = useState(null) // { uuid, loading, info, error }
+  const [detail,       setDetail]       = useState(null) // { uuid, loading, info, error, storyCtx }
+  const [editing,      setEditing]      = useState(null) // match being edited
+  const [confirm,      setConfirm]      = useState(null) // { action, match }
+
+  const terminalStatuses = new Set(statuses.filter(s => s.terminal).map(s => s.value))
+  const isTerminal = (status) => terminalStatuses.has(status)
 
   const load = () => {
     setLoading(true)
@@ -53,15 +50,36 @@ export default function MatchesPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+    listMatchStatuses()
+      .then(data => { if (Array.isArray(data) && data.length) setStatuses(data) })
+      .catch(() => setStatuses(DEFAULT_STATUSES))
+  }, [])
 
-  const openDetail = async (uuid) => {
-    setDetail({ uuid, loading: true, info: null, error: '' })
+  const openDetail = async (uuid, storyUuid) => {
+    setDetail({ uuid, loading: true, info: null, error: '', storyCtx: null })
     try {
-      const info = await getMatchInfo(uuid)
-      setDetail({ uuid, loading: false, info, error: '' })
+      const [info, storyCtx] = await Promise.all([
+        getMatchInfo(uuid),
+        fetchStoryCtx(storyUuid),
+      ])
+      setDetail({ uuid, loading: false, info, error: '', storyCtx })
     } catch (e) {
-      setDetail({ uuid, loading: false, info: null, error: e.message || 'Failed to load match info' })
+      setDetail({ uuid, loading: false, info: null, error: e.message || 'Failed to load match info', storyCtx: null })
+    }
+  }
+
+  const runConfirm = async () => {
+    const { action, match } = confirm
+    setConfirm(null)
+    setError('')
+    try {
+      if (action === 'stop')   await stopMatch(match.uuid)
+      if (action === 'delete') await deleteMatch(match.uuid)
+      load()
+    } catch (e) {
+      setError(e.response?.data?.message || e.message || `Failed to ${action} match`)
     }
   }
 
@@ -120,7 +138,7 @@ export default function MatchesPage() {
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          {statuses.map(s => <option key={s.value} value={s.value}>{s.value}</option>)}
         </select>
         <button className="pg-btn pg-btn-ghost" onClick={load}>
           <i className="fas fa-sync-alt" /> Refresh
@@ -168,13 +186,37 @@ export default function MatchesPage() {
                     <td>{m.currentClock ?? 0}</td>
                     <td>{m.expCost ?? 0}</td>
                     <td style={{ fontSize: '0.8rem' }}>{fmtDate(m.tsInsert)}</td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button
                         className="pg-btn pg-btn-ghost pg-btn-sm"
                         title="View detail"
-                        onClick={() => openDetail(m.uuid)}
+                        onClick={() => openDetail(m.uuid, m.storyUuid)}
                       >
                         <i className="fas fa-eye" />
+                      </button>
+                      <button
+                        className="pg-btn pg-btn-ghost pg-btn-sm"
+                        title="Edit match"
+                        onClick={() => setEditing(m)}
+                      >
+                        <i className="fas fa-pen" />
+                      </button>
+                      {!isTerminal(m.status) && (
+                        <button
+                          className="pg-btn pg-btn-ghost pg-btn-sm"
+                          title="Stop match"
+                          onClick={() => setConfirm({ action: 'stop', match: m })}
+                        >
+                          <i className="fas fa-stop" />
+                        </button>
+                      )}
+                      <button
+                        className="pg-btn pg-btn-ghost pg-btn-sm"
+                        title={isTerminal(m.status) ? 'Delete match' : 'Stop the match before deleting it'}
+                        disabled={!isTerminal(m.status)}
+                        onClick={() => setConfirm({ action: 'delete', match: m })}
+                      >
+                        <i className="fas fa-trash" />
                       </button>
                     </td>
                   </tr>
@@ -186,95 +228,82 @@ export default function MatchesPage() {
       )}
 
       {detail && <MatchDetailModal detail={detail} onClose={() => setDetail(null)} />}
+
+      {editing && (
+        <MatchEditModal
+          match={editing}
+          statuses={statuses}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load() }}
+        />
+      )}
+
+      {confirm && (
+        <ConfirmModal
+          title={confirm.action === 'stop' ? 'Stop match' : 'Delete match'}
+          message={
+            confirm.action === 'stop'
+              ? `Set "${confirm.match.name || confirm.match.uuid}" to ENDED?`
+              : `Permanently delete "${confirm.match.name || confirm.match.uuid}" and its runtime state? This cannot be undone.`
+          }
+          onConfirm={runConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
     </div>
   )
 }
 
-/** Modal showing the runtime state of a single match. */
-function MatchDetailModal({ detail, onClose }) {
-  const { uuid, loading, info, error } = detail
-  const match = info?.match
+/** Modal to edit a match — status and name. */
+function MatchEditModal({ match, statuses, onClose, onSaved }) {
+  const [name,   setName]   = useState(match.name || '')
+  const [status, setStatus] = useState(match.status || '')
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+
+  const save = async () => {
+    setSaving(true)
+    setError('')
+    try {
+      await updateMatch(match.uuid, { status, name })
+      onSaved()
+    } catch (e) {
+      setError(e.response?.data?.message || e.message || 'Failed to update match')
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="pg-modal-backdrop" onClick={onClose}>
-      <div className="pg-modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
-        <p className="pg-modal-title">
-          <i className="fas fa-gamepad me-2" />
-          {match?.name || `Match ${shortUuid(uuid)}`}
-        </p>
+      <div className="pg-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <p className="pg-modal-title"><i className="fas fa-pen me-2" />Edit match</p>
 
-        {loading && <LoadingSpinner text="Loading match info…" />}
         <ErrorAlert message={error} />
 
-        {!loading && info && (
-          <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-            {/* Summary */}
-            <table className="pg-table" style={{ fontSize: '0.82rem', marginBottom: '1rem' }}>
-              <tbody>
-                {Object.entries(match || {}).map(([k, v]) => (
-                  <tr key={k}>
-                    <td style={{ fontFamily: 'Cinzel, serif', fontSize: '0.7rem', color: 'var(--color-gold-dark)', whiteSpace: 'nowrap' }}>{k}</td>
-                    <td style={{ wordBreak: 'break-all', color: 'var(--color-parchment)' }}>
-                      {v === null || v === undefined
-                        ? <em style={{ color: 'var(--color-ash)' }}>null</em>
-                        : Array.isArray(v) ? (v.length ? v.join(', ') : <em style={{ color: 'var(--color-ash)' }}>empty</em>)
-                        : String(v)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <label className="pg-label" htmlFor="match-edit-name">Name</label>
+        <input
+          id="match-edit-name"
+          className="pg-input mb-3"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Match name"
+        />
 
-            <p className="pg-card-title mb-2">
-              <i className="fas fa-map-marker-alt me-1" />
-              Current location: {info.currentLocationName || '—'}
-            </p>
+        <label className="pg-label" htmlFor="match-edit-status">Status</label>
+        <select
+          id="match-edit-status"
+          className="pg-input mb-4"
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+        >
+          {statuses.map(s => <option key={s.value} value={s.value}>{s.value}</option>)}
+        </select>
 
-            {/* Location state */}
-            <p className="pg-card-title mb-1"><i className="fas fa-map me-1" />Locations ({info.locations?.length ?? 0})</p>
-            <table className="pg-table" style={{ fontSize: '0.78rem', marginBottom: '1rem' }}>
-              <thead>
-                <tr><th>idLocation</th><th>UUID</th><th>Activated</th><th>Clock</th></tr>
-              </thead>
-              <tbody>
-                {(info.locations ?? []).length === 0 && (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No locations.</td></tr>
-                )}
-                {(info.locations ?? []).map(l => (
-                  <tr key={l.uuid ?? l.idLocation}>
-                    <td>{l.idLocation}</td>
-                    <td style={{ fontFamily: 'monospace' }}>{shortUuid(l.uuid)}</td>
-                    <td>{l.flagAlreadyActived ? 'yes' : 'no'}</td>
-                    <td>{l.clockCounter ?? 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Registry */}
-            <p className="pg-card-title mb-1"><i className="fas fa-list me-1" />Registry ({info.registry?.length ?? 0})</p>
-            <table className="pg-table" style={{ fontSize: '0.78rem' }}>
-              <thead>
-                <tr><th>Key</th><th>String value</th><th>Int value</th></tr>
-              </thead>
-              <tbody>
-                {(info.registry ?? []).length === 0 && (
-                  <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No registry entries.</td></tr>
-                )}
-                {(info.registry ?? []).map(r => (
-                  <tr key={r.uuid ?? r.key}>
-                    <td>{r.key}</td>
-                    <td style={{ wordBreak: 'break-all' }}>{r.stringValue ?? '—'}</td>
-                    <td>{r.intValue ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div className="flex justify-end mt-3">
-          <button className="pg-btn pg-btn-ghost" onClick={onClose}>Close</button>
+        <div className="flex gap-2 justify-end">
+          <button className="pg-btn pg-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="pg-btn pg-btn-gold" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
         </div>
       </div>
     </div>

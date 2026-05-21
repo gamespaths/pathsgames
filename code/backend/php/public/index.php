@@ -37,8 +37,18 @@ use Games\Paths\Core\Service\Matches\MatchQueryService;
 use Games\Paths\Core\Service\Matches\PropertySystemModeService;
 use Games\Paths\Adapter\Rest\Matches\MatchController;
 
+// Dev-only test-data cleanup
+use Games\Paths\Core\Service\Dev\TestDataCleanupService;
+use Games\Paths\Adapter\Rest\Dev\DevController;
+
 // Enable error reporting only in development
 $appEnv = getenv('APP_ENV') ?: 'development';
+
+// Dev-only test endpoints (POST /api/dev/cleanup) + X-Test-Marker header.
+// Defaults to enabled in development; override with DEV_TEST_ENDPOINTS_ENABLED.
+$devTestEndpointsEnabled = getenv('DEV_TEST_ENDPOINTS_ENABLED') !== false
+    ? getenv('DEV_TEST_ENDPOINTS_ENABLED') === 'true'
+    : ($appEnv === 'development');
 if ($appEnv === 'development') {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
@@ -156,9 +166,12 @@ $matchQueryService = new MatchQueryService(
     $userAccessRepo
 );
 
+// Dev-only test-data cleanup service
+$testDataCleanupService = new TestDataCleanupService($guestRepo, $matchPersistenceRepo);
+
 // ─── Initialize Rest Controllers ───
 $echoController = new EchoController($echoService);
-$guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $tokenRepo);
+$guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $tokenRepo, $devTestEndpointsEnabled);
 $guestAdminController = new GuestAdminController($guestAdminService);
 $sessionController = new SessionController($sessionService);
 $storyController = new StoryController($storyQueryService);
@@ -166,6 +179,7 @@ $storyAdminController = new StoryAdminController($storyQueryService, $storyImpor
 $contentController = new ContentController($contentQueryService);
 $storyCrudAdminController = new StoryCrudAdminController($storyCrudService);
 $matchController = new MatchController($matchCommandService, $matchQueryService);
+$devController = new DevController($testDataCleanupService, $devTestEndpointsEnabled);
 
 // ─── Authentication Middleware ───
 $publicPaths = [
@@ -175,7 +189,8 @@ $publicPaths = [
     '/api/auth/refresh',
     '/api/stories',
     '/api/stories/**',
-    '/api/content/**'
+    '/api/content/**',
+    '/api/dev/**'
 ];
 $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths);
 
@@ -183,7 +198,7 @@ $authMiddleware = new JwtAuthenticationMiddleware($sessionService, $publicPaths)
 $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $echoController, $guestAuthController, $guestAdminController, $sessionController,
     $storyController, $storyAdminController, $contentController, $storyCrudAdminController,
-    $matchController
+    $matchController, $devController
 ) {
     
     // Echo (Public)
@@ -239,6 +254,18 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/matches', [$matchController, 'listMatches']);
     $group->get('/admin/matches', [$matchController, 'listAllMatches']);
     $group->get('/match/{uuidMatch}/info', [$matchController, 'getMatchInfo']);
+
+    // Admin — match control (modify / stop / delete)
+    $group->get('/admin/matches/statuses', [$matchController, 'listMatchStatuses']);
+    $group->get('/admin/matches/{uuidMatch}/info', [$matchController, 'getAdminMatchInfo']);
+    $group->put('/admin/matches/{uuidMatch}', [$matchController, 'updateMatch']);
+    $group->post('/admin/matches/{uuidMatch}/stop', [$matchController, 'stopMatch']);
+    $group->post('/admin/matches/{uuidMatch}/pause', [$matchController, 'pauseMatch']);
+    $group->post('/admin/matches/{uuidMatch}/resume', [$matchController, 'resumeMatch']);
+    $group->delete('/admin/matches/{uuidMatch}', [$matchController, 'deleteMatch']);
+
+    // Dev — test-data cleanup (dev-only, returns 403 when disabled)
+    $group->post('/dev/cleanup', [$devController, 'cleanup']);
 })->add($authMiddleware);
 
 $app->run();

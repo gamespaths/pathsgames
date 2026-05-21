@@ -79,6 +79,38 @@ class GuestAuthServiceTest {
             verify(persistencePort).storeRefreshToken(eq(mockUserId), eq("refresh-token"), anyString());
             verify(persistencePort).updateLastAccess(mockUserId);
         }
+
+        @Test
+        @DisplayName("Should prefix the username with a sanitized test marker when one is given")
+        void createGuestSession_withTestMarker_usesMarkerPrefix() {
+            // Arrange
+            when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(1L);
+            when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("access-token");
+            when(jwtPort.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+            // Act — a marker with mixed case and punctuation is sanitized to [a-z0-9]
+            GuestSession session = guestAuthService.createGuestSession("Robot-Test!");
+
+            // Assert
+            assertTrue(session.getUsername().startsWith("robottest_"),
+                    "username should start with the sanitized marker prefix");
+            assertFalse(session.getUsername().startsWith("guest_"));
+        }
+
+        @Test
+        @DisplayName("Should fall back to the guest_ prefix when the marker is blank")
+        void createGuestSession_withBlankMarker_usesGuestPrefix() {
+            // Arrange
+            when(persistencePort.createGuestUser(anyString(), anyString(), anyString(), anyString())).thenReturn(1L);
+            when(jwtPort.generateAccessToken(anyString(), anyString(), anyString())).thenReturn("access-token");
+            when(jwtPort.generateRefreshToken(anyString())).thenReturn("refresh-token");
+
+            // Act
+            GuestSession session = guestAuthService.createGuestSession("   ");
+
+            // Assert
+            assertTrue(session.getUsername().startsWith("guest_"));
+        }
     }
 
     // --- SECTION: GUEST SESSION RESUMPTION ---

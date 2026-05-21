@@ -80,6 +80,20 @@ class GuestMysqlRepository implements GuestRepositoryPort
         return $stmt->rowCount();
     }
 
+    public function deleteGuestsByUsernameLike(string $usernameLikePattern): int
+    {
+        // Delete the tokens of the matching guests first, then the guests.
+        $tokenStmt = $this->pdo->prepare(
+            "DELETE FROM users_tokens WHERE id_user IN
+                (SELECT id FROM gaming_user_sessions WHERE username LIKE :pattern)"
+        );
+        $tokenStmt->execute([':pattern' => $usernameLikePattern]);
+
+        $stmt = $this->pdo->prepare("DELETE FROM gaming_user_sessions WHERE username LIKE :pattern");
+        $stmt->execute([':pattern' => $usernameLikePattern]);
+        return $stmt->rowCount();
+    }
+
     public function countAll(): int
     {
         $stmt = $this->pdo->query("SELECT COUNT(*) FROM gaming_user_sessions");

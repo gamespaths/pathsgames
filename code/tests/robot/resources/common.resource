@@ -8,11 +8,23 @@ Library    String
 Library    ../resources/JwtHelper.py
 
 
+*** Variables ***
+
+# Marker tagging every row created by this Robot run as test data, so it can be
+# removed afterwards by POST /api/dev/cleanup while real data is preserved.
+# Guests created via POST /api/auth/guest get the username prefix "robottest_";
+# matches get the name prefix "robottest_" (see matches.resource).
+${TEST_MARKER}    robottest
+
+
 *** Keywords ***
 
 Create Public Session
     [Documentation]    Opens a RequestsLibrary HTTP session with no auth headers.
-    Create Session    public_session    ${BASE_URL}    verify=false
+    ...                The X-Test-Marker header tags guests created during the
+    ...                run as test data (removed afterwards by /api/dev/cleanup).
+    ${headers}=    Create Dictionary    X-Test-Marker=${TEST_MARKER}
+    Create Session    public_session    ${BASE_URL}    headers=${headers}    verify=false
 
 Create Admin Session
     [Documentation]    Opens a RequestsLibrary HTTP session with a dynamically generated

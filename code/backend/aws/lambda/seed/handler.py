@@ -36,6 +36,10 @@ from common import db_utils
 
 HEADERS = {"Content-Type": "application/json"}
 
+# Canonical marker tagging rows created by automated (Robot Framework) test
+# runs — see POST /api/dev/cleanup below.
+ROBOT_TEST_MARKER = "robottest"
+
 # BCrypt hash is loaded from the environment variable SEED_BCRYPT_HASH
 # (set via CloudFormation parameter SeedBcryptHash with NoEcho:true)
 # Never hardcode password hashes in source code.
@@ -440,6 +444,35 @@ def _seed_stories():
         seeded.append({"uuid": story_uuid, "title": s["texts"]["en"]["title"]})
     return seeded
 
+# ─── test-data cleanup ───────────────────────────────────────────────────────
+
+def _handle_cleanup():
+    """POST /api/dev/cleanup — removes the rows created by automated (Robot
+    Framework) test runs: guests whose username starts with the ``robottest``
+    marker and matches whose name starts with it. Every other item is kept.
+    """
+    deleted_guests = 0
+    for user in db_utils.scan_filter("is_guest", True):
+        if str(user.get("username", "")).startswith(ROBOT_TEST_MARKER):
+            db_utils.delete_item(user["PK"], user.get("SK", "METADATA"))
+            deleted_guests += 1
+
+    deleted_matches = 0
+    for match in db_utils.scan_pk_prefix("MATCH#"):
+        if str(match.get("name") or "").startswith(ROBOT_TEST_MARKER):
+            db_utils.delete_item(match["PK"], match.get("SK", "METADATA"))
+            deleted_matches += 1
+
+    return {
+        "statusCode": 200,
+        "headers": HEADERS,
+        "body": json.dumps({
+            "deletedGuests":  deleted_guests,
+            "deletedMatches": deleted_matches,
+        })
+    }
+
+
 # ─── handler ─────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -450,9 +483,15 @@ def lambda_handler(event, context):
             "headers": HEADERS,
             "body": json.dumps({
                 "error":   "FORBIDDEN",
-                "message": "Seed endpoint is only available in the dev environment"
+                "message": "Dev endpoints are only available in the dev environment"
             })
         }
+
+    # This function serves both dev-only endpoints: /api/dev/seed (default)
+    # and /api/dev/cleanup.
+    raw_path = event.get("rawPath") or event.get("path") or ""
+    if raw_path.rstrip("/").endswith("/api/dev/cleanup"):
+        return _handle_cleanup()
 
     now = int(time.time() * 1000)
     inserted = []

@@ -4,6 +4,7 @@ namespace Games\Paths\Core\Service\Matches;
 
 use Games\Paths\Core\Domain\Matches\MatchCreateCommand;
 use Games\Paths\Core\Domain\Matches\MatchCreationException;
+use Games\Paths\Core\Domain\Matches\MatchStatuses;
 use Games\Paths\Core\Domain\Matches\MatchSummary;
 use Games\Paths\Core\Port\Matches\MatchCommandPort;
 use Games\Paths\Core\Port\Matches\MatchPersistencePort;
@@ -136,6 +137,29 @@ class MatchCommandService implements MatchCommandPort
             classUuid: $saved['class_uuid'] ?? null,
             traitUuids: $saved['trait_uuids'] ?? []
         );
+    }
+
+    public function updateMatch(string $uuidMatch, ?string $status, ?string $name): string
+    {
+        if ($status !== null && !MatchStatuses::isValid($status)) {
+            return 'INVALID_STATUS';
+        }
+        $found = $this->persistencePort->updateMatchFields($uuidMatch, $status, $name);
+        return $found ? 'UPDATED' : 'NOT_FOUND';
+    }
+
+    public function deleteMatch(string $uuidMatch): string
+    {
+        $match = $this->persistencePort->findMatchByUuid($uuidMatch);
+        if ($match === null) {
+            return 'NOT_FOUND';
+        }
+        // Only a stopped (terminal) match may be deleted.
+        if (!MatchStatuses::isTerminal($match['status'] ?? null)) {
+            return 'NOT_STOPPED';
+        }
+        $this->persistencePort->deleteMatchByUuid($uuidMatch);
+        return 'DELETED';
     }
 
     private function applyDefault(array &$row, $rawValue): void

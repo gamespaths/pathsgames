@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Any
@@ -10,15 +11,27 @@ class GuestAuthService(GuestAuthPort):
     GUEST_ROLE = "PLAYER"
     GUEST_USERNAME_PREFIX = "guest_"
     GUEST_SESSION_DAYS = 180
+    MAX_MARKER_LENGTH = 30
 
     def __init__(self, jwt_port: JwtPort, persistence_port: GuestPersistencePort):
         self.jwt_port = jwt_port
         self.persistence_port = persistence_port
 
-    def create_guest_session(self) -> GuestSession:
+    def _resolve_username_prefix(self, test_marker: Optional[str]) -> str:
+        """With a non-blank test marker the sanitized marker becomes the
+        username prefix, so the guest can be removed by the test-data cleanup.
+        Otherwise the standard ``guest_`` prefix is used."""
+        if not test_marker or not test_marker.strip():
+            return self.GUEST_USERNAME_PREFIX
+        sanitized = re.sub(r"[^a-z0-9]", "", test_marker.lower())
+        if not sanitized:
+            return self.GUEST_USERNAME_PREFIX
+        return sanitized[: self.MAX_MARKER_LENGTH] + "_"
+
+    def create_guest_session(self, test_marker: Optional[str] = None) -> GuestSession:
         # 1. Generate anonymous UUID identity
         user_uuid = str(uuid.uuid4())
-        username = self.GUEST_USERNAME_PREFIX + user_uuid[:8]
+        username = self._resolve_username_prefix(test_marker) + user_uuid[:8]
         guest_cookie_token = str(uuid.uuid4())
 
         # 2. Calculate guest session expiration

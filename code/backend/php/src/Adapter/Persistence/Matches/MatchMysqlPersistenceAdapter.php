@@ -151,4 +151,69 @@ class MatchMysqlPersistenceAdapter implements MatchPersistencePort
         $row['trait_uuids'] = MatchTraitCodec::split($row['trait_uuids'] ?? null);
         return $row;
     }
+
+    public function deleteMatchesByNameLike(string $nameLikePattern): int
+    {
+        // Remove the derived runtime state (locations + registry) first, then
+        // the matches. Explicit child deletion keeps this correct even when
+        // foreign-key cascades are not enforced (e.g. SQLite).
+        $this->pdo->prepare(
+            'DELETE FROM gaming_state_locations WHERE id_match IN
+                (SELECT id FROM gaming_match WHERE name LIKE :pattern)'
+        )->execute([':pattern' => $nameLikePattern]);
+
+        $this->pdo->prepare(
+            'DELETE FROM gaming_state_registry WHERE id_match IN
+                (SELECT id FROM gaming_match WHERE name LIKE :pattern)'
+        )->execute([':pattern' => $nameLikePattern]);
+
+        $stmt = $this->pdo->prepare('DELETE FROM gaming_match WHERE name LIKE :pattern');
+        $stmt->execute([':pattern' => $nameLikePattern]);
+        return $stmt->rowCount();
+    }
+
+    public function updateMatchFields(string $uuid, ?string $status, ?string $name): bool
+    {
+        // Check existence first: an UPDATE that changes nothing still reports
+        // rowCount() = 0 on MySQL, so it cannot be used to detect a missing row.
+        $check = $this->pdo->prepare('SELECT 1 FROM gaming_match WHERE uuid = :uuid');
+        $check->execute([':uuid' => $uuid]);
+        if ($check->fetchColumn() === false) {
+            return false;
+        }
+
+        $sets = ['ts_update = :ts'];
+        $params = [':uuid' => $uuid, ':ts' => date('Y-m-d H:i:s')];
+        if ($status !== null) {
+            $sets[] = 'status = :status';
+            $params[':status'] = $status;
+        }
+        if ($name !== null) {
+            $sets[] = 'name = :name';
+            $params[':name'] = $name;
+        }
+        $stmt = $this->pdo->prepare(
+            'UPDATE gaming_match SET ' . implode(', ', $sets) . ' WHERE uuid = :uuid'
+        );
+        $stmt->execute($params);
+        return true;
+    }
+
+    public function deleteMatchByUuid(string $uuid): bool
+    {
+        $idStmt = $this->pdo->prepare('SELECT id FROM gaming_match WHERE uuid = :uuid');
+        $idStmt->execute([':uuid' => $uuid]);
+        $id = $idStmt->fetchColumn();
+        if ($id === false) {
+            return false;
+        }
+        // Remove the derived runtime state (locations + registry) first.
+        $this->pdo->prepare('DELETE FROM gaming_state_locations WHERE id_match = :id')
+            ->execute([':id' => $id]);
+        $this->pdo->prepare('DELETE FROM gaming_state_registry WHERE id_match = :id')
+            ->execute([':id' => $id]);
+        $this->pdo->prepare('DELETE FROM gaming_match WHERE id = :id')
+            ->execute([':id' => $id]);
+        return true;
+    }
 }
