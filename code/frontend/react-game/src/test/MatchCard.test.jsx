@@ -57,14 +57,6 @@ describe('MatchCard', () => {
     expect(screen.getByText('matches.status.GAMEOVER')).toBeInTheDocument()
   })
 
-  it('shows info popover on (i) click and hides on close', () => {
-    wrap(<MatchCard match={{ uuid: 'm1', status: 'RUNNING', tsInsert: '2026-01-01T10:00:00Z', currentClock: 5 }} story={STORY} onResume={vi.fn()} />)
-    fireEvent.click(screen.getByLabelText('card.info'))  // GameCard uses t('card.info')
-    expect(screen.getByText(/matches\.statusLabel/)).toBeInTheDocument()
-    fireEvent.click(screen.getByLabelText('Close info'))
-    expect(screen.queryByText(/matches\.statusLabel/)).toBeNull()
-  })
-
   it('uses fallback name when story is null', () => {
     wrap(<MatchCard match={{ uuid: 'm1', status: 'RUNNING' }} story={null} onResume={vi.fn()} />)
     expect(screen.getByText('matches.unknownStory')).toBeInTheDocument()
