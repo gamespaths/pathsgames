@@ -14,6 +14,7 @@ import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.turnstile.TurnstileVerificationPort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -148,6 +149,19 @@ class MatchCommandServiceTest {
     @Nested
     @DisplayName("Pre-conditions")
     class Preconditions {
+
+        @Test
+        @DisplayName("turnstile failure → TURNSTILE_VALIDATION_FAILED")
+        void turnstileRejected() {
+            TurnstileVerificationPort rejectAll = (token, ip) -> false;
+            MatchCommandService strictService = new MatchCommandService(
+                    storyReadPort, persistencePort, userAccessPort, systemModePort, rejectAll);
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> strictService.createMatch(new MatchCreateCommand("u", "s", "d",
+                            null, null, null, null, null, "bad-token", "1.2.3.4")));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TURNSTILE_VALIDATION_FAILED, ex.getCode());
+        }
 
         @Test
         @DisplayName("maintenance mode → MAINTENANCE_MODE")
@@ -395,7 +409,7 @@ class MatchCommandServiceTest {
         @Test
         @DisplayName("Code enum has expected entries")
         void codes() {
-            assertEquals(7, MatchCommandPort.MatchCreationException.Code.values().length);
+            assertEquals(8, MatchCommandPort.MatchCreationException.Code.values().length);
             assertEquals(MatchCommandPort.MatchCreationException.Code.USER_BANNED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("USER_BANNED"));
         }

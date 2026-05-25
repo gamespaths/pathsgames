@@ -1,5 +1,25 @@
 <?php
 
+// Load root project .env (four levels up: public/ → php/ → backend/ → code/ → root)
+// Only sets variables not already present in the environment (system env takes priority).
+(static function () {
+    $rootEnv = dirname(__DIR__, 4) . '/.env';
+    if (!file_exists($rootEnv)) {
+        return;
+    }
+    $lines = file($rootEnv, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (str_starts_with(ltrim($line), '#') || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $val] = array_map('trim', explode('=', $line, 2));
+        $val = trim($val, "'\"");
+        if ($key !== '' && getenv($key) === false) {
+            putenv("$key=$val");
+        }
+    }
+})();
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
@@ -36,6 +56,7 @@ use Games\Paths\Core\Service\Matches\MatchCommandService;
 use Games\Paths\Core\Service\Matches\MatchQueryService;
 use Games\Paths\Core\Service\Matches\PropertySystemModeService;
 use Games\Paths\Adapter\Rest\Matches\MatchController;
+use Games\Paths\Adapter\Turnstile\TurnstileVerificationAdapter;
 
 // Dev-only test-data cleanup
 use Games\Paths\Core\Service\Dev\TestDataCleanupService;
@@ -154,11 +175,14 @@ $matchPersistenceRepo = new MatchMysqlPersistenceAdapter($pdo);
 $storyMatchReadRepo = new StoryMatchMysqlReadAdapter($pdo);
 $userAccessRepo = new UserAccessMysqlAdapter($pdo);
 $matchSystemModeService = new PropertySystemModeService('OK');
+$turnstileSecretKey = getenv('TURNSTILE_SECRET_KEY') ?: '';
+$turnstileAdapter = new TurnstileVerificationAdapter($turnstileSecretKey);
 $matchCommandService = new MatchCommandService(
     $storyMatchReadRepo,
     $matchPersistenceRepo,
     $userAccessRepo,
-    $matchSystemModeService
+    $matchSystemModeService,
+    $turnstileAdapter
 );
 $matchQueryService = new MatchQueryService(
     $matchPersistenceRepo,

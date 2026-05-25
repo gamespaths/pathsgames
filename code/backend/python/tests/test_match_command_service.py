@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from app.core.models.match.match_models import MatchCreateCommand, MatchCreationError
+from app.core.ports.match.match_ports import TurnstileVerificationPort
 from app.core.services.match.match_command_service import MatchCommandService
 
 
@@ -89,6 +90,22 @@ def test_invalid_input_missing_difficulty():
     service, _ = _build_service()
     with pytest.raises(MatchCreationError):
         service.create_match(MatchCreateCommand("u", "s", ""))
+
+
+def test_turnstile_rejected():
+    class _RejectAll(TurnstileVerificationPort):
+        def verify(self, token, remote_ip):
+            return False
+
+    story_read = MagicMock()
+    persistence = MagicMock()
+    user_access = MagicMock()
+    system_mode = MagicMock()
+    system_mode.is_maintenance.return_value = False
+    strict = MatchCommandService(story_read, persistence, user_access, system_mode, _RejectAll())
+    with pytest.raises(MatchCreationError) as exc:
+        strict.create_match(MatchCreateCommand("u", "s", "d", turnstile_token="bad"))
+    assert exc.value.code == MatchCreationError.TURNSTILE_VALIDATION_FAILED
 
 
 def test_maintenance_mode():

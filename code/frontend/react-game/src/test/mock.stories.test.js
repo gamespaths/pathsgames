@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import stories from '../mock/stories.json'
+import tutorialDoc from '../mock/tutorial_story.json'
+import { adaptTutorialStoryList } from '../mock/tutorialStoryAdapter'
 
-describe('stories mock data', () => {
+const stories = adaptTutorialStoryList(tutorialDoc)
+
+describe('stories mock data (tutorial_story)', () => {
   it('should be a non-empty array', () => {
     expect(Array.isArray(stories)).toBe(true)
     expect(stories.length).toBeGreaterThan(0)

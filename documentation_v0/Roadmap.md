@@ -32,7 +32,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 17 | [Story Admin CRUD Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
 | 18 | [Frontend: Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) & [Utils](./Step19_SinglePlayerMatchUtils.md) | ✅ | Single player match creation |
-
+| 20 | [WebSite on ClaudeFlare Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on ClaudeFlare Cloud |
 
 
 | Steps | Phase |
@@ -75,7 +75,10 @@ For next steps use this prompt
 > Read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects. In this step never change files outside react projects. Rember to cover code with tests for have 100% sonar coverage. On editors components I wanna change all table column. 
 # PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-20. Character template and class selection
+
+
+
+21. Character template and class selection
     - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
     - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
     - Validate character template belongs to the story and class is compatible with selected template (backend)
@@ -83,7 +86,7 @@ For next steps use this prompt
     - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
     - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
     - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
-21. Story validation and integrity checking
+22. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)
     - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)

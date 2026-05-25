@@ -21,6 +21,8 @@ import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
+import games.paths.core.port.turnstile.TurnstileVerificationPort;
+import games.paths.launcher.adapter.turnstile.TurnstileVerificationAdapter;
 import games.paths.core.service.EchoService;
 import games.paths.core.service.auth.GuestAdminService;
 import games.paths.core.service.auth.GuestAuthService;
@@ -38,6 +40,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,6 +70,9 @@ public class CoreConfig {
 
     @Value("${game.auth.max-tokens-per-user:5}")
     private int maxTokensPerUser;
+
+    @Value("${game.turnstile.secret-key:}")
+    private String turnstileSecretKey;
 
     @Bean
     public EchoPort echoPort() {
@@ -122,12 +128,23 @@ public class CoreConfig {
     }
 
     @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
+    public TurnstileVerificationPort turnstileVerificationPort(RestTemplate restTemplate) {
+        return new TurnstileVerificationAdapter(turnstileSecretKey, restTemplate);
+    }
+
+    @Bean
     public MatchCommandPort matchCommandPort(StoryReadPort storyReadPort,
                                              MatchPersistencePort matchPersistencePort,
                                              UserAccessPort userAccessPort,
-                                             SystemModePort systemModePort) {
+                                             SystemModePort systemModePort,
+                                             TurnstileVerificationPort turnstileVerificationPort) {
         return new MatchCommandService(storyReadPort, matchPersistencePort,
-                userAccessPort, systemModePort);
+                userAccessPort, systemModePort, turnstileVerificationPort);
     }
 
     @Bean

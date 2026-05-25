@@ -99,12 +99,10 @@ export default function StartBookModal({ story, onClose }) {
     setSelectionType(null)
   }
 
-  function handleStartGame() {
+  function handleStartGame(cfToken) {
     if (!termsAccepted) return
     onClose()
-    // Hand the chosen story + loadout to the StartMatch page, which creates the
-    // match (POST /api/matches) before entering the game.
-    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config } })
+    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config, cfToken: cfToken ?? null } })
   }
 
   const configTypes = ['character', 'class', 'trait', 'difficulty']

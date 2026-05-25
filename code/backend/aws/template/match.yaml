@@ -11,6 +11,10 @@ Parameters:
   JwtSecret:
     Type: String
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+  TurnstileSecretKey:
+    Type: String
+    Default: ""
+    Description: "Cloudflare Turnstile secret key. Leave empty to disable validation."
 
 Resources:
   MatchLogGroup:
@@ -43,6 +47,7 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           JWT_SECRET: !Ref JwtSecret
+          TURNSTILE_SECRET_KEY: !Ref TurnstileSecretKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

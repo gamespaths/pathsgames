@@ -245,6 +245,13 @@ components:
           description: |
             Match mode flag — `1` single-player (default), `0` multiplayer.
             Persisted on the match (column `single_player`).
+        turnstileToken:
+          type: string
+          nullable: true
+          description: |
+            Cloudflare Turnstile challenge token returned by the client widget.
+            Validated server-side via the Cloudflare siteverify API.
+            May be omitted when `TURNSTILE_SECRET_KEY` is not configured (dev bypass).
 
     MatchSummary:
       type: object

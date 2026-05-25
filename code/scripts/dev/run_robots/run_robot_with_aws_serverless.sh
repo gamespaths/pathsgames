@@ -85,9 +85,10 @@ fi
 echo "Running Robot tests!"
 cd "$PROJECT_ROOT/code/tests/robot"
 ROBOT_EXIT=0
-robot --variablefile variables/dev.yaml \
+robot --variablefile variables/aws.yaml \
     --variable BASE_URL:"$API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
+    --exclude bypass \
     --outputdir reports-aws/ tests/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),

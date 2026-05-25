@@ -51,6 +51,14 @@ fi
 
 sam build
 
+# Dev uses an empty key to activate the server-side bypass (handler returns
+# true when TURNSTILE_SECRET_KEY is empty); prod uses the real key.
+if [ "${ENVIRONMENT_NAME}" = "dev" ]; then
+    _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
+else
+    _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
+fi
+
 # deploy with SAM; if it fails (for example due to an empty image_repository in samconfig.toml)
 sam deploy \
     --stack-name "${STACK_NAME:-pathsgames-dev}" \
@@ -63,6 +71,7 @@ sam deploy \
         CustomDomainCertificateArn="${AWS_CustomDomainCertificateArn:-}" \
         CustomDomainHostedZoneId="${AWS_CustomDomainHostedZoneId:-}" \
         CorsAllowOrigins="${AWS_CorsAllowOrigins:-http://localhost:1234}" \
+        TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

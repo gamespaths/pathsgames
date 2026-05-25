@@ -23,10 +23,20 @@ public class MatchCreateCommand {
     private final String classUuid;
     private final List<String> traitUuids;
     private final Integer singlePlayer;
+    private final String turnstileToken;
+    private final String remoteIp;
 
     public MatchCreateCommand(String userUuid, String storyUuid, String difficultyUuid,
                               String name, String characterTemplateUuid,
                               String classUuid, List<String> traitUuids, Integer singlePlayer) {
+        this(userUuid, storyUuid, difficultyUuid, name, characterTemplateUuid,
+                classUuid, traitUuids, singlePlayer, null, null);
+    }
+
+    public MatchCreateCommand(String userUuid, String storyUuid, String difficultyUuid,
+                              String name, String characterTemplateUuid,
+                              String classUuid, List<String> traitUuids, Integer singlePlayer,
+                              String turnstileToken, String remoteIp) {
         this.userUuid = userUuid;
         this.storyUuid = storyUuid;
         this.difficultyUuid = difficultyUuid;
@@ -35,6 +45,8 @@ public class MatchCreateCommand {
         this.classUuid = classUuid;
         this.traitUuids = traitUuids;
         this.singlePlayer = singlePlayer;
+        this.turnstileToken = turnstileToken;
+        this.remoteIp = remoteIp;
     }
 
     public String getUserUuid() { return userUuid; }
@@ -45,4 +57,6 @@ public class MatchCreateCommand {
     public String getClassUuid() { return classUuid; }
     public List<String> getTraitUuids() { return traitUuids; }
     public Integer getSinglePlayer() { return singlePlayer; }
+    public String getTurnstileToken() { return turnstileToken; }
+    public String getRemoteIp() { return remoteIp; }
 }

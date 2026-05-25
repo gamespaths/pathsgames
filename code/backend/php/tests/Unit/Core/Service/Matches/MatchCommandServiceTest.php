@@ -9,6 +9,7 @@ use Games\Paths\Core\Domain\Matches\MatchCreationException;
 use Games\Paths\Core\Port\Matches\MatchPersistencePort;
 use Games\Paths\Core\Port\Matches\StoryMatchReadPort;
 use Games\Paths\Core\Port\Matches\SystemModePort;
+use Games\Paths\Core\Port\Matches\TurnstileVerificationPort;
 use Games\Paths\Core\Port\Matches\UserAccessPort;
 use Games\Paths\Core\Service\Matches\MatchCommandService;
 use PHPUnit\Framework\TestCase;
@@ -79,6 +80,26 @@ class MatchCommandServiceTest extends TestCase
     {
         $this->expectException(MatchCreationException::class);
         $this->service->createMatch(new MatchCreateCommand('u', 's', ''));
+    }
+
+    public function testTurnstileRejected(): void
+    {
+        $rejectAll = $this->createMock(TurnstileVerificationPort::class);
+        $rejectAll->method('verify')->willReturn(false);
+        $strictService = new MatchCommandService(
+            $this->storyRead,
+            $this->persistence,
+            $this->userAccess,
+            $this->systemMode,
+            $rejectAll
+        );
+        $this->expectException(MatchCreationException::class);
+        try {
+            $strictService->createMatch(new MatchCreateCommand('u', 's', 'd', null, null, null, [], null, 'bad-token', '1.2.3.4'));
+        } catch (MatchCreationException $e) {
+            $this->assertSame(MatchCreationException::TURNSTILE_VALIDATION_FAILED, $e->getCodeId());
+            throw $e;
+        }
     }
 
     public function testMaintenanceMode(): void

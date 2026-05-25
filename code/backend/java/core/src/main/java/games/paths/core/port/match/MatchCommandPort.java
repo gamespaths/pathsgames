@@ -78,7 +78,8 @@ public interface MatchCommandPort {
             USER_NOT_FOUND,
             USER_BANNED,
             MAINTENANCE_MODE,
-            STORY_HAS_NO_LOCATIONS
+            STORY_HAS_NO_LOCATIONS,
+            TURNSTILE_VALIDATION_FAILED
         }
 
         private final Code code;

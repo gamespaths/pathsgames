@@ -42,6 +42,7 @@ export default function GuestUserModal() {
         <UserMatchesList
           accessToken={user?.accessToken}
           onPreviewCard={setPreviewInfo}
+          onClose={closeGuestModal}
         />
       }
     />

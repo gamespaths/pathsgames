@@ -20,6 +20,9 @@ Resource   auth.resource
 
 Create Match
     [Documentation]    POST /api/matches with the given Bearer token and body.
+    ...                If the suite variable CF_TURNSTILE_TOKEN is set to a non-empty
+    ...                string it is included as turnstileToken (needed when the server
+    ...                has a Turnstile key configured, e.g. AWS dev with test key).
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${name}=robottest_match    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
@@ -28,6 +31,10 @@ Create Match
     ...    storyUuid=${story_uuid}
     ...    difficultyUuid=${difficulty_uuid}
     ...    name=${name}
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    ${EMPTY}
+    IF    '${cf_token}' != ''
+        Set To Dictionary    ${body}    turnstileToken=${cf_token}
+    END
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
@@ -37,6 +44,7 @@ Create Match
 Create Match With Loadout
     [Documentation]    POST /api/matches with the full creator loadout —
     ...                character template, class, traits and single-player flag.
+    ...                Includes CF_TURNSTILE_TOKEN when set (same logic as Create Match).
     [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
     ...    ${character_uuid}    ${class_uuid}    ${trait_uuids}    ${single_player}
     ...    ${expected_status}=any
@@ -50,6 +58,10 @@ Create Match With Loadout
     ...    classUuid=${class_uuid}
     ...    traitUuids=${trait_uuids}
     ...    singlePlayer=${single_player}
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    ${EMPTY}
+    IF    '${cf_token}' != ''
+        Set To Dictionary    ${body}    turnstileToken=${cf_token}
+    END
     ${response}=    POST On Session    public_session    /api/matches
     ...    headers=${headers}
     ...    json=${body}
@@ -80,6 +92,28 @@ Get Match Info
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/info
     ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Create Match With Turnstile Token
+    [Documentation]    POST /api/matches with an optional Cloudflare Turnstile token.
+    ...                When TURNSTILE_SECRET_KEY is not configured on the server the token
+    ...                is ignored (dev bypass); in production it is verified against the
+    ...                Cloudflare siteverify API and missing/invalid tokens return 400.
+    [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
+    ...    ${turnstile_token}=${NONE}    ${name}=robottest_match    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    Set To Dictionary    ${headers}    Content-Type=application/json
+    &{body}=    Create Dictionary
+    ...    storyUuid=${story_uuid}
+    ...    difficultyUuid=${difficulty_uuid}
+    ...    name=${name}
+    IF    $turnstile_token is not None
+        Set To Dictionary    ${body}    turnstileToken=${turnstile_token}
+    END
+    ${response}=    POST On Session    public_session    /api/matches
+    ...    headers=${headers}
+    ...    json=${body}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 

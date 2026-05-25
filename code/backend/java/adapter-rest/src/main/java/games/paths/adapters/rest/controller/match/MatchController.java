@@ -65,7 +65,9 @@ public class MatchController {
                 body.getCharacterTemplateUuid(),
                 body.getClassUuid(),
                 body.getTraitUuids(),
-                body.getSinglePlayer());
+                body.getSinglePlayer(),
+                body.getTurnstileToken(),
+                request.getRemoteAddr());
 
         try {
             MatchSummary created = matchCommandPort.createMatch(command);
@@ -250,7 +252,7 @@ public class MatchController {
             case STORY_NOT_FOUND, DIFFICULTY_NOT_FOUND, USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case USER_BANNED -> HttpStatus.FORBIDDEN;
             case MAINTENANCE_MODE -> HttpStatus.SERVICE_UNAVAILABLE;
-            case STORY_HAS_NO_LOCATIONS, INVALID_INPUT -> HttpStatus.BAD_REQUEST;
+            case STORY_HAS_NO_LOCATIONS, INVALID_INPUT, TURNSTILE_VALIDATION_FAILED -> HttpStatus.BAD_REQUEST;
         };
     }
 }

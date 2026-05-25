@@ -162,6 +162,20 @@ def create_env():
         yield {'put': mock_put, 'configure': configure, 'jwt': mock_jwt, 'get': mock_get}
 
 
+def test_create_match_turnstile_failure_returns_400(create_env):
+    create_env['configure'](story=STORY_ITEM)
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_verify_turnstile', return_value=False):
+        from match.handler import lambda_handler
+        event = _player_event('POST', '/api/matches',
+                              body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+                                    'turnstileToken': 'bad-token'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TURNSTILE_VALIDATION_FAILED'
+
+
 def test_create_match_invalid_input_missing_story(create_env):
     create_env['configure']()
     from match.handler import lambda_handler

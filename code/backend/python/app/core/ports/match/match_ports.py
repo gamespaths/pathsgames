@@ -140,3 +140,9 @@ class SystemModePort(ABC):
     @abstractmethod
     def is_maintenance(self) -> bool:
         ...
+
+
+class TurnstileVerificationPort(ABC):
+    @abstractmethod
+    def verify(self, token: Optional[str], remote_ip: Optional[str]) -> bool:
+        """Return True when the Turnstile token is valid or validation is disabled."""

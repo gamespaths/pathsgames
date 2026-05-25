@@ -10,6 +10,7 @@ use Games\Paths\Core\Port\Matches\MatchCommandPort;
 use Games\Paths\Core\Port\Matches\MatchPersistencePort;
 use Games\Paths\Core\Port\Matches\StoryMatchReadPort;
 use Games\Paths\Core\Port\Matches\SystemModePort;
+use Games\Paths\Core\Port\Matches\TurnstileVerificationPort;
 use Games\Paths\Core\Port\Matches\UserAccessPort;
 
 class MatchCommandService implements MatchCommandPort
@@ -20,7 +21,8 @@ class MatchCommandService implements MatchCommandPort
         private readonly StoryMatchReadPort $storyReadPort,
         private readonly MatchPersistencePort $persistencePort,
         private readonly UserAccessPort $userAccessPort,
-        private readonly SystemModePort $systemModePort
+        private readonly SystemModePort $systemModePort,
+        private readonly ?TurnstileVerificationPort $turnstilePort = null
     ) {
     }
 
@@ -30,6 +32,14 @@ class MatchCommandService implements MatchCommandPort
             throw new MatchCreationException(
                 MatchCreationException::INVALID_INPUT,
                 'userUuid, storyUuid and difficultyUuid are required'
+            );
+        }
+
+        if ($this->turnstilePort !== null
+            && !$this->turnstilePort->verify($command->getTurnstileToken(), $command->getRemoteIp())) {
+            throw new MatchCreationException(
+                MatchCreationException::TURNSTILE_VALIDATION_FAILED,
+                'Turnstile verification failed'
             );
         }
 

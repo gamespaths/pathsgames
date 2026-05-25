@@ -160,6 +160,7 @@ class MatchControllerTest extends TestCase
             [MatchCreationException::MAINTENANCE_MODE, 503],
             [MatchCreationException::STORY_HAS_NO_LOCATIONS, 400],
             [MatchCreationException::INVALID_INPUT, 400],
+            [MatchCreationException::TURNSTILE_VALIDATION_FAILED, 400],
         ];
     }
 

@@ -11,6 +11,7 @@ class MatchCreationException extends \RuntimeException
     public const USER_BANNED = 'USER_BANNED';
     public const MAINTENANCE_MODE = 'MAINTENANCE_MODE';
     public const STORY_HAS_NO_LOCATIONS = 'STORY_HAS_NO_LOCATIONS';
+    public const TURNSTILE_VALIDATION_FAILED = 'TURNSTILE_VALIDATION_FAILED';
 
     private string $code_id;
 

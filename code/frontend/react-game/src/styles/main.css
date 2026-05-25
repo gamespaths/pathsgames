@@ -873,7 +873,7 @@ html, body {
 .page-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center; /*ex space-between;*/
   padding-top: 10px;
   margin-top: 8px;
   border-top: 1px solid var(--color-brown-mid);
@@ -2039,7 +2039,7 @@ html, body {
 .matches-list-title {
   font-family: var(--font-heading);
   color: var(--color-gold-super-deep);
-  font-size: 0.95rem;
+  font-size: 1.25rem;
   margin: 0 0 0.6rem;
   flex-shrink: 0;
 }
@@ -2061,8 +2061,8 @@ html, body {
 .matches-list-error { color: #c0392b; }
 .matches-list-empty {
   font-family: var(--font-body);
-  color: var(--color-ash);
-  font-size: 0.82rem;
+  color: var(--color-gold-super-deep);
+  font-size: 2rem;
   font-style: italic;
 }
 

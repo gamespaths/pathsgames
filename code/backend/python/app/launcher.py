@@ -36,6 +36,7 @@ from app.core.services.match.match_command_service import MatchCommandService
 from app.core.services.match.match_query_service import MatchQueryService
 from app.core.services.match.property_system_mode_service import PropertySystemModeService
 from app.adapters.rest.match.match_controller import MatchController
+from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
 # Dev-only test-data cleanup
@@ -79,11 +80,13 @@ match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
 story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
 user_access_adapter = UserAccessAdapter(SessionLocal)
 system_mode_service = PropertySystemModeService(server_status="OK")
+turnstile_adapter = TurnstileVerificationAdapter(settings.turnstile_secret_key)
 match_command_service = MatchCommandService(
     story_match_read_adapter,
     match_persistence_adapter,
     user_access_adapter,
     system_mode_service,
+    turnstile_adapter,
 )
 match_query_service = MatchQueryService(
     match_persistence_adapter,

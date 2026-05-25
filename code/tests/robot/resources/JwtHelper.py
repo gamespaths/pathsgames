@@ -10,6 +10,9 @@
 import uuid
 import time
 import jwt  # PyJWT
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 # Dev secret from application.yml (default when JWT_SECRET env var is not set)

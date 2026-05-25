@@ -1,11 +1,25 @@
+import { useState, useEffect } from 'react'
+import { Turnstile } from '@marsidev/react-turnstile'
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
 import BonusBadgeList from '../../components/common/BonusBadgeList'
 import { aggregateBonusTotals } from '../../utils/bonusStats'
 import { buildGameTypeCard, buildLoginCard } from './loadoutCards'
 
+const CF_KEY = import.meta.env.VITE_CF_TURNSTILE_KEY
+const _RAW_DELAY = Number(import.meta.env.VITE_TURNSTILE_DELAY_BEFORE_START)
+const TURNSTILE_DELAY_MS = Number.isFinite(_RAW_DELAY) && _RAW_DELAY > 0 ? _RAW_DELAY * 1000 : 20000
+
 export default function ConfigView({ config, story, onChangeClick, onPreview, termsAccepted, onTermsChange, onStartGame }) {
   const { t } = useTranslation()
+  const [cfToken, setCfToken] = useState(null)
+  const [turnstileVisible, setTurnstileVisible] = useState(false)
+
+  useEffect(() => {
+    if (!CF_KEY) return
+    const id = setTimeout(() => setTurnstileVisible(true), TURNSTILE_DELAY_MS)
+    return () => clearTimeout(id)
+  }, [])
 
   const totals = aggregateBonusTotals([
     { entity: config.character,  type: 'character' },
@@ -40,7 +54,7 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
         <BonusBadgeList className="config-total-bonus" items={totalItems} />
       )}
       <div className="page-footer">
-        <label className="terms-label" aria-label={t('book.acceptTerms')}>
+        {(!CF_KEY || cfToken) && ( <label className="terms-label" aria-label={t('book.acceptTerms')}>
           <input
             type="checkbox"
             checked={termsAccepted}
@@ -55,14 +69,27 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
           >
             {t('book.acceptTerms')}
           </button>
-        </label>
-        <button
-          className="btn-start-game"
-          disabled={!termsAccepted}
-          onClick={onStartGame}
-        >
-          <i className="fas fa-play me-2" />{t('book.startGame')}
-        </button>
+        </label>)}
+        {CF_KEY && turnstileVisible && (
+          <div style={cfToken ? { visibility: 'hidden', height: 0, overflow: 'hidden', width: 0 } : null } >
+            <Turnstile
+              siteKey={CF_KEY}
+              onSuccess={setCfToken}
+              onExpire={() => setCfToken(null)}
+              onError={() => setCfToken(null)}
+              options={{ theme: 'dark', size: 'flexible' }}
+            />
+          </div>
+        )}
+        {(!CF_KEY || cfToken) && (
+          <button
+            className="btn-start-game"
+            disabled={!termsAccepted}
+            onClick={() => onStartGame(cfToken)}
+          >
+            <i className="fas fa-play me-2" />{t('book.startGame')}
+          </button>
+        )}
       </div>
 
 

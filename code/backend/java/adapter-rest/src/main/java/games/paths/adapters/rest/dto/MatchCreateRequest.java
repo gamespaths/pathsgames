@@ -20,6 +20,7 @@ public class MatchCreateRequest {
     private String classUuid;
     private List<String> traitUuids;
     private Integer singlePlayer;
+    private String turnstileToken;
 
     public MatchCreateRequest() {
     }
@@ -46,4 +47,7 @@ public class MatchCreateRequest {
 
     public Integer getSinglePlayer() { return singlePlayer; }
     public void setSinglePlayer(Integer singlePlayer) { this.singlePlayer = singlePlayer; }
+
+    public String getTurnstileToken() { return turnstileToken; }
+    public void setTurnstileToken(String turnstileToken) { this.turnstileToken = turnstileToken; }
 }

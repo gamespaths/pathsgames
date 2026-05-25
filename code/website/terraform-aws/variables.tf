@@ -10,7 +10,7 @@ variable "domain_name" {
   default     = "paths.games"
 }
 
-variable "second_domain_name" {
+variable "second_domain_name" { #not used, deprecated! pathsgames.com is on Cloudflare!
   description = "Secondary domain name (alias)"
   type        = string
   default     = "pathsgames.com"

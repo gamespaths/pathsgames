@@ -18,6 +18,7 @@ from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 _STATUS_BY_CODE = {
     MatchCreationError.INVALID_INPUT: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.STORY_HAS_NO_LOCATIONS: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TURNSTILE_VALIDATION_FAILED: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.STORY_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     MatchCreationError.DIFFICULTY_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     MatchCreationError.USER_NOT_FOUND: status.HTTP_404_NOT_FOUND,
@@ -34,6 +35,7 @@ class MatchCreateRequestBody(BaseModel):
     classUuid: Optional[str] = None
     traitUuids: Optional[List[str]] = None
     singlePlayer: Optional[int] = None
+    turnstileToken: Optional[str] = None
 
 
 class MatchUpdateRequestBody(BaseModel):
@@ -151,6 +153,8 @@ class MatchController:
             class_uuid=body.classUuid,
             trait_uuids=body.traitUuids or [],
             single_player=body.singlePlayer,
+            turnstile_token=body.turnstileToken,
+            remote_ip=request.client.host if request.client else None,
         )
         try:
             summary = self.command_port.create_match(command)

@@ -12,6 +12,9 @@ if [ -f "$ENV_FILE" ]; then
 	. "$ENV_FILE"
 fi
 
+# Override Turnstile key to empty so local Python server uses dev bypass (empty secret_key)
+export TURNSTILE_SECRET_KEY=""
+
 # If not present in .env, ROBOT_VAR_ADMIN_TOKEN must be set in the environment before running the script
 if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	echo "Error: ROBOT_VAR_ADMIN_TOKEN must be set in the environment or .env file."

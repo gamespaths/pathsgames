@@ -15,6 +15,7 @@ class MatchController
     private const STATUS_BY_CODE = [
         MatchCreationException::INVALID_INPUT => 400,
         MatchCreationException::STORY_HAS_NO_LOCATIONS => 400,
+        MatchCreationException::TURNSTILE_VALIDATION_FAILED => 400,
         MatchCreationException::STORY_NOT_FOUND => 404,
         MatchCreationException::DIFFICULTY_NOT_FOUND => 404,
         MatchCreationException::USER_NOT_FOUND => 404,
@@ -42,6 +43,8 @@ class MatchController
         }
 
         $traitUuids = $body['traitUuids'] ?? [];
+        $serverParams = $request->getServerParams();
+        $remoteIp = $serverParams['REMOTE_ADDR'] ?? null;
         $command = new MatchCreateCommand(
             userUuid: $userUuid,
             storyUuid: $storyUuid,
@@ -50,7 +53,9 @@ class MatchController
             characterTemplateUuid: $body['characterTemplateUuid'] ?? null,
             classUuid: $body['classUuid'] ?? null,
             traitUuids: is_array($traitUuids) ? $traitUuids : [],
-            singlePlayer: isset($body['singlePlayer']) ? (int)$body['singlePlayer'] : null
+            singlePlayer: isset($body['singlePlayer']) ? (int)$body['singlePlayer'] : null,
+            turnstileToken: $body['turnstileToken'] ?? null,
+            remoteIp: $remoteIp
         );
 
         try {

@@ -12,11 +12,17 @@ from app.core.ports.match.match_ports import (
     MatchPersistencePort,
     StoryMatchReadPort,
     SystemModePort,
+    TurnstileVerificationPort,
     UserAccessPort,
 )
 
 
 _BANNED_STATES = {3, 4}
+
+
+class _PassthroughTurnstile(TurnstileVerificationPort):
+    def verify(self, token, remote_ip) -> bool:
+        return True
 
 
 class MatchCommandService(MatchCommandPort):
@@ -26,11 +32,13 @@ class MatchCommandService(MatchCommandPort):
         match_persistence_port: MatchPersistencePort,
         user_access_port: UserAccessPort,
         system_mode_port: SystemModePort,
+        turnstile_port: Optional[TurnstileVerificationPort] = None,
     ) -> None:
         self.story_read_port = story_read_port
         self.match_persistence_port = match_persistence_port
         self.user_access_port = user_access_port
         self.system_mode_port = system_mode_port
+        self.turnstile_port = turnstile_port or _PassthroughTurnstile()
 
     def create_match(self, command: MatchCreateCommand) -> MatchSummary:
         if (
@@ -42,6 +50,12 @@ class MatchCommandService(MatchCommandPort):
             raise MatchCreationError(
                 MatchCreationError.INVALID_INPUT,
                 "userUuid, storyUuid and difficultyUuid are required",
+            )
+
+        if not self.turnstile_port.verify(command.turnstile_token, command.remote_ip):
+            raise MatchCreationError(
+                MatchCreationError.TURNSTILE_VALIDATION_FAILED,
+                "Turnstile verification failed",
             )
 
         if self.system_mode_port.is_maintenance():

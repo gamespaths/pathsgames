@@ -14,6 +14,8 @@ class MatchCreateCommand:
     class_uuid: Optional[str] = None
     trait_uuids: List[str] = field(default_factory=list)
     single_player: Optional[int] = None
+    turnstile_token: Optional[str] = None
+    remote_ip: Optional[str] = None
 
 
 @dataclass
@@ -82,6 +84,7 @@ class MatchCreationError(Exception):
     USER_BANNED = "USER_BANNED"
     MAINTENANCE_MODE = "MAINTENANCE_MODE"
     STORY_HAS_NO_LOCATIONS = "STORY_HAS_NO_LOCATIONS"
+    TURNSTILE_VALIDATION_FAILED = "TURNSTILE_VALIDATION_FAILED"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)

@@ -13,6 +13,8 @@ class MatchCreateCommand
     /** @var string[] */
     private array $traitUuids;
     private ?int $singlePlayer;
+    private ?string $turnstileToken;
+    private ?string $remoteIp;
 
     /**
      * @param string[] $traitUuids Step 0.19.9 — selected trait uuids.
@@ -25,7 +27,9 @@ class MatchCreateCommand
         ?string $characterTemplateUuid = null,
         ?string $classUuid = null,
         array $traitUuids = [],
-        ?int $singlePlayer = null
+        ?int $singlePlayer = null,
+        ?string $turnstileToken = null,
+        ?string $remoteIp = null
     ) {
         $this->userUuid = $userUuid;
         $this->storyUuid = $storyUuid;
@@ -35,6 +39,8 @@ class MatchCreateCommand
         $this->classUuid = $classUuid;
         $this->traitUuids = $traitUuids;
         $this->singlePlayer = $singlePlayer;
+        $this->turnstileToken = $turnstileToken;
+        $this->remoteIp = $remoteIp;
     }
 
     public function getUserUuid(): string { return $this->userUuid; }
@@ -48,4 +54,6 @@ class MatchCreateCommand
     public function getTraitUuids(): array { return $this->traitUuids; }
 
     public function getSinglePlayer(): ?int { return $this->singlePlayer; }
+    public function getTurnstileToken(): ?string { return $this->turnstileToken; }
+    public function getRemoteIp(): ?string { return $this->remoteIp; }
 }

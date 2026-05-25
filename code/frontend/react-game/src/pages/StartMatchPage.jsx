@@ -41,6 +41,7 @@ export default function StartMatchPage() {
 
   const story = state?.story ?? null
   const config = state?.config ?? null
+  const cfToken = state?.cfToken ?? null
 
   // phase: 'starting' → 'creating' → 'created' → (game) | 'error'
   const [phase, setPhase] = useState('starting')
@@ -65,6 +66,7 @@ export default function StartMatchPage() {
         classUuid: config.class?.uuid ?? null,
         traitUuids: config.trait?.uuid ? [config.trait.uuid] : [],
         singlePlayer: 1,
+        turnstileToken: cfToken,
       }
       const created = await createMatch(payload, user?.accessToken)
       setMatch(created)
@@ -73,7 +75,7 @@ export default function StartMatchPage() {
       setErrorMsg(e?.message || '')
       setPhase('error')
     }
-  }, [story, config, user])
+  }, [story, config, user, cfToken])
 
   // Timed phases: 'starting' counts down then creates the match; 'created'
   // counts down then enters the game. Both reuse the same configured delay.

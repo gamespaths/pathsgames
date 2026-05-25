@@ -9,7 +9,7 @@ import MatchCard from './MatchCard'
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
  */
-export default function UserMatchesList({ accessToken, onPreviewCard }) {
+export default function UserMatchesList({ accessToken, onPreviewCard, onClose }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
@@ -68,7 +68,7 @@ export default function UserMatchesList({ accessToken, onPreviewCard }) {
               key={match.uuid}
               match={match}
               story={storyMap[match.storyUuid] ?? null}
-              onResume={() => navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } })}
+              onResume={() => { onClose?.(); navigate(`/play/${match.storyUuid}`, { state: { matchUuid: match.uuid } }) }}
               onPreviewCard={onPreviewCard}
             />
           ))}

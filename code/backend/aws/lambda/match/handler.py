@@ -19,12 +19,18 @@ DynamoDB layout:
 """
 
 import json
+import os
 import time
 import uuid as uuid_lib
 import decimal
+import urllib.request
+import urllib.parse
 
 from common import db_utils
 from common import jwt_utils
+
+_TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
+_SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 # ─── shared helpers ──────────────────────────────────────────────────────────
 
@@ -132,6 +138,26 @@ def _apply_default(row, raw_value):
         row['stringValue'] = text
 
 
+def _verify_turnstile(token, remote_ip=None):
+    """Verify a Cloudflare Turnstile token. Returns True when the secret key is
+    not configured (dev bypass) or when the token passes verification."""
+    if not _TURNSTILE_SECRET:
+        return True
+    if not token:
+        return False
+    try:
+        data = {'secret': _TURNSTILE_SECRET, 'response': token}
+        if remote_ip:
+            data['remoteip'] = remote_ip
+        encoded = urllib.parse.urlencode(data).encode('utf-8')
+        req = urllib.request.Request(_SITEVERIFY_URL, data=encoded, method='POST')
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            result = json.loads(resp.read())
+            return result.get('success') is True
+    except Exception:
+        return False
+
+
 def _new_match_uuid():
     return str(uuid_lib.uuid4())
 
@@ -179,6 +205,11 @@ def _create_match(user, body):
     difficulty_uuid = (body or {}).get('difficultyUuid')
     if not story_uuid or not difficulty_uuid:
         return _err(400, 'INVALID_INPUT', 'storyUuid and difficultyUuid are required')
+
+    turnstile_token = (body or {}).get('turnstileToken')
+    remote_ip = None  # API GW v2 remoteIp not always in body; skip for now
+    if not _verify_turnstile(turnstile_token, remote_ip):
+        return _err(400, 'TURNSTILE_VALIDATION_FAILED', 'Turnstile verification failed')
 
     if _is_maintenance():
         return _err(503, 'MAINTENANCE_MODE', 'Server is under maintenance, no new match can be created')

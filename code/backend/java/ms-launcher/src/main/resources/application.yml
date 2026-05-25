@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.19.12
+    version: 0.20.0
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -27,6 +27,10 @@ game:
       guest:
         cleanup:
           cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler
+  turnstile:
+    # Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass).
+    # Override in production via env variable TURNSTILE_SECRET_KEY.
+    secret-key: ${TURNSTILE_SECRET_KEY:}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.

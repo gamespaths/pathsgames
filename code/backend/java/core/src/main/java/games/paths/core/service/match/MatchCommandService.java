@@ -16,6 +16,7 @@ import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.SystemModePort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.turnstile.TurnstileVerificationPort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,15 +34,25 @@ public class MatchCommandService implements MatchCommandPort {
     private final MatchPersistencePort persistencePort;
     private final UserAccessPort userAccessPort;
     private final SystemModePort systemModePort;
+    private final TurnstileVerificationPort turnstilePort;
 
     public MatchCommandService(StoryReadPort storyReadPort,
                                MatchPersistencePort persistencePort,
                                UserAccessPort userAccessPort,
                                SystemModePort systemModePort) {
+        this(storyReadPort, persistencePort, userAccessPort, systemModePort, (token, ip) -> true);
+    }
+
+    public MatchCommandService(StoryReadPort storyReadPort,
+                               MatchPersistencePort persistencePort,
+                               UserAccessPort userAccessPort,
+                               SystemModePort systemModePort,
+                               TurnstileVerificationPort turnstilePort) {
         this.storyReadPort = storyReadPort;
         this.persistencePort = persistencePort;
         this.userAccessPort = userAccessPort;
         this.systemModePort = systemModePort;
+        this.turnstilePort = turnstilePort;
     }
 
     @Override
@@ -52,6 +63,11 @@ public class MatchCommandService implements MatchCommandPort {
                 || isBlank(command.getDifficultyUuid())) {
             throw new MatchCreationException(MatchCreationException.Code.INVALID_INPUT,
                     "userUuid, storyUuid and difficultyUuid are required");
+        }
+
+        if (!turnstilePort.verify(command.getTurnstileToken(), command.getRemoteIp())) {
+            throw new MatchCreationException(MatchCreationException.Code.TURNSTILE_VALIDATION_FAILED,
+                    "Turnstile verification failed");
         }
 
         if (systemModePort.isMaintenance()) {

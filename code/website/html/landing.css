@@ -1,0 +1,455 @@
+/* =============================================
+   PATHS GAMES — landing.css
+   Landing page styles (paths.games)
+   Depends on variables.css for design tokens
+   ============================================= */
+
+/* ─── RESET & BODY ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--color-brown-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar              { width: 8px; }
+::-webkit-scrollbar-track        { background: #080400; }
+::-webkit-scrollbar-thumb        { background: var(--color-brown-warm); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--color-gold); }
+
+/* ─── NAVBAR ─── */
+.pg-navbar {
+  background: var(--navbar-bg);
+  border-bottom: 2px solid var(--color-gold-dark);
+  padding: 0.8rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(12px);
+}
+
+.pg-navbar-brand {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  color: var(--color-gold-light);
+  text-decoration: none;
+  text-shadow: 0 0 18px rgba(232, 184, 48, 0.75);
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  transition: text-shadow 0.25s;
+}
+
+.pg-navbar-brand i {
+  animation: dice-spin 5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.pg-navbar-brand:hover {
+  color: var(--color-gold-shine);
+  text-shadow: 0 0 28px rgba(255, 215, 0, 0.9);
+}
+
+@keyframes dice-spin {
+  0%   { transform: rotate(0deg) translateY(0); }
+  10%  { transform: rotate(60deg) translateY(-4px); }
+  20%  { transform: rotate(30deg) translateY(0); }
+  35%  { transform: rotate(150deg) translateY(-3px); }
+  50%  { transform: rotate(120deg) translateY(0); }
+  65%  { transform: rotate(270deg) translateY(-4px); }
+  80%  { transform: rotate(330deg) translateY(0); }
+  90%  { transform: rotate(355deg) translateY(-1px); }
+  100% { transform: rotate(360deg) translateY(0); }
+}
+
+/* ─── HERO ─── */
+.pg-hero {
+  position: relative;
+  min-height: 40vh;
+  display: flex;
+  align-items: flex-end; /* ex center;*/
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  /*background: url('assets/background.jpg') center center / cover no-repeat;*/
+  background: url('https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?q=80&w=1333&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') center center / cover no-repeat;
+}
+
+.pg-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 4, 0, 0.55) 0%,
+    rgba(10, 4, 0, 0.72) 60%,
+    var(--color-brown-deep) 100%
+  );
+}
+
+.pg-hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 0.5rem;
+  max-width: 680px;
+}
+
+.pg-hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 7vw, 5rem);
+  color: var(--color-gold-light);
+  text-shadow: 0 0 30px rgba(232, 184, 48, 0.8), 0 2px 8px rgba(0,0,0,0.8);
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pg-hero-icon {
+  animation: dice-spin 5s ease-in-out infinite;
+}
+
+.pg-hero-sub {
+  font-family: var(--font-body);
+  font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+  color: var(--color-parchment);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+  line-height: 1.6;
+}
+
+.pg-hero-sub strong {
+  color: var(--color-gold-light);
+}
+
+/* ─── CARDS SECTION ─── */
+.pg-cards-section {
+  background: linear-gradient(180deg, var(--color-brown-deep) 0%, #0d0602 100%);
+  padding: 0rem 3.5rem 1rem 5rem;
+}
+
+.pg-cards-row {
+  padding-top: 0.5rem;
+}
+
+/* ─── CARD BASE ─── */
+.pg-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.2rem 1.8rem 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-brown-mid);
+  background: linear-gradient(160deg, var(--color-brown-dark) 0%, var(--color-brown-deep) 100%);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+  height: 100%;
+  cursor: default;
+}
+
+a.pg-card {
+  cursor: pointer;
+}
+
+a.pg-card:hover {
+  transform: translateY(-6px);
+  text-decoration: none;
+  color: inherit;
+}
+
+/* card icon circle */
+.pg-card-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  margin-bottom: 1.4rem;
+  flex-shrink: 0;
+  border: 2px solid currentColor;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+a.pg-card:hover .pg-card-icon-wrap {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.pg-card-body {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pg-card-title {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+.pg-card-desc {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  opacity: 0.85;
+  flex: 1;
+}
+
+.pg-card-cta {
+  display: inline-block;
+  margin-top: 0.8rem;
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  padding: 0.45rem 1.2rem;
+  border-radius: 6px;
+  border: 1.5px solid currentColor;
+  transition: background 0.2s ease, color 0.2s ease;
+  align-self: center;
+}
+
+.pg-card-cta--soon {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* card-specific glow layer */
+.pg-card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+a.pg-card:hover .pg-card-glow { opacity: 1; }
+
+.pg-card-glow--gold  { box-shadow: inset 0 0 50px rgba(200, 150, 10, 0.18), 0 0 28px rgba(200, 150, 10, 0.25); }
+.pg-card-glow--amber { box-shadow: inset 0 0 50px rgba(180, 100, 20, 0.18), 0 0 28px rgba(180, 100, 20, 0.25); }
+.pg-card-glow--ember { box-shadow: inset 0 0 50px rgba(212, 74, 10, 0.15), 0 0 28px rgba(212, 74, 10, 0.2); }
+
+/* ─── CARD VARIANTS ─── */
+
+/* Play card — gold */
+.pg-card--play {
+  border-color: rgba(200, 150, 10, 0.35);
+}
+.pg-card--play .pg-card-icon-wrap {
+  color: var(--color-gold-light);
+  background: rgba(200, 150, 10, 0.12);
+}
+.pg-card--play .pg-card-title { color: var(--color-gold-light); }
+.pg-card--play .pg-card-desc  { color: var(--color-parchment); }
+.pg-card--play .pg-card-cta   { color: var(--color-gold-light); border-color: var(--color-gold-dark); }
+.pg-card--play:hover .pg-card-cta {
+  background: var(--color-gold-dark);
+  color: var(--color-ink);
+}
+a.pg-card--play:hover { border-color: var(--color-gold); box-shadow: 0 12px 40px rgba(200,150,10,0.2); }
+
+/* Dev card — amber/brown */
+.pg-card--dev {
+  border-color: rgba(160, 98, 46, 0.35);
+}
+.pg-card--dev .pg-card-icon-wrap {
+  color: var(--color-brown-super-tan);
+  background: rgba(160, 98, 46, 0.12);
+  font-size: 2.5rem;
+}
+.pg-card--dev .pg-card-title { color: var(--color-brown-super-tan); }
+.pg-card--dev .pg-card-desc  { color: var(--color-parchment); }
+.pg-card--dev .pg-card-cta   { color: var(--color-brown-super-tan); border-color: var(--color-brown-light); }
+.pg-card--dev:hover .pg-card-cta {
+  background: var(--color-brown-warm);
+  color: var(--color-parchment-light);
+}
+a.pg-card--dev:hover { border-color: var(--color-brown-super-tan); box-shadow: 0 12px 40px rgba(160,98,46,0.2); }
+
+/* Crowd card — ember / greyed-out soon */
+.pg-card--crowd {
+  border-color: rgba(180, 60, 10, 0.25);
+}
+.pg-card--crowd .pg-card-icon-wrap {
+  color: var(--color-ember);
+  background: rgba(180, 60, 10, 0.1);
+}
+.pg-card--soon {
+  opacity: 0.90;
+}
+.pg-card--crowd .pg-card-title { color: var(--color-brown-tan); }
+.pg-card--crowd .pg-card-desc  { color: var(--color-parchment-dark); }
+.pg-card--crowd .pg-card-cta   {
+  color: var(--color-ash);
+  border-color: var(--color-stone);
+  font-style: italic;
+}
+
+/* ─── FOOTER ─── */
+.pg-footer {
+  background: linear-gradient(180deg, #0d0602 0%, var(--color-brown-deep) 100%);
+  border-top: 1px solid var(--color-brown-mid);
+  padding: 1.4rem 2rem;
+}
+
+.pg-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+
+.pg-footer-brand {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--color-gold-dark);
+  letter-spacing: 0.06em;
+}
+
+.pg-footer-sep {
+  color: var(--color-stone);
+}
+
+.pg-footer-copy {
+  color: var(--color-ash);
+}
+
+.pg-footer-link {
+  color: var(--color-brown-tan);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.pg-footer-link:hover {
+  color: var(--color-gold-light);
+}
+
+/* ─── MODAL ─── */
+.pg-modal-content {
+  background: linear-gradient(160deg, var(--color-brown-dark) 0%, var(--color-brown-deep) 100%);
+  border: 1px solid var(--color-brown-mid);
+  color: var(--color-parchment);
+}
+
+.pg-modal-header {
+  border-bottom: 1px solid var(--color-brown-mid);
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+}
+
+.pg-modal-header .modal-title {
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+}
+
+.pg-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--color-ash);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.pg-modal-close:hover { color: var(--color-gold-light); }
+
+.pg-modal-body {
+  font-family: var(--font-body);
+  color: var(--color-parchment);
+}
+
+.pg-modal-footer {
+  border-top: 1px solid var(--color-brown-mid);
+}
+
+.pg-btn-close-modal {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  padding: 0.45rem 1.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-brown-light);
+  background: transparent;
+  color: var(--color-parchment);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.pg-btn-close-modal:hover {
+  background: var(--color-brown-warm);
+  color: var(--color-parchment-light);
+}
+
+/* ─── MOBILE ─── */
+@media (max-width: 767.98px) {
+  .pg-navbar-brand {
+    font-size: 1.45rem;
+  }
+
+  .pg-hero {
+    min-height: 45vh;
+  }
+
+  .pg-hero-title {
+    font-size: 2.2rem;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .pg-hero-sub {
+    font-size: 1rem;
+  }
+
+  .pg-cards-section {
+    padding: 2.5rem 0.75rem 4rem;
+  }
+
+  /* Stack cards vertically — each full width */
+  .pg-cards-row .col-12 {
+    /* Bootstrap col-12 already handles this, but ensure equal spacing */
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .pg-card {
+    padding: 1.8rem 1.4rem 1.6rem;
+  }
+
+  .pg-card-icon-wrap {
+    width: 68px;
+    height: 68px;
+    font-size: 1.9rem;
+  }
+
+  .pg-footer-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.3rem;
+  }
+
+  .pg-footer-sep {
+    display: none;
+  }
+}
