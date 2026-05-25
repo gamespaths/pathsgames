@@ -22,6 +22,12 @@ variable "bucket_name" {
   default     = "pathsgames-com"
 }
 
+variable "test_bucket_name" {
+  description = "S3 bucket name for test static website (test.<domain_name>)"
+  type        = string
+  default     = "pathsgames-test"
+}
+
 variable "environment" {
   description = "Environment tag"
   type        = string
@@ -53,7 +59,7 @@ variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    Project     = "PathsGames"
-    ManagedBy   = "Terraform"
+    Project   = "PathsGames"
+    ManagedBy = "Terraform"
   }
 }

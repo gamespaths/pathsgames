@@ -68,11 +68,13 @@ export default function StartMatchPage() {
         singlePlayer: 1,
         turnstileToken: cfToken,
       }
-      const created = await createMatch(payload, user?.accessToken)
+      const created = await   createMatch(payload, user?.accessToken)
       setMatch(created)
       setPhase('created')
     } catch (e) {
-      setErrorMsg(e?.message || '')
+      console.log(e);
+      const apiError = e?.response?.data?.error
+      setErrorMsg(apiError || e?.message || '')
       setPhase('error')
     }
   }, [story, config, user, cfToken])
@@ -149,15 +151,18 @@ export default function StartMatchPage() {
 /** Bottom-of-page status block: spinner/countdown, success, or error+actions. */
 function StartMatchStatus({ phase, countdown, errorMsg, onRetry, onHome, t }) {
   if (phase === 'error') {
-    return (
+    const isTurnstileFail = errorMsg === 'TURNSTILE_VALIDATION_FAILED'
+    return ( 
       <div className="start-match-status start-match-status--error">
         <p><i className="fas fa-exclamation-triangle me-2" />{t('startMatch.error')}</p>
         {errorMsg && <p className="start-match-error-detail">{errorMsg}</p>}
         <div className="start-match-actions">
-          <button className="btn-start-game" onClick={onRetry}>
-            <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
-          </button>
-          <button className="btn-secondary-pg" onClick={onHome}>
+          {!isTurnstileFail && (
+            <button className="btn-start-game" onClick={onRetry}>
+              <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
+            </button>
+          )}
+          <button className="btn-start-game" onClick={onHome}>
             <i className="fas fa-home me-2" />{t('startMatch.home')}
           </button>
         </div>

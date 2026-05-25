@@ -4,8 +4,7 @@
 
 resource "aws_acm_certificate" "website" {
   domain_name               = var.domain_name
-  subject_alternative_names = ["*.${var.domain_name}"]
-  # removed second_domain_name [, "*.${var.second_domain_name}" , var.second_domain_name ]
+  subject_alternative_names = ["*.${var.domain_name}", "*.${var.second_domain_name}" , var.second_domain_name ]
   validation_method         = "DNS"
 
   lifecycle {
@@ -38,8 +37,7 @@ resource "aws_cloudfront_distribution" "website" {
   is_ipv6_enabled     = true
   comment             = "Paths Games Website – ${var.domain_name}"
   default_root_object = "index.html"
-  aliases             = [var.domain_name, "www.${var.domain_name}"] 
-    # removed second_domain_name [, var.second_domain_name, "www.${var.second_domain_name}" ]
+  aliases             = [var.domain_name, "www.${var.domain_name}", var.second_domain_name, "www.${var.second_domain_name}" ]
   price_class         = "PriceClass_100" # US + Europe
   http_version        = "http2and3"
   web_acl_id          = var.enable_waf ? aws_wafv2_web_acl.website[0].arn : null

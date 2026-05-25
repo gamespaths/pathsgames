@@ -36,7 +36,7 @@ Parameters:
     Description: "Optional. Global Route53 Hosted Zone ID for automatic Alias record"
   CorsAllowOrigins:
     Type: CommaDelimitedList
-    Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games"
+    Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games,https://test.paths.games"
     Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173,http://localhost:5174)"
 
 Conditions:
@@ -111,7 +111,10 @@ Resources:
       ApiId: !Ref PathsGamesApi
       DomainName: !Ref CustomDomainName
       Stage: !Ref Environment
-    DependsOn: PathsGamesApiCustomDomain
+    DependsOn:
+      - PathsGamesApiCustomDomain
+      - PathsGamesApi
+      - PathsGamesApiStage
 
   PathsGamesApiDnsRecord:
     Type: AWS::Route53::RecordSet
@@ -128,6 +131,7 @@ Resources:
 
   EchoModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/echo.yaml
       Parameters:
@@ -137,6 +141,7 @@ Resources:
 
   AuthModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/auth.yaml
       Parameters:
@@ -147,6 +152,7 @@ Resources:
 
   StoryModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/story.yaml
       Parameters:
@@ -157,6 +163,7 @@ Resources:
   # Step 19 — single-player match creation
   MatchModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/match.yaml
       Parameters:
@@ -168,6 +175,7 @@ Resources:
 
   ContentModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/content.yaml
       Parameters:
@@ -177,6 +185,7 @@ Resources:
 
   SeedModule:
     Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
     Properties:
       Location: template/seed.yaml
       Parameters:

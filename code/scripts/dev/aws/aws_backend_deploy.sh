@@ -12,6 +12,10 @@ if [ -f "$ENV_FILE" ]; then
     # shellcheck disable=SC1090
     . "$ENV_FILE"
 fi
+# Allow CLI override: aws_backend_deploy.sh <environment>
+if [ -n "${1:-}" ] && [[ "$1" != "--auto-confirm" ]]; then
+    ENVIRONMENT_NAME="$1"
+fi
 
 # Required inputs (from environment or .env)
 # - ENVIRONMENT_NAME: environment name used by the SAM template (e.g. dev, prod)
@@ -52,9 +56,9 @@ fi
 sam build
 
 # Dev uses an empty key to activate the server-side bypass (handler returns
-# true when TURNSTILE_SECRET_KEY is empty); prod uses the real key.
+# true when TURNSTILE_SECRET_KEY is empty); all other envs use the real key.
 if [ "${ENVIRONMENT_NAME}" = "dev" ]; then
-    _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
+    _TURNSTILE_SAM_KEY=""
 else
     _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
 fi
