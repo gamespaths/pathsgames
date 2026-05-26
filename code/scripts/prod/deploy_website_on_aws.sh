@@ -10,11 +10,11 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # If not present in .env, these variables must be set in the environment before running the script
-if [ -z "${S3_BUCKET_WEBSITE:-}" ] || [ -z "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
-    echo "Error: S3_BUCKET_WEBSITE and CLOUDFRONT_DISTRIBUTION_ID must be set in the environment or .env file."
+if [ -z "${AWS_S3_BUCKET_WEBSITE:-}" ] || [ -z "${AWS_CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
+    echo "Error: AWS_S3_BUCKET_WEBSITE and AWS_CLOUDFRONT_DISTRIBUTION_ID must be set in the environment or .env file."
     exit 1
 fi
 
-aws s3 sync code/website/html/ s3://$S3_BUCKET_WEBSITE --delete
-aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
+aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete
+aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
 

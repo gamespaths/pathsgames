@@ -93,9 +93,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | `DOCKERHUB_TOKEN` | DockerHub access token (not password) | Backend pipeline |
 | `AWS_ACCESS_KEY_ID` | AWS IAM access key for S3/CloudFront | Website pipeline |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key | Website pipeline |
-| `AWS_REGION` | AWS region (`us-east-1`) | Website pipeline |
-| `S3_BUCKET_WEBSITE` | S3 bucket name for website (`pathsgames-com`) | Website pipeline |
-| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for cache invalidation | Website pipeline |
+| `AWS_REGION_TEST` | AWS region (`us-east-1`) | Website pipeline |
+| `AWS_S3_BUCKET_WEBSITE` | S3 bucket name for website (`pathsgames-com`) | Website pipeline |
+| `AWS_CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for cache invalidation | Website pipeline |
 | `SONAR_TOKEN` | SonarCloud authentication token | SonarQube pipeline |
 | `SONAR_HOST_URL` | SonarCloud URL (`https://sonarcloud.io`) | SonarQube pipeline |
 
@@ -104,7 +104,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | Secret | Purpose | Used by |
 |--------|---------|---------|
 | `S3_BUCKET_FRONTEND` | S3 bucket name for React app | Frontend pipeline (future) |
-| `CLOUDFRONT_DISTRIBUTION_ID_FRONTEND` | CloudFront distribution ID for frontend | Frontend pipeline (future) |
+| `AWS_CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for frontend | Frontend pipeline (future) |
 
 
 ## 3. CI System: GitHub Actions
@@ -176,8 +176,8 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 **Steps:**
 1. **Checkout** — clone the repository
 2. **Configure AWS credentials** — using GitHub secrets
-3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$S3_BUCKET_WEBSITE --delete`
-4. **CloudFront Invalidation** — `aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"`
+3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete`
+4. **CloudFront Invalidation** — `aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"`
 
 ### 4.3 Frontend Pipeline (future — `frontend-deploy.yml`)
 

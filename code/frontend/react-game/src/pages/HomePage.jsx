@@ -61,7 +61,7 @@ export default function HomePage() {
 
       {/* Catalog */}
       {loading ? (
-        <div className="stories-section" style={{ color: 'var(--text-muted)', fontStyle: 'italic', padding: '20px' }}>
+        <div className="stories-section stories-loading">
           <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
         </div>
       ) : (

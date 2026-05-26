@@ -10,8 +10,8 @@ if [ -f "$ENV_FILE" ]; then
   echo "Loaded test environment variables from $ENV_FILE"
 fi
 
-if [ -z "${S3_BUCKET_WEBSITE_TEST:-}" ]; then
-  echo "Error: S3_BUCKET_WEBSITE_TEST must be set in the environment or .env file."
+if [ -z "${AWS_S3_BUCKET_WEBSITE_TEST:-}" ]; then
+  echo "Error: AWS_S3_BUCKET_WEBSITE_TEST must be set in the environment or .env file."
   exit 1
 fi
 
@@ -26,15 +26,15 @@ echo "=== Build react-game ==="
 cd "$REACT_GAME_DIR"
 npm run build -- --mode test
 
-echo "=== Sync to s3://$S3_BUCKET_WEBSITE_TEST ==="
+echo "=== Sync to s3://$AWS_S3_BUCKET_WEBSITE_TEST ==="
 cd "$PROJECT_ROOT"
-aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$S3_BUCKET_WEBSITE_TEST" --delete
+aws s3 sync "$REACT_GAME_DIR/dist/" "s3://$AWS_S3_BUCKET_WEBSITE_TEST" --delete
 
-if [ -n "${CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" ]; then
-  echo "=== Invalidate CloudFront $CLOUDFRONT_DISTRIBUTION_ID_TEST ==="
-  aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID_TEST" --paths "/*"
+if [ -n "${AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST:-}" ]; then
+  echo "=== Invalidate CloudFront $AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST ==="
+  aws cloudfront create-invalidation --distribution-id "$AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST" --paths "/*"
 else
-  echo "CLOUDFRONT_DISTRIBUTION_ID_TEST not set — skipping invalidation."
+  echo "AWS_CLOUDFRONT_DISTRIBUTION_ID_TEST not set — skipping invalidation."
 fi
 
 echo "=== Deploy test complete: https://test.paths.games ==="

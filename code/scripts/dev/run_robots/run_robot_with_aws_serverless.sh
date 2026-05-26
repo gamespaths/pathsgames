@@ -18,27 +18,27 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Required inputs (from environment or .env)
-# - ENVIRONMENT_NAME: environment name used by the SAM template (e.g. dev, prod)
-# - STACK_NAME: CloudFormation stack name to create/update
+# - AWS_ENVIRONMENT_NAME_TEST: environment name used by the SAM template (e.g. dev, prod)
+# - AWS_STACK_NAME_TEST: CloudFormation stack name to create/update
 # Optional:
-# - S3_BUCKET: S3 bucket used to upload artifacts (if not using SAM CLI)
+# - AWS_S3_BUCKET_BASE_TEST: S3 bucket used to upload artifacts (if not using SAM CLI)
 # - S3_PREFIX: prefix used when uploading via SAM (defaults provided)
-# - AWS_REGION: AWS region (defaults to us-east-2)
+# - AWS_REGION_TEST: AWS region (defaults to us-east-2)
 
-if [ -z "${ENVIRONMENT_NAME:-}" ] || [ -z "${STACK_NAME:-}" ]; then
-    echo "Error: ENVIRONMENT_NAME and STACK_NAME must be set in the environment or .env file."
+if [ -z "${AWS_ENVIRONMENT_NAME_TEST:-}" ] || [ -z "${AWS_STACK_NAME_TEST:-}" ]; then
+    echo "Error: AWS_ENVIRONMENT_NAME_TEST and AWS_STACK_NAME_TEST must be set in the environment or .env file."
     exit 1
 fi
 
-S3_BUCKET="${S3_BUCKET:-pathsgames-dev}"
+AWS_S3_BUCKET_BASE_TEST="${AWS_S3_BUCKET_BASE_TEST:-pathsgames-main}"
 S3_PREFIX="${S3_PREFIX:-cloudformation-backend}"
-AWS_REGION="${AWS_REGION:-us-east-2}"
+AWS_REGION_TEST="${AWS_REGION_TEST:-us-east-2}"
 
 ## get url of the deployed API from CloudFormation outputs
-#API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
-API_URL="https://${AWS_CustomDomainName:-}"
+#API_URL=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME_TEST" --region "$AWS_REGION_TEST" --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+API_URL="https://${AWS_CUSTOM_DOMAIN_TEST:-}"
 if [ -z "${API_URL:-}" ] || [ "$API_URL" = "None" ]; then
-    echo "Error: could not determine ApiUrl $API_URL. Check that stack '$STACK_NAME' exists and has an 'ApiUrl' output."
+    echo "Error: could not determine ApiUrl $API_URL. Check that stack '$AWS_STACK_NAME_TEST' exists and has an 'ApiUrl' output."
     exit 1
 fi
 echo "API URL: $API_URL"
