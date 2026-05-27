@@ -91,9 +91,11 @@ next steps are:
     - add robot test too if it's possibile, create "code/tests/robot/tests/20_website"
 - check all project and all documentation files, check where and who to set complete a match.
   - now i wanna create an new api PATCH `/match/{uuid_match}/end/{uuid_event}`: to complete the match (set on ENDED state) if event is the "idEventEndGame" of story of match (never return idEventEndGame values on API), if event is not the idEventEndGame return "406 Not Acceptable". use "0.20.1" version, we are on step 20. please develop all backend (java, php,python, aws lambda), remember to add robot tests. In this session don't change frontend-react projects.
-  
+- read documentation_v0/Step20_GameWebSiteFirstRun.md and let's go to import match end into react-game project and GameBook components: refactor LocationCard to use GameCard component, if there are not any location into story object, show story big card. refactor PlayerStats to use BonusBadgeList. refactor NeighborRow and ActionsRow to use GameCard little. If actions has "endGame"="true" show button "End game" to call "end game api" and hide GameBook and show EndGameBook with on left story card and on right endGameCard from gameData.json and a button "close" to restart from home page. 
+  - into GameBook refactor NeighborRow and ActionsRow to a SelectionView
 
-- **Document Version**: 0.20.1
+
+- **Document Version**: 0.20.2
 
 | Version | Description | Date |
 |---------|-------------|------|
@@ -101,7 +103,7 @@ next steps are:
 | 0.20.0 | Hybrid Cloudflare architecture: pathsgames.com → CF Pages, paths.games → AWS invariato | May 25, 2026 |
 | 0.20.0 | Back pathsgames.com on AWS and define test.paths.games environment | May 26, 2026 |
 | 0.20.1 | Player-driven match completion: `PATCH /api/match/{uuidMatch}/end/{uuidEvent}` | May 27, 2026 |
-
+| 0.20.2 | Complete the match in react-game frontend | May 27, 2026 |
 
 - **Last Updated**: May 27, 2026
 - **Status**: Complete

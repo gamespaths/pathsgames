@@ -1,14 +1,17 @@
 /**
- * BonusBadgeList — renders a row of stat badges using the same look as
- * `features/game/PlayerStats.jsx` (player-stats-bar + stat-badge classes,
- * with a coloured Font-Awesome icon for each stat).
+ * BonusBadgeList — renders a row of stat badges using the player-stats-bar +
+ * stat-badge classes, with a coloured Font-Awesome icon for each stat.
  *
- * Shared between BookPageContent (entity stats) and ConfigView (total bonuses).
+ * Shared between BookPageContent (entity stats), ConfigView (total bonuses)
+ * and the in-game PlayerStats bar (live match stats).
  *
- * Items with a zero or missing value are always hidden.
+ * By default items with a zero or missing value are hidden — pass `showZeros`
+ * to render every item regardless of value (used by live PlayerStats so that
+ * a player can see when a stat drops to 0).
  *
- * @param {Array} items - [{ key, label, value }]
- * @param {string} className - optional extra class on the wrapper
+ * @param {Array}   items      - [{ key, label, value }]
+ * @param {string}  className  - optional extra class on the wrapper
+ * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
 
 const STAT_VISUAL = {
@@ -21,6 +24,13 @@ const STAT_VISUAL = {
   constitution: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
   weight:       { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
   exp:          { icon: 'fas fa-star',          color: '#9b59b6' },
+
+  // Live player stats (in-match) — see PlayerStats.jsx
+  sadness:      { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  experience:   { icon: 'fas fa-star',           color: '#9b59b6' },
+  food:         { icon: 'fas fa-drumstick-bite', color: '#27ae60' },
+  magic:        { icon: 'fas fa-magic',          color: '#1abc9c' },
+  coins:        { icon: 'fas fa-coins',          color: '#f1c40f' },
 
   // Character base stats
   lifeMax:           { icon: 'fas fa-heart',         color: '#e74c3c' },
@@ -50,13 +60,15 @@ const STAT_VISUAL = {
 
 const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
-export default function BonusBadgeList({ items, className = '' }) {
+export default function BonusBadgeList({ items, className = '', showZeros = false }) {
   if (!items || items.length === 0) return null
 
-  const visibleItems = items.filter(item => {
-    const v = Number(item?.value)
-    return Number.isFinite(v) && v !== 0
-  })
+  const visibleItems = showZeros
+    ? items
+    : items.filter(item => {
+        const v = Number(item?.value)
+        return Number.isFinite(v) && v !== 0
+      })
   if (visibleItems.length === 0) return null
 
   return (

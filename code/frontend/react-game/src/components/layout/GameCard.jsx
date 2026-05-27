@@ -41,7 +41,7 @@ export default function GameCard({
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
-  onPreview,
+  onPreview, hidePreview = false,
 
   /* extra overlay content */
   children,
@@ -82,25 +82,25 @@ export default function GameCard({
   let actionBtn = null
   if (locked) {
     actionBtn = ( <>
-      <button
+      {onPreview && !hidePreview && <button
         className="gc-footer__btn gc-footer__btn--icon"
         onClick={(e) => { e.stopPropagation(); onPreview && onPreview() }}
         aria-label={t('card.info')}
       >
         <i className="fas fa-info" />
         <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
-      </button>
+      </button>}
       <span
         className="gc-footer__coming-soon"
         title={lockedReason || undefined}
         aria-label={lockedReason || undefined}
       >
-        <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? label ?? name}
+        <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? lockInfo ?? label ?? name}
       </span>
     </>)
   } else if (onSelect) {
     actionBtn = (<>
-      {onPreview && (
+      {onPreview && !hidePreview && (
         <button
           className="gc-footer__btn gc-footer__btn--icon"
           onClick={(e) => { e.stopPropagation(); onPreview() }}

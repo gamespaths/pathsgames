@@ -1,6 +1,24 @@
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../i18n/context'
 
+//note: this component is NOT used but beatiful and maybe useful in the future for a more detailed card view, so I left it here for now instead of deleting it. It is used by SelectionView for the "info" button of each option, but currently the button is hidden until we have more content to show in the modal.
+/*
+  const openModal = (modalId) => {
+    if (typeof window === 'undefined') return
+    const el = document.getElementById(modalId)
+    if (!el) return
+    const Modal = window.bootstrap?.Modal
+    if (Modal) Modal.getOrCreateInstance(el).show()
+  }
+
+    onPreview={() => openModal(modalId)}
+              <CardDetailModal
+                card={opt}
+                modalId={modalId}
+                actionLabel={selectText}
+                onAction={() => handleAction(opt)}
+              />
+*/
 export default function CardDetailModal({ card, modalId, actionLabel, onAction }) {
   const { t } = useTranslation()
 

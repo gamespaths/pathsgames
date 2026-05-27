@@ -18,7 +18,8 @@
     "coins": 50,
     "weight": 12
   },
-  "locations": [
+  "locations": [],
+  "locationss": [
     {
       "uuid": "loc-002",
       "name": "Dark Cave",
@@ -49,12 +50,16 @@
   ],
   "actions": [
     {
-      "uuid": "act-001",
-      "name": "Talk to Barkeep",
-      "description": "The barkeep has been here for decades and knows every rumour in the region. Perhaps he has information about the dark fortress to the north.",
-      "urlImage": "",
+      "uuid": "end-event-uuid",
+      "uuidEvent": "end-event-uuid",
+      "name": "Complete the story",
+      "description": "Complete the story and end the game. This action will trigger the end game sequence and display your final results.",
+      "urlImage": "https://images.unsplash.com/photo-1679891984310-11c39a640ebc?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "awesomeIcon": "fas fa-comments",
-      "copyrightText": ""
+      "copyrightText": "Pastor Matt",
+      "linkCopyright": "https://unsplash.com/photos/an-open-book-sitting-on-top-of-a-table-CFt0ds6uE-k",
+      "endGame": true,
+      "locked": false
     },
     {
       "uuid": "act-002",
@@ -62,7 +67,9 @@
       "description": "Inspect the notice board by the entrance. Travellers often pin bounties, warnings, and cryptic messages that might aid your quest.",
       "urlImage": "",
       "awesomeIcon": "fas fa-search",
-      "copyrightText": ""
+      "copyrightText": "",
+      "locked": true,
+      "lockInfo": "LOCKED"
     },
     {
       "uuid": "act-003",
@@ -70,7 +77,9 @@
       "description": "Rent a room for the night and recover your strength. Rest restores Life and Energy but consumes Coins and Food.",
       "urlImage": "",
       "awesomeIcon": "fas fa-bed",
-      "copyrightText": ""
+      "copyrightText": "",
+      "locked": true,
+      "lockInfo": "LOCKED"
     },
     {
       "uuid": "act-004",
@@ -78,7 +87,19 @@
       "description": "A travelling merchant has set up in the corner. He carries rare potions and supplies that could prove invaluable on your journey.",
       "urlImage": "",
       "awesomeIcon": "fas fa-store",
-      "copyrightText": ""
+      "copyrightText": "",
+      "locked": true,
+      "lockInfo": "LOCKED"
     }
-  ]
+  ],
+  "endGameCard": {
+    "title": "Congratulations, Hero!",
+    "description": "You have completed your adventure and emerged victorious. Your name will be remembered in legends for generations to come.",
+    "urlImage": "https://images.unsplash.com/photo-1679891984310-11c39a640ebc?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "awesomeIcon": "fas fa-comments",
+    "copyrightText": "Pastor Matt",
+    "linkCopyright": "https://unsplash.com/photos/an-open-book-sitting-on-top-of-a-table-CFt0ds6uE-k",
+    "endGame": false,
+    "locked": true
+  }
 }

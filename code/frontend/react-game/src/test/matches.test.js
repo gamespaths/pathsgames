@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '../api/client'
-import { createMatch, listMatches, getMatchInfo } from '../api/matches'
+import { createMatch, listMatches, getMatchInfo, endMatch } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
 
@@ -35,12 +35,19 @@ describe('matches api', () => {
     it('getMatchInfo returns null', async () => {
       expect(await getMatchInfo('m1')).toBeNull()
     })
+
+    it('endMatch synthesizes an ENDED response carrying the match uuid', async () => {
+      const res = await endMatch('m1', 'evt-end-1')
+      expect(res.status).toBe('ENDED')
+      expect(res.uuid).toBe('m1')
+    })
   })
 
   describe('real server mode', () => {
     const post = vi.fn()
     const get = vi.fn()
-    beforeEach(() => apiClient.mockReturnValue({ post, get }))
+    const patch = vi.fn()
+    beforeEach(() => apiClient.mockReturnValue({ post, get, patch }))
 
     it('createMatch posts to /api/matches with the bearer token', async () => {
       post.mockResolvedValue({ data: { uuid: 'm1' } })
@@ -76,6 +83,23 @@ describe('matches api', () => {
       get.mockResolvedValue({ data: { match: { uuid: 'm1' } } })
       await getMatchInfo('m1', 'tok')
       expect(get).toHaveBeenCalledWith('/api/match/m1/info', expect.any(Object))
+    })
+
+    it('endMatch PATCHes /api/match/{uuidMatch}/end/{uuidEvent} with the bearer token', async () => {
+      patch.mockResolvedValue({ data: { status: 'ENDED', uuid: 'm1' } })
+      const res = await endMatch('m1', 'evt-1', 'tok-xyz')
+
+      expect(patch).toHaveBeenCalledWith(
+        '/api/match/m1/end/evt-1',
+        null,
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok-xyz' } }),
+      )
+      expect(res).toEqual({ status: 'ENDED', uuid: 'm1' })
+    })
+
+    it('endMatch propagates a 406 EVENT_NOT_END_GAME error', async () => {
+      patch.mockRejectedValue(new Error('EVENT_NOT_END_GAME'))
+      await expect(endMatch('m1', 'evt-wrong', 'tok')).rejects.toThrow('EVENT_NOT_END_GAME')
     })
   })
 })

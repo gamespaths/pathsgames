@@ -108,6 +108,7 @@
     "moveTo": "Move to…",
     "actions": "Actions",
     "exitToHome": "Exit to Home",
+    "story": "Story",
     "stats": {
       "life": "Life",
       "energy": "Energy",
@@ -119,7 +120,10 @@
       "weight": "Carry"
     },
     "move": "Move Here",
-    "execute": "Execute"
+    "execute": "Execute",
+    "endGame": "End Game",
+    "endGameTitle": "Adventure Complete",
+    "endGameClose": "Close"
   },
   "footer": {
     "rights": "All rights reserved",

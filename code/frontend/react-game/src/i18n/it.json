@@ -107,6 +107,7 @@
     "moveTo": "Muoviti verso…",
     "actions": "Azioni",
     "exitToHome": "Torna alla Home",
+    "story": "Storia",
     "stats": {
       "life": "Vita",
       "energy": "Energia",
@@ -118,7 +119,10 @@
       "weight": "Trasporto"
     },
     "move": "Vai Qui",
-    "execute": "Esegui"
+    "execute": "Esegui",
+    "endGame": "Termina Partita",
+    "endGameTitle": "Avventura Conclusa",
+    "endGameClose": "Chiudi"
   },
   "footer": {
     "rights": "Tutti i diritti riservati",

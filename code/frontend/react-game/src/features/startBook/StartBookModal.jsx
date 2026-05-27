@@ -176,7 +176,8 @@ export default function StartBookModal({ story, onClose }) {
   )
 }
 
-function CardPreviewOverlay({ card, entity, entityType, story, onClose }) {
+export function CardPreviewOverlay({ card, entity, entityType, story, onClose }) {
+  console.log(card.entity);
   return (
     <div className="card-preview-overlay">
       <BookPageContent

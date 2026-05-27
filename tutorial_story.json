@@ -382,7 +382,7 @@
     "styleImageMedium": null,
     "styleImageLarge": null,
     "title": "Paths Alpha",
-    "description": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first a Alpha-version of paths.games</p>",
+    "description": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first Alpha-version of paths.games</p>",
     "copyrightText": "Lili Popper on Unsplash",
     "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM"
   },
@@ -455,8 +455,8 @@
     {
       "idCard": null,
       "idTextName": null,
-      "longText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first a Alpha-version of paths.games</p>",
-      "shortText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first a Alpha-version of paths.games</p>",
+      "longText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first Alpha-version of paths.games</p>",
+      "shortText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first Alpha-version of paths.games</p>",
       "idTextCopyright": 3,
       "id": 6,
       "idTextDescription": null,
@@ -1744,7 +1744,8 @@
       "id": 1,
       "idTextName": 106,
       "type": "NORMAL",
-      "costEnery": 1
+      "costEnery": 1,
+      "uuid": "end-event-uuid"
     }
   ],
   "items": [],

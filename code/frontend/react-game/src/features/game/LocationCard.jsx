@@ -1,20 +1,29 @@
-import { useTranslation } from '../../i18n/context'
+import GameCard from '../../components/layout/GameCard'
 
+/**
+ * LocationCard — current-location card shown on the left book page.
+ *
+ * Delegates the layout (title bar, image/icon, parchment footer) to GameCard
+ * variant="big". The description is rendered just below the GameCard since
+ * GameCard's footer is reserved for action/info buttons.
+ *
+ * Renders nothing when no location is available — the parent (GameBook) is
+ * responsible for falling back to the story big card in that case.
+ */
 export default function LocationCard({ location }) {
-  const { t } = useTranslation()
-
   if (!location) return null
 
   return (
-    <div className="pg-card pg-card--large game-location-card" style={{ position: 'relative' }}>
-      <div className="game-loc-img-wrap">
-        <img src={location.urlImage} alt={location.name} className="game-loc-img" />
-      </div>
-      <div className="game-loc-body">
-        <h4 className="game-loc-name">{location.name}</h4>
+    <div className="game-location-card-wrap">
+      <GameCard
+        variant="big"
+        card={location}
+        icon={location.awesomeIcon ?? 'fas fa-map-marker-alt'}
+        imageAlt={location.name}
+      />
+      {location.description && (
         <p className="game-loc-desc">{location.description}</p>
-      </div>
-
+      )}
     </div>
   )
 }
