@@ -29,7 +29,7 @@ export default function Footer() {
           </a>
         </div>
         <div className="footer-copy">
-          <span className="gold-light">Paths Games v0.20.0</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
+          <span className="gold-light">Paths Games v0.20.1</span> &copy; 2026 {t('footer.rights')} &middot;&nbsp;
           {t('footer.madeWith')} <i className="fas fa-heart" /> {t('footer.byTeam')} &middot;&nbsp;
           <a
             href="#"

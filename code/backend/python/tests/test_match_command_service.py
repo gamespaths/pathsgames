@@ -327,3 +327,77 @@ def test_delete_match_unknown_returns_not_found():
     service, mocks = _build_service()
     mocks["persistence"].find_match_by_uuid.return_value = None
     assert service.delete_match("m1") == "NOT_FOUND"
+
+
+# ── Step 20.1 — player end match ─────────────────────────────────────────────
+
+def _wire_owned_match(mocks, *, end_event_id=50):
+    mocks["persistence"].find_match_by_uuid.return_value = {
+        "uuid": "m1",
+        "id_story": 2,
+        "id_user_creator": 7,
+        "status": "RUNNING",
+    }
+    mocks["user_access"].find_by_uuid.return_value = _user()
+    mocks["story_read"].find_story_by_id.return_value = {
+        "id": 2,
+        "uuid": "story-uuid",
+        "id_event_end_game": end_event_id,
+    }
+
+
+def test_end_match_blank_inputs_returns_not_found():
+    service, _ = _build_service()
+    assert service.end_match("", "ev", "u") == "NOT_FOUND"
+    assert service.end_match("m", "", "u") == "NOT_FOUND"
+    assert service.end_match("m", "ev", "") == "NOT_FOUND"
+
+
+def test_end_match_unknown_match_returns_not_found():
+    service, mocks = _build_service()
+    mocks["persistence"].find_match_by_uuid.return_value = None
+    assert service.end_match("m1", "ev", "u") == "NOT_FOUND"
+
+
+def test_end_match_caller_not_owner_returns_not_found():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks)
+    mocks["user_access"].find_by_uuid.return_value = {"id": 999, "uuid": "intruder"}
+    assert service.end_match("m1", "ev", "intruder") == "NOT_FOUND"
+    mocks["persistence"].update_match_fields.assert_not_called()
+
+
+def test_end_match_unknown_caller_returns_not_found():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks)
+    mocks["user_access"].find_by_uuid.return_value = None
+    assert service.end_match("m1", "ev", "ghost") == "NOT_FOUND"
+
+
+def test_end_match_story_missing_end_event_returns_not_acceptable():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks, end_event_id=None)
+    assert service.end_match("m1", "ev", "user-uuid") == "NOT_ACCEPTABLE"
+
+
+def test_end_match_unknown_event_returns_not_acceptable():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks)
+    mocks["story_read"].find_event_by_story_id_and_uuid.return_value = None
+    assert service.end_match("m1", "ev", "user-uuid") == "NOT_ACCEPTABLE"
+
+
+def test_end_match_wrong_event_returns_not_acceptable():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks)
+    mocks["story_read"].find_event_by_story_id_and_uuid.return_value = {"id": 99, "uuid": "ev"}
+    assert service.end_match("m1", "ev", "user-uuid") == "NOT_ACCEPTABLE"
+    mocks["persistence"].update_match_fields.assert_not_called()
+
+
+def test_end_match_completed_sets_status_ended():
+    service, mocks = _build_service()
+    _wire_owned_match(mocks)
+    mocks["story_read"].find_event_by_story_id_and_uuid.return_value = {"id": 50, "uuid": "ev"}
+    assert service.end_match("m1", "ev", "user-uuid") == "COMPLETED"
+    mocks["persistence"].update_match_fields.assert_called_once_with("m1", "ENDED", None)

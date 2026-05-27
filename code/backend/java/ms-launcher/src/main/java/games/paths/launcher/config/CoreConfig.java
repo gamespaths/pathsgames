@@ -74,6 +74,12 @@ public class CoreConfig {
     @Value("${game.turnstile.secret-key:}")
     private String turnstileSecretKey;
 
+    @Value("${game.turnstile.bypass-token:}")
+    private String turnstileBypassToken;
+
+    @Value("${game.env:dev}")
+    private String gameEnv;
+
     @Bean
     public EchoPort echoPort() {
         Map<String, String> properties = new LinkedHashMap<>();
@@ -134,7 +140,8 @@ public class CoreConfig {
 
     @Bean
     public TurnstileVerificationPort turnstileVerificationPort(RestTemplate restTemplate) {
-        return new TurnstileVerificationAdapter(turnstileSecretKey, restTemplate);
+        return new TurnstileVerificationAdapter(
+                turnstileSecretKey, turnstileBypassToken, gameEnv, restTemplate);
     }
 
     @Bean

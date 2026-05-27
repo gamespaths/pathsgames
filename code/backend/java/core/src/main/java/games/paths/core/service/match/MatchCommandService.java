@@ -3,6 +3,7 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
@@ -168,6 +169,42 @@ public class MatchCommandService implements MatchCommandPort {
         }
         persistencePort.deleteMatchByUuid(uuidMatch);
         return DeleteOutcome.DELETED;
+    }
+
+    @Override
+    public EndMatchOutcome endMatch(String uuidMatch, String uuidEvent, String userUuid) {
+        if (isBlank(uuidMatch) || isBlank(uuidEvent) || isBlank(userUuid)) {
+            return EndMatchOutcome.NOT_FOUND;
+        }
+        Optional<GamingMatchEntity> matchOpt = persistencePort.findMatchByUuid(uuidMatch);
+        if (matchOpt.isEmpty()) {
+            return EndMatchOutcome.NOT_FOUND;
+        }
+        GamingMatchEntity match = matchOpt.get();
+
+        Optional<UserAccessPort.UserView> userOpt = userAccessPort.findByUuid(userUuid);
+        if (userOpt.isEmpty() || !userOpt.get().id().equals(match.getIdUserCreator())) {
+            return EndMatchOutcome.NOT_FOUND;
+        }
+
+        Optional<StoryEntity> storyOpt = storyReadPort.findStoryById(match.getIdStory());
+        if (storyOpt.isEmpty() || storyOpt.get().getIdEventEndGame() == null) {
+            return EndMatchOutcome.NOT_ACCEPTABLE;
+        }
+        StoryEntity story = storyOpt.get();
+
+        Optional<EventEntity> eventOpt =
+                storyReadPort.findEventByStoryIdAndUuid(story.getId(), uuidEvent);
+        if (eventOpt.isEmpty()) {
+            return EndMatchOutcome.NOT_ACCEPTABLE;
+        }
+        Long endGameEventId = story.getIdEventEndGame().longValue();
+        if (!endGameEventId.equals(eventOpt.get().getId())) {
+            return EndMatchOutcome.NOT_ACCEPTABLE;
+        }
+
+        persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
+        return EndMatchOutcome.COMPLETED;
     }
 
     private void applyKeyDefaultValue(GamingStateRegistryEntity r, String rawValue) {

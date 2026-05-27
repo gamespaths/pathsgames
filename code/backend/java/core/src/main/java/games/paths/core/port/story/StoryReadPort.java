@@ -32,6 +32,11 @@ public interface StoryReadPort {
     Optional<StoryEntity> findStoryByUuid(String uuid);
 
     /**
+     * Finds a story by its primary key id.
+     */
+    Optional<StoryEntity> findStoryById(Long id);
+
+    /**
      * Finds difficulties for a story.
      */
     List<StoryDifficultyEntity> findDifficultiesByStoryId(Long storyId);

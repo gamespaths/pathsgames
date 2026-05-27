@@ -65,6 +65,33 @@ public interface MatchCommandPort {
     DeleteOutcome deleteMatch(String uuidMatch);
 
     /**
+     * Outcome of a player-driven match completion (PATCH end endpoint).
+     */
+    enum EndMatchOutcome {
+        /** Match was completed; status moved to ENDED. */
+        COMPLETED,
+        /** No match exists with the given uuid, or it is not accessible by the caller. */
+        NOT_FOUND,
+        /** The provided event uuid does not match the story's idEventEndGame. */
+        NOT_ACCEPTABLE
+    }
+
+    /**
+     * Step 20.1 — completes a match in response to the player triggering the
+     * story's end-game event. The match status moves to {@code ENDED} only when
+     * the supplied event uuid resolves to the story's {@code idEventEndGame};
+     * otherwise the call is rejected with {@link EndMatchOutcome#NOT_ACCEPTABLE}.
+     *
+     * <p>The idEventEndGame value itself is never returned to callers.</p>
+     *
+     * @param uuidMatch the match uuid
+     * @param uuidEvent the event uuid the player claims as the end-game trigger
+     * @param userUuid  the authenticated caller — used to enforce ownership
+     * @return the outcome of the operation
+     */
+    EndMatchOutcome endMatch(String uuidMatch, String uuidEvent, String userUuid);
+
+    /**
      * MatchCreationException - thrown when a match cannot be created
      * because of a domain error. The {@link #getCode()} value drives the
      * HTTP status mapping inside the controller layer.

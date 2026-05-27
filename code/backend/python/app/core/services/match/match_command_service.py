@@ -174,6 +174,32 @@ class MatchCommandService(MatchCommandPort):
         self.match_persistence_port.delete_match_by_uuid(uuid_match)
         return "DELETED"
 
+    def end_match(self, uuid_match: str, uuid_event: str, user_uuid: str) -> str:
+        if not uuid_match or not uuid_event or not user_uuid:
+            return "NOT_FOUND"
+
+        match = self.match_persistence_port.find_match_by_uuid(uuid_match)
+        if match is None:
+            return "NOT_FOUND"
+
+        user = self.user_access_port.find_by_uuid(user_uuid)
+        if user is None or user.get("id") != match.get("id_user_creator"):
+            return "NOT_FOUND"
+
+        story = self.story_read_port.find_story_by_id(match.get("id_story"))
+        if story is None:
+            return "NOT_ACCEPTABLE"
+        end_event_id = story.get("id_event_end_game")
+        if end_event_id is None:
+            return "NOT_ACCEPTABLE"
+
+        event = self.story_read_port.find_event_by_story_id_and_uuid(story["id"], uuid_event)
+        if event is None or event.get("id") != end_event_id:
+            return "NOT_ACCEPTABLE"
+
+        self.match_persistence_port.update_match_fields(uuid_match, match_statuses.ENDED, None)
+        return "COMPLETED"
+
     @staticmethod
     def _apply_default(row: Dict[str, Any], raw_value):
         if raw_value is None:

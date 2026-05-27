@@ -176,7 +176,13 @@ $storyMatchReadRepo = new StoryMatchMysqlReadAdapter($pdo);
 $userAccessRepo = new UserAccessMysqlAdapter($pdo);
 $matchSystemModeService = new PropertySystemModeService('OK');
 $turnstileSecretKey = getenv('TURNSTILE_SECRET_KEY') ?: '';
-$turnstileAdapter = new TurnstileVerificationAdapter($turnstileSecretKey);
+$turnstileBypassToken = getenv('TURNSTILE_BYPASS_TOKEN') ?: '';
+$appEnv = getenv('APP_ENV') ?: 'dev';
+$turnstileAdapter = new TurnstileVerificationAdapter(
+    $turnstileSecretKey,
+    $turnstileBypassToken,
+    $appEnv
+);
 $matchCommandService = new MatchCommandService(
     $storyMatchReadRepo,
     $matchPersistenceRepo,
@@ -278,6 +284,9 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/matches', [$matchController, 'listMatches']);
     $group->get('/admin/matches', [$matchController, 'listAllMatches']);
     $group->get('/match/{uuidMatch}/info', [$matchController, 'getMatchInfo']);
+
+    // Step 20.1 — Player ends a match by supplying the story's end-game event uuid
+    $group->patch('/match/{uuidMatch}/end/{uuidEvent}', [$matchController, 'endMatch']);
 
     // Admin — match control (modify / stop / delete)
     $group->get('/admin/matches/statuses', [$matchController, 'listMatchStatuses']);

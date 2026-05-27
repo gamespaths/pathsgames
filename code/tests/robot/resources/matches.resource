@@ -95,6 +95,19 @@ Get Match Info
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
+End Match
+    [Documentation]    PATCH /api/match/{uuidMatch}/end/{uuidEvent} — Step 20.1.
+    ...                Returns 200 when uuidEvent is the story's idEventEndGame,
+    ...                406 when the event is not the end-game event, 404 for unknown
+    ...                or non-owned matches, 401 when no Bearer token is supplied.
+    [Arguments]    ${token}    ${match_uuid}    ${event_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    PATCH On Session    public_session
+    ...    /api/match/${match_uuid}/end/${event_uuid}
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
 Create Match With Turnstile Token
     [Documentation]    POST /api/matches with an optional Cloudflare Turnstile token.
     ...                When TURNSTILE_SECRET_KEY is not configured on the server the token

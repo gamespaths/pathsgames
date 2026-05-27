@@ -17,6 +17,11 @@ Parameters:
     NoEcho: true
     Default: ""
     Description: "Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass)."
+  TurnstileBypassToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -172,6 +177,7 @@ Resources:
         ApiId: !Ref PathsGamesApi
         JwtSecret: !Ref JwtSecret
         TurnstileSecretKey: !Ref TurnstileSecretKey
+        TurnstileBypassToken: !Ref TurnstileBypassToken
 
   ContentModule:
     Type: AWS::Serverless::Application

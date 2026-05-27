@@ -137,6 +137,11 @@ class MatchController:
         self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
         )
+        self.router.add_api_route(
+            "/api/match/{uuid_match}/end/{uuid_event}",
+            self.end_match,
+            methods=["PATCH"],
+        )
 
     def create_match(self, request: Request, body: Optional[MatchCreateRequestBody] = None):
         user_uuid = getattr(request.state, "user_uuid", None)
@@ -236,3 +241,20 @@ class MatchController:
         if detail is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))
+
+    def end_match(self, uuid_match: str, uuid_event: str, request: Request):
+        """Step 20.1 — PATCH /api/match/{uuid_match}/end/{uuid_event}.
+        Completes a match when ``uuid_event`` matches the story's end-game event.
+        Returns 406 when the event is not the end-game trigger."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_event:
+            return _error("INVALID_INPUT", "Match uuid and event uuid are required", 400)
+        outcome = self.command_port.end_match(uuid_match, uuid_event, user_uuid)
+        if outcome == "COMPLETED":
+            return JSONResponse(status_code=200, content={"status": "ENDED", "uuid": uuid_match})
+        if outcome == "NOT_ACCEPTABLE":
+            return _error("EVENT_NOT_END_GAME",
+                          "The supplied event is not the end-game event for this match", 406)
+        return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)

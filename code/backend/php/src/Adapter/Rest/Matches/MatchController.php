@@ -190,6 +190,34 @@ class MatchController
         return $this->error($response, 'MATCH_NOT_FOUND', 'Match not found: ' . $uuid, 404);
     }
 
+    /**
+     * PATCH /api/match/{uuidMatch}/end/{uuidEvent} — Step 20.1.
+     * Completes a match when uuidEvent is the story's idEventEndGame.
+     * Returns 406 when the event is not the configured end-game trigger.
+     */
+    public function endMatch(Request $request, Response $response, array $args): Response
+    {
+        $userUuid = (string)($request->getAttribute('userUuid') ?? '');
+        if ($userUuid === '') {
+            return $this->error($response, 'UNAUTHENTICATED', 'User identity is missing', 401);
+        }
+        $uuidMatch = (string)($args['uuidMatch'] ?? '');
+        $uuidEvent = (string)($args['uuidEvent'] ?? '');
+        if ($uuidMatch === '' || $uuidEvent === '') {
+            return $this->error($response, 'INVALID_INPUT',
+                'Match uuid and event uuid are required', 400);
+        }
+        $outcome = $this->commandPort->endMatch($uuidMatch, $uuidEvent, $userUuid);
+        if ($outcome === 'COMPLETED') {
+            return $this->ok($response, ['status' => 'ENDED', 'uuid' => $uuidMatch]);
+        }
+        if ($outcome === 'NOT_ACCEPTABLE') {
+            return $this->error($response, 'EVENT_NOT_END_GAME',
+                'The supplied event is not the end-game event for this match', 406);
+        }
+        return $this->error($response, 'MATCH_NOT_FOUND', 'Match not found or not accessible', 404);
+    }
+
     private function applyUpdate(Response $response, string $uuid, ?string $status, ?string $name): Response
     {
         $outcome = $this->commandPort->updateMatch($uuid, $status, $name);

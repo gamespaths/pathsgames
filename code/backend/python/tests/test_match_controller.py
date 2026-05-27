@@ -336,3 +336,38 @@ def test_get_admin_match_info_returns_404(env):
     resp = client.get('/api/admin/matches/m1/info')
     assert resp.status_code == 404
     assert resp.json()['error'] == 'MATCH_NOT_FOUND'
+
+
+# ── Step 20.1 — PATCH /api/match/{uuid_match}/end/{uuid_event} ──
+
+def test_end_match_unauthenticated_returns_401(env):
+    client, _, _ = env
+    resp = client.patch("/api/match/m1/end/e1")
+    assert resp.status_code == 401
+
+
+def test_end_match_completed_returns_200(env):
+    client, command_port, _ = env
+    command_port.end_match.return_value = "COMPLETED"
+    resp = client.patch("/api/match/m1/end/e1", headers={"x-user": "u"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "ENDED"
+    assert body["uuid"] == "m1"
+    command_port.end_match.assert_called_once_with("m1", "e1", "u")
+
+
+def test_end_match_not_acceptable_returns_406(env):
+    client, command_port, _ = env
+    command_port.end_match.return_value = "NOT_ACCEPTABLE"
+    resp = client.patch("/api/match/m1/end/e1", headers={"x-user": "u"})
+    assert resp.status_code == 406
+    assert resp.json()["error"] == "EVENT_NOT_END_GAME"
+
+
+def test_end_match_not_found_returns_404(env):
+    client, command_port, _ = env
+    command_port.end_match.return_value = "NOT_FOUND"
+    resp = client.patch("/api/match/m1/end/e1", headers={"x-user": "u"})
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "MATCH_NOT_FOUND"

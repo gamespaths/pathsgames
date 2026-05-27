@@ -3,6 +3,7 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
@@ -602,6 +603,123 @@ class MatchCommandServiceTest {
         void deleteMatch_unknownMatch_returnsNotFound() {
             when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.empty());
             assertEquals(MatchCommandPort.DeleteOutcome.NOT_FOUND, service.deleteMatch("m1"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Player end match (Step 20.1)")
+    class PlayerEndMatch {
+
+        private GamingMatchEntity ownedMatch(Long idStory) {
+            GamingMatchEntity m = new GamingMatchEntity();
+            m.setUuid("match-uuid");
+            m.setIdStory(idStory);
+            m.setIdUserCreator(7L);
+            m.setStatus("RUNNING");
+            return m;
+        }
+
+        private StoryEntity storyWithEndEvent(Long id, Integer endEventId) {
+            StoryEntity s = new StoryEntity();
+            s.setId(id);
+            s.setIdEventEndGame(endEventId);
+            return s;
+        }
+
+        private EventEntity event(Long id, String uuid) {
+            EventEntity e = new EventEntity();
+            e.setId(id);
+            e.setUuid(uuid);
+            return e;
+        }
+
+        @Test
+        @DisplayName("blank uuids → NOT_FOUND")
+        void blankInputs() {
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch(null, "ev", "u"));
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch("m", "", "u"));
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch("m", "ev", "  "));
+        }
+
+        @Test
+        @DisplayName("unknown match → NOT_FOUND")
+        void unknownMatch() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.empty());
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch("m1", "ev", "u"));
+        }
+
+        @Test
+        @DisplayName("caller is not the owner → NOT_FOUND")
+        void notOwner() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("intruder")).thenReturn(
+                    Optional.of(new UserAccessPort.UserView(99L, "intruder", "x", "PLAYER", 2)));
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch("m1", "ev", "intruder"));
+            verify(persistencePort, never()).updateMatchFields(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("unknown caller → NOT_FOUND")
+        void unknownCaller() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("ghost")).thenReturn(Optional.empty());
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_FOUND,
+                    service.endMatch("m1", "ev", "ghost"));
+        }
+
+        @Test
+        @DisplayName("story has no idEventEndGame → NOT_ACCEPTABLE")
+        void storyMissingEndGame() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, null)));
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_ACCEPTABLE,
+                    service.endMatch("m1", "ev", "u"));
+            verify(persistencePort, never()).updateMatchFields(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("event uuid not in story → NOT_ACCEPTABLE")
+        void unknownEvent() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, 50)));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev")).thenReturn(Optional.empty());
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_ACCEPTABLE,
+                    service.endMatch("m1", "ev", "u"));
+        }
+
+        @Test
+        @DisplayName("event uuid resolves but is not the end-game event → NOT_ACCEPTABLE")
+        void wrongEvent() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, 50)));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev"))
+                    .thenReturn(Optional.of(event(99L, "ev")));
+            assertEquals(MatchCommandPort.EndMatchOutcome.NOT_ACCEPTABLE,
+                    service.endMatch("m1", "ev", "u"));
+            verify(persistencePort, never()).updateMatchFields(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("event is the end-game event → COMPLETED and status set to ENDED")
+        void completes() {
+            when(persistencePort.findMatchByUuid("m1")).thenReturn(Optional.of(ownedMatch(2L)));
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryById(2L)).thenReturn(Optional.of(storyWithEndEvent(2L, 50)));
+            when(storyReadPort.findEventByStoryIdAndUuid(2L, "ev"))
+                    .thenReturn(Optional.of(event(50L, "ev")));
+            when(persistencePort.updateMatchFields("m1", "ENDED", null)).thenReturn(true);
+
+            assertEquals(MatchCommandPort.EndMatchOutcome.COMPLETED,
+                    service.endMatch("m1", "ev", "u"));
+            verify(persistencePort).updateMatchFields("m1", "ENDED", null);
         }
     }
 }

@@ -176,6 +176,65 @@ def test_create_match_turnstile_failure_returns_400(create_env):
     assert _body(result)['error'] == 'TURNSTILE_VALIDATION_FAILED'
 
 
+def test_verify_turnstile_bypass_token_skips_cloudflare(create_env):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', '0xROBOT'), \
+         patch.object(h, '_ENV', 'test'), \
+         patch('match.handler.urllib.request.urlopen') as mock_urlopen:
+        assert h._verify_turnstile('0xROBOT') is True
+        mock_urlopen.assert_not_called()
+
+
+def test_verify_turnstile_bypass_token_mismatch_falls_through(create_env):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', '0xROBOT'), \
+         patch.object(h, '_ENV', 'test'):
+        assert h._verify_turnstile('something-else') is False
+        assert h._verify_turnstile(None) is False
+
+
+def test_verify_turnstile_empty_bypass_token_never_short_circuits(create_env):
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', ''), \
+         patch.object(h, '_ENV', 'test'):
+        assert h._verify_turnstile('') is False
+        assert h._verify_turnstile(None) is False
+
+
+def test_verify_turnstile_bypass_token_disabled_in_prod(create_env):
+    """Even when the bypass token is wired up, ENV=prod must refuse to skip
+    Cloudflare verification — defense in depth on top of the deploy script."""
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', '0xROBOT'), \
+         patch.object(h, '_ENV', 'prod'), \
+         patch('match.handler.urllib.request.urlopen') as mock_urlopen:
+        mock_resp = mock_urlopen.return_value.__enter__.return_value
+        mock_resp.read.return_value = b'{"success": false}'
+        assert h._verify_turnstile('0xROBOT') is False
+        mock_urlopen.assert_called_once()
+
+
+def test_create_match_with_bypass_token_returns_201(create_env):
+    create_env['configure'](story=STORY_ITEM)
+    from match import handler as h
+    with patch.object(h, '_TURNSTILE_SECRET', 'real-secret'), \
+         patch.object(h, '_TURNSTILE_BYPASS_TOKEN', '0xROBOT'), \
+         patch.object(h, '_ENV', 'test'):
+        from match.handler import lambda_handler
+        event = _player_event('POST', '/api/matches',
+                              body={'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1',
+                                    'turnstileToken': '0xROBOT'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    body = _body(result)
+    assert body['status'] == 'CREATED'
+    assert body['storyUuid'] == 'story-uuid-1'
+
+
 def test_create_match_invalid_input_missing_story(create_env):
     create_env['configure']()
     from match.handler import lambda_handler
@@ -761,3 +820,114 @@ def test_get_admin_match_info_not_found_returns_404(mock_jwt, mock_get):
                        path_params={'uuidMatch': 'm1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 404
+
+
+# ── Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent} ───────────────────
+
+def _end_match_get_side(*, match=None, story=None):
+    def _side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk.startswith('MATCH#'):
+            return match
+        if pk.startswith('STORY#'):
+            return story
+        return None
+    return _side
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_unknown_match_returns_404(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.side_effect = _end_match_get_side(match=None)
+    from match.handler import lambda_handler
+    event = _player_event('PATCH', '/api/match/m1/end/e1',
+                          path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+    assert _body(result)['error'] == 'MATCH_NOT_FOUND'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_other_owner_returns_404(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.side_effect = _end_match_get_side(
+        match={'PK': 'MATCH#m1', 'uuid': 'm1', 'status': 'RUNNING',
+               'storyUuid': 'story-uuid-1', 'userCreatorUuid': 'someone-else'})
+    from match.handler import lambda_handler
+    event = _player_event('PATCH', '/api/match/m1/end/e1',
+                          path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_story_missing_end_event_returns_406(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.side_effect = _end_match_get_side(
+        match={'PK': 'MATCH#m1', 'uuid': 'm1', 'status': 'RUNNING',
+               'storyUuid': 'story-uuid-1', 'userCreatorUuid': 'player-uuid-001'},
+        story={'uuid': 'story-uuid-1', 'idEventEndGame': None, 'events': []})
+    from match.handler import lambda_handler
+    event = _player_event('PATCH', '/api/match/m1/end/e1',
+                          path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 406
+    assert _body(result)['error'] == 'EVENT_NOT_END_GAME'
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_wrong_event_returns_406(mock_jwt, mock_get):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    mock_get.side_effect = _end_match_get_side(
+        match={'PK': 'MATCH#m1', 'uuid': 'm1', 'status': 'RUNNING',
+               'storyUuid': 'story-uuid-1', 'userCreatorUuid': 'player-uuid-001'},
+        story={'uuid': 'story-uuid-1', 'idEventEndGame': 99,
+               'events': [{'id': 1, 'uuid': 'e1'}, {'id': 99, 'uuid': 'e-end'}]})
+    from match.handler import lambda_handler
+    event = _player_event('PATCH', '/api/match/m1/end/e1',
+                          path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 406
+    assert _body(result)['error'] == 'EVENT_NOT_END_GAME'
+
+
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_completes_and_sets_ended(mock_jwt, mock_get, mock_put):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    match = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'status': 'RUNNING',
+             'storyUuid': 'story-uuid-1', 'userCreatorUuid': 'player-uuid-001'}
+    mock_get.side_effect = _end_match_get_side(
+        match=match,
+        story={'uuid': 'story-uuid-1', 'idEventEndGame': 99,
+               'events': [{'id': 99, 'uuid': 'e-end'}]})
+    from match.handler import lambda_handler
+    event = _player_event('PATCH', '/api/match/m1/end/e-end',
+                          path_params={'uuidMatch': 'm1', 'uuidEvent': 'e-end'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['status'] == 'ENDED'
+    assert body['uuid'] == 'm1'
+    saved = mock_put.call_args[0][0]
+    assert saved['status'] == 'ENDED'
+    # Ensure idEventEndGame is never exposed in the response payload
+    assert 'idEventEndGame' not in body
+    # Response body must NOT leak the end-game event id
+    assert 'idEventEndGame' not in json.dumps(body)
+
+
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_end_match_no_auth_returns_401(mock_jwt, mock_get):
+    from match.handler import lambda_handler
+    event = make_event('PATCH', '/api/match/m1/end/e1',
+                       path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 401

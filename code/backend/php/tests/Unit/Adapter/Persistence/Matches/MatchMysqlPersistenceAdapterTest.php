@@ -70,8 +70,17 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT,
                 id_location_start INTEGER,
+                id_event_end_game INTEGER,
                 category TEXT,
                 visibility TEXT
+            )'
+        );
+        $this->pdo->exec(
+            'CREATE TABLE list_events (
+                id INTEGER,
+                id_story INTEGER,
+                uuid TEXT,
+                PRIMARY KEY (id, id_story)
             )'
         );
         $this->pdo->exec(
@@ -233,6 +242,12 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
 
         $this->assertSame(3, (int)$read->findLocationsByStoryId($storyId)[0]['counter_start']);
         $this->assertSame('1', $read->findKeysByStoryId($storyId)[0]['key_value']);
+
+        // Step 20.1 — findEventByStoryIdAndUuid
+        $this->pdo->exec("INSERT INTO list_events (id, id_story, uuid) VALUES (99, $storyId, 'evt-end')");
+        $event = $read->findEventByStoryIdAndUuid($storyId, 'evt-end');
+        $this->assertSame(99, (int)$event['id']);
+        $this->assertNull($read->findEventByStoryIdAndUuid($storyId, 'missing'));
     }
 
     public function testUserAccessAdapter(): void

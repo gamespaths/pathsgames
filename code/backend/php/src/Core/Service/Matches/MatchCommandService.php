@@ -172,6 +172,40 @@ class MatchCommandService implements MatchCommandPort
         return 'DELETED';
     }
 
+    public function endMatch(string $uuidMatch, string $uuidEvent, string $userUuid): string
+    {
+        if ($uuidMatch === '' || $uuidEvent === '' || $userUuid === '') {
+            return 'NOT_FOUND';
+        }
+
+        $match = $this->persistencePort->findMatchByUuid($uuidMatch);
+        if ($match === null) {
+            return 'NOT_FOUND';
+        }
+
+        $user = $this->userAccessPort->findByUuid($userUuid);
+        if ($user === null || (int)($user['id'] ?? 0) !== (int)($match['id_user_creator'] ?? -1)) {
+            return 'NOT_FOUND';
+        }
+
+        $story = $this->storyReadPort->findStoryById((int)($match['id_story'] ?? 0));
+        if ($story === null) {
+            return 'NOT_ACCEPTABLE';
+        }
+        $endEventId = $story['id_event_end_game'] ?? null;
+        if ($endEventId === null) {
+            return 'NOT_ACCEPTABLE';
+        }
+
+        $event = $this->storyReadPort->findEventByStoryIdAndUuid((int)$story['id'], $uuidEvent);
+        if ($event === null || (int)$event['id'] !== (int)$endEventId) {
+            return 'NOT_ACCEPTABLE';
+        }
+
+        $this->persistencePort->updateMatchFields($uuidMatch, MatchStatuses::ENDED, null);
+        return 'COMPLETED';
+    }
+
     private function applyDefault(array &$row, $rawValue): void
     {
         if ($rawValue === null) {

@@ -2,6 +2,7 @@
 from typing import Any, Dict, List, Optional
 
 from app.adapters.persistence.story.models import (
+    EventEntity,
     KeyEntity,
     LocationEntity,
     StoryDifficultyEntity,
@@ -77,12 +78,23 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 for r in rows
             ]
 
+    def find_event_by_story_id_and_uuid(self, story_id: int, uuid_event: str) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            entity = (
+                session.query(EventEntity)
+                .filter(EventEntity.id_story == story_id)
+                .filter(EventEntity.uuid == uuid_event)
+                .first()
+            )
+            return {"id": entity.id, "uuid": entity.uuid} if entity else None
+
     @staticmethod
     def _story_to_dict(entity: StoryEntity) -> Dict[str, Any]:
         return {
             "id": entity.id,
             "uuid": entity.uuid,
             "id_location_start": entity.id_location_start,
+            "id_event_end_game": entity.id_event_end_game,
             "category": entity.category,
             "visibility": entity.visibility,
         }

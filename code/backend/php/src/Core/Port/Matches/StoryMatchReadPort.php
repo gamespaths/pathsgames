@@ -15,4 +15,10 @@ interface StoryMatchReadPort
     public function findLocationsByStoryId(int $storyId): array;
 
     public function findKeysByStoryId(int $storyId): array;
+
+    /**
+     * Step 20.1 — return the event row {id, uuid} for the given story-scoped uuid,
+     * or null when no such event exists.
+     */
+    public function findEventByStoryIdAndUuid(int $storyId, string $uuidEvent): ?array;
 }

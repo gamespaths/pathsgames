@@ -30,6 +30,12 @@ from common import db_utils
 from common import jwt_utils
 
 _TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
+# Optional Robot-test bypass token: when the current ENV is not "prod", the token
+# is non-empty AND the incoming token equals this value, Turnstile verification
+# is skipped. The env != prod guard is defense-in-depth on top of the deploy
+# script that already refuses to inject this var in prod.
+_TURNSTILE_BYPASS_TOKEN = os.environ.get('TURNSTILE_BYPASS_TOKEN', '')
+_ENV = os.environ.get('ENV', 'dev')
 _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 # ─── shared helpers ──────────────────────────────────────────────────────────
@@ -140,8 +146,12 @@ def _apply_default(row, raw_value):
 
 def _verify_turnstile(token, remote_ip=None):
     """Verify a Cloudflare Turnstile token. Returns True when the secret key is
-    not configured (dev bypass) or when the token passes verification."""
+    not configured (dev bypass), when the environment is non-prod AND the token
+    matches the Robot-test bypass token, or when the token passes verification
+    against Cloudflare."""
     if not _TURNSTILE_SECRET:
+        return True
+    if _ENV != 'prod' and _TURNSTILE_BYPASS_TOKEN and token == _TURNSTILE_BYPASS_TOKEN:
         return True
     if not token:
         return False
@@ -316,6 +326,39 @@ def _get_match_info(user, match_uuid):
     return _ok(_detail_from_item(item))
 
 
+def _end_match(user, match_uuid, event_uuid):
+    """Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}.
+    Completes the match (status → ENDED) when the supplied event uuid resolves
+    to the story's idEventEndGame. Caller must own the match. The
+    idEventEndGame value itself is never returned to callers."""
+    if not match_uuid or not event_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid and event uuid are required')
+
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None or item.get('userCreatorUuid') != user.get('uuid'):
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    story = db_utils.get_item(f'STORY#{item.get("storyUuid")}')
+    if story is None:
+        return _err(406, 'EVENT_NOT_END_GAME',
+                    'The supplied event is not the end-game event for this match')
+
+    end_event_id = story.get('idEventEndGame')
+    if end_event_id is None:
+        return _err(406, 'EVENT_NOT_END_GAME',
+                    'The supplied event is not the end-game event for this match')
+
+    events = story.get('events') or []
+    matched_event = next((e for e in events if e.get('uuid') == event_uuid), None)
+    if matched_event is None or int(matched_event.get('id', -1)) != int(end_event_id):
+        return _err(406, 'EVENT_NOT_END_GAME',
+                    'The supplied event is not the end-game event for this match')
+
+    item['status'] = 'ENDED'
+    db_utils.put_item(item)
+    return _ok({'status': 'ENDED', 'uuid': match_uuid})
+
+
 # ─── admin match control ─────────────────────────────────────────────────────
 
 def _get_admin_match_info(match_uuid):
@@ -439,5 +482,19 @@ def lambda_handler(event, context):
             segments = path.split('/')
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _get_match_info(user, match_uuid)
+
+    # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
+    if (path.startswith('/api/match/') and '/end/' in path and method == 'PATCH'):
+        params = (event.get('pathParameters') or {})
+        match_uuid = params.get('uuidMatch') or ''
+        event_uuid = params.get('uuidEvent') or ''
+        if not match_uuid or not event_uuid:
+            # Fallback when API Gateway didn't expose the path parameters
+            segments = path.split('/')
+            # /api/match/{uuidMatch}/end/{uuidEvent} → 0:'' 1:'api' 2:'match' 3:uuidMatch 4:'end' 5:uuidEvent
+            if len(segments) >= 6 and segments[4] == 'end':
+                match_uuid = match_uuid or segments[3]
+                event_uuid = event_uuid or segments[5]
+        return _end_match(user, match_uuid, event_uuid)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

@@ -80,7 +80,11 @@ match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
 story_match_read_adapter = StoryMatchReadAdapter(SessionLocal)
 user_access_adapter = UserAccessAdapter(SessionLocal)
 system_mode_service = PropertySystemModeService(server_status="OK")
-turnstile_adapter = TurnstileVerificationAdapter(settings.turnstile_secret_key)
+turnstile_adapter = TurnstileVerificationAdapter(
+    settings.turnstile_secret_key,
+    bypass_token=settings.turnstile_bypass_token,
+    env=settings.env,
+)
 match_command_service = MatchCommandService(
     story_match_read_adapter,
     match_persistence_adapter,

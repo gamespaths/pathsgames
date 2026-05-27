@@ -14,7 +14,8 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
     public function findStoryByUuid(string $storyUuid): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, uuid, id_location_start, category, visibility FROM list_stories WHERE uuid = :u LIMIT 1'
+            'SELECT id, uuid, id_location_start, id_event_end_game, category, visibility
+             FROM list_stories WHERE uuid = :u LIMIT 1'
         );
         $stmt->execute([':u' => $storyUuid]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -24,7 +25,8 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
     public function findStoryById(int $storyId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, uuid, id_location_start, category, visibility FROM list_stories WHERE id = :i LIMIT 1'
+            'SELECT id, uuid, id_location_start, id_event_end_game, category, visibility
+             FROM list_stories WHERE id = :i LIMIT 1'
         );
         $stmt->execute([':i' => $storyId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -69,5 +71,15 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
         );
         $stmt->execute([':s' => $storyId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function findEventByStoryIdAndUuid(int $storyId, string $uuidEvent): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, uuid FROM list_events WHERE id_story = :s AND uuid = :u LIMIT 1'
+        );
+        $stmt->execute([':s' => $storyId, ':u' => $uuidEvent]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 }

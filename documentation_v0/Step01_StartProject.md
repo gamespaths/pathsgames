@@ -295,6 +295,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/match/{uuid_match}/missions/{uuid_mission}/progress`: Mission details with all steps details
 		- GET `/match/{uuid_match}/turn-sequence`: Get the turn sequence with all detail (turn_queue) and status.
 		- GET `/match/{uuid_match}/events/history/{page}`: Get event list with pagining system
+		- PATCH `/match/{uuid_match}/end/{uuid_event}`: To complete a match
 	- Gameplay movements
 		- POST `/gameplay/{uuid_match}/movements/start`: To move characters 
 		- GET  `/gameplay/{uuid_match}/movements/pending`: Pending invitations list

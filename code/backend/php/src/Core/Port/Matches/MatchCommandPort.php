@@ -23,4 +23,12 @@ interface MatchCommandPort
      * @return string one of 'DELETED', 'NOT_FOUND', 'NOT_STOPPED'
      */
     public function deleteMatch(string $uuidMatch): string;
+
+    /**
+     * Step 20.1 — completes a match (status → ENDED) when the supplied event uuid
+     * is the story's idEventEndGame. Caller must own the match.
+     *
+     * @return string one of 'COMPLETED', 'NOT_ACCEPTABLE', 'NOT_FOUND'
+     */
+    public function endMatch(string $uuidMatch, string $uuidEvent, string $userUuid): string;
 }

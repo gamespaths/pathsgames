@@ -410,4 +410,41 @@ class MatchControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
     }
+
+    // ── Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent} ──
+
+    @Test
+    void endMatch_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(patch("/api/match/m1/end/e1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void endMatch_completes_returns200WithEndedStatus() throws Exception {
+        when(commandPort.endMatch("m1", "e1", "user-uuid"))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.COMPLETED);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ENDED"))
+                .andExpect(jsonPath("$.uuid").value("m1"));
+        verify(commandPort).endMatch("m1", "e1", "user-uuid");
+    }
+
+    @Test
+    void endMatch_notAcceptable_returns406() throws Exception {
+        when(commandPort.endMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.NOT_ACCEPTABLE);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(jsonPath("$.error").value("EVENT_NOT_END_GAME"));
+    }
+
+    @Test
+    void endMatch_notFound_returns404() throws Exception {
+        when(commandPort.endMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.NOT_FOUND);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
 }

@@ -144,6 +144,12 @@ SEED_STORIES = [
             {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done", "keyValue": "0"},
             {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed", "keyValue": "no"},
         ],
+        # Step 20.1 — events for end-game trigger
+        "idEventEndGame":    99,
+        "events": [
+            {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete"},
+            {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting"},
+        ],
         # Step 15 fields
         "characterTemplates": [
             {"uuid": "ct-tutorial-warrior", "id_tipo": 1, "lifeMax": 12, "energyMax": 12, "sadMax": 8,
@@ -330,6 +336,12 @@ SEED_STORIES = [
             {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure", "keyValue": "no"},
             {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count", "keyValue": "0"},
         ],
+        # Step 20.1 — events for end-game trigger
+        "idEventEndGame":    77,
+        "events": [
+            {"id": 77, "uuid": "evt-valvassore-end", "name": "Final Confrontation"},
+            {"id": 1,  "uuid": "evt-valvassore-1",   "name": "Lord's Summons"},
+        ],
         # Step 15 fields
         "characterTemplates": [
             {"uuid": "ct-demo1-knight", "id_tipo": 1, "lifeMax": 12, "energyMax": 10, "sadMax": 8,
@@ -422,6 +434,9 @@ def _seed_stories():
             "idLocationStart":          s.get("idLocationStart"),
             "locations":                s.get("locations", []),
             "keys":                     s.get("keys", []),
+            # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
+            "idEventEndGame":           s.get("idEventEndGame"),
+            "events":                   s.get("events", []),
             # Step 15 fields
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),
@@ -477,7 +492,7 @@ def _handle_cleanup():
 
 def lambda_handler(event, context):
     env = os.environ.get("ENV", "dev")
-    if env != "dev":
+    if env not in ("dev", "test"):
         return {
             "statusCode": 403,
             "headers": HEADERS,

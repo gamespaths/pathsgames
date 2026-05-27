@@ -235,6 +235,44 @@ public class MatchController {
         return ResponseEntity.ok(MatchInfoResponse.fromModel(detail));
     }
 
+    /**
+     * PATCH /api/match/{uuidMatch}/end/{uuidEvent} — Step 20.1.
+     * Completes a match (sets status to ENDED) when the supplied event uuid is
+     * the story's end-game event. Returns 406 Not Acceptable when the event is
+     * not the configured end-game trigger. The idEventEndGame value is never
+     * exposed in any response payload.
+     */
+    @PatchMapping("/api/match/{uuidMatch}/end/{uuidEvent}")
+    public ResponseEntity<Object> endMatch(@PathVariable String uuidMatch,
+                                           @PathVariable String uuidEvent,
+                                           HttpServletRequest request) {
+        String userUuid = (String) request.getAttribute("userUuid");
+        if (userUuid == null || userUuid.isBlank()) {
+            return error(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED",
+                    "User identity is missing from the request");
+        }
+        if (isBlank(uuidMatch) || isBlank(uuidEvent)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
+                    "Match uuid and event uuid are required");
+        }
+        MatchCommandPort.EndMatchOutcome outcome =
+                matchCommandPort.endMatch(uuidMatch, uuidEvent, userUuid);
+        switch (outcome) {
+            case COMPLETED:
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("status", "ENDED");
+                body.put("uuid", uuidMatch);
+                return ResponseEntity.ok(body);
+            case NOT_ACCEPTABLE:
+                return error(HttpStatus.NOT_ACCEPTABLE, "EVENT_NOT_END_GAME",
+                        "The supplied event is not the end-game event for this match");
+            case NOT_FOUND:
+            default:
+                return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND",
+                        "Match not found or not accessible");
+        }
+    }
+
     private static boolean isBlank(String s) {
         return s == null || s.isBlank();
     }

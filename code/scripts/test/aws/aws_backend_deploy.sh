@@ -63,6 +63,14 @@ else
     _TURNSTILE_SAM_KEY="${TURNSTILE_SECRET_KEY:-}"
 fi
 
+# Robot-test bypass token: only injected in non-prod environments so production
+# can never be bypassed regardless of which token a client sends.
+if [ "${AWS_ENVIRONMENT_NAME_TEST}" = "prod" ]; then
+    _TURNSTILE_BYPASS=""
+else
+    _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_TEST:-}"
+fi
+
 # deploy with SAM; if it fails (for example due to an empty image_repository in samconfig.toml)
 sam deploy \
     --stack-name "${AWS_STACK_NAME_TEST:-pathsgames-dev}" \
@@ -76,6 +84,7 @@ sam deploy \
         CustomDomainHostedZoneId="${AWS_DOMAIN_HOSTED_ZONE_TEST:-}" \
         CorsAllowOrigins="${AWS_CORS_ORIGINS_TEST:-http://localhost:1234}" \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
+        TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

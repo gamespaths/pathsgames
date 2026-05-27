@@ -89,9 +89,10 @@ Turnstile Token Is Not Included In Match Response
     [Documentation]    The turnstileToken field must never appear in any match response
     ...                body — it is consumed server-side only.
     [Tags]    website    turnstile    step20
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    check-not-echoed
     ${response}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
-    ...    turnstile_token=check-not-echoed
+    ...    turnstile_token=${cf_token}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Dictionary Should Not Contain Key    ${body}    turnstileToken
@@ -101,9 +102,10 @@ Match Summary Has All Required Fields After Turnstile Creation
     ...                MatchSummary structure: uuid, storyUuid, difficultyUuid,
     ...                status, currentClock, expCost, userCreatorUuid, tsInsert.
     [Tags]    website    turnstile    step20
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    check-fields
     ${response}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
-    ...    turnstile_token=check-fields
+    ...    turnstile_token=${cf_token}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     FOR    ${field}    IN    uuid    storyUuid    difficultyUuid    status
@@ -134,9 +136,10 @@ Get Match Info For Turnstile Created Match Returns 200
     [Documentation]    A match created via the Turnstile flow can be retrieved with
     ...                GET /api/match/{uuid}/info and exposes the full runtime state.
     [Tags]    website    turnstile    step20
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    info-check
     ${create}=    Create Match With Turnstile Token
     ...    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
-    ...    turnstile_token=info-check
+    ...    turnstile_token=${cf_token}
     Status Should Be    ${create}    201
     ${match_uuid}=    Set Variable    ${create.json()}[uuid]
     ${info}=    Get Match Info    ${TOKEN}    ${match_uuid}

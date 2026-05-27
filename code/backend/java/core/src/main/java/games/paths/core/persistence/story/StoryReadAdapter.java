@@ -112,6 +112,14 @@ public class StoryReadAdapter implements StoryReadPort {
     }
 
     @Override
+    public Optional<StoryEntity> findStoryById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return storyRepository.findById(id);
+    }
+
+    @Override
     public List<StoryDifficultyEntity> findDifficultiesByStoryId(Long storyId) {
         return difficultyRepository.findByIdStory(storyId);
     }

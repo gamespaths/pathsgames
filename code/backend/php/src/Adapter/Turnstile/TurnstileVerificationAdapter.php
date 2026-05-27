@@ -8,13 +8,23 @@ class TurnstileVerificationAdapter implements TurnstileVerificationPort
 {
     private const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-    public function __construct(private readonly string $secretKey)
-    {
+    public function __construct(
+        private readonly string $secretKey,
+        private readonly string $bypassToken = '',
+        private readonly string $env = 'dev'
+    ) {
     }
 
     public function verify(?string $token, ?string $remoteIp): bool
     {
         if ($this->secretKey === '') {
+            return true;
+        }
+        if (
+            $this->env !== 'prod'
+            && $this->bypassToken !== ''
+            && $token === $this->bypassToken
+        ) {
             return true;
         }
         if ($token === null || $token === '') {

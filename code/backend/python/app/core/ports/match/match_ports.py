@@ -24,6 +24,16 @@ class MatchCommandPort(ABC):
 
         Returns one of ``'DELETED'``, ``'NOT_FOUND'`` or ``'NOT_STOPPED'``."""
 
+    @abstractmethod
+    def end_match(self, uuid_match: str, uuid_event: str, user_uuid: str) -> str:
+        """Step 20.1 — completes a match (status → ENDED) when ``uuid_event`` is
+        the story's ``idEventEndGame``. Caller must be the match owner.
+
+        Returns one of:
+          - ``'COMPLETED'``  — match status set to ENDED;
+          - ``'NOT_ACCEPTABLE'`` — event is not the configured end-game event;
+          - ``'NOT_FOUND'`` — unknown match or caller is not the owner."""
+
 
 class MatchQueryPort(ABC):
     @abstractmethod
@@ -125,6 +135,12 @@ class StoryMatchReadPort(ABC):
 
     @abstractmethod
     def find_keys_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def find_event_by_story_id_and_uuid(self, story_id: int, uuid_event: str) -> Optional[Dict[str, Any]]:
+        """Step 20.1 — return ``{"id": int, "uuid": str}`` for the event with
+        the given uuid in the given story, or ``None`` when no such event exists."""
         ...
 
 

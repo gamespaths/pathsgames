@@ -15,6 +15,11 @@ Parameters:
     Type: String
     Default: ""
     Description: "Cloudflare Turnstile secret key. Leave empty to disable validation."
+  TurnstileBypassToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
 
 Resources:
   MatchLogGroup:
@@ -48,6 +53,7 @@ Resources:
           ENV: !Ref Environment
           JWT_SECRET: !Ref JwtSecret
           TURNSTILE_SECRET_KEY: !Ref TurnstileSecretKey
+          TURNSTILE_BYPASS_TOKEN: !Ref TurnstileBypassToken
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -94,6 +100,14 @@ Resources:
     Properties:
       ApiId: !Ref ApiId
       RouteKey: "GET /api/match/{uuidMatch}/info"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
+  EndMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PATCH /api/match/{uuidMatch}/end/{uuidEvent}"
       Target: !Sub "integrations/${MatchIntegration}"
 
   # ── admin match control (modify / stop / delete) ──

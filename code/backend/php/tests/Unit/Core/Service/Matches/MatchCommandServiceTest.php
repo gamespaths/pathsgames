@@ -388,4 +388,83 @@ class MatchCommandServiceTest extends TestCase
         $this->persistence->method('findMatchByUuid')->willReturn(null);
         $this->assertSame('NOT_FOUND', $this->service->deleteMatch('m1'));
     }
+
+    // ── Step 20.1 — player end match ─────────────────────────────────────────
+
+    private function ownedMatch(): array
+    {
+        return [
+            'uuid' => 'm1',
+            'id_story' => 2,
+            'id_user_creator' => 7,
+            'status' => 'RUNNING',
+        ];
+    }
+
+    public function testEndMatchBlankInputsReturnsNotFound(): void
+    {
+        $this->assertSame('NOT_FOUND', $this->service->endMatch('', 'ev', 'u'));
+        $this->assertSame('NOT_FOUND', $this->service->endMatch('m', '', 'u'));
+        $this->assertSame('NOT_FOUND', $this->service->endMatch('m', 'ev', ''));
+    }
+
+    public function testEndMatchUnknownMatchReturnsNotFound(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn(null);
+        $this->assertSame('NOT_FOUND', $this->service->endMatch('m1', 'ev', 'u'));
+    }
+
+    public function testEndMatchCallerNotOwnerReturnsNotFound(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn($this->ownedMatch());
+        $this->userAccess->method('findByUuid')->willReturn(['id' => 999, 'uuid' => 'intruder']);
+        $this->persistence->expects($this->never())->method('updateMatchFields');
+        $this->assertSame('NOT_FOUND', $this->service->endMatch('m1', 'ev', 'intruder'));
+    }
+
+    public function testEndMatchStoryMissingEndEventReturnsNotAcceptable(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn($this->ownedMatch());
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryById')
+            ->willReturn(['id' => 2, 'uuid' => 'story-uuid', 'id_event_end_game' => null]);
+        $this->assertSame('NOT_ACCEPTABLE', $this->service->endMatch('m1', 'ev', 'user-uuid'));
+    }
+
+    public function testEndMatchWrongEventReturnsNotAcceptable(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn($this->ownedMatch());
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryById')
+            ->willReturn(['id' => 2, 'uuid' => 'story-uuid', 'id_event_end_game' => 50]);
+        $this->storyRead->method('findEventByStoryIdAndUuid')
+            ->willReturn(['id' => 99, 'uuid' => 'ev']);
+        $this->persistence->expects($this->never())->method('updateMatchFields');
+        $this->assertSame('NOT_ACCEPTABLE', $this->service->endMatch('m1', 'ev', 'user-uuid'));
+    }
+
+    public function testEndMatchUnknownEventReturnsNotAcceptable(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn($this->ownedMatch());
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryById')
+            ->willReturn(['id' => 2, 'uuid' => 'story-uuid', 'id_event_end_game' => 50]);
+        $this->storyRead->method('findEventByStoryIdAndUuid')->willReturn(null);
+        $this->assertSame('NOT_ACCEPTABLE', $this->service->endMatch('m1', 'ev', 'user-uuid'));
+    }
+
+    public function testEndMatchCompletedSetsStatusEnded(): void
+    {
+        $this->persistence->method('findMatchByUuid')->willReturn($this->ownedMatch());
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryById')
+            ->willReturn(['id' => 2, 'uuid' => 'story-uuid', 'id_event_end_game' => 50]);
+        $this->storyRead->method('findEventByStoryIdAndUuid')
+            ->willReturn(['id' => 50, 'uuid' => 'ev']);
+        $this->persistence->expects($this->once())
+            ->method('updateMatchFields')
+            ->with('m1', 'ENDED', null)
+            ->willReturn(true);
+        $this->assertSame('COMPLETED', $this->service->endMatch('m1', 'ev', 'user-uuid'));
+    }
 }

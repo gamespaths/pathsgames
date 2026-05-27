@@ -375,4 +375,56 @@ class MatchControllerTest extends TestCase
         $this->assertSame(404, $result->getStatusCode());
         $this->assertSame('MATCH_NOT_FOUND', json_decode((string)$result->getBody(), true)['error']);
     }
+
+    // ── Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent} ──
+
+    private function endArgs(string $match = 'm1', string $event = 'e1'): array
+    {
+        return ['uuidMatch' => $match, 'uuidEvent' => $event];
+    }
+
+    public function testEndMatchUnauthenticatedReturns401(): void
+    {
+        $request = $this->requestFactory->createServerRequest('PATCH', '/api/match/m1/end/e1');
+        $result = $this->controller->endMatch($request, $this->responseFactory->createResponse(), $this->endArgs());
+        $this->assertSame(401, $result->getStatusCode());
+    }
+
+    public function testEndMatchCompletedReturns200(): void
+    {
+        $this->commandPort->method('endMatch')->with('m1', 'e1', 'user-uuid')->willReturn('COMPLETED');
+        $result = $this->controller->endMatch(
+            $this->authedRequest('PATCH', '/api/match/m1/end/e1'),
+            $this->responseFactory->createResponse(),
+            $this->endArgs()
+        );
+        $this->assertSame(200, $result->getStatusCode());
+        $body = json_decode((string)$result->getBody(), true);
+        $this->assertSame('ENDED', $body['status']);
+        $this->assertSame('m1', $body['uuid']);
+    }
+
+    public function testEndMatchNotAcceptableReturns406(): void
+    {
+        $this->commandPort->method('endMatch')->willReturn('NOT_ACCEPTABLE');
+        $result = $this->controller->endMatch(
+            $this->authedRequest('PATCH', '/api/match/m1/end/e1'),
+            $this->responseFactory->createResponse(),
+            $this->endArgs()
+        );
+        $this->assertSame(406, $result->getStatusCode());
+        $this->assertSame('EVENT_NOT_END_GAME', json_decode((string)$result->getBody(), true)['error']);
+    }
+
+    public function testEndMatchNotFoundReturns404(): void
+    {
+        $this->commandPort->method('endMatch')->willReturn('NOT_FOUND');
+        $result = $this->controller->endMatch(
+            $this->authedRequest('PATCH', '/api/match/m1/end/e1'),
+            $this->responseFactory->createResponse(),
+            $this->endArgs()
+        );
+        $this->assertSame(404, $result->getStatusCode());
+        $this->assertSame('MATCH_NOT_FOUND', json_decode((string)$result->getBody(), true)['error']);
+    }
 }

@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
     port: int = 8042
-    version: str = "0.20.0"  
-    
+    version: str = "0.20.1"
+
 
     # >0.12.5 change version here
 
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
 
     # Cloudflare Turnstile secret key. Empty = validation disabled (dev bypass).
     turnstile_secret_key: str = ""
+
+    # Optional Robot-test bypass token. When env != "prod" and an incoming
+    # turnstileToken equals this value, Cloudflare verification is skipped.
+    # Leave empty (or run with env=prod) to forbid the bypass entirely.
+    turnstile_bypass_token: str = ""
 
     # Dev-only test endpoints: POST /api/dev/cleanup and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disable in production by

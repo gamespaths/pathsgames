@@ -26,8 +26,10 @@ UNKNOWN_UUID: "00000000-0000-0000-0000-000000000000"
 # Default language for public story endpoints
 DEFAULT_LANG: "en"
 
-# Cloudflare Turnstile token sent with POST /api/matches.
-# Requires TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA on the
-# Lambda (Cloudflare "always-passes" test secret) — any non-empty token is
-# then accepted by the siteverify API without a real browser widget.
-CF_TURNSTILE_TOKEN: "robot-test-token"
+# Cloudflare Turnstile bypass token sent with POST /api/matches.
+# Must match the TURNSTILE_BYPASS_TOKEN env var deployed to the Lambda
+# (set from TURNSTILE_BYPASS_TOKEN_TEST in the repository .env). When the
+# incoming turnstileToken equals this value the handler skips Cloudflare
+# verification — used so Robot tests can hit an environment that runs with
+# a real Turnstile secret key.
+CF_TURNSTILE_TOKEN: "0xROBOT_TEST_BYPASS_a7b9c4e2"

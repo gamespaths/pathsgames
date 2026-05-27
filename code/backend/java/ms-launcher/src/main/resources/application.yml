@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.20.0
+    version: 0.20.1
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -31,6 +31,11 @@ game:
     # Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass).
     # Override in production via env variable TURNSTILE_SECRET_KEY.
     secret-key: ${TURNSTILE_SECRET_KEY:}
+    # Optional Robot-test bypass token. When env != "prod" and the incoming
+    # turnstileToken equals this value, Cloudflare verification is skipped.
+    # Leave empty (or run with env=prod) to forbid the bypass entirely.
+    bypass-token: ${TURNSTILE_BYPASS_TOKEN:}
+  env: ${APP_ENV:dev}
   dev:
     # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
     # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.
