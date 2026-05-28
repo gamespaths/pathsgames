@@ -1,0 +1,45 @@
+/* Paths Games theme for vanilla-cookieconsent — maps the library's --cc-* tokens
+ * onto the site's design variables (dark background + gold text). Loaded AFTER
+ * cookieconsent.css so these overrides win. Variables come from styles/variables.css. */
+#cc-main {
+  --cc-bg: var(--bg-card);
+  --cc-primary-color: var(--color-gold-light);
+  --cc-secondary-color: var(--text-secondary);
+
+  --cc-btn-primary-bg: var(--color-gold);
+  --cc-btn-primary-border-color: var(--color-gold);
+  --cc-btn-primary-color: var(--color-brown-deep);
+  --cc-btn-primary-hover-bg: var(--color-gold-light);
+  --cc-btn-primary-hover-border-color: var(--color-gold-light);
+  --cc-btn-primary-hover-color: var(--color-brown-deep);
+
+  --cc-btn-secondary-bg: var(--color-brown-mid);
+  --cc-btn-secondary-border-color: var(--color-brown-mid);
+  --cc-btn-secondary-color: var(--color-gold-light);
+  --cc-btn-secondary-hover-bg: var(--color-brown-warm);
+  --cc-btn-secondary-hover-border-color: var(--color-brown-warm);
+  --cc-btn-secondary-hover-color: var(--color-gold-shine);
+
+  --cc-link-color: var(--color-gold-light);
+  --cc-separator-border-color: var(--color-brown-mid);
+
+  --cc-cookie-category-block-bg: var(--color-brown-dark);
+  --cc-cookie-category-block-border: var(--color-brown-mid);
+  --cc-cookie-category-block-hover-bg: var(--color-brown-mid);
+  --cc-cookie-category-block-hover-border: var(--color-brown-warm);
+  --cc-cookie-category-expanded-block-bg: transparent;
+  --cc-cookie-category-expanded-block-hover-bg: var(--color-brown-mid);
+
+  --cc-toggle-on-bg: var(--color-gold);
+  --cc-toggle-off-bg: var(--color-stone);
+  --cc-toggle-readonly-bg: var(--color-brown-mid);
+
+  --cc-footer-bg: var(--color-brown-deep);
+  --cc-footer-border-color: var(--color-brown-mid);
+  --cc-overlay-bg: rgba(0, 0, 0, 0.7);
+}
+
+#cc-main .cm__title,
+#cc-main .pm__title {
+  color: var(--color-gold);
+}

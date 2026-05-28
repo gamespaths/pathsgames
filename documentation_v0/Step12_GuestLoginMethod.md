@@ -225,23 +225,18 @@ All **28 tests** pass (18 core + 10 adapter-rest).
 
 The react-game frontend (`code/frontend/react-game/`) received a fully integrated guest identity layer in v0.19.8 that wraps the backend endpoints above.
 
-### Cookie: `paths.games.user`
-
-A non-HttpOnly cookie named `paths.games.user` carries `{userUuid, username}` in JSON form. Attributes: Max-Age = 30 days, Path=/, SameSite=Lax. This cookie is readable by JavaScript and serves as the client-side identity cache. It is distinct from the backend HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`) which are set by the server and travel via `withCredentials: true` but are not accessible to JS.
-
 ### `GuestUserProvider` — mount behaviour
 
-`src/context/GuestUserContext.jsx` implements the following logic on mount:
+`src/context/GuestUserContext.jsx` implements the following logic on mount. Guest identity lives in **React state only** — no frontend cookie is written.
 
 | Condition | Action |
 |-----------|--------|
-| `paths.games.user` cookie present | Calls `POST /api/auth/guest/resume` (background, `withCredentials:true`). On success the server refreshes its HttpOnly cookies. On failure the cached cookie is kept — the player remains identified client-side. |
-| Cookie absent AND server is real | Calls `POST /api/auth/guest` (new session). On 201 response, persists `{userUuid, username}` to the cookie. |
+| Server is real | Tries `POST /api/auth/guest/resume` first (`withCredentials:true`; browser sends `pathsgames.guestcookie` automatically). On 401/error falls back to `POST /api/auth/guest` to mint a new guest. |
 | Server is `mock` | Synthesises an offline guest locally using `crypto.randomUUID()`. No network call is made. |
 
-Context value exposed via `useGuestUser()`: `{ user, loading, error, refreshGuest, clearGuest }`.
+Context value exposed via `useGuestUser()`: `{ user, loading, error, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal }`.
 
-The cookie name constant is re-exported as `GUEST_USER_COOKIE` for use by other modules.
+The backend HttpOnly session cookies (`pathsgames.guestcookie` 30 days, `pathsgames.refreshToken` 7 days) are set by the server and are strictly necessary / consent-exempt.
 
 ### API helpers
 
@@ -263,7 +258,7 @@ The Navbar reads the cached `username` via `useGuestUser()` and displays it as t
 
 ### Cookie-consent
 
-Cookie-consent banner is managed externally by the Cookies-Yes service. The `paths.games.user` cookie must be listed as a functional/necessary cookie in that configuration — no code changes required here.
+Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanilla-cookieconsent v3.1.0** library gated to **Google Consent Mode v2** (see `code/frontend/react-game/src/consent/`). The backend HttpOnly session cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`) are listed in the consent banner's `necessary` cookie table as strictly-necessary and consent-exempt. No Cookies-Yes / third-party consent SaaS is used.
 
 
 
@@ -277,7 +272,7 @@ Cookie-consent banner is managed externally by the Cookies-Yes service. The `pat
 
     > ciao, write me openapi file (into /mnt/Dati4/Workspace/pathsgames/code/backend/java/adapter-rest/src/main/resources/openapi folder) about API written into step 12 (on v0.12.x version), please don't change others files
 
-- **Document Version**: 0.19.8
+- **Document Version**: 0.20.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
@@ -285,8 +280,9 @@ Cookie-consent banner is managed externally by the Cookies-Yes service. The `pat
     | 0.12.4 | Create backend php code | April 1, 2026 |
     | 0.13.0 | Write OpenAPI file | April 2, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
-    | 0.19.8 | React-game client-side guest flow: GuestUserProvider, paths.games.user cookie, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.19.8 | React-game client-side guest flow: GuestUserProvider, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |
+    | 0.20.3 | GuestUserContext refactored to React-state-only identity (no frontend cookie); cookie-consent updated to in-project vanilla-cookieconsent v3.1.0 | May 28, 2026 |
+- **Last Updated**: May 28, 2026
 - **Status**: ✅ Complete
 
 

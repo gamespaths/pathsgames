@@ -126,11 +126,16 @@ The CSP header is **not hardcoded**. It is built at deploy time by Terraform usi
 
   | SSM Parameter | CSP Directive | Domains |
   |---|---|---|
-  | `/paths-games/csp/script-src` | `script-src` | `jsdelivr.net`, `googletagmanager.com`, `cdn-cookieyes.com` |
+  | `/paths-games/csp/script-src` | `script-src` | `jsdelivr.net`, `googletagmanager.com` |
   | `/paths-games/csp/style-src` | `style-src` | `googleapis.com`, `jsdelivr.net`, `cloudflare.com` |
   | `/paths-games/csp/font-src` | `font-src` | `gstatic.com`, `cloudflare.com` |
   | `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
-  | `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net`, `cookieyes.com` |
+  | `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net` |
+
+  > Cookie consent is now **self-hosted** (same-origin, covered by `'self'`), so no
+  > `cookieyes.com` / `cdn-cookieyes.com` entries are required. Website analytics is
+  > loaded from `assets/consent-init.js` (an external file, not inline) so it also
+  > works under `csp_mode = "restricted"`, which has no `'unsafe-inline'`.
 
   To add a new third-party domain, edit the relevant list in `ssm.tf` and run `terraform apply` — no other file needs to change.
 
@@ -210,11 +215,17 @@ The website is a **single-page static site** served from the `html/` directory. 
 ```
 html/
 ├── assets/
-│   └── background.jpg        ← full-page background image
-├── index.html                 ← main HTML page (125 lines)
-├── variables.css              ← CSS custom properties / design tokens (64 lines)
-├── style.css                  ← all visual styles (738 lines)
-└── main.js                    ← data-driven card rendering, interactions (248 lines)
+│   ├── background.jpg            ← full-page background image
+│   ├── consent-init.js          ← Consent Mode v2 defaults + GTM loader (external, CSP-safe)
+│   ├── cookieconsent-config.js  ← consent banner config (en/it) + Consent Mode bridge
+│   ├── cookieconsent-theme.css  ← maps the library's --cc-* tokens to the site theme (dark bg + gold)
+│   ├── cookieconsent.umd.js     ← vanilla-cookieconsent v3.1.0 library (self-hosted, minified)
+│   └── cookieconsent.css        ← vanilla-cookieconsent v3.1.0 styles (self-hosted, minified)
+├── index.html                   ← main HTML page
+├── cookies.html                 ← full GDPR Cookies Policy page (linked from the footer)
+├── variables.css                ← CSS custom properties / design tokens
+├── style.css                    ← all visual styles
+└── main.js                      ← data-driven card rendering, interactions
 ```
 
 ### 3.2 External Dependencies (CDN)
@@ -224,12 +235,28 @@ html/
 | Bootstrap | 5.3.3 | jsdelivr.net | CSS utilities, grid, spacing |
 | Font Awesome | 5.15.4 | cdnjs.cloudflare.com | Icon library |
 | Google Fonts | — | fonts.googleapis.com | Cinzel, Cinzel Decorative, Crimson Text |
-| Google Tag Manager | — | googletagmanager.com | Analytics and tag management |
-| CookieYes | — | cdn-cookieyes.com | Cookie consent banner and policy renderer |
+| Google Tag Manager | — | googletagmanager.com | Analytics — **gated by Google Consent Mode v2** (denied until consent) |
 
-### 3.3 Cookie Policy Modal
+> **Cookie consent is no longer a CDN dependency.** The former CookieYes SaaS was
+> replaced by the self-hosted **vanilla-cookieconsent v3.1.0** library, served from
+> `assets/` (see section 3.3).
 
-A Bootstrap modal (`#cookiePolicyModal`) is included in `index.html`. It is triggered by the **Cookies Policy** link in the footer and renders the CookieYes-managed cookie table into the `#cky-cookie-policy-renderer` div. The CookieYes script is loaded in `<head>` before GTM.
+### 3.3 Cookie Consent (self-hosted)
+
+Cookie consent is managed **in-project** with the self-hosted [vanilla-cookieconsent](https://github.com/orestbida/cookieconsent) v3.1.0 library (MIT) — replacing the former third-party CookieYes SaaS. The same library is also used by the `react-game` app, giving one consistent consent system across both surfaces.
+
+**Pieces (all in `assets/`):**
+
+| File | Role |
+|------|------|
+| `consent-init.js` | Loaded in `<head>`. Sets **Google Consent Mode v2** defaults (everything `denied`) and then loads the GTM container. External file (not inline) so it is CSP-safe and works under `csp_mode = "restricted"`. |
+| `cookieconsent.umd.js` + `cookieconsent.css` | Self-hosted library + styles (same-origin). |
+| `cookieconsent-theme.css` | Maps the library's `--cc-*` tokens to the site design variables (dark `--bg-card` background, `--color-gold` text/buttons). Linked after `cookieconsent.css`. |
+| `cookieconsent-config.js` | Loaded before `</body>`. Calls `CookieConsent.run({…})` with two categories — `necessary` (read-only) and `analytics` (off by default) — in English + Italian, and bridges the choice to `gtag('consent','update', { analytics_storage, … })`. |
+
+**Behavior:** GTM loads on every visit, but Google tags write no cookies until the user accepts the **analytics** category; until then Consent Mode keeps them `denied`. The choice is stored in a first-party `pathsgames.cookiesConsent` cookie (6-month lifetime, `revision`-based re-prompt). The `necessary` table also documents the game's session cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`).
+
+**Cookie policy page:** the footer **Cookies Policy** link opens a dedicated [`cookies.html`](../../code/website/html/cookies.html) page with the full GDPR cookie policy (categories, legal basis, third parties/transfers, data-subject rights). A separate footer **Cookie settings** link (`#pg-cookie-settings`) reopens the consent preferences so the choice is always reversible (the same control is repeated on `cookies.html`).
 
 
 
@@ -252,13 +279,14 @@ A Bootstrap modal (`#cookiePolicyModal`) is included in `index.html`. It is trig
     - remove background2 image and use "background: linear-gradient(135deg, #1e0f04 0%, #5c3317 40%, #2e1508 100%);"
     - i wanna make responsive page, on tablet show only 2 location, on mobile only montains, on top bar the nav-link should be centered on new line 
     - i wanna rotate logo-dice like as it bounces on the floor
-- **Document Version**: 0.10.13
+- **Document Version**: 0.20.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.7 | first version of document | February 27, 2026 |
     | 0.10.12 | created social network profiles | March 18, 2026 |
     | 0.10.13 | in terraform dynamic CSP via SSM and csp_mode variable, website CookieYes modal | March 20, 2026 |
-- **Last Updated**: March 20, 2026
+    | 0.20.3 | Self-hosted cookie consent, removed CookieYes; CSP allowlist cleanup | May 28, 2026 |
+- **Last Updated**: May 28, 2026
 - **Status**: Complete ✅
 
 

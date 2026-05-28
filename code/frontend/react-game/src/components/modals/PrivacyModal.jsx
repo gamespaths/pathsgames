@@ -1,8 +1,21 @@
 import { useTranslation } from '../../i18n/context'
 
+const SECTIONS = [
+  ['controllerTitle', 'controllerBody'],
+  ['dataTitle', 'dataBody'],
+  ['purposesTitle', 'purposesBody'],
+  ['cookiesTitle', 'cookiesBody'],
+  ['sharingTitle', 'sharingBody'],
+  ['transfersTitle', 'transfersBody'],
+  ['retentionTitle', 'retentionBody'],
+  ['rightsTitle', 'rightsBody'],
+  ['childrenTitle', 'childrenBody'],
+  ['securityTitle', 'securityBody'],
+  ['changesTitle', 'changesBody'],
+]
+
 export default function PrivacyModal() {
   const { t } = useTranslation()
-  const m = t('modals.privacy')
 
   return (
     <div className="modal fade" id="privacyPolicyModal" tabIndex="-1" aria-hidden="true">
@@ -18,8 +31,18 @@ export default function PrivacyModal() {
           </div>
           <div className="modal-body" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
             <p><strong style={{ color: 'var(--color-gold-light)' }}>Paths Games</strong> &copy; paths.games</p>
-            <p>{t('modals.privacy.body')}</p>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('modals.privacy.updated')}</p>
+            <p>{t('modals.privacy.intro')}</p>
+            {SECTIONS.map(([titleKey, bodyKey]) => (
+              <div key={titleKey}>
+                <h6 style={{ color: 'var(--color-gold)', marginTop: '1rem' }}>
+                  {t(`modals.privacy.${titleKey}`)}
+                </h6>
+                <p>{t(`modals.privacy.${bodyKey}`)}</p>
+              </div>
+            ))}
+            <p style={{ fontStyle: 'italic', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+              {t('modals.privacy.updated')}
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="modal-close-btn" data-bs-dismiss="modal">

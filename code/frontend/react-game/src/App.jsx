@@ -4,6 +4,7 @@ import { ServerProvider } from './context/ServerContext'
 import { GuestUserProvider } from './context/GuestUserContext'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
+import CookieConsentManager from './components/CookieConsentManager'
 import PrivacyModal from './components/modals/PrivacyModal'
 import TermsModal from './components/modals/TermsModal'
 import CookiesModal from './components/modals/CookiesModal'
@@ -19,6 +20,7 @@ export default function App() {
     <LanguageProvider>
       <GuestUserProvider>
       <BrowserRouter>
+        <CookieConsentManager />
         <Navbar />
         <main>
           <Routes>

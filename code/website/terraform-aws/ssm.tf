@@ -23,7 +23,6 @@ resource "aws_ssm_parameter" "csp_script_domains" {
   value = join(",", [
     "jsdelivr.net",          # Bootstrap JS
     "googletagmanager.com",  # Google Tag Manager
-    "cdn-cookieyes.com",     # CookieYes cookie policy
   ])
 
   tags = var.tags
@@ -78,7 +77,6 @@ resource "aws_ssm_parameter" "csp_connect_domains" {
     "google-analytics.com",  # *.google-analytics.com covers region1.google-analytics.com
     "analytics.google.com",  # *.analytics.google.com covers region1.analytics.google.com
     "g.doubleclick.net",     # *.g.doubleclick.net covers stats.g.doubleclick.net
-    "cookieyes.com",         # CookieYes consent manager
   ])
 
   tags = var.tags

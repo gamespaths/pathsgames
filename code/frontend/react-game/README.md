@@ -43,17 +43,22 @@ src/
 │   ├── game.js     # getLocations(storyId), getActions(locationId)
 │   ├── auth.js     # createGuestSession(), resumeGuestSession() — withCredentials:true
 │   └── matches.js  # createMatch(), listMatches(), getMatchInfo() — with mock fallback
+├── consent/        # Cookie-consent layer (vanilla-cookieconsent v3.1.0 + GTM)
+│   ├── gtm.js                # loadGtm(gtmId) — loads GTM container
+│   ├── cookieConsent.js      # initCookieConsent(lang), openCookiePreferences(), setConsentLanguage(lang)
+│   └── cookieconsent-theme.css  # Maps --cc-* tokens to site design variables (dark bg + gold)
 ├── context/
-│   └── GuestUserContext.jsx  # GuestUserProvider + useGuestUser() hook; owns cookie paths.games.user; persists accessToken for match API calls
+│   └── GuestUserContext.jsx  # GuestUserProvider + useGuestUser() hook; identity in React state; stores accessToken for match API calls
 ├── mock/           # stories.json, gameData.json, images.json (Unsplash credits)
 ├── styles/         # variables.css (CSS tokens) + main.css (global + component styles)
 ├── utils/
 │   └── bonusStats.js   # STAT_FIELDS map, STAT_CATEGORY map, STAT_CATEGORY_ORDER, getNonZeroStats(entity, entityType), aggregateBonusTotals(pairs)
 ├── components/
 │   ├── layout/     # Navbar, Footer, GameCard, GameCardCreditsBar (credits row), GameCardInfoButton (legacy, no longer used by GameCard)
-│   ├── modals/     # PrivacyModal, TermsModal, CookiesModal, CopyrightModal, GuestUserModal
+│   ├── modals/     # PrivacyModal, TermsModal, CookiesModal (GDPR 6-section), CopyrightModal, GuestUserModal
 │   ├── common/     # BonusBadgeList (shared pill-badge row component)
-│   └── book/       # BookWrapper, BookPageLeft, BookPageRight, BookPageLeftContent
+│   ├── book/       # BookWrapper, BookPageLeft, BookPageRight, BookPageLeftContent
+│   └── CookieConsentManager.jsx  # Headless component; mounts consent banner once, syncs language; placed in App.jsx
 ├── features/
 │   ├── home/       # StoryCard (Netflix card), StoryCatalog (rows by category)
 │   ├── startBook/  # StartBookModal, StartBookMobile, ConfigView, SelectionView, ConfigCard, loadoutCards.js (shared loadout helper)
@@ -72,7 +77,8 @@ src/
 4. **i18n** — IT (default) / EN via language switcher in Navbar. All labels in `src/i18n/en.json` + `it.json`. The `book.stats.*` namespace holds labels for every bonus/stat field shown in the preview panel (`lifeMax`, `energyMax`, `sadMax`, `dexterityStart`/`Base`, `intelligenceStart`/`Base`, `constitutionStart`/`Base`, `weightMax`, `costPositive`, `costNegative`, `expCost`, `maxWeight`, `minCharacter`, `maxCharacter`, `costHelpComa`, `costMaxCharacteristics`, `numberMaxFreeAction`, and the seven trait stat-delta keys `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` added v0.19.6) plus `book.stats.title` ("Bonuses"). The sub-object `book.stats.totals` holds short labels for the eight ConfigView category pills: `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`, `exp`. The `card.*` namespace holds labels used by `GameCard`: `card.info` ("Info" / "Info") for the circular info button and `card.viewOriginal` ("View original" / "Vedi originale") for the detail modal link. The `modals.guestUser.*` namespace (added v0.19.8) holds `title`, `anonymous`, `uuidLabel`, and `body` (HTML) for the `GuestUserModal`. The `startMatch.*` namespace (added v0.19.10) holds labels for the StartMatchPage countdown and status messages; also added missing Italian `book.singleDesc` / `book.guestDesc` keys.
 5. **API fallback** — If backend unreachable, falls back to `src/mock/` JSON automatically.
 6. **Legal modals** — Privacy, Terms, Cookies triggered by Footer links. Copyright (i) on every big card.
-7. **Guest identity** — `GuestUserProvider` (v0.19.8) wraps the entire app and manages guest session state. On mount it reads the `paths.games.user` cookie (`{userUuid, username}`): if present, calls `POST /api/auth/guest/resume` in the background to refresh server-side HttpOnly cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`); if absent, calls `POST /api/auth/guest` and persists the returned identity into the cookie (Max-Age 30 days, Path=/, SameSite=Lax). In mock-server mode a guest is synthesised locally via `crypto.randomUUID()` without any network call. The Navbar user-icon button displays the cached `username` and opens `GuestUserModal` (`#guestUserModal`) via Bootstrap `data-bs-toggle`. `GuestUserModal` renders a `BookPageContent` card showing the username as title and the session UUID under a divider. Cookie-consent banner is managed externally by Cookies-Yes and is out of scope here.
+7. **Guest identity** — `GuestUserProvider` (v0.19.8) wraps the entire app and manages guest session state. Identity lives in React state only — no frontend cookie is written. On mount it tries `POST /api/auth/guest/resume` first (the browser sends the backend HttpOnly cookie `pathsgames.guestcookie` automatically via `withCredentials: true`); on 401/error it falls back to `POST /api/auth/guest` to mint a new guest. In mock-server mode a guest is synthesised locally via `crypto.randomUUID()` without any network call. The Navbar user-icon button displays the cached `username` and opens `GuestUserModal` (`#guestUserModal`) via Bootstrap `data-bs-toggle`. `GuestUserModal` renders a `BookPageContent` card showing the username as title and the session UUID under a divider. Backend HttpOnly session cookies (`pathsgames.guestcookie` 30 days, `pathsgames.refreshToken` 7 days) are set by the server and are consent-exempt.
+8. **Cookie consent** (v0.20.3) — Self-hosted [vanilla-cookieconsent](https://github.com/orestbida/cookieconsent) v3.1.0 (MIT) gated to **Google Consent Mode v2**. Consent Mode defaults are all `denied`; the GTM container loads on every visit but Google tags write no cookies until the user accepts the `analytics` category. Categories: `necessary` (read-only) + `analytics` (off by default), bilingual en/it. Consent choice is stored in `pathsgames.cookiesConsent` (first-party, 6-month, revision-based re-prompt). The banner is themed via `src/consent/cookieconsent-theme.css` (dark `--bg-card` background + `--color-gold` text). The full GDPR cookie policy (6 sections: strictly-necessary, analytics, legal basis, managing preferences, third parties, data-subject rights) is rendered by `CookiesModal` in both languages. Modules: `src/consent/gtm.js` (loads GTM from `VITE_GTM_ID`), `src/consent/cookieConsent.js` (`initCookieConsent(lang)`, `openCookiePreferences()`, `setConsentLanguage(lang)`), `src/consent/cookieconsent-theme.css`, `src/components/CookieConsentManager.jsx` (headless; boots consent once, syncs on lang switch; mounted in `App.jsx`).
 
 ## Card System
 
@@ -132,7 +138,7 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
 
 ---
 
-- **Document Version**: 0.19.10
+- **Document Version**: 0.20.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | React game frontend initial implementation | May 04, 2026 |
@@ -158,7 +164,8 @@ All Unsplash images and SVG icons documented in [`src/mock/images.json`](src/moc
     | 0.19.8 | Guest-user flow rewired: new `GuestUserProvider` (`src/context/GuestUserContext.jsx`) owns identity, persists a non-HttpOnly `paths.games.user` cookie ({userUuid, username}) with 30-day Max-Age, auto-calls `POST /api/auth/guest` on first visit and `POST /api/auth/guest/resume` when the cookie is present (`withCredentials:true` so the backend `pathsgames.guestcookie` HttpOnly cookie travels along). Mock-server mode synthesizes an offline guest locally. New `api/auth.js` wraps both endpoints. Navbar user-icon now shows the cached `username` and opens the new `GuestUserModal` (Bootstrap modal `#guestUserModal`) instead of the legacy toast; the modal renders a `BookPageContent` card with the username as title and `modals.guestUser.body` (HTML) as description plus the session UUID under a divider. New i18n keys `modals.guestUser.title/anonymous/uuidLabel/body` (EN+IT). New tests: `src/context/GuestUserContext.test.jsx` (cookie restore + mock-server synthesis); `src/test/Navbar.test.jsx` updated to mock the new context and assert the modal trigger. Cookie-consent banner intentionally not touched — handled externally by Cookies-Yes | May 19, 2026 |
     | 0.19.6 | Code refactoring: all scattered test files (`echoApi.test.js`, `NeighborRow.test.jsx`, `ActionsRow.test.jsx`, `bonusStats.test.js`, `GuestUserContext.test.jsx`) moved from their source-adjacent locations (`api/`, `features/game/`, `utils/`, `context/`) into the central `src/test/` folder; relative imports updated accordingly | May 20, 2026 |
     | 0.19.10 | New `StartMatchPage` at `/start-match/:storyId`: full-screen book page with countdown, loadout summary, and `POST /api/matches` call before navigating to GamePage. New `src/api/matches.js` (createMatch/listMatches/getMatchInfo). New `src/features/startBook/loadoutCards.js` shared helper. `GuestUserContext` now stores `accessToken`. New `VITE_MATCH_START_DELAY` env var (default 20s). New `startMatch.*` i18n keys; Italian `book.singleDesc`/`book.guestDesc` added. 62 tests pass. | May 20, 2026 |
-- **Last Updated**: May 20, 2026
+    | 0.20.3 | Cookie consent brought in-project: `src/consent/` layer (gtm.js, cookieConsent.js, cookieconsent-theme.css) + CookieConsentManager.jsx; vanilla-cookieconsent v3.1.0 + Google Consent Mode v2; `pathsgames.cookiesConsent` cookie; GDPR CookiesModal (6 sections, en/it); GuestUserContext refactored to React state only (no frontend cookie). | May 28, 2026 |
+- **Last Updated**: May 28, 2026
 - **Status**: Active development
 
 ---

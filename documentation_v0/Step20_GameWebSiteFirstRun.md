@@ -83,29 +83,88 @@ next steps are:
    match (multi-player) see the state change in real time.
 
 
+## 0.20.3 — In-project cookie consent 
+To replace CookieYes with self-hosted vanilla-cookieconsent + Google Consent Mode v2
+
+### Context
+
+Cookie consent was previously handled by the third-party **CookieYes** SaaS, loaded only on the marketing website, and existed solely to gate **Google Tag Manager** (`GTM-XXXXX`). Two problems drove the change: (a) external dependency with no control over consent UI, policy text, or tag-gating; (b) the `react-game` app loaded GTM with no consent gate at all while its UI text falsely claimed "no tracking cookies." The fix brings consent in-project using the self-hosted MIT library **vanilla-cookieconsent v3.1.0**, shared across website and react-game, keeping GTM but gating it via **Google Consent Mode v2**.
+
+### What changed / Where the code lives
+
+**react-game** (`code/frontend/react-game/`):
+
+| File | Change |
+|------|--------|
+| [index.html](code/frontend/react-game/index.html) | Added Consent Mode v2 default-deny block at top of `<head>`; removed broken `__GTM_ID__` inline GTM snippet and un-gateable `<noscript>` GTM iframe |
+| NEW [src/consent/gtm.js](code/frontend/react-game/src/consent/gtm.js) | Loads GTM container from `VITE_GTM_ID`; fixes latent bug where GTM never actually loaded |
+| NEW [src/consent/cookieConsent.js](code/frontend/react-game/src/consent/cookieConsent.js) | `CookieConsent.run` config: `necessary` (read-only) + `analytics` (off by default); en/it translations with cookie tables; `onConsent`/`onChange` bridge to `gtag('consent','update',…)`; exports `initCookieConsent(lang)`, `openCookiePreferences()`, `setConsentLanguage(lang)` |
+| NEW [src/components/CookieConsentManager.jsx](code/frontend/react-game/src/components/CookieConsentManager.jsx) | Headless component; boots consent once with the app language and syncs it on it/en switch; mounted in [App.jsx](code/frontend/react-game/src/App.jsx) under `LanguageProvider` |
+| [src/main.jsx](code/frontend/react-game/src/main.jsx) | Calls `loadGtm(import.meta.env.VITE_GTM_ID)`; replaces the broken placeholder-replace logic |
+| [src/i18n/en.json](code/frontend/react-game/src/i18n/en.json) + [it.json](code/frontend/react-game/src/i18n/it.json) | Rewrote `modals.cookies.body` (removed false "no tracking cookies" claim; now describes essential session cookies + analytics-with-consent); added `modals.cookies.manage` label |
+| [src/components/modals/CookiesModal.jsx](code/frontend/react-game/src/components/modals/CookiesModal.jsx) | Added "Cookie settings" button that opens consent preferences |
+| [package.json](code/frontend/react-game/package.json) | Added `vanilla-cookieconsent ^3.1.0` |
+
+**website** (`code/website/html/`, static, deployed via `aws s3 sync`):
+
+| File | Change |
+|------|--------|
+| NEW [assets/cookieconsent.css](code/website/html/assets/cookieconsent.css) | Self-hosted vanilla-cookieconsent v3.1.0 stylesheet |
+| NEW [assets/cookieconsent.umd.js](code/website/html/assets/cookieconsent.umd.js) | Self-hosted vanilla-cookieconsent v3.1.0 UMD bundle |
+| NEW [assets/cookieconsent-config.js](code/website/html/assets/cookieconsent-config.js) | `CookieConsent.run` config (en/it), gtag bridge, wires `#pg-cookie-settings` button |
+| NEW [assets/consent-init.js](code/website/html/assets/consent-init.js) | External (CSP-safe) Consent Mode v2 defaults + GTM container loader; replaces former inline GTM snippet |
+| [index.html](code/website/html/index.html) | Removed CookieYes banner script and `cky-cookie-policy` renderer; `<head>` loads `consent-init.js` + `cookieconsent.css`; cookie-policy modal has self-hosted policy text and `#pg-cookie-settings` button; loads UMD bundle + config before `</body>` |
+
+**CSP / Terraform** (`code/website/terraform-aws/`):
+
+| File | Change |
+|------|--------|
+| [ssm.tf](code/website/terraform-aws/ssm.tf) | Removed `cdn-cookieyes.com` (script-src) and `cookieyes.com` (connect-src) from CSP allowlists; self-hosted library is same-origin (`'self'`) |
+
+### Behavior
+
+Consent Mode v2 starts with all categories denied. The GTM container loads but Google tags write no cookies until the user accepts the `analytics` category. The choice is stored in a first-party `pathsgames.cookiesConsent` cookie (6-month, revision-based re-prompt) and is reversible via "Cookie settings". `react-admin` is unaffected (no tracking). Backend HttpOnly session cookies (`pathsgames.guestcookie`, `pathsgames.refreshToken`) are strictly necessary and consent-exempt.
+
+The consent banner/modal is themed with the site design tokens (dark background + gold text) via a `cookieconsent-theme.css` override on both surfaces. The full **GDPR cookie policy** (categories, legal basis, third-party transfers, data-subject rights) is shown in the react-game `CookiesModal` and on the website's dedicated `cookies.html` page.
+
+### Tests / Verification
+
+- NEW [src/test/cookieConsent.test.js](code/frontend/react-game/src/test/cookieConsent.test.js) + [src/test/gtm.test.js](code/frontend/react-game/src/test/gtm.test.js): 9 new tests.
+- `react-game` full suite (`npx vitest run`): 106 passed (9 new); 6 pre-existing failures in `SelectionView.test.jsx` unrelated to this change.
+- `npm run build` succeeds.
+- Website: all 5 consent assets (`consent-init.js`, `cookieconsent.css`, `cookieconsent.umd.js`, `cookieconsent-config.js`, `index.html`) served at HTTP 200 when static-hosting locally.
+- No functional CookieYes references remain in `code/` (only descriptive "replaces CookieYes" comments).
+
+
 ## Version Control
 - Created with AI assistance (Claude Sonnet 4.6 via Claude Code).
   - i wanna add Turnstile anti-robot on react-game proeject
-  - ciao, new update i added "Cloudflare Turnstile anti-bot" on react-game project but now i wanna validate token on serve side , let's go!
-    - change others backend (python, php and aws lambda)
-    - add robot test too if it's possibile, create "code/tests/robot/tests/20_website"
-- check all project and all documentation files, check where and who to set complete a match.
-  - now i wanna create an new api PATCH `/match/{uuid_match}/end/{uuid_event}`: to complete the match (set on ENDED state) if event is the "idEventEndGame" of story of match (never return idEventEndGame values on API), if event is not the idEventEndGame return "406 Not Acceptable". use "0.20.1" version, we are on step 20. please develop all backend (java, php,python, aws lambda), remember to add robot tests. In this session don't change frontend-react projects.
-- read documentation_v0/Step20_GameWebSiteFirstRun.md and let's go to import match end into react-game project and GameBook components: refactor LocationCard to use GameCard component, if there are not any location into story object, show story big card. refactor PlayerStats to use BonusBadgeList. refactor NeighborRow and ActionsRow to use GameCard little. If actions has "endGame"="true" show button "End game" to call "end game api" and hide GameBook and show EndGameBook with on left story card and on right endGameCard from gameData.json and a button "close" to restart from home page. 
-  - into GameBook refactor NeighborRow and ActionsRow to a SelectionView
+    - ciao, new update i added "Cloudflare Turnstile anti-bot" on react-game project but now i wanna validate token on serve side , let's go!
+      - change others backend (python, php and aws lambda)
+      - add robot test too if it's possibile, create "code/tests/robot/tests/20_website"
+  - check all project and all documentation files, check where and who to set complete a match.
+    - now i wanna create an new api PATCH `/match/{uuid_match}/end/{uuid_event}`: to complete the match (set on ENDED state) if event is the "idEventEndGame" of story of match (never return idEventEndGame values on API), if event is not the idEventEndGame return "406 Not Acceptable". use "0.20.1" version, we are on step 20. please develop all backend (java, php,python, aws lambda), remember to add robot tests. In this session don't change frontend-react projects.
+  - read documentation_v0/Step20_GameWebSiteFirstRun.md and let's go to import match end into react-game project and GameBook components: refactor LocationCard to use GameCard component, if there are not any location into story object, show story big card. refactor PlayerStats to use BonusBadgeList. refactor NeighborRow and ActionsRow to use GameCard little. If actions has "endGame"="true" show button "End game" to call "end game api" and hide GameBook and show EndGameBook with on left story card and on right endGameCard from gameData.json and a button "close" to restart from home page. 
+    - into GameBook refactor NeighborRow and ActionsRow to a SelectionView
+  - check projects, website folder and react-game project, actualy i'm using cookies-yes but i wanna manage cookies into project, what do you succest?
+    - run paths-games-doc on documentation_v0/Step20_GameWebSiteFirstRun.md and add section with version "0.20.3". let's go
+    - check documentation_v0/Step07_ConfigureWebsite.md file and update with last code updates
+    - i wanna some changes : 1 change "cc_cookie" name to "pathsgames.cookiesConsent". 2 change style with variables styles (background-color and gold text color) 3 on index.html show pathsgames cookies too. 4 on "Cookies Policy" modal into react-game show long text, create a text GDPR compliance, on index.html version link to Cookies policy content it's possibile 
+    - into react-game project i wanna create "Privacy Policy" and "Terms of Service" texts, suggest me main poinst. I wanna to be compliance to regulations (eu and usa). Let's go 
+
+- **Document Version**: 0.20.3
+
+    | Version | Description | Date |
+    |---------|-------------|------|
+    | 0.20.0 | First-run flow documentation + Cloudflare Turnstile anti-bot | May 21, 2026 |
+    | 0.20.0 | Hybrid Cloudflare architecture: pathsgames.com → CF Pages, paths.games → AWS invariato | May 25, 2026 |
+    | 0.20.0 | Back pathsgames.com on AWS and define test.paths.games environment | May 26, 2026 |
+    | 0.20.1 | Player-driven match completion: `PATCH /api/match/{uuidMatch}/end/{uuidEvent}` | May 27, 2026 |
+    | 0.20.2 | Complete the match in react-game frontend | May 27, 2026 |
+    | 0.20.3 | In-project cookie consent (CookieYes → vanilla-cookieconsent + GCM v2) website & react-game | May 28, 2026 |
 
 
-- **Document Version**: 0.20.2
-
-| Version | Description | Date |
-|---------|-------------|------|
-| 0.20.0 | First-run flow documentation + Cloudflare Turnstile anti-bot | May 21, 2026 |
-| 0.20.0 | Hybrid Cloudflare architecture: pathsgames.com → CF Pages, paths.games → AWS invariato | May 25, 2026 |
-| 0.20.0 | Back pathsgames.com on AWS and define test.paths.games environment | May 26, 2026 |
-| 0.20.1 | Player-driven match completion: `PATCH /api/match/{uuidMatch}/end/{uuidEvent}` | May 27, 2026 |
-| 0.20.2 | Complete the match in react-game frontend | May 27, 2026 |
-
-- **Last Updated**: May 27, 2026
+- **Last Updated**: May 28, 2026
 - **Status**: Complete
 
 # < Paths Games />

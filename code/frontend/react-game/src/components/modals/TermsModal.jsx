@@ -1,5 +1,20 @@
 import { useTranslation } from '../../i18n/context'
 
+const SECTIONS = [
+  ['acceptanceTitle', 'acceptanceBody'],
+  ['serviceTitle', 'serviceBody'],
+  ['guestTitle', 'guestBody'],
+  ['useTitle', 'useBody'],
+  ['ipTitle', 'ipBody'],
+  ['disclaimerTitle', 'disclaimerBody'],
+  ['liabilityTitle', 'liabilityBody'],
+  ['availabilityTitle', 'availabilityBody'],
+  ['thirdPartyTitle', 'thirdPartyBody'],
+  ['privacyRefTitle', 'privacyRefBody'],
+  ['lawTitle', 'lawBody'],
+  ['changesTitle', 'changesBody'],
+]
+
 export default function TermsModal() {
   const { t } = useTranslation()
 
@@ -17,8 +32,18 @@ export default function TermsModal() {
           </div>
           <div className="modal-body" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
             <p><strong style={{ color: 'var(--color-gold-light)' }}>Paths Games</strong> &copy; paths.games</p>
-            <p>{t('modals.terms.body')}</p>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('modals.terms.updated')}</p>
+            <p>{t('modals.terms.intro')}</p>
+            {SECTIONS.map(([titleKey, bodyKey]) => (
+              <div key={titleKey}>
+                <h6 style={{ color: 'var(--color-gold)', marginTop: '1rem' }}>
+                  {t(`modals.terms.${titleKey}`)}
+                </h6>
+                <p>{t(`modals.terms.${bodyKey}`)}</p>
+              </div>
+            ))}
+            <p style={{ fontStyle: 'italic', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+              {t('modals.terms.updated')}
+            </p>
           </div>
           <div className="modal-footer">
             <button type="button" className="modal-close-btn" data-bs-dismiss="modal">

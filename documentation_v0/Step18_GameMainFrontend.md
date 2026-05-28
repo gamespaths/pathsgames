@@ -391,9 +391,9 @@ Mobile CSS lives in `src/styles/mobile.css` and is imported at the top of `main.
 
 ---
 
-## 10. Google Tag Manager
+## 10. Google Tag Manager & Consent Mode
 
-GTM snippet is injected inline in `index.html`. The GTM container ID is read from the environment variable `VITE_GTM_ID` (default: `GTM-T52SH6JQ`). See `.env.example` for configuration.
+Google **Consent Mode v2** defaults (all `denied`) are set inline at the top of `index.html`, before any tag logic. The GTM container is then loaded by `loadGtm()` in `src/consent/gtm.js` (called from `main.jsx`) using the `VITE_GTM_ID` environment variable (default `GTM-T52SH6JQ`; see `.env.example`). GTM loads on every visit, but analytics tags write no cookies until the user accepts the `analytics` category — handled by the in-project cookie-consent layer in `src/consent/` (see Step 20). The previous inline GTM snippet in `index.html` was removed in v0.20.3.
 
 ---
 
@@ -446,7 +446,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.19.8
+- **Document Version**: 0.20.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
@@ -455,8 +455,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits` | May 19, 2026 |
     | 0.19.8 | Guest identity: GuestUserProvider, paths.games.user cookie, api/auth.js, GuestUserModal, Navbar modal trigger | May 19, 2026 |
+    | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
 
-- **Last Updated**: May 19, 2026
+- **Last Updated**: May 28, 2026
 - **Status**: Active development
 
 

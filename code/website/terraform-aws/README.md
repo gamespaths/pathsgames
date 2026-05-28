@@ -72,7 +72,7 @@ google-analytics.com  →  https://google-analytics.com  +  https://*.google-ana
 | `/paths-games/csp/style-src` | `style-src` | `googleapis.com`, `jsdelivr.net`, `cloudflare.com` |
 | `/paths-games/csp/font-src` | `font-src` | `gstatic.com`, `cloudflare.com` |
 | `/paths-games/csp/img-src` | `img-src` | `googletagmanager.com`, `google-analytics.com` |
-| `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net`, `cookieyes.com` |
+| `/paths-games/csp/connect-src` | `connect-src` | `google-analytics.com`, `analytics.google.com`, `g.doubleclick.net` |
 
 > Special values (`'self'`, `'unsafe-inline'`, `data:`) are hardcoded in `cloudfront.tf` because they are not domains.
 
@@ -229,12 +229,13 @@ terraform-aws/
 
 # Version Control
 - First version created with AI prompts
-- **Document Version**: 0.10.13
+- **Document Version**: 0.20.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.7.0 | Website creation and domains configuration | March 26, 2026 |
     | 0.10.13 | Added cookies policy and csp_mode on terraform | March 20, 2026 |
-- **Last Updated**: March 20, 2026
+    | 0.20.3 | Removed `cdn-cookieyes.com` / `cookieyes.com` from CSP allowlists (self-hosted consent, same-origin) | May 28, 2026 |
+- **Last Updated**: May 28, 2026
 - **Status**: Complete ✅
 
 

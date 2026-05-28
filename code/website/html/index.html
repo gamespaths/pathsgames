@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paths Games — A Gamebook Videogame Crowdfunding</title>
+  <title>Paths Games</title>
   <meta name="description" content="Paths Games: an epic medieval gamebook videogame. Join our crowdfunding and shape your destiny!" />
   <!-- Bootstrap 5 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
@@ -17,15 +17,13 @@
   <link rel="stylesheet" href="variables.css" />
   <link rel="stylesheet" href="landing.css" />
 
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-T52SH6JQ');</script>
-  <!-- End Google Tag Manager -->
-  <!-- CookieYes Banner -->
-  <script id="cookieyes" type="text/javascript" src="https://cdn-cookieyes.com/client_data/4f861552c40cf18cf211abf698c58c70/script.js"></script>
+  <!-- Google Tag Manager + Consent Mode v2 defaults (external file → no inline
+       script, CSP-safe). Analytics stays denied until consent is given. -->
+  <script src="assets/consent-init.js"></script>
+
+  <!-- First-party cookie consent (self-hosted, replaces CookieYes) -->
+  <link rel="stylesheet" href="assets/cookieconsent.css" />
+  <link rel="stylesheet" href="assets/cookieconsent-theme.css" />
 
 </head>
 <body>
@@ -112,41 +110,19 @@
     <div class="pg-footer-inner">
       <span class="pg-footer-brand"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
       <span class="pg-footer-sep">&middot;</span>
-      <span class="pg-footer-copy">&copy; 2026 All rights reserved - v0.20.1 - Crafted with by the Paths Games Dev Team</span>
+      <span class="pg-footer-copy">&copy; 2026 All rights reserved - v0.20.3 - Crafted with <i class="fas fa-heart me-1"></i> by the Paths Games Dev Team</span>
       <span class="pg-footer-sep">&middot;</span>
-      <a href="#" class="pg-footer-link" data-bs-toggle="modal" data-bs-target="#cookiePolicyModal">
+      <a href="cookies.html" class="pg-footer-link">
         <i class="fas fa-cookie-bite me-1"></i>Cookies Policy
       </a>
     </div>
   </footer>
 
-  <!-- ════════════ COOKIES POLICY MODAL ════════════ -->
-  <div class="modal fade" id="cookiePolicyModal" tabindex="-1" aria-labelledby="cookiePolicyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-      <div class="modal-content pg-modal-content">
-        <div class="modal-header pg-modal-header">
-          <h5 class="modal-title" id="cookiePolicyModalLabel">
-            <i class="fas fa-cookie-bite me-2"></i>Cookies Policy
-          </h5>
-          <button type="button" class="pg-modal-close" data-bs-dismiss="modal" aria-label="Close">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body pg-modal-body">
-          <div id="cky-cookie-policy-renderer">
-            <script id="cky-cookie-policy" type="text/javascript" src="https://cdn-cookieyes.com/client_data/4f861552c40cf18cf211abf698c58c70/cookie-policy/script.js"></script>
-          </div>
-        </div>
-        <div class="modal-footer pg-modal-footer">
-          <button type="button" class="pg-btn-close-modal" data-bs-dismiss="modal">
-            <i class="fas fa-times me-1"></i>Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- First-party cookie consent (self-hosted, replaces CookieYes) -->
+  <script src="assets/cookieconsent.umd.js"></script>
+  <script src="assets/cookieconsent-config.js"></script>
 
 </body>
 </html>
