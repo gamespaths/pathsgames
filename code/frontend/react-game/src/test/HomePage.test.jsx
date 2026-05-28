@@ -44,6 +44,11 @@ vi.mock('../features/startBook/StartBookModal', () => ({
   default: ({ story, onClose }) => <div data-testid="start-book-modal">{story.title}</div>,
 }))
 
+vi.mock('../utils/turnstile', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, CF_KEY: 'test-site-key' }
+})
+
 import HomePage from '../pages/HomePage'
 import { getStories } from '../api/stories'
 import { listMatches } from '../api/matches'

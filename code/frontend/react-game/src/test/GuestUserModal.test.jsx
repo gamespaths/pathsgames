@@ -15,6 +15,11 @@ vi.mock('@marsidev/react-turnstile', async () => {
   }
 })
 
+vi.mock('../utils/turnstile', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, CF_KEY: 'test-site-key' }
+})
+
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
