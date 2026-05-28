@@ -92,7 +92,7 @@ export default function StoriesPage() {
       entityTypes.forEach((et, index) => {
         exportData[et.jsonKey] = results[index].map(item => {
           // eslint-disable-next-line no-unused-vars
-          const { tsInsert, tsUpdate, idStory, uuid, ...rest } = item
+          const { tsInsert, tsUpdate, idStory, ...rest } = item
           if (et.jsonKey === 'texts' && item.idText) {
             rest.id = Number(item.idText)
             rest.idText = Number(item.idText)

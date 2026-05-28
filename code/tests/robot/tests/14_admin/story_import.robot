@@ -356,6 +356,41 @@ Import list_character_templates Round-Trips idTextName And idTextDescription
 
     Delete Admin Story    ${uuid}
 
+Import list_character_templates Round-Trips idClassPermitted And idClassProhibited
+    [Documentation]    Imports a story whose character template sets idClassPermitted and idClassProhibited,
+    ...                then reads back the character-templates collection and asserts both class FK fields
+    ...                are persisted (regression guard: the AWS import path previously dropped them).
+    ...                The two referenced classes are included so the Postgres composite FK
+    ...                (id_class_*, id_story) -> list_classes(id, id_story) is satisfied.
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    68888888-8888-4888-8888-88888888888a
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-ct-class",
+    ...    "classes":[{"id":1,"weightMax":10,"dexterityBase":1,"intelligenceBase":1,"constitutionBase":1},
+    ...    {"id":2,"weightMax":10,"dexterityBase":1,"intelligenceBase":1,"constitutionBase":1}],
+    ...    "characterTemplates":[{"id":1,"idClassPermitted":1,"idClassProhibited":2,
+    ...    "lifeMax":10,"energyMax":5,"sadMax":3,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}]}
+    ${resp_imp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp_imp.status_code}    201
+
+    ${ct_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/character-templates
+    ...    headers=${headers}
+    Should Be Equal As Integers    ${ct_resp.status_code}    200
+    ${cts}=    Set Variable    ${ct_resp.json()}
+    Length Should Be    ${cts}    1
+    ${ct}=    Set Variable    ${cts}[0]
+    Dictionary Should Contain Key    ${ct}    idClassPermitted
+    Dictionary Should Contain Key    ${ct}    idClassProhibited
+    Should Be Equal As Integers    ${ct}[idClassPermitted]     1
+    Should Be Equal As Integers    ${ct}[idClassProhibited]    2
+
+    Delete Admin Story    ${uuid}
+
 Import Explicit ID For list_locations Returns 201
     [Documentation]    Import accepts explicit id for list_locations rows.
     [Tags]    admin    step14

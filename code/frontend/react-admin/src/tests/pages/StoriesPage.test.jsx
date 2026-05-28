@@ -220,6 +220,35 @@ describe('StoriesPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('keeps uuid on list elements but strips technical fields', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) =>
+      apiType === 'events'
+        ? Promise.resolve([{
+            uuid: 'evt-uuid-1', id: 7, name: 'Storm',
+            idStory: 'aaa-111', tsInsert: '2024-01-01', tsUpdate: '2024-01-02',
+          }])
+        : Promise.resolve([])
+    )
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const parsed = JSON.parse(await capturedBlob.text())
+    const event = parsed.events[0]
+    expect(event.uuid).toBe('evt-uuid-1')
+    expect(event).not.toHaveProperty('idStory')
+    expect(event).not.toHaveProperty('tsInsert')
+    expect(event).not.toHaveProperty('tsUpdate')
+
+    clickSpy.mockRestore()
+  })
+
   it('shows export error when getStory fails', async () => {
     getStory.mockRejectedValue(new Error('Export error'))
     renderPage()
