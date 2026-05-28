@@ -248,8 +248,8 @@ export default function GuestsPage() {
 
       {/* Guest detail modal */}
       {guestDetail && (
-        <div className="pg-modal-backdrop" onClick={closeGuestDetail}>
-          <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+        <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={closeGuestDetail} onKeyDown={(e) => e.key === 'Escape' && closeGuestDetail()}>
+          <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             <p className="pg-modal-title">
               <i className="fas fa-user-secret me-2" />
               {guestDetail.username}

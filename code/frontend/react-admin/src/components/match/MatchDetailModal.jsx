@@ -74,8 +74,8 @@ export default function MatchDetailModal({ detail, onClose }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={onClose}>
-      <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div className="pg-modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
         <p className="pg-modal-title">
           <i className="fas fa-gamepad me-2" />
           {match?.name || `Match ${shortUuid(uuid)}`}
@@ -91,15 +91,15 @@ export default function MatchDetailModal({ detail, onClose }) {
             <table className="pg-table" style={{ fontSize: '0.82rem', marginBottom: '1rem' }}>
               <tbody>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)', whiteSpace: 'nowrap', width: 110 }}>Title</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)', whiteSpace: 'nowrap', width: 110 }}>Title</th>
                   <td style={{ fontWeight: 600 }}>{story?.title || <em style={{ color: 'var(--color-ash)' }}>unknown</em>}</td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>UUID</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>UUID</th>
                   <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{match?.storyUuid || '—'}</td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Creator</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Creator</th>
                   <td>{story?.author || story?.creator || <em style={{ color: 'var(--color-ash)' }}>—</em>}</td>
                 </tr>
               </tbody>
@@ -109,11 +109,11 @@ export default function MatchDetailModal({ detail, onClose }) {
             <table className="pg-table" style={{ fontSize: '0.82rem', marginBottom: '1rem' }}>
               <tbody>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)', whiteSpace: 'nowrap', width: 110 }}>Status</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)', whiteSpace: 'nowrap', width: 110 }}>Status</th>
                   <td><StatusBadge status={match?.status} /></td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Mode</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Mode</th>
                   <td>
                     {match?.singlePlayer === 0
                       ? <span className="pg-badge pg-badge-gold">Multiplayer</span>
@@ -121,19 +121,19 @@ export default function MatchDetailModal({ detail, onClose }) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Clock</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Clock</th>
                   <td>{match?.currentClock ?? 0}</td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>XP Cost</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>XP Cost</th>
                   <td>{match?.expCost ?? 0}</td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Created</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Created</th>
                   <td style={{ fontSize: '0.8rem' }}>{fmtDate(match?.tsInsert)}</td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Difficulty</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Difficulty</th>
                   <td>
                     {difficulty
                       ? <><span>{resolveEntityName(texts, difficulty)}</span>{' '}<span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--color-ash)' }}>{shortUuid(match.difficultyUuid)}</span></>
@@ -142,7 +142,7 @@ export default function MatchDetailModal({ detail, onClose }) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Character</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Character</th>
                   <td>
                     {character
                       ? <><span>{resolveEntityName(texts, character)}</span>{' '}<span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--color-ash)' }}>{shortUuid(match.characterTemplateUuid)}</span></>
@@ -153,7 +153,7 @@ export default function MatchDetailModal({ detail, onClose }) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Class</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Class</th>
                   <td>
                     {matchClass
                       ? <><span>{resolveEntityName(texts, matchClass)}</span>{' '}<span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--color-ash)' }}>{shortUuid(match.classUuid)}</span></>
@@ -164,7 +164,7 @@ export default function MatchDetailModal({ detail, onClose }) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ color: 'var(--color-gold-dark)' }}>Traits</td>
+                  <th scope="row" style={{ color: 'var(--color-gold-dark)' }}>Traits</th>
                   <td>
                     {traitNames.length > 0
                       ? traitNames.map((n, i) => <span key={i} className="pg-badge pg-badge-info" style={{ marginRight: 4 }}>{n}</span>)

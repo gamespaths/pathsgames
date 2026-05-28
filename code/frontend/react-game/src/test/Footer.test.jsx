@@ -10,6 +10,16 @@ vi.mock('../i18n/context', () => ({
   }),
 }))
 
+vi.mock('../context/ServerContext', () => ({
+  useServer: () => ({
+    server: 'mock',
+    servers: [{ label: 'Mock (offline)', url: 'mock' }],
+    probing: false,
+    changeServer: vi.fn(),
+  }),
+  MOCK_SERVER: 'mock',
+}))
+
 describe('Footer', () => {
   it('renders Paths Games brand', () => {
     render(<Footer />)

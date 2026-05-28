@@ -274,8 +274,8 @@ function MatchEditModal({ match, statuses, onClose, onSaved }) {
   }
 
   return (
-    <div className="pg-modal-backdrop" onClick={onClose}>
-      <div className="pg-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+    <div className="pg-modal-backdrop" role="button" tabIndex="0" onClick={onClose} onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div className="pg-modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
         <p className="pg-modal-title"><i className="fas fa-pen me-2" />Edit match</p>
 
         <ErrorAlert message={error} />

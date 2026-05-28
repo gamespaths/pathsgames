@@ -8,16 +8,6 @@ vi.mock('../i18n/context', () => ({
   }),
 }))
 
-vi.mock('../features/game/CardDetailModal', () => ({
-  default: ({ card, modalId, actionLabel, onAction }) => (
-    <div data-testid="mock-modal" id={modalId}>
-      <span>{card.name}</span>
-      <span>{actionLabel}</span>
-      <button onClick={onAction}>{`modal-action-${card.name}`}</button>
-    </div>
-  ),
-}))
-
 describe('SelectionView — type="location"', () => {
   const mockLocations = [
     { uuid: 'loc-1', name: 'Location 1', awesomeIcon: 'fas fa-map' },
@@ -25,10 +15,9 @@ describe('SelectionView — type="location"', () => {
     { uuid: '!!!',   name: 'Location 3' },
   ]
 
-  it('renders the moveTo header and all location cards', () => {
+  it('renders all location cards', () => {
     render(<SelectionView type="location" options={mockLocations} />)
 
-    expect(screen.getByText('game.moveTo')).toBeInTheDocument()
     expect(screen.getAllByText('Location 1').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Location 2').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Location 3').length).toBeGreaterThan(0)
@@ -45,12 +34,13 @@ describe('SelectionView — type="location"', () => {
     expect(screen.getAllByText('game.move').length).toBeGreaterThanOrEqual(mockLocations.length)
   })
 
-  it('renders a CardDetailModal per location with a sanitized modalId', () => {
-    render(<SelectionView type="location" options={mockLocations} />)
-    expect(document.getElementById('neighbor-modal-loc-1')).not.toBeNull()
-    expect(document.getElementById('neighbor-modal-loc-2')).not.toBeNull()
-    // bad uuid → index fallback (2)
-    expect(document.getElementById('neighbor-modal-2')).not.toBeNull()
+  it('calls handleSelectionPreview when info button clicked', () => {
+    const onPreview = vi.fn()
+    const { container } = render(<SelectionView type="location" options={mockLocations} handleSelectionPreview={onPreview} />)
+    const infoBtns = container.querySelectorAll('button[aria-label]')
+    expect(infoBtns.length).toBeGreaterThan(0)
+    fireEvent.click(infoBtns[0])
+    expect(onPreview).toHaveBeenCalledWith(mockLocations[0], 'location')
   })
 
   it('fires the move alert when the footer button is clicked', () => {
@@ -64,11 +54,12 @@ describe('SelectionView — type="location"', () => {
     alertSpy.mockRestore()
   })
 
-  it('fires the same move alert when the modal action button is clicked', () => {
+  it('fires move alert when footer button clicked for second location', () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
-    render(<SelectionView type="location" options={mockLocations} />)
+    const { container } = render(<SelectionView type="location" options={mockLocations} />)
 
-    fireEvent.click(screen.getByText('modal-action-Location 2'))
+    const cells = container.querySelectorAll('.game-card-cell')
+    fireEvent.click(within(cells[1]).getAllByText('game.move')[0])
     expect(alertSpy).toHaveBeenCalledWith('Executing action: Move to - Location 2')
     alertSpy.mockRestore()
   })
@@ -81,10 +72,9 @@ describe('SelectionView — type="action"', () => {
     { uuid: 'uuid-end', uuidEvent: 'evt-end', name: 'Finish Quest', awesomeIcon: 'fas fa-flag', endGame: true },
   ]
 
-  it('renders the actions header and every action card', () => {
+  it('renders all action cards', () => {
     render(<SelectionView type="action" options={mockActions} />)
 
-    expect(screen.getByText('game.actions')).toBeInTheDocument()
     expect(screen.getAllByText('Action 1').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Finish Quest').length).toBeGreaterThan(0)
   })
@@ -97,11 +87,13 @@ describe('SelectionView — type="action"', () => {
     expect(within(cells[2]).getAllByText('game.endGame').length).toBeGreaterThan(0)
   })
 
-  it('renders a CardDetailModal per action with a sanitized modalId', () => {
-    render(<SelectionView type="action" options={mockActions} />)
-    expect(document.getElementById('action-modal-uuid-1')).not.toBeNull()
-    expect(document.getElementById('action-modal-uuid-2')).not.toBeNull()
-    expect(document.getElementById('action-modal-uuid-end')).not.toBeNull()
+  it('calls handleSelectionPreview for action type', () => {
+    const onPreview = vi.fn()
+    const { container } = render(<SelectionView type="action" options={mockActions} handleSelectionPreview={onPreview} />)
+    const infoBtns = container.querySelectorAll('button[aria-label]')
+    expect(infoBtns.length).toBeGreaterThan(0)
+    fireEvent.click(infoBtns[0])
+    expect(onPreview).toHaveBeenCalledWith(mockActions[0], 'action')
   })
 
   it('fires the execute alert for a normal action', () => {
@@ -134,12 +126,15 @@ describe('SelectionView — type="action"', () => {
     alertSpy.mockRestore()
   })
 
-  it('routes the modal action button through the end-game callback', () => {
-    const onEndGame = vi.fn()
-    render(<SelectionView type="action" options={mockActions} onEndGame={onEndGame} />)
-
-    fireEvent.click(screen.getByText('modal-action-Finish Quest'))
-    expect(onEndGame).toHaveBeenCalledTimes(1)
+  it('renders info button for endGame action and calls handleSelectionPreview', () => {
+    const onPreview = vi.fn()
+    const { container } = render(<SelectionView type="action" options={mockActions} handleSelectionPreview={onPreview} onEndGame={vi.fn()} />)
+    const cells = container.querySelectorAll('.game-card-cell')
+    const endCell = cells[2]
+    const infoBtn = endCell.querySelector('button[aria-label]')
+    expect(infoBtn).not.toBeNull()
+    fireEvent.click(infoBtn)
+    expect(onPreview).toHaveBeenCalledWith(mockActions[2], 'action')
   })
 
   it('renders nothing when there are no actions', () => {

@@ -55,27 +55,21 @@ describe('Navbar', () => {
     expect(screen.getByText('nav.brand')).toBeInTheDocument()
   })
 
-  it('renders IT and EN language buttons', () => {
+  it('renders user button with guest username as title', () => {
     renderNavbar()
-    expect(screen.getByTitle('Italiano')).toBeInTheDocument()
-    expect(screen.getByTitle('English')).toBeInTheDocument()
+    expect(screen.getByTitle('guest_mock0001')).toBeInTheDocument()
   })
 
-  it('calls setLang when EN button clicked', () => {
+  it('user button shows nav.guest label', () => {
     renderNavbar()
-    fireEvent.click(screen.getByTitle('English'))
-    expect(mockSetLang).toHaveBeenCalledWith('en')
-  })
-
-  it('renders guest username from cookie when available', () => {
-    renderNavbar()
-    expect(screen.getByText('guest_mock0001')).toBeInTheDocument()
+    const btn = screen.getByTitle('guest_mock0001')
+    expect(btn.tagName).toBe('BUTTON')
+    expect(btn).toHaveTextContent('nav.guest')
   })
 
   it('guest button calls openGuestModal on click', () => {
     renderNavbar()
-    const btn = screen.getByText('guest_mock0001').closest('button')
-    fireEvent.click(btn)
+    fireEvent.click(screen.getByTitle('guest_mock0001'))
     expect(mockOpenGuestModal).toHaveBeenCalledOnce()
   })
 
