@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useTranslation } from '../../i18n/context'
-import { useGuestUser } from '../../context/GuestUserContext'
-import Book from '../book/Book'
-import BookPageContent from '../book/BookPageContent'
-import UserMatchesList from '../../features/matches/UserMatchesList'
+import { useTranslation } from '../../../i18n/context'
+import { useGuestUser } from '../../../context/GuestUserContext'
+import Book from '../../book/Book'
+import BookPageContent from '../../book/BookPageContent'
+import UserMatchesList from './UserMatchesList'
+import UserLanguageSelector from './UserLanguageSelector'
 
 /**
  * GuestUserModal — book-style overlay showing the guest identity on the left
@@ -34,17 +35,21 @@ export default function GuestUserModal() {
     )
     : <BookPageContent card={userCard} loading={loading} />
 
-  return (
-    <Book
-      onClose={closeGuestModal}
-      left={leftPage}
-      right={
-        <UserMatchesList
+  const rightPage = <>
+    <UserLanguageSelector />
+    <UserMatchesList
           accessToken={user?.accessToken}
           onPreviewCard={setPreviewInfo}
           onClose={closeGuestModal}
         />
-      }
+  </>
+
+  return (
+    <Book
+      onClose={closeGuestModal}
+      left={leftPage}
+      right={rightPage}
+
     />
   )
 }

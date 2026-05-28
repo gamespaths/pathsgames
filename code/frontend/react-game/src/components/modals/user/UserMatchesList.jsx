@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from '../../i18n/context'
-import { listMatches } from '../../api/matches'
-import { getStory } from '../../api/stories'
-import MatchCard from './MatchCard'
+import { useTranslation } from '../../../i18n/context'
+import { listMatches } from '../../../api/matches'
+import { getStory } from '../../../api/stories'
+import MatchCard from '../../../features/matches/MatchCard'
 
 /**
  * UserMatchesList — fetches the current user's matches and story cards,

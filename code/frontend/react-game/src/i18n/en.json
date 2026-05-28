@@ -126,6 +126,8 @@
     "endGameClose": "Close"
   },
   "footer": {
+    "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",
+    "serverSelect": "Server",
     "rights": "All rights reserved",
     "madeWith": "Crafted with",
     "byTeam": "by the Paths Games Dev Team",
@@ -220,6 +222,7 @@
       "body": "Every image used by Paths Games — Unsplash photographs and SVG icons from game-icons.net — is credited below. Click an image card to open the original source on the author's page."
     },
     "guestUser": {
+      "languageTitle": "Language",
       "title": "Your Profile",
       "anonymous": "Anonymous traveller",
       "uuidLabel": "Session ID",

@@ -93,7 +93,7 @@
       "CREATED":  "Pronta",
       "RUNNING":  "In Corso",
       "PAUSED":   "In Pausa",
-      "ENDED":    "Terminata",
+      "ENDED":    "Finita",
       "GAMEOVER": "Game Over"
     }
   },
@@ -125,6 +125,8 @@
     "endGameClose": "Chiudi"
   },
   "footer": {
+    "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
+    "serverSelect": "Server",
     "rights": "Tutti i diritti riservati",
     "madeWith": "Realizzato con",
     "byTeam": "dal Team Paths Games",
@@ -219,6 +221,7 @@
       "body": "Ogni immagine usata da Paths Games — fotografie di Unsplash e icone SVG di game-icons.net — è accreditata di seguito. Clicca su una card per aprire la pagina originale dell'autore."
     },
     "guestUser": {
+      "languageTitle": "Lingua",
       "title": "Il tuo profilo",
       "anonymous": "Viaggiatore anonimo",
       "uuidLabel": "ID Sessione",
