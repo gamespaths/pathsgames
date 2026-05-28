@@ -21,6 +21,8 @@ In these step we are going to create the code/backend folder and first API to ch
 Following the **Hexagonal Architecture** (Ports and Adapters) pattern, the backend will be strictly divided to isolate the core game logic from external frameworks and technologies.
 - **Core Module**: Contains the pure business logic, game rules (turn calculation, energy consumption, weather effects), and core entities (`Match`, `Character`, `Location`, `Event`, `Choice`). This module must be written in pure Java 21 and remain completely independent of Spring Boot, databases, or web frameworks.
 - **Infrastructure Module**: Contains the adapters that implement the domain's interfaces (ports). This includes database repositories, REST controllers, WebSocket handlers, and external service integrations. Main module will be
+- **Persistence Technology**: Database adapters must use **Spring Data JPA** (via `spring-boot-starter-data-jpa`) for all data access operations. Raw JDBC or `JdbcTemplate` must **not** be used. Entities are annotated with `@Entity`/`@Table`; repositories extend `JpaRepository`. Dialect is configured per profile: `org.hibernate.community.dialect.SQLiteDialect` (dev) and `org.hibernate.dialect.PostgreSQLDialect` (prod). Schema creation is always delegated to **Flyway** (`spring.jpa.hibernate.ddl-auto=none`).
+
 
 ## 2. Define API module
 The API module handles all synchronous client-server communication using **Spring Boot REST Controllers**.
@@ -84,13 +86,17 @@ The shared services module provides cross-cutting functionalities used by multip
     > in all project I wanna change main package from "games.pathsGame" to "games.paths"  
     
     > add flyway information in the document  
-- **Document Version**: 0.10.12
+
+    > in this file, in point 1, i wanna to add jpa tecnology (no JDBC)  
+    
+- **Document Version**: 0.12.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5 | first version of document | February 20, 2026 |
     | 0.10.12 | added Flyway migration details to persistence module | March 19, 2026 |
+    | 0.12.0 | added JPA uses details | March 27, 2026 |
 - **Last Updated**: March 19, 2026
-- **Status**: Complete ✅
+- **Status**: ✅ Complete
 
 
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Guest Login (v0.12.0)</title>
+  <meta name="description" content="Paths Games: Guest Login concept — Step 12 implementation demo" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="variables.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-dice-d20"></i> Paths Games
+    </a>
+    <div class="navbar-status" id="serverStatus">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="page-wrap">
+
+    <!-- ── LOGIN VIEW ── -->
+    <div class="login-card" id="loginView">
+      <div class="login-icon">⚔️</div>
+      <h1 class="login-title">Enter the Realm</h1>
+      <p class="login-divider">— ✦ ⚜ ✦ —</p>
+      <p class="login-desc">
+        Begin your adventure as a <strong>guest traveler</strong>.<br>
+        No registration required — your identity is forged anonymously.
+      </p>
+      <button class="btn-guest" id="btnGuestLogin" onclick="guestLogin()">
+        <i class="fas fa-user-secret"></i>&nbsp; Enter as Guest
+      </button>
+      <p class="login-footer">
+        <i class="fas fa-shield-alt"></i> Your session is secure and anonymous
+      </p>
+      <div id="loginError"></div>
+    </div>
+
+    <!-- ── SESSION VIEW (hidden by default) ── -->
+    <div class="session-panel" id="sessionView" style="display:none;">
+      <div class="session-header">
+        <div class="check-icon"><i class="fas fa-check-circle"></i></div>
+        <h2>Session Active</h2>
+      </div>
+
+      <ul class="session-details">
+        <li>
+          <span class="label">Username</span>
+          <span class="value" id="sessUsername">—</span>
+        </li>
+        <li>
+          <span class="label">User UUID</span>
+          <span class="value uuid" id="sessUuid">—</span>
+        </li>
+        <li>
+          <span class="label">Access Expires</span>
+          <span class="value" id="sessAccessExp">—</span>
+        </li>
+        <li>
+          <span class="label">Refresh Expires</span>
+          <span class="value" id="sessRefreshExp">—</span>
+        </li>
+        <li>
+          <span class="label">Type</span>
+          <span class="value">Guest</span>
+        </li>
+      </ul>
+
+      <div class="token-section">
+        <h3><i class="fas fa-key"></i> Access Token (JWT)</h3>
+        <div class="token-box" id="sessAccessToken">—</div>
+        <h3><i class="fas fa-sync-alt"></i> Refresh Token (JWT)</h3>
+        <div class="token-box" id="sessRefreshToken">—</div>
+      </div>
+
+      <div class="session-actions">
+        <button class="btn-action btn-resume" onclick="resumeSession()">
+          <i class="fas fa-redo"></i> Resume Session
+        </button>
+        <button class="btn-action btn-logout" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+
+      <div id="sessionMsg"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="page-footer">
+    Paths Games — Concept v0.12.0 — Step 12: Guest Login
+    &bull; <a href="https://github.com/gamespaths/pathsgames">GitHub</a>
+    &bull; <a href="https://paths.games">paths.games</a>
+  </footer>
+
+  <script src="guest-login.js"></script>
+</body>
+</html>

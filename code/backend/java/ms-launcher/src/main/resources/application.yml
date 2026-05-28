@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: paths-game-backend
+  profiles:
+    active: dev
+
+game:
+  server:
+    version: 0.20.4
+    # manually change this version if needed >0.13.0
+  database:
+    # Configurable SQLite path — override with -Dgame.database.path=/your/path
+    path: ${user.home}/.paths.games/database.sqlite
+  auth:
+    jwt:
+      # HMAC-SHA256 secret key (min 32 chars). Override in production via env variable or -D option.
+      secret: ${JWT_SECRET:PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
+      access-token-minutes: 30
+      refresh-token-days: 7
+    max-tokens-per-user: 5
+    admin-path-prefix: /api/admin/
+    public-paths: /api/echo/**,/api/auth/guest,/api/auth/guest/resume,/api/auth/refresh,/api/versions,/api/stories,/api/stories/**,/api/content/**,/api/dev/**
+    cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
+      same-site: Lax
+  admin:
+    auth:
+      guest:
+        cleanup:
+          cron: 0 42 0 * * ? #runs at 00:42 every day GuestSessionCleanupScheduler
+  turnstile:
+    # Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass).
+    # Override in production via env variable TURNSTILE_SECRET_KEY.
+    secret-key: ${TURNSTILE_SECRET_KEY:}
+    # Optional Robot-test bypass token. When env != "prod" and the incoming
+    # turnstileToken equals this value, Cloudflare verification is skipped.
+    # Leave empty (or run with env=prod) to forbid the bypass entirely.
+    bypass-token: ${TURNSTILE_BYPASS_TOKEN:}
+  env: ${APP_ENV:dev}
+  dev:
+    # Enables dev-only endpoints (POST /api/dev/cleanup) and the optional
+    # X-Test-Marker header on POST /api/auth/guest. Disabled by the prod profile.
+    test-endpoints-enabled: true

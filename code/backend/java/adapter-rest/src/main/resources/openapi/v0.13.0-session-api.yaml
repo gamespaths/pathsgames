@@ -1,0 +1,330 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Session & Token Management API
+  description: |
+    OpenAPI specification for Step 13: Session and Token Management.
+    Covers token refresh (with rotation), logout, logout-all, and user identity endpoints.
+    Also documents the JWT authentication filter behavior.
+
+    **HttpOnly cookie security model:**
+    - `refreshToken` is stored as an HttpOnly cookie (`pathsgames.refreshToken`), invisible to JavaScript.
+    - Refresh and logout endpoints read the cookie automatically — no request body required.
+    - The server responds with `Set-Cookie` headers to issue/rotate/delete cookies.
+    - Clients must use `credentials: 'include'` so the browser sends cookies on every request.
+  version: 0.13.1
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Session
+    description: Session and token management endpoints
+
+paths:
+
+  # ═══════════════════════════════════════════════════════════════
+  # Step 13: Session & Token Management
+  # ═══════════════════════════════════════════════════════════════
+
+  /api/auth/refresh:
+    post:
+      tags: [Session]
+      summary: Refresh tokens (with rotation)
+      description: |
+        Exchanges the `pathsgames.refreshToken` HttpOnly cookie for a new access token.
+        **Token rotation policy:** ALL previous tokens for the user are revoked.
+
+        No request body is required — the browser sends the HttpOnly cookie automatically
+        when the request is made with `credentials: 'include'`.
+
+        The server responds with a new `Set-Cookie: pathsgames.refreshToken` (rotated).
+      operationId: refreshToken
+      parameters:
+        - name: pathsgames.refreshToken
+          in: cookie
+          required: true
+          description: JWT refresh token (HttpOnly cookie set by the server on login)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          headers:
+            Set-Cookie:
+              description: |
+                Rotated refresh token cookie:
+                `pathsgames.refreshToken=<jwt>; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=604800`
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Refresh token cookie is missing, invalid, expired, or revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: INVALID_REFRESH_TOKEN
+                message: "Refresh token is invalid, expired, or revoked. Please login again."
+                timestamp: 1711533600000
+
+  /api/auth/logout:
+    post:
+      tags: [Session]
+      summary: Logout (single token)
+      description: |
+        Revokes the refresh token from the `pathsgames.refreshToken` HttpOnly cookie
+        (logout from one device/channel). The server clears both HttpOnly cookies in the response.
+
+        No request body is required — the browser sends the cookie automatically.
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: logout
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: pathsgames.refreshToken
+          in: cookie
+          required: true
+          description: JWT refresh token (HttpOnly cookie) to revoke
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token revoked and cookies cleared
+          headers:
+            Set-Cookie:
+              description: |
+                Both HttpOnly cookies are deleted (Max-Age=0):
+                - `pathsgames.refreshToken=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+                - `pathsgames.guestcookie=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                status: OK
+                message: Token revoked successfully
+                timestamp: 1711533600000
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Refresh token not found or already revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: TOKEN_NOT_FOUND
+                message: Refresh token not found or already revoked
+                timestamp: 1711533600000
+
+  /api/auth/logout/all:
+    post:
+      tags: [Session]
+      summary: Logout all sessions
+      description: |
+        Revokes all active sessions (refresh tokens) for the authenticated user.
+        The user UUID is extracted from the JWT access token by the authentication filter.
+        The server clears both HttpOnly cookies in the response.
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: logoutAll
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: All sessions revoked and cookies cleared
+          headers:
+            Set-Cookie:
+              description: |
+                Both HttpOnly cookies are deleted (Max-Age=0):
+                - `pathsgames.refreshToken=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+                - `pathsgames.guestcookie=; Path=/api/auth; HttpOnly; SameSite=Lax; Max-Age=0`
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+              example:
+                status: OK
+                message: All sessions revoked successfully
+                timestamp: 1711533600000
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: USER_NOT_FOUND
+                message: User not found
+                timestamp: 1711533600000
+
+  /api/auth/me:
+    get:
+      tags: [Session]
+      summary: Get current user info
+      description: |
+        Returns the authenticated user's identity from the valid access token.
+        User information is set by the JWT authentication filter.
+        Requires a valid access token in the `Authorization: Bearer <token>` header.
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User identity information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: UNAUTHORIZED
+                message: Valid access token required
+                timestamp: 1711533600000
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained from `/api/auth/guest` or `/api/auth/refresh`.
+        Include in the `Authorization` header as `Bearer <token>`.
+
+  schemas:
+
+    RefreshTokenResponse:
+      type: object
+      description: |
+        Response returned after a successful token refresh.
+        The new refresh token is delivered via `Set-Cookie` (HttpOnly) — not in this body.
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          description: The user's public UUID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          description: The user's display name
+          example: "guest_550e8400"
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+          description: The user's role
+          example: "PLAYER"
+        accessToken:
+          type: string
+          description: New JWT access token (short-lived, keep in memory only)
+          example: "eyJhbGciOiJIUzI1NiJ9...(new)"
+        accessTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Access token expiration (epoch milliseconds)
+          example: 1711533600000
+        refreshTokenExpiresAt:
+          type: integer
+          format: int64
+          description: Refresh token expiration (epoch milliseconds, informational only)
+          example: 1712138400000
+
+    UserInfo:
+      type: object
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: "guest_550e8400"
+        role:
+          type: string
+          enum: [PLAYER, ADMIN]
+          example: "PLAYER"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "OK"
+        message:
+          type: string
+          example: "Operation completed successfully"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: "INVALID_TOKEN"
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Access token is invalid, expired, or malformed"
+        timestamp:
+          type: integer
+          format: int64
+          example: 1711533600000
+
+    GuestLoginResponse:
+      type: object
+      description: |
+        Minimal reference schema for guest login responses.
+        Full definition with cookie documentation is in v0.12.0-guest-auth-api.yaml.
+        `refreshToken` and `guestCookieToken` are delivered as HttpOnly `Set-Cookie` headers.
+      properties:
+        userUuid:
+          type: string
+          format: uuid
+        username:
+          type: string
+        accessToken:
+          type: string
+        accessTokenExpiresAt:
+          type: integer
+          format: int64
+        refreshTokenExpiresAt:
+          type: integer
+          format: int64

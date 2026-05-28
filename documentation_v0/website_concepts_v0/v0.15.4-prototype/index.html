@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — A Gamebook Videogame</title>
+  <meta name="description" content="Paths Games: an epic medieval gamebook videogame. Join our crowdfunding and shape your destiny!" />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="variables.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar-medieval">
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-dice-d20 me-2"></i>Paths Games
+    </a>
+    <div class="nav-badges navbar-badges-to-rotate">
+      <span class="navbar-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
+      <span class="navbar-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
+      <span class="navbar-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
+      <span class="navbar-badge"><i class="fas fa-random me-1"></i>Multiple Paths</span>
+      <span class="navbar-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
+      <span class="navbar-badge"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
+      <span class="navbar-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
+    </div>
+    <div class="nav-user">
+      <button class="nav-user-btn" id="btn-user" title="Login or continue as guest">
+        <i class="fas fa-user-circle"></i>
+        <span class="nav-user-label">Guest</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ GAME BAR ═══════════════ -->
+  <div class="game-bar" id="game-bar" style="display:none;">
+    <span class="game-bar-title" id="game-bar-title">—</span>
+    <button class="game-bar-btn" id="btn-map" title="Map"><i class="fas fa-map-marked-alt me-1"></i>Map</button>
+    <button class="game-bar-btn" id="btn-journal" title="Journal"><i class="fas fa-book me-1"></i>Journal</button>
+  </div>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="page-wrap">
+
+    <!-- ══════════════════════════════════════════
+         HERO BANNER — castle image (1/3 viewport)
+         ══════════════════════════════════════════ -->
+    <section class="hero-banner" id="hero-banner">
+      <img id="hero-img" src="" alt="Castle" class="hero-banner-img" />
+      <div class="hero-overlay">
+        <h1 class="hero-title"><i class="fas fa-dice-d20 me-2"></i>Paths Games</h1>
+        <p class="hero-subtitle">A <strong>free-to-play</strong> adventure inspired by classic gamebooks</p>
+        <div class="hero-badges">
+          <span class="hero-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
+          <span class="hero-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
+          <span class="hero-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
+          <span class="hero-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
+          <span class="hero-badge"><i class="fas fa-code me-1"></i>Open Source</span>
+        </div>
+      </div>
+      <button class="hero-credit-btn card-info-btn" id="hero-info-btn" title="Photo credit"
+              data-credit-artist="" data-credit-url="">
+        <i class="fas fa-info-circle"></i>
+      </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         STORY CATALOG — Netflix-style rows
+         ══════════════════════════════════════════ -->
+    <section class="story-catalog" id="story-catalog">
+      <!-- Rendered dynamically by main.js -->
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         WORLD SECTION — Active game area
+         ══════════════════════════════════════════ -->
+    <div class="world-row" id="world" style="display:none;">
+      <div class="player-bar" id="player-bar">
+        <span class="player-bar-name"><i class="fas fa-user me-1"></i>Guest</span>
+        <div class="player-bar-stats">
+          <span class="player-stat"><i class="fas fa-heart me-1"></i><span class="player-stat-val" id="stat-hp">100</span>&nbsp;HP</span>
+          <span class="player-stat"><i class="fas fa-bolt me-1"></i><span class="player-stat-val" id="stat-energy">80</span>&nbsp;Energy</span>
+          <span class="player-stat"><i class="fas fa-shield-alt me-1"></i><span class="player-stat-val" id="stat-armor">60</span>&nbsp;Armor</span>
+        </div>
+        <button class="game-bar-btn" id="btn-inventory"><i class="fas fa-box-open me-1"></i>Inventory</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="medieval-footer" id="footer">
+    <div class="footer-inner">
+      <div class="footer-links-row">
+        <span class="footer-brand-sm"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
+      </div>
+      <div class="footer-links-row">
+        <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="footer-icon-link" title="GitHub">
+          <i class="fab fa-github"></i><span>GitHub</span>
+        </a>
+        <a href="https://github.com/gamespaths/pathsgames/blob/main/ROADMAP.md" class="footer-icon-link" title="Roadmap">
+          <i class="fas fa-scroll"></i><span>Roadmap</span>
+        </a>
+        <a href="https://github.com/gamespaths/pathsgames/blob/main/documentation_v0/Step00_Roadmap.md" class="footer-icon-link" title="Devlog">
+          <i class="fas fa-newspaper"></i><span>Devlog</span>
+        </a>
+        <a href="https://www.instagram.com/pathsgames/" class="footer-icon-link" title="Instagram">
+          <i class="fab fa-instagram"></i><span>Instagram</span>
+        </a>
+        <a href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" class="footer-icon-link" title="YouTube">
+          <i class="fab fa-youtube"></i><span>YouTube</span>
+        </a>
+      </div>
+      <div class="footer-copy">
+        <span class="gold-light">Paths Games v<span>0.15.4</span></span> &copy; 2026 All rights reserved &middot;
+        Crafted with <i class="fas fa-heart"></i> by the Paths Games Dev Team &middot;
+        <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">Privacy Policy</a> &middot;
+        <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#termsModal">Terms of Service</a> &middot;
+        <a href="#" class="footer-link-inline" data-bs-toggle="modal" data-bs-target="#cookiePolicyModal">Cookies Policy</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════ STORY PREVIEW MODAL ═══════════════ -->
+  <div class="modal fade story-preview-modal" id="storyPreviewModal" tabindex="-1" aria-labelledby="storyPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="storyPreviewModalLabel">
+            <i class="fas fa-scroll me-2"></i><span id="preview-modal-title">Story</span>
+          </h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body story-preview-body" id="story-preview-body">
+          <!-- Rendered dynamically by main.js -->
+        </div>
+        <div class="modal-footer story-preview-footer">
+          <button class="story-preview-play-btn" id="btn-preview-play">
+            <i class="fas fa-play me-2"></i>Start Adventure
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CARD DETAIL MODAL ═══════════════ -->
+  <div class="modal fade" id="cardDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div id="card-detail-inner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ COOKIES POLICY MODAL ═══════════════ -->
+  <div class="modal fade" id="cookiePolicyModal" tabindex="-1" aria-labelledby="cookiePolicyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="cookiePolicyModalLabel"><i class="fas fa-cookie-bite me-2"></i>Cookies Policy</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>This site uses essential cookies only to keep your session active. No tracking cookies are used.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ PRIVACY POLICY MODAL ═══════════════ -->
+  <div class="modal fade" id="privacyPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>This Privacy Policy describes how <strong>Paths Games</strong> (&copy; paths.games) collects, uses and protects your personal information.</p>
+          <p>We may collect basic usage data through anonymised analytics. No personal data is sold to third parties.</p>
+          <p>For any inquiries, contact us via our <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener">GitHub repository</a>.</p>
+          <p class="text-muted" style="font-size:0.8rem;">Last updated: April 2026</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TERMS OF SERVICE MODAL ═══════════════ -->
+  <div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-scroll me-2"></i>Terms of Service</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <p>By accessing <strong>Paths Games</strong> (&copy; paths.games) you agree to the following terms.</p>
+          <p><strong>Use of Content:</strong> All game content, stories, artwork and code are the intellectual property of Paths Games unless otherwise stated.</p>
+          <p><strong>User Conduct:</strong> You agree not to misuse the service or attempt unauthorised access.</p>
+          <p><strong>Disclaimer:</strong> The game is provided "as-is" during the development phase.</p>
+          <p class="text-muted" style="font-size:0.8rem;">Last updated: April 2026</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="crowdfund-badge cookies-close no-ig" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ COPYRIGHT / PHOTO CREDIT INFO MODAL ═══════════════ -->
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-camera me-2"></i>Photo Credit</h5>
+          <button type="button" class="modal-custom-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;" id="info-modal-body">
+          <p style="font-size:2.5rem;" id="info-modal-icon">📷</p>
+          <p>Photo by <strong id="info-artist-name">—</strong></p>
+          <p><a href="#" id="info-artist-link" target="_blank" rel="noopener" class="info-unsplash-link">
+            <i class="fas fa-external-link-alt me-1"></i>View on Unsplash
+          </a></p>
+          <hr style="border-color:rgba(200,150,10,0.2);" />
+          <p style="font-size:0.82rem;">All stories, artwork and game content are<br/><strong>&copy; paths.games 2026</strong><br/>All rights reserved.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="story-preview-play-btn" data-bs-dismiss="modal"><i class="fas fa-arrow-left me-2"></i>Go Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./stories.js"></script>
+  <script src="./main.js"></script>
+  <script src="./card3d.js"></script>
+
+</body>
+</html>

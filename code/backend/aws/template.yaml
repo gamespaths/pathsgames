@@ -1,0 +1,212 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Paths Games - Backend Serverless (AWS SAM)"
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: "Ambiente di deploy (dev, prod, ecc.)"
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+    Description: "Secret key for JWT verification"
+  TurnstileSecretKey:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Cloudflare Turnstile secret key. Leave empty to disable validation (dev bypass)."
+  TurnstileBypassToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
+  SeedBcryptHash:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "BCrypt hash for seed users (dev-only). Pass at deploy time, do not store in code."
+  CustomDomainName:
+    Type: String
+    Default: ""
+    Description: "Optional. Custom public domain (e.g., api-dev.paths.games)"
+  CustomDomainCertificateArn:
+    Type: String
+    Default: ""
+    Description: "Optional. ARN of the ACM certificate for the custom domain"
+  CustomDomainHostedZoneId:
+    Type: String
+    Default: ""
+    Description: "Optional. Global Route53 Hosted Zone ID for automatic Alias record"
+  CorsAllowOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games,https://test.paths.games"
+    Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173,http://localhost:5174)"
+
+Conditions:
+  HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
+  HasCustomDomainAndHostedZone: !And
+    - !Not [!Equals [!Ref CustomDomainName, ""]]
+    - !Not [!Equals [!Ref CustomDomainHostedZoneId, ""]]
+
+Resources:
+  # DynamoDB Table (Single Table Design)
+  PathsGamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "PathsGamesBackend-${Environment}"
+      Tags:
+        - Key: project
+          Value: PathsGames
+        - Key: env
+          Value: !Ref Environment
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1_PK
+          AttributeType: S
+        - AttributeName: GSI1_SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1_PK
+              KeyType: HASH
+            - AttributeName: GSI1_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # HTTP API (API Gateway v2)
+  PathsGamesApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Environment
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      CorsConfiguration:
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+        AllowOrigins: !Ref CorsAllowOrigins
+        AllowHeaders: [Content-Type, Authorization, Cookie]
+        AllowCredentials: true
+
+  PathsGamesApiCustomDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: HasCustomDomain
+    Properties:
+      DomainName: !Ref CustomDomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CustomDomainCertificateArn
+          EndpointType: REGIONAL
+
+  PathsGamesApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HasCustomDomain
+    Properties:
+      ApiId: !Ref PathsGamesApi
+      DomainName: !Ref CustomDomainName
+      Stage: !Ref Environment
+    DependsOn:
+      - PathsGamesApiCustomDomain
+      - PathsGamesApi
+      - PathsGamesApiStage
+
+  PathsGamesApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: HasCustomDomainAndHostedZone
+    Properties:
+      HostedZoneId: !Ref CustomDomainHostedZoneId
+      Name: !Ref CustomDomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId: !GetAtt PathsGamesApiCustomDomain.RegionalHostedZoneId
+        DNSName: !GetAtt PathsGamesApiCustomDomain.RegionalDomainName
+
+  # Nested Stacks (Modules)
+
+  EchoModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/echo.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+
+  AuthModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/auth.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+        JwtSecret: !Ref JwtSecret
+
+  StoryModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/story.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+
+  # Step 19 — single-player match creation
+  MatchModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/match.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+        JwtSecret: !Ref JwtSecret
+        TurnstileSecretKey: !Ref TurnstileSecretKey
+        TurnstileBypassToken: !Ref TurnstileBypassToken
+
+  ContentModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/content.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+
+  SeedModule:
+    Type: AWS::Serverless::Application
+    DependsOn: PathsGamesApi
+    Properties:
+      Location: template/seed.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TableName: !Ref PathsGamesTable
+        ApiId: !Ref PathsGamesApi
+        SeedBcryptHash: !Ref SeedBcryptHash
+
+Outputs:
+  ApiUrl:
+    Description: "API Endpoint URL"
+    Value: !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  TableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref PathsGamesTable
+  SeedEndpoint:
+    Description: "Dev seed endpoint"
+    Value: !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"

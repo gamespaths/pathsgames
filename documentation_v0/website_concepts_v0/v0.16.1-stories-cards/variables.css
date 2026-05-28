@@ -1,0 +1,77 @@
+/* =============================================
+   PATHS GAME — variables.css
+   All design tokens as CSS custom properties
+   v0.16.1-stories-cards
+   ============================================= */
+:root {
+  /* === COLOR PALETTE === */
+  --color-parchment:        #e8d5b0;
+  --color-parchment-light:  #f2e6c8;
+  --color-parchment-medium: #f5e9c2;
+  --color-parchment-dark:   #c9b48a;
+  
+  --color-brown-deep:       #1a0a02;
+  --color-brown-dark:       #2e1508;
+  --color-brown-mid:        #5c3317;
+  --color-brown-warm:       #7a4520;
+  --color-brown-light:      #a0622e;
+  --color-brown-tan:        #c08040;
+  --color-brown-super-tan:  #d9a060;
+  --color-brown-extra-tan:  #e0b080;
+  --color-gold:             #c8960a;
+  --color-gold-light:       #e8b830;
+  --color-gold-shine:       #ffd700;
+  --color-gold-dark:        #9a6f08;
+  --color-gold-deep:        #7a4e00;
+  --color-gold-super-deep:  #5c3700;
+  --color-ink:              #1a0f06;
+  --color-ash:              #8b7355;
+  --color-stone:            #6b5c4a;
+  --color-ember:            #d44a0a;
+
+  --navbar-bg: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  --crowdfund-card-bg-1: var(--color-parchment);
+  --crowdfund-card-bg-2: var(--color-parchment-light);
+  --crowdfund-card-bg-3: var(--color-parchment-dark);
+  --crowdfund-title-color: var(--color-gold-deep);
+  --crowdfund-title-divider-color: var(--color-gold-dark);
+  --crowdfund-desc-color: var(--color-gold-dark);
+  --crowdfund-desc-strong-color: var(--color-gold-deep);
+  --crowdfund-light-badge-color: var(--color-gold-dark);
+  --crowdfound-button-bg-color: linear-gradient(180deg, var(--color-brown-super-tan), var(--color-brown-extra-tan));
+  --crowdfound-button-bg-color-hover: linear-gradient(360deg, var(--color-brown-super-tan), var(--color-brown-extra-tan));
+  --crowdfound-button-color: var(--color-gold-super-deep);
+
+  --card-body-background: linear-gradient(135deg, var(--color-brown-deep) 0%, var(--color-brown-warm) 40%, var(--color-brown-dark) 100%);
+  --card-header-background: radial-gradient(ellipse at center, var(--color-brown-warm) 0%, var(--color-brown-deep) 100%);
+  --card-title-background: linear-gradient(120deg, var(--color-brown-mid) 0%, var(--color-brown-deep) 100%);
+
+  --card-choice-header-background: var(--card-header-background);
+  --card-choice-title-background: var(--card-title-background);
+  --card-choice-body-background: var(--card-body-background);
+
+  --footer-background: linear-gradient(180deg, transparent 0%, var(--color-brown-light) 10%, var(--color-brown-mid) 20%, var(--color-brown-dark) 40%, var(--color-brown-deep) 100%);
+
+  /* === DARK THEME (default) === */
+  --bg-page:       var(--color-brown-deep);
+  --bg-card:       #2e1a0e;
+  --text-primary:  #e8d5b0;
+  --text-secondary:#c0a070;
+  --text-muted:    #8b7355;
+
+  /* === FONTS === */
+  --font-display:  'Cinzel Decorative', 'Trajan Pro', serif;
+  --font-heading:  'Cinzel', 'Palatino Linotype', serif;
+  --font-body:     'Crimson Text', 'Georgia', serif;
+
+  /* === CARD SIZES === */
+  --card-big-v-w:   280px;
+  --card-big-v-h:   420px;
+  --card-little-v-w:  140px;
+  --card-little-v-h:  210px;
+
+  /* === STATUS COLORS === */
+  --status-online:  #28a745;
+  --status-offline: #dc3545;
+  --status-loading: #ffc107;
+}

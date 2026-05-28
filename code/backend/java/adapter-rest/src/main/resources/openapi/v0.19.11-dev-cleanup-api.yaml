@@ -1,0 +1,82 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Dev Test-Data Cleanup API
+  description: |
+    OpenAPI specification for the **dev-only test-data cleanup** introduced in
+    version 0.19.11.
+
+    Automated (Robot Framework) test runs create guests and matches that
+    otherwise accumulate in the database. These rows are tagged with the
+    canonical `robottest` marker so they can be removed afterwards while every
+    other row is preserved:
+
+    * guest usernames start with `robottest_` — set when the optional
+      `X-Test-Marker` header is sent to `POST /api/auth/guest`;
+    * match names start with `robottest_` — set by the Robot test suites.
+
+    `POST /api/dev/cleanup` deletes every row carrying the marker. The
+    endpoint is **dev-only**: it returns `403` unless
+    `game.dev.test-endpoints-enabled` is `true` (the prod profile sets it to
+    `false`), so it is inert in production deployments.
+  version: 0.19.11
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Dev
+    description: Dev-only maintenance endpoints
+
+paths:
+  /api/dev/cleanup:
+    post:
+      tags: [Dev]
+      summary: Remove all data created by automated test runs
+      description: |
+        Deletes every guest and match tagged with the `robottest` marker,
+        together with their dependent rows (guest tokens, match runtime
+        state). All other data is preserved. No request body is required.
+      operationId: cleanupTestData
+      responses:
+        '200':
+          description: Cleanup completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResult'
+        '403':
+          description: Dev test endpoints are disabled on this environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    CleanupResult:
+      type: object
+      properties:
+        deletedGuests:
+          type: integer
+          description: Number of guest users removed
+          example: 12
+        deletedMatches:
+          type: integer
+          description: Number of matches removed
+          example: 5
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: DEV_ENDPOINTS_DISABLED
+        message:
+          type: string
+          example: Dev test endpoints are disabled on this environment

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro 3D</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0ece4;
+            font-family: sans-serif;
+        }
+
+        .scene {
+            width: 75px;
+            height: 250px;
+            perspective: 600px;
+            margin: 40px auto;
+            cursor: pointer;
+        }
+
+        .book {
+            width: 75px;
+            height: 250px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateY(-25deg);
+            transition: transform 0.6s ease;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .scene:hover .book {
+            transform: rotateY(-45deg);
+            animation: none;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: rotateY(-25deg) translateY(0px);
+            }
+
+            50% {
+                transform: rotateY(-25deg) translateY(-8px);
+            }
+        }
+
+        .face {
+            position: absolute;
+            border-radius: 1px 3px 3px 1px;
+            overflow: hidden;
+        }
+
+        .front {
+            width: 75px;
+            height: 250px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+            transform: translateZ(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: inset -3px 0 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .spine {
+            width: 24px;
+            height: 250px;
+            background: linear-gradient(180deg, #0d1b35 0%, #0a1628 50%, #0d1b35 100%);
+            transform: rotateY(-90deg) translateZ(12px);
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back {
+            width: 75px;
+            height: 250px;
+            background: #0a1222;
+            transform: translateZ(-12px) rotateY(180deg);
+        }
+
+        .top {
+            width: 75px;
+            height: 24px;
+            background: linear-gradient(90deg, #e8e0d0, #f5efe3, #e8e0d0, #d4c9b5);
+            transform: rotateX(90deg) translateZ(0px);
+            top: 0;
+            border-radius: 0;
+        }
+
+        .bottom {
+            width: 75px;
+            height: 24px;
+            background: linear-gradient(90deg, #e0d8c8, #ede7db, #e0d8c8, #cdc2ae);
+            transform: rotateX(-90deg) translateZ(250px);
+            top: 0;
+            border-radius: 0;
+        }
+
+        .pages {
+            width: 20px;
+            height: 248px;
+            background: repeating-linear-gradient(to bottom,
+                    #f5efe3 0px, #f5efe3 1.5px,
+                    #e8e2d6 1.5px, #e8e2d6 3px);
+            transform: rotateY(-90deg) translateZ(75px) translateX(-1px);
+            left: 0;
+            border-radius: 0;
+            box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .cover-ornament {
+            width: 55px;
+            height: 55px;
+            border: 1.5px solid rgba(212, 175, 90, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .cover-ornament::before {
+            content: '';
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border: 0.5px solid rgba(212, 175, 90, 0.35);
+            border-radius: 50%;
+        }
+
+        .cover-star {
+            font-size: 22px;
+            color: #d4af5a;
+            text-shadow: 0 0 12px rgba(212, 175, 90, 0.5);
+            line-height: 1;
+        }
+
+        .cover-title {
+            font-family: Georgia, serif;
+            font-size: 11px;
+            font-weight: bold;
+            color: #d4af5a;
+            text-align: center;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            line-height: 1.4;
+            padding: 0 6px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .cover-line {
+            width: 50px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 90, 0.7), transparent);
+        }
+
+        .cover-author {
+            font-family: Georgia, serif;
+            font-size: 7.5px;
+            color: rgba(212, 175, 90, 0.65);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .spine-text {
+            writing-mode: vertical-rl;
+            font-family: Georgia, serif;
+            font-size: 7px;
+            color: rgba(212, 175, 90, 0.55);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .shadow {
+            width: 120px;
+            height: 20px;
+            background: radial-gradient(ellipse, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
+            margin: 0 auto;
+            transform: scaleX(0.85);
+            animation: shadowFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes shadowFloat {
+
+            0%,
+            100% {
+                opacity: 0.8;
+                transform: scaleX(0.85) scaleY(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scaleX(0.75) scaleY(0.7);
+            }
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="scene">
+            <div class="book">
+                <div class="face front">
+                    <div class="cover-ornament">
+                        <span class="cover-star">✦</span>
+                    </div>
+                    <div class="cover-line"></div>
+                    <div class="cover-title">L'Arte<br>del Tempo</div>
+                    <div class="cover-line"></div>
+                    <div class="cover-author">A. Romano</div>
+                </div>
+                <div class="face spine">
+                    <span class="spine-text">L'Arte del Tempo</span>
+                </div>
+                <div class="face pages"></div>
+                <div class="face back"></div>
+                <div class="face top"></div>
+                <div class="face bottom"></div>
+            </div>
+        </div>
+        <div class="shadow"></div>
+        <p class="hint">passa sopra per aprire</p>
+    </div>
+</body>
+
+</html>

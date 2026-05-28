@@ -1,0 +1,226 @@
+<?php
+
+namespace Games\Paths\Core\Service\Matches;
+
+use Games\Paths\Core\Domain\Matches\MatchCreateCommand;
+use Games\Paths\Core\Domain\Matches\MatchCreationException;
+use Games\Paths\Core\Domain\Matches\MatchStatuses;
+use Games\Paths\Core\Domain\Matches\MatchSummary;
+use Games\Paths\Core\Port\Matches\MatchCommandPort;
+use Games\Paths\Core\Port\Matches\MatchPersistencePort;
+use Games\Paths\Core\Port\Matches\StoryMatchReadPort;
+use Games\Paths\Core\Port\Matches\SystemModePort;
+use Games\Paths\Core\Port\Matches\TurnstileVerificationPort;
+use Games\Paths\Core\Port\Matches\UserAccessPort;
+
+class MatchCommandService implements MatchCommandPort
+{
+    private const BANNED_STATES = [3, 4];
+
+    public function __construct(
+        private readonly StoryMatchReadPort $storyReadPort,
+        private readonly MatchPersistencePort $persistencePort,
+        private readonly UserAccessPort $userAccessPort,
+        private readonly SystemModePort $systemModePort,
+        private readonly ?TurnstileVerificationPort $turnstilePort = null
+    ) {
+    }
+
+    public function createMatch(MatchCreateCommand $command): MatchSummary
+    {
+        if ($command->getUserUuid() === '' || $command->getStoryUuid() === '' || $command->getDifficultyUuid() === '') {
+            throw new MatchCreationException(
+                MatchCreationException::INVALID_INPUT,
+                'userUuid, storyUuid and difficultyUuid are required'
+            );
+        }
+
+        if ($this->turnstilePort !== null
+            && !$this->turnstilePort->verify($command->getTurnstileToken(), $command->getRemoteIp())) {
+            throw new MatchCreationException(
+                MatchCreationException::TURNSTILE_VALIDATION_FAILED,
+                'Turnstile verification failed'
+            );
+        }
+
+        if ($this->systemModePort->isMaintenance()) {
+            throw new MatchCreationException(
+                MatchCreationException::MAINTENANCE_MODE,
+                'Server is under maintenance, no new match can be created'
+            );
+        }
+
+        $user = $this->userAccessPort->findByUuid($command->getUserUuid());
+        if ($user === null) {
+            throw new MatchCreationException(
+                MatchCreationException::USER_NOT_FOUND,
+                'User does not exist'
+            );
+        }
+        $state = $user['state'] ?? null;
+        if ($state !== null && in_array((int)$state, self::BANNED_STATES, true)) {
+            throw new MatchCreationException(
+                MatchCreationException::USER_BANNED,
+                'User is not allowed to create matches'
+            );
+        }
+
+        $story = $this->storyReadPort->findStoryByUuid($command->getStoryUuid());
+        if ($story === null) {
+            throw new MatchCreationException(
+                MatchCreationException::STORY_NOT_FOUND,
+                'Story not found: ' . $command->getStoryUuid()
+            );
+        }
+
+        $difficulty = $this->storyReadPort->findDifficultyByUuid($story['id'], $command->getDifficultyUuid());
+        if ($difficulty === null) {
+            throw new MatchCreationException(
+                MatchCreationException::DIFFICULTY_NOT_FOUND,
+                'Difficulty not found: ' . $command->getDifficultyUuid()
+            );
+        }
+
+        $locations = $this->storyReadPort->findLocationsByStoryId($story['id']);
+        if (empty($locations)) {
+            throw new MatchCreationException(
+                MatchCreationException::STORY_HAS_NO_LOCATIONS,
+                'Story has no locations defined'
+            );
+        }
+        $keys = $this->storyReadPort->findKeysByStoryId($story['id']);
+
+        $expCost = $difficulty['exp_cost'] ?? 5;
+
+        $saved = $this->persistencePort->saveMatch([
+            'id_story' => $story['id'],
+            'id_difficulty' => $difficulty['id'],
+            'id_user_creator' => $user['id'],
+            'name' => $command->getName(),
+            'status' => 'CREATED',
+            'current_clock' => 0,
+            'exp_cost' => $expCost,
+            'single_player' => $command->getSinglePlayer() ?? 1,
+            'character_template_uuid' => $command->getCharacterTemplateUuid(),
+            'class_uuid' => $command->getClassUuid(),
+            'trait_uuids' => $command->getTraitUuids(),
+        ]);
+
+        $locationRows = [];
+        foreach ($locations as $loc) {
+            $locationRows[] = [
+                'id_match' => $saved['id'],
+                'id_location' => $loc['id'],
+                'flag_already_actived' => 0,
+                'clock_counter' => $loc['counter_start'] ?? $loc['counter_time'] ?? 0,
+            ];
+        }
+        $this->persistencePort->saveLocations($locationRows);
+
+        $registryRows = [];
+        $nextId = 1;
+        foreach ($keys as $k) {
+            $row = [
+                'id' => $nextId++,
+                'id_match' => $saved['id'],
+                'key' => $k['key_name'] ?? $k['name'] ?? '',
+                'string_value' => null,
+                'int_value' => null,
+            ];
+            $this->applyDefault($row, $k['key_value'] ?? $k['value'] ?? null);
+            $registryRows[] = $row;
+        }
+        $this->persistencePort->saveRegistry($registryRows);
+
+        return new MatchSummary(
+            uuid: $saved['uuid'],
+            storyUuid: $story['uuid'],
+            difficultyUuid: $difficulty['uuid'],
+            name: $saved['name'] ?? null,
+            status: $saved['status'],
+            currentClock: (int)($saved['current_clock'] ?? 0),
+            expCost: (int)($saved['exp_cost'] ?? 0),
+            userCreatorUuid: $user['uuid'],
+            tsInsert: $saved['ts_insert'],
+            singlePlayer: isset($saved['single_player']) ? (int)$saved['single_player'] : null,
+            characterTemplateUuid: $saved['character_template_uuid'] ?? null,
+            classUuid: $saved['class_uuid'] ?? null,
+            traitUuids: $saved['trait_uuids'] ?? []
+        );
+    }
+
+    public function updateMatch(string $uuidMatch, ?string $status, ?string $name): string
+    {
+        if ($status !== null && !MatchStatuses::isValid($status)) {
+            return 'INVALID_STATUS';
+        }
+        $found = $this->persistencePort->updateMatchFields($uuidMatch, $status, $name);
+        return $found ? 'UPDATED' : 'NOT_FOUND';
+    }
+
+    public function deleteMatch(string $uuidMatch): string
+    {
+        $match = $this->persistencePort->findMatchByUuid($uuidMatch);
+        if ($match === null) {
+            return 'NOT_FOUND';
+        }
+        // Only a stopped (terminal) match may be deleted.
+        if (!MatchStatuses::isTerminal($match['status'] ?? null)) {
+            return 'NOT_STOPPED';
+        }
+        $this->persistencePort->deleteMatchByUuid($uuidMatch);
+        return 'DELETED';
+    }
+
+    public function endMatch(string $uuidMatch, string $uuidEvent, string $userUuid): string
+    {
+        if ($uuidMatch === '' || $uuidEvent === '' || $userUuid === '') {
+            return 'NOT_FOUND';
+        }
+
+        $match = $this->persistencePort->findMatchByUuid($uuidMatch);
+        if ($match === null) {
+            return 'NOT_FOUND';
+        }
+
+        $user = $this->userAccessPort->findByUuid($userUuid);
+        if ($user === null || (int)($user['id'] ?? 0) !== (int)($match['id_user_creator'] ?? -1)) {
+            return 'NOT_FOUND';
+        }
+
+        $story = $this->storyReadPort->findStoryById((int)($match['id_story'] ?? 0));
+        if ($story === null) {
+            return 'NOT_ACCEPTABLE';
+        }
+        $endEventId = $story['id_event_end_game'] ?? null;
+        if ($endEventId === null) {
+            return 'NOT_ACCEPTABLE';
+        }
+
+        $event = $this->storyReadPort->findEventByStoryIdAndUuid((int)$story['id'], $uuidEvent);
+        if ($event === null || (int)$event['id'] !== (int)$endEventId) {
+            return 'NOT_ACCEPTABLE';
+        }
+
+        $this->persistencePort->updateMatchFields($uuidMatch, MatchStatuses::ENDED, null);
+        return 'COMPLETED';
+    }
+
+    private function applyDefault(array &$row, $rawValue): void
+    {
+        if ($rawValue === null) {
+            return;
+        }
+        $value = (string)$rawValue;
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            $row['string_value'] = '';
+            return;
+        }
+        if (preg_match('/^-?\d+$/', $trimmed)) {
+            $row['int_value'] = (int)$trimmed;
+        } else {
+            $row['string_value'] = $trimmed;
+        }
+    }
+}

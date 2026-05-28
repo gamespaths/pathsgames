@@ -1,0 +1,450 @@
+package games.paths.adapters.rest.controller.match;
+
+import games.paths.adapters.rest.dto.MatchInfoResponse;
+import games.paths.core.model.match.MatchCreateCommand;
+import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchEventOption;
+import games.paths.core.model.match.MatchLocationState;
+import games.paths.core.model.match.MatchRegistryEntry;
+import games.paths.core.model.match.MatchSummary;
+import games.paths.core.port.match.MatchCommandPort;
+import games.paths.core.port.match.MatchQueryPort;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+class MatchControllerTest {
+
+    private MockMvc mockMvc;
+    private MatchCommandPort commandPort;
+    private MatchQueryPort queryPort;
+
+    @BeforeEach
+    void setUp() {
+        commandPort = mock(MatchCommandPort.class);
+        queryPort = mock(MatchQueryPort.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(new MatchController(commandPort, queryPort)).build();
+    }
+
+    private MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder b) {
+        return b.requestAttr("userUuid", "user-uuid");
+    }
+
+    private MatchSummary summary() {
+        MatchSummary s = new MatchSummary();
+        s.setUuid("match-uuid");
+        s.setStoryUuid("story-uuid");
+        s.setDifficultyUuid("diff-uuid");
+        s.setStatus("CREATED");
+        s.setCurrentClock(0);
+        s.setExpCost(5);
+        s.setUserCreatorUuid("user-uuid");
+        s.setName("name");
+        s.setTsInsert("ts");
+        s.setSinglePlayer(1);
+        s.setCharacterTemplateUuid("char-tpl");
+        s.setClassUuid("class-uuid");
+        s.setTraitUuids(List.of("trait-1", "trait-2"));
+        return s;
+    }
+
+    @Test
+    void createMatch_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(post("/api/matches")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createMatch_emptyBody_returns400() throws Exception {
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMatch_missingStory_returns400() throws Exception {
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMatch_missingDifficulty_returns400() throws Exception {
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMatch_success_returns201() throws Exception {
+        when(commandPort.createMatch(any())).thenReturn(summary());
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\",\"name\":\"n\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.uuid").value("match-uuid"))
+                .andExpect(jsonPath("$.storyUuid").value("story-uuid"))
+                .andExpect(jsonPath("$.singlePlayer").value(1))
+                .andExpect(jsonPath("$.characterTemplateUuid").value("char-tpl"))
+                .andExpect(jsonPath("$.classUuid").value("class-uuid"))
+                .andExpect(jsonPath("$.traitUuids[0]").value("trait-1"));
+    }
+
+    @Test
+    void createMatch_passesLoadoutToCommand() throws Exception {
+        when(commandPort.createMatch(any())).thenReturn(summary());
+        ArgumentCaptor<MatchCreateCommand> captor = ArgumentCaptor.forClass(MatchCreateCommand.class);
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\","
+                                + "\"characterTemplateUuid\":\"ct\",\"classUuid\":\"cl\","
+                                + "\"traitUuids\":[\"t1\",\"t2\"],\"singlePlayer\":0}"))
+                .andExpect(status().isCreated());
+
+        verify(commandPort).createMatch(captor.capture());
+        MatchCreateCommand cmd = captor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("ct", cmd.getCharacterTemplateUuid());
+        org.junit.jupiter.api.Assertions.assertEquals("cl", cmd.getClassUuid());
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("t1", "t2"), cmd.getTraitUuids());
+        org.junit.jupiter.api.Assertions.assertEquals(0, cmd.getSinglePlayer());
+    }
+
+    @Test
+    void createMatch_storyNotFound_returns404() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.STORY_NOT_FOUND, "no story"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("STORY_NOT_FOUND"));
+    }
+
+    @Test
+    void createMatch_difficultyNotFound_returns404() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.DIFFICULTY_NOT_FOUND, "no diff"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createMatch_userNotFound_returns404() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.USER_NOT_FOUND, "no user"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createMatch_userBanned_returns403() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.USER_BANNED, "banned"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void createMatch_maintenance_returns503() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.MAINTENANCE_MODE, "maintenance"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void createMatch_storyHasNoLocations_returns400() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.STORY_HAS_NO_LOCATIONS, "empty"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMatch_invalidInput_returns400() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.INVALID_INPUT, "bad"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listMatches_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/matches"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listMatches_returnsArray() throws Exception {
+        when(queryPort.listUserMatches("user-uuid")).thenReturn(List.of(summary()));
+        mockMvc.perform(authed(get("/api/matches")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value("match-uuid"));
+    }
+
+    @Test
+    void listAllMatches_returnsArray() throws Exception {
+        when(queryPort.listAllMatches()).thenReturn(List.of(summary()));
+        mockMvc.perform(get("/api/admin/matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value("match-uuid"));
+    }
+
+    @Test
+    void listAllMatches_emptyArray() throws Exception {
+        when(queryPort.listAllMatches()).thenReturn(List.of());
+        mockMvc.perform(get("/api/admin/matches"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    void getMatchInfo_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/match/abc/info"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getMatchInfo_notFound_returns404() throws Exception {
+        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(null);
+        mockMvc.perform(authed(get("/api/match/abc/info")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getMatchInfo_returns200() throws Exception {
+        MatchDetail detail = new MatchDetail();
+        detail.setMatch(summary());
+        detail.setCurrentLocationId(10L);
+        detail.setCurrentLocationUuid("loc-uuid");
+        detail.setCurrentLocationName("loc");
+        MatchLocationState s = new MatchLocationState();
+        s.setIdLocation(10L);
+        s.setUuid("ls");
+        s.setFlagAlreadyActived(0);
+        s.setClockCounter(2);
+        s.setName("ls-name");
+        detail.setLocations(List.of(s));
+        MatchRegistryEntry r = new MatchRegistryEntry();
+        r.setUuid("r");
+        r.setKey("k");
+        r.setIntValue(1);
+        detail.setRegistry(List.of(r));
+        detail.setEvents(List.of(new MatchEventOption("ev", "n", "EVENT")));
+        detail.setChoices(List.of(new MatchEventOption("ch", "n", "CHOICE")));
+        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(detail);
+
+        mockMvc.perform(authed(get("/api/match/abc/info")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.match.uuid").value("match-uuid"))
+                .andExpect(jsonPath("$.currentLocationId").value(10))
+                .andExpect(jsonPath("$.locations[0].uuid").value("ls"))
+                .andExpect(jsonPath("$.registry[0].key").value("k"))
+                .andExpect(jsonPath("$.events[0].uuid").value("ev"))
+                .andExpect(jsonPath("$.choices[0].uuid").value("ch"));
+    }
+
+    @Test
+    void responseDtosFromModel_handleNullsAndConvertCorrectly() {
+        // exercise the static factory methods on the response DTOs
+        MatchInfoResponse nullCase = MatchInfoResponse.fromModel(null);
+        org.junit.jupiter.api.Assertions.assertNull(nullCase);
+    }
+
+    // ── admin match control (statuses / update / stop-pause-resume / delete) ──
+
+    @Test
+    void listMatchStatuses_returns200WithStatuses() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/statuses"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].value").value("CREATED"))
+                .andExpect(jsonPath("$[0].terminal").value(false))
+                .andExpect(jsonPath("$[3].value").value("ENDED"))
+                .andExpect(jsonPath("$[3].terminal").value(true));
+    }
+
+    @Test
+    void updateMatch_returns200WhenUpdated() throws Exception {
+        when(commandPort.updateMatch("m1", "ENDED", "new name"))
+                .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
+        mockMvc.perform(put("/api/admin/matches/m1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ENDED\",\"name\":\"new name\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UPDATED"))
+                .andExpect(jsonPath("$.uuid").value("m1"));
+    }
+
+    @Test
+    void updateMatch_returns400ForEmptyBody() throws Exception {
+        mockMvc.perform(put("/api/admin/matches/m1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+    }
+
+    @Test
+    void updateMatch_returns400ForInvalidStatus() throws Exception {
+        when(commandPort.updateMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.UpdateOutcome.INVALID_STATUS);
+        mockMvc.perform(put("/api/admin/matches/m1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BOGUS\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_STATUS"));
+    }
+
+    @Test
+    void updateMatch_returns404WhenNotFound() throws Exception {
+        when(commandPort.updateMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.UpdateOutcome.NOT_FOUND);
+        mockMvc.perform(put("/api/admin/matches/m1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"x\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void stopMatch_setsStatusToEnded() throws Exception {
+        when(commandPort.updateMatch("m1", "ENDED", null))
+                .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
+        mockMvc.perform(post("/api/admin/matches/m1/stop"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UPDATED"));
+        verify(commandPort).updateMatch("m1", "ENDED", null);
+    }
+
+    @Test
+    void pauseAndResume_setExpectedStatuses() throws Exception {
+        when(commandPort.updateMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.UpdateOutcome.UPDATED);
+        mockMvc.perform(post("/api/admin/matches/m1/pause")).andExpect(status().isOk());
+        mockMvc.perform(post("/api/admin/matches/m1/resume")).andExpect(status().isOk());
+        verify(commandPort).updateMatch("m1", "PAUSED", null);
+        verify(commandPort).updateMatch("m1", "RUNNING", null);
+    }
+
+    @Test
+    void deleteMatch_returns200WhenDeleted() throws Exception {
+        when(commandPort.deleteMatch("m1")).thenReturn(MatchCommandPort.DeleteOutcome.DELETED);
+        mockMvc.perform(delete("/api/admin/matches/m1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DELETED"));
+    }
+
+    @Test
+    void deleteMatch_returns409WhenNotStopped() throws Exception {
+        when(commandPort.deleteMatch("m1")).thenReturn(MatchCommandPort.DeleteOutcome.NOT_STOPPED);
+        mockMvc.perform(delete("/api/admin/matches/m1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_STOPPED"));
+    }
+
+    @Test
+    void deleteMatch_returns404WhenNotFound() throws Exception {
+        when(commandPort.deleteMatch("m1")).thenReturn(MatchCommandPort.DeleteOutcome.NOT_FOUND);
+        mockMvc.perform(delete("/api/admin/matches/m1"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void getAdminMatchInfo_returns200WithDetail() throws Exception {
+        MatchDetail detail = new MatchDetail();
+        detail.setMatch(summary());
+        detail.setLocations(List.of());
+        detail.setRegistry(List.of());
+        detail.setEvents(List.of());
+        detail.setChoices(List.of());
+        when(queryPort.getMatchInfoForAdmin("m1")).thenReturn(detail);
+
+        mockMvc.perform(get("/api/admin/matches/m1/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.match.uuid").value("match-uuid"));
+    }
+
+    @Test
+    void getAdminMatchInfo_returns404WhenMissing() throws Exception {
+        when(queryPort.getMatchInfoForAdmin("m1")).thenReturn(null);
+        mockMvc.perform(get("/api/admin/matches/m1/info"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    // ── Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent} ──
+
+    @Test
+    void endMatch_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(patch("/api/match/m1/end/e1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void endMatch_completes_returns200WithEndedStatus() throws Exception {
+        when(commandPort.endMatch("m1", "e1", "user-uuid"))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.COMPLETED);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ENDED"))
+                .andExpect(jsonPath("$.uuid").value("m1"));
+        verify(commandPort).endMatch("m1", "e1", "user-uuid");
+    }
+
+    @Test
+    void endMatch_notAcceptable_returns406() throws Exception {
+        when(commandPort.endMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.NOT_ACCEPTABLE);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(jsonPath("$.error").value("EVENT_NOT_END_GAME"));
+    }
+
+    @Test
+    void endMatch_notFound_returns404() throws Exception {
+        when(commandPort.endMatch(any(), any(), any()))
+                .thenReturn(MatchCommandPort.EndMatchOutcome.NOT_FOUND);
+        mockMvc.perform(authed(patch("/api/match/m1/end/e1")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+}

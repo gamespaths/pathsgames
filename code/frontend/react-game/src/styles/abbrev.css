@@ -1,0 +1,43 @@
+.top--10{top:-10px !important;}
+.top--20{top:-20px !important;}
+.top--30{top:-30px !important;}
+.left--10{left:-10px !important;}
+.left--20{left:-20px !important;}
+.left--30{left:-30px !important;}
+.right--10{right:-10px !important;}
+.right--20{right:-20px !important;}
+.right--30{right:-30px !important;}
+
+.top-10{top:10px !important;}
+.top-20{top:20px !important;}
+.top-30{top:30px !important;}
+.left-10{left:10px !important;}
+.left-20{left:20px !important;}
+.left-30{left:30px !important;}
+.right-10{right:10px !important;}
+.right-20{right:20px !important;}
+.right-30{right:30px !important;}
+
+.padding-left-10{padding-left:10px !important;}
+.padding-left-20{padding-left:20px !important;}
+.padding-left-30{padding-left:30px !important;}
+.padding-right-10{padding-right:10px !important;}
+.padding-right-20{padding-right:20px !important;}   
+.padding-right-30{padding-right:30px !important;}
+
+/* */
+.height-unset{height: unset !important;}
+.of-c{object-fit: contain !important;}
+.of-f{object-fit: fill !important;}
+
+.ob-c-10{object-position: center 10%;}
+.ob-c-20{object-position: center 20%;}  .ob-c-25{object-position: center 25%;}
+.ob-c-30{object-position: center 30%;}  .ob-c-33{object-position: center 33%;}
+.ob-c-40{object-position: center 40%;}  .ob-c-45{object-position: center 45%;}
+.ob-c-50{object-position: center 50%;}
+.ob-c-60{object-position: center 60%;}  .ob-c-66{object-position: center 66%;}
+.ob-c-70{object-position: center 70%;}
+.ob-c-80{object-position: center 80%;}
+.ob-c-90{object-position: center 90%;}  .ob-c-99{object-position: center 99%;}
+.no-shadow{box-shadow: none !important;}
+/* */

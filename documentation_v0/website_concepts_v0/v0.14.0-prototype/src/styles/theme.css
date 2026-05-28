@@ -1,0 +1,1015 @@
+/* =============================================
+   PATHS GAMES — theme.css
+   Medieval design tokens + animations ported
+   from the original variables.css / style.css
+   ============================================= */
+
+/* ── CSS Custom Properties ── */
+:root {
+  /* Color palette */
+  --color-parchment:        #e8d5b0;
+  --color-parchment-light:  #f2e6c8;
+  --color-parchment-medium: #f5e9c2;
+  --color-parchment-dark:   #c9b48a;
+
+  --color-brown-deep:       #1a0a02;
+  --color-brown-dark:       #2e1508;
+  --color-brown-mid:        #5c3317;
+  --color-brown-warm:       #7a4520;
+  --color-brown-light:      #a0622e;
+  --color-brown-tan:        #c08040;
+  --color-brown-super-tan:  #d9a060;
+  --color-brown-extra-tan:  #e0b080;
+
+  --color-gold:             #c8960a;
+  --color-gold-light:       #e8b830;
+  --color-gold-shine:       #ffd700;
+  --color-gold-dark:        #9a6f08;
+  --color-gold-deep:        #7a4e00;
+  --color-gold-super-deep:  #5c3700;
+
+  --color-ink:              #1a0f06;
+  --color-ash:              #8b7355;
+  --color-stone:            #6b5c4a;
+  --color-ember:            #d44a0a;
+
+  /* Composite backgrounds */
+  --navbar-bg: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-mid) 100%);
+  --card-body-background: linear-gradient(135deg, var(--color-brown-deep) 0%, var(--color-brown-warm) 40%, var(--color-brown-dark) 100%);
+  --card-header-background: radial-gradient(ellipse at center, var(--color-brown-warm) 0%, var(--color-brown-deep) 100%);
+  --card-title-background: linear-gradient(120deg, var(--color-brown-mid) 0%, var(--color-brown-deep) 100%);
+  --footer-background: linear-gradient(180deg, transparent 0%, var(--color-brown-light) 10%, var(--color-brown-mid) 20%, var(--color-brown-dark) 40%, var(--color-brown-deep) 100%);
+  --crowdfund-button-bg: linear-gradient(180deg, var(--color-brown-super-tan), var(--color-brown-extra-tan));
+  --crowdfund-button-bg-hover: linear-gradient(360deg, var(--color-brown-super-tan), var(--color-brown-extra-tan));
+
+  /* Theme */
+  --bg-page:        var(--color-parchment-dark);
+  --bg-card:        #2e1a0e;
+  --text-primary:   #e8d5b0;
+  --text-secondary: #c0a070;
+  --text-muted:     #8b7355;
+
+  /* Fonts */
+  --font-display: 'Cinzel Decorative', 'Trajan Pro', serif;
+  --font-heading: 'Cinzel', 'Palatino Linotype', serif;
+  --font-body:    'Crimson Text', 'Georgia', serif;
+
+  /* Card sizes */
+  --card-big-v-w: 280px;
+  --card-big-v-h: 420px;
+  --card-little-v-w: 140px;
+  --card-little-v-h: 210px;
+  --card-big-h-w: 640px;
+  --card-big-h-h: 196px;
+}
+
+/* ── Base styles ── */
+* { box-sizing: border-box; }
+
+html, body, #root {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* ── Dice Bounce Animation (Navbar brand) — matches html site ── */
+@keyframes dice-bounce {
+  0%   { transform: rotate(0deg)   translateY(0);    }
+  8%   { transform: rotate(45deg)  translateY(-6px); }
+  14%  { transform: rotate(20deg)  translateY(0);    }
+  22%  { transform: rotate(95deg)  translateY(-3px); }
+  28%  { transform: rotate(70deg)  translateY(0);    }
+  38%  { transform: rotate(180deg) translateY(-5px); }
+  46%  { transform: rotate(150deg) translateY(0);    }
+  54%  { transform: rotate(230deg) translateY(-2px); }
+  60%  { transform: rotate(210deg) translateY(0);    }
+  72%  { transform: rotate(310deg) translateY(-4px); }
+  80%  { transform: rotate(340deg) translateY(0);    }
+  90%  { transform: rotate(355deg) translateY(-1px); }
+  100% { transform: rotate(360deg) translateY(0);    }
+}
+
+.dice-bounce {
+  display: inline-block;
+  animation: dice-bounce 4s ease-in-out infinite;
+}
+
+/* ── Badge Carousel ── */
+@keyframes badge-slide-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes badge-slide-out {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(-100%); opacity: 0; }
+}
+
+.badge-enter {
+  animation: badge-slide-in 0.4s ease forwards;
+}
+.badge-exit {
+  animation: badge-slide-out 0.4s ease forwards;
+}
+
+/* ── Navbar ── */
+.navbar-medieval {
+  background: var(--navbar-bg) !important;
+  border-bottom: 2px solid var(--color-gold-dark);
+  padding: 0.7rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-heading);
+}
+
+.navbar-medieval .navbar-brand {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  color: var(--color-gold-light) !important;
+  text-shadow: 0 0 20px rgba(232,184,48,0.8);
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Badge Carousel Container ── */
+.navbar-badges-to-rotate {
+  position: relative;
+  height: 3rem;
+  overflow: hidden;
+  flex: 1;
+  max-width: 450px;
+  margin: 0 1.2rem;
+  align-items: center;
+}
+
+/* ── Nav User Button ── */
+.nav-user {
+  display: flex;
+  align-items: center;
+}
+
+.nav-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--navbar-bg);
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  padding: 0.35rem 0.9rem;
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: 0 0 10px rgba(232,184,48,0.3);
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s, background 0.2s;
+}
+
+.nav-user-btn svg {
+  font-size: 1.4rem;
+  color: var(--color-gold-light);
+}
+
+.nav-user-btn:hover {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 12px rgba(232,184,48,0.4);
+  color: var(--color-gold-shine);
+  background: linear-gradient(120deg, var(--color-brown-mid) 0%, var(--color-brown-dark) 100%);
+}
+
+/* ── Game Bar ── */
+.game-bar {
+  background: linear-gradient(120deg, var(--color-brown-warm) 0%, var(--color-brown-light) 50%, var(--color-brown-warm) 100%);
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 8px;
+  padding: 0.45rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 56px;
+  z-index: 999;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35);
+  margin: 1rem 1rem 0;
+}
+
+.game-bar-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gold-light);
+  text-shadow: 0 0 10px rgba(232, 184, 48, 0.3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.game-bar-btn {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-parchment-light);
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(200,150,10,0.3);
+  border-radius: 5px;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.game-bar-btn:hover {
+  background: rgba(0,0,0,0.45);
+  color: var(--color-gold-light);
+  box-shadow: 0 0 8px rgba(232,184,48,0.35);
+}
+
+/* ── Card Styles ── */
+.card-medieval {
+  background: var(--card-body-background);
+  border: 2px solid var(--color-gold-dark);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.card-medieval:hover {
+  box-shadow: 0 0 20px rgba(200, 150, 10, 0.3);
+}
+
+.card-medieval-header {
+  background: var(--card-header-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid var(--color-gold-dark);
+  position: relative;
+}
+
+.card-medieval-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-shine), transparent);
+}
+
+.card-medieval-body {
+  padding: 0.75rem;
+}
+
+.card-medieval-title {
+  background: var(--card-title-background);
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--color-gold-light);
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(154, 111, 8, 0.3);
+}
+
+.card-medieval-desc {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Card sizes */
+.card-dimension-large {
+  width: 280px;
+  min-height: 420px;
+}
+
+.card-dimension-little {
+  width: 140px;
+  min-height: 210px;
+}
+
+.card-dimension-normal {
+  width: 175px;
+  min-height: 250px;
+}
+
+/* Card emote */
+.card-emote {
+  font-size: 5rem;
+  line-height: 1;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.card-emote-small {
+  font-size: 3rem;
+  line-height: 1;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* ── Location Card (large game card) ── */
+.location-card {
+  width: 340px;
+  min-height: 460px;
+  background: var(--card-body-background);
+  border: 3px solid var(--color-gold-dark);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 30px rgba(0,0,0,0.4),
+    0 8px 32px rgba(0,0,0,0.5);
+}
+
+.location-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-shine), transparent);
+}
+
+.location-card::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(200, 150, 10, 0.15);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.location-card .card-emote {
+  font-size: 6rem;
+  padding: 1.5rem 0 0.5rem;
+}
+
+/* ── Catalog Row (Netflix-style) ── */
+.catalog-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1rem;
+  scroll-behavior: smooth;
+  cursor: grab;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.catalog-row::-webkit-scrollbar {
+  display: none;
+}
+
+.catalog-row:active {
+  cursor: grabbing;
+}
+
+.catalog-cat-title {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--color-brown-deep);
+  letter-spacing: 1px;
+  margin: 1.5rem 0 0.5rem;
+  padding-left: 0.25rem;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* ── Crowdfunding Banner ── */
+.crowdfund-banner {
+  background: linear-gradient(135deg, var(--color-parchment) 0%, var(--color-parchment-light) 50%, var(--color-parchment-dark) 100%);
+  border-bottom: 2px solid var(--color-gold-dark);
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.crowdfund-title {
+  font-family: var(--font-display);
+  color: var(--color-gold-deep);
+  font-size: 1.6rem;
+  letter-spacing: 2px;
+}
+
+.crowdfund-divider {
+  color: var(--color-gold-dark);
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+}
+
+.crowdfund-desc {
+  font-family: var(--font-body);
+  color: var(--color-gold-dark);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.crowdfund-desc strong {
+  color: var(--color-gold-deep);
+}
+
+/* ── Crowdfund Badges ── */
+.crowdfund-badge {
+  display: inline-block;
+  background: var(--crowdfund-button-bg);
+  color: var(--color-gold-super-deep);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--color-gold-dark);
+  margin: 0.25rem;
+  transition: background 0.3s ease;
+}
+
+.crowdfund-badge:hover {
+  background: var(--crowdfund-button-bg-hover);
+}
+
+/* ── Footer ── */
+footer.medieval-footer {
+  background: var(--footer-background);
+  border-top: none;
+  padding: 8rem 1rem 1.5rem;
+  margin-top: 0;
+}
+
+footer.medieval-footer::before {
+  display: none;
+}
+
+.footer-inner {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.footer-brand-sm {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--color-gold-light);
+  text-shadow: 0 0 10px rgba(232,184,48,0.4);
+  letter-spacing: 0.08em;
+}
+
+.footer-links-row {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.3rem 0;
+}
+
+.footer-icon-link {
+  color: var(--color-gold-light);
+  text-decoration: none;
+  font-size: 1.0rem;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.footer-icon-link svg {
+  font-size: 1.2rem;
+}
+
+.footer-icon-link:hover {
+  color: var(--color-gold);
+  transform: translateY(-2px);
+}
+
+/* Button variant of footer-icon-link (no border/background) */
+.footer-icon-btn {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.footer-copy {
+  border-top: 1px solid rgba(200,150,10,0.1);
+  padding-top: 0.7rem;
+  margin-top: 0.4rem;
+  color: var(--color-brown-super-tan);
+  font-size: 1.0rem;
+  font-family: var(--font-body);
+  line-height: 1.9;
+  opacity: 0.9;
+}
+
+.footer-copy .gold-light {
+  color: var(--color-gold-light);
+}
+
+.footer-link-inline {
+  color: var(--color-gold-light);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 1.0rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.footer-link-inline:hover {
+  color: var(--color-gold-light);
+}
+
+/* ── Slide Transitions ── */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.slide-left {
+  animation: slide-in-left 0.35s ease forwards;
+}
+.slide-right {
+  animation: slide-in-right 0.35s ease forwards;
+}
+
+/* ── Choice Popup Toast ── */
+@keyframes popup-fade {
+  0%   { opacity: 0; transform: translate(-50%, 10px); }
+  15%  { opacity: 1; transform: translate(-50%, 0); }
+  85%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -10px); }
+}
+
+.choice-popup {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-brown-deep);
+  color: var(--color-gold-light);
+  border: 1px solid var(--color-gold-dark);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  animation: popup-fade 2.5s ease forwards;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ── 3D Card Tilt ── */
+.card-3d {
+  transition: transform 0.15s ease;
+  transform-style: preserve-3d;
+  perspective: 600px;
+}
+
+.card-3d-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.card-3d:hover .card-3d-shine {
+  opacity: 1;
+}
+
+/* ── Game Scene Layout ── */
+.game-scene {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  min-height: calc(100vh - 120px);
+}
+
+.game-scene-left {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.game-scene-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+.game-scene-row-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--color-parchment);
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.game-scene-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.game-scene-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Player Bar ── */
+.player-bar {
+  background: linear-gradient(120deg, var(--color-brown-deep) 0%, var(--color-brown-dark) 100%);
+  border-bottom: 1px solid var(--color-gold-dark);
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  color: var(--color-gold-light);
+}
+
+.player-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.player-stat-bar {
+  width: 80px;
+  height: 8px;
+  background: var(--color-brown-dark);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--color-gold-dark);
+}
+
+.player-stat-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ── Story Preview Modal ── */
+.modal-medieval .modal-content {
+  background: var(--color-brown-deep);
+  border: 2px solid var(--color-gold-dark);
+  color: var(--text-primary);
+}
+
+.modal-medieval .modal-header {
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--color-gold-dark);
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+}
+
+.modal-medieval .modal-header .btn-close {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(15deg);
+}
+
+.modal-medieval .modal-body {
+  padding: 1.5rem;
+}
+
+.modal-medieval .modal-footer {
+  background: var(--color-brown-dark);
+  border-top: 1px solid var(--color-gold-dark);
+}
+
+/* Preview layout: card left, options right */
+.story-preview-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.story-preview-options {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.option-step-title {
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+  font-size: 1rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.option-cards-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Lock overlay — bottom-aligned, prominent */
+.option-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.70);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 1.1rem;
+  border-radius: inherit;
+  z-index: 2;
+}
+
+.option-lock-icon {
+  color: var(--color-gold-light);
+  font-size: 2.8rem;
+  filter: drop-shadow(0 0 6px rgba(232,184,48,0.6));
+}
+
+.option-lock-text {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--color-gold-light);
+  margin-top: 0.45rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+
+/* ── (i) Info button — large cards, bottom-center ── */
+.card-info-btn {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 0.35rem;
+  background: transparent;
+  border: none;
+  color: rgba(200,150,10,0.45);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  line-height: 1;
+  transition: color 0.2s, transform 0.15s;
+  z-index: 3;
+}
+
+.card-info-btn-centered {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.card-info-btn:hover {
+  color: var(--color-gold);
+  transform: scale(1.3);
+}
+
+.card-info-btn-centered:hover {
+  transform: translateX(-50%) scale(1.3);
+}
+
+/* ── Card selected state (ToS accepted) ── */
+.card-selected {
+  border-color: var(--color-gold-shine) !important;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.35);
+}
+
+/* ── Card disabled dim ── */
+.card-disabled-dim {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ── Card Detail Modal ── */
+.card-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.card-detail-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--color-gold-light);
+  background: var(--color-brown-deep);
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  z-index: 2001;
+  transition: background 0.2s;
+}
+
+.card-detail-close:hover {
+  background: var(--color-brown-mid);
+}
+
+/* ── Buttons ── */
+.btn-medieval {
+  background: var(--crowdfund-button-bg);
+  color: var(--color-gold-super-deep);
+  border: 1px solid var(--color-gold-dark);
+  padding: 0.4rem 1.2rem;
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-medieval:hover {
+  background: var(--crowdfund-button-bg-hover);
+  box-shadow: 0 0 10px rgba(200, 150, 10, 0.3);
+}
+
+.btn-medieval:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-medieval-outline {
+  background: transparent;
+  color: var(--color-gold-light);
+  border: 1px solid var(--color-gold-dark);
+  padding: 0.4rem 1.2rem;
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-medieval-outline:hover {
+  background: rgba(200, 150, 10, 0.1);
+  border-color: var(--color-gold-light);
+}
+
+.btn-coming-soon {
+  background: var(--color-brown-dark);
+  color: var(--color-ash);
+  border: 1px solid var(--color-stone);
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .game-scene {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .location-card {
+    width: 280px;
+    min-height: 380px;
+  }
+
+  .story-preview-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .card-dimension-large {
+    width: 220px;
+    min-height: 340px;
+  }
+}
+
+@media (max-width: 600px) {
+  .game-scene {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+
+  .location-card {
+    width: 240px;
+    min-height: 320px;
+  }
+
+  .card-dimension-large {
+    width: 180px;
+    min-height: 280px;
+  }
+
+  .card-dimension-normal {
+    width: 140px;
+    min-height: 200px;
+  }
+
+  .card-dimension-little {
+    width: 110px;
+    min-height: 170px;
+  }
+
+  .crowdfund-title {
+    font-size: 1.2rem;
+  }
+
+  .crowdfund-desc {
+    font-size: 0.9rem;
+  }
+
+  .navbar-medieval .navbar-brand {
+    font-size: 1rem;
+  }
+
+  /* Footer mobile */
+  footer.medieval-footer {
+    padding-top: 5rem;
+  }
+
+  .footer-links-row {
+    gap: 0.8rem;
+  }
+
+  .footer-icon-link span {
+    display: none;
+  }
+
+  .footer-icon-link svg {
+    font-size: 1.15rem;
+  }
+
+  /* Nav user mobile */
+  .nav-user-label {
+    display: none;
+  }
+
+  .nav-user-btn {
+    padding: 0.3rem 0.5rem;
+  }
+
+  /* Game bar mobile */
+  .game-bar {
+    padding: 0.35rem 0.6rem;
+    top: 42px;
+  }
+
+  .game-bar-title {
+    font-size: 0.82rem;
+  }
+
+  .game-bar-btn {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+  }
+}

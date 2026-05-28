@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paths Games — v0.17.5</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="variables.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar-medieval">
+    <div class="navbar-brand-pg">
+      <i class="fas fa-dice-d20 me-2"></i>
+      <span>Paths Games</span>
+    </div>
+    <div class="navbar-tagline">Choose your path. Shape your destiny.</div>
+  </nav>
+
+  <!-- ═══════════════ HOME VIEW — Netflix Style ═══════════════ -->
+  <div id="home-view">
+    <div class="hero-section">
+      <h1 class="hero-title">Epic Adventures Await</h1>
+      <p class="hero-sub">Branching narratives. Infinite choices.</p>
+    </div>
+
+    <div class="stories-section">
+      <h2 class="section-label"><i class="fas fa-book-open me-2"></i>Stories</h2>
+      <div id="stories-row" class="stories-grid"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ BOOK MODAL — Start Match ═══════════════ -->
+  <div id="book-modal" class="book-overlay hidden">
+    <div class="book-wrapper">
+
+      <!-- Close Button -->
+      <button id="btn-close-book" class="book-close-btn" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <!-- Book Spine decoration -->
+      <div class="book-spine"></div>
+
+      <!-- === LEFT PAGE === -->
+      <div class="book-page book-page-left" id="page-left">
+        <div class="page-inner">
+          <div class="page-corner-tl"></div>
+          <div class="page-corner-br"></div>
+
+          <!-- Story Card -->
+          <div class="story-card-full" id="modal-story-card">
+            <div class="story-card-img-wrap">
+              <img id="modal-story-img" src="" alt="Story Cover" class="story-card-img">
+              <div class="story-card-img-overlay"></div>
+            </div>
+            <div class="story-card-body">
+              <h2 id="modal-story-title" class="story-card-title">Title</h2>
+              <p id="modal-story-desc" class="story-card-desc">Description</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === RIGHT PAGE === -->
+      <div class="book-page book-page-right" id="page-right">
+        <div class="page-inner" id="page-right-inner">
+          <div class="page-corner-tr"></div>
+          <div class="page-corner-bl"></div>
+
+          <!-- CONFIG VIEW -->
+          <div id="config-view" class="right-view">
+            <h3 class="config-title"><i class="fas fa-scroll me-2"></i>Configure your Adventure</h3>
+
+            <!-- Row 1: Character, Class, Trait -->
+            <div class="config-row" id="row1">
+              <div class="config-slot" id="slot-character">
+                <div class="config-card" data-type="character">
+                  <div class="config-card-label">Character</div>
+                  <div class="config-card-icon"><i class="fas fa-user-shield"></i></div>
+                  <div class="config-card-value" id="sel-character">Fighter</div>
+                  <button class="config-change-btn change-btn" data-type="character">
+                    <i class="fas fa-sync-alt me-1"></i>Change
+                  </button>
+                </div>
+              </div>
+              <div class="config-slot" id="slot-class">
+                <div class="config-card" data-type="class">
+                  <div class="config-card-label">Class</div>
+                  <div class="config-card-icon"><i class="fas fa-hat-wizard"></i></div>
+                  <div class="config-card-value" id="sel-class">Warrior</div>
+                  <button class="config-change-btn change-btn" data-type="class">
+                    <i class="fas fa-sync-alt me-1"></i>Change
+                  </button>
+                </div>
+              </div>
+              <div class="config-slot" id="slot-trait">
+                <div class="config-card" data-type="trait">
+                  <div class="config-card-label">Trait</div>
+                  <div class="config-card-icon"><i class="fas fa-star"></i></div>
+                  <div class="config-card-value" id="sel-trait">Brave</div>
+                  <button class="config-change-btn change-btn" data-type="trait">
+                    <i class="fas fa-sync-alt me-1"></i>Change
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Difficulty, Type, Login -->
+            <div class="config-row" id="row2">
+              <div class="config-slot" id="slot-difficulty">
+                <div class="config-card" data-type="difficulty">
+                  <div class="config-card-label">Difficulty</div>
+                  <div class="config-card-icon"><i class="fas fa-skull"></i></div>
+                  <div class="config-card-value" id="sel-difficulty">Normal</div>
+                  <button class="config-change-btn change-btn" data-type="difficulty">
+                    <i class="fas fa-sync-alt me-1"></i>Change
+                  </button>
+                </div>
+              </div>
+              <div class="config-slot" id="slot-type">
+                <div class="config-card config-card-disabled">
+                  <div class="config-card-label">Game Type</div>
+                  <div class="config-card-icon"><i class="fas fa-gamepad"></i></div>
+                  <div class="config-card-value">Single</div>
+                  <span class="config-locked-badge"><i class="fas fa-lock me-1"></i>Locked</span>
+                </div>
+              </div>
+              <div class="config-slot" id="slot-login">
+                <div class="config-card config-card-disabled">
+                  <div class="config-card-label">Login</div>
+                  <div class="config-card-icon"><i class="fas fa-user"></i></div>
+                  <div class="config-card-value">Guest</div>
+                  <span class="config-locked-badge"><i class="fas fa-lock me-1"></i>Locked</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="page-footer-right">
+              <label class="terms-label me-auto" for="terms-chk">
+                <input type="checkbox" id="terms-chk">
+                <span>I accept the Terms &amp; Conditions</span>
+              </label>
+              <button class="btn-start-game" id="btn-start-game">
+                <i class="fas fa-play me-2"></i>Start Game
+              </button>
+            </div>
+          </div>
+
+          <!-- SELECTION VIEW (hidden by default) -->
+          <div id="selection-view" class="right-view hidden">
+            <div class="selection-header">
+              <button class="btn-back" id="btn-back">
+                <i class="fas fa-arrow-left me-1"></i>Back
+              </button>
+              <h3 class="selection-title" id="selection-title">Select Character</h3>
+            </div>
+            <div id="selection-list" class="selection-list"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end book-wrapper -->
+  </div><!-- end book-modal -->
+
+  <!-- ═══════════════ GAME VIEW ═══════════════ -->
+  <div id="game-view" class="book-overlay hidden">
+    <div class="book-wrapper game-book">
+
+      <!-- Game Book Spine -->
+      <div class="book-spine"></div>
+
+      <!-- === LEFT PAGE: Current Location === -->
+      <div class="book-page book-page-left">
+        <div class="page-inner">
+          <div class="page-corner-tl"></div>
+          <div class="page-corner-br"></div>
+          <h3 class="game-page-title"><i class="fas fa-map-marker-alt me-2"></i>Current Location</h3>
+          <div id="game-current-location" class="game-location-card">
+            <div class="game-loc-img-wrap">
+              <img id="game-loc-img" src="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80" alt="Location" class="game-loc-img">
+            </div>
+            <div class="game-loc-body">
+              <h4 id="game-loc-name" class="game-loc-name">The Old Tavern</h4>
+              <p id="game-loc-desc" class="game-loc-desc">A dimly lit tavern at the crossroads. The perfect place to gather information and plan your next move.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === RIGHT PAGE: Move / Actions === -->
+      <div class="book-page book-page-right">
+        <div class="page-inner">
+          <div class="page-corner-tr"></div>
+          <div class="page-corner-bl"></div>
+
+          <div class="game-stats-bar">
+            <div class="stat-badge"><i class="fas fa-heart me-1"></i>HP: <strong>100</strong></div>
+            <div class="stat-badge"><i class="fas fa-bolt me-1"></i>AP: <strong>5</strong></div>
+          </div>
+
+          <h3 class="game-page-title"><i class="fas fa-compass me-2"></i>Explore</h3>
+
+          <div class="game-section-label">
+            <i class="fas fa-arrows-alt me-2"></i>Move to...
+          </div>
+          <div id="game-locations-row" class="game-cards-row"></div>
+
+          <div class="game-section-label mt-3">
+            <i class="fas fa-hand-sparkles me-2"></i>Actions
+          </div>
+          <div id="game-actions-row" class="game-cards-row"></div>
+
+          <div class="page-footer-right mt-auto">
+            <button class="btn-secondary-pg" onclick="document.getElementById('game-view').classList.add('hidden'); document.getElementById('home-view').style.display='';">
+              <i class="fas fa-home me-1"></i>Exit to Home
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

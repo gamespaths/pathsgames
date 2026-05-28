@@ -1,0 +1,68 @@
+name: SonarQube Analysis - PHP Backend
+
+on:
+  push:
+    branches: [ develop ] #main,
+    paths:
+      - 'code/backend/php/**'
+#  pull_request:
+#    branches: [ main, develop ]
+#    paths:
+#      - 'code/backend/php/**'
+
+env:
+  PHP_VERSION: '8.2'
+
+jobs:
+  sonarqube-php:
+    name: SonarQube Scan - PHP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: code/backend/php
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for SonarQube blame data
+
+      - name: Set up PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, dom, json, pdo, sqlite3
+          coverage: pcov
+          tools: composer
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: code/backend/php/vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('code/backend/php/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Create build directory
+        run: mkdir -p build/logs
+
+      - name: Run tests with coverage
+        run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml --log-junit build/logs/junit.xml
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar-php
+          restore-keys: ${{ runner.os }}-sonar-php
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: code/backend/php
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_PHP }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          # NOTE: uses sonar-project.properties in code/backend/php/

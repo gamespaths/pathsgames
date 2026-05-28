@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Match End API
+  description: |
+    OpenAPI specification for the **player-driven match completion** endpoint
+    introduced in version 0.20.1 (Step 20.1).
+
+    A player can complete their own match by supplying the uuid of an event
+    that maps to the story's configured `idEventEndGame`. When the supplied
+    event is the configured end-game trigger the match status is set to
+    `ENDED`; otherwise the request is rejected with `406 Not Acceptable`.
+
+    The story's `idEventEndGame` value is treated as private — it is never
+    returned in any API payload (request body, response body, error message
+    or content-detail endpoint).
+
+    All four backend implementations (Java, Python, PHP, AWS Lambda) honour
+    this contract. The Java backend is the reference.
+  version: 0.20.1
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server
+
+tags:
+  - name: Player Matches
+    description: Player-facing match endpoints
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/match/{uuidMatch}/end/{uuidEvent}:
+    patch:
+      tags: [Player Matches]
+      summary: Complete a match by triggering the story's end-game event
+      description: |
+        Marks the player's match as `ENDED` when `uuidEvent` resolves to the
+        story's `idEventEndGame`. Returns `406 Not Acceptable` when the event
+        is not the configured end-game trigger.
+
+        Ownership is enforced: the authenticated caller must be the match
+        creator. A mismatch returns `404 MATCH_NOT_FOUND` so that the
+        existence of other players' matches is not leaked.
+      operationId: endMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/UuidEvent'
+      responses:
+        '200':
+          description: Match completed; status is now ENDED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchEndResult'
+        '401':
+          description: Missing or invalid Bearer token
+        '404':
+          description: Match not found or caller is not the owner
+        '406':
+          description: |
+            The supplied event is not the story's end-game event. The error
+            code is `EVENT_NOT_END_GAME`. The actual `idEventEndGame` value
+            is **never** included in the response.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      description: The match uuid (owned by the calling player)
+      schema:
+        type: string
+    UuidEvent:
+      name: uuidEvent
+      in: path
+      required: true
+      description: The event uuid the player claims as the end-game trigger
+      schema:
+        type: string
+  schemas:
+    MatchEndResult:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The final match status after the operation
+          enum: [ENDED]
+          example: ENDED
+        uuid:
+          type: string
+          example: 3f7ec2f9-d9e7-4d20-a19e-2a9e9da9e9f4

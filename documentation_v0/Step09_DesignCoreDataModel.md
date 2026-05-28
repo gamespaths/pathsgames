@@ -65,13 +65,13 @@ These tables are populated by a story importer and are **read-only** during game
 
 | Entity | Table | Description |
 |--------|-------|-------------|
-| **Story** | `list_stories` | A playable adventure: `id_card`, `id_text_title`, `id_text_description`, `author`, `version_min`, `version_max`, `id_location_start`, `id_image`, `id_location_all_player_coma`, `id_event_all_player_coma`, `clock_singular_description` (hour), `clock_plural_description` (hours), `id_event_end_game`, `id_text_copyright`, `link_copyright`, `id_creator`, `category`, `group`, `visibility`, `priority`, `peghi`. |
-| **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`. |
+| **Story** | `list_stories` | A playable adventure: `id_card`, `id_text_title`, `id_text_description`, `author`, `version_min`, `version_max`, `id_location_start`, `id_image`, `id_location_all_player_coma`, `id_event_all_player_coma`, `id_text_clock_singular` (hour), `id_text_clock_plural` (hours), `id_event_end_game`, `id_text_copyright`, `link_copyright`, `id_creator`, `category`, `group`, `visibility`, `priority`, `peghi`. |
+| **StoryDifficulty** | `list_stories_difficulty` | Per-story difficulty preset: `id_card`, `id_story`, `id_text_description`, `exp_cost`, `max_weight`, `min_character`, `max_character`, `cost_help_coma`, `cost_max_characteristics`, `number_max_free_action`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT` with defaults life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10 — added v0.19.7 via `V0.19.7__add_difficulty_stat_columns.sql`; represent the base stat values that apply when a player selects this difficulty). |
 | **StoryKey** | `list_keys` | Registry key definitions for a story: `id_card`, `id_story`, `name`, `value`, `id_text_description`, `group`, `priority`, `visibility`. |
 | **CharacterClass** | `list_classes` | Classes available in a story: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight_max`, `dexterity_base`, `intelligence_base`, `constitution_base`. |
 | **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
-| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`. |
-| **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`. |
+| **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). |
+| **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`, `id_class_permitted` (nullable FK → `list_classes`), `id_class_prohibited` (nullable FK → `list_classes`). |
 | **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
 | **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
 | **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. |
@@ -85,7 +85,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **GlobalRandomEvent** | `list_global_random_events` | Random events triggered at time start: `id_card`, `id_story`, `condition_key`, `condition_value`, `probability`, `id_text`, `id_event`. |
 | **Mission** | `list_missions` | Mission definition: `id_card`, `id_story`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
 | **MissionStep** | `list_missions_steps` | Ordered mission steps: `id_card`, `id_story`, `id_mission`, `step`, `condition_key`, `condition_value_from`, `condition_value_to`, `id_text_name`, `id_text_description`, `id_event_completed`. |
-| **Card** | `list_cards` | Visual card data: `id_story`, `id_card`, `url_immage`, `id_text_title`, `id_text_description`, `id_text_copyright`, `link_copyright`, `id_creator`, `alternative_image`, `awesome-icon`, `style_main`, `style_detail`. |
+| **Card** | `list_cards` | Visual card data: `id_story`, `id_card`, `url_immage`, `id_text_title`, `id_text_description`, `id_text_copyright`, `link_copyright`, `id_creator`, `alternative_image`, `awesome-icon`, `style_main`, `style_detail`, `style_image_little`, `style_image_medium`, `style_image_large`, `card_type` (VARCHAR(50)/TEXT, nullable — classifies which story entity the card belongs to; see Step15 how-to guide). |
 | **Text** | `list_texts` | Multi-language text catalog: `id_story`, `id_text`, `lang`, `short_text`, `long_text`, `id_text_copyright`, `link_copyright`, `id_creator`. |
 | **Creator** | `list_creator` | Creator/author information: `id_story`, `id_text`, `link`, `url`, `url_image`, `url_emote`, `url_instagram`. |
 
@@ -94,7 +94,7 @@ These tables are populated by a story importer and are **read-only** during game
 
 | Entity | Table | Description |
 |--------|-------|-------------|
-| **Match** | `gaming_match` | Active match instance: `id_story`, `name`, `id_difficulty`, `exp_cost`, `status` (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER), `current_clock`, `id_current_weather`, `id_user_creator`, `timestamp_start`, `timestamp_lock_expiration`, `timestamp_gameover`, `timestamp_end`, `id_character_current_turn`, `secure_location_param`, `counter_consecutive_pass`. |
+| **Match** | `gaming_match` | Active match instance: `id_story`, `name`, `id_difficulty`, `exp_cost`, `status` (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER), `current_clock`, `id_current_weather`, `id_user_creator`, `timestamp_start`, `timestamp_lock_expiration`, `timestamp_gameover`, `timestamp_end`, `id_character_current_turn`, `secure_location_param`, `counter_consecutive_pass`, `single_player` (INTEGER, 1=single-player / 0=multiplayer, default 1 — added v0.19.9), `character_template_uuid` (TEXT/UUID nullable — creator's chosen template, added v0.19.9), `class_uuid` (TEXT/UUID nullable — creator's chosen class, added v0.19.9), `trait_uuids` (TEXT nullable — comma-separated list of chosen trait UUIDs, added v0.19.9). |
 | **CharacterInstance** | `gaming_character_instance` | A player's character within a match: `id_match`, `id_user`, `id_character_template`, `dexterity`, `intelligence`, `constitution`, `energy`, `life`, `sad`, `id_location`, `is_sleeping`, `is_coma`, `clock_in_coma`, `timestamp_last_pass`, `counter_consecutive_pass`. |
 | **CharacterTraits** | `gaming_character_traits` | Traits assigned to a character instance: `id_match`, `id_character_match`, `id_traits`, `id_event`. |
 | **BackpackResources** | `gaming_backpack_resources` | Per-character resources: `id_character_match`, `food`, `magic`, `coin`. |
@@ -296,7 +296,7 @@ All `list_` tables also carry `id_card` (FK to `list_cards.id`) for visual card 
 | **Active trades** | `gaming_trades` | `TimeoutTradesExpire` seconds | Cleaned by `@Scheduled cleanExpiredTrades` |
 | **Movement invites** | `gaming_movement_invites` | `TimeoutMovementFollow` seconds | Cleaned by `@Scheduled matchCleanExpiredMovementInvites` |
 | **Active choices** | `gaming_active_choices` | `TimeoutChoice` seconds | Cleaned by `@Scheduled checkTimeoutChoise` — defaults to "otherwise" option |
-| **Notification queue** | `gaming_notification_queue` | Until delivered via WebSocket | Cleaned by `@Scheduled matchSendPendingNotifications` after delivery |
+| **Notification queue** | `gaming_notification_queue` | Until delivered via WebSocket | Cleaned by `@Scheduled matcheSendPendingNotifications` after delivery |
 | **User sessions** | `gaming_user_sessions` | Until disconnect + grace period | Stale sessions cleaned by `@Scheduled checkTimeCleanUpAFKPlayers` |
 | **Concurrency locks** | `log_lock_history` (active record) | `timestamp_lock_expiration` on `gaming_match` | Released by action completion or `@Scheduled matchCheckLockExpiration` |
 | **WebSocket connections** | In-memory (Spring WebSocket session map) | Connection lifetime | Not persisted; reconnect triggers `STATE_SYNC` |
@@ -337,7 +337,7 @@ As defined in `gaming_match.status`:
          ┌──────────┐
          │ CREATED  │
          └────┬─────┘
-              │ matchStart()
+              │ matcheStart()
               ▼
       ┌───────────────┐ ◄───── matchChangeStatus()
       │   RUNNING     │◄──────────────┐
@@ -846,14 +846,18 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.10.12
+- **Document Version**: 0.19.3
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
     | 0.9.1 | aligned all entity definitions, states, column names, and enums to match Step01 Point 6 as source of truth | March 13, 2026 |
     | 0.9.2 | aligned to Step0 file v0.9.2: added guest user state, guest columns, theme_selected, list_stories, ... | March 17, 2026 |
     | 0.10.12 | added `uuid` as standard column on all 52 tables — public API identifier to avoid exposing internal auto-increment IDs | March 19, 2026 |
-- **Last Updated**: March 19, 2026
+    | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
+    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
+    | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
+    | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
+- **Last Updated**: May 19, 2026
 - **Status**: Complete ✅
 
 

@@ -1,69 +1,156 @@
 # Paths Games
 
-**Paths Games** is a multiplayer game inspired by classic gamebooks, adapted to modern gaming mechanics.
+<p align="center">
+  <a href="https://sonarcloud.io/summary/new_code?id=paths-game-backend-java"><img src="https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status" alt="coverage" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue" alt="GPL v3" /></a>
+</p>
 
-- Visit [paths.games](http://paths.games) website.
 
-- ✅ Paths games is free-to-play game, all code will be released with GNU-GPL3 licence
 
-- crowdfunding campaign *coming soon*
+
+**Paths Games** is a multi-user storytelling game where choices matter. Players explore dynamic worlds, manage resources, and collaborate (or compete) in real-time narrative adventures. 
+
+Crowdfunding campaign *coming soon*. Visit [paths.games](http://paths.games) website. **Open Source**: Built with ❤️ and released under the **GNU-GPL3** license.
+
+
 
 ## Documentation
-Documents includes all steps in roadmap for example development components, configuration parameters and lists of features reserved for futures versions.
-
-- [Version 0 Roadmap](./documentation_v0/Step00_Roadmap.md): start project and create the first playable version of *Paths Games*
-    - check [developer branch](https://github.com/gamespaths/pathsgames/) for last updates
-
-- Version 1: start the crowfouning campaign and use Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... )
-
-- Version 2: game-engine features: combact system and open world
-
-- Version 3: mobile version integrated with Google play with Android App and, desktop application integrated with Steam && Debian package
-
-- Version 4: update graphical system with advanced game-engine
+Documents includes all steps and the roadmap for create paths.games components, configuration parameters and lists of features reserved for futures versions.
 
 
 
-## Tecnical components
+| Version | Steps | Focus | 
+| --- | --- | --- |
+| 0 | 📝 **Foundation** <br /> Steps 1-11| - ✅ [Start the project](./documentation_v0/Step01_StartProject.md) & [Create the repository](./documentation_v0/Step02_CreateTheRepository.md) & [Define the V1 scope](./documentation_v0/Step03_DefineScope.md) <br />- ✅ [Technology stack](./documentation_v0/Step04_TechnologyStack.md) & [Backend structure](./documentation_v0/Step05_BackendStructure.md) & [Naming conventions](./documentation_v0/Step06_NamingConventions.md) <br />- ✅ [Configure website](./documentation_v0/Step07_ConfigureWebsite.md) & [Configure Environments & CI](./documentation_v0/Step08_ConfigureMinimalCI.md) <br />- ✅ [Design data model](./documentation_v0/Step09_DesignCoreDataModel.md) & [Create initial DB](./documentation_v0/Step10_CreateDBschema.md) & [Define API versioning](./documentation_v0/Step11_DefineAPIVersioning.md) |
+| 0.20.4 | 🛠️ **Current version** | - ✅ [Guest login](./documentation_v0/Step12_GuestLoginMethod.md) & [Session management](Step13_SessionTokenManagement.md) & [Stories magement](./documentation_v0/Step14_StoriesImportSystem.md) <br />- ✅ [Stories contents](./documentation_v0/Step15_StoryContentAPIs.md) & [Content details](./Step16_ContentDetailAPIs.md) & [Stories admin operations](./documentation_v0/Step17_StoryAdminCRUD.md) <br />- ✅ [Frontend: Stories catalog](./Step18_GameMainFrontend.md) & [Match creation](./documentation_v0/Step19_SinglePlayerMatchCreation.md) & [WebSite first run](./documentation_v0/Step20_GameWebSiteFirstRun.md) <br />- 🚧 [**Version 0 Roadmap**](./documentation_v0/Step00_Roadmap.md) & [Developer branch](https://github.com/gamespaths/pathsgames/) 🏗️  |
+| 0.42 | 🧑‍🔬 **Single player** <br /> Steps 12-42 |  Single player game engine and website prototype |
+| 0.84 | 🧑‍🤝‍🧑 **Multiplayer** <br /> Steps 43-84 | Multiplayer + credentials, WebSocket, trade, chat, lobby, admin tools, SSO |
+| 1 | 🏁 **Launch & Hardening** <br /> Steps 85-101 | Security, E2E testing, load testing, monitoring, production infra, docs, V1 launch |
+| 2 | 🎯 **Crowfouning campaign** | Creative Commons (CC BY-NC-SA) for contents (images, story, musics, ... ) <br />Anti-Spam Logic (Fatigue) |
+| 3 | 🕸️ **Campains** | Tutorial & Hints & Multiple-stories connection and global registry |
+| 4 | 🤖 **NPC** | NPCs & Entities & Group Rituals & Combact system & open world system  |
+| 5 | 🤖 Game engine | Permadeath & Game Over & Silent Events | 
+| 6 | 🤖 Game engine | Timed Missions & Voting System & Noise & Stealth & Multi-Value Registry |
+| 7 | 📱 Distributions | Mobile/Android App & Desktop application integrated with Steam & Debian package |
+| 42 | 📡 | *Life, the Universe and Everything*| 
+| 84 | 🛰️ | *To Boldly Go Where No Man Has Gone Before* |
 
-- **Main tecnical stack**
-    | Category | Components |
-    |---|:---:|
-    | Systems | <img src="https://img.shields.io/badge/Linux-BBCCEE?style=for-the-badge&logo=linux&logoColor=black" /> <img src="https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white" /> <img src="https://img.shields.io/badge/GNU-4E9A06?style=for-the-badge&logo=gnu&logoColor=white" /> |
-    | Developer tools | <img src="https://img.shields.io/badge/GitHub-000000?style=for-the-badge&logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" /> <img src="https://img.shields.io/badge/Maven-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white" /> |
-    | Cloud infrastructure | <img src="https://img.shields.io/badge/AWS-%23FF9900?style=for-the-badge&logo=amazonaws&logoColor=white" />  <img src="https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" />  <img src="https://img.shields.io/badge/Python-3766AB?style=for-the-badge&logo=python&logoColor=white" />  |
-    | Infra tooling (IaC) | <img src="https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white" /> <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" /> <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" /> |
-    | Main backend technologies | <img src="https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=black" /> <img src="https://img.shields.io/badge/SpringBoot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" /> <img src="https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white" />|
-    | Databases & storage | <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" /> <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" /> <img src="https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white" /> |
-    | Website technologies | <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?style=for-the-badge&logo=fontawesome&logoColor=white" /> |
 
-- **Backend** project into `code/backend`, see [README](./code/backend/README.md) for all details
-    - **Java**
-        - Build with Java 21, Sprinb boot with Hexagonal Architecture (ports & adapters)
-        - Build project with command `mvn clean install -DskipTests`
-        - Execute all unit test with command `mvn clean test`
-        - Start service in local environment with command `mvn -pl ms-launcher spring-boot:run`
-        - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
-        - REST API versioned under `/api/v1/` (auth, stories, games, gameplay, gamechat, admin)
-        - Real-time communication via STOMP over WebSocket on topic `/topic/v1/game/{id}`
-    - **Docker and sonar**
-        - Image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames)
-        - Run backend appliaction with docker image with `prod' profile using postgres database:
-            ```
-            docker run -d -p 8042:8080 \
-                -e SPRING_PROFILES_ACTIVE=prod   \
-                -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
-                -e SPRING_DATASOURCE_USERNAME=dbuser   \
-                -e SPRING_DATASOURCE_PASSWORD=dbpass   \
-                pathsgames/pathsgames:latest
-            ```
-        - Run sonar-qube scanner with command `mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN`
+## 📂 Repository structure and tecnologies
 
-- **Website** project into `code/website`
-    - `code/website/html` — source code of [Paths.Games](https://paths.games/) website
-    - `code/website/terraform-aws` — Terraform template for AWS infrastructure, see [README](./code/website/terraform-aws/README.md)
-    - `code/website/concepts` — design exploration assets (mockups, card concepts, logo, screenshots)
+<img src="https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=black"/> <img src="https://img.shields.io/badge/Maven-C71A36?logo=apachemaven&logoColor=white" /> <img src="https://img.shields.io/badge/SpringBoot-6DB33F?logo=springboot&logoColor=white" /> <img src="https://img.shields.io/badge/PostgreSQL-316192?logo=postgresql&logoColor=white" /> <img src="https://img.shields.io/badge/SQLite-07405E?logo=sqlite&logoColor=white" /> <img src="https://img.shields.io/badge/JUnit-25A162?logo=junit5&logoColor=white" /> <img src="https://img.shields.io/badge/SonarQube-4E9BCD?logo=sonarqube&logoColor=white" />
+
+- **Java**: main backend project on `code/backend/java` folder, see [README](./code/backend/java/README.md).
+    project build with Java 21 and Spring boot with Hexagonal Architecture. Run application on developer environment with commands:
+    - Build project without run unit-test `mvn clean install -DskipTests`
+    - Execute all unit test `mvn clean test`
+    - Start service in local environment `mvn -pl ms-launcher spring-boot:run`
+    - Check local environment with echo API: `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
+-  **sonar-qube** scanner with `/code/scripts/dev/run_sonar_scanner_java.sh`
+    - [SonarCloud](https://sonarcloud.io/project/overview?id=paths-game-backend-java): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-java&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-java)
     
+
+---
+<img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" /> <img src="https://img.shields.io/badge/SQLite-07405E?logo=sqlite&logoColor=white" />
+
+- **Python**: the developers team are creating an alternative backend version developed with python, see [README](./code/backend/python/README.md) for all details.
+    - Start virtual environment `python3 -m venv .venv && source .venv/bin/activate`
+    - Start application `python3 -m app.launcher`
+    - Execute test `pytest tests` or `pytest tests --cov=app --cov-report=term-missing`
+    - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-python): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python)
+
+
+---
+<img src="https://img.shields.io/badge/php-474A8A?logo=php&logoColor=white" /> <img src="https://img.shields.io/badge/MySql-gray?logo=MySql&logoColor=white" />
+
+- **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
+    - Start service into configured environment `php -S localhost:8042 -t public `
+    - Execute test `XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text`
+    - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-php): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php)
+
+---
+<img src="https://img.shields.io/badge/AWS%20Lambda-%23FF9900?logo=amazonaws&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/Pytest-0A9EDC?logo=pytest&logoColor=white" />
+
+- **AWS Serverless**: an alternative backend based on AWS API Gateway, Lambda and DynamoDB, see [README](./code/backend/aws/README.md) for architecture and deployment details.
+    - To deploy all components into cloud run `/code/scripts/dev/aws_backend_deploy.sh`
+    - To test all components with robot run `code/scripts/dev/run_robot_with_aws_serverless.sh`
+        - API URL is `https://xxx.execute-api.us-east-2.amazonaws.com/dev/api/echo/status`
+        - note: remeber `dev` stage on url!
+    - To check cloudformation stack `source /mnt/Dati4/Workspace/pathsgames/.env && aws cloudformation describe-stacks --region "${AWS_REGION_TEST:-us-east-2}" --stack-name "${AWS_STACK_NAME_TEST:-pathsgames-test}" --query "Stacks[0].Outputs" --output table 2>&1`
+    - To remove all component run `/code/scripts/dev/aws_backend_remove.sh`
+    - [SonarCloud](https://sonarcloud.io/project/overview?id=pathsgames_backend-aws-lambda): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_backend-aws-lambda&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pathsgames_backend-aws-lambda)
+
+
+---
+<img src="https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black" /> <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?logo=fontawesome&logoColor=white" /> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" /> <img src="https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white" /> <img src="https://img.shields.io/badge/React%20Router-CA4245?logo=reactrouter&logoColor=white" />
+
+- **Frontend/React-game**: Main game frontend/website. See [README](./code/frontend/react-game/README.md).
+    - All code is available into `code/frontend/react-game` folder. 
+    - To run it locally `npm run dev`
+    - To run all test `npm run test` e `npm run test:coverage`
+    - [SonarCloud](https://sonarcloud.io/project/information?id=pathsgames_frontend-react-game) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_frontend-react-game&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=pathsgames_frontend-react-game) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_frontend-react-game&metric=bugs)](https://sonarcloud.io/summary/new_code?id=pathsgames_frontend-react-game) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_frontend-react-game&metric=coverage)](https://sonarcloud.io/summary/new_code?id=pathsgames_frontend-react-game) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_frontend-react-game&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=pathsgames_frontend-react-game) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=pathsgames_frontend-react-game&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=pathsgames_frontend-react-game)
+
+
+---
+<img src="https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black" /> <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" /> <img src="https://img.shields.io/badge/TailwindCSS-06B6D4?logo=tailwindcss&logoColor=white" /> <img src="https://img.shields.io/badge/Bootstrap-7952B3?logo=bootstrap&logoColor=white" /> <img src="https://img.shields.io/badge/Font%20Awesome-528DD7?logo=fontawesome&logoColor=white" /> <img src="https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white" /> <img src="https://img.shields.io/badge/Axios-5A29E4?logo=axios&logoColor=white" /> <img src="https://img.shields.io/badge/React%20Router-CA4245?logo=reactrouter&logoColor=white" />
+
+- **Frontend/React-admin**: Admin and content management system with stories, cards. See [README](./code/frontend/react-admin/README.md)
+    - All code is available into `code/frontend/react-admin` folder. 
+    - To run it locally `npm run dev`
+    - To run all test `npm run test`
+    - Test execution: `npm run test` or `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+    - [SonarCloud](https://sonarcloud.io/project/configuration?id=gamespaths_frontend-react-admin): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=bugs)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=coverage)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=gamespaths_frontend-react-admin&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=gamespaths_frontend-react-admin)
+
+
+---
+<img src="https://img.shields.io/badge/AWS-%23FF9900?logo=amazonaws&logoColor=white" /> <img src="https://img.shields.io/badge/Terraform-623CE4?logo=terraform&logoColor=white" /> <img src="https://img.shields.io/badge/Google%20Tag%20Manager-246FDB?logo=googletagmanager&logoColor=white" />
+
+- **WebSite terraform** [README](./code/website/terraform-aws/README.md): Terraform configuration provisions the full AWS infrastructure required for static website hosting.
+    - It creates and configures an S3 bucket for storing and serving static files, with versioning and security policies.
+    - CloudFront is set up as a CDN with HTTPS support, custom error pages, and geo-restrictions, using an ACM certificate for SSL.
+    - Route53 DNS records and AWS SSM parameters are managed for domain routing and dynamic Content Security Policy (CSP) configuration.
+    - Optional AWS WAF integration provides additional security, and all resources are defined as code for repeatable, automated deployments.
+
+
+
+---
+<img src="https://img.shields.io/badge/Robot%20Framework-000000?logo=robotframework&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" />
+
+- **Robot-test** project into `code/tests/robot` to execute automatic tests with robot-framework!
+    - To execute all test run script: `/code/scripts/dev/run_robot_everywhere.sh`
+        - Reports are created into `code/scripts/dev/run_robot_results` folder
+    - To execute manually all test run `robot --variablefile variables/dev.yaml --outputdir reports/ tests/`
+        - Report is created into `code/tests/robot/reports/` folder.
+
+
+---
+<img src="https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=white" /> <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" />
+
+- **GitHub actions** configurated into `.github/workflows` folder
+    - Backend-ci: Runs main backend build, test, and packaging pipeline for all supported stacks.
+    - Sonarqube-aws-lambda: Analyzes AWS Lambda backend code quality and security with SonarQube.
+    - Sonarqube-java: Runs SonarQube analysis for the Java backend, checking code quality and coverage.
+    - Sonarqube-php: Runs SonarQube analysis for the PHP backend, checking code quality and coverage.
+    - Sonarqube-python: Runs SonarQube analysis for the Python backend, checking code quality and coverage.
+    - Sonarqube-react-game: Runs SonarQube analysis for the React-game frontend, checking code quality and coverage.
+    - Sonarqube-react-admin: Runs SonarQube analysis for the React-admin frontend, checking code quality and coverage.
+    - Website-deploy: Deploys the static website to the production hosting environment.
+---
+
+<img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" /> <img src="https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white" /> <img src="https://img.shields.io/badge/Linux-BBCCEE?logo=linux&logoColor=black" /> <img src="https://img.shields.io/badge/Debian-A81D33?logo=debian&logoColor=white" />  
+
+- **Docker**: The java application image is archived into [dockerHub/pathsgames repository](https://hub.docker.com/r/pathsgames/pathsgames).
+    -  Run backend application with docker image with `prod' profile using *extenal* postgres database:
+        ```
+        docker run -d -p 8042:8080 -e SPRING_PROFILES_ACTIVE=prod   \
+            -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/pathsgames   \
+            -e SPRING_DATASOURCE_USERNAME=dbuser   -e SPRING_DATASOURCE_PASSWORD=dbpass   \    
+            pathsgames/pathsgames:latest
+        ```
+
+
+
+
 
 
 ## References
@@ -103,7 +190,6 @@ Narrative Content & Assets: The story, dialogues, characters, sounds, musics, pa
 
 
 (ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
-
 
 
 

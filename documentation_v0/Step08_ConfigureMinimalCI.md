@@ -24,7 +24,7 @@ The project uses **Spring Boot profiles** to separate environment settings. Each
 | Environment | Profile | Port | Database | Config file |
 |-------------|---------|------|----------|-------------|
 | Development | `dev` (default) | 8042 | SQLite | `application-dev.yml` |
-| Production | `prod` | 8080 | PostgreSQL | `application-prod.yml` |
+| Production | `prod` | 8042 | PostgreSQL | `application-prod.yml` |
 
 Environment variables override properties at runtime:
 - `SPRING_PROFILES_ACTIVE` — selects the active profile
@@ -40,7 +40,7 @@ Build the docker image and push to DockerHub
 docker login -u utente
 
 # Build the image
-cd code/backend
+cd code/backend/java
 docker build -t pathsgames/pathsgames:latest .
 
 # Tag with version (match POM version)
@@ -93,9 +93,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | `DOCKERHUB_TOKEN` | DockerHub access token (not password) | Backend pipeline |
 | `AWS_ACCESS_KEY_ID` | AWS IAM access key for S3/CloudFront | Website pipeline |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key | Website pipeline |
-| `AWS_REGION` | AWS region (`us-east-1`) | Website pipeline |
-| `S3_BUCKET_WEBSITE` | S3 bucket name for website (`pathsgames-com`) | Website pipeline |
-| `CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for cache invalidation | Website pipeline |
+| `AWS_REGION_TEST` | AWS region (`us-east-1`) | Website pipeline |
+| `AWS_S3_BUCKET_WEBSITE` | S3 bucket name for website (`pathsgames-com`) | Website pipeline |
+| `AWS_CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for cache invalidation | Website pipeline |
 | `SONAR_TOKEN` | SonarCloud authentication token | SonarQube pipeline |
 | `SONAR_HOST_URL` | SonarCloud URL (`https://sonarcloud.io`) | SonarQube pipeline |
 
@@ -104,7 +104,7 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 | Secret | Purpose | Used by |
 |--------|---------|---------|
 | `S3_BUCKET_FRONTEND` | S3 bucket name for React app | Frontend pipeline (future) |
-| `CLOUDFRONT_DISTRIBUTION_ID_FRONTEND` | CloudFront distribution ID for frontend | Frontend pipeline (future) |
+| `AWS_CLOUDFRONT_DISTRIBUTION_ID` | CloudFront distribution ID for frontend | Frontend pipeline (future) |
 
 
 ## 3. CI System: GitHub Actions
@@ -122,9 +122,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 
 | Workflow file | Trigger | Purpose |
 |---------------|---------|---------|
-| `backend-ci.yml` | Push/PR on `code/backend/**` | Build, test, and publish Docker image |
+| `backend-ci.yml` | Push/PR on `code/backend/java/**` | Build, test, and publish Docker image |
 | `website-deploy.yml` | Push on `code/website/html/**` | Deploy static website to S3 + invalidate CloudFront |
-| `sonarqube.yml` | Push/PR on `code/backend/**` | Code quality analysis, coverage, and security scan |
+| `sonarqube.yml` | Push/PR on `code/backend/java/**` | Code quality analysis, coverage, and security scan |
 | `frontend-deploy.yml` | *(future)* Push on `code/frontend/**` | Build React app and deploy to S3 |
 
 ### 3.3 Branch Strategy for CI
@@ -152,9 +152,9 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 **Steps:**
 1. **Checkout** — clone the repository
 2. **Set up Java 21** — install JDK 21 with Maven cache
-3. **Build** — `mvn clean install -DskipTests` in `code/backend/`
-4. **Test** — `mvn test` in `code/backend/`
-5. **Docker Build & Push** — build the Docker image from `code/backend/Dockerfile` and push to DockerHub `pathsgames/pathsgames`
+3. **Build** — `mvn clean install -DskipTests` in `code/backend/java/`
+4. **Test** — `mvn test` in `code/backend/java/`
+5. **Docker Build & Push** — build the Docker image from `code/backend/java/Dockerfile` and push to DockerHub `pathsgames/pathsgames`
 
 **Docker tagging strategy:**
 
@@ -176,8 +176,8 @@ All secrets are stored in **GitHub Actions Secrets** (repository level). No cred
 **Steps:**
 1. **Checkout** — clone the repository
 2. **Configure AWS credentials** — using GitHub secrets
-3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$S3_BUCKET_WEBSITE --delete`
-4. **CloudFront Invalidation** — `aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"`
+3. **S3 Sync** — `aws s3 sync code/website/html/ s3://$AWS_S3_BUCKET_WEBSITE --delete`
+4. **CloudFront Invalidation** — `aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID --paths "/*"`
 
 ### 4.3 Frontend Pipeline (future — `frontend-deploy.yml`)
 
@@ -267,7 +267,7 @@ For the `master` branch on GitHub:
 
 ## 8. Dockerfile
 
-The backend Dockerfile is located at `code/backend/Dockerfile` and uses a **multi-stage build** for minimal image size:
+The backend Dockerfile is located at `code/backend/java/Dockerfile` and uses a **multi-stage build** for minimal image size:
 
 ```dockerfile
 # Stage 1: Build
@@ -301,14 +301,14 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ```bash
 # Build image locally
-cd code/backend
+cd code/backend/java
 docker build -t pathsgames/pathsgames:local .
 
 # Run locally with dev profile
 docker run -d -p 8042:8042 -e SPRING_PROFILES_ACTIVE=dev pathsgames/pathsgames:local
 
 # Run locally with prod profile
-docker run -d -p 8080:8080 \
+docker run -d -p 8042:8080 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/pathsgames \
   pathsgames/pathsgames:local
@@ -326,7 +326,7 @@ After this step, the following files are added to the repository:
     ├── website-deploy.yml       ← Website S3 sync and CloudFront invalidation
     └── sonarqube.yml            ← SonarCloud code quality and coverage analysis
 code/
-└── backend/
+└── backend/java
     └── Dockerfile               ← Multi-stage Docker build for the backend JAR
 ```
 
@@ -336,11 +336,12 @@ code/
     > check repository files, i wanna create documentation_v0/Step08_ConfigureMinimalCI. I use GitHub and i wanna create gitHub actions. website deployed on s3 bucket and backend i wanna create jar will be deployed on dockerhub image repository. in future we'll create a react project "frontend" will be deployed on another S3 bucket  
     
     > added SonarQube workflow and updated secrets/triggers
-- **Document Version**: 0.8.3
+- **Document Version**: 0.14.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.8 | first version of document | March 5, 2026 |
     | 0.8.3 | added SonarQube workflow and updated secrets/triggers | March 5, 2026 |
+    | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
 - **Last Updated**: March 5, 2026
 - **Status**: Complete ✅
 

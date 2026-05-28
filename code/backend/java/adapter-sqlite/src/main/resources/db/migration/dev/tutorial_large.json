@@ -1,0 +1,47 @@
+{
+  "uuid": "tutorial-uuid-001",
+  "id": 1001,
+  "author": "Antigravity",
+  "category": "tutorial",
+  "group": "tutorial",
+  "visibility": "PUBLIC",
+  "priority": 100,
+  "peghi": 0,
+  "versionMin": "0.14.0",
+  "idTextTitle": 1,
+  "idTextDescription": 2,
+  "idLocationStart": 1,
+  "idImage": 514,
+  "idCard": 2,
+  "idLocationAllPlayerComa": 1,
+  "idEventAllPlayerComa": 1,
+  "idEventEndGame": 10,
+  "idTextCopyright": 513,
+  "idCreator": 1,
+  "idTextClockSingular": 10,
+  "idTextClockPlural": 11,
+  "texts": [
+    { "idText": 1, "lang": "en", "shortText": "TUTORIAL LARGE", "longText": "Extended tutorial with many events." },
+    { "idText": 2, "lang": "en", "shortText": "A long tutorial story.", "longText": "Learn everything in detail." },
+    { "idText": 10, "lang": "en", "shortText": "turn", "longText": "turn" },
+    { "idText": 11, "lang": "en", "shortText": "turns", "longText": "turns" },
+    { "idText": 513, "lang": "en", "shortText": "Copyright", "longText": "Copyright 2026" },
+    { "idText": 514, "lang": "en", "shortText": "Image", "longText": "Image Description" }
+  ],
+  "locations": [
+    { "id": 1, "idTextName": 1, "idTextDescription": 1, "isSafe": 1 }
+  ],
+  "events": [
+    { "id": 1, "idTextName": 1, "idTextDescription": 1, "type": "NORMAL" },
+    { "id": 10, "idTextName": 1, "idTextDescription": 1, "type": "END" }
+  ],
+  "cards": [
+    { "id": 2, "idTextName": 1, "idCard": 2 }
+  ],
+  "creators": [
+    { "id": 1, "creatorName": "Antigravity" }
+  ],
+  "difficulties": [
+    { "id": 1, "expCost": 10 }
+  ]
+}

@@ -1,3 +1,3 @@
-bucket = "terraform-aws-xxxxx"
-key    = "PathsGameWebsite/terraform.tfstate"
-region = "eu-central-1"
+bucket = "pathsgames-production"
+key    = "PathsGamesWebsite/terraform.tfstate"
+region = "us-east-1"

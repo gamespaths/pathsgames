@@ -1,0 +1,18 @@
+from dataclasses import dataclass, field
+from app.core.models.story.card_info import CardInfo
+
+@dataclass
+class StorySummary:
+    uuid: str
+    title: str | None = None
+    description: str | None = None
+    author: str | None = None
+    category: str | None = None
+    group: str | None = None
+    visibility: str | None = None
+    priority: int = 0
+    peghi: int = 0
+    difficultyCount: int = 0
+    card: CardInfo | None = None
+    idTextClockSingular: int | None = None
+    idTextClockPlural: int | None = None

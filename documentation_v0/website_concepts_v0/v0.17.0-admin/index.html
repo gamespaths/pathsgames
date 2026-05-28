@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paths Games — Story Admin CRUD</title>
+    <meta name="description" content="Admin panel for managing story entities in Paths Games">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <span class="header-icon">⚔️</span>
+                <h1 id="header-title">Paths Games Admin</h1>
+            </div>
+            <div class="header-actions">
+                <span id="connection-status" class="badge badge-warning">Disconnected</span>
+                <input type="text" id="api-url" class="input-sm" placeholder="API URL" value="http://localhost:8042">
+                <input type="text" id="jwt-token" class="input-token" placeholder="Paste JWT token here...">
+                <button id="btn-connect" class="btn btn-primary btn-sm">Connect</button>
+            </div>
+        </header>
+
+        <!-- Main layout -->
+        <div class="layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <h2 class="sidebar-title">Stories</h2>
+                <div id="story-list" class="story-list">
+                    <p class="text-muted">Connect to load stories</p>
+                </div>
+                <button id="btn-create-story" class="btn btn-success btn-block" disabled>+ New Story</button>
+            </aside>
+
+            <!-- Content area -->
+            <main class="content" id="content">
+                <div class="welcome-panel" id="welcome-panel">
+                    <div class="welcome-icon">📖</div>
+                    <h2>Story Admin CRUD — v0.17.0</h2>
+                    <p>Select a story from the sidebar to manage its entities.</p>
+                    <div class="entity-types-grid">
+                        <div class="entity-chip">📍 Locations</div>
+                        <div class="entity-chip">⚡ Events</div>
+                        <div class="entity-chip">🎒 Items</div>
+                        <div class="entity-chip">⚔️ Difficulties</div>
+                        <div class="entity-chip">👤 Characters</div>
+                        <div class="entity-chip">🏛️ Classes</div>
+                        <div class="entity-chip">✨ Traits</div>
+                        <div class="entity-chip">📝 Texts</div>
+                        <div class="entity-chip">🃏 Cards</div>
+                        <div class="entity-chip">🎨 Creators</div>
+                    </div>
+                </div>
+
+                <!-- Entity management panel (hidden by default) -->
+                <div class="entity-panel" id="entity-panel" style="display:none">
+                    <div class="entity-header">
+                        <h2 id="entity-panel-title">Entities</h2>
+                        <div class="entity-tabs" id="entity-tabs"></div>
+                    </div>
+                    <div class="entity-toolbar">
+                        <button id="btn-refresh" class="btn btn-outline btn-sm">🔄 Refresh</button>
+                        <input type="text" id="entity-search" class="input-search" placeholder="🔍 Search...">
+                        <button id="btn-create-entity" class="btn btn-success btn-sm">+ New</button>
+                    </div>
+                    <div id="entity-table-container" class="table-container">
+                        <table class="data-table" id="entity-table">
+                            <thead id="entity-thead"></thead>
+                            <tbody id="entity-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Entity form modal -->
+                <div class="modal-overlay" id="modal-overlay" style="display:none">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3 id="modal-title">Edit Entity</h3>
+                            <button id="btn-modal-close" class="btn-close">&times;</button>
+                        </div>
+                        <div class="modal-body" id="modal-body"></div>
+                        <div class="modal-footer">
+                            <button id="btn-modal-cancel" class="btn btn-outline">Cancel</button>
+                            <button id="btn-modal-save" class="btn btn-primary">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

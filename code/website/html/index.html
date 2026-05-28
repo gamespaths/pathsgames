@@ -3,134 +3,126 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Paths Games — A Gamebook Videogame Crowdfunding</title>
+  <title>Paths Games</title>
   <meta name="description" content="Paths Games: an epic medieval gamebook videogame. Join our crowdfunding and shape your destiny!" />
   <!-- Bootstrap 5 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <!-- Font Awesome 5 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
   <!-- Custom CSS -->
   <link rel="stylesheet" href="variables.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="landing.css" />
+
+  <!-- Google Tag Manager + Consent Mode v2 defaults (external file → no inline
+       script, CSP-safe). Analytics stays denied until consent is given. -->
+  <script src="assets/consent-init.js"></script>
+
+  <!-- First-party cookie consent (self-hosted, replaces CookieYes) -->
+  <link rel="stylesheet" href="assets/cookieconsent.css" />
+  <link rel="stylesheet" href="assets/cookieconsent-theme.css" />
 
 </head>
 <body>
 
-  <!-- ═══════════════ NAVBAR ═══════════════ -->
-  <nav class="navbar-medieval">
-    <a class="navbar-brand" href="#">
-      <i class="fas fa-dice-d20 me-2"></i>Paths Games
+  <!-- ════════════ NAVBAR ════════════ -->
+  <nav class="pg-navbar">
+    <a class="pg-navbar-brand" href="#">
+      <i class="fas fa-dice-d20"></i>
+      <span>Paths Games</span>
     </a>
-    <div class="nav-links navbar-badges-to-rotate">
-      <a href="#crowdfund" class="nav-link">
-        <!--
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="navbar-badge navbar-badge-top"><i class="fas fa-code me-1"></i>Open Source Code</span>
-      -->
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="crowdfund-badge navbar-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
-      </a>
-    </div>
-    <!--
-    <div class="nav-links align-right">
-      <a href="#crowdfund" class="nav-link">Crowdfunding<br/>coming&nbsp;soon!</a>
-    </div>-->
   </nav>
 
-  <!-- ═══════════════ MAIN ═══════════════ -->
-  <main class="page-wrap">
 
-    <!-- ══════════════════════════════════════════
-         WORLD SECTION — Choose Your Destiny
-         ══════════════════════════════════════════ 
-    <h2 class="section-title">Choose Your Destiny</h2>
-    <p class="divider-ornament">— ✦ ⚜ ✦ —</p>
--->
-
-
-    <div class="world-row" id="world" >
-      <!-- Cards rendered dynamically by main.js -->
+  <!-- ════════════ HERO ════════════ -->
+  <section class="pg-hero">
+    <div class="pg-hero-overlay"></div>
+    <div class="pg-hero-content">
+      <h1 class="pg-hero-title">
+        <!--<i class="fas fa-dice-d20 pg-hero-icon"></i>-->
+        Paths Games
+      </h1>
+      <p class="pg-hero-sub">Epic Adventures Await &mdash; <strong>free to play</strong>, branching stories, multiplayer paths.</p>
     </div>
+  </section>
 
-    <!-- ══════════════════════════════════════════
-         CROWDFUNDING COMING SOON
-         ══════════════════════════════════════════ -->
-    <section class="crowdfund-section" id="crowdfund">
-      <div class="crowdfund-card">
-        <div class="crowdfund-icon">⚔️</div>
-        <h2 class="crowdfund-title">Crowdfunding Coming Soon</h2>
-        <p class="crowdfund-divider">— ✦ ⚜ ✦ —</p>
-        <p class="crowdfund-desc">
-          A new <strong>free-to-play</strong> adventure inspired by classic gamebooks but reimagined with modern mechanics, branching narratives and a living worlds that reacts to every choice you make.
-        </p>
-        <!--<p class="crowdfund-desc">
-          Explore fantastic and modern stories, forge alliances, face moral dilemmas, and shape your own legend. No paywalls — just pure adventure, for everyone.
-        </p>-->
-        <p class="crowdfund-desc crowdfund-desc-2">
-          <strong>The campaign is launching soon.</strong> Stay tuned and be among the first to join the quest.
-        </p>
-        <div class="crowdfund-badges">
-          <span class="crowdfund-badge"><i class="fas fa-unlock-alt me-1"></i>Free to Play</span>
-          <span class="crowdfund-badge"><i class="fas fa-people-arrows me-1"></i>Multiplayer</span>
-          <span class="crowdfund-badge"><i class="fas fa-book-open me-1"></i>Gamebook RPG</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-code-branch me-1"></i>Branching Stories</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-random me-1"></i>Multiple Paths</span>
-          <span class="crowdfund-badge no-ig"><i class="fas fa-coins me-1"></i>Crowdfunding</span>
-          <span class="crowdfund-badge"><i class="fas fa-code me-1"></i>Open Source Code</span>
+  <!-- ════════════ CARDS ════════════ -->
+  <main class="pg-cards-section">
+    <div class="container">
+      <div class="row justify-content-center g-4 pg-cards-row">
+
+        <!-- Card 1 — Play Alpha -->
+        <div class="col-12 col-md-4">
+          <a href="https://test.paths.games/"  rel="noopener" class="pg-card pg-card--play">
+            <div class="pg-card-icon-wrap">
+              <i class="fas fa-play-circle"></i>
+            </div>
+            <div class="pg-card-body">
+              <h2 class="pg-card-title">Play Alpha Version</h2>
+              <p class="pg-card-desc">Step into the world &mdash; the adventure has already begun. Try the current alpha build, explore the first stories and forge your own path.</p>
+              <span class="pg-card-cta">Play <i class="fas fa-chevron-right ms-1"></i></span>
+            </div>
+            <div class="pg-card-glow pg-card-glow--gold"></div>
+          </a>
         </div>
-      </div>
-    </section>
 
+        <!-- Card 2 — Develop / GitHub -->
+        <div class="col-12 col-md-4">
+          <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="pg-card pg-card--dev">
+            <div class="pg-card-icon-wrap">
+              <i class="fab fa-git-alt"></i>
+            </div>
+            <div class="pg-card-body">
+              <h2 class="pg-card-title">Open Source</h2>
+              <p class="pg-card-desc">Paths Games is built in the open. Explore the source code, follow the devlog, contribute ideas or report issues &mdash; every path starts with a first commit.</p>
+              <span class="pg-card-cta">View on GitHub <i class="fas fa-chevron-right ms-1"></i></span>
+            </div>
+            <div class="pg-card-glow pg-card-glow--amber"></div>
+          </a>
+        </div>
+
+        <!-- Card 3 — Crowdfunding Coming Soon -->
+        <div class="col-12 col-md-4">
+          <div class="pg-card pg-card--crowd pg-card--soon">
+            <div class="pg-card-icon-wrap">
+              <i class="fas fa-coins"></i>
+            </div>
+            <div class="pg-card-body">
+              <h2 class="pg-card-title">Crowdfunding</h2>
+              <p class="pg-card-desc">Great stories need bold patrons. A campaign is coming &mdash; help us forge weapons, weave lore and bring this world to life. Your coin, your legend.</p>
+              <span class="pg-card-cta pg-card-cta--soon">
+                <i class="fas fa-hourglass-half me-1"></i>Coming Soon
+              </span>
+            </div>
+            <div class="pg-card-glow pg-card-glow--ember"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </main>
 
-  <!-- ═══════════════ FOOTER ═══════════════ -->
-  <footer class="medieval-footer" id="footer">
-    <div class="footer-inner">
-      <div class="footer-links-row">
-        <span class="footer-brand-sm"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
-      </div>
-      <div class="footer-links-row">
-        <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" class="footer-icon-link" title="GitHub">
-          <i class="fab fa-github"></i><span>GitHub</span>
-        </a>
-        <a href="https://github.com/gamespaths/pathsgames/blob/main/ROADMAP.md" class="footer-icon-link" title="Roadmap">
-          <i class="fas fa-scroll"></i><span>Roadmap</span>
-        </a>
-        <a href="#crowdfund" class="footer-icon-link" title="Crowdfunding">
-          <i class="fas fa-coins"></i><span>Crowdfunding</span>
-        </a>
-        <a href="https://github.com/gamespaths/pathsgames/blob/main/documentation_v0/Step00_Roadmap.md" class="footer-icon-link" title="Devlog">
-          <i class="fas fa-newspaper"></i><span>Devlog</span>
-        </a>
-        <a href="https://www.instagram.com/pathsgames/" class="footer-icon-link" title="Instagram">
-          <i class="fab fa-instagram"></i><span>Instagram</span>
-        </a>
-        <a href="https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ" class="footer-icon-link" title="YouTube">
-          <i class="fab fa-youtube"></i><span>YouTube</span>
-        </a>
-      </div>
-      <div class="footer-copy">
-        <span class="gold-light">© 2025 Paths Games </span> · All rights reserved ·
-        Crafted with <i class="fas fa-heart"  ></i> by the Paths Games Dev Team ·
-        <a href="#" class="footer-link-inline">Privacy Policy</a> ·
-        <a href="#" class="footer-link-inline">Terms of Service</a> ·
-        <a href="#" class="footer-link-inline">Cookies Policy</a> 
-        --- v<span>0.10.12</span>
-      </div>
+  <!-- ════════════ FOOTER ════════════ -->
+  <footer class="pg-footer">
+    <div class="pg-footer-inner">
+      <span class="pg-footer-brand"><i class="fas fa-dice-d20 me-1"></i>Paths Games</span>
+      <span class="pg-footer-sep">&middot;</span>
+      <span class="pg-footer-copy">&copy; 2026 All rights reserved - v0.20.3 - Crafted with <i class="fas fa-heart me-1"></i> by the Paths Games Dev Team</span>
+      <span class="pg-footer-sep">&middot;</span>
+      <a href="cookies.html" class="pg-footer-link">
+        <i class="fas fa-cookie-bite me-1"></i>Cookies Policy
+      </a>
     </div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="./main.js"></script>
+
+  <!-- First-party cookie consent (self-hosted, replaces CookieYes) -->
+  <script src="assets/cookieconsent.umd.js"></script>
+  <script src="assets/cookieconsent-config.js"></script>
+
 </body>
 </html>

@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Games\Paths\Core\Domain\Story;
+
+class ClassInfo
+{
+    /** @param ClassBonusInfo[] $bonuses */
+    public function __construct(
+        public string $uuid,
+        public ?string $name = null,
+        public ?string $description = null,
+        public int $weightMax = 0,
+        public int $dexterityBase = 0,
+        public int $intelligenceBase = 0,
+        public int $constitutionBase = 0,
+        public ?int $idCard = null,
+        public ?CardInfo $card = null,
+        public array $bonuses = [],
+        public ?int $id = null
+    ) {
+    }
+}

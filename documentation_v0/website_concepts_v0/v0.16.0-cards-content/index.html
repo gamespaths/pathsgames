@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Content Detail API Demo (v0.16.0)</title>
+  <meta name="description" content="Paths Games v0.16.0: Content Detail API concept — cards, texts, and creators" />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <style>
+    :root {
+      --bg-dark: #1a1a2e;
+      --bg-card: #16213e;
+      --gold: #d4a017;
+      --gold-light: #f5d76e;
+      --text-main: #e8e6e3;
+      --text-muted: #8d8d8d;
+      --success-glow: rgba(40, 167, 69, 0.3);
+      --danger-glow: rgba(220, 53, 69, 0.3);
+    }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    .navbar-custom {
+      background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+      border-bottom: 2px solid var(--gold);
+      padding: 0.75rem 1.5rem;
+    }
+    .navbar-custom .brand { color: var(--gold-light); font-size: 1.25rem; font-weight: 600; text-decoration: none; }
+    .navbar-custom .version { color: var(--text-muted); font-size: 0.85rem; }
+    .page-wrap { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    h2 { color: var(--gold-light); font-size: 1.6rem; margin-bottom: 1rem; }
+    h3 { color: var(--gold); font-size: 1.15rem; margin-top: 1.5rem; }
+    .api-section {
+      background: var(--bg-card);
+      border: 1px solid rgba(212, 160, 23, 0.2);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .form-control, .form-select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(212,160,23,0.3);
+      color: var(--text-main);
+    }
+    .form-control:focus, .form-select:focus {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--gold);
+      color: var(--text-main);
+      box-shadow: 0 0 0 0.2rem rgba(212,160,23,0.25);
+    }
+    .form-control::placeholder { color: var(--text-muted); }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), #b8860b);
+      color: #1a1a2e;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.25rem;
+    }
+    .btn-gold:hover { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: #1a1a2e; }
+    .result-box {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      min-height: 80px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-x: auto;
+    }
+    .result-box.success { border-color: rgba(40,167,69,0.4); }
+    .result-box.error { border-color: rgba(220,53,69,0.4); }
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .status-200 { background: var(--success-glow); color: #28a745; }
+    .status-404 { background: var(--danger-glow); color: #dc3545; }
+    .status-err { background: rgba(255,193,7,0.3); color: #ffc107; }
+    .endpoint-url { color: var(--gold-light); font-family: monospace; font-size: 0.9rem; }
+    .card-preview {
+      background: var(--bg-card);
+      border: 1px solid rgba(212,160,23,0.3);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+    }
+    .card-preview img { max-width: 100%; border-radius: 8px; margin-bottom: 0.75rem; }
+    .card-preview h4 { color: var(--gold-light); margin-bottom: 0.5rem; }
+    .card-preview .meta { color: var(--text-muted); font-size: 0.85rem; }
+    .creator-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(212,160,23,0.1);
+      border: 1px solid rgba(212,160,23,0.2);
+      border-radius: 20px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+    }
+    .creator-badge img { width: 24px; height: 24px; border-radius: 50%; }
+    .footer-custom {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid rgba(212,160,23,0.15);
+      margin-top: 3rem;
+    }
+    .footer-custom .gold-light { color: var(--gold-light); }
+    label { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem; }
+    .input-group-text {
+      background: rgba(212,160,23,0.15);
+      border: 1px solid rgba(212,160,23,0.3);
+      color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar-custom d-flex align-items-center justify-content-between">
+    <a class="brand" href="#"><i class="fas fa-dice-d20 me-2"></i>Paths Games</a>
+    <span class="version">Content Detail API — v0.16.0 concept</span>
+  </nav>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div class="page-wrap">
+
+    <h2><i class="fas fa-puzzle-piece me-2"></i>Content Detail API Explorer</h2>
+    <p style="color:var(--text-muted);">
+      Test the three new <code>/api/content/</code> endpoints from Step 16.
+      Enter a Story UUID and the entity identifier, then click <strong>Fetch</strong> to call the API.
+    </p>
+
+    <!-- Server URL -->
+    <div class="mb-3">
+      <label for="base-url">Backend URL</label>
+      <input type="text" class="form-control" id="base-url" value="http://localhost:8042" placeholder="http://localhost:8042" />
+    </div>
+
+    <!-- ═══ CARD DETAIL ═══ -->
+    <div class="api-section">
+      <h3><i class="fas fa-id-card me-2"></i>Card Detail</h3>
+      <p class="endpoint-url">GET /api/content/{uuidStory}/cards/{uuidCard}?lang={lang}</p>
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label for="card-story-uuid">Story UUID</label>
+          <input type="text" class="form-control" id="card-story-uuid" placeholder="story-uuid" />
+        </div>
+        <div class="col-md-4">
+          <label for="card-uuid">Card UUID</label>
+          <input type="text" class="form-control" id="card-uuid" placeholder="card-uuid" />
+        </div>
+        <div class="col-md-2">
+          <label for="card-lang">Lang</label>
+          <input type="text" class="form-control" id="card-lang" value="en" placeholder="en" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-gold w-100" onclick="fetchCard()"><i class="fas fa-search me-1"></i>Fetch</button>
+        </div>
+      </div>
+      <div id="card-result" class="result-box">Waiting for request…</div>
+      <div id="card-preview" style="display:none;"></div>
+    </div>
+
+    <!-- ═══ TEXT DETAIL ═══ -->
+    <div class="api-section">
+      <h3><i class="fas fa-font me-2"></i>Text Detail</h3>
+      <p class="endpoint-url">GET /api/content/{uuidStory}/texts/{idText}/lang/{lang}</p>
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label for="text-story-uuid">Story UUID</label>
+          <input type="text" class="form-control" id="text-story-uuid" placeholder="story-uuid" />
+        </div>
+        <div class="col-md-3">
+          <label for="text-id">id_text (integer)</label>
+          <input type="number" class="form-control" id="text-id" placeholder="100" />
+        </div>
+        <div class="col-md-2">
+          <label for="text-lang">Lang</label>
+          <input type="text" class="form-control" id="text-lang" value="en" placeholder="en" />
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button class="btn btn-gold w-100" onclick="fetchText()"><i class="fas fa-search me-1"></i>Fetch</button>
+        </div>
+      </div>
+      <div id="text-result" class="result-box">Waiting for request…</div>
+    </div>
+
+    <!-- ═══ CREATOR DETAIL ═══ -->
+    <div class="api-section">
+      <h3><i class="fas fa-user-edit me-2"></i>Creator Detail</h3>
+      <p class="endpoint-url">GET /api/content/{uuidStory}/creators/{uuidCreator}?lang={lang}</p>
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label for="creator-story-uuid">Story UUID</label>
+          <input type="text" class="form-control" id="creator-story-uuid" placeholder="story-uuid" />
+        </div>
+        <div class="col-md-4">
+          <label for="creator-uuid">Creator UUID</label>
+          <input type="text" class="form-control" id="creator-uuid" placeholder="creator-uuid" />
+        </div>
+        <div class="col-md-2">
+          <label for="creator-lang">Lang</label>
+          <input type="text" class="form-control" id="creator-lang" value="en" placeholder="en" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-gold w-100" onclick="fetchCreator()"><i class="fas fa-search me-1"></i>Fetch</button>
+        </div>
+      </div>
+      <div id="creator-result" class="result-box">Waiting for request…</div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="footer-custom">
+    <span class="gold-light">Paths Games v0.16.0</span> &copy; 2026 All rights reserved &middot;
+    Crafted with <i class="fas fa-heart"></i> by the Paths Games Dev Team
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./main.js"></script>
+
+</body>
+</html>

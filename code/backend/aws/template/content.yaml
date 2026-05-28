@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+  TableName:
+    Type: String
+  ApiId:
+    Type: String
+
+Resources:
+  ContentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-ContentFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: project
+          Value: PathsGames
+        - Key: env
+          Value: !Ref Environment
+
+  ContentFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ContentLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-ContentFunction"
+      Runtime: python3.13
+      Handler: content.handler.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      CodeUri: ../lambda/
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+
+  ContentIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ContentFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  ContentPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ContentFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+
+  GetCardRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/content/{uuidStory}/cards/{uuidCard}"
+      Target: !Sub "integrations/${ContentIntegration}"
+
+  GetTextRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/content/{uuidStory}/texts/{idText}/lang/{lang}"
+      Target: !Sub "integrations/${ContentIntegration}"
+
+  GetCreatorRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/content/{uuidStory}/creators/{uuidCreator}"
+      Target: !Sub "integrations/${ContentIntegration}"

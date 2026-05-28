@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Stories &amp; Cards (v0.16.1)</title>
+  <meta name="description" content="Paths Games v0.16.1: stories catalog with API-driven card detail." />
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <!-- Font Awesome 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <!-- Theme -->
+  <link rel="stylesheet" href="./variables.css" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <nav class="navbar-medieval">
+    <!-- Brand -->
+    <a class="navbar-brand" href="#">
+      <i class="fas fa-dice-d20"></i> Paths Games
+    </a>
+
+    <!-- Server status bar (center) -->
+    <div class="server-status-bar">
+      <div class="server-selector">
+        <label for="server-select"><i class="fas fa-server"></i> Server</label>
+        <select id="server-select"></select>
+        <span id="server-status-dot" class="server-status-dot loading" title="Server status"></span>
+        <span id="server-status-label" class="server-status-label">checking…</span>
+        <span id="data-source-badge" class="data-source-badge mock">MOCK</span>
+    </div>
+    </div>
+
+    <!-- User icon -->
+    <div class="nav-user">
+      <button class="nav-user-btn">
+        <i class="fas fa-user-circle"></i>
+        <span class="nav-user-label">Guest</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <div class="page-wrap">
+
+    <!-- Hero banner -->
+    <section class="hero-banner">
+      <img id="hero-img" class="hero-banner-img" src="" alt="Paths Games" />
+      <div class="hero-overlay">
+        <h1 class="hero-title">Paths Games</h1>
+        <p class="hero-subtitle">
+          Choose your <strong>story</strong>. Shape your <strong>destiny</strong>.
+        </p>
+        <div class="hero-badges">
+          <span class="hero-badge"><i class="fas fa-book-open"></i>&nbsp; Stories &amp; Cards</span>
+          <span class="hero-badge"><i class="fas fa-code"></i>&nbsp; v0.16.2 Concept</span>
+          <span class="hero-badge"><i class="fas fa-plug"></i>&nbsp; API-Driven</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Story catalog (rendered by main.js) -->
+    <section id="story-catalog" class="story-catalog">
+      <div class="loading-spinner"><i class="fas fa-spinner"></i> Loading stories…</div>
+    </section>
+
+  </div>
+
+  <!-- ═══════════════ STORY DETAIL MODAL ═══════════════ -->
+  <div class="modal fade" id="storyDetailModal" tabindex="-1" aria-labelledby="storyDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content" style="background:linear-gradient(135deg,var(--bg-card) 0%,var(--color-brown-dark) 100%);border:2px solid var(--color-gold-dark);border-radius:0;">
+        <div class="modal-header" style="background:var(--card-title-background);border-bottom:2px solid var(--color-gold-dark);">
+          <h1 class="modal-title" id="storyDetailLabel" style="font-family:var(--font-heading);color:var(--color-gold-light);letter-spacing:0.08em;text-transform:uppercase;"></h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter:brightness(1.5)"></button>
+        </div>
+        <div class="modal-body" style="background:transparent;padding:2rem;max-height:calc(100vh - 120px);overflow-y:auto;">
+          
+          <!-- Story meta & event card (top) -->
+          <div id="story-detail-header" style="margin-bottom:2rem;"></div>
+
+          <!-- 3-column grid: Event card | Difficulties | Classes -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+            <!-- Event card (left) -->
+            <div id="event-card-container" style="grid-column:1;"></div>
+            
+            <!-- Difficulties (top right) -->
+            <div id="difficulties-container" style="grid-column:2/4;"></div>
+          </div>
+
+          <!-- Classes (full width) -->
+          <div id="classes-container" style="margin-bottom:2rem;"></div>
+
+          <!-- Traits (full width) -->
+          <div id="traits-container" style="margin-bottom:2rem;"></div>
+
+          <!-- JSON Toggle & Raw -->
+          <div style="text-align:center;margin:1.5rem 0;">
+            <button class="json-toggle-btn" onclick="window._toggleStoryJson()"><i class="fas fa-code"></i> Show JSON</button>
+          </div>
+          <div id="story-json-raw" class="json-raw-panel" style="display:none;"></div>
+
+        </div>
+        <div class="modal-footer" style="background:var(--card-title-background);border-top:2px solid var(--color-gold-dark);justify-content:center;">
+          <small style="color:var(--color-gold-dark);font-family:monospace;letter-spacing:0.08em;">Paths Games v0.16.1 — API-Driven Story Detail</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="medieval-footer">
+    <div class="footer-inner">
+      <span class="footer-brand-sm"><i class="fas fa-dice-d20"></i> Paths Games</span>
+      <nav class="footer-links-row">
+        <a class="footer-icon-link" href="#"><i class="fas fa-scroll"></i> <span>Terms</span></a>
+        <a class="footer-icon-link" href="#"><i class="fas fa-shield-alt"></i> <span>Privacy</span></a>
+        <a class="footer-icon-link" href="#"><i class="fas fa-cookie-bite"></i> <span>Cookies</span></a>
+        <a class="footer-icon-link" href="https://github.com/nicola-music" target="_blank" rel="noopener">
+          <i class="fab fa-github"></i> <span>GitHub</span>
+        </a>
+      </nav>
+      <p class="footer-copy">
+        <span class="gold-light">Paths Games v0.16.1</span> &copy; 2025–2026 All rights reserved<br/>
+        Crafted with <i class="fas fa-heart" style="color:#c0392b"></i> &amp; <i class="fas fa-dice-d20" style="color:var(--color-gold)"></i>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./mock-data.js"></script>
+  <script src="./main.js"></script>
+  <script src="./card3d.js"></script>
+
+</body>
+</html>

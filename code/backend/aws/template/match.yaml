@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+  TableName:
+    Type: String
+  ApiId:
+    Type: String
+  JwtSecret:
+    Type: String
+    Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
+  TurnstileSecretKey:
+    Type: String
+    Default: ""
+    Description: "Cloudflare Turnstile secret key. Leave empty to disable validation."
+  TurnstileBypassToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
+
+Resources:
+  MatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-MatchFunction"
+      RetentionInDays: 14
+      Tags:
+        - Key: project
+          Value: PathsGames
+        - Key: env
+          Value: !Ref Environment
+
+  MatchFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: MatchLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-MatchFunction"
+      Runtime: python3.13
+      Handler: match.handler.lambda_handler
+      Timeout: 30
+      MemorySize: 256
+      CodeUri: ../lambda/
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TableName
+          ENV: !Ref Environment
+          JWT_SECRET: !Ref JwtSecret
+          TURNSTILE_SECRET_KEY: !Ref TurnstileSecretKey
+          TURNSTILE_BYPASS_TOKEN: !Ref TurnstileBypassToken
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TableName
+
+  MatchIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt MatchFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  MatchPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref MatchFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+
+  CreateMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/matches"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  ListMatchesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/matches"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  ListAllMatchesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  GetMatchInfoRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/match/{uuidMatch}/info"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
+  EndMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PATCH /api/match/{uuidMatch}/end/{uuidEvent}"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  # ── admin match control (modify / stop / delete) ──
+  ListMatchStatusesRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches/statuses"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  AdminMatchInfoRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/info"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  UpdateMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "PUT /api/admin/matches/{uuidMatch}"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  StopMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/stop"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  PauseMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/pause"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  ResumeMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/admin/matches/{uuidMatch}/resume"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  DeleteMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "DELETE /api/admin/matches/{uuidMatch}"
+      Target: !Sub "integrations/${MatchIntegration}"

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Social Preview — Paths Games</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: #0f1720;
+      color: #e6eef6;
+      padding: 24px;
+    }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    h2 { margin: 24px 0 8px; font-size: 16px; color: #bbb; }
+    .preview-label {
+      color: #bbb;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    hr { border-color: rgba(255,255,255,0.1); margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Social Preview — Paths Games</h1>
+
+  <!-- Post Quadrato 1080x1080 -->
+  <h2>Post Quadrato (Instagram / Facebook)</h2>
+  <div class="preview-label">1080x1080</div>
+  <iframe src="../../html/index.html?stylefile=social-square.css" width="540" height="540"
+          scrolling="no" frameborder="0" id="socialSquare"
+          style="border: 5px solid green; display: block;"></iframe>
+  <hr />
+
+  <!-- Storia Social 1080x1920 (9:16) -->
+  <h2>Storia Social (Instagram / TikTok)</h2>
+  <div class="preview-label">1080x1920 (9:16) — Barra con titolo centrato + contenuto sotto</div>
+  <iframe src="../../html/index.html?stylefile=social-story.css" width="540" height="960"
+          scrolling="no" frameborder="0" id="socialStory"
+          style="border: 5px solid green; display: block;"></iframe>
+
+
+  <!-- YouTube Banner 2560x1440 (preview 1040x576) -->
+  <h2>YouTube Banner</h2>
+  <div class="preview-label">Preview 1040x576 (1024 + 16px scrollbar)</div>
+  <iframe src="../../html/index.html?stylefile=youtube-banner.css" width="1040" height="576"
+          scrolling="no" frameborder="0" id="bannerYoutube"
+          style="border: 5px solid green; display: block;"></iframe>
+  <hr />
+
+  <!-- Immagine Profilo Social 110x110 -->
+  <h2>Immagine Profilo Social</h2>
+  <div class="preview-label">110x110 — Dado su sfondo navbar</div>
+  <iframe src="../../html/index.html?stylefile=social-avatar.css" width="110" height="110"
+          scrolling="no" frameborder="0" id="socialAvatar"
+          style="border: 5px solid green; display: block;"></iframe>
+  <hr />
+
+
+</body>
+</html>
