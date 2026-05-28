@@ -32,8 +32,8 @@ export default function GamePage() {
   return (
     <div className="game-page-wrap">
       {loading ? (
-        <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-          <i className="fas fa-spinner fa-spin me-2" />Loading…
+        <div className="game-page-loading">
+          <i className="fas fa-spinner fa-spin me-4" />Loading…
         </div>
       ) : (
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} onClose={() => gotoHomePage(null)} />

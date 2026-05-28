@@ -344,6 +344,33 @@ def test_import_story_success_full_payload():
     assert body['storyUuid'] == 'imp-1'
     assert body['textsImported'] == 2
 
+def test_import_story_persists_character_template_class_fields():
+    payload = {
+        'uuid': 'imp-ct-1',
+        'texts': [],
+        'characterTemplates': [
+            {'idTextName': 1, 'id_tipo': 2,
+             'idClassPermitted': 5, 'idClassProhibited': 1},
+        ],
+    }
+    captured = {}
+
+    def _capture(item):
+        captured['item'] = item
+        return True
+
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=_capture):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body=payload)
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    templates = captured['item']['characterTemplates']
+    assert len(templates) == 1
+    assert templates[0]['idClassPermitted'] == 5
+    assert templates[0]['idClassProhibited'] == 1
+
 def test_import_story_replaces_existing():
     with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, STORY_ITEM]), \
          patch('story.handler.db_utils.query_gsi', return_value=[]), \

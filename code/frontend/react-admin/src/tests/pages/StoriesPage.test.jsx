@@ -181,6 +181,45 @@ describe('StoriesPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('exports JSON with alphabetically sorted keys, including nested nodes', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    // Header with unsorted keys plus a nested object
+    getStory.mockResolvedValue({
+      uuid: 'aaa-111',
+      title: 'Z Title',
+      author: 'A Author',
+      card: { name: 'X', awesomeIcon: 'fa-crown', color: 'gold' },
+    })
+    // One entity type returns an item with unsorted keys
+    listEntities.mockImplementation((_uuid, apiType) =>
+      apiType === 'locations'
+        ? Promise.resolve([{ name: 'Forest', id: 1, description: 'A place', code: 'FRST' }])
+        : Promise.resolve([])
+    )
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    const text = await capturedBlob.text()
+    const parsed = JSON.parse(text)
+
+    const topKeys = Object.keys(parsed)
+    expect(topKeys).toEqual([...topKeys].sort())
+
+    const cardKeys = Object.keys(parsed.card)
+    expect(cardKeys).toEqual(['awesomeIcon', 'color', 'name'])
+
+    const locKeys = Object.keys(parsed.locations[0])
+    expect(locKeys).toEqual(['code', 'description', 'id', 'name'])
+
+    clickSpy.mockRestore()
+  })
+
   it('shows export error when getStory fails', async () => {
     getStory.mockRejectedValue(new Error('Export error'))
     renderPage()

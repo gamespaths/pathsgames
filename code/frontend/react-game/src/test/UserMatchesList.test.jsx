@@ -8,7 +8,7 @@ vi.mock('../i18n/context', () => ({
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../api/stories',  () => ({ getStory: vi.fn() }))
 
-import UserMatchesList from '../features/matches/UserMatchesList'
+import UserMatchesList from '../components/modals/user/UserMatchesList'
 import { listMatches } from '../api/matches'
 import { getStory }    from '../api/stories'
 

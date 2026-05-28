@@ -1,25 +1,18 @@
-import { useState, useEffect } from 'react'
-import { Turnstile } from '@marsidev/react-turnstile'
+import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
 import BonusBadgeList from '../../components/common/BonusBadgeList'
+import TurnstileWidget from '../../components/common/TurnstileWidget'
+import AntibotMessage from '../../components/common/AntibotMessage'
 import { aggregateBonusTotals } from '../../utils/bonusStats'
 import { buildGameTypeCard, buildLoginCard } from './loadoutCards'
-
-const CF_KEY = import.meta.env.VITE_CF_TURNSTILE_KEY
-const _RAW_DELAY = Number(import.meta.env.VITE_TURNSTILE_DELAY_BEFORE_START)
-const TURNSTILE_DELAY_MS = Number.isFinite(_RAW_DELAY) && _RAW_DELAY > 0 ? _RAW_DELAY * 1000 : 20000
+import { CF_KEY, TURNSTILE_APPEARANCE } from '../../utils/turnstile'
 
 export default function ConfigView({ config, story, onChangeClick, onPreview, termsAccepted, onTermsChange, onStartGame }) {
   const { t } = useTranslation()
-  const [cfToken, setCfToken] = useState(null)
-  const [turnstileVisible, setTurnstileVisible] = useState(false)
-
-  useEffect(() => {
-    if (!CF_KEY) return
-    const id = setTimeout(() => setTurnstileVisible(true), TURNSTILE_DELAY_MS)
-    return () => clearTimeout(id)
-  }, [])
+  // Antibot runs only after the player commits: 'idle' shows terms + button,
+  // 'checking' hides them and runs Turnstile, 'bot' shows the funny message.
+  const [phase, setPhase] = useState('idle')
 
   const totals = aggregateBonusTotals([
     { entity: config.character,  type: 'character' },
@@ -35,6 +28,14 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
 
   const gameTypeValue = buildGameTypeCard(t)
   const loginValue    = buildLoginCard(t)
+
+  // "Start Game" click: with no site key, start immediately (dev bypass);
+  // otherwise hide the controls and begin the Turnstile check.
+  function handleStartClick() {
+    if (!termsAccepted) return
+    if (!CF_KEY) { onStartGame(null); return }
+    setPhase('checking')
+  }
 
   return (
     <div className="config-view-wrap">
@@ -54,41 +55,44 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
         <BonusBadgeList className="config-total-bonus" items={totalItems} />
       )}
       <div className="page-footer">
-        {(!CF_KEY || cfToken) && ( <label className="terms-label" aria-label={t('book.acceptTerms')}>
-          <input
-            type="checkbox"
-            checked={termsAccepted}
-            onChange={e => onTermsChange(e.target.checked)}
-          />
-          <button
-            type="button"
-            className="terms-link-btn"
-            data-bs-toggle="modal"
-            data-bs-target="#termsModal"
-            onClick={e => e.stopPropagation()}
-          >
-            {t('book.acceptTerms')}
-          </button>
-        </label>)}
-        {CF_KEY && turnstileVisible && (
-          <div style={cfToken ? { visibility: 'hidden', height: 0, overflow: 'hidden', width: 0 } : null } >
-            <Turnstile
-              siteKey={CF_KEY}
-              onSuccess={setCfToken}
-              onExpire={() => setCfToken(null)}
-              onError={() => setCfToken(null)}
-              options={{ theme: 'dark', size: 'flexible' }}
+        {phase === 'bot' ? (
+          <AntibotMessage />
+        ) : phase === 'checking' ? (
+          <div className="turnstile-checking">
+            <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
+            <TurnstileWidget
+              appearance={TURNSTILE_APPEARANCE.config}
+              onSuccess={token => onStartGame(token)}
+              onError={() => setPhase('bot')}
+              onExpire={() => setPhase('bot')}
             />
           </div>
-        )}
-        {(!CF_KEY || cfToken) && (
-          <button
-            className="btn-start-game"
-            disabled={!termsAccepted}
-            onClick={() => onStartGame(cfToken)}
-          >
-            <i className="fas fa-play me-2" />{t('book.startGame')}
-          </button>
+        ) : (
+          <>
+            <label className="terms-label" aria-label={t('book.acceptTerms')}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={e => onTermsChange(e.target.checked)}
+              />
+              <button
+                type="button"
+                className="terms-link-btn"
+                data-bs-toggle="modal"
+                data-bs-target="#termsModal"
+                onClick={e => e.stopPropagation()}
+              >
+                {t('book.acceptTerms')}
+              </button>
+            </label>
+            <button
+              className="btn-start-game"
+              disabled={!termsAccepted}
+              onClick={handleStartClick}
+            >
+              <i className="fas fa-play me-2" />{t('book.startGame')}
+            </button>
+          </>
         )}
       </div>
 

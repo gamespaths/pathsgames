@@ -1,6 +1,6 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
-import CardDetailModal from './CardDetailModal'
+//import CardDetailModal from '../../components/modals/CardDetailModal'
 
 function sanitizeModalId(value, fallback) {
   const raw = String(value ?? fallback)

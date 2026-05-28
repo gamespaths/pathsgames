@@ -42,7 +42,7 @@ export default function UserMatchesList({ accessToken, onPreviewCard, onClose })
   }, [accessToken])
 
   if (loading) return (
-    <div className="matches-list-state">
+    <div className="matches-list-state matches-list-state-loading">
       <i className="fas fa-spinner fa-spin me-2" />{t('matches.loading')}
     </div>
   )

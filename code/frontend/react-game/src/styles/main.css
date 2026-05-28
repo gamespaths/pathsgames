@@ -193,10 +193,12 @@ html, body {
 }
 
 .language-list-wrap{
-  display: flex;
+  display: block;
   flex-direction: row;
   padding: 0.5rem 0.25rem;
   margin-bottom: 4px;
+  text-align: center;
+  
 }
 .language-list-title{
   font-family: var(--font-heading);
@@ -1320,6 +1322,7 @@ html, body {
   padding: 4px 2px;
   animation: slideInRight 0.3s ease;
   isolation: isolate;
+  overflow-y: auto;
 }
 
 /* ── CardBig — 2-col selection grid ─────────────────────────────── */
@@ -1703,6 +1706,11 @@ html, body {
 /* ═══════════════════════════════════════════
    GAME PAGE BOOK
    ═══════════════════════════════════════════ */
+.game-page-loading{
+  font-size: 4rem;
+  color: var(--color-gold);
+  font-family: var(--font-heading);
+}
 .game-page-wrap {
   min-height: calc(100vh - 112px);
   display: flex;
@@ -1722,7 +1730,7 @@ html, body {
 
 .game-page-title {
   font-family: var(--font-heading);
-  font-size: 0.92rem;
+  font-size: 1rem;
   color: var(--color-gold-super-deep);
   border-bottom: 1px solid var(--color-gold-dark);
   padding-bottom: 6px;
@@ -2123,18 +2131,51 @@ html, body {
 }
 .matches-list-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 100px);
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: auto;
+  gap: 1rem;
   overflow-y: auto;
   flex: 1;
   align-content: flex-start;
-  padding-right: 4px;
+  padding: 4px 2px;
+  animation: slideInRight 0.3s ease;
+  isolation: isolate;
 }
 .matches-list-state {
   padding: 1rem;
   font-family: var(--font-heading);
   color: var(--color-ash);
   font-size: 0.85rem;
+}
+
+/* Antibot (Turnstile failure) message + "verifying" block */
+.antibot-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-family: var(--font-heading);
+  color: var(--color-gold-deep);
+}
+.antibot-message-icon {
+  font-size: 2.2rem;
+  color: var(--color-gold-deep);
+}
+.turnstile-checking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  color: var(--color-gold-deep);
+  font-size: 2rem;
+}
+.matches-list-state-loading{
+  color: var(--color-gold-deep);
+  font-size: 2rem;
 }
 .matches-list-error { color: #c0392b; }
 .matches-list-empty {

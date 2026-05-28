@@ -5,6 +5,20 @@ import ErrorAlert from '../../components/common/ErrorAlert'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import { Link, useNavigate } from 'react-router-dom'
 
+// Recursively sort object keys alphabetically; array order is preserved.
+function sortKeysDeep(value) {
+  if (Array.isArray(value)) {
+    return value.map(sortKeysDeep)
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.keys(value).sort().reduce((acc, key) => {
+      acc[key] = sortKeysDeep(value[key])
+      return acc
+    }, {})
+  }
+  return value
+}
+
 export default function StoriesPage() {
   const [stories,  setStories]  = useState([])
   const [loading,  setLoading]  = useState(true)
@@ -91,8 +105,8 @@ export default function StoriesPage() {
       
       // eslint-disable-next-line no-unused-vars
       const { tsInsert, tsUpdate, ...finalJson } = exportData
-      
-      const blob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' })
+
+      const blob = new Blob([JSON.stringify(sortKeysDeep(finalJson), null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url

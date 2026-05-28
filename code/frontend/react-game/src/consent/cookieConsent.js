@@ -3,7 +3,7 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css'
 import './cookieconsent-theme.css'
 
 // Bump when the cookie policy materially changes — returning users are re-prompted.
-const REVISION = 1
+const REVISION = 2
 
 const TRANSLATIONS = {
   en: {
@@ -25,7 +25,7 @@ const TRANSLATIONS = {
         {
           title: 'Strictly necessary cookies',
           description:
-            'Required for the game to work — they keep your anonymous guest session active. They cannot be switched off.',
+            'Required for the game to work — they keep your anonymous guest session active and protect the game from bots. They cannot be switched off.',
           linkedCategory: 'necessary',
           cookieTable: {
             headers: { name: 'Cookie', description: 'Purpose', expiration: 'Expiration' },
@@ -33,6 +33,7 @@ const TRANSLATIONS = {
               { name: 'pathsgames.guestcookie', description: 'Anonymous guest-resume identifier', expiration: '30 days' },
               { name: 'pathsgames.refreshToken', description: 'Session refresh token', expiration: '7 days' },
               { name: 'pathsgames.cookiesConsent', description: 'Stores your cookie choices', expiration: '6 months' },
+              { name: 'pathsgames.turnstilePass', description: 'Remembers a recent Cloudflare Turnstile anti-bot pass (security)', expiration: '30 minutes' },
             ],
           },
         },
@@ -70,7 +71,7 @@ const TRANSLATIONS = {
         {
           title: 'Cookie strettamente necessari',
           description:
-            'Indispensabili al funzionamento del gioco: mantengono attiva la tua sessione anonima. Non possono essere disattivati.',
+            'Indispensabili al funzionamento del gioco: mantengono attiva la tua sessione anonima e proteggono il gioco dai bot. Non possono essere disattivati.',
           linkedCategory: 'necessary',
           cookieTable: {
             headers: { name: 'Cookie', description: 'Finalità', expiration: 'Scadenza' },
@@ -78,6 +79,7 @@ const TRANSLATIONS = {
               { name: 'pathsgames.guestcookie', description: 'Identificatore di ripresa sessione anonima', expiration: '30 giorni' },
               { name: 'pathsgames.refreshToken', description: 'Token di refresh della sessione', expiration: '7 giorni' },
               { name: 'pathsgames.cookiesConsent', description: 'Memorizza le tue scelte sui cookie', expiration: '6 mesi' },
+              { name: 'pathsgames.turnstilePass', description: 'Ricorda una recente verifica anti-bot Cloudflare Turnstile (sicurezza)', expiration: '30 minuti' },
             ],
           },
         },

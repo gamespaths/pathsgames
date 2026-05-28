@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import SelectionView from './SelectionView'
+import TurnstileWidget from '../../components/common/TurnstileWidget'
+import AntibotMessage from '../../components/common/AntibotMessage'
+import { CF_KEY, TURNSTILE_APPEARANCE } from '../../utils/turnstile'
 
 export default function StartBookMobile({
   activeStory,
@@ -16,6 +20,14 @@ export default function StartBookMobile({
   getOptionsForType,
 }) {
   const { t } = useTranslation()
+  // 'idle' → terms + buttons, 'checking' → Turnstile, 'bot' → funny message.
+  const [phase, setPhase] = useState('idle')
+
+  function handleStartClick() {
+    if (!termsAccepted) return
+    if (!CF_KEY) { onStartGame(null); return }
+    setPhase('checking')
+  }
 
   return (
     <div className="book-mobile-layout">
@@ -85,26 +97,42 @@ export default function StartBookMobile({
           </div>
 
           <div className="book-mobile-footer">
-            <label className="terms-label" aria-label={t('book.acceptTerms')} style={{ marginBottom: 10, display: 'flex' }}>
-              <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} />
-              <button
-                type="button"
-                className="terms-link-btn"
-                data-bs-toggle="modal"
-                data-bs-target="#termsModal"
-                onClick={e => e.stopPropagation()}
-              >
-                {t('book.acceptTerms')}
-              </button>
-            </label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-secondary-pg" onClick={onClose} style={{ flex: 1 }}>
-                <i className="fas fa-times me-1" />{t('modals.close')}
-              </button>
-              <button className="btn-start-game" disabled={!termsAccepted} onClick={onStartGame} style={{ flex: 1 }}>
-                <i className="fas fa-play me-2" />{t('book.startGame')}
-              </button>
-            </div>
+            {phase === 'bot' ? (
+              <AntibotMessage />
+            ) : phase === 'checking' ? (
+              <div className="turnstile-checking">
+                <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
+                <TurnstileWidget
+                  appearance={TURNSTILE_APPEARANCE.config}
+                  onSuccess={token => onStartGame(token)}
+                  onError={() => setPhase('bot')}
+                  onExpire={() => setPhase('bot')}
+                />
+              </div>
+            ) : (
+              <>
+                <label className="terms-label" aria-label={t('book.acceptTerms')} style={{ marginBottom: 10, display: 'flex' }}>
+                  <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} />
+                  <button
+                    type="button"
+                    className="terms-link-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#termsModal"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {t('book.acceptTerms')}
+                  </button>
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn-secondary-pg" onClick={onClose} style={{ flex: 1 }}>
+                    <i className="fas fa-times me-1" />{t('modals.close')}
+                  </button>
+                  <button className="btn-start-game" disabled={!termsAccepted} onClick={handleStartClick} style={{ flex: 1 }}>
+                    <i className="fas fa-play me-2" />{t('book.startGame')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

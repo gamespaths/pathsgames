@@ -11,6 +11,10 @@
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile."
   },
+  "antibot": {
+    "blocked": "Antibot attivato — queste avventure sono solo per umani!",
+    "verifying": "Verifica che tu sia umano…"
+  },
   "book": {
     "configureAdventure": "Inizia la tua Avventura",
     "character": "Personaggio",

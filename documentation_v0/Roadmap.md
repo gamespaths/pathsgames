@@ -13,31 +13,30 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 |  | Step |  | Main goals |
 | ---- | -- | ----- | ---------- |
-| 1 | [Start the project](./Step01_StartProject.md) | ✅ | Write ideas on document and initial concepts, define steps to execute to start the project, a simple list and for each step give 5 subpoints. |
-| 2 | [Create the repository](./Step02_CreateTheRepository.md) | ✅ | Choose repository platform, initialize an empty repository, set the main branch and define basic access rules |
-| 3 | [Define the V1 scope](./Step03_DefineScope.md) | ✅ | Define the V1 scope, list mandatory features, list excluded features, define maximum complexity limit, establish what makes V1 "finished", freeze decisions until V2 |
-| 4 | [Technology stack](./Step04_TechnologyStack.md) | ✅ | Select backend language, select backend framework, select primary database, select frontend technology, select deployment system |
-| 5 | [Backend structure](./Step05_BackendStructure.md) | ✅ | Separate domain from infrastructure, define API module, define realtime module, define persistence module, define shared services module, create backend project and first build |
-| 6 | [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, define WebSocket event naming, define table and column naming, define DTO and payload naming |
-| 7 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Define and buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/), create terraform template, deploy terraform template into cloud system, create first version of website, deploy first version of website
-| 8 | [Configure CI](./Step08_ConfigureCI.md) | ✅ | Define environment-specific configurations, separate credentials and secrets, choose CI system (GitHub Actions), define build pipelines (backend Docker + website S3), run automated tests, fail pipeline on errors, connect CI to the main branch |
-| 9 | [Design core data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, define relationships between entities, identify persistent vs transient data, list valid game states, define rules that must never be broken, validate models with real cases |
-| 10 | [Create initial DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |
+| 1 | [Start the project](./Step01_StartProject.md) | ✅ | Write ideas on document and initial concepts, define steps to execute to start the project. |
+| 2 | [Create the repository](./Step02_CreateTheRepository.md) | ✅ | Choose repository platform, initialize an empty repository and define basic access rules |
+| 3 | [Define the V1 scope](./Step03_DefineScope.md) | ✅ | Define the V1 scope, list mandatory features, list excluded features |
+| 4 | [Technology stack](./Step04_TechnologyStack.md) | ✅ | Select backend language, backend framework, primary database, frontend technology and deployment system |
+| 5 | [Backend structure](./Step05_BackendStructure.md) | ✅ | Separate domain from infrastructure, define API and persistence modules, create backend project and first build |
+| 6 | [Naming conventions](./Step06_NamingConventions.md) | ✅ | Define REST endpoint naming, WebSocket event naming, table and column naming and DTO and payload naming |
+| 7 | [Configure website](./Step07_ConfigureWebsite.md) | ✅ | Buy domains [paths.games](http://paths.games/) & [pathsgames.com](http://pathsgames.com/), terraform template and deploy first version of website |
+| 8 | [Configure CI](./Step08_ConfigureCI.md) | ✅ | Define environment-specific configurations with secrets, define pipelines (GitHub Actions) with master branch |
+| 9 | [Design data model](./Step09_DesignCoreDataModel.md) | ✅ | Identify main entities, relationships between entities, persistent vs transient data |
+| 10 | [Create DB schema](./Step10_CreateDBschema.md) | ✅ | Translate the data model into tables, define primary keys, define foreign keys, version the schema |
 | 11 | [Define API versioning](./Step11_DefineAPIVersioning.md) | ✅ | Establish the API versioning scheme, Decide backward compatibility policy, Prepare structure for future versions |
 | 12 | [Implement guest login](Step12_GuestLoginMethod.md) | ✅ | Define guest identity model, ceate guest session endpoint, store guest sessions in database | 
-| 13 | [Session & token management](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
-| 14 | [Stories management & import](Step14_StoriesImportSystem.md) | ✅ | Story import system and data seeding. Start test robot framework. |
+| 13 | [Sessions & tokens](Step13_SessionTokenManagement.md) | ✅ | Token refresh with rotation, logout, auth filter, admin authorization |
+| 14 | [Stories management](Step14_StoriesImportSystem.md) | ✅ | Story import system and data seeding. Start test robot framework. |
 | 15 | [Stories content APIs](./Step15_StoryContentAPIs.md) | ✅ | Story content APIs: categories, groups, enriched detail |
 | 16 | [Content details APIs](./Step16_ContentDetailAPIs.md) | ✅ | Card, test and authors details APIs |
-| 17 | [Story Admin CRUD Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
-| 18 | [Frontend: Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
-| 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) & [Utils](./Step19_SinglePlayerMatchUtils.md) | ✅ | Single player match creation |
-| 20 | [WebSite on ClaudeFlare Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on ClaudeFlare Cloud |
+| 17 | [Story Admin Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
+| 18 | [Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
+| 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
+| 20 | [WebSite on Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on Cloud with cookies configuration (AWS-CloudFront & ClaudeFlare) |
 
 
 | Steps | Phase |
 | -- | -- |
-| 14-20 | Story management (import, content APIs, admin CRUD, validation, frontend) |
 | 21-24 | Single-player match setup (create, character select, traits, frontend UI) |
 | 25-27 | Core engine (turn cycle, time system, weather) |
 | 28-32 | Game mechanics — movement, events, choices |
@@ -61,21 +60,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 100-101 | Documentation and V1 Launch |
 
 
-## Next steps
-For next steps use this prompt
-> Set Step/XX=1000  
-> starting from develop branch, commit and push all changes into branch develop_v0_XX_0 with user "gamespaths@gmail.com" "Paths.Games agent". use opus model
+# Next steps
 
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX descripted into Step00_Roadmap file: write all java backend code into "code/backend/java" project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder with new/changed api, if some api changed write me into md files. create a new simple web example to use new api-interfaces inside new "documentation_v0/website_concepts_v0/v0.XX.0/" folder, if necessary create a new "documentation_v0/website_concepts_v0/v0.XX.0-admin/" folder for dedicated admin web-site sections, for websites use componentes by code/website/html and others last concepts (documentation_v0/website_concepts_v0). add new folder inside "code/tests/robot/test" and write new robot-framework test to check all apis and new components are ok (launcing java backend with sqlite profile to test all). don't look and don't change "backend/python" , "backend/php" , "backend/aws" and others concepts folder into "website". to execute robot command remember to use ".venv".  
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX=000 for python and php backend. please read all changes about step XX and write php and python project code using tecnologies defined into README.md file inside projects. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. For php and python i've sonar qube so complete all unit-test using phpunit and pytest to cover 100% of branches-case. never change files outside "code/backend/php" and "code/backend/python" folders. my robot "code/tests/robot" must works with python and php project, check it with script inside "code/script/dev/" folder. to execute python project and robot command remember to use ".venv".  
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. i wanna to run step XX for aws backend version inside "code/backend/aws" folder. please read all changes about step XX from java and python versions and write into aws project new code using tecnologies defined into README.md file inside projects and previus code. I wanna all APIs are 100% compatibile with "code/backend/java/adapter-rest/src/main/resources/openapi" open-api documentation. never change files outside "code/backend/aws" folder. my robot "code/tests/robot" must works with new code, never change robot test code.
-
-> Read all documentation into "documentation_v0" folder to have all information about my project. read open-api documentation into "/code/backend/java/adapter-rest/src/main/resources/openapi" folder, i wanna to run step XX for frontend "react-admin" and "react-game" , add functionality inside project using react tecnologies defined into README.md file inside projects. In this step never change files outside react projects. Rember to cover code with tests for have 100% sonar coverage. On editors components I wanna change all table column. 
-# PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-
-
+## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
 21. Character template and class selection
@@ -256,9 +243,8 @@ For next steps use this prompt
     - Write release notes documenting beta features, known limitations, and feedback collection process (docs)
 
 
----
 
-# PHASE 2 — Multiplayer Game with Credential Login (Steps 43-84)
+## PHASE 2 — Multiplayer Game with Credential Login (Steps 43-84)
 
 43. User registration endpoint (email, username, password)
     - Implement POST /auth/register/new endpoint accepting email, username, and password (backend)
@@ -602,9 +588,9 @@ For next steps use this prompt
     - Write integration test report documenting scenarios, results, and remaining issues (docs)
 
 
----
 
-# PHASE 3 — Testing, Infrastructure, and V1 Launch (Steps 85-101)
+
+## PHASE 3 — Testing, Infrastructure, and V1 Launch (Steps 85-101)
 
 85. Security audit — input validation, CORS, rate limiting
     - Audit all REST endpoints for input validation: SQL injection, XSS, path traversal, oversized payloads (backend)
@@ -744,6 +730,8 @@ For next steps use this prompt
     - Announce V1 launch: update website, publish release notes, open public access at paths.games (all)
 102. Annotation
     - Chech cors configuration and WebConfig file class
+
+
 
 # Version Control
 - First version created with AI prompt:

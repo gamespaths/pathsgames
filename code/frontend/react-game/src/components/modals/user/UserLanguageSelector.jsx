@@ -14,10 +14,10 @@ export default function UserLanguageSelector() {
   }, [])
 
   return (
-    <div className="language-list-wrap">
-      <h3 className="matches-list-title language-list-title">
+    <div className="language-list-wrap ">
+      {/*<h3 className="matches-list-title language-list-title">
         <i className="fas fa-scroll me-2" />{t('modals.guestUser.languageTitle')}
-      </h3>
+      </h3>*/}
         {availableLangs.map(l => (
             <button
             className={`lang-btn ${lang === l.code ? 'active' : ''}`}

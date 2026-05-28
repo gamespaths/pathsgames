@@ -2,6 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
+// Controllable Turnstile mock: on mount it fires onSuccess (human) by default,
+// or onError when `ts.behavior` is flipped to 'bot' before render.
+const ts = vi.hoisted(() => ({ behavior: 'success' }))
+vi.mock('@marsidev/react-turnstile', async () => {
+  const { useEffect } = await import('react')
+  return {
+    Turnstile: ({ onSuccess, onError }) => {
+      useEffect(() => {
+        if (ts.behavior === 'bot') onError?.()
+        else onSuccess?.('test-token')
+      }, [])
+      return <div data-testid="turnstile-mock" />
+    },
+  }
+})
+
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
@@ -42,6 +58,8 @@ function wrap(ui) {
 describe('HomePage — story click with active match check', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ts.behavior = 'success'
+    document.cookie = 'pathsgames.turnstilePass=; max-age=0; path=/' // forget prior pass
     getStories.mockResolvedValue([STORY_A, STORY_B])
   })
 
@@ -89,5 +107,27 @@ describe('HomePage — story click with active match check', () => {
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
     expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+  })
+
+  it('blocks bots: shows antibot message and never calls getStories', async () => {
+    ts.behavior = 'bot'
+    wrap(<HomePage />)
+    expect(await screen.findByText('antibot.blocked')).toBeInTheDocument()
+    expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
+    expect(getStories).not.toHaveBeenCalled()
+  })
+
+  it('records a pass cookie after a human check', async () => {
+    wrap(<HomePage />)
+    await screen.findByText('Forest Path')
+    expect(document.cookie).toContain('pathsgames.turnstilePass=1')
+  })
+
+  it('skips the widget and loads stories directly when a recent pass cookie exists', async () => {
+    document.cookie = 'pathsgames.turnstilePass=1; path=/'
+    wrap(<HomePage />)
+    expect(await screen.findByText('Forest Path')).toBeInTheDocument()
+    expect(screen.queryByTestId('turnstile-mock')).not.toBeInTheDocument()
+    expect(getStories).toHaveBeenCalledTimes(1)
   })
 })

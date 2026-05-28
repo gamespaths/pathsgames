@@ -622,6 +622,8 @@ def import_story(event):
             'intelligenceStart': ct.get('intelligenceStart', 0),
             'constitutionStart': ct.get('constitutionStart', 0),
             'idCard':            ct.get('idCard'),
+            'idClassPermitted':  ct.get('idClassPermitted'),
+            'idClassProhibited': ct.get('idClassProhibited'),
         })
 
     # Step 15: Build classes list

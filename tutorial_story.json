@@ -1,7 +1,7 @@
 {
   "uuid": "story-001",
   "id": 101,
-  "title": "Paths Tutorial",
+  "title": "Paths Alpha",
   "description": "A cursed fortress rises from the mist. Brave souls are needed to uncover its dark secrets before the ancient evil consumes the realm. Every corridor hides a choice, every choice shapes your fate.",
   "author": "Paths Games Team",
   "category": "adventure",
@@ -27,19 +27,18 @@
   "clockPluralDescription": "turns",
   "copyrightText": null,
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
-  "locationCount": 0,
-  "eventCount": 0,
+  "locationCount": 1,
+  "eventCount": 1,
   "itemCount": 0,
-  "classCount": 8,
+  "classCount": 6,
   "characterTemplateCount": 6,
-  "traitCount": 5,
+  "traitCount": 6,
   "difficulties": [
     {
       "numberMaxFreeAction": 0,
       "maxCharacter": 0,
       "constitution": 0,
       "idCard": 20,
-      "id_card": 20,
       "weight": 0,
       "maxWeight": 0,
       "idTextName": 39,
@@ -50,7 +49,7 @@
       "costHelpComa": 0,
       "texts": {
         "en": {
-          "title": "A peaceful journey"
+          "title": "Easy"
         }
       },
       "sad": 0,
@@ -65,7 +64,6 @@
       "maxCharacter": 0,
       "constitution": 0,
       "idCard": 21,
-      "id_card": 21,
       "weight": 0,
       "maxWeight": 0,
       "idTextName": 42,
@@ -76,7 +74,7 @@
       "costHelpComa": 0,
       "texts": {
         "en": {
-          "title": "A balanced challenge"
+          "title": "Normal"
         }
       },
       "sad": 0,
@@ -91,7 +89,6 @@
       "maxCharacter": 0,
       "constitution": 0,
       "idCard": 22,
-      "id_card": 22,
       "weight": 0,
       "maxWeight": 0,
       "idTextName": 45,
@@ -102,7 +99,7 @@
       "costHelpComa": 0,
       "texts": {
         "en": {
-          "title": "Pain forges legends"
+          "title": "Hard"
         }
       },
       "sad": 0,
@@ -117,7 +114,6 @@
       "maxCharacter": 0,
       "constitution": 0,
       "idCard": 23,
-      "id_card": 23,
       "weight": 0,
       "maxWeight": 0,
       "idTextName": 48,
@@ -128,7 +124,7 @@
       "costHelpComa": 0,
       "texts": {
         "en": {
-          "title": "Suffer and conquer"
+          "title": "Legendary"
         }
       },
       "sad": 0,
@@ -143,17 +139,21 @@
     {
       "dexterityStart": 0,
       "intelligenceStart": 0,
-      "idCard": 25,
-      "id_card": 25,
-      "idTextName": 70,
-      "sadMax": 3,
       "lifeMax": 3,
       "constitutionStart": 1,
-      "idClassProhibited": 3,
-      "idClassPermitted": "",
+      "texts": {
+        "en": {
+          "name": "Soldier",
+          "description": "Soldier"
+        }
+      },
+      "idCard": 25,
+      "id_tipo": 1,
       "idTextDescription": 70,
-      "id": 1,
-      "energyMax": 4
+      "idTextName": 70,
+      "sadMax": 3,
+      "energyMax": 4,
+      "id": 1
     },
     {
       "dexterityStart": 1,
@@ -164,8 +164,14 @@
       "sadMax": 2,
       "lifeMax": 4,
       "constitutionStart": 0,
+      "texts": {
+        "en": {
+          "name": "Forest Elf",
+          "description": "Forest Elf"
+        }
+      },
       "idClassProhibited": 1,
-      "idClassPermitted": "",
+      "id_tipo": 2,
       "idTextDescription": 71,
       "id": 2,
       "energyMax": 4
@@ -173,205 +179,328 @@
     {
       "dexterityStart": 0,
       "intelligenceStart": 0,
-      "idCard": 27,
-      "id_card": 27,
-      "idTextName": 72,
-      "sadMax": 2,
       "lifeMax": 5,
       "constitutionStart": 1,
-      "idClassProhibited": 6,
+      "texts": {
+        "en": {
+          "name": "Dwarf",
+          "description": "Dwarf"
+        }
+      },
+      "idCard": 27,
+      "id_tipo": 3,
       "idTextDescription": 72,
-      "id": 3,
-      "energyMax": 3
+      "idTextName": 72,
+      "sadMax": 2,
+      "energyMax": 3,
+      "id": 3
     },
     {
       "dexterityStart": 0,
       "intelligenceStart": 0,
-      "idCard": 28,
-      "id_card": 28,
-      "idTextName": 73,
-      "sadMax": 1,
       "lifeMax": 6,
       "constitutionStart": 1,
-      "idClassProhibited": 5,
+      "texts": {
+        "en": {
+          "name": "Orc",
+          "description": "Orc"
+        }
+      },
+      "idCard": 28,
+      "id_tipo": 4,
       "idTextDescription": 73,
-      "id": 4,
-      "energyMax": 3
+      "idTextName": 73,
+      "sadMax": 1,
+      "energyMax": 3,
+      "id": 4
     },
     {
       "dexterityStart": 1,
       "intelligenceStart": 0,
-      "idCard": 29,
-      "id_card": 29,
-      "idTextName": 74,
-      "sadMax": 4,
       "lifeMax": 2,
       "constitutionStart": 0,
-      "idClassProhibited": 1,
-      "idClassPermitted": 6,
+      "texts": {
+        "en": {
+          "name": "Halfling",
+          "description": "Halfling"
+        }
+      },
+      "idCard": 29,
+      "id_tipo": 5,
       "idTextDescription": 74,
-      "id": 5,
-      "energyMax": 4
+      "idTextName": 74,
+      "sadMax": 4,
+      "energyMax": 4,
+      "id": 5
     },
     {
       "dexterityStart": 0,
       "intelligenceStart": 2,
-      "idCard": 30,
-      "id_card": 30,
-      "idTextName": 75,
-      "sadMax": 3,
       "lifeMax": 2,
       "constitutionStart": 0,
-      "idClassProhibited": "",
-      "idClassPermitted": 3,
+      "texts": {
+        "en": {
+          "name": "Wizard",
+          "description": "Wizard"
+        }
+      },
+      "idCard": 30,
+      "id_tipo": 6,
       "idTextDescription": 75,
-      "id": 6,
-      "energyMax": 4
+      "idTextName": 75,
+      "sadMax": 3,
+      "energyMax": 4,
+      "id": 6
     }
   ],
   "classes": [
     {
       "constitutionBase": 5,
+      "texts": {
+        "en": {
+          "name": "Knight",
+          "description": "Knight"
+        }
+      },
       "intelligenceBase": 3,
       "idCard": 31,
-      "id_card": 31,
+      "id": 1,
       "idTextDescription": 76,
       "weightMax": 4,
       "dexterityBase": 1,
-      "id": 1,
       "idTextName": 76
     },
     {
       "constitutionBase": 2,
+      "texts": {
+        "en": {
+          "name": "Archer",
+          "description": "Archer"
+        }
+      },
       "intelligenceBase": 3,
       "idCard": 32,
-      "id_card": 32,
+      "id": 2,
       "idTextDescription": 77,
       "weightMax": 2,
       "dexterityBase": 5,
-      "id": 2,
       "idTextName": 77
     },
     {
       "constitutionBase": 2,
+      "texts": {
+        "en": {
+          "name": "Mage",
+          "description": "Mage"
+        }
+      },
       "intelligenceBase": 5,
       "idCard": 33,
-      "id_card": 33,
+      "id": 3,
       "idTextDescription": 78,
       "weightMax": 2,
       "dexterityBase": 2,
-      "id": 3,
       "idTextName": 78
     },
     {
       "constitutionBase": 2,
+      "texts": {
+        "en": {
+          "name": "Rogue",
+          "description": "Rogue"
+        },
+        "it": {
+          "name": "",
+          "description": ""
+        }
+      },
       "intelligenceBase": 3,
       "idCard": 34,
-      "id_card": 34,
+      "id": 4,
       "idTextDescription": 79,
       "weightMax": 4,
       "dexterityBase": 4,
-      "id": 4,
       "idTextName": 79
     },
     {
       "constitutionBase": 3,
+      "texts": {
+        "en": {
+          "name": "Paladin",
+          "description": "Paladin"
+        }
+      },
       "intelligenceBase": 4,
       "idCard": 35,
-      "id_card": 35,
+      "id": 5,
       "idTextDescription": 80,
       "weightMax": 4,
       "dexterityBase": 2,
-      "id": 5,
       "idTextName": 80
     },
     {
       "constitutionBase": 2,
+      "texts": {
+        "en": {
+          "name": "Bard",
+          "description": "Bard"
+        }
+      },
       "intelligenceBase": 3,
       "idCard": 36,
-      "id_card": 36,
+      "id": 6,
       "idTextDescription": 81,
       "weightMax": 3,
       "dexterityBase": 4,
-      "id": 6,
       "idTextName": 81
     }
   ],
   "traits": [
     {
-      "dexterity": 1,
       "constitution": -1,
-      "idClassProhibited": 6,
       "idCard": 37,
-      "id_card": 37,
       "weight": "",
-      "idTextDescription": 82,
-      "id": 1,
       "idTextName": 82,
-      "costPositive": 0
+      "life": 0,
+      "costPositive": 0,
+      "intelligence": 0,
+      "dexterity": 1,
+      "texts": {
+        "en": {
+          "name": "Brave",
+          "description": "Brave"
+        }
+      },
+      "idClassProhibited": 6,
+      "sad": 0,
+      "idClassPermitted": null,
+      "id": 1,
+      "idTextDescription": 82,
+      "costNegative": 0,
+      "energy": 0
     },
     {
       "constitution": -1,
-      "idClassProhibited": 1,
       "idCard": 38,
-      "id_card": 38,
-      "idTextDescription": 83,
-      "id": 2,
+      "weight": 0,
       "idTextName": 83,
+      "life": 0,
       "costPositive": 0,
-      "intelligence": 1
+      "intelligence": 1,
+      "dexterity": 0,
+      "texts": {
+        "en": {
+          "name": "Cunning",
+          "description": "Cunning"
+        }
+      },
+      "idClassProhibited": 1,
+      "sad": 0,
+      "idClassPermitted": null,
+      "id": 2,
+      "idTextDescription": 83,
+      "costNegative": 0,
+      "energy": 0
     },
     {
+      "constitution": 0,
       "idCard": 39,
-      "id_card": 39,
+      "weight": 0,
       "idTextName": 84,
+      "life": 0,
       "costPositive": "",
+      "intelligence": 0,
+      "dexterity": 0,
+      "texts": {
+        "en": {
+          "name": "Cursed",
+          "description": "Cursed"
+        }
+      },
       "idClassProhibited": 2,
       "sad": -1,
       "idClassPermitted": "",
-      "idTextDescription": 84,
       "id": 3,
+      "idTextDescription": 84,
       "costNegative": 0,
       "energy": 1
     },
     {
       "constitution": -1,
-      "idClassProhibited": 4,
       "idCard": 40,
-      "sad": 1,
-      "id_card": 40,
-      "idTextDescription": 85,
-      "id": 4,
+      "weight": 0,
       "idTextName": 85,
+      "life": 0,
+      "costPositive": 0,
+      "intelligence": 0,
+      "dexterity": 0,
+      "texts": {
+        "en": {
+          "name": "Blessed",
+          "description": "Blessed"
+        }
+      },
+      "idClassProhibited": 4,
+      "sad": 1,
+      "idClassPermitted": null,
+      "id": 4,
+      "idTextDescription": 85,
       "costNegative": 0,
-      "costPositive": 0
+      "energy": 0
     },
     {
-      "dexterity": 1,
-      "idClassProhibited": 5,
+      "constitution": 0,
       "idCard": 42,
-      "sad": -1,
-      "id_card": 42,
-      "idTextDescription": 86,
-      "id": 5,
+      "weight": 0,
       "idTextName": 86,
-      "costNegative": 0
+      "life": 0,
+      "costPositive": 0,
+      "intelligence": 0,
+      "dexterity": 1,
+      "texts": {
+        "en": {
+          "name": "Coward",
+          "description": "Coward"
+        }
+      },
+      "idClassProhibited": 5,
+      "sad": -1,
+      "idClassPermitted": null,
+      "id": 5,
+      "idTextDescription": 86,
+      "costNegative": 0,
+      "energy": 0
     },
     {
       "constitution": -1,
-      "idClassProhibited": 3,
       "idCard": 43,
-      "id_card": 43,
-      "idTextDescription": 87,
-      "id": 6,
+      "weight": 0,
       "idTextName": 87,
-      "costNegative": 0,
       "life": 1,
-      "costPositive": 0
+      "costPositive": 0,
+      "intelligence": 0,
+      "dexterity": 0,
+      "texts": {
+        "en": {
+          "name": "Ancident",
+          "description": "Ancident"
+        },
+        "it": {
+          "name": "Ancestrale",
+          "description": "Ancestrale"
+        }
+      },
+      "idClassProhibited": 3,
+      "sad": 0,
+      "idClassPermitted": null,
+      "id": 6,
+      "idTextDescription": 87,
+      "costNegative": 0,
+      "energy": 0
     }
   ],
   "card": {
-    "uuid": "9cc41d5d-e951-46fd-a18b-05f52c9f3223",
+    "uuid": "280f5edd-9c54-40fc-a870-103dca826562",
     "cardType": null,
     "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
     "alternativeImage": null,
@@ -388,13 +517,13 @@
   },
   "texts": [
     {
-      "idCard": null,
-      "idTextName": null,
       "longText": "Paths Alpha",
+      "idCard": null,
       "shortText": "Paths Alpha",
       "idTextCopyright": 3,
       "id": 1,
       "idTextDescription": null,
+      "idTextName": null,
       "lang": "en",
       "idText": 1,
       "linkCopyright": null,
@@ -453,13 +582,13 @@
       "idCreator": null
     },
     {
-      "idCard": null,
-      "idTextName": null,
       "longText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first Alpha-version of paths.games</p>",
+      "idCard": null,
       "shortText": "Enter the cursed fortress if you dare. <br /><br /><br /> <p align=center> This is the first Alpha-version of paths.games</p>",
       "idTextCopyright": 3,
       "id": 6,
       "idTextDescription": null,
+      "idTextName": null,
       "lang": "en",
       "idText": 6,
       "linkCopyright": null,
@@ -1744,8 +1873,7 @@
       "id": 1,
       "idTextName": 106,
       "type": "NORMAL",
-      "costEnery": 1,
-      "uuid": "end-event-uuid"
+      "costEnery": 1
     }
   ],
   "items": [],
@@ -1764,11 +1892,9 @@
   "cards": [
     {
       "awesomeIcon": "fas fa-chess-rook",
-      "idCard": 1,
       "idTextTitle": 1,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 1,
       "styleImageLittle": null,
       "idTextCopyright": 7,
       "styleImageLarge": null,
@@ -1783,11 +1909,9 @@
     },
     {
       "awesomeIcon": "fas fa-user-tie",
-      "idCard": 2,
       "idTextTitle": 9,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 2,
       "styleImageLittle": null,
       "idTextCopyright": 10,
       "styleImageLarge": "ob-c-25",
@@ -1802,11 +1926,9 @@
     },
     {
       "awesomeIcon": "fas fa-user-tie",
-      "idCard": 3,
       "idTextTitle": 9,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 3,
       "styleImageLittle": "height-unset top-10",
       "idTextCopyright": 11,
       "styleImageLarge": "of-f",
@@ -1821,11 +1943,9 @@
     },
     {
       "awesomeIcon": "fas fa-user",
-      "idCard": 4,
       "idTextTitle": 13,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 4,
       "styleImageLittle": null,
       "idTextCopyright": 14,
       "styleImageLarge": "ob-c-30",
@@ -1840,11 +1960,9 @@
     },
     {
       "awesomeIcon": "fas fa-user",
-      "idCard": 5,
       "idTextTitle": 13,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 5,
       "styleImageLittle": "height-unset top-10",
       "idTextCopyright": 11,
       "styleImageLarge": "of-f",
@@ -1859,11 +1977,9 @@
     },
     {
       "awesomeIcon": "fas fa-user",
-      "idCard": 6,
       "idTextTitle": 69,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 6,
       "styleImageLittle": null,
       "idTextCopyright": 15,
       "styleImageLarge": "ob-c-20",
@@ -1878,11 +1994,9 @@
     },
     {
       "awesomeIcon": "fas fa-user-tie",
-      "idCard": 7,
       "idTextTitle": 16,
       "alternativeImage": null,
       "cardType": null,
-      "id_card": 7,
       "styleImageLittle": "height-unset top-10",
       "idTextCopyright": 11,
       "styleImageLarge": "of-f",
@@ -2185,259 +2299,361 @@
       "styleImageMedium": null
     },
     {
-      "idCard": 25,
+      "awesomeIcon": null,
       "idTextTitle": 70,
-      "id_card": 25,
+      "alternativeImage": null,
+      "cardType": null,
       "styleImageLittle": "ob-c-10",
-      "idTextName": 70,
       "idTextCopyright": 95,
       "styleImageLarge": "ob-c-20",
-      "idTextDescription": 70,
       "id": 25,
+      "idTextDescription": 70,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/a-man-dressed-in-medieval-clothing-holding-a-sword-and-shield-4fSeZs1V6Hk",
       "idCreator": 1,
       "urlImage": "https://plus.unsplash.com/premium_photo-1698168385400-3b0cb7eb2b81?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/a-man-dressed-in-medieval-clothing-holding-a-sword-and-shield-4fSeZs1V6Hk"
+      "styleImageMedium": null
     },
     {
-      "idCard": 26,
+      "awesomeIcon": null,
       "idTextTitle": 71,
-      "id_card": 26,
+      "alternativeImage": null,
+      "cardType": null,
       "styleImageLittle": "ob-c-10",
-      "idTextName": 71,
       "idTextCopyright": 96,
       "styleImageLarge": "ob-c-10",
-      "idTextDescription": 71,
       "id": 26,
-      "idCreator": 1,
+      "idTextDescription": 71,
+      "styleMain": null,
+      "styleDetail": null,
       "linkCopyright": "https://unsplash.com/photos/young-woman-with-elf-ears-smiling-amongst-green-leaves-Z4tpjrXCZzc",
-      "urlImage": "https://images.unsplash.com/photo-1763192952100-471c888f98db?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1763192952100-471c888f98db?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "styleImageMedium": null
     },
     {
-      "idCard": 27,
+      "awesomeIcon": null,
       "idTextTitle": 72,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 15,
-      "id_card": 27,
-      "idTextDescription": 72,
+      "styleImageLarge": null,
       "id": 27,
-      "idTextName": 72,
+      "idTextDescription": 72,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/a-man-with-a-beard-wearing-a-helmet-and-holding-a-sword-aU3lo65KBaU",
       "idCreator": 1,
       "urlImage": "https://plus.unsplash.com/premium_photo-1698170370717-7df047671c41?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/a-man-with-a-beard-wearing-a-helmet-and-holding-a-sword-aU3lo65KBaU"
+      "styleImageMedium": null
     },
     {
-      "idCard": 28,
+      "awesomeIcon": null,
       "idTextTitle": 73,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 97,
-      "id_card": 28,
-      "idTextDescription": 73,
+      "styleImageLarge": null,
       "id": 28,
-      "idTextName": 73,
+      "idTextDescription": 73,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/woman-in-black-and-white-leopard-print-sleeveless-dress-standing-near-green-plant-07cKJ81EwkI",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1625631241105-98ff6461a3d5?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/woman-in-black-and-white-leopard-print-sleeveless-dress-standing-near-green-plant-07cKJ81EwkI"
+      "styleImageMedium": null
     },
     {
-      "idCard": 29,
+      "awesomeIcon": null,
       "idTextTitle": 74,
-      "id_card": 29,
-      "idTextName": 74,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 98,
       "styleImageLarge": "ob-c-10",
-      "idTextDescription": 74,
       "id": 29,
+      "idTextDescription": 74,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/a-man-in-medieval-costume-is-talking-9HUTY1epeSw",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1744801510532-cbf0735a4ea3?q=80&w=1021&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/a-man-in-medieval-costume-is-talking-9HUTY1epeSw"
+      "styleImageMedium": null
     },
     {
-      "idCard": 30,
+      "awesomeIcon": null,
       "idTextTitle": 75,
-      "id_card": 30,
+      "alternativeImage": null,
+      "cardType": null,
       "styleImageLittle": "ob-c-30",
-      "idTextName": 75,
       "idTextCopyright": 99,
       "styleImageLarge": "ob-c-30",
-      "idTextDescription": 75,
       "id": 30,
-      "idCreator": 1,
+      "idTextDescription": 75,
+      "styleMain": null,
+      "styleDetail": null,
       "linkCopyright": "https://unsplash.com/photos/a-woman-dressed-as-a-witch-holding-a-lantern-LmEkpZPwTv8",
-      "urlImage": "https://images.unsplash.com/photo-1697590879902-a1f574f9dc63?q=80&w=743&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1697590879902-a1f574f9dc63?q=80&w=743&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "styleImageMedium": null
     },
     {
-      "idCard": 31,
+      "awesomeIcon": null,
       "idTextTitle": 76,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 88,
-      "id_card": 31,
-      "idTextDescription": 76,
+      "styleImageLarge": null,
       "id": 31,
-      "idTextName": 76,
+      "idTextDescription": 76,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/equestrian-statue-holding-a-sword-against-blue-sky-r9YTDBjasww",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1769291256753-03dbcc836056?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxMHx8c3RhdHVlJTIwS25pZ2h0fGVufDB8fHx8MTc3OTExNTA0MXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "linkCopyright": "https://unsplash.com/photos/equestrian-statue-holding-a-sword-against-blue-sky-r9YTDBjasww"
+      "styleImageMedium": null
     },
     {
-      "idCard": 32,
+      "awesomeIcon": null,
       "idTextTitle": 77,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 89,
-      "id_card": 32,
-      "idTextDescription": 77,
+      "styleImageLarge": null,
       "id": 32,
-      "idTextName": 77,
+      "idTextDescription": 77,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/man-holding-archer-statue-Bc5LK1XqbCc",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1562008752-2459495a0c05?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxfHxzdGF0dWUlMjBhcmNoZXJ8ZW58MHx8fHwxNzc5MTE1MTQ0fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "linkCopyright": "https://unsplash.com/photos/man-holding-archer-statue-Bc5LK1XqbCc"
+      "styleImageMedium": null
     },
     {
-      "idCard": 33,
+      "awesomeIcon": null,
       "idTextTitle": 78,
-      "id_card": 33,
-      "idTextName": 78,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 90,
       "styleImageLarge": "ob-c-25",
-      "idTextDescription": 78,
       "id": 33,
+      "idTextDescription": 78,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/white-concrete-statue-under-blue-sky-during-daytime-NWA43UEMNxg",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1618100653240-44d031f67d28?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwyNHx8c3RhdHVlJTIwbWFnZSUyMHdpdGglMjBib29rc3xlbnwwfHx8fDE3NzkxMTUzMzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "linkCopyright": "https://unsplash.com/photos/white-concrete-statue-under-blue-sky-during-daytime-NWA43UEMNxg"
+      "styleImageMedium": null
     },
     {
-      "idCard": 34,
+      "awesomeIcon": null,
       "idTextTitle": 79,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 91,
-      "id_card": 34,
-      "idTextDescription": 79,
+      "styleImageLarge": null,
       "id": 34,
-      "idTextName": 79,
+      "idTextDescription": 79,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/woman-carrying-brown-backpack-standing-in-front-of-mountains-during-daytime-iMJZ7wzLxYU",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1488223060687-648b43f5efc0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxNHx8YmFjayUyMFJvZ3VlfGVufDB8fHx8MTc3OTExNTU5Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "linkCopyright": "https://unsplash.com/photos/woman-carrying-brown-backpack-standing-in-front-of-mountains-during-daytime-iMJZ7wzLxYU"
+      "styleImageMedium": null
     },
     {
-      "idCard": 35,
+      "awesomeIcon": null,
       "idTextTitle": 80,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 92,
-      "id_card": 35,
-      "idTextDescription": 80,
+      "styleImageLarge": null,
       "id": 35,
-      "idTextName": 80,
+      "idTextDescription": 80,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/a-statue-of-a-man-holding-a-shield-and-a-sword--RsKIkQxULg",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1647890322597-48441b9b4de3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwxfHxzdGF0dWUlMjBwYWxhZGlufGVufDB8fHx8MTc3OTExNTY2MHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "linkCopyright": "https://unsplash.com/photos/a-statue-of-a-man-holding-a-shield-and-a-sword--RsKIkQxULg"
+      "styleImageMedium": null
     },
     {
       "awesomeIcon": "",
-      "idCard": 36,
       "idTextTitle": 81,
-      "id_card": 36,
-      "idTextName": 81,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 94,
-      "idTextDescription": 81,
+      "styleImageLarge": null,
       "id": 36,
-      "idCreator": 1,
+      "idTextDescription": 81,
+      "styleMain": null,
+      "styleDetail": null,
       "linkCopyright": "https://unsplash.com/photos/a-statue-of-a-woman-holding-a-staff-xVGFOJfb2tA",
-      "urlImage": "https://images.unsplash.com/photo-1691496589492-5b5f629a9720?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwyNXx8c3RhdHVlJTIwYmFyZHxlbnwwfHx8fDE3NzkxMTU5MjR8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      "idCreator": 1,
+      "urlImage": "https://images.unsplash.com/photo-1691496589492-5b5f629a9720?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NDMyMzN8MHwxfHNlYXJjaHwyNXx8c3RhdHVlJTIwYmFyZHxlbnwwfHx8fDE3NzkxMTU5MjR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "styleImageMedium": null
     },
     {
-      "idCard": 37,
+      "awesomeIcon": null,
       "idTextTitle": 82,
-      "id_card": 37,
+      "alternativeImage": null,
+      "cardType": null,
       "styleImageLittle": "ob-c-25",
-      "idTextName": 82,
       "idTextCopyright": 100,
       "styleImageLarge": "ob-c-25",
-      "idTextDescription": 82,
       "id": 37,
+      "idTextDescription": 82,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/person-jumping-on-big-rock-under-gray-and-white-sky-during-daytime-Zdf3zn5XXtU",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1517984922331-8dbaa8ffa9c1?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/person-jumping-on-big-rock-under-gray-and-white-sky-during-daytime-Zdf3zn5XXtU"
+      "styleImageMedium": null
     },
     {
-      "idCard": 38,
+      "awesomeIcon": null,
       "idTextTitle": 83,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 101,
-      "id_card": 38,
-      "idTextDescription": 83,
+      "styleImageLarge": null,
       "id": 38,
-      "idTextName": 83,
+      "idTextDescription": 83,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/red-fox-Yu-qayee34c",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1480472684115-4966367dde1d?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/red-fox-Yu-qayee34c"
+      "styleImageMedium": null
     },
     {
-      "idCard": 39,
+      "awesomeIcon": null,
       "idTextTitle": 84,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 102,
-      "id_card": 39,
-      "idTextDescription": 84,
+      "styleImageLarge": null,
       "id": 39,
-      "idTextName": 84,
+      "idTextDescription": 84,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/silhouette-photography-of-human-hand-6ASpo3NMkHU",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1534283465444-a996fc1ce9ea?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/silhouette-photography-of-human-hand-6ASpo3NMkHU"
+      "styleImageMedium": null
     },
     {
-      "idCard": 40,
+      "awesomeIcon": null,
       "idTextTitle": 85,
-      "id_card": 40,
-      "idTextName": 85,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 103,
       "styleImageLarge": "ob-c-20",
-      "idTextDescription": 85,
       "id": 40,
+      "idTextDescription": 85,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": "https://unsplash.com/photos/woman-appears-to-hold-the-sun-above-the-clouds-NLRTAt4ui7w",
       "idCreator": 1,
       "urlImage": "https://images.unsplash.com/photo-1741714296684-b6deb20e9a0e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      "linkCopyright": "https://unsplash.com/photos/woman-appears-to-hold-the-sun-above-the-clouds-NLRTAt4ui7w"
+      "styleImageMedium": null
     },
     {
-      "idCard": 41,
+      "awesomeIcon": null,
       "idTextTitle": 86,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 3,
-      "idTextDescription": 86,
+      "styleImageLarge": null,
       "id": 41,
-      "idTextName": 86,
-      "idCreator": 1
-    },
-    {
-      "idCard": 42,
-      "idTextTitle": 86,
-      "idTextCopyright": 104,
-      "id_card": 42,
       "idTextDescription": 86,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": null,
+      "idCreator": 1,
+      "urlImage": null,
+      "styleImageMedium": null
+    },
+    {
+      "awesomeIcon": null,
+      "idTextTitle": 86,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
+      "idTextCopyright": 104,
+      "styleImageLarge": null,
       "id": 42,
-      "idTextName": 86,
-      "idCreator": 1,
+      "idTextDescription": 86,
+      "styleMain": null,
+      "styleDetail": null,
       "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-persons-face-through-a-window-nCLMcZoyjaM",
-      "urlImage": "https://plus.unsplash.com/premium_photo-1695626049834-5df4822248ed?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-    },
-    {
-      "idCard": 43,
-      "idTextTitle": 87,
-      "idTextCopyright": 3,
-      "id_card": 43,
-      "idTextDescription": 87,
-      "id": 43,
-      "idTextName": 87,
       "idCreator": 1,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1695626049834-5df4822248ed?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "styleImageMedium": null
+    },
+    {
+      "awesomeIcon": null,
+      "idTextTitle": 87,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
+      "idTextCopyright": 3,
+      "styleImageLarge": null,
+      "id": 43,
+      "idTextDescription": 87,
+      "styleMain": null,
+      "styleDetail": null,
       "linkCopyright": "https://unsplash.com/photos/a-dragon-is-flying-over-a-landscape-DCcQTmmtOr0",
-      "urlImage": "https://plus.unsplash.com/premium_photo-1746727568540-eda53728fe4c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+      "idCreator": 1,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1746727568540-eda53728fe4c?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "styleImageMedium": null
     },
     {
-      "idCard": 44,
+      "awesomeIcon": null,
       "idTextTitle": 105,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 3,
-      "idTextDescription": 105,
+      "styleImageLarge": null,
       "id": 44,
-      "idTextName": 105,
-      "idCreator": 1
+      "idTextDescription": 105,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": null,
+      "idCreator": 1,
+      "urlImage": null,
+      "styleImageMedium": null
     },
     {
-      "idCard": 45,
+      "awesomeIcon": null,
       "idTextTitle": 106,
+      "alternativeImage": null,
+      "cardType": null,
+      "styleImageLittle": null,
       "idTextCopyright": 3,
-      "idTextDescription": 106,
+      "styleImageLarge": null,
       "id": 45,
-      "idTextName": 106,
-      "idCreator": 1
+      "idTextDescription": 106,
+      "styleMain": null,
+      "styleDetail": null,
+      "linkCopyright": null,
+      "idCreator": 1,
+      "urlImage": null,
+      "styleImageMedium": null
     }
   ],
   "keys": [],

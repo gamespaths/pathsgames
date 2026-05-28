@@ -63,7 +63,7 @@ export default function Footer() {
         <div className="footer-copy">
           <i className="fas fa-dice-d20 me-2" />
           <span className="gold-light">PATHS GAMES</span> 
-          &nbsp; &copy; {t('footer.rights').toUpperCase()} &middot;&nbsp;  v0.20.3
+          &nbsp; &copy; {t('footer.rights').toUpperCase()} &middot;&nbsp;  v0.20.4
           <br />
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>

@@ -136,8 +136,72 @@ The consent banner/modal is themed with the site design tokens (dark background 
 - No functional CookieYes references remain in `code/` (only descriptive "replaces CookieYes" comments).
 
 
+## 0.20.4 — Turnstile antibot expanded to three surfaces
+
+### Context
+
+Until now Cloudflare Turnstile ran in a single place — inside `ConfigView`, where the widget appeared on a timer **before** the "Start Game" button and gated the terms/button until a token was obtained. This release moves the check to three explicit decision points and turns a failed/expired challenge into a visible "you're a bot" outcome instead of silently blocking the UI.
+
+### What changed / Where the code lives
+
+| File | What |
+|------|------|
+| NEW [src/utils/turnstile.js](code/frontend/react-game/src/utils/turnstile.js) | Shared config: exports `CF_KEY` (falsy ⇒ widget disabled / dev bypass), `TURNSTILE_APPEARANCE` (`{ home, config, guest }`, each env-resolved to `'always'` / `'interaction-only'`, default `'always'`), and the pass-cache helpers `isTurnstilePassValid()` / `recordTurnstilePass()` backed by the first-party `pathsgames.turnstilePass` cookie (TTL from `VITE_TURNSTILE_PASS_TTL_MINUTES`, default 30). |
+| NEW [src/components/common/TurnstileWidget.jsx](code/frontend/react-game/src/components/common/TurnstileWidget.jsx) | Thin wrapper over `@marsidev/react-turnstile` with the shared dark theme; renders nothing when no site key is set. Props: `appearance`, `size`, `onSuccess`, `onError`, `onExpire`. |
+| NEW [src/components/common/AntibotMessage.jsx](code/frontend/react-game/src/components/common/AntibotMessage.jsx) | The funny block shown when a visitor is flagged as a bot (`t('antibot.blocked')`). |
+| [src/pages/HomePage.jsx](code/frontend/react-game/src/pages/HomePage.jsx) | **Change 1 — gate first.** On load a `gate` state starts `'checking'`; `getStories()` is called **only** when Turnstile passes (`gate === 'human'`). Bot/error ⇒ `gate === 'bot'`, the stories API is never called and the antibot message replaces the catalog. **A valid `pathsgames.turnstilePass` cookie skips the widget entirely** (gate starts `'human'`) so a confirmed human is not re-verified for 30 min; a fresh pass refreshes the cookie. |
+| [src/features/startBook/ConfigView.jsx](code/frontend/react-game/src/features/startBook/ConfigView.jsx) | **Change 2 — button first.** Terms + "Start Game" show immediately. Clicking Start (terms required) hides both, sets `phase='checking'` and renders Turnstile; `onSuccess(token)` calls `onStartGame(token)`; error/expire ⇒ `phase='bot'` and the antibot message. The old 20s pre-button delay is removed. |
+| [src/features/startBook/StartBookMobile.jsx](code/frontend/react-game/src/features/startBook/StartBookMobile.jsx) | Same button→Turnstile→bot flow mirrored for the mobile layout (it previously sent the click event as the token — fixed). |
+| [src/components/modals/user/GuestUserModal.jsx](code/frontend/react-game/src/components/modals/user/GuestUserModal.jsx) | **Change 3 — gate first.** A `status` state runs Turnstile on open and shows `UserMatchesList` **only after a pass** (`status === 'human'`); error/expire ⇒ the antibot message. No site key — or a valid `pathsgames.turnstilePass` cookie — ⇒ list shown directly without re-verifying; a fresh pass refreshes the cookie. |
+| [src/i18n/en.json](code/frontend/react-game/src/i18n/en.json) + [it.json](code/frontend/react-game/src/i18n/it.json) | New `antibot.blocked` ("Antibot activated — these adventures are only for humans!") + `antibot.verifying`. |
+| [src/styles/main.css](code/frontend/react-game/src/styles/main.css) | `.antibot-message` + `.turnstile-checking` styling. |
+| [src/consent/cookieConsent.js](code/frontend/react-game/src/consent/cookieConsent.js) | Added the `pathsgames.turnstilePass` security cookie to the **strictly-necessary** table (en + it); bumped `REVISION` 1 → 2 to re-prompt returning users. |
+| [.env](code/frontend/react-game/.env) · [.env.example](code/frontend/react-game/.env.example) · [.env.test](code/frontend/react-game/.env.test) | Three appearance env vars + `VITE_TURNSTILE_PASS_TTL_MINUTES` (below). |
+
+### Bot detection
+
+A bot is any Turnstile **`onError` OR `onExpire`** → the funny message. `onSuccess` ⇒ human (HomePage loads the catalog; ConfigView starts the game; GuestUserModal reveals the matches list). When `VITE_CF_TURNSTILE_KEY` is empty the widget is skipped entirely and all three surfaces behave as before (dev bypass).
+
+### Configurable widget appearance (3 env vars)
+
+Each surface reads its own var; value is `always` (visible widget, **default**) or `interaction-only` (invisible until Cloudflare needs a challenge). Anything else falls back to `always`. The managed/invisible nature of the key itself is also set in the Cloudflare dashboard.
+
+```bash
+VITE_TURNSTILE_APPEARANCE_HOME=always       # HomePage antibot gate
+VITE_TURNSTILE_APPEARANCE_START=always      # start-game button (ConfigView + mobile)
+VITE_TURNSTILE_APPEARANCE_GUEST=always      # guest user modal (matches list)
+VITE_TURNSTILE_PASS_TTL_MINUTES=30          # how long a HomePage pass is remembered
+```
+
+### Remembering a pass for 30 min (why no native Turnstile cookie)
+
+The embedded Turnstile widget does **not** set a reusable first-party cookie. `cf_clearance` only exists when **Pre-Clearance** is enabled on the widget in the Cloudflare dashboard *and* the domain is proxied (orange-cloud) through Cloudflare; otherwise the widget loads from `challenges.cloudflare.com`, sets cookies only on that third-party domain, and each render yields a fresh **single-use token** (~300 s, consumed on server verify). So there is nothing on our domain to reuse and the check would re-run on every visit (invisible but still executing under `interaction-only`).
+
+To stop re-verifying every load, after a successful pass on either pure gate (**HomePage** or **GuestUserModal**) we set our **own** first-party cookie `pathsgames.turnstilePass` (`max-age` = `VITE_TURNSTILE_PASS_TTL_MINUTES` × 60, default 30 min, `SameSite=Lax`). While that cookie is live, both surfaces start in the `'human'` state and never mount the widget. **This is UX only, not a security control** — a client could forge the cookie; the authoritative protection remains the server-side `turnstileToken` validation on match creation, which always uses a fresh token from `ConfigView` (never cached).
+
+### Does Turnstile use cookies? Where the cookie list is and how to change it
+
+The only Turnstile-related cookie we set is the first-party `pathsgames.turnstilePass` described above. Like the session cookies it is **strictly necessary / consent-exempt** (security), so it lives in the `necessary` category, not behind the analytics opt-in, and is disclosed in the cookie tables.
+
+The cookie list shown to users lives in **two** places — edit both to keep website and game in sync:
+
+1. **react-game** — [src/consent/cookieConsent.js](code/frontend/react-game/src/consent/cookieConsent.js), in `TRANSLATIONS.en` / `TRANSLATIONS.it` → `preferencesModal.sections[].cookieTable.body`. Add/edit rows there (`{ name, description, expiration }`). Necessary cookies go under the section with `linkedCategory: 'necessary'`; analytics under `linkedCategory: 'analytics'`. **Bump `REVISION`** at the top of the file whenever the policy materially changes so returning users are re-prompted.
+2. **website** — [code/website/html/assets/cookieconsent-config.js](code/website/html/assets/cookieconsent-config.js), same `cookieTable.body` structure.
+
+The long-form GDPR policy text is separately in the react-game `CookiesModal` (`modals.cookies.*` i18n keys) and the website `cookies.html` page.
+
+### Tests / Verification
+
+- Updated [src/test/HomePage.test.jsx](code/frontend/react-game/src/test/HomePage.test.jsx): controllable Turnstile mock (auto-pass; flip to bot); bot never calls `getStories`/sees the antibot message; pass writes the `pathsgames.turnstilePass` cookie; a live cookie skips the widget and loads stories directly.
+- Fixed [src/test/UserMatchesList.test.jsx](code/frontend/react-game/src/test/UserMatchesList.test.jsx): stale import path (`features/matches` → `components/modals/user`) — the suite was failing to load before.
+- NEW [src/test/ConfigView.test.jsx](code/frontend/react-game/src/test/ConfigView.test.jsx): start-button → Turnstile → `onStartGame(token)`; bot path; disabled-until-terms.
+- NEW [src/test/GuestUserModal.test.jsx](code/frontend/react-game/src/test/GuestUserModal.test.jsx): list shown only after a pass; pass writes the cookie; a live cookie skips the widget; antibot message for bots.
+- `npx vitest run` on the affected files: **28 passed**. `npm run build` succeeds. Full suite: 104 passed; the remaining failures are pre-existing in `Footer.test.jsx`, `Navbar.test.jsx`, `SelectionView.test.jsx` (untouched files, unrelated to this change).
+- Not verified here: real browser click-through of the live Cloudflare challenge.
+
+
 ## Version Control
-- Created with AI assistance (Claude Sonnet 4.6 via Claude Code).
+- Created with AI assistance (Claude via Claude Code).
   - i wanna add Turnstile anti-robot on react-game proeject
     - ciao, new update i added "Cloudflare Turnstile anti-bot" on react-game project but now i wanna validate token on serve side , let's go!
       - change others backend (python, php and aws lambda)
@@ -151,8 +215,17 @@ The consent banner/modal is themed with the site design tokens (dark background 
     - check documentation_v0/Step07_ConfigureWebsite.md file and update with last code updates
     - i wanna some changes : 1 change "cc_cookie" name to "pathsgames.cookiesConsent". 2 change style with variables styles (background-color and gold text color) 3 on index.html show pathsgames cookies too. 4 on "Cookies Policy" modal into react-game show long text, create a text GDPR compliance, on index.html version link to Cookies policy content it's possibile 
     - into react-game project i wanna create "Privacy Policy" and "Terms of Service" texts, suggest me main poinst. I wanna to be compliance to regulations (eu and usa). Let's go 
+  - On react-game project i've TURNSTILE but i wahnna this 3 changes, actualy it's configurated on ConfigView component
+    - 1 on HomePage, when is loading, after call API service, i wanna use TURNSTILE to check robot/bot , if it's the bot don't call APIs and show funny message "antibot activate, these adventures is only for humans!".
+    - 2 on ConfigView actaly is before "btn-start-game", i wanna change after: user shee "start game" button, when click then button hide (anche terms of conditions hide) and start TURNSTILE check antibot and generate token to send to onStartGame
+    - 3 on GuestUserModal after show UserMatchesList, use TURNSTILE to check, if it's a bot show the funny message
+    - TURNSTILE uses any cookies? if yes change vanilla-cookieconsent configuration.
+    - After update documentation_v0/Step20_GameWebSiteFirstRun.md using "v0.20.4" version write what you have done and where there is cookies configuration list and how change it
+    - if it's possibile add 3 ENV variabiles to configure if 3 element is interaction-only or always visibile, default alwasy visibile. if it's not possibile configure "always visibile"
+    - on home page it's possibile add logic: if TURNSTILE confirmed it's not a bot, don't recall it for 30 minutes, it's possibile use cookies from TURNSTILE
 
-- **Document Version**: 0.20.3
+
+- **Document Version**: 0.20.4
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -161,7 +234,8 @@ The consent banner/modal is themed with the site design tokens (dark background 
     | 0.20.0 | Back pathsgames.com on AWS and define test.paths.games environment | May 26, 2026 |
     | 0.20.1 | Player-driven match completion: `PATCH /api/match/{uuidMatch}/end/{uuidEvent}` | May 27, 2026 |
     | 0.20.2 | Complete the match in react-game frontend | May 27, 2026 |
-    | 0.20.3 | In-project cookie consent (CookieYes → vanilla-cookieconsent + GCM v2) website & react-game | May 28, 2026 |
+    | 0.20.3 | In-project cookie consent (CookieYes → vanilla-cookieconsent) website & react-game | May 28, 2026 |
+    | 0.20.4 | Turnstile antibot on 3 surfaces (HomePage, ConfigView & GuestUserModal) | May 28, 2026 |
 
 
 - **Last Updated**: May 28, 2026
