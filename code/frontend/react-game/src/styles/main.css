@@ -164,7 +164,7 @@ html, body {
   align-items: center;
   gap: 10px;
   font-family: var(--font-display);
-  font-size: clamp(1rem, 2.5vw, 2rem);
+  font-size: clamp(1.25rem, 2.5vw, 2rem);
   color: var(--color-gold-light);
   text-shadow: 0 0 20px rgba(232,184,48,0.5);
   text-decoration: none;
@@ -427,7 +427,15 @@ html, body {
 }
 
 .stories-grid::-webkit-scrollbar { height: 4px; }
+.stories-empty{
+  font-style: italic;
+  font-size: 1.5rem;
+  text-align: center;
+  padding: 0;
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
 
+}
 /* ═══════════════════════════════════════════
    STORY CARD (home) — pg-card pg-card--medium
    Image fills card via absolute, title at bottom
@@ -437,7 +445,6 @@ html, body {
   cursor: pointer;
   border-color: var(--color-brown-mid);
 }
-
 /* Image fills the entire card */
 .story-card-img {
   position: absolute;

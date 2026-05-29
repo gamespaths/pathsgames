@@ -84,6 +84,24 @@ def _normalize_path(raw_path):
     idx = raw_path.find('/api/')
     return raw_path[idx:] if idx >= 0 else raw_path
 
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'Source IP not authorized for admin access')
+    return None
+
 def _get_cookie(event, name):
     for c in event.get('cookies', []):
         if c.startswith(f'{name}='):
@@ -131,6 +149,9 @@ def _require_auth(event):
 
 def _require_admin(event):
     """Return (user_item, None) or (None, error_response)."""
+    ip_err = _check_admin_ip(event)
+    if ip_err:
+        return None, ip_err
     user, err = _require_auth(event)
     if err:
         return None, err
@@ -167,9 +188,12 @@ def _refresh_cookies(user_uuid, guest_token):
     them, which would block ``POST /api/auth/guest/resume`` with 400
     MISSING_GUEST_COOKIE on every reload.
     """
-    refresh_token = f'MOCK_REFRESH_{user_uuid}'
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        refresh_tok = f'MOCK_REFRESH_{user_uuid}'
+    else:
+        refresh_tok = jwt_utils.generate_refresh_token(user_uuid, exp_seconds=COOKIE_MAX_REFRESH)
     return [
-        f'pathsgames.refreshToken={refresh_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
+        f'pathsgames.refreshToken={refresh_tok}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
         f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_GUEST}',
     ]
 
@@ -268,10 +292,15 @@ def create_guest(event):
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
 
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, username, 'PLAYER', exp_seconds=COOKIE_MAX_ACCESS)
+
     body = {
         'userUuid':            user_uuid,
         'username':            username,
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }
@@ -297,10 +326,15 @@ def resume_guest(event):
 
     db_utils.update_ts_last_access(f'USER#{user_uuid}', now)
 
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), user.get('role', 'PLAYER'), exp_seconds=COOKIE_MAX_ACCESS)
+
     body = {
         'userUuid':            user_uuid,
         'username':            user.get('username'),
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }
@@ -309,12 +343,19 @@ def resume_guest(event):
 
 def refresh_token(event):
     refresh_tok = _get_cookie(event, 'pathsgames.refreshToken')
-    if not refresh_tok or not refresh_tok.startswith('MOCK_REFRESH_'):
-        return _err(401, 'INVALID_REFRESH_TOKEN',
-                    'Refresh token is invalid, expired, or revoked. Please login again.')
 
-    user_uuid = refresh_tok[len('MOCK_REFRESH_'):]
-    user      = db_utils.get_item(f'USER#{user_uuid}')
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        if not refresh_tok or not refresh_tok.startswith('MOCK_REFRESH_'):
+            return _err(401, 'INVALID_REFRESH_TOKEN',
+                        'Refresh token is invalid, expired, or revoked. Please login again.')
+        user_uuid = refresh_tok[len('MOCK_REFRESH_'):]
+    else:
+        user_uuid = jwt_utils.verify_refresh_token(refresh_tok)
+        if not user_uuid:
+            return _err(401, 'INVALID_REFRESH_TOKEN',
+                        'Refresh token is invalid, expired, or revoked. Please login again.')
+
+    user = db_utils.get_item(f'USER#{user_uuid}')
     if not user:
         return _err(401, 'INVALID_REFRESH_TOKEN',
                     'Refresh token is invalid, expired, or revoked. Please login again.')
@@ -323,12 +364,18 @@ def refresh_token(event):
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
     guest_tok   = user.get('guest_token', '')
+    role        = user.get('role', 'PLAYER')
+
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), role, exp_seconds=COOKIE_MAX_ACCESS)
 
     body = {
         'userUuid':            user_uuid,
         'username':            user.get('username'),
-        'role':                user.get('role', 'PLAYER'),
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'role':                role,
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }

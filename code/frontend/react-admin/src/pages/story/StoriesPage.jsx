@@ -11,7 +11,7 @@ function sortKeysDeep(value) {
     return value.map(sortKeysDeep)
   }
   if (value !== null && typeof value === 'object') {
-    return Object.keys(value).sort().reduce((acc, key) => {
+    return Object.keys(value).sort((a, b) => a.localeCompare(b)).reduce((acc, key) => {
       acc[key] = sortKeysDeep(value[key])
       return acc
     }, {})

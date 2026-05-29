@@ -29,6 +29,7 @@ DynamoDB layout for stories
 """
 
 import json
+import os
 import uuid as uuid_lib
 import decimal
 
@@ -38,6 +39,24 @@ from common import jwt_utils
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
 HEADERS = {"Content-Type": "application/json"}
+
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
+    return None
 
 class _DecimalEncoder(json.JSONEncoder):
     """Serialise DynamoDB Decimal values as int or float."""
@@ -73,7 +92,11 @@ def _require_admin(event):
     """Return (user_dict, None) or (None, error_response).
 
     Accepts real HS256 JWT tokens and MOCK_ACCESS_ tokens.
+    IP is checked first against ADMIN_IP_WHITELIST env var (before JWT validation).
     """
+    ip_err = _check_admin_ip(event)
+    if ip_err:
+        return None, ip_err
     token = _bearer_token(event)
     claims = jwt_utils.verify_access_token(token)
     if not claims or not claims.get('uuid'):

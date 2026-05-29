@@ -10,6 +10,13 @@ Parameters:
     Type: String
   JwtSecret:
     Type: String
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
   AuthLogGroup:
@@ -42,6 +49,8 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           JWT_SECRET: !Ref JwtSecret
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

@@ -20,6 +20,13 @@ Parameters:
     NoEcho: true
     Default: ""
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
   MatchLogGroup:
@@ -54,6 +61,8 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           TURNSTILE_SECRET_KEY: !Ref TurnstileSecretKey
           TURNSTILE_BYPASS_TOKEN: !Ref TurnstileBypassToken
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

@@ -65,6 +65,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
+
 21. Character template and class selection
     - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
     - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
@@ -73,6 +74,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
     - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
     - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
+    - On game frontend project: create a step/page "join" , after "start game" and after antibot check, show right page with "creating match" card with spinner/okCheck and "joining" card with wait/spinner/onCheck
+    - On admin project: create a matchs details page with players and characters list of a match (in future we are going to add others informations like locations, registry, ecc.. )
 22. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)
@@ -241,7 +244,11 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Configure beta environment DNS, HTTPS, and basic monitoring health checks (infra)
     - Run smoke tests on beta environment: guest login, story selection, match creation, gameplay cycle (all)
     - Write release notes documenting beta features, known limitations, and feedback collection process (docs)
-
+43. Security updates
+    - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
+    - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
+    - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)
+    
 
 
 ## PHASE 2 — Multiplayer Game with Credential Login (Steps 43-84)

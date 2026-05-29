@@ -223,6 +223,10 @@ The long-form GDPR policy text is separately in the react-game `CookiesModal` (`
     - After update documentation_v0/Step20_GameWebSiteFirstRun.md using "v0.20.4" version write what you have done and where there is cookies configuration list and how change it
     - if it's possibile add 3 ENV variabiles to configure if 3 element is interaction-only or always visibile, default alwasy visibile. if it's not possibile configure "always visibile"
     - on home page it's possibile add logic: if TURNSTILE confirmed it's not a bot, don't recall it for 30 minutes, it's possibile use cookies from TURNSTILE
+  - for AWS-backend add API Gateway Resource Policy on cloudformation cloudformation checking enabled ip-list from .env and local ip (executing code/scripts/test/deploy_website_test_on_aws.sh). about java-backend create "code/scripts/test/java_docker_compose" where use docker-compose to create backend image, db postgreg and nginx to filter /admin/ APIS for my ip. let's go
+    - now create "code/scripts/test/aws_ec2_with_java_postgress_docker_compose", inside create start.sh and stop.sh . Using AWS CLI with default az ohio (but possibile change) in env. Start script have to run an ec2 with last ubuntu image , create a security group to permeti 8042 from paths.games domain and all from my ip, and user data where install git, clone repository (name and branch in env) and run start script of "code/scripts/test/javaDockerCompose", use already existing key "paths-games-ohio" (name in .env). Stop script have to destroy all components. Please change "code/scripts/test/javaDockerCompose" to "code/scripts/test/java_docker_compose" name.
+    - instance should be with name "api-test-server2" and security group "api-test-server2-sg", every resouces created with tags env=test , createdBy=SH, project=PathsGames. into start i wanna create a dns record "api-test-server2.paths.games" into hosted zone "paths.games" with ID "XXXX" (all on .env). remember stop must be delete record too.another change on start if resources already exist don't throw error but continue and continue script steps, on stop if any resource doesn't exist don't throw error and continue script steps
+
 
 
 - **Document Version**: 0.20.4
@@ -236,9 +240,10 @@ The long-form GDPR policy text is separately in the react-game `CookiesModal` (`
     | 0.20.2 | Complete the match in react-game frontend | May 27, 2026 |
     | 0.20.3 | In-project cookie consent (CookieYes → vanilla-cookieconsent) website & react-game | May 28, 2026 |
     | 0.20.4 | Turnstile antibot on 3 surfaces (HomePage, ConfigView & GuestUserModal) | May 28, 2026 |
+    | 0.20.5 | Admin APIs with network limitations rules on AWS backend | May 29, 2026 |
 
 
-- **Last Updated**: May 28, 2026
+- **Last Updated**: May 29, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -1,0 +1,71 @@
+version: "3.9"
+
+# Paths Games — Java backend + PostgreSQL + Nginx (admin IP filter)
+# Usage: ./start.sh  (generates nginx.conf with your IP, then brings up the stack)
+#
+# Services:
+#   postgres  — PostgreSQL 16
+#   backend   — Java Spring Boot (prod profile, port 8080 internal only)
+#   nginx     — Reverse proxy; blocks /api/admin/** from non-whitelisted IPs
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pathsgames-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-pathsgames}
+      POSTGRES_USER:     ${DB_USERNAME:-pathsgames}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pathsgames}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pathsgames} -d ${DB_NAME:-pathsgames}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../../../backend/java
+      dockerfile: Dockerfile
+    container_name: pathsgames-backend
+    restart: unless-stopped
+    expose:
+      - "8080"          # NOT published — only nginx can reach it
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     ${DB_NAME:-pathsgames}
+      DB_USERNAME: ${DB_USERNAME:-pathsgames}
+      DB_PASSWORD: ${DB_PASSWORD:-pathsgames}
+      JWT_SECRET:  ${JWT_SECRET:-PathsGamesDevSecret2026_MustBeAtLeast32Chars!}
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: pathsgames-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:
+    driver: bridge

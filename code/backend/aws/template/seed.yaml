@@ -12,6 +12,9 @@ Parameters:
     Type: String
     NoEcho: true
     Description: 'BCrypt hash of the seed users password (dev-only). Never hardcode in source code.'
+  AllowMockAccess:
+    Type: String
+    Default: "true"
 
 Resources:
   SeedLogGroup:
@@ -44,6 +47,7 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           SEED_BCRYPT_HASH: !Ref SeedBcryptHash
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

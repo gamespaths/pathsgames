@@ -22,6 +22,11 @@ Parameters:
     NoEcho: true
     Default: ""
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). Set to 'false' in production."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -43,6 +48,10 @@ Parameters:
     Type: CommaDelimitedList
     Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games,https://test.paths.games"
     Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173,http://localhost:5174)"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -154,6 +163,8 @@ Resources:
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         JwtSecret: !Ref JwtSecret
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   StoryModule:
     Type: AWS::Serverless::Application
@@ -164,6 +175,8 @@ Resources:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   # Step 19 — single-player match creation
   MatchModule:
@@ -178,6 +191,8 @@ Resources:
         JwtSecret: !Ref JwtSecret
         TurnstileSecretKey: !Ref TurnstileSecretKey
         TurnstileBypassToken: !Ref TurnstileBypassToken
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   ContentModule:
     Type: AWS::Serverless::Application
@@ -188,6 +203,7 @@ Resources:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AllowMockAccess: !Ref AllowMockAccess
 
   SeedModule:
     Type: AWS::Serverless::Application
@@ -199,6 +215,7 @@ Resources:
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
         SeedBcryptHash: !Ref SeedBcryptHash
+        AllowMockAccess: !Ref AllowMockAccess
 
 Outputs:
   ApiUrl:

@@ -7,7 +7,7 @@ export default function StoryCatalog({ stories, onStoryClick }) {
   if (!stories || stories.length === 0) {
     return (
       <div className="stories-section">
-        <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('home.noStories')}</p>
+        <p className="stories-empty">{t('home.noStories')}</p>
       </div>
     )
   }

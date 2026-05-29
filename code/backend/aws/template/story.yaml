@@ -8,6 +8,13 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
   StoryLogGroup:
@@ -39,6 +46,8 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

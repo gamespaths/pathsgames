@@ -87,6 +87,26 @@ def _normalize_path(raw_path):
     return raw_path
 
 
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
+    return None
+
+
 def _bearer_token(event):
     headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
     auth = headers.get('authorization')
@@ -425,6 +445,9 @@ def lambda_handler(event, context):
 
     # ── admin match routes (all require the ADMIN role) ──
     if path.startswith('/api/admin/matches'):
+        ip_err = _check_admin_ip(event)
+        if ip_err:
+            return ip_err
         if str(user.get('role', '')).upper() != 'ADMIN':
             return _err(403, 'FORBIDDEN', 'Admin access required')
 

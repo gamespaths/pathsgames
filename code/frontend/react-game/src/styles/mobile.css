@@ -134,7 +134,7 @@
   .stories-section { padding: 12px 12px 0; }
 
   /* Navbar: hide brand text, show only icon */
-  .navbar-brand-text { display: none; }
+  /*.navbar-brand-text { display:none }*/
 
   /* Navbar home button: show only icon */
   .navbar-home-btn span { display: none; }
