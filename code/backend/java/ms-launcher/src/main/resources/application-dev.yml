@@ -1,6 +1,6 @@
 # Development profile - SQLite, debug logging
 server:
-  port: 8042
+  port: ${SERVER_PORT:8042}
 
 spring:
   datasource:

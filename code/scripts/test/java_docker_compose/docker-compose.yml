@@ -5,7 +5,7 @@ version: "3.9"
 #
 # Services:
 #   postgres  — PostgreSQL 16
-#   backend   — Java Spring Boot (prod profile, port 8080 internal only)
+#   backend   — Java Spring Boot (prod profile, port 8042 internal only)
 #   nginx     — Reverse proxy; blocks /api/admin/** from non-whitelisted IPs
 
 services:
@@ -34,8 +34,10 @@ services:
       dockerfile: Dockerfile
     container_name: pathsgames-backend
     restart: unless-stopped
-    expose:
-      - "8080"          # NOT published — only nginx can reach it
+    ports:
+      - "8041:8042"    # Expose backend on host port 8041 (or $BACKEND_PORT)
+    #expose:
+    #  - "8041" 
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,7 +57,7 @@ services:
     container_name: pathsgames-nginx
     restart: unless-stopped
     ports:
-      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_PORT:-8042}:80"    # Expose nginx on host port 8042 (or $NGINX_PORT)
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

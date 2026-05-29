@@ -46,9 +46,11 @@ DB_USERNAME="${DB_USERNAME:-pathsgames}"
 DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD must be set in .env}"
 JWT_SECRET="${JWT_SECRET:?JWT_SECRET must be set in .env}"
 NGINX_PORT="${NGINX_PORT:-8042}"
-ALLOWED_DOMAINS="${ALLOWED_DOMAINS:-paths.games,www.paths.games,test.paths.games}"
+#ALLOWED_DOMAINS="${ALLOWED_DOMAINS:-paths.games,www.paths.games,test.paths.games}"
+FROM_CIDRS="${FROM_CIDRS:-0.0.0.0/0}"
 ROUTE53_HOSTED_ZONE_ID="${ROUTE53_HOSTED_ZONE_ID:?ROUTE53_HOSTED_ZONE_ID must be set in .env}"
 ROUTE53_RECORD_NAME="${ROUTE53_RECORD_NAME:-api-test-server2.paths.games}"
+EC2_KEY_PATH=${EC2_KEY_PATH:-~/.ssh/${EC2_KEY_NAME}.pem}
 
 # Fixed names — idempotent (not timestamp-based)
 INSTANCE_NAME=${INSTANCE_NAME:-"api-test-server2"}
@@ -79,21 +81,24 @@ fi
 MERGED_WHITELIST="$(echo "$MERGED_WHITELIST" | tr ',' '\n' | awk 'NF && !seen[$0]++' | tr '\n' ',' | sed 's/,$//')"
 
 # ── Resolve domain IPs for security group ────────────────────────────────────
-echo "[start.sh] Resolving domain IPs for port $NGINX_PORT access…"
-DOMAIN_CIDRS=""
-IFS=',' read -ra DOMAINS <<< "$ALLOWED_DOMAINS"
-for DOMAIN in "${DOMAINS[@]}"; do
-    DOMAIN="$(echo "$DOMAIN" | xargs)"
-    IPS="$(dig +short "$DOMAIN" A 2>/dev/null || host "$DOMAIN" 2>/dev/null | awk '/has address/{print $4}' || true)"
-    for IP in $IPS; do
-        if [[ "$IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            DOMAIN_CIDRS="$DOMAIN_CIDRS $IP/32"
-            echo "  $DOMAIN → $IP"
-        fi
-    done
-done
+#echo "[start.sh] Resolving domain IPs for port $NGINX_PORT access…"
+#DOMAIN_CIDRS=""
+#IFS=',' read -ra DOMAINS <<< "$ALLOWED_DOMAINS"
+#for DOMAIN in "${DOMAINS[@]}"; do
+#    DOMAIN="$(echo "$DOMAIN" | xargs)"
+#    IPS="$(dig +short "$DOMAIN" A 2>/dev/null || host "$DOMAIN" 2>/dev/null | awk '/has address/{print $4}' || true)"
+#    for IP in $IPS; do
+#        if [[ "$IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+#            DOMAIN_CIDRS="$DOMAIN_CIDRS $IP/32"
+#            echo "  $DOMAIN → $IP"
+#        fi
+#    done
+#done
+DOMAIN_CIDRS="$FROM_CIDRS"
 if [ -z "$DOMAIN_CIDRS" ]; then
     echo "[start.sh] WARNING: could not resolve any domain IPs — port $NGINX_PORT will only be open to MY_IP"
+else
+    echo "[start.sh] Domain CIDRs for port $NGINX_PORT: $DOMAIN_CIDRS"
 fi
 
 # ── Find latest Ubuntu 24.04 LTS AMI ─────────────────────────────────────────
@@ -128,7 +133,7 @@ if [ "$SG_ID" = "None" ] || [ -z "$SG_ID" ]; then
     SG_ID="$(aws ec2 create-security-group \
         --region "$AWS_REGION" \
         --group-name "$SG_NAME" \
-        --description "Paths Games api-test-server2 — managed by start.sh" \
+        --description "Paths Games api-test-server2 - managed by start.sh" \
         --vpc-id "$VPC_ID" \
         --query 'GroupId' \
         --output text)"
@@ -171,25 +176,32 @@ set -euo pipefail
 exec > /var/log/pathsgames-init.log 2>&1
 
 # ── System packages ────────────────────────────────────────────────────────
-apt-get update -y
-apt-get install -y git curl ca-certificates gnupg dnsutils
+sudo apt-get update -y
+sudo apt-get install -y git curl ca-certificates gnupg dnsutils
 
 # ── Docker (official repo) ─────────────────────────────────────────────────
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-chmod a+r /etc/apt/keyrings/docker.gpg
-echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-https://download.docker.com/linux/ubuntu \$(. /etc/os-release && echo \"\$VERSION_CODENAME\") stable" \
-    > /etc/apt/sources.list.d/docker.list
-apt-get update -y
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-systemctl enable docker
-systemctl start docker
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker $USER
+#docker compose version
+sudo systemctl enable docker
+sudo systemctl start docker
+
 
 # docker compose v2 convenience alias
-ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose || true
+# ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose || true
 
 # ── Clone repository ───────────────────────────────────────────────────────
+sudo mkdir /opt/pathsgames
+sudo chmod 777 /opt/pathsgames/
 git clone --depth 1 --branch "${GIT_BRANCH}" "${GIT_REPO_URL}" /opt/pathsgames
 cd /opt/pathsgames/code/scripts/test/java_docker_compose
 
@@ -303,13 +315,13 @@ printf "║  DNS record  : %-43s║\n" "$ROUTE53_RECORD_NAME"
 printf "║  Region      : %-43s║\n" "$AWS_REGION"
 printf "║  Port        : %-43s║\n" "$NGINX_PORT"
 echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  API (after ~3 min init):                               ║"
+echo "║  API (after ~3 min init):                                ║"
 printf "║  http://%-49s║\n" "$PUBLIC_IP:$NGINX_PORT/api/echo/status"
 printf "║  http://%-49s║\n" "$ROUTE53_RECORD_NAME:$NGINX_PORT/api/echo/status"
-echo "╠══════════════════════════════════════════════════════════╣"
-printf "║  SSH: ssh -i ~/.ssh/$EC2_KEY_NAME.pem ubuntu@%-10s║\n" "$PUBLIC_IP"
-echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  Tags: env=test  createdBy=SH  project=PathsGames       ║"
-echo "║  Init log: /var/log/pathsgames-init.log (on instance)   ║"
-echo "║  Stop:     ./stop.sh                                    ║"
-echo "╚══════════════════════════════════════════════════════════╝"
+echo   "╠══════════════════════════════════════════════════════════╣"
+printf "║  SSH: ssh -i $EC2_KEY_PATH ubuntu@$PUBLIC_IP\n"
+echo   "╠══════════════════════════════════════════════════════════╣"
+echo   "║  Tags: env=test  createdBy=SH  project=PathsGames        ║"
+echo   "║  Init log: /var/log/pathsgames-init.log (on instance)    ║"
+echo   "║  Stop:     ./stop.sh                                     ║"
+echo   "╚══════════════════════════════════════════════════════════╝"
