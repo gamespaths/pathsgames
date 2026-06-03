@@ -226,10 +226,11 @@ The long-form GDPR policy text is separately in the react-game `CookiesModal` (`
   - for AWS-backend add API Gateway Resource Policy on cloudformation cloudformation checking enabled ip-list from .env and local ip (executing code/scripts/test/deploy_website_test_on_aws.sh). about java-backend create "code/scripts/test/java_docker_compose" where use docker-compose to create backend image, db postgreg and nginx to filter /admin/ APIS for my ip. let's go
     - now create "code/scripts/test/aws_ec2_with_java_postgress_docker_compose", inside create start.sh and stop.sh . Using AWS CLI with default az ohio (but possibile change) in env. Start script have to run an ec2 with last ubuntu image , create a security group to permeti 8042 from paths.games domain and all from my ip, and user data where install git, clone repository (name and branch in env) and run start script of "code/scripts/test/javaDockerCompose", use already existing key "paths-games-ohio" (name in .env). Stop script have to destroy all components. Please change "code/scripts/test/javaDockerCompose" to "code/scripts/test/java_docker_compose" name.
     - instance should be with name "api-test-server2" and security group "api-test-server2-sg", every resouces created with tags env=test , createdBy=SH, project=PathsGames. into start i wanna create a dns record "api-test-server2.paths.games" into hosted zone "paths.games" with ID "XXXX" (all on .env). remember stop must be delete record too.another change on start if resources already exist don't throw error but continue and continue script steps, on stop if any resource doesn't exist don't throw error and continue script steps
+  - hi, actualy on "configview" there is a start game button when clicked start the Turnstile and after onStartGame api. I wanna change this logic: move termsAccepted to X, when "start game" pressed hide ConfigView and show StartGameView with same graphics of ConfigView: 6 card and buttons on bottom. fist ConfigCard is term of conditions (x) point, with button di select/deselect conditions and onPreview must open modal. Second is gameType (same of ConfigView), 3rd card is login (same of ConfigView). Second row hide at loading, start the TurnstileWidget and when ok, show second row. 4th is new card "antibot ok" (create buildAntibotCard on loadoutCards). 5yh is free to play card (create buldFreeToPlay) and 6 is story card. On botton , after TurnstileWidget start setPhase to create the match. Let's go
+    - yes: apply to mobile layout. on mobile i wanna change StartBookModal: remove book-mobile-config-card and use GameCard with 2 cards for every rows. on mobile on SelectionView i wanna 2 cards for every rows. Let's go
 
 
-
-- **Document Version**: 0.20.4
+- **Document Version**: 0.20.6
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -241,9 +242,10 @@ The long-form GDPR policy text is separately in the react-game `CookiesModal` (`
     | 0.20.3 | In-project cookie consent (CookieYes → vanilla-cookieconsent) website & react-game | May 28, 2026 |
     | 0.20.4 | Turnstile antibot on 3 surfaces (HomePage, ConfigView & GuestUserModal) | May 28, 2026 |
     | 0.20.5 | Admin APIs with network limitations rules on AWS backend | May 29, 2026 |
+    | 0.20.6 | Advanced start-match interface | June 03, 2026 |
 
 
-- **Last Updated**: May 29, 2026
+- **Last Updated**: June 03, 2026
 - **Status**: Complete
 
 # < Paths Games />

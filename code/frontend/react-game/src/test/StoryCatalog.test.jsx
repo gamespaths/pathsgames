@@ -50,4 +50,18 @@ describe('StoryCatalog', () => {
     render(<StoryCatalog stories={single} onStoryClick={vi.fn()} />)
     expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1)
   })
+
+  it('badges stories from the matches: Resume for active, Completed for ended', () => {
+    const matches = [
+      { uuid: 'm1', storyUuid: 's1', status: 'RUNNING' }, // → Resume
+      { uuid: 'm2', storyUuid: 's2', status: 'ENDED' },   // → Completed
+      // s3 → no badge
+    ]
+    const { container } = render(
+      <StoryCatalog stories={STORIES} matches={matches} onStoryClick={vi.fn()} />
+    )
+    expect(screen.getByText('home.badgeResume')).toBeInTheDocument()
+    expect(screen.getByText('home.badgeCompleted')).toBeInTheDocument()
+    expect(container.querySelectorAll('.story-card-status')).toHaveLength(2)
+  })
 })

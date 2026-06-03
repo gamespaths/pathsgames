@@ -4,8 +4,10 @@ import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
 import BookPageContent from '../../components/book/BookPageContent'
 import ConfigView from './ConfigView'
+import StartGameView from './StartGameView'
 import SelectionView from './SelectionView'
 import StartBookMobile from './StartBookMobile'
+import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
 
@@ -35,6 +37,7 @@ export default function StartBookModal({ story, onClose }) {
   const [config, setConfig] = useState(() => buildInitialConfig(story))
   const [selectionType, setSelectionType] = useState(null)
   const [termsAccepted, setTermsAccepted] = useState(true)
+  const [confirming, setConfirming] = useState(false) // ConfigView → StartGameView
   const [preview, setPreview] = useState(null) // { entity, type } or null
 
   useEffect(() => {
@@ -92,6 +95,15 @@ export default function StartBookModal({ story, onClose }) {
     setPreview(entity ? { entity, type } : null)
   }
 
+  // Mobile has no left page, so the (i) lens opens the big card in a modal.
+  function handlePreviewModal(entity, type) {
+    setPreview(entity ? { entity, type } : null)
+    if (typeof window === 'undefined') return
+    const el = document.getElementById('cardPreviewModal')
+    const Modal = window.bootstrap?.Modal
+    if (el && Modal) Modal.getOrCreateInstance(el).show()
+  }
+
   // Any "back" / "close" action — on either the preview or the selection list —
   // exits the whole change flow and returns to ConfigView.
   function handleBackOrClose() {
@@ -105,7 +117,6 @@ export default function StartBookModal({ story, onClose }) {
     navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config, cfToken: cfToken ?? null } })
   }
 
-  const configTypes = ['character', 'class', 'trait', 'difficulty']
 
   if (loadingDetail) {
     return (
@@ -128,51 +139,72 @@ export default function StartBookModal({ story, onClose }) {
     <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
   )
 
-  const rightContent = selectionType ? (
-    <SelectionView
-      type={selectionType}
-      options={getOptionsForType(selectionType, activeStory)}
-      selected={config[selectionType]}
-      story={activeStory}
-      config={config}
-      onSelect={handleSelect}
-      onBack={handleBackOrClose}
-      onPreview={handleSelectionPreview}
-    />
-  ) : (
-    <ConfigView
-      config={config}
-      story={activeStory}
-      onChangeClick={handleChangeFromConfig}
-      onPreview={handleSelectionPreview}
-      termsAccepted={termsAccepted}
-      onTermsChange={setTermsAccepted}
-      onStartGame={handleStartGame}
-    />
-  )
+  let rightContent
+  if (selectionType) {
+    rightContent = (
+      <SelectionView
+        type={selectionType}
+        options={getOptionsForType(selectionType, activeStory)}
+        selected={config[selectionType]}
+        story={activeStory}
+        config={config}
+        onSelect={handleSelect}
+        onBack={handleBackOrClose}
+        onPreview={handleSelectionPreview}
+      />
+    )
+  } else if (confirming) {
+    rightContent = (
+      <StartGameView
+        config={config}
+        story={activeStory}
+        termsAccepted={termsAccepted}
+        onTermsChange={setTermsAccepted}
+        onPreview={handleSelectionPreview}
+        onStartGame={handleStartGame}
+        onBack={() => setConfirming(false)}
+      />
+    )
+  } else {
+    rightContent = (
+      <ConfigView
+        config={config}
+        story={activeStory}
+        onChangeClick={handleChangeFromConfig}
+        onPreview={handleSelectionPreview}
+        onProceed={() => setConfirming(true)}
+      />
+    )
+  }
 
   return (
-    <Book
-      onClose={onClose}
-      left={leftContent}
-      right={rightContent}
-      mobile={
-        <StartBookMobile
-          activeStory={activeStory}
-          config={config}
-          configTypes={configTypes}
-          loadingDetail={loadingDetail}
-          selectionType={selectionType}
-          setSelectionType={setSelectionType}
-          termsAccepted={termsAccepted}
-          setTermsAccepted={setTermsAccepted}
-          onClose={onClose}
-          onStartGame={handleStartGame}
-          onSelect={handleSelect}
-          getOptionsForType={(type) => getOptionsForType(type, activeStory)}
-        />
-      }
-    />
+    <>
+      <Book
+        onClose={onClose}
+        left={leftContent}
+        right={rightContent}
+        mobile={
+          <StartBookMobile
+            activeStory={activeStory}
+            config={config}
+            loadingDetail={loadingDetail}
+            selectionType={selectionType}
+            confirming={confirming}
+            termsAccepted={termsAccepted}
+            setTermsAccepted={setTermsAccepted}
+            onChangeClick={handleChangeFromConfig}
+            onPreview={handlePreviewModal}
+            onProceed={() => setConfirming(true)}
+            onBackConfirm={() => setConfirming(false)}
+            onSelect={handleSelect}
+            onBackSelection={handleBackOrClose}
+            getOptionsForType={(type) => getOptionsForType(type, activeStory)}
+            onStartGame={handleStartGame}
+          />
+        }
+      />
+      <CardPreviewModal preview={preview} story={activeStory} />
+    </>
   )
 }
 

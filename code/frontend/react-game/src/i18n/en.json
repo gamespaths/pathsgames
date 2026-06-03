@@ -9,11 +9,14 @@
     "heroSub": "Branching narratives. Infinite choices.",
     "stories": "Stories",
     "loading": "Loading stories…",
-    "noStories": "No stories available."
+    "noStories": "No stories available.",
+    "badgeResume": "Resume",
+    "badgeCompleted": "Completed"
   },
   "antibot": {
     "blocked": "Antibot activated — these adventures are only for humans!",
-    "verifying": "Checking you're human…"
+    "verifying": "Checking you're human…",
+    "error": "Verification didn't go through."
   },
   "book": {
     "configureAdventure": "Start your Adventure",
@@ -44,7 +47,18 @@
       "stop": "Stop reading"
     },
     "acceptTerms": "I accept the Terms & Conditions",
+    "accept": "Accept",
+    "accepted": "Accepted",
     "startGame": "Start Game",
+    "terms": "Terms",
+    "termsTitle": "Terms & Conditions",
+    "termsDesc": "To play you must accept the Terms & Conditions. Use the lens to read them and the button to accept or decline.",
+    "story": "Story",
+    "antibot": "Security",
+    "antibotOk": "Verification",
+    "antibotDesc": "Antibot check completed successfully: you are ready to start the adventure.",
+    "freeToPlay": "Free to Play",
+    "freeToPlayDesc": "Paths Games is free: no cost, no account required. Start playing right away.",
     "selectTitle": "Select",
     "stats": {
       "title": "Bonuses",

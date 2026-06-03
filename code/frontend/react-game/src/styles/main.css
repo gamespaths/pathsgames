@@ -398,9 +398,10 @@ html, body {
   padding: 20px 20px 0;
   max-width: 1400px;
   margin: 0 auto;
+  text-align: center;
 }
 .stories-loading{
-  display: flex;
+  display: grid;
   align-items: center;
   justify-content: center;
   font-style: italic;
@@ -470,6 +471,30 @@ html, body {
   text-transform: uppercase;
   font-family: var(--font-heading);
   font-weight: 700;
+}
+
+/* Match-state badge (top-left, opposite the category badge). */
+.story-card-status {
+  position: absolute;
+  top: 8px; left: 8px;
+  z-index: 2;
+  font-size: 1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+.story-card-status--active {
+  background: var(--color-gold-light);
+  color: var(--color-brown-deep);
+}
+.story-card-status--completed {
+  background: rgba(20, 12, 4, 0.82);
+  color: var(--color-gold-light);
+  border: 1px solid var(--color-gold-dark);
 }
 
 /* Play icon on hover, centred */
@@ -980,6 +1005,15 @@ html, body {
 }
 .btn-start-game:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
 .btn-start-game:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* StartGameView footer: Back + Start side by side. */
+.start-game-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
 /* ═══════════════════════════════════════════
    CONFIG VIEW — right book page
@@ -2166,9 +2200,10 @@ html, body {
   text-align: center;
   font-family: var(--font-heading);
   color: var(--color-gold-deep);
+  font-size: 1.8rem;
 }
 .antibot-message-icon {
-  font-size: 2.2rem;
+  font-size: 4rem;
   color: var(--color-gold-deep);
 }
 .turnstile-checking {
@@ -2178,7 +2213,7 @@ html, body {
   gap: 8px;
   font-family: var(--font-heading);
   color: var(--color-gold-deep);
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 .matches-list-state-loading{
   color: var(--color-gold-deep);
@@ -2240,3 +2275,21 @@ html, body {
   font-size: 0.75rem;
 }
 .match-info-close:hover { color: var(--color-gold); }
+
+/* ═══════════════════════════════════
+   CARD PREVIEW MODAL (mobile "big card" from the (i) lens)
+   ═══════════════════════════════════ */
+.card-preview-modal-content {
+  position: relative;
+  background: transparent;
+  border: none;
+}
+.card-preview-modal-body {
+  padding: 0;
+}
+.card-preview-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+}

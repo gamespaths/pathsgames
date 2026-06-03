@@ -38,3 +38,33 @@ export function buildLoginCard(t) {
     description: t('book.guestDesc'),
   }
 }
+
+/** Terms & conditions card shown first in the start-game confirmation. */
+export function buildTermsCard(t) {
+  return {
+    name: t('book.termsTitle'),
+    icon: 'fas fa-scroll',
+    card: metaCard('terms'),
+    description: t('book.termsDesc'),
+  }
+}
+
+/** "Antibot passed" card revealed once the Turnstile check succeeds. */
+export function buildAntibotCard(t) {
+  return {
+    name: t('book.antibotOk'),
+    icon: 'fas fa-shield-alt',
+    card: metaCard('antibot'),
+    description: t('book.antibotDesc'),
+  }
+}
+
+/** "Free to play" card revealed once the Turnstile check succeeds. */
+export function buildFreeToPlay(t) {
+  return {
+    name: t('book.freeToPlay'),
+    icon: 'fas fa-gift',
+    card: metaCard('freeToPlay'),
+    description: t('book.freeToPlayDesc'),
+  }
+}

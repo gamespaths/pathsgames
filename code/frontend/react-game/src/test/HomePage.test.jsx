@@ -78,13 +78,14 @@ describe('HomePage — story click with active match check', () => {
     expect(mockOpenGuestModal).not.toHaveBeenCalled()
   })
 
-  it('opens GuestUserModal when RUNNING match exists for that story', async () => {
-    listMatches.mockResolvedValue([
-      { uuid: 'm1', storyUuid: 's1', status: 'RUNNING' },
-    ])
+  it('opens GuestUserModal when RUNNING match exists for that story (handing over the fetched matches)', async () => {
+    const list = [{ uuid: 'm1', storyUuid: 's1', status: 'RUNNING' }]
+    listMatches.mockResolvedValue(list)
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
     await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledTimes(1))
+    // matches already loaded by Home are passed to the modal so it won't refetch
+    expect(mockOpenGuestModal).toHaveBeenCalledWith(list)
     expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 
@@ -114,10 +115,11 @@ describe('HomePage — story click with active match check', () => {
     expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
   })
 
-  it('blocks bots: shows antibot message and never calls getStories', async () => {
+  it('offers a retry (instead of blocking) and never calls getStories on widget error', async () => {
     ts.behavior = 'bot'
     wrap(<HomePage />)
-    expect(await screen.findByText('antibot.blocked')).toBeInTheDocument()
+    expect(await screen.findByText('antibot.error')).toBeInTheDocument()
+    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
     expect(screen.queryByText('Forest Path')).not.toBeInTheDocument()
     expect(getStories).not.toHaveBeenCalled()
   })

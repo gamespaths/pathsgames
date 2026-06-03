@@ -66,4 +66,10 @@ describe('UserMatchesList', () => {
     wrap(<UserMatchesList accessToken="tok" />)
     await waitFor(() => expect(getStory).toHaveBeenCalledTimes(1)) // s1 appears twice but fetched once
   })
+
+  it('uses preloadedMatches and does NOT call listMatches', async () => {
+    wrap(<UserMatchesList accessToken="tok" preloadedMatches={MATCHES} />)
+    expect(await screen.findAllByText('Dragon Keep')).toHaveLength(2)
+    expect(listMatches).not.toHaveBeenCalled()
+  })
 })

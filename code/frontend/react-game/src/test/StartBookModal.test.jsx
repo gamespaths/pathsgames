@@ -15,10 +15,18 @@ vi.mock('../components/book/BookPageContent', () => ({
   ),
 }))
 vi.mock('../features/startBook/ConfigView', () => ({
-  default: ({ onStartGame, onChangeClick }) => (
+  default: ({ onProceed, onChangeClick }) => (
     <div data-testid="config-view">
-      <button onClick={() => onStartGame('tok')}>start</button>
+      <button onClick={onProceed}>proceed</button>
       <button onClick={() => onChangeClick('class')}>change-class</button>
+    </div>
+  ),
+}))
+vi.mock('../features/startBook/StartGameView', () => ({
+  default: ({ onStartGame, onBack }) => (
+    <div data-testid="start-game-view">
+      <button onClick={() => onStartGame('tok')}>start</button>
+      <button onClick={onBack}>back-config</button>
     </div>
   ),
 }))
@@ -100,10 +108,26 @@ describe('StartBookModal', () => {
     expect(container.firstChild).toBeNull()
   })
 
+  it('shows StartGameView after "Start Game" is pressed in ConfigView', async () => {
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('proceed'))
+    expect(screen.getByTestId('start-game-view')).toBeInTheDocument()
+  })
+
+  it('returns to ConfigView from StartGameView back', async () => {
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('proceed'))
+    fireEvent.click(screen.getByText('back-config'))
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
+  })
+
   it('calls onClose when start game is triggered', async () => {
     const onClose = vi.fn()
     wrap({ onClose })
     await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByText('proceed'))
     fireEvent.click(screen.getByText('start'))
     expect(onClose).toHaveBeenCalled()
   })

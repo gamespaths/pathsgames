@@ -62,10 +62,23 @@ export function GuestUserProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [guestModalOpen, setGuestModalOpen] = useState(false)
+  // Matches the guest modal will show. When the Home already fetched them (to
+  // decide whether a story has an active match) it hands them over here, so
+  // UserMatchesList can skip the redundant `GET /api/matches` call. `null`
+  // means "not preloaded — fetch them". Cleared on close so a later open from
+  // the navbar always fetches fresh data.
+  const [matches, setMatches] = useState(null)
   const initRef = useRef(false)
 
-  const openGuestModal  = useCallback(() => setGuestModalOpen(true),  [])
-  const closeGuestModal = useCallback(() => setGuestModalOpen(false), [])
+  // `openGuestModal(matches?)` — callers that already have the match list (the
+  // Home, to decide whether a story has an active match) pass it in so the
+  // modal reuses it instead of re-fetching. Called with no argument (navbar) it
+  // leaves `matches` null and the modal fetches them.
+  const openGuestModal  = useCallback((preloaded = null) => {
+    setMatches(Array.isArray(preloaded) ? preloaded : null)
+    setGuestModalOpen(true)
+  }, [])
+  const closeGuestModal = useCallback(() => { setGuestModalOpen(false); setMatches(null) }, [])
 
   useEffect(() => {
     if (initRef.current) return
@@ -121,7 +134,7 @@ export function GuestUserProvider({ children }) {
   }, [])
 
   return (
-    <GuestUserContext.Provider value={{ user, loading, error, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal }}>
+    <GuestUserContext.Provider value={{ user, loading, error, refreshGuest, clearGuest, guestModalOpen, openGuestModal, closeGuestModal, matches, setMatches }}>
       {children}
     </GuestUserContext.Provider>
   )

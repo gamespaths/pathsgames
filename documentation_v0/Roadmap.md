@@ -74,8 +74,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
     - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
     - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
-    - On game frontend project: create a step/page "join" , after "start game" and after antibot check, show right page with "creating match" card with spinner/okCheck and "joining" card with wait/spinner/onCheck
-    - On admin project: create a matchs details page with players and characters list of a match (in future we are going to add others informations like locations, registry, ecc.. )
+    - On admin project: create a matchs details page with players and characters list of a match (add others informations like locations, character positions, character choices, events status, actual registry, ecc..  )
 22. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)

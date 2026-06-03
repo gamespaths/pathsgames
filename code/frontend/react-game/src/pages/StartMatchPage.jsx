@@ -119,10 +119,23 @@ export default function StartMatchPage() {
     value,
   }))
 
+  const startMatchStatus=<StartMatchStatus
+            phase={phase}
+            countdown={countdown}
+            errorMsg={errorMsg}
+            onRetry={() => { setErrorMsg(''); setPhase('starting') }}
+            onHome={() => navigate('/')}
+            t={t}
+          />
+
   return (
     <Book
-      overlayClass="book-overlay start-match-overlay"
-      wrapperClass="start-match-wrapper"
+      overlayClass="book-overlay start-match-overlay "
+      wrapperClass="book-wrapper start-match-wrapper"
+      mobile={<div className="book-mobile-layout">
+          <BookPageContent card={story.card} story={story} loading={false} />
+          {startMatchStatus}
+        </div>}
       left={<BookPageContent card={story.card} story={story} loading={false} />}
       right={
         <div className="start-match-right">
@@ -131,17 +144,10 @@ export default function StartMatchPage() {
               <ConfigCard key={c.type} type={c.type} value={c.value} story={story} />
             ))}
           </div>
-          {totalItems.length > 0 && (
+          {/*totalItems.length > 0 && (
             <BonusBadgeList className="config-total-bonus" items={totalItems} />
-          )}
-          <StartMatchStatus
-            phase={phase}
-            countdown={countdown}
-            errorMsg={errorMsg}
-            onRetry={() => { setErrorMsg(''); setPhase('starting') }}
-            onHome={() => navigate('/')}
-            t={t}
-          />
+          )*/}
+          {startMatchStatus}
         </div>
       }
     />

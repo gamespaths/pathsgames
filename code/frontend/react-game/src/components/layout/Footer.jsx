@@ -63,8 +63,9 @@ export default function Footer() {
         <div className="footer-copy">
           <i className="fas fa-dice-d20 me-2" />
           <span className="gold-light">PATHS GAMES</span> 
-          &nbsp; &copy; {t('footer.rights').toUpperCase()} &middot;&nbsp;  v0.20.5
+          &nbsp; &copy; {t('footer.rights').toUpperCase()} 
           <br />
+          v0.20.6 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>
 
@@ -72,7 +73,8 @@ export default function Footer() {
           <a href="https://github.com/gamespaths/pathsgames" target="_blank" rel="noopener" className="footer-icon-link">
             <i className="fab fa-github" /><span>{t('footer.github')}</span>
           </a>
-          <a href="https://github.com/gamespaths/pathsgames/blob/develop/documentation_v0/Roadmap.md" target="_blank" rel="noopener" className="footer-icon-link">
+          <a href="https://github.com/gamespaths/pathsgames/blob/develop/documentation_v0/Roadmap.md" target="_blank" rel="noopener" 
+                className="footer-icon-link d-none d-md-inline-flex">
             <i className="fas fa-newspaper" /><span>{t('footer.devlog')}</span>
           </a>
           <a href="https://www.instagram.com/pathsgames/" target="_blank" rel="noopener" className="footer-icon-link">

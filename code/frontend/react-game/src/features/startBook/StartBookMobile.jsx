@@ -1,139 +1,102 @@
-import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
+import GameCard from '../../components/layout/GameCard'
+import ConfigView from './ConfigView'
+import StartGameView from './StartGameView'
 import SelectionView from './SelectionView'
-import TurnstileWidget from '../../components/common/TurnstileWidget'
-import AntibotMessage from '../../components/common/AntibotMessage'
-import { CF_KEY, TURNSTILE_APPEARANCE } from '../../utils/turnstile'
+import BookPageContent from '../../components/book/BookPageContent'
 
+/**
+ * StartBookMobile — mobile (≤767px) variant of the start book.
+ *
+ * Reuses the very same flow components as the desktop right page
+ * (ConfigView → StartGameView, with SelectionView for changing a card) so the
+ * loadout cards render as GameCards in a responsive 2-column grid. The only
+ * mobile-specific chrome is the story header card on top; the close button is
+ * provided by the surrounding Book overlay.
+ */
 export default function StartBookMobile({
   activeStory,
   config,
-  configTypes,
   loadingDetail,
   selectionType,
-  setSelectionType,
+  confirming,
   termsAccepted,
   setTermsAccepted,
-  onClose,
-  onStartGame,
+  onChangeClick,
+  onPreview,
+  onProceed,
+  onBackConfirm,
   onSelect,
+  onBackSelection,
   getOptionsForType,
+  onStartGame,
 }) {
   const { t } = useTranslation()
-  // 'idle' → terms + buttons, 'checking' → Turnstile, 'bot' → funny message.
-  const [phase, setPhase] = useState('idle')
-
-  function handleStartClick() {
-    if (!termsAccepted) return
-    if (!CF_KEY) { onStartGame(null); return }
-    setPhase('checking')
-  }
+  // Full-width hero card for the story: title + image + (i) preview + the
+  // primary "Start Game" CTA (which advances to the confirmation step). The
+  // CTA is hidden once we are already on the confirmation step.
+  const storyEntity = { name: activeStory.title, card: activeStory.card, description: activeStory.description }
 
   return (
     <div className="book-mobile-layout">
       {selectionType ? (
-        <div style={{ width: '100%' }}>
-          <SelectionView
-            type={selectionType}
-            options={getOptionsForType(selectionType)}
-            selected={config[selectionType]}
-            story={activeStory}
-            config={config}
-            onSelect={onSelect}
-            onBack={() => setSelectionType(null)}
-          />
-        </div>
+        <SelectionView
+          type={selectionType}
+          options={getOptionsForType(selectionType)}
+          selected={config[selectionType]}
+          story={activeStory}
+          config={config}
+          onSelect={onSelect}
+          onBack={onBackSelection}
+          onPreview={onPreview}
+        />
       ) : (
         <>
-          <div className="book-mobile-story-card">
-            <img src={activeStory.card?.urlImage} alt={activeStory.title} className="book-mobile-story-img" />
-            <div className="book-mobile-story-body">
-              <h3 className="story-card-full-title" style={{ fontSize: '1rem', marginBottom: 4 }}>{activeStory.title}</h3>
-              <p className="story-card-full-desc" style={{ fontSize: '0.82rem' }}>{activeStory.description}</p>
-            </div>
+          <div className="book-mobile-hero-card">
+            <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
+            {/*}
+            <GameCard
+              variant="medium"
+              card={activeStory.card}
+              name={activeStory.title}
+              imageAlt={activeStory.title}
+              onPreview={() => onPreview(storyEntity, 'story')}
+              onSelect={confirming ? undefined : onProceed}
+              selectLabel={t('book.startGame')} 
+            /> */}
           </div>
 
           {loadingDetail ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, color: 'var(--color-ash)' }}>
               <i className="fas fa-spinner fa-spin fa-2x" />
             </div>
-          ) : null}
-          {!loadingDetail && configTypes.map(type => {
-            const val = config[type]
-            return (
-              <div key={type} className="book-mobile-config-card">
-                <div className="book-mobile-config-icon"><i className={val?.icon ?? 'fas fa-circle'} /></div>
-                <div className="book-mobile-config-info">
-                  <div className="book-mobile-config-label">{t(`book.${type}`)}</div>
-                  <div className="book-mobile-config-value">{val?.name}</div>
-                </div>
-                <button className="config-change-btn" onClick={() => setSelectionType(type)}>
-                  <i className="fas fa-sync-alt me-1" />{t('book.change')}
-                </button>
-              </div>
-            )
-          })}
-
-          <div className="book-mobile-config-card" style={{ opacity: 0.45 }}>
-            <div className="book-mobile-config-icon"><i className="fas fa-user" /></div>
-            <div className="book-mobile-config-info">
-              <div className="book-mobile-config-label">{t('book.gameType')}</div>
-              <div className="book-mobile-config-value">{t('book.single')}</div>
+          ) : confirming ? (
+            <StartGameView
+              config={config}
+              story={activeStory}
+              termsAccepted={termsAccepted}
+              onTermsChange={setTermsAccepted}
+              onPreview={onPreview}
+              onStartGame={onStartGame}
+              onBack={onBackConfirm}
+            />
+          ) : (
+            <>
+            <ConfigView
+              config={config}
+              story={activeStory}
+              onChangeClick={onChangeClick}
+              onPreview={onPreview}
+              onProceed={onProceed}
+            />
+            <div className="gc-actions text-center display-flex justify-content-center">
+              <button className={`btn-start-game`} onClick={onProceed}>
+                <i className={`fas fa-play me-1`} />
+                <span className="gc-footer__btn-label">{t('book.startGame')}</span>
+              </button>
             </div>
-            <span style={{ fontSize: '0.65rem', color: 'var(--color-ash)' }}>
-              <i className="fas fa-lock me-1" />{t('book.locked')}
-            </span>
-          </div>
-
-          <div className="book-mobile-config-card" style={{ opacity: 0.45 }}>
-            <div className="book-mobile-config-icon"><i className="fas fa-user-circle" /></div>
-            <div className="book-mobile-config-info">
-              <div className="book-mobile-config-label">{t('book.login')}</div>
-              <div className="book-mobile-config-value">{t('book.guest')}</div>
-            </div>
-            <span style={{ fontSize: '0.65rem', color: 'var(--color-ash)' }}>
-              <i className="fas fa-lock me-1" />{t('book.locked')}
-            </span>
-          </div>
-
-          <div className="book-mobile-footer">
-            {phase === 'bot' ? (
-              <AntibotMessage />
-            ) : phase === 'checking' ? (
-              <div className="turnstile-checking">
-                <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
-                <TurnstileWidget
-                  appearance={TURNSTILE_APPEARANCE.config}
-                  onSuccess={token => onStartGame(token)}
-                  onError={() => setPhase('bot')}
-                  onExpire={() => setPhase('bot')}
-                />
-              </div>
-            ) : (
-              <>
-                <label className="terms-label" aria-label={t('book.acceptTerms')} style={{ marginBottom: 10, display: 'flex' }}>
-                  <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} />
-                  <button
-                    type="button"
-                    className="terms-link-btn"
-                    data-bs-toggle="modal"
-                    data-bs-target="#termsModal"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    {t('book.acceptTerms')}
-                  </button>
-                </label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-secondary-pg" onClick={onClose} style={{ flex: 1 }}>
-                    <i className="fas fa-times me-1" />{t('modals.close')}
-                  </button>
-                  <button className="btn-start-game" disabled={!termsAccepted} onClick={handleStartClick} style={{ flex: 1 }}>
-                    <i className="fas fa-play me-2" />{t('book.startGame')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+            </>
+          )}
         </>
       )}
     </div>

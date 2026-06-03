@@ -9,7 +9,7 @@ import MatchCard from '../../../features/matches/MatchCard'
  * UserMatchesList — fetches the current user's matches and story cards,
  * then renders a scrollable grid of MatchCard items.
  */
-export default function UserMatchesList({ accessToken, onPreviewCard, onClose }) {
+export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onClose }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
@@ -22,7 +22,13 @@ export default function UserMatchesList({ accessToken, onPreviewCard, onClose })
     setLoading(true)
     setError(null)
 
-    listMatches(accessToken)
+    // Reuse the list handed over by the Home (via context) when present — no
+    // need to hit `GET /api/matches` again. Otherwise fetch it ourselves.
+    const source = Array.isArray(preloadedMatches)
+      ? Promise.resolve(preloadedMatches)
+      : listMatches(accessToken)
+
+    source
       .then(async list => {
         if (cancelled) return
         const safeList = Array.isArray(list) ? list : []
@@ -39,7 +45,7 @@ export default function UserMatchesList({ accessToken, onPreviewCard, onClose })
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [accessToken])
+  }, [accessToken, preloadedMatches])
 
   if (loading) return (
     <div className="matches-list-state matches-list-state-loading">

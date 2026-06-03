@@ -64,10 +64,11 @@ describe('GuestUserModal — antibot after matches list', () => {
     expect(screen.queryByTestId('turnstile-mock')).not.toBeInTheDocument()
   })
 
-  it('shows the antibot message and hides the matches list for bots', async () => {
+  it('offers a retry (instead of blocking) and hides the matches list on widget error', async () => {
     ts.behavior = 'bot'
     render(<GuestUserModal />)
-    expect(await screen.findByText('antibot.blocked')).toBeInTheDocument()
+    expect(await screen.findByText('antibot.error')).toBeInTheDocument()
+    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
     expect(screen.queryByTestId('matches-list')).not.toBeInTheDocument()
   })
 })

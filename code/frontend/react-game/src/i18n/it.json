@@ -9,11 +9,14 @@
     "heroSub": "Narrazioni ramificate. Scelte infinite.",
     "stories": "Storie",
     "loading": "Caricamento storie…",
-    "noStories": "Nessuna storia disponibile."
+    "noStories": "Nessuna storia disponibile.",
+    "badgeResume": "Riprendi",
+    "badgeCompleted": "Completata"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
-    "verifying": "Verifica che tu sia umano…"
+    "verifying": "Verifica che tu sia umano…",
+    "error": "Verifica non riuscita — tocca per riprovare."
   },
   "book": {
     "configureAdventure": "Inizia la tua Avventura",
@@ -43,7 +46,18 @@
       "stop": "Interrompi lettura"
     },
     "acceptTerms": "Accetto i Termini e Condizioni",
+    "accept": "Accetta",
+    "accepted": "Accettato",
     "startGame": "Inizia Gioco",
+    "terms": "Termini",
+    "termsTitle": "Termini e Condizioni",
+    "termsDesc": "Per giocare devi accettare i Termini e Condizioni. Usa la lente per leggerli e il pulsante per accettarli o rifiutarli.",
+    "story": "Storia",
+    "antibot": "Sicurezza",
+    "antibotOk": "Verifica superata",
+    "antibotDesc": "Controllo antibot completato con successo: sei pronto per iniziare l'avventura.",
+    "freeToPlay": "Gioca Gratis",
+    "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",
     "stats": {
       "title": "Bonus",

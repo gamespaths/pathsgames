@@ -1,18 +1,11 @@
-import { useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
 import BonusBadgeList from '../../components/common/BonusBadgeList'
-import TurnstileWidget from '../../components/common/TurnstileWidget'
-import AntibotMessage from '../../components/common/AntibotMessage'
 import { aggregateBonusTotals } from '../../utils/bonusStats'
 import { buildGameTypeCard, buildLoginCard } from './loadoutCards'
-import { CF_KEY, TURNSTILE_APPEARANCE } from '../../utils/turnstile'
 
-export default function ConfigView({ config, story, onChangeClick, onPreview, termsAccepted, onTermsChange, onStartGame }) {
+export default function ConfigView({ config, story, onChangeClick, onPreview, onProceed }) {
   const { t } = useTranslation()
-  // Antibot runs only after the player commits: 'idle' shows terms + button,
-  // 'checking' hides them and runs Turnstile, 'bot' shows the funny message.
-  const [phase, setPhase] = useState('idle')
 
   const totals = aggregateBonusTotals([
     { entity: config.character,  type: 'character' },
@@ -29,16 +22,8 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
   const gameTypeValue = buildGameTypeCard(t)
   const loginValue    = buildLoginCard(t)
 
-  // "Start Game" click: with no site key, start immediately (dev bypass);
-  // otherwise hide the controls and begin the Turnstile check.
-  function handleStartClick() {
-    if (!termsAccepted) return
-    if (!CF_KEY) { onStartGame(null); return }
-    setPhase('checking')
-  }
-
   return (
-    <div className="config-view-wrap">
+    <div className="config-view-wrap config-view--config">
 
       <div className="config-cards-area selection-list">
         {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
@@ -55,45 +40,12 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, te
         <BonusBadgeList className="config-total-bonus" items={totalItems} />
       )}
       <div className="page-footer">
-        {phase === 'bot' ? (
-          <AntibotMessage />
-        ) : phase === 'checking' ? (
-          <div className="turnstile-checking">
-            <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
-            <TurnstileWidget
-              appearance={TURNSTILE_APPEARANCE.config}
-              onSuccess={token => onStartGame(token)}
-              onError={() => setPhase('bot')}
-              onExpire={() => setPhase('bot')}
-            />
-          </div>
-        ) : (
-          <>
-            <label className="terms-label" aria-label={t('book.acceptTerms')}>
-              <input
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={e => onTermsChange(e.target.checked)}
-              />
-              <button
-                type="button"
-                className="terms-link-btn"
-                data-bs-toggle="modal"
-                data-bs-target="#termsModal"
-                onClick={e => e.stopPropagation()}
-              >
-                {t('book.acceptTerms')}
-              </button>
-            </label>
-            <button
-              className="btn-start-game"
-              disabled={!termsAccepted}
-              onClick={handleStartClick}
-            >
-              <i className="fas fa-play me-2" />{t('book.startGame')}
-            </button>
-          </>
-        )}
+        <button
+          className="btn-start-game"
+          onClick={onProceed}
+        >
+          <i className="fas fa-play me-2" />{t('book.startGame')}
+        </button>
       </div>
 
 

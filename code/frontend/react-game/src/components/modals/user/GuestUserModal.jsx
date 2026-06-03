@@ -6,7 +6,6 @@ import BookPageContent from '../../book/BookPageContent'
 import UserMatchesList from './UserMatchesList'
 import UserLanguageSelector from './UserLanguageSelector'
 import TurnstileWidget from '../../common/TurnstileWidget'
-import AntibotMessage from '../../common/AntibotMessage'
 import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '../../../utils/turnstile'
 
 /**
@@ -18,12 +17,19 @@ import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass
  */
 export default function GuestUserModal() {
   const { t } = useTranslation()
-  const { user, loading, guestModalOpen, closeGuestModal } = useGuestUser()
+  const { user, loading, guestModalOpen, closeGuestModal, matches } = useGuestUser()
   const [previewInfo, setPreviewInfo] = useState(null) // { card, story, statusLabel, match }
   // 'checking' until Turnstile passes, then 'human'; 'bot' on failure. The
   // matches list is shown only once cleared. No site key — or a still-valid
   // recent pass cookie — skips straight to human (no re-verify).
   const [status, setStatus] = useState(!CF_KEY || isTurnstilePassValid() ? 'human' : 'checking')
+  const [attempt, setAttempt] = useState(0)
+
+  // Re-mount the widget (fresh challenge) instead of permanently blocking.
+  function retryAntibot() {
+    setAttempt(a => a + 1)
+    setStatus('checking')
+  }
 
   if (!guestModalOpen) return null
 
@@ -44,21 +50,28 @@ export default function GuestUserModal() {
 
   const rightPage = <>
     
-    {status === 'bot' ? (
-      <AntibotMessage />
+    {status === 'error' ? (
+      <div className="turnstile-checking">
+        <p><i className="fas fa-exclamation-triangle me-2" />{t('antibot.error')}</p>
+        <button className="btn-start-game" onClick={retryAntibot}>
+          <i className="fas fa-sync-alt me-2" />{t('startMatch.retry')}
+        </button>
+      </div>
     ) : status === 'checking' ? (
       <div className="turnstile-checking">
         <p><i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</p>
         <TurnstileWidget
+          key={attempt}
           appearance={TURNSTILE_APPEARANCE.guest}
           onSuccess={() => { recordTurnstilePass(); setStatus('human') }}
-          onError={() => setStatus('bot')}
-          onExpire={() => setStatus('bot')}
+          onError={() => setStatus('error')}
+          onExpire={retryAntibot}
         />
       </div>
     ) : (
       <UserMatchesList
         accessToken={user?.accessToken}
+        preloadedMatches={matches}
         onPreviewCard={setPreviewInfo}
         onClose={closeGuestModal}
       />
@@ -70,7 +83,14 @@ export default function GuestUserModal() {
       onClose={closeGuestModal}
       left={leftPage}
       right={rightPage}
-
+      mobile={
+        <div className="book-mobile-layout">
+          {/* Big user (or previewed story) card on top, then the matches grid
+              laid out two per row below it. */}
+          {leftPage}
+          {rightPage}
+        </div>
+      }
     />
   )
 }

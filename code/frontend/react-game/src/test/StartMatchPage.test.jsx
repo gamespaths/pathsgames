@@ -58,7 +58,8 @@ describe('StartMatchPage', () => {
   it('renders the story card and the starting status', () => {
     renderPage({ story: STORY, config: CONFIG })
     expect(screen.getAllByText('The Lost Crown').length).toBeGreaterThan(0)
-    expect(screen.getByText(/startMatch\.starting/)).toBeInTheDocument()
+    // status block is rendered both on the right page and the mobile layout
+    expect(screen.getAllByText(/startMatch\.starting/).length).toBeGreaterThan(0)
   })
 
   it('creates the match after the delay with the full loadout', async () => {
@@ -78,7 +79,7 @@ describe('StartMatchPage', () => {
       singlePlayer: 1,
     })
     expect(token).toBe('tok-1')
-    expect(screen.getByText(/startMatch\.created/)).toBeInTheDocument()
+    expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)
   })
 
   it('jumps to the game page after the created delay', async () => {
@@ -96,14 +97,14 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
-    expect(screen.getByText(/startMatch\.error/)).toBeInTheDocument()
-    expect(screen.getByText('STORY_HAS_NO_LOCATIONS')).toBeInTheDocument()
+    expect(screen.getAllByText(/startMatch\.error/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('STORY_HAS_NO_LOCATIONS').length).toBeGreaterThan(0)
 
     createMatch.mockResolvedValueOnce({ uuid: 'm2', status: 'CREATED' })
-    await act(async () => { fireEvent.click(screen.getByText(/startMatch\.retry/)) })
+    await act(async () => { fireEvent.click(screen.getAllByText(/startMatch\.retry/)[0]) })
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
 
     expect(createMatch).toHaveBeenCalledTimes(2)
-    expect(screen.getByText(/startMatch\.created/)).toBeInTheDocument()
+    expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)
   })
 })
