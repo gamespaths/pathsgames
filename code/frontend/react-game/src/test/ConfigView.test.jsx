@@ -4,7 +4,14 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../features/startBook/ConfigCard', () => ({ default: () => <div /> }))
+vi.mock('../features/startBook/ConfigCard', () => ({
+  default: ({ type, onChangeClick, onPreview, onPagePreview }) => (
+    <button
+      data-testid={`cc-${type}`}
+      onClick={() => { onChangeClick?.(); onPreview?.(); onPagePreview?.('v', type) }}
+    />
+  ),
+}))
 vi.mock('../components/common/BonusBadgeList', () => ({ default: () => <div /> }))
 
 import ConfigView from '../features/startBook/ConfigView'
@@ -12,18 +19,16 @@ import ConfigView from '../features/startBook/ConfigView'
 const config = { character: null, class: null, trait: null, difficulty: null }
 
 function setup(props = {}) {
-  const onProceed = vi.fn()
+  const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onPreview: vi.fn() }
   render(
     <ConfigView
       config={config}
-      story={{}}
-      onChangeClick={vi.fn()}
-      onPreview={vi.fn()}
-      onProceed={onProceed}
+      story={{ classes: [{}, {}], characterTemplates: [{}], traits: [{}], difficulties: [{}] }}
+      {...handlers}
       {...props}
     />
   )
-  return { onProceed }
+  return handlers
 }
 
 describe('ConfigView', () => {
@@ -33,5 +38,22 @@ describe('ConfigView', () => {
     const { onProceed } = setup()
     fireEvent.click(screen.getByText('book.startGame'))
     expect(onProceed).toHaveBeenCalled()
+  })
+
+  it('wires selectable cards to onChangeClick and the page preview', () => {
+    const { onChangeClick, onPreview } = setup()
+    fireEvent.click(screen.getByTestId('cc-class'))
+    fireEvent.click(screen.getByTestId('cc-difficulty'))
+    expect(onChangeClick).toHaveBeenCalledWith('class')
+    expect(onChangeClick).toHaveBeenCalledWith('difficulty')
+    // selectable cards route onPagePreview → ConfigView onPreview
+    expect(onPreview).toHaveBeenCalled()
+  })
+
+  it('wires the locked cards (gameType/login) to onPreview', () => {
+    const { onPreview } = setup()
+    fireEvent.click(screen.getByTestId('cc-gameType'))
+    fireEvent.click(screen.getByTestId('cc-login'))
+    expect(onPreview).toHaveBeenCalled()
   })
 })
