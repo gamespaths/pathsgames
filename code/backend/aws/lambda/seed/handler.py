@@ -465,9 +465,10 @@ def _seed_stories():
 # ─── test-data cleanup ───────────────────────────────────────────────────────
 
 def _handle_cleanup():
-    """POST /api/dev/cleanup — removes the rows created by automated (Robot
+    """POST /api/dev/cleanup — removes the data created by automated (Robot
     Framework) test runs: guests whose username starts with the ``robottest``
-    marker and matches whose name starts with it. Every other item is kept.
+    marker, matches whose name starts with it, and the seed stories inserted by
+    ``_seed_stories`` (the same SEED_STORIES list). Every other item is kept.
     """
     deleted_guests = 0
     for user in db_utils.scan_filter("is_guest", True):
@@ -481,12 +482,19 @@ def _handle_cleanup():
             db_utils.delete_item(match["PK"], match.get("SK", "METADATA"))
             deleted_matches += 1
 
+    # Remove the seed stories (cascading delete of every item under STORY#{uuid}).
+    deleted_stories = 0
+    for s in SEED_STORIES:
+        if db_utils.delete_all_by_pk(f"STORY#{s['uuid']}") > 0:
+            deleted_stories += 1
+
     return {
         "statusCode": 200,
         "headers": HEADERS,
         "body": json.dumps({
             "deletedGuests":  deleted_guests,
             "deletedMatches": deleted_matches,
+            "deletedStories": deleted_stories,
         })
     }
 

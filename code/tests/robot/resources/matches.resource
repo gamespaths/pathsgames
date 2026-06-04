@@ -79,9 +79,10 @@ List Matches
 
 List All Matches
     [Documentation]    GET /api/admin/matches with the given Bearer token (admin-only).
+    ...                Served on the admin endpoint (admin_session → ADMIN_BASE_URL).
     [Arguments]    ${token}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
-    ${response}=    GET On Session    public_session    /api/admin/matches
+    ${response}=    GET On Session    admin_session    /api/admin/matches
     ...    headers=${headers}
     ...    expected_status=${expected_status}
     RETURN    ${response}

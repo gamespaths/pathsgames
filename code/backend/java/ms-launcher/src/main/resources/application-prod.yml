@@ -26,6 +26,9 @@ game:
   server:
     status: OK
     env: production
+  admin:
+    # Admin connector port in production. Keep it firewalled to the owner IP only.
+    port: ${ADMIN_PORT:8044}
   auth:
     cors:
       allowed-origins: https://paths.games,https://www.paths.games,https://pathsgames.com

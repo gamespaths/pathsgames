@@ -22,8 +22,9 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
-echo "Kill all process using 8042 port"
-fuser -k 8042/tcp || true   
+echo "Kill all process using 8042 and 8044 ports"
+fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 cd $PROJECT_ROOT && \
 python3 -m venv .venv && \
@@ -41,8 +42,9 @@ mysql -u pathsgames -ppathsgames -h 127.0.0.1 -D pathsgames < "$PROJECT_ROOT/cod
 sleep 1
 
 
-echo "Kill all process using 8042 port"
+echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 # Install PHP dependencies if vendor/ is missing
 if [ ! -f "$PROJECT_ROOT/code/backend/php/vendor/autoload.php" ]; then
@@ -50,24 +52,35 @@ if [ ! -f "$PROJECT_ROOT/code/backend/php/vendor/autoload.php" ]; then
     cd "$PROJECT_ROOT/code/backend/php" && composer install --no-interaction --prefer-dist
 fi
 
-# start local server
+# start public server (player/public API, 8042) and admin server (admin API, 8044).
+# The admin front controller (index_admin.php) serves ONLY /api/admin/** routes.
 php -S localhost:8042 -t "$PROJECT_ROOT/code/backend/php/public" &
 SERVER_PID=$!
+php -S localhost:8044 -t "$PROJECT_ROOT/code/backend/php/public" "$PROJECT_ROOT/code/backend/php/public/index_admin.php" &
+ADMIN_PID=$!
 
 # Function to terminate the application in case of error
 cleanup() {
     echo "-------------- Cleanup"
-	echo "Stopping the server"
+	echo "Stopping the servers"
     kill $SERVER_PID || true
+    kill $ADMIN_PID || true
 }
 trap cleanup EXIT
 
-sleep 3 # wait for the server to start
+sleep 3 # wait for the servers to start
 curl -s http://localhost:8042/api/echo/status > /dev/null || {
-    echo "Server not started correctly"
-    kill $SERVER_PID
+    echo "Public server not started correctly"
+    kill $SERVER_PID $ADMIN_PID
     exit 1
 }
+# The admin front controller also serves /api/echo/status (same EchoService).
+ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8044/api/echo/status || echo 000)
+if [ "$ADMIN_CODE" != "200" ]; then
+    echo "Admin server (8044) not started correctly"
+    kill $SERVER_PID $ADMIN_PID
+    exit 1
+fi
 
 # run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
 cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
@@ -77,14 +90,15 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variable
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.
 echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
-curl -s -X POST http://localhost:8042/api/dev/cleanup || echo "  cleanup request failed"
+curl -s -X POST http://localhost:8044/api/dev/cleanup || echo "  cleanup request failed"
 echo
 
-# stop local server
-echo "Stopping the server"
-kill $SERVER_PID
-echo "Kill all process using 8042 port"
+# stop local servers
+echo "Stopping the servers"
+kill $SERVER_PID $ADMIN_PID
+echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-php/"
 exit $ROBOT_EXIT

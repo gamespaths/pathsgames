@@ -22,8 +22,9 @@ export default defineConfig(({ mode }) => {
     server: {
       port,
       proxy: {
+        // The admin console only calls /api/admin/** — proxy to the dedicated admin port.
         '/api': {
-          target: 'http://localhost:8042',
+          target: 'http://localhost:8044',
           changeOrigin: true,
         },
       },

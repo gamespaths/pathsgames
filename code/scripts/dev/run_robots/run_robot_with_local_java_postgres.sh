@@ -27,8 +27,9 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
-echo "Kill all process using 8042 port"
-fuser -k 8042/tcp || true   
+echo "Kill all process using 8042 and 8044 ports"
+fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 # PostgreSQL connection defaults (match application-prod.yml)
 DB_HOST="${DB_HOST:-localhost}"
@@ -67,8 +68,9 @@ else
 	DOCKER_STARTED=false
 fi
 
-echo "Killing any process occupying port 8042"
+echo "Killing any process occupying ports 8042 and 8044"
 fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 # Build the JAR with the prod Maven profile (includes adapter-postgres + PostgreSQL JDBC driver)
 # Using 'install' (not 'package') so all modules are installed to local .m2 repo
@@ -110,9 +112,13 @@ echo "Java server started with PID $SERVER_PID (PostgreSQL: ${DB_USERNAME}@${DB_
 
 sleep 30 # wait for server + Flyway migrations
 curl -s http://localhost:8042/api/echo/status > /dev/null || {
-	echo "Server did not start correctly"
+	echo "Public server (8042) did not start correctly"
 	exit 1
 }
+# The same JVM serves the admin API on 8044 (second Tomcat connector), including the
+# /api/echo/status health check (same EchoService) — a 200 confirms it is up.
+ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8044/api/echo/status || echo 000)
+[ "$ADMIN_CODE" = "200" ] || { echo "Admin connector (8044) did not start correctly (got $ADMIN_CODE)"; exit 1; }
 
 echo "Running Robot tests!"
 cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
@@ -123,7 +129,7 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" \
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.
 echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
-curl -s -X POST http://localhost:8042/api/dev/cleanup || echo "  cleanup request failed"
+curl -s -X POST http://localhost:8044/api/dev/cleanup || echo "  cleanup request failed"
 echo
 
 kill "$SERVER_PID" 2>/dev/null || true

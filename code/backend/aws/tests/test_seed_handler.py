@@ -16,9 +16,9 @@ def test_cleanup_returns_403_when_not_dev():
     assert result['statusCode'] == 403
 
 
-def test_cleanup_deletes_only_robot_data():
+def test_cleanup_deletes_only_robot_data_and_seed_stories():
     """Safety test: cleanup must remove ONLY the robot-test rows (marker
-    'robottest') and never the real ("good") data, even when both are present.
+    'robottest') plus the seed stories — never the real ("good") data.
     """
     guests = [
         {'PK': 'USER#real-1', 'SK': 'METADATA', 'username': 'guest_real0001', 'is_guest': True},
@@ -30,21 +30,30 @@ def test_cleanup_deletes_only_robot_data():
         {'PK': 'MATCH#rob-m', 'SK': 'METADATA', 'name': 'robottest_match'},
     ]
     deleted = []
-    from seed.handler import lambda_handler
+    story_pks = []
+    from seed.handler import lambda_handler, SEED_STORIES
     with patch('seed.handler.db_utils.scan_filter', return_value=guests), \
          patch('seed.handler.db_utils.scan_pk_prefix', return_value=matches), \
          patch('seed.handler.db_utils.delete_item',
                side_effect=lambda pk, sk='METADATA': deleted.append(pk)), \
+         patch('seed.handler.db_utils.delete_all_by_pk',
+               side_effect=lambda pk: (story_pks.append(pk), 1)[1]), \
          patch.dict(os.environ, {'ENV': 'dev'}):
         result = lambda_handler(make_event('POST', '/api/dev/cleanup'), {})
 
     assert result['statusCode'] == 200
     body = json.loads(result['body'])
-    assert body == {'deletedGuests': 2, 'deletedMatches': 1}
+    assert body == {
+        'deletedGuests': 2,
+        'deletedMatches': 1,
+        'deletedStories': len(SEED_STORIES),
+    }
     # the real ("good") rows must NOT be deleted
     assert 'USER#real-1' not in deleted
     assert 'MATCH#real-m' not in deleted
     assert sorted(deleted) == ['MATCH#rob-m', 'USER#rob-1', 'USER#rob-2']
+    # every seed story was targeted for deletion by its STORY#{uuid} PK
+    assert story_pks == [f"STORY#{s['uuid']}" for s in SEED_STORIES]
 
 
 def test_cleanup_with_no_robot_data_returns_zero():
@@ -56,9 +65,10 @@ def test_cleanup_with_no_robot_data_returns_zero():
          patch('seed.handler.db_utils.scan_pk_prefix', return_value=matches), \
          patch('seed.handler.db_utils.delete_item',
                side_effect=lambda pk, sk='METADATA': deleted.append(pk)), \
+         patch('seed.handler.db_utils.delete_all_by_pk', return_value=0), \
          patch.dict(os.environ, {'ENV': 'dev'}):
         result = lambda_handler(make_event('POST', '/api/dev/cleanup'), {})
 
     body = json.loads(result['body'])
-    assert body == {'deletedGuests': 0, 'deletedMatches': 0}
+    assert body == {'deletedGuests': 0, 'deletedMatches': 0, 'deletedStories': 0}
     assert deleted == []

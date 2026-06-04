@@ -6,7 +6,7 @@
     <parent>
         <groupId>games.paths</groupId>
         <artifactId>paths-game-backend</artifactId>
-        <version>0.20.6-SNAPSHOT</version>
+        <version>0.20.7-SNAPSHOT</version>
     </parent>
 
     <artifactId>adapter-admin</artifactId>
@@ -17,6 +17,13 @@
         <dependency>
             <groupId>games.paths</groupId>
             <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <!-- Reuse the match DTOs/mappers (MatchSummaryResponse, MatchInfoResponse,
+                 MatchUpdateRequest) so admin and player responses keep an identical shape. -->
+            <groupId>games.paths</groupId>
+            <artifactId>adapter-rest</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

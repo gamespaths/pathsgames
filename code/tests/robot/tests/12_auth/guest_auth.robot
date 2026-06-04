@@ -63,12 +63,14 @@ Guest Has PLAYER Role
     Should Be Equal As Strings    ${body}[role]    PLAYER
 
 Guest Cannot Access Admin Endpoint
-    [Documentation]    A PLAYER token returns 403 when calling /api/admin/stories.
+    [Documentation]    A PLAYER token returns 403 when calling the admin endpoint
+    ...                (/api/admin/stories on ADMIN_BASE_URL — the dedicated admin port/API).
     [Tags]    auth    step12
     ${token}=    Create Guest Session And Get Token
     ${headers}=    Get Auth Headers    ${token}
     ${params}=    Create Dictionary    lang=en
-    ${response}=    GET On Session    public_session    /api/admin/stories
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    headers=${headers}    params=${params}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    403
 

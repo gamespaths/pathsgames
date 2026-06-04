@@ -5,8 +5,14 @@ version: "3.9"
 #
 # Services:
 #   postgres  — PostgreSQL 16
-#   backend   — Java Spring Boot (prod profile, port 8042 internal only)
-#   nginx     — Reverse proxy; blocks /api/admin/** from non-whitelisted IPs
+#   backend   — Java Spring Boot (prod profile): public API on 8042, admin API on 8044
+#   nginx     — Reverse proxy for the public API on 8042
+#
+# Admin endpoint split: /api/admin/** is now served ONLY on the backend's 8044 connector
+# (the public 8042 connector returns 404 for admin paths). The admin port is published
+# directly to the host below — restrict it to the owner IP via the host firewall /
+# security group. The legacy nginx by-path admin gate on 8042 is therefore redundant
+# (admin paths no longer exist on 8042) and can be dropped once you rely on 8044.
 
 services:
 
@@ -35,9 +41,13 @@ services:
     container_name: pathsgames-backend
     restart: unless-stopped
     ports:
-      - "8041:8042"    # Expose backend on host port 8041 (or $BACKEND_PORT)
+      - "8041:8042"    # Public API on host port 8041 (or $BACKEND_PORT)
+      # Admin API — publish 8044 to the host and FIREWALL it to the owner IP only
+      # (host firewall / cloud security group). This is the network boundary that
+      # replaces the per-path nginx admin filter.
+      - "${ADMIN_PORT:-8044}:8044"
     #expose:
-    #  - "8041" 
+    #  - "8041"
     depends_on:
       postgres:
         condition: service_healthy

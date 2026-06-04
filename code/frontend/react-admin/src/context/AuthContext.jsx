@@ -17,8 +17,8 @@ const getServers = () => {
     }
   }
   return [
-    { label: 'Local (8042)', url: 'http://localhost:8042' },
-    { label: 'Local (8080)', url: 'http://localhost:8080' },
+    { label: 'Local Admin (8044)', url: 'http://localhost:8044' },
+    { label: 'Local Player (8042)', url: 'http://localhost:8042' },
   ]
 }
 

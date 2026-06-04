@@ -27,12 +27,13 @@ Create Public Session
     Create Session    public_session    ${BASE_URL}    headers=${headers}    verify=false
 
 Create Admin Session
-    [Documentation]    Opens a RequestsLibrary HTTP session with a dynamically generated
-    ...                admin Bearer token (signed with the dev JWT secret).
+    [Documentation]    Opens a RequestsLibrary HTTP session against the admin endpoint
+    ...                (ADMIN_BASE_URL — the dedicated admin port 8044 / admin API), with a
+    ...                dynamically generated admin Bearer token (signed with the dev JWT secret).
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}    Content-Type=application/json
-    Create Session    admin_session    ${BASE_URL}    headers=${headers}    verify=false
+    Create Session    admin_session    ${ADMIN_BASE_URL}    headers=${headers}    verify=false
 
 Create Auth Session
     [Documentation]    Opens a RequestsLibrary HTTP session with the given Bearer token.

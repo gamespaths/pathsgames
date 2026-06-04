@@ -86,9 +86,9 @@ Implementation by backend:
 
 | Backend | Controller method             | Service method                        | Persistence        |
 |---------|-------------------------------|---------------------------------------|--------------------|
-| Java    | `MatchController.getAdminMatchInfo` | `MatchQueryService.getMatchInfoForAdmin` via `MatchQueryPort` | `MatchReadPort.findMatchByUuid` |
-| Python  | `MatchController.get_admin_match_info` | `MatchQueryService.get_match_info_for_admin` via `MatchQueryPort` | same persistence layer |
-| PHP     | `MatchController::getAdminMatchInfo` | `MatchQueryService::getMatchInfoForAdmin` via `MatchQueryPort` | same |
+| Java    | `MatchController.getAdminMatchInfo` → moved to `MatchAdminController` (Step 20a) | `MatchQueryService.getMatchInfoForAdmin` via `MatchQueryPort` | `MatchReadPort.findMatchByUuid` |
+| Python  | `MatchController.get_admin_match_info` → moved to `match_admin_controller.py` (Step 20a) | `MatchQueryService.get_match_info_for_admin` via `MatchQueryPort` | same persistence layer |
+| PHP     | `MatchController::getAdminMatchInfo` → moved to `MatchAdminController.php` (Step 20a) | `MatchQueryService::getMatchInfoForAdmin` via `MatchQueryPort` | same |
 | AWS     | `match/handler.py _get_admin_match_info` | — | `db_utils.get_item("MATCH#{uuid}")` |
 
 In the Java / Python / PHP backends the detail-building logic was refactored
@@ -96,6 +96,13 @@ into a shared private `buildDetail` helper that is called by both
 `getMatchInfo` (per-user) and `getMatchInfoForAdmin` (admin, no ownership
 check). The AWS handler already had a shared `_detail_from_item` helper and
 follows the same pattern.
+
+> **Note (Step 20a):** As of Step 20, all admin match endpoints — including
+> those listed above — were extracted from the player `MatchController` into a
+> dedicated `MatchAdminController` (Java `adapter-admin`, Python
+> `match_admin_controller.py`, PHP `MatchAdminController.php`). The admin
+> controller is served exclusively on the admin network boundary (port 8044 /
+> `PathsGamesAdminApi`). See [Step 20a — Admin Endpoint Split](./Step20_AdminEndpoint.md).
 
 The react-admin `matchApi.getMatchInfo` (formerly calling
 `GET /api/match/{uuid}/info`) was updated to call

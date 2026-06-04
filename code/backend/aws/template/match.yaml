@@ -8,6 +8,12 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  AdminApiId:
+    Type: String
+    Description: "Id of the dedicated admin HTTP API that serves /api/admin/** routes."
+  AdminAuthorizerId:
+    Type: String
+    Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
   JwtSecret:
     Type: String
     Default: PathsGamesDevSecret2026_MustBeAtLeast32Chars!
@@ -83,6 +89,23 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
 
+  # Admin API integration + invoke permission (same Lambda, second HTTP API).
+  MatchAdminIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref AdminApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt MatchFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  MatchAdminPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref MatchFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AdminApiId}/*"
+
   CreateMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -97,12 +120,15 @@ Resources:
       RouteKey: "GET /api/matches"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
   ListAllMatchesRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   GetMatchInfoRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -119,52 +145,66 @@ Resources:
       RouteKey: "PATCH /api/match/{uuidMatch}/end/{uuidEvent}"
       Target: !Sub "integrations/${MatchIntegration}"
 
-  # ── admin match control (modify / stop / delete) ──
+  # ── admin match control (modify / stop / delete) — admin API + IP authorizer ──
   ListMatchStatusesRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches/statuses"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   AdminMatchInfoRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches/{uuidMatch}/info"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   UpdateMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "PUT /api/admin/matches/{uuidMatch}"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   StopMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/matches/{uuidMatch}/stop"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   PauseMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/matches/{uuidMatch}/pause"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   ResumeMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/matches/{uuidMatch}/resume"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   DeleteMatchRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "DELETE /api/admin/matches/{uuidMatch}"
-      Target: !Sub "integrations/${MatchIntegration}"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId

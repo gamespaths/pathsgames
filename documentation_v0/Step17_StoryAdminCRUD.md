@@ -131,7 +131,7 @@ Responses return the entity as a flat JSON map including base fields:
 | PLAYER | No access (403 via JwtAuthenticationFilter) |
 | GUEST | No access (401/403) |
 
-Role enforcement is handled by the existing `JwtAuthenticationFilter` which checks the `/api/admin/` path prefix and validates the JWT token's role claim.
+Role enforcement is handled by the existing `JwtAuthenticationFilter` which checks the `/api/admin/` path prefix and validates the JWT token's role claim. From [Step 20a](./Step20_AdminEndpoint.md) onward, all `/api/admin/**` endpoints are additionally isolated onto a **dedicated network boundary** (port 8044 for Java/Python/PHP; a separate HTTP API with an IP-allow-list authorizer for AWS), so the JWT role check is a second layer of defense rather than the only gate.
 
 ## 5. Database Tables
 

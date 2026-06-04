@@ -174,6 +174,12 @@ Returns the full detail of a single story by UUID.
 
 ### Admin Endpoints (ADMIN role required)
 
+> **Note (Step 20a — admin endpoint split):** every `/api/admin/**` endpoint below is now
+> served on the **dedicated admin endpoint**, not the public one — the admin port **8044**
+> (Java/Python/PHP) or the separate IP-restricted admin HTTP API (AWS). The ADMIN-role JWT
+> check is a second layer behind that network/IP boundary. See
+> [Step20_AdminEndpoint.md](Step20_AdminEndpoint.md).
+
 #### POST `/api/admin/stories/import` — Import Story
 
 Imports a complete story from a JSON body. If a story with the same UUID already exists, it is fully deleted and re-imported (replace-on-conflict). If UUID is null/blank, a new one is auto-generated.

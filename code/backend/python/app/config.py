@@ -10,7 +10,11 @@ class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
     port: int = 8042
-    version: str = "0.20.6"
+    # Dedicated admin port. All /api/admin/** endpoints are served here (and ONLY here);
+    # the public app on `port` does not register the admin routers. Lock this port to the
+    # owner IP at the network layer (firewall / security group).
+    admin_port: int = 8044
+    version: str = "0.20.7"
 
 
     # >0.12.5 change version here

@@ -28,8 +28,11 @@ Suite Setup      Initialize Admin Suite
 *** Keywords ***
 
 Initialize Admin Suite
-    [Documentation]    Create public session and generate a dynamic admin JWT.
+    [Documentation]    Create the public session (for guest creation) and a bare admin
+    ...                session against ADMIN_BASE_URL (admin port 8044 / admin API), plus
+    ...                a dynamic admin JWT. Admin requests pass the token per-request.
     Create Public Session
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
@@ -39,7 +42,7 @@ Post Story Import Payload
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${payload}    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -72,7 +75,7 @@ ${TUTORIAL_DEV_FILE}    ${MIGRATION_DIR}/tutorial_story_dev.json
 Import Without Token Returns 401
     [Documentation]    POST /api/admin/stories/import without auth header returns 401.
     [Tags]    admin    step14
-    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data={}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 
@@ -80,14 +83,14 @@ Admin Stories List Without Token Returns 401
     [Documentation]    GET /api/admin/stories without auth returns 401.
     [Tags]    admin    step14
     ${params}=    Create Dictionary    lang=en
-    ${response}=    GET On Session    public_session    /api/admin/stories
+    ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    params=${params}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 
 Delete Story Without Token Returns 401
     [Documentation]    DELETE /api/admin/stories/{uuid} without auth returns 401.
     [Tags]    admin    step14
-    ${response}=    DELETE On Session    public_session    /api/admin/stories/${DEMO_1_UUID}
+    ${response}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}
     ...    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 
@@ -97,7 +100,7 @@ Import With Empty Body Returns 400
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    400
 
@@ -167,13 +170,13 @@ Import With Duplicate Explicit Story Id Returns 400
 
     ${payload1}=    Catenate    SEPARATOR=
     ...    {"uuid":"11111111-1111-4111-8111-111111111111","id":990001,"author":"dup-id-a"}
-    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ${r1}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${payload1}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r1.status_code}    201
 
     ${payload2}=    Catenate    SEPARATOR=
     ...    {"uuid":"22222222-2222-4222-8222-222222222222","id":990001,"author":"dup-id-b"}
-    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ${r2}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${payload2}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r2.status_code}    400
     ${body}=    Set Variable    ${r2.json()}
@@ -191,13 +194,13 @@ Import Same Event Id In Different Stories Returns 201
 
     ${payload1}=    Catenate    SEPARATOR=
     ...    {"uuid":"33333333-3333-4333-8333-333333333333","author":"scope-a","events":[{"id":1,"type":"NORMAL"}]}
-    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ${r1}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${payload1}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r1.status_code}    201
 
     ${payload2}=    Catenate    SEPARATOR=
     ...    {"uuid":"44444444-4444-4444-8444-444444444444","author":"scope-b","events":[{"id":1,"type":"NORMAL"}]}
-    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ${r2}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${payload2}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r2.status_code}    201
 
@@ -220,7 +223,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
     
-    ${r1}=    POST On Session    public_session    /api/admin/stories/import
+    ${r1}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${p1}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r1.status_code}    201
 
@@ -233,7 +236,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
-    ${r2}=    POST On Session    public_session    /api/admin/stories/import
+    ${r2}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${p2}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r2.status_code}    201
 
@@ -332,7 +335,7 @@ Import list_character_templates Round-Trips idTextName And idTextDescription
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
 
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"${uuid}","author":"robot-ct-fk",
@@ -343,7 +346,7 @@ Import list_character_templates Round-Trips idTextName And idTextDescription
     ${resp_imp}=    Post Story Import Payload    ${payload}
     Should Be Equal As Integers    ${resp_imp.status_code}    201
 
-    ${ct_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/character-templates
+    ${ct_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/character-templates
     ...    headers=${headers}
     Should Be Equal As Integers    ${ct_resp.status_code}    200
     ${cts}=    Set Variable    ${ct_resp.json()}
@@ -367,7 +370,7 @@ Import list_character_templates Round-Trips idClassPermitted And idClassProhibit
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
 
     ${payload}=    Catenate    SEPARATOR=
     ...    {"uuid":"${uuid}","author":"robot-ct-class",
@@ -378,7 +381,7 @@ Import list_character_templates Round-Trips idClassPermitted And idClassProhibit
     ${resp_imp}=    Post Story Import Payload    ${payload}
     Should Be Equal As Integers    ${resp_imp.status_code}    201
 
-    ${ct_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/character-templates
+    ${ct_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/character-templates
     ...    headers=${headers}
     Should Be Equal As Integers    ${ct_resp.status_code}    200
     ${cts}=    Set Variable    ${ct_resp.json()}
@@ -571,7 +574,7 @@ Import Story and Verify All Header Fields
     
     # Clean up before import
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${resp_del}=   DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    ${resp_del}=   DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
     
     # Import
     ${resp_imp}=   Post Story Import Payload    ${payload}
@@ -621,8 +624,8 @@ Import Two Stories With Colliding Entity IDs
 
     # Delete existing if any
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    DELETE On Session    public_session    /api/admin/stories/${u3}    headers=${headers}    expected_status=any
-    DELETE On Session    public_session    /api/admin/stories/${u4}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${u3}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${u4}    headers=${headers}    expected_status=any
 
     # Import both
     ${r3}=    Post Story Import Payload    ${p3}
@@ -642,7 +645,7 @@ Import Story And Verify Sub Entity Collections
     ${headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
 
     # Clean up before
-    DELETE On Session    public_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
 
     # Import tutorial_story_dev.json (has idCard on sub-entities)
     ${payload}=    Get File    ${TUTORIAL_DEV_FILE}
@@ -650,19 +653,19 @@ Import Story And Verify Sub Entity Collections
     Should Be Equal As Integers    ${resp_imp.status_code}    201
 
     # Verify difficulties collection
-    ${d_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/difficulties
+    ${d_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/difficulties
     ...    headers=${headers}
     ${diffs}=    Set Variable    ${d_resp.json()}
     Length Should Be    ${diffs}    3
 
     # Verify events collection
-    ${e_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/events
+    ${e_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/events
     ...    headers=${headers}
     ${events}=    Set Variable    ${e_resp.json()}
     Length Should Be    ${events}    10
 
     # Verify locations collection
-    ${l_resp}=    GET On Session    public_session    /api/admin/stories/${uuid}/locations
+    ${l_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/locations
     ...    headers=${headers}
     ${locs}=    Set Variable    ${l_resp.json()}
     Length Should Be    ${locs}    4

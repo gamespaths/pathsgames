@@ -2,6 +2,7 @@ package games.paths.launcher.config;
 
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
+import games.paths.launcher.filter.AdminPortFilter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -22,6 +23,24 @@ public class SecurityFilterConfig {
 
     @Value("${game.auth.admin-path-prefix:/api/admin/}")
     private String adminPathPrefix;
+
+    @Value("${game.admin.port:8044}")
+    private int adminPort;
+
+    /**
+     * Registers {@link AdminPortFilter} first (order 0) so the strict public/admin port
+     * split is enforced before authentication runs. Applies to every path so non-API
+     * resources on the admin port are also hidden.
+     */
+    @Bean
+    public FilterRegistrationBean<AdminPortFilter> adminPortFilterRegistration() {
+        FilterRegistrationBean<AdminPortFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new AdminPortFilter(adminPort, adminPathPrefix));
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(0);
+        registrationBean.setName("adminPortFilter");
+        return registrationBean;
+    }
 
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration(

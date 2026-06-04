@@ -6,7 +6,7 @@ spring:
 
 game:
   server:
-    version: 0.20.6
+    version: 0.20.7
     # manually change this version if needed >0.13.0
   database:
     # Configurable SQLite path — override with -Dgame.database.path=/your/path
@@ -23,6 +23,10 @@ game:
     cookie: # HttpOnly cookies for refreshToken and guestCookieToken (XSS blast-radius reduction)
       same-site: Lax
   admin:
+    # Dedicated admin connector port. All /api/admin/** endpoints are served here
+    # (and ONLY here); the public connector (server.port) returns 404 for admin paths.
+    # Lock this port to the owner IP at the network layer (firewall / security group).
+    port: ${ADMIN_PORT:8044}
     auth:
       guest:
         cleanup:

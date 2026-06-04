@@ -6,9 +6,11 @@ import axios from 'axios'
  */
 export function apiClient() {
   const token  = localStorage.getItem('pg_admin_token') || ''
-  const rawServer = localStorage.getItem('pg_admin_server') || 'http://localhost:8042'
-  
-  let server = 'http://localhost:8042'
+  // The admin console talks ONLY to /api/admin/** endpoints, which are served on the
+  // dedicated admin port 8044 (not the public 8042 player API).
+  const rawServer = localStorage.getItem('pg_admin_server') || 'http://localhost:8044'
+
+  let server = 'http://localhost:8044'
   try {
     const parsedUrl = new URL(rawServer)
     if (['http:', 'https:'].includes(parsedUrl.protocol)) {

@@ -120,3 +120,4 @@ code/frontend/react-game/jest-test-results.json
 # TMP files!
 code/backend/php/debug_sql.php
 code/backend/php/converted.sql
+code/scripts/test/aws_ec2_with_java_postgres_docker_compose/.state

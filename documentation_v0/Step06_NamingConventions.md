@@ -48,7 +48,7 @@ Endpoints are grouped by functional context immediately after `/api/`:
 | `/api/game/{id}/...` | In-match state access (read-heavy) |
 | `/api/gameplay/{id_game}/...` | In-match player actions (write-heavy, turn-locked) |
 | `/api/gamechat/{id_game}/...` | In-match chat and notifications |
-| `/api/admin/...` | Admin tools (restricted access) |
+| `/api/admin/...` | Admin tools (restricted access) — served on a **dedicated port / API** isolated from the public listener (see [Step 20a — Admin Endpoint Split](./Step20_AdminEndpoint.md)) |
 | `/api/echo/...` | Health check / internal diagnostics (unversioned) |
 
 ### 1.4 Endpoint Patterns by Context

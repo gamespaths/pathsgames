@@ -164,8 +164,10 @@ Create Match With Loadout Persists Character Class Traits And Flag
 
 Suite Setup Match Creation
     [Documentation]    Logs in as guest, picks the first public story with at least
-    ...                one difficulty and stores them as suite variables.
+    ...                one difficulty and stores them as suite variables. Also opens an
+    ...                admin session against ADMIN_BASE_URL for the /api/admin/matches tests.
     Create Public Session
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${response}=    POST On Session    public_session    /api/auth/guest
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}

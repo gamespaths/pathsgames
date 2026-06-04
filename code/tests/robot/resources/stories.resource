@@ -109,7 +109,7 @@ Import Story From File
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${body}    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -117,7 +117,7 @@ Delete Admin Story
     [Documentation]    Calls DELETE /api/admin/stories/{uuid}. Returns the response.
     [Arguments]    ${uuid}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    DELETE On Session    public_session    /api/admin/stories/${uuid}
+    ${response}=    DELETE On Session    admin_session    /api/admin/stories/${uuid}
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -126,7 +126,7 @@ Get Admin Stories
     [Arguments]    ${lang}=${DEFAULT_LANG}
     ${params}=    Create Dictionary    lang=${lang}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    GET On Session    public_session    /api/admin/stories
+    ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
 
@@ -135,7 +135,7 @@ Get Admin Story By UUID
     [Arguments]    ${uuid}    ${lang}=${DEFAULT_LANG}
     ${params}=    Create Dictionary    lang=${lang}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    GET On Session    public_session    /api/admin/stories/${uuid}
+    ${response}=    GET On Session    admin_session    /api/admin/stories/${uuid}
     ...    params=${params}    headers=${headers}    expected_status=any
     RETURN    ${response}
 

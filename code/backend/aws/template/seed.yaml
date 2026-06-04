@@ -6,8 +6,12 @@ Parameters:
     Type: String
   TableName:
     Type: String
-  ApiId:
+  AdminApiId:
     Type: String
+    Description: "Id of the dedicated admin HTTP API. Dev endpoints are served here (IP-gated)."
+  AdminAuthorizerId:
+    Type: String
+    Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -52,10 +56,12 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
 
+  # Dev endpoints (/api/dev/**) are served ONLY on the admin HTTP API, gated by the
+  # IP-allow-list authorizer — the AWS equivalent of the firewalled 8044 admin port.
   SeedIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt SeedFunction.Arn
       PayloadFormatVersion: "2.0"
@@ -63,17 +69,21 @@ Resources:
   SeedRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/dev/seed"
       Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   # POST /api/dev/cleanup — served by the same function (routes by path).
   CleanupRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/dev/cleanup"
       Target: !Sub "integrations/${SeedIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   SeedPermission:
     Type: AWS::Lambda::Permission
@@ -81,4 +91,4 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName: !Ref SeedFunction
       Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AdminApiId}/*"

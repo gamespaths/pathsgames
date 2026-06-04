@@ -9,6 +9,11 @@
 
 BASE_URL: "https://api-dev.paths.games"
 
+# Admin endpoint — on AWS the /api/admin/** routes live on a separate, IP-restricted
+# HTTP API (the stack's AdminApiUrl output). Replace with that endpoint; the caller's
+# IP must be in the stack's AdminIpWhitelist for the authorizer to allow the request.
+ADMIN_BASE_URL: "https://903x23yzgg.execute-api.us-east-2.amazonaws.com/test"
+
 # Admin Bearer token — replace with a real token from the admin panel
 ADMIN_TOKEN: "ADMIN_TOKEN"
 

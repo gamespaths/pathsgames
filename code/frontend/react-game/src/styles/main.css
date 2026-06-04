@@ -1496,7 +1496,7 @@ html, body {
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 4px;
-  font-size: clamp(0.6rem, 1.2vw, 0.78rem);
+  font-size: clamp(1rem, 1.2vw, 1rem);
   font-family: var(--font-heading);
   padding: 3px 6px;
   cursor: pointer;

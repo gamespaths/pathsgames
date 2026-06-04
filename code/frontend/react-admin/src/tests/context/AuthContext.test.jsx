@@ -84,7 +84,7 @@ describe('AuthContext', () => {
 
   it('defaults server to first preset', () => {
     render(<AuthProvider><Probe /></AuthProvider>)
-    expect(screen.getByTestId('server').textContent).toBe('http://localhost:8042')
+    expect(screen.getByTestId('server').textContent).toBe('http://localhost:8044')
   })
 
   it('handles invalid VITE_DEFAULT_SERVERS gracefully', () => {

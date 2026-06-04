@@ -86,7 +86,7 @@ http {
     keepalive_timeout 65;
 
     upstream backend {
-        server backend:8041;
+        server backend:8042;
     }
 
     server {
