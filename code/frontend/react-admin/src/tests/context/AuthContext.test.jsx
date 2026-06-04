@@ -11,8 +11,9 @@ function Probe() {
       <span data-testid="token">{ctx.token}</span>
       <span data-testid="server">{ctx.server}</span>
       <span data-testid="loggedIn">{String(ctx.isLoggedIn)}</span>
-      <button onClick={() => ctx.login('eyJtest')}>login</button>
-      <button onClick={() => ctx.login('eyJ test ')}>login-unsanitized</button>
+      <button onClick={() => ctx.login('eyJh.eyJp.sig123')}>login</button>
+      <button onClick={() => ctx.login('  eyJh.eyJp.sig123  ')}>login-trim</button>
+      <button onClick={() => ctx.login('eyJ not a jwt!')}>login-invalid</button>
       <button onClick={ctx.logout}>logout</button>
       <button onClick={() => ctx.changeServer('http://localhost:9000')}>changeServer</button>
       <button onClick={() => ctx.changeServer('javascript:alert(1)')}>poisonServer</button>
@@ -38,16 +39,24 @@ describe('AuthContext', () => {
   it('login() sets token and isLoggedIn=true', async () => {
     render(<AuthProvider><Probe /></AuthProvider>)
     await userEvent.click(screen.getByText('login'))
-    expect(screen.getByTestId('token').textContent).toBe('eyJtest')
+    expect(screen.getByTestId('token').textContent).toBe('eyJh.eyJp.sig123')
     expect(screen.getByTestId('loggedIn').textContent).toBe('true')
-    expect(localStorage.getItem('pg_admin_token')).toBe('eyJtest')
+    expect(localStorage.getItem('pg_admin_token')).toBe('eyJh.eyJp.sig123')
   })
 
-  it('login() sanitizes token', async () => {
+  it('login() trims surrounding whitespace before storing', async () => {
     render(<AuthProvider><Probe /></AuthProvider>)
-    await userEvent.click(screen.getByText('login-unsanitized'))
-    expect(screen.getByTestId('token').textContent).toBe('eyJtest') // spaces and non-w removed
-    expect(localStorage.getItem('pg_admin_token')).toBe('eyJtest')
+    await userEvent.click(screen.getByText('login-trim'))
+    expect(screen.getByTestId('token').textContent).toBe('eyJh.eyJp.sig123')
+    expect(localStorage.getItem('pg_admin_token')).toBe('eyJh.eyJp.sig123')
+  })
+
+  it('login() rejects a malformed token (storage poisoning guard)', async () => {
+    render(<AuthProvider><Probe /></AuthProvider>)
+    await userEvent.click(screen.getByText('login-invalid'))
+    expect(screen.getByTestId('token').textContent).toBe('')
+    expect(screen.getByTestId('loggedIn').textContent).toBe('false')
+    expect(localStorage.getItem('pg_admin_token')).toBeNull()
   })
 
   it('logout() clears token', async () => {

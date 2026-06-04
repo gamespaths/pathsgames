@@ -59,7 +59,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar-php
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           projectBaseDir: code/backend/php
         env:

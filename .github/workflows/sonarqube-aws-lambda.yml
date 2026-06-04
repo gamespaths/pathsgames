@@ -53,7 +53,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sonar-aws-lambda
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           projectBaseDir: code/backend/aws
         env:

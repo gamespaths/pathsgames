@@ -6,8 +6,12 @@ package games.paths.adapters.rest.dto;
  *
  * <p>Enhanced in Step 16 to include description, copyright,
  * and creator fields (consolidated from the former CardDetailResponse).</p>
+ *
+ * <p>v0.20.8 — copyright/creator fields moved to
+ * {@link AbstractCopyrightCreatorDto} to drop duplicated lines flagged by
+ * SonarQube.</p>
  */
-public class CardInfoResponse {
+public class CardInfoResponse extends AbstractCopyrightCreatorDto {
 
     private String uuid;
     private String cardType;
@@ -21,9 +25,6 @@ public class CardInfoResponse {
     private String styleImageLarge;
     private String title;
     private String description;
-    private String copyrightText;
-    private String linkCopyright;
-    private CreatorInfoResponse creator;
 
     public CardInfoResponse() {}
 
@@ -33,6 +34,7 @@ public class CardInfoResponse {
                             String title, String description,
                             String copyrightText, String linkCopyright,
                             CreatorInfoResponse creator) {
+        super(copyrightText, linkCopyright, creator);
         this.uuid = uuid;
         this.cardType = cardType;
         this.urlImage = urlImage;
@@ -45,9 +47,6 @@ public class CardInfoResponse {
         this.styleImageLarge = styleImageLarge;
         this.title = title;
         this.description = description;
-        this.copyrightText = copyrightText;
-        this.linkCopyright = linkCopyright;
-        this.creator = creator;
     }
 
     public String getUuid() { return uuid; }
@@ -85,13 +84,4 @@ public class CardInfoResponse {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-
-    public String getCopyrightText() { return copyrightText; }
-    public void setCopyrightText(String copyrightText) { this.copyrightText = copyrightText; }
-
-    public String getLinkCopyright() { return linkCopyright; }
-    public void setLinkCopyright(String linkCopyright) { this.linkCopyright = linkCopyright; }
-
-    public CreatorInfoResponse getCreator() { return creator; }
-    public void setCreator(CreatorInfoResponse creator) { this.creator = creator; }
 }
