@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: { accessToken: 'tok' } }),
 }))
 vi.mock('../api/matches', () => ({ endMatch: vi.fn() }))
@@ -17,9 +17,9 @@ vi.mock('../components/book/BookPageContent', () => ({
   default: ({ card }) => <div data-testid="book-page-content">{card?.title}</div>,
 }))
 vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div data-testid="game-card">{card?.title}</div> }))
-vi.mock('../features/game/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
-vi.mock('../features/game/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
-vi.mock('../features/game/SelectionView', () => ({
+vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
+vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
+vi.mock('../features/gameplay/ActionRow', () => ({
   default: ({ options, onEndGame }) => (
     <div data-testid="selection-view">
       {options?.map((o, i) => (
@@ -28,11 +28,11 @@ vi.mock('../features/game/SelectionView', () => ({
     </div>
   ),
 }))
-vi.mock('../features/game/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
-vi.mock('../features/game/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
-vi.mock('../features/startBook/StartBookModal', () => ({ CardPreviewOverlay: () => <div data-testid="preview-overlay" /> }))
+vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
+vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
+vi.mock('../features/start-book/StartBookModal', () => ({ CardPreviewOverlay: () => <div data-testid="preview-overlay" /> }))
 
-import GameBook from '../features/game/GameBook'
+import GameBook from '../features/gameplay/GameBook'
 import { endMatch } from '../api/matches'
 
 const GAME_DATA = {

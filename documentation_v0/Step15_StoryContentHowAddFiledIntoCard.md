@@ -378,3 +378,23 @@ Use this when adding a new field to the card object:
 - [ ] Patch the unit tests that use positional constructors
       (Java `CardInfoResponseTest` / `StoryDetailResponseTest`,
        PHP `StoryModelsTest` / `ContentControllerTest`)
+
+
+
+## License
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+*Free Software!*
+
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
+
+

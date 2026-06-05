@@ -7,7 +7,7 @@ vi.mock('../i18n/context', () => ({
 vi.mock('../components/book/BookPageContent', () => ({
   default: ({ story }) => <div data-testid="hero-card">{story?.title}</div>,
 }))
-vi.mock('../features/startBook/ConfigView', () => ({
+vi.mock('../features/start-book/ConfigView', () => ({
   default: ({ onProceed, onChangeClick }) => (
     <div data-testid="config-view">
       <button onClick={onProceed}>proceed</button>
@@ -15,15 +15,7 @@ vi.mock('../features/startBook/ConfigView', () => ({
     </div>
   ),
 }))
-vi.mock('../features/startBook/StartGameView', () => ({
-  default: ({ onStartGame, onBack }) => (
-    <div data-testid="start-game-view">
-      <button onClick={() => onStartGame('tok')}>start</button>
-      <button onClick={onBack}>back-confirm</button>
-    </div>
-  ),
-}))
-vi.mock('../features/startBook/SelectionView', () => ({
+vi.mock('../features/start-book/OptionPicker', () => ({
   default: ({ type, onBack }) => (
     <div data-testid={`selection-${type}`}>
       <button onClick={onBack}>back</button>
@@ -31,7 +23,7 @@ vi.mock('../features/startBook/SelectionView', () => ({
   ),
 }))
 
-import StartBookMobile from '../features/startBook/StartBookMobile'
+import StartBookMobile from '../features/start-book/StartBookMobile'
 
 const STORY = { title: 'Forest Quest', card: { urlImage: 'x.png' }, description: 'desc' }
 const config = { character: null, class: null, trait: null, difficulty: null }
@@ -41,11 +33,8 @@ function setup(props = {}) {
     onChangeClick: vi.fn(),
     onPreview: vi.fn(),
     onProceed: vi.fn(),
-    onBackConfirm: vi.fn(),
     onSelect: vi.fn(),
     onBackSelection: vi.fn(),
-    onStartGame: vi.fn(),
-    setTermsAccepted: vi.fn(),
   }
   render(
     <StartBookMobile
@@ -53,8 +42,6 @@ function setup(props = {}) {
       config={config}
       loadingDetail={false}
       selectionType={null}
-      confirming={false}
-      termsAccepted={true}
       getOptionsForType={() => []}
       {...handlers}
       {...props}
@@ -78,12 +65,7 @@ describe('StartBookMobile', () => {
     expect(screen.queryByTestId('config-view')).not.toBeInTheDocument()
   })
 
-  it('renders StartGameView when confirming', () => {
-    setup({ confirming: true })
-    expect(screen.getByTestId('start-game-view')).toBeInTheDocument()
-  })
-
-  it('renders SelectionView when a card is being changed', () => {
+  it('renders OptionPicker when a card is being changed', () => {
     setup({ selectionType: 'class' })
     expect(screen.getByTestId('selection-class')).toBeInTheDocument()
   })
@@ -98,10 +80,5 @@ describe('StartBookMobile', () => {
     const { onProceed } = setup()
     fireEvent.click(screen.getByText('book.startGame'))
     expect(onProceed).toHaveBeenCalled()
-  })
-
-  it('hides the Start Game CTA while confirming', () => {
-    setup({ confirming: true })
-    expect(screen.queryByText('book.startGame')).not.toBeInTheDocument()
   })
 })

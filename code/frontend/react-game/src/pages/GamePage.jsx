@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { getGameData } from '../api/game'
 import { getStory } from '../api/stories'
-import GameBook from '../features/game/GameBook'
+import GameBook from '../features/gameplay/GameBook'
 
 export default function GamePage() {
   const { storyId } = useParams()

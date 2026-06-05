@@ -72,7 +72,8 @@
    reused inside the mobile layout: let them flow naturally and lay the
    GameCards out 2 per row. ── */
 .book-mobile-layout .config-view-wrap { height: auto; }
-.book-mobile-layout .config-cards-area {
+.book-mobile-layout .config-cards-area,
+.book-mobile-layout .start-match-cards {
   flex: none;
   overflow: visible;
   padding: 6px 0 0;

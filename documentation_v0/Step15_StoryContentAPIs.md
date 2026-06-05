@@ -442,7 +442,7 @@ adapter-rest/src/test/java/games/paths/adapters/rest/
 Full API specification: `adapter-rest/src/main/resources/openapi/v0.15.0-story-content-api.yaml`
 
 
-## Version Control
+# Version Control
 - First version created with AI prompts:
     > Set Step/XX=15. write all java backend code into 'code/backend/java' project using JPA, never add new module, complete all unit-test using mokito to cover 100% of branches-case. write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). add (or update) openapi documentation into '/code/backend/java/adapter-rest/src/main/resources/openapi' folder with new/changed api. create a new simple web example to use new interfaces inside new code/website/concepts_v0/ folder. add new folder inside 'code/tests/robot/test' and write new robot-framework test. don't look and don't change 'backend/python', 'backend/php', 'backend/aws' and others concepts folder into 'website'
 

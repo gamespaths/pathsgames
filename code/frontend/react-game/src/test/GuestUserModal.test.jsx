@@ -25,7 +25,7 @@ vi.mock('../i18n/context', () => ({
 }))
 
 const mockUser = { username: 'guest_u1', accessToken: 'tok' }
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: mockUser, loading: false, guestModalOpen: true, closeGuestModal: vi.fn() }),
 }))
 
@@ -33,10 +33,10 @@ vi.mock('../components/book/Book', () => ({
   default: ({ left, right }) => <div>{left}{right}</div>,
 }))
 vi.mock('../components/book/BookPageContent', () => ({ default: () => <div data-testid="book-page" /> }))
-vi.mock('../components/modals/user/UserMatchesList', () => ({ default: () => <div data-testid="matches-list" /> }))
-vi.mock('../components/modals/user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
+vi.mock('@/features/guest-user/UserMatchesList', () => ({ default: () => <div data-testid="matches-list" /> }))
+vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
 
-import GuestUserModal from '../components/modals/user/GuestUserModal'
+import GuestUserModal from '@/features/guest-user/GuestUserModal'
 
 describe('GuestUserModal — antibot after matches list', () => {
   beforeEach(() => {

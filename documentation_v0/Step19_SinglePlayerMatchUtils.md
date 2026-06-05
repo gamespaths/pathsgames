@@ -344,7 +344,7 @@ instead of the per-user endpoint (bug fix — no API contract change).
 
 ---
 
-## Version Control
+# Version Control
 - Created with AI prompts:
   ```
   > using "0.19.12" version: read documentation files. admin console, into react-admin, needs to be able to:

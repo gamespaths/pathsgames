@@ -271,7 +271,7 @@ The admin frontend provides a full management interface for Step 17 features:
 
 
 
-## Version Control
+# Version Control
 - Created with AI prompts:
   > Set Step/XX=17.  
 

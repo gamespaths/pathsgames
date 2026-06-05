@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { useServer, MOCK_SERVER } from './ServerContext'
-import { createGuestSession, resumeGuestSession } from '../api/auth'
+import { useServer, MOCK_SERVER } from '@/context/ServerContext'
+import { createGuestSession, resumeGuestSession } from '@/api/auth'
 
 /**
  * GuestUserContext — owns the guest identity used by the navbar/modal.

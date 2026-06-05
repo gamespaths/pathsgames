@@ -5,7 +5,7 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
 
-import StoryCatalog from '../features/home/StoryCatalog'
+import StoryCatalog from '../features/catalog/StoryCatalog'
 
 const STORIES = [
   { uuid: 's1', title: 'Forest Path',  category: 'Adventure', card: { urlImage: null } },

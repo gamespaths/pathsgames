@@ -12,7 +12,7 @@ vi.mock('../components/layout/GameCard', () => ({
   ),
 }))
 
-import LocationCard from '../features/game/LocationCard'
+import LocationCard from '../features/gameplay/LocationCard'
 
 describe('LocationCard', () => {
   it('returns null when no location is provided', () => {

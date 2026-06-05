@@ -3,11 +3,11 @@ import { render, screen } from '@testing-library/react'
 import { LanguageProvider } from '../i18n/context'
 
 // Isolate GameBookMobile from its (already separately tested) children.
-vi.mock('../features/game/SelectionView', () => ({ default: () => <div data-testid="selection" /> }))
-vi.mock('../features/game/PlayerStats', () => ({ default: () => <div data-testid="stats" /> }))
+vi.mock('../features/gameplay/ActionRow', () => ({ default: () => <div data-testid="selection" /> }))
+vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="stats" /> }))
 vi.mock('../components/book/BookPageContent', () => ({ default: () => <div data-testid="page" /> }))
 
-import GameBookMobile from '../features/game/GameBookMobile'
+import GameBookMobile from '../features/gameplay/GameBookMobile'
 
 const wrap = (ui) => render(<LanguageProvider>{ui}</LanguageProvider>)
 

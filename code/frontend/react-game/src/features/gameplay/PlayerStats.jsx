@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n/context'
-import BonusBadgeList from '../../components/common/BonusBadgeList'
+import BonusBadgeList from '../../components/ui/BonusBadgeList'
 
 const PLAYER_STAT_KEYS = [
   'life',

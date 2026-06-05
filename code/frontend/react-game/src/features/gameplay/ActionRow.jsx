@@ -28,7 +28,7 @@ const PRESETS = {
 }
 
 /**
- * SelectionView — generic in-game horizontal selection row used by GameBook
+ * ActionRow — generic in-game horizontal selection row used by GameBook
  * for both the "Move to" neighbours list and the "Actions" list. Replaces
  * the former NeighborRow + ActionsRow components.
  *
@@ -41,7 +41,7 @@ const PRESETS = {
  * GameBook handles the empty-locations case by swapping the left page to
  * the story big card.
  */
-export default function SelectionView({ type, options, onEndGame , handleSelectionPreview }) {
+export default function ActionRow({ type, options, onEndGame , handleSelectionPreview }) {
   const { t } = useTranslation()
   const preset = PRESETS[type] ?? PRESETS.action //type=ACTION/????
 

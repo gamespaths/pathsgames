@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useTranslation } from '../../../i18n/context'
+import { useTranslation } from '@/i18n/context'
 
 export default function UserLanguageSelector() {
   const { lang, setLang, t } = useTranslation()

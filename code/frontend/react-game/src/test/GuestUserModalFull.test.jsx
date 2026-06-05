@@ -16,7 +16,7 @@ const guestCtx = {
   closeGuestModal: vi.fn(),
   matches: null,
 }
-vi.mock('../context/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
+vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
 vi.mock('../components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
 vi.mock('../components/book/BookPageContent', () => ({
   default: ({ card, onClose }) => (
@@ -26,13 +26,13 @@ vi.mock('../components/book/BookPageContent', () => ({
     </div>
   ),
 }))
-vi.mock('../components/modals/user/UserMatchesList', () => ({
+vi.mock('@/features/guest-user/UserMatchesList', () => ({
   default: ({ onPreviewCard }) => (
     <button onClick={() => onPreviewCard({ card: { title: 'Prev' }, story: { title: 'S' } })}>preview</button>
   ),
 }))
-vi.mock('../components/modals/user/UserLanguageSelector', () => ({ default: () => <div /> }))
-vi.mock('../components/common/TurnstileWidget', () => ({
+vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div /> }))
+vi.mock('../components/ui/TurnstileWidget', () => ({
   default: ({ onSuccess, onError, onExpire }) => (
     <div>
       <button onClick={onSuccess}>ts-success</button>
@@ -42,7 +42,7 @@ vi.mock('../components/common/TurnstileWidget', () => ({
   ),
 }))
 
-import GuestUserModal from '../components/modals/user/GuestUserModal'
+import GuestUserModal from '@/features/guest-user/GuestUserModal'
 
 describe('GuestUserModal (antibot + preview)', () => {
   beforeEach(() => { guestCtx.closeGuestModal.mockClear() })

@@ -413,7 +413,7 @@ Google **Consent Mode v2** defaults (all `denied`) are set inline at the top of 
 All Unsplash images are free-license. All SVG icons are from [game-icons.net](https://game-icons.net) (CC BY 3.0).
 
 
-## Version Control
+# Version Control
 - Created with AI prompts:
   > I wanna start new "Frotend react game project" into "code/frontend/react-game" folder. 
   It is going to be main website of my paths.games project.

@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../components/common/BonusBadgeList', () => ({
+vi.mock('../components/ui/BonusBadgeList', () => ({
   default: ({ items, showZeros }) => (
     <ul data-testid="bonus-list" data-show-zeros={String(showZeros)}>
       {items.map(i => <li key={i.key}>{i.key}:{i.value}</li>)}
@@ -12,7 +12,7 @@ vi.mock('../components/common/BonusBadgeList', () => ({
   ),
 }))
 
-import PlayerStats from '../features/game/PlayerStats'
+import PlayerStats from '../features/gameplay/PlayerStats'
 
 const FLAT_KEYS = ['life','energy','sadness','experience','food','magic','coins','weight']
 

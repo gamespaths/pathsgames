@@ -4,8 +4,7 @@ import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
 import BookPageContent from '../../components/book/BookPageContent'
 import ConfigView from './ConfigView'
-import StartGameView from './StartGameView'
-import SelectionView from './SelectionView'
+import OptionPicker from './OptionPicker'
 import StartBookMobile from './StartBookMobile'
 import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
@@ -36,8 +35,6 @@ export default function StartBookModal({ story, onClose }) {
   const [loadingDetail, setLoadingDetail] = useState(true)
   const [config, setConfig] = useState(() => buildInitialConfig(story))
   const [selectionType, setSelectionType] = useState(null)
-  const [termsAccepted, setTermsAccepted] = useState(true)
-  const [confirming, setConfirming] = useState(false) // ConfigView → StartGameView
   const [preview, setPreview] = useState(null) // { entity, type } or null
 
   useEffect(() => {
@@ -89,7 +86,7 @@ export default function StartBookModal({ story, onClose }) {
     setPreview(entity ? { entity, type } : null)
   }
 
-  // From SelectionView / ConfigView: clicking the magnifying glass on an option
+  // From OptionPicker / ConfigView: clicking the magnifying glass on an option
   // swaps the left-page preview without leaving the selection list.
   function handleSelectionPreview(entity, type) {
     setPreview(entity ? { entity, type } : null)
@@ -111,10 +108,11 @@ export default function StartBookModal({ story, onClose }) {
     setSelectionType(null)
   }
 
-  function handleStartGame(cfToken) {
-    if (!termsAccepted) return
+  // "Start Game" — the only step in the book now. Hand the chosen loadout to the
+  // start-match page, which owns the antibot check and the terms gate.
+  function handleStartGame() {
     onClose()
-    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config, cfToken: cfToken ?? null } })
+    navigate(`/start-match/${story.uuid}`, { state: { story: activeStory, config } })
   }
 
 
@@ -142,7 +140,7 @@ export default function StartBookModal({ story, onClose }) {
   let rightContent
   if (selectionType) {
     rightContent = (
-      <SelectionView
+      <OptionPicker
         type={selectionType}
         options={getOptionsForType(selectionType, activeStory)}
         selected={config[selectionType]}
@@ -153,18 +151,6 @@ export default function StartBookModal({ story, onClose }) {
         onPreview={handleSelectionPreview}
       />
     )
-  } else if (confirming) {
-    rightContent = (
-      <StartGameView
-        config={config}
-        story={activeStory}
-        termsAccepted={termsAccepted}
-        onTermsChange={setTermsAccepted}
-        onPreview={handleSelectionPreview}
-        onStartGame={handleStartGame}
-        onBack={() => setConfirming(false)}
-      />
-    )
   } else {
     rightContent = (
       <ConfigView
@@ -172,7 +158,7 @@ export default function StartBookModal({ story, onClose }) {
         story={activeStory}
         onChangeClick={handleChangeFromConfig}
         onPreview={handleSelectionPreview}
-        onProceed={() => setConfirming(true)}
+        onProceed={handleStartGame}
       />
     )
   }
@@ -189,17 +175,12 @@ export default function StartBookModal({ story, onClose }) {
             config={config}
             loadingDetail={loadingDetail}
             selectionType={selectionType}
-            confirming={confirming}
-            termsAccepted={termsAccepted}
-            setTermsAccepted={setTermsAccepted}
             onChangeClick={handleChangeFromConfig}
             onPreview={handlePreviewModal}
-            onProceed={() => setConfirming(true)}
-            onBackConfirm={() => setConfirming(false)}
+            onProceed={handleStartGame}
             onSelect={handleSelect}
             onBackSelection={handleBackOrClose}
             getOptionsForType={(type) => getOptionsForType(type, activeStory)}
-            onStartGame={handleStartGame}
           />
         }
       />

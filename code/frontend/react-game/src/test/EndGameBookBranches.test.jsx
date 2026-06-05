@@ -12,7 +12,7 @@ vi.mock('../components/book/BookPageContent', () => ({
   default: ({ card }) => <div data-testid="page">{card?.title}</div>,
 }))
 
-import EndGameBook from '../features/game/EndGameBook'
+import EndGameBook from '../features/gameplay/EndGameBook'
 
 describe('EndGameBook (full cards + mobile stack)', () => {
   beforeEach(() => navigate.mockClear())

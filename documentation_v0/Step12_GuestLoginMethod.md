@@ -262,7 +262,7 @@ Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanil
 
 
 
-## Version Control
+# Version Control
 - First version created with AI prompts:
     > read all documentation md files inside documentation_v0 folder, i wanna to run step 12: write backennd code into code/backend project and create a simple web example inside new code/website/concepts_v0/v0.12.0/ folder  
 

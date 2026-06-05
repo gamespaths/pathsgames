@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -14,7 +14,7 @@ vi.mock('../components/book/BookPageContent', () => ({
     <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title}</div>
   ),
 }))
-vi.mock('../features/startBook/ConfigView', () => ({
+vi.mock('../features/start-book/ConfigView', () => ({
   default: ({ onProceed, onChangeClick }) => (
     <div data-testid="config-view">
       <button onClick={onProceed}>proceed</button>
@@ -22,15 +22,7 @@ vi.mock('../features/startBook/ConfigView', () => ({
     </div>
   ),
 }))
-vi.mock('../features/startBook/StartGameView', () => ({
-  default: ({ onStartGame, onBack }) => (
-    <div data-testid="start-game-view">
-      <button onClick={() => onStartGame('tok')}>start</button>
-      <button onClick={onBack}>back-config</button>
-    </div>
-  ),
-}))
-vi.mock('../features/startBook/SelectionView', () => ({
+vi.mock('../features/start-book/OptionPicker', () => ({
   default: ({ type, options, onSelect, onBack }) => (
     <div data-testid={`selection-${type}`}>
       {options?.map((o, i) => (
@@ -40,9 +32,9 @@ vi.mock('../features/startBook/SelectionView', () => ({
     </div>
   ),
 }))
-vi.mock('../features/startBook/StartBookMobile', () => ({ default: () => <div data-testid="mobile" /> }))
+vi.mock('../features/start-book/StartBookMobile', () => ({ default: () => <div data-testid="mobile" /> }))
 
-import StartBookModal, { CardPreviewOverlay } from '../features/startBook/StartBookModal'
+import StartBookModal, { CardPreviewOverlay } from '../features/start-book/StartBookModal'
 import { getStoryDetail } from '../api/stories'
 
 const STORY = {
@@ -108,28 +100,20 @@ describe('StartBookModal', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('shows StartGameView after "Start Game" is pressed in ConfigView', async () => {
-    wrap()
-    await screen.findByTestId('config-view')
-    fireEvent.click(screen.getByText('proceed'))
-    expect(screen.getByTestId('start-game-view')).toBeInTheDocument()
-  })
-
-  it('returns to ConfigView from StartGameView back', async () => {
-    wrap()
-    await screen.findByTestId('config-view')
-    fireEvent.click(screen.getByText('proceed'))
-    fireEvent.click(screen.getByText('back-config'))
-    expect(screen.getByTestId('config-view')).toBeInTheDocument()
-  })
-
-  it('calls onClose when start game is triggered', async () => {
+  it('navigates to start-match and closes when "Start Game" is pressed', async () => {
     const onClose = vi.fn()
-    wrap({ onClose })
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<StartBookModal story={STORY} onClose={onClose} />} />
+          <Route path="/start-match/:storyId" element={<div>start-match-page</div>} />
+        </Routes>
+      </MemoryRouter>
+    )
     await screen.findByTestId('config-view')
     fireEvent.click(screen.getByText('proceed'))
-    fireEvent.click(screen.getByText('start'))
     expect(onClose).toHaveBeenCalled()
+    expect(await screen.findByText('start-match-page')).toBeInTheDocument()
   })
 })
 

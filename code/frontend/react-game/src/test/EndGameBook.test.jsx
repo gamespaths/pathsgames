@@ -15,7 +15,7 @@ vi.mock('../components/book/BookPageContent', () => ({
 }))
 vi.mock('../components/layout/GameCard', () => ({ default: () => <div data-testid="game-card" /> }))
 
-import EndGameBook from '../features/game/EndGameBook'
+import EndGameBook from '../features/gameplay/EndGameBook'
 
 const STORY = {
   title: 'Epic Quest',

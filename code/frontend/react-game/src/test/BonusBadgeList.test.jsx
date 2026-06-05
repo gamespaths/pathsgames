@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import BonusBadgeList from '../components/common/BonusBadgeList'
+import BonusBadgeList from '../components/ui/BonusBadgeList'
 
 describe('BonusBadgeList', () => {
   it('returns null for missing or empty items', () => {

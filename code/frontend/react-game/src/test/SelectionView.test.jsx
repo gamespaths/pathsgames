@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
-import SelectionView from '../features/game/SelectionView'
+import SelectionView from '../features/gameplay/ActionRow'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({

@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../features/startBook/ConfigCard', () => ({
+vi.mock('../features/start-book/ConfigCard', () => ({
   default: ({ type, onChangeClick, onPreview, onPagePreview }) => (
     <button
       data-testid={`cc-${type}`}
@@ -12,9 +12,9 @@ vi.mock('../features/startBook/ConfigCard', () => ({
     />
   ),
 }))
-vi.mock('../components/common/BonusBadgeList', () => ({ default: () => <div /> }))
+vi.mock('../components/ui/BonusBadgeList', () => ({ default: () => <div /> }))
 
-import ConfigView from '../features/startBook/ConfigView'
+import ConfigView from '../features/start-book/ConfigView'
 
 const config = { character: null, class: null, trait: null, difficulty: null }
 

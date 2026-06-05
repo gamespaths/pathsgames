@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import { GuestUserProvider, useGuestUser } from '../context/GuestUserContext'
+import { GuestUserProvider, useGuestUser } from '@/features/guest-user/GuestUserContext'
 import * as authApi from '../api/auth'
 
 vi.mock('../context/ServerContext', () => {

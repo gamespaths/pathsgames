@@ -2,7 +2,7 @@ import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
 import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
 
-export default function SelectionView({ type, options, selected, story, config, onSelect, onBack, onPreview }) {
+export default function OptionPicker({ type, options, selected, story, config, onSelect, onBack, onPreview }) {
   const { t } = useTranslation()
 
   const classesById = buildClassesById(story?.classes)

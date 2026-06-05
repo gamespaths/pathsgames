@@ -1,7 +1,7 @@
 import { useTranslation } from '../../i18n/context'
 import BookPageContent from '../../components/book/BookPageContent'
 import PlayerStats from './PlayerStats'
-import SelectionView from './SelectionView'
+import ActionRow from './ActionRow'
 
 export default function GameBookMobile({ gameData, story, onEndGame, endError }) {
   const { t } = useTranslation()
@@ -53,13 +53,13 @@ export default function GameBookMobile({ gameData, story, onEndGame, endError })
       {/* Neighbors */}
       {Array.isArray(locations) && locations.length > 0 && (
         <div style={{ background: 'var(--card-body-background)', border: '2px solid var(--color-brown-mid)', borderRadius: 8, padding: 12 }}>
-          <SelectionView type="location" options={locations} />
+          <ActionRow type="location" options={locations} />
         </div>
       )}
 
       {/* Actions */}
       <div style={{ background: 'var(--card-body-background)', border: '2px solid var(--color-brown-mid)', borderRadius: 8, padding: 12 }}>
-        <SelectionView type="action" options={actions ?? []} onEndGame={onEndGame} />
+        <ActionRow type="action" options={actions ?? []} onEndGame={onEndGame} />
         {endError && (
           <p className="end-game-error">
             <i className="fas fa-exclamation-triangle me-2" />{endError}

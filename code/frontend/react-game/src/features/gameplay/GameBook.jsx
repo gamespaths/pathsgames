@@ -5,14 +5,14 @@ import BookPageRight from '../../components/book/BookPageRight'
 import GameCard from '../../components/layout/GameCard'
 import LocationCard from './LocationCard'
 import PlayerStats from './PlayerStats'
-import SelectionView from './SelectionView'
+import ActionRow from './ActionRow'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
 import { endMatch } from '../../api/matches'
-import { useGuestUser } from '../../context/GuestUserContext'
+import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import BookPageContent from '../../components/book/BookPageContent'
 import Book from '../../components/book/Book'
-import { CardPreviewOverlay } from '../startBook/StartBookModal'
+import { CardPreviewOverlay } from '@/features/start-book/StartBookModal'
 
 export default function GameBook({ gameData, matchUuid, story , onClose }) {
   const { t } = useTranslation()
@@ -84,7 +84,7 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
       <i className="fas fa-compass me-2" />{t('game.explore')}
     </h3>*/}
     <PlayerStats stats={playerStats} />
-    <SelectionView type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
+    <ActionRow type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
       handleSelectionPreview={handleSelectionPreview} />
     {endError && (
       <p className="end-game-error">

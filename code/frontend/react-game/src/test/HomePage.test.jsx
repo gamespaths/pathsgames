@@ -25,13 +25,13 @@ vi.mock('../i18n/context', () => ({
 const mockOpenGuestModal = vi.fn()
 const mockUser = { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok' }
 
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: mockUser, openGuestModal: mockOpenGuestModal }),
 }))
 
 vi.mock('../api/stories', () => ({ getStories: vi.fn() }))
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
-vi.mock('../features/home/StoryCatalog', () => ({
+vi.mock('../features/catalog/StoryCatalog', () => ({
   default: ({ stories, onStoryClick }) => (
     <div>
       {stories.map(s => (
@@ -40,7 +40,7 @@ vi.mock('../features/home/StoryCatalog', () => ({
     </div>
   ),
 }))
-vi.mock('../features/startBook/StartBookModal', () => ({
+vi.mock('../features/start-book/StartBookModal', () => ({
   default: ({ story, onClose }) => <div data-testid="start-book-modal">{story.title}</div>,
 }))
 

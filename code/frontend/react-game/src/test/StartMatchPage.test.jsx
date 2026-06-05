@@ -2,18 +2,37 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
-vi.mock('../i18n/context', () => ({
+// Controllable Turnstile mock: fires onSuccess (human) by default, onError when
+// `ts.behavior` is 'bot'. The antibot gate now lives in start-match.
+const ts = vi.hoisted(() => ({ behavior: 'success' }))
+vi.mock('@marsidev/react-turnstile', async () => {
+  const { useEffect } = await import('react')
+  return {
+    Turnstile: ({ onSuccess, onError }) => {
+      useEffect(() => {
+        if (ts.behavior === 'bot') onError?.()
+        else onSuccess?.('test-token')
+      }, [])
+      return <div data-testid="turnstile-mock" />
+    },
+  }
+})
+vi.mock('@/utils/turnstile', async (importOriginal) => {
+  const actual = await importOriginal()
+  return { ...actual, CF_KEY: 'test-site-key' }
+})
+vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({
     user: { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok-1' },
   }),
 }))
-vi.mock('../api/matches', () => ({ createMatch: vi.fn() }))
+vi.mock('@/api/matches', () => ({ createMatch: vi.fn() }))
 
 import StartMatchPage from '../pages/StartMatchPage'
-import { createMatch } from '../api/matches'
+import { createMatch } from '@/api/matches'
 
 const STORY = {
   uuid: 's1',
@@ -39,9 +58,15 @@ function renderPage(state) {
   )
 }
 
+/** Click the (duplicated mobile+desktop) Start button in the confirm step. */
+function clickStart() {
+  fireEvent.click(screen.getAllByText('book.startGame')[0])
+}
+
 describe('StartMatchPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ts.behavior = 'success'
     vi.stubEnv('VITE_MATCH_START_DELAY', '3') // 3s waits keep the test fast
     vi.useFakeTimers()
   })
@@ -55,16 +80,27 @@ describe('StartMatchPage', () => {
     expect(screen.getByText('home-page')).toBeInTheDocument()
   })
 
-  it('renders the story card and the starting status', () => {
+  it('passes the antibot check then shows the confirm step (terms + start)', () => {
     renderPage({ story: STORY, config: CONFIG })
     expect(screen.getAllByText('The Lost Crown').length).toBeGreaterThan(0)
-    // status block is rendered both on the right page and the mobile layout
-    expect(screen.getAllByText(/startMatch\.starting/).length).toBeGreaterThan(0)
+    // Turnstile auto-passes → confirm Start button is shown, no match created yet
+    expect(screen.getAllByText('book.startGame').length).toBeGreaterThan(0)
+    expect(createMatch).not.toHaveBeenCalled()
   })
 
-  it('creates the match after the delay with the full loadout', async () => {
+  it('keeps the antibot gate and offers a retry on widget error (no confirm)', () => {
+    ts.behavior = 'bot'
+    renderPage({ story: STORY, config: CONFIG })
+    expect(screen.getAllByText('antibot.error').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('startMatch.retry').length).toBeGreaterThan(0)
+    expect(screen.queryByText('book.startGame')).not.toBeInTheDocument()
+    expect(createMatch).not.toHaveBeenCalled()
+  })
+
+  it('creates the match after Start + delay with the full loadout and antibot token', async () => {
     createMatch.mockResolvedValue({ uuid: 'm1', status: 'CREATED' })
     renderPage({ story: STORY, config: CONFIG })
+    clickStart()
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
 
@@ -77,6 +113,7 @@ describe('StartMatchPage', () => {
       characterTemplateUuid: 'ch1',
       traitUuids: ['tr1'],
       singlePlayer: 1,
+      turnstileToken: 'test-token',
     })
     expect(token).toBe('tok-1')
     expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)
@@ -85,6 +122,7 @@ describe('StartMatchPage', () => {
   it('jumps to the game page after the created delay', async () => {
     createMatch.mockResolvedValue({ uuid: 'm1', status: 'CREATED' })
     renderPage({ story: STORY, config: CONFIG })
+    clickStart()
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) }) // starting → create
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) }) // created → game
@@ -95,6 +133,7 @@ describe('StartMatchPage', () => {
   it('shows an error and retries when match creation fails', async () => {
     createMatch.mockRejectedValueOnce(new Error('STORY_HAS_NO_LOCATIONS'))
     renderPage({ story: STORY, config: CONFIG })
+    clickStart()
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
     expect(screen.getAllByText(/startMatch\.error/).length).toBeGreaterThan(0)

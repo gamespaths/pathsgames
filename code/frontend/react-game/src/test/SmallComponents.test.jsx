@@ -7,8 +7,8 @@ vi.mock('../consent/cookieConsent', () => ({
   setConsentLanguage: vi.fn(),
 }))
 
-import AntibotMessage from '../components/common/AntibotMessage'
-import UserLanguageSelector from '../components/modals/user/UserLanguageSelector'
+import AntibotMessage from '../components/ui/AntibotMessage'
+import UserLanguageSelector from '@/features/guest-user/UserLanguageSelector'
 import CookieConsentManager from '../components/CookieConsentManager'
 import { initCookieConsent, setConsentLanguage } from '../consent/cookieConsent'
 

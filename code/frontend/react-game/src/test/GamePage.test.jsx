@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 vi.mock('../api/game', () => ({ getGameData: vi.fn() }))
 vi.mock('../api/stories', () => ({ getStory: vi.fn(), getStories: vi.fn() }))
-vi.mock('../features/game/GameBook', () => ({
+vi.mock('../features/gameplay/GameBook', () => ({
   default: ({ gameData, matchUuid, story, onClose }) => (
     <div data-testid="game-book">
       <span data-testid="match-uuid">{matchUuid ?? 'none'}</span>

@@ -14,7 +14,7 @@ vi.mock('../components/layout/GameCard', () => ({
   ),
 }))
 
-import StartBookSelectionView from '../features/startBook/SelectionView'
+import StartBookSelectionView from '../features/start-book/OptionPicker'
 
 const OPTIONS = [
   { uuid: 'o1', name: 'Warrior', card: { title: 'Warrior' } },

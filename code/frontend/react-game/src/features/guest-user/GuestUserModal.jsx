@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useTranslation } from '../../../i18n/context'
-import { useGuestUser } from '../../../context/GuestUserContext'
-import Book from '../../book/Book'
-import BookPageContent from '../../book/BookPageContent'
+import { useTranslation } from '@/i18n/context'
+import { useGuestUser } from './GuestUserContext'
+import Book from '@/components/book/Book'
+import BookPageContent from '@/components/book/BookPageContent'
 import UserMatchesList from './UserMatchesList'
 import UserLanguageSelector from './UserLanguageSelector'
-import TurnstileWidget from '../../common/TurnstileWidget'
-import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '../../../utils/turnstile'
+import TurnstileWidget from '@/components/ui/TurnstileWidget'
+import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
 
 /**
  * GuestUserModal — book-style overlay showing the guest identity on the left

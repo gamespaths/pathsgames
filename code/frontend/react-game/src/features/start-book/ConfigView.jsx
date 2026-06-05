@@ -1,8 +1,8 @@
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
-import BonusBadgeList from '../../components/common/BonusBadgeList'
+import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { aggregateBonusTotals } from '../../utils/bonusStats'
-import { buildGameTypeCard, buildLoginCard } from './loadoutCards'
+import { buildGameTypeCard, buildLoginCard } from '@/utils/loadoutCards'
 
 export default function ConfigView({ config, story, onChangeClick, onPreview, onProceed }) {
   const { t } = useTranslation()

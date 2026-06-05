@@ -18,7 +18,7 @@ vi.mock('../components/layout/GameCard', () => ({
   ),
 }))
 
-import SelectionView from '../features/startBook/SelectionView'
+import SelectionView from '../features/start-book/OptionPicker'
 import { getOptionLockInfo } from '../utils/bonusStats'
 
 const opts = (n) => Array.from({ length: n }, (_, i) => ({ uuid: `o${i}`, name: `N${i}`, card: {} }))

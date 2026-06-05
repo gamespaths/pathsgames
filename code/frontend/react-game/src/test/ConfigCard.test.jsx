@@ -20,7 +20,7 @@ vi.mock('../components/layout/GameCard', () => ({
   ),
 }))
 
-import ConfigCard from '../features/startBook/ConfigCard'
+import ConfigCard from '../features/start-book/ConfigCard'
 
 const value = { name: 'Knight', icon: 'fa-chess-knight', card: {} }
 

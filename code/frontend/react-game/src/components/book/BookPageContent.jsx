@@ -1,4 +1,4 @@
-import BonusBadgeList from '../common/BonusBadgeList'
+import BonusBadgeList from '../ui/BonusBadgeList'
 import { useTranslation } from '../../i18n/context'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import { sanitizeHtml } from '../../utils/sanitizeHtml'

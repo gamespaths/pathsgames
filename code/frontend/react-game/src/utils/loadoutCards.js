@@ -1,4 +1,4 @@
-import images from '../../mock/images.json'
+import images from '@/mock/images.json'
 
 /**
  * Builders for the two non-selectable loadout cards shown in the start book —
