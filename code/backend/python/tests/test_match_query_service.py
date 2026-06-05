@@ -72,6 +72,21 @@ def test_list_user_matches_returns_summaries():
     assert summaries[0].trait_uuids == ["t1", "t2"]
 
 
+def test_list_user_matches_resolves_story_and_difficulty():
+    # Regression: the list used to return story_uuid=None because the story
+    # entity was not resolved for each match (only get_match_info did).
+    service, _ = _build(
+        user=_user(),
+        matches=[_match()],
+        story={"id": 2, "uuid": "story-uuid", "id_location_start": 10},
+        difficulty={"id": 3, "uuid": "diff-uuid"},
+    )
+    summaries = service.list_user_matches("u")
+    assert len(summaries) == 1
+    assert summaries[0].story_uuid == "story-uuid"
+    assert summaries[0].difficulty_uuid == "diff-uuid"
+
+
 def test_list_all_matches_empty():
     service, mocks = _build()
     mocks["persistence"].find_all_matches.return_value = []

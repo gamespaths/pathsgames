@@ -26,6 +26,19 @@ def test_echo_body_has_properties():
     assert 'properties' in body
     assert body['properties']['name'] == 'Paths Games'
 
+def test_echo_env_defaults_to_dev(monkeypatch):
+    monkeypatch.delenv('ENV', raising=False)
+    result = lambda_handler({}, {})
+    body = json.loads(result['body'])
+    assert body['properties']['env'] == 'dev'
+
+def test_echo_env_reflects_environment_variable(monkeypatch):
+    # ENV is injected by SAM from the `Environment` deploy parameter (e.g. test/prod).
+    monkeypatch.setenv('ENV', 'test')
+    result = lambda_handler({}, {})
+    body = json.loads(result['body'])
+    assert body['properties']['env'] == 'test'
+
 def test_echo_content_type_header():
     result = lambda_handler({}, {})
     assert result['headers']['Content-Type'] == 'application/json'

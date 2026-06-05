@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from datetime import datetime, timezone
 
@@ -14,8 +15,11 @@ def lambda_handler(event, context):
         "status": "UP",
         "timestamp": timestamp,
         "properties": {
+            # Deployment environment, from the SAM `Environment` parameter
+            # (injected as the ENV variable on the function).
+            "env":     os.environ.get("ENV", "dev"),
             "name":    "Paths Games",
-            "version": "0.20.7"
+            "version": "0.20.8"
         }
     }
 

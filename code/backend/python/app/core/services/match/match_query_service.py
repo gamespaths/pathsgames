@@ -33,11 +33,31 @@ class MatchQueryService(MatchQueryPort):
         if user is None:
             return []
         rows = self.match_persistence_port.find_matches_by_user_id(user["id"])
-        return [self._to_summary(r, user["uuid"], None, None) for r in rows]
+        return [self._summary_with_story(r, user["uuid"]) for r in rows]
 
     def list_all_matches(self) -> List[MatchSummary]:
         rows = self.match_persistence_port.find_all_matches()
-        return [self._to_summary(r, None, None, None) for r in rows]
+        return [self._summary_with_story(r, None) for r in rows]
+
+    def _summary_with_story(self, row, user_uuid) -> MatchSummary:
+        # Resolve the match's story so the list summary carries storyUuid/difficultyUuid,
+        # consistent with GET /match/{uuid}/info (which used to be the only place that did).
+        story = (
+            self.story_read_port.find_story_by_id(row["id_story"])
+            if row.get("id_story") is not None
+            else None
+        )
+        difficulty = (
+            self.story_read_port.find_difficulty_by_id(row["id_story"], row.get("id_difficulty"))
+            if story is not None and row.get("id_difficulty") is not None
+            else None
+        )
+        return self._to_summary(
+            row,
+            user_uuid,
+            story["uuid"] if story else None,
+            difficulty["uuid"] if difficulty else None,
+        )
 
     def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
         if not match_uuid or not user_uuid:

@@ -84,6 +84,28 @@ List Matches Returns Created Match
     END
     Should Be True    ${found}
 
+List Matches Resolves Story And Difficulty Uuid
+    [Documentation]    GET /api/matches resolves each match's story, so the summary
+    ...                carries the storyUuid (and difficultyUuid) it was created from.
+    ...                Regression: the list endpoint used to return storyUuid=null because
+    ...                MatchQueryService.listUserMatches did not resolve the story entity.
+    [Tags]    matches    step19
+    ${response}=    List Matches    ${TOKEN}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Not Be Empty    ${body}
+    ${match}=    Set Variable    ${NONE}
+    FOR    ${m}    IN    @{body}
+        IF    "${m}[uuid]" == "${MATCH_UUID}"
+            ${match}=    Set Variable    ${m}
+            BREAK
+        END
+    END
+    Should Not Be Equal As Strings    ${match}    ${NONE}
+    ...    msg=Created match ${MATCH_UUID} not found in /api/matches
+    Should Be Equal As Strings    ${match}[storyUuid]    ${STORY_UUID}
+    Should Be Equal As Strings    ${match}[difficultyUuid]    ${DIFFICULTY_UUID}
+
 List All Matches As Admin Returns Created Match
     [Documentation]    GET /api/admin/matches with an ADMIN token lists every
     ...                match on the platform, including the one created above.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # stop.sh - Destroy all resources created by start.sh:
-#            EC2 instance, security group, and Route53 DNS record.
+#            EC2 instance, security group, and Route53 DNS record (if any).
 #
 # Reads state from .state file written by start.sh.
 # Tolerant: if any resource is already gone, logs a warning and continues.
@@ -13,11 +13,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STATE_FILE="$SCRIPT_DIR/.state"
 
-# Load .state
+# Load .state — if missing, there is nothing to destroy (e.g. stop.sh run twice).
+# Exit 0 so the script stays safely re-runnable.
 if [ ! -f "$STATE_FILE" ]; then
-    echo "[stop.sh] ERROR: .state file not found at $STATE_FILE"
-    echo "          Run start.sh first, or destroy resources manually."
-    exit 1
+    echo "[stop.sh] .state file not found at $STATE_FILE — nothing to destroy (already torn down?)."
+    exit 0
 fi
 
 set -a; . "$STATE_FILE"; set +a
@@ -47,8 +47,67 @@ if [ "${1:-}" != "--force" ]; then
     fi
 fi
 
-# Delete Route53 DNS record
-if [ -n "${ROUTE53_RECORD_NAME:-}" ] && [ -n "${ROUTE53_HOSTED_ZONE_ID:-}" ] && [ -n "${PUBLIC_IP:-}" ]; then
+# Tear down CloudFront distribution (slow: delete alias → disable → wait → delete)
+if [ -n "${CLOUDFRONT_DIST_ID:-}" ]; then
+    echo "[stop.sh] CloudFront distribution ${CLOUDFRONT_DIST_ID} found in state."
+
+    # 1. Remove the alias A record (ROUTE53_RECORD_NAME) pointing at the distribution
+    if [ -n "${ROUTE53_RECORD_NAME:-}" ] && [ -n "${CLOUDFRONT_DOMAIN:-}" ] && [ -n "${ROUTE53_HOSTED_ZONE_ID:-}" ]; then
+        echo "[stop.sh] Deleting CloudFront alias ${ROUTE53_RECORD_NAME}..."
+        CF_DEL_BATCH="$(printf '{"Changes":[{"Action":"DELETE","ResourceRecordSet":{"Name":"%s","Type":"A","AliasTarget":{"HostedZoneId":"Z2FDTNDATAQYW2","DNSName":"%s","EvaluateTargetHealth":false}}}]}' \
+            "$ROUTE53_RECORD_NAME" "$CLOUDFRONT_DOMAIN")"
+        aws route53 change-resource-record-sets \
+            --hosted-zone-id "$ROUTE53_HOSTED_ZONE_ID" \
+            --change-batch "$CF_DEL_BATCH" --no-cli-pager 2>/dev/null \
+            && echo "[stop.sh] CloudFront alias deleted OK" \
+            || echo "[stop.sh] WARNING: CloudFront alias not found / already gone -- continuing"
+    fi
+
+    # 2. A distribution must be disabled + fully deployed before it can be deleted
+    CFG_ETAG="$(aws cloudfront get-distribution-config --id "$CLOUDFRONT_DIST_ID" \
+        --query 'ETag' --output text 2>/dev/null || echo '')"
+    if [ -z "$CFG_ETAG" ]; then
+        echo "[stop.sh] CloudFront $CLOUDFRONT_DIST_ID not found -- already deleted, continuing"
+    else
+        TMP_CFG="$(mktemp)"
+        aws cloudfront get-distribution-config --id "$CLOUDFRONT_DIST_ID" \
+            --query 'DistributionConfig' --output json > "$TMP_CFG"
+        ENABLED_NOW="$(python3 -c "import json;print(json.load(open('$TMP_CFG'))['Enabled'])" 2>/dev/null || echo 'True')"
+        if [ "$ENABLED_NOW" = "True" ]; then
+            echo "[stop.sh] Disabling CloudFront distribution..."
+            python3 -c "import json;d=json.load(open('$TMP_CFG'));d['Enabled']=False;json.dump(d,open('$TMP_CFG','w'))"
+            aws cloudfront update-distribution --id "$CLOUDFRONT_DIST_ID" \
+                --distribution-config "file://$TMP_CFG" --if-match "$CFG_ETAG" --no-cli-pager >/dev/null 2>&1 \
+                && echo "[stop.sh] Disable requested OK" \
+                || echo "[stop.sh] WARNING: disable request failed -- continuing"
+            echo "[stop.sh] Waiting for the disable to deploy (can take ~15 min)..."
+            aws cloudfront wait distribution-deployed --id "$CLOUDFRONT_DIST_ID" 2>/dev/null \
+                && echo "[stop.sh] Distribution disabled + deployed OK" \
+                || echo "[stop.sh] WARNING: wait timed out -- delete may fail, finish manually"
+        fi
+        rm -f "$TMP_CFG"
+
+        # 3. Delete with a fresh ETag
+        DEL_ETAG="$(aws cloudfront get-distribution-config --id "$CLOUDFRONT_DIST_ID" \
+            --query 'ETag' --output text 2>/dev/null || echo '')"
+        if [ -n "$DEL_ETAG" ]; then
+            if aws cloudfront delete-distribution --id "$CLOUDFRONT_DIST_ID" --if-match "$DEL_ETAG" --no-cli-pager 2>/dev/null; then
+                echo "[stop.sh] CloudFront distribution deleted OK"
+            else
+                echo "[stop.sh] WARNING: could not delete distribution yet (still deploying?). Finish manually:"
+                echo "          aws cloudfront delete-distribution --id $CLOUDFRONT_DIST_ID --if-match <etag>"
+            fi
+        fi
+    fi
+else
+    echo "[stop.sh] No CloudFront distribution in state -- skipping"
+fi
+
+# Delete the direct A record (only when CloudFront was NOT used — with CloudFront
+# the ROUTE53_RECORD_NAME is an alias, already deleted in the teardown above).
+if [ -n "${CLOUDFRONT_DIST_ID:-}" ]; then
+    echo "[stop.sh] Route53 record was a CloudFront alias -- deleted in CloudFront teardown above"
+elif [ -n "${ROUTE53_HOSTED_ZONE_ID:-}" ] && [ -n "${ROUTE53_RECORD_NAME:-}" ] && [ -n "${PUBLIC_IP:-}" ]; then
     echo "[stop.sh] Deleting Route53 record $ROUTE53_RECORD_NAME (A -> $PUBLIC_IP)..."
     CHANGE_BATCH="$(printf '{"Changes":[{"Action":"DELETE","ResourceRecordSet":{"Name":"%s","Type":"A","TTL":60,"ResourceRecords":[{"Value":"%s"}]}}]}' \
         "$ROUTE53_RECORD_NAME" "$PUBLIC_IP")"
@@ -59,7 +118,7 @@ if [ -n "${ROUTE53_RECORD_NAME:-}" ] && [ -n "${ROUTE53_HOSTED_ZONE_ID:-}" ] && 
         && echo "[stop.sh] DNS record deleted OK" \
         || echo "[stop.sh] WARNING: DNS record not found or already deleted -- continuing"
 else
-    echo "[stop.sh] WARNING: DNS info missing in .state -- skipping DNS deletion"
+    echo "[stop.sh] No Route53 info in .state -- skipping DNS deletion"
 fi
 
 # Terminate EC2 instance

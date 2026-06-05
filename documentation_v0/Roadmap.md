@@ -34,6 +34,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
 | 20a | [Admin endpoint split](./Step20_AdminEndpoint.md) | ✅ | Isolate `/api/admin/**` onto dedicated port 8044 (Java/Python/PHP) and a separate HTTP API with IP-authorizer (AWS); `MatchAdminController` extracted from player controller |
 | 20b | [WebSite on Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on Cloud with cookies configuration (AWS-CloudFront & ClaudeFlare) |
+| 21 | [EC2 Docker deploy](./Step21_EC2DockerDeploy.md) | ✅ | Test environment on EC2: build Java image locally → push to DockerHub → start/redeploy on EC2 via plain Docker (no compose); DNS/CloudFront optional; CORS varargs fix; echo `env` field; multi-lang text import fix |
 
 
 | Steps | Phase |
@@ -766,7 +767,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
     | 0.19.2 | added step 19.1 (dev test-data cleanup) and step 19.2 (admin match control) to completed steps table | May 21, 2026 |
     | 0.20.5 | added Step 20a (admin endpoint split / port 8044 / AWS admin API + IP authorizer) to completed steps table | June 4, 2026 |
-- **Last Updated**: June 4, 2026
+    | 0.21.0 | added Step 21 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
+- **Last Updated**: June 5, 2026
 - **Status**: In progress
 
 

@@ -70,6 +70,20 @@ class MatchQueryServiceTest extends TestCase
         $this->assertSame(['t1', 't2'], $rows[0]->traitUuids);
     }
 
+    public function testListResolvesStoryAndDifficultyUuid(): void
+    {
+        // Regression: the list used to return storyUuid=null because the story
+        // entity was not resolved per match (only getMatchInfo did).
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->persistence->method('findMatchesByUserId')->willReturn([$this->match()]);
+        $this->storyRead->method('findStoryById')->willReturn(['id' => 2, 'uuid' => 'story-uuid']);
+        $this->storyRead->method('findDifficultyById')->willReturn(['id' => 3, 'uuid' => 'diff-uuid']);
+        $rows = $this->service->listUserMatches('u');
+        $this->assertCount(1, $rows);
+        $this->assertSame('story-uuid', $rows[0]->storyUuid);
+        $this->assertSame('diff-uuid', $rows[0]->difficultyUuid);
+    }
+
     public function testListAllMatchesEmpty(): void
     {
         $this->persistence->method('findAllMatches')->willReturn([]);

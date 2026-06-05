@@ -403,8 +403,9 @@ class StoryPersistenceAdapterTest {
             inOrder.verify(classRepository).deleteByIdStory(1L);
             inOrder.verify(keyRepository).deleteByIdStory(1L);
             inOrder.verify(cardRepository).deleteByIdStory(1L);
-            inOrder.verify(creatorRepository).deleteByIdStory(1L);
+            // texts before creators: list_texts.id_creator -> list_creator
             inOrder.verify(textRepository).deleteByIdStory(1L);
+            inOrder.verify(creatorRepository).deleteByIdStory(1L);
             inOrder.verify(difficultyRepository).deleteByIdStory(1L);
             inOrder.verify(storyRepository).deleteById(1L);
         }

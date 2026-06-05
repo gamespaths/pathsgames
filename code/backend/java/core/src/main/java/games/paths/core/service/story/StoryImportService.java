@@ -101,14 +101,18 @@ public class StoryImportService implements StoryImportPort {
         importClassBonuses(storyData, storyId);
         importMissionSteps(storyData, storyId);
 
-        // Update story FK references - must be after all sub-entities are imported
-        savedStory.setIdCard(getInteger(storyData, "idCard"));
+        // Update story FK references - must be after all sub-entities are imported.
+        // These are OPTIONAL FKs (fk_stories_card / _location_start / _location_coma /
+        // _event_coma / _event_end / _creator): a 0 or absent value means "none", so it
+        // must be stored as NULL — otherwise PostgreSQL rejects the non-existent
+        // (id, id_story) reference (e.g. id_event_all_player_coma=0).
+        savedStory.setIdCard(normalizeOptionalFk(getInteger(storyData, "idCard")));
         savedStory.setIdCreator(normalizeOptionalFk(getInteger(storyData, "idCreator")));
-        savedStory.setIdImage(getInteger(storyData, "idImage"));
-        savedStory.setIdLocationStart(getInteger(storyData, "idLocationStart"));
-        savedStory.setIdLocationAllPlayerComa(getInteger(storyData, "idLocationAllPlayerComa"));
-        savedStory.setIdEventAllPlayerComa(getInteger(storyData, "idEventAllPlayerComa"));
-        savedStory.setIdEventEndGame(getInteger(storyData, "idEventEndGame"));
+        savedStory.setIdImage(normalizeOptionalFk(getInteger(storyData, "idImage")));
+        savedStory.setIdLocationStart(normalizeOptionalFk(getInteger(storyData, "idLocationStart")));
+        savedStory.setIdLocationAllPlayerComa(normalizeOptionalFk(getInteger(storyData, "idLocationAllPlayerComa")));
+        savedStory.setIdEventAllPlayerComa(normalizeOptionalFk(getInteger(storyData, "idEventAllPlayerComa")));
+        savedStory.setIdEventEndGame(normalizeOptionalFk(getInteger(storyData, "idEventEndGame")));
         persistencePort.saveStory(savedStory);
         persistencePort.syncStorySequences();
 
@@ -154,10 +158,36 @@ public class StoryImportService implements StoryImportPort {
         List<Map<String, Object>> items = getList(data, "texts");
         if (items.isEmpty()) return 0;
 
-        List<TextEntity> entities = new ArrayList<>();
+        // Resolve the surrogate ids first so language variants can be de-collided
+        // against the highest id actually present (never against a not-yet-seen one).
+        List<Long> resolvedIds = new ArrayList<>(items.size());
+        long maxId = 0L;
         for (Map<String, Object> item : items) {
+            Long id = resolveStoryScopedId(item, "story/list_texts", "list_texts", "id", storyId, "id");
+            resolvedIds.add(id);
+            if (id != null) {
+                maxId = Math.max(maxId, id);
+            }
+        }
+
+        // Texts are language-scoped: the same logical text (id_text) appears once per
+        // language, so the JSON commonly reuses the same surrogate "id" across language
+        // variants. The PK is (id, id_story), so every row still needs a UNIQUE id.
+        // Nothing references the surrogate id (all FKs target id_text), so a reused id
+        // is safely re-allocated above maxId. The real per-story identity (id_text, lang)
+        // is preserved and enforced by the list_texts unique constraint.
+        Set<Long> usedIds = new HashSet<>();
+        List<TextEntity> entities = new ArrayList<>(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            Map<String, Object> item = items.get(i);
+            Long id = resolvedIds.get(i);
+            if (id == null || !usedIds.add(id)) {
+                id = ++maxId;
+                usedIds.add(id);
+            }
+
             TextEntity e = new TextEntity();
-            e.setId(resolveStoryScopedId(item, "story/list_texts", "list_texts", "id", storyId, "id"));
+            e.setId(id);
             e.setIdStory(storyId);
             e.setIdText(getInteger(item, "idText"));
             e.setLang(getString(item, "lang") != null ? getString(item, "lang") : "en");

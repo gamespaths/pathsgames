@@ -147,8 +147,11 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         classRepository.deleteByIdStory(storyId);
         keyRepository.deleteByIdStory(storyId);
         cardRepository.deleteByIdStory(storyId);
-        creatorRepository.deleteByIdStory(storyId);
+        // list_texts.id_creator -> list_creator (and list_cards.id_creator -> list_creator):
+        // texts and cards MUST be deleted before creators, else the creator delete fails
+        // with "still referenced from table list_texts".
         textRepository.deleteByIdStory(storyId);
+        creatorRepository.deleteByIdStory(storyId);
         difficultyRepository.deleteByIdStory(storyId);
         storyRepository.deleteById(storyId);
     }

@@ -54,9 +54,10 @@ public class MatchQueryService implements MatchQueryPort {
         UserAccessPort.UserView user = userOpt.get();
 
         List<GamingMatchEntity> matches = matchReadPort.findMatchesByUserId(user.id());
+        Map<Long, StoryEntity> storiesById = storiesById();
         List<MatchSummary> result = new ArrayList<>();
         for (GamingMatchEntity m : matches) {
-            result.add(toSummary(m, user.uuid()));
+            result.add(toSummary(m, user.uuid(), storyOf(m, storiesById), m.getIdDifficulty()));
         }
         return result;
     }
@@ -64,11 +65,25 @@ public class MatchQueryService implements MatchQueryPort {
     @Override
     public List<MatchSummary> listAllMatches() {
         List<GamingMatchEntity> matches = matchReadPort.findAllMatches();
+        Map<Long, StoryEntity> storiesById = storiesById();
         List<MatchSummary> result = new ArrayList<>();
         for (GamingMatchEntity m : matches) {
-            result.add(toSummary(m, null));
+            result.add(toSummary(m, null, storyOf(m, storiesById), m.getIdDifficulty()));
         }
         return result;
+    }
+
+    /** Index all stories by id once, so a list of matches doesn't re-scan per row. */
+    private Map<Long, StoryEntity> storiesById() {
+        Map<Long, StoryEntity> byId = new HashMap<>();
+        for (StoryEntity s : storyReadPort.findAllStories()) {
+            byId.put(s.getId(), s);
+        }
+        return byId;
+    }
+
+    private StoryEntity storyOf(GamingMatchEntity match, Map<Long, StoryEntity> storiesById) {
+        return match.getIdStory() != null ? storiesById.get(match.getIdStory()) : null;
     }
 
     @Override
@@ -175,10 +190,6 @@ public class MatchQueryService implements MatchQueryPort {
         detail.setChoices(new ArrayList<>());
 
         return detail;
-    }
-
-    private MatchSummary toSummary(GamingMatchEntity match, String userUuid) {
-        return toSummary(match, userUuid, null, null);
     }
 
     private MatchSummary toSummary(GamingMatchEntity match, String userUuid,

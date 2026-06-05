@@ -32,7 +32,7 @@ class MatchQueryService implements MatchQueryPort
         $rows = $this->persistencePort->findMatchesByUserId((int)$user['id']);
         $out = [];
         foreach ($rows as $row) {
-            $out[] = $this->toSummary($row, $user['uuid'], null, null);
+            $out[] = $this->summaryWithStory($row, $user['uuid']);
         }
         return $out;
     }
@@ -42,9 +42,24 @@ class MatchQueryService implements MatchQueryPort
         $rows = $this->persistencePort->findAllMatches();
         $out = [];
         foreach ($rows as $row) {
-            $out[] = $this->toSummary($row, null, null, null);
+            $out[] = $this->summaryWithStory($row, null);
         }
         return $out;
+    }
+
+    /**
+     * Resolve the match's story so the list summary carries storyUuid/difficultyUuid,
+     * consistent with GET /match/{uuid}/info (which used to be the only place that did).
+     */
+    private function summaryWithStory(array $row, ?string $userUuid): MatchSummary
+    {
+        $story = isset($row['id_story']) && $row['id_story'] !== null
+            ? $this->storyReadPort->findStoryById((int)$row['id_story'])
+            : null;
+        $difficulty = ($story !== null && isset($row['id_difficulty']) && $row['id_difficulty'] !== null)
+            ? $this->storyReadPort->findDifficultyById((int)$row['id_story'], (int)$row['id_difficulty'])
+            : null;
+        return $this->toSummary($row, $userUuid, $story['uuid'] ?? null, $difficulty['uuid'] ?? null);
     }
 
     public function getMatchInfo(string $matchUuid, string $userUuid): ?MatchDetail
