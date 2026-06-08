@@ -52,6 +52,7 @@ class StoryPersistenceAdapterTest {
     @Mock private GlobalRandomEventRepository globalRandomEventRepository;
     @Mock private MissionRepository missionRepository;
     @Mock private MissionStepRepository missionStepRepository;
+    @Mock private games.paths.core.repository.match.GamingMatchRepository gamingMatchRepository;
     @Mock private JdbcTemplate jdbcTemplate;
     @Mock private EntityManager entityManager;
 
@@ -371,6 +372,7 @@ class StoryPersistenceAdapterTest {
 
             // Verify deletions happen in reverse dependency order
             var inOrder = inOrder(
+                    gamingMatchRepository,
                     missionStepRepository, missionRepository,
                     globalRandomEventRepository,
                     choiceEffectRepository, choiceConditionRepository, choiceRepository,
@@ -384,6 +386,7 @@ class StoryPersistenceAdapterTest {
                     textRepository, difficultyRepository, storyRepository
             );
 
+            inOrder.verify(gamingMatchRepository).deleteByIdStory(1L);
             inOrder.verify(missionStepRepository).deleteByIdStory(1L);
             inOrder.verify(missionRepository).deleteByIdStory(1L);
             inOrder.verify(globalRandomEventRepository).deleteByIdStory(1L);

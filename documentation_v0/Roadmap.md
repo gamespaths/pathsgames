@@ -32,9 +32,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 17 | [Story Admin Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
 | 18 | [Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
-| 20a | [Admin endpoint split](./Step20_AdminEndpoint.md) | ✅ | Isolate `/api/admin/**` onto dedicated port 8044 (Java/Python/PHP) and a separate HTTP API with IP-authorizer (AWS); `MatchAdminController` extracted from player controller |
-| 20b | [WebSite on Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on Cloud with cookies configuration (AWS-CloudFront & ClaudeFlare) |
-| 21 | [EC2 Docker deploy](./Step21_EC2DockerDeploy.md) | ✅ | Test environment on EC2: build Java image locally → push to DockerHub → start/redeploy on EC2 via plain Docker (no compose); DNS/CloudFront optional; CORS varargs fix; echo `env` field; multi-lang text import fix |
+| 20 | [Game first run](./Step20_GameWebSiteFirstRun.md) | ✅ | Game web site first run |
 
 
 | Steps | Phase |

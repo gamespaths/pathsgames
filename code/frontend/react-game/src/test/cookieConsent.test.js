@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mock the library so we can capture the config passed to CookieConsent.run and
 // drive the consent callbacks without rendering the real banner.
-const { run, showPreferences, setLanguage, acceptedCategory, state } = vi.hoisted(() => {
+const { run, showPreferences, setLanguage, acceptedCategory, eraseCookies, state } = vi.hoisted(() => {
   const state = { acceptedAnalytics: false }
   return {
     state,
@@ -10,10 +10,11 @@ const { run, showPreferences, setLanguage, acceptedCategory, state } = vi.hoiste
     showPreferences: vi.fn(),
     setLanguage: vi.fn(),
     acceptedCategory: vi.fn((c) => (c === 'analytics' ? state.acceptedAnalytics : true)),
+    eraseCookies: vi.fn(),
   }
 })
 
-vi.mock('vanilla-cookieconsent', () => ({ run, showPreferences, setLanguage, acceptedCategory }))
+vi.mock('vanilla-cookieconsent', () => ({ run, showPreferences, setLanguage, acceptedCategory, eraseCookies }))
 vi.mock('vanilla-cookieconsent/dist/cookieconsent.css', () => ({}))
 
 beforeEach(() => {
@@ -32,8 +33,8 @@ describe('cookieConsent config', () => {
     expect(run).toHaveBeenCalledTimes(1)
     const cfg = run.mock.calls[0][0]
     expect(cfg.categories.necessary).toEqual({ enabled: true, readOnly: true })
-    expect(cfg.categories.analytics).toEqual({})
     expect(cfg.categories.analytics.enabled).toBeUndefined()
+    expect(cfg.categories.analytics.autoClear).toBeDefined()
     expect(Object.keys(cfg.language.translations)).toEqual(['en', 'it'])
   })
 

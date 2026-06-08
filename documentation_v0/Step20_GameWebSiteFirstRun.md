@@ -1236,7 +1236,7 @@ curl http://localhost:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.20.6
+- **Document Version**: 0.20.7
 
     | Version | Description | Date |
     |---------|-------------|------|
