@@ -47,6 +47,12 @@ class StoryImportService implements StoryImportPort
         // Texts
         $texts = $data['texts'] ?? [];
         if (!empty($texts)) {
+            foreach ($texts as &$t) {
+                if (empty($t['uuid'])) {
+                    $t['uuid'] = Uuid::uuid4()->toString();
+                }
+            }
+            unset($t);
             $this->validateEntityIds($storyId, $texts, 'list_texts', 'id');
             $this->persistencePort->saveTexts($storyId, $texts);
         }
@@ -64,7 +70,7 @@ class StoryImportService implements StoryImportPort
             $this->persistencePort->saveDifficulties($storyId, $diffs);
         }
 
-        // Other entities with explicit-id validation
+        // Other entities with explicit-id validation and UUID auto-generation
         $entityMapping = [
             ['locations', 'list_locations', 'id', 'saveLocations'],
             ['events', 'list_events', 'id', 'saveEvents'],
@@ -88,9 +94,26 @@ class StoryImportService implements StoryImportPort
             ['creators', 'list_creator', 'id', 'saveCreators'],
         ];
 
+        // Entity tables that need UUID (BaseStoryEntity equivalents)
+        $uuidTables = [
+            'list_locations', 'list_events', 'list_items', 'list_classes', 
+            'list_choices', 'list_cards', 'list_keys', 'list_traits',
+            'list_character_templates', 'list_weather_rules', 
+            'list_global_random_events', 'list_missions', 'list_creator'
+        ];
+
         foreach ($entityMapping as [$jsonKey, $tableName, $idCol, $method]) {
             $arr = $data[$jsonKey] ?? [];
             if (!empty($arr)) {
+                // Ensure UUID for entities that need it
+                if (in_array($tableName, $uuidTables, true)) {
+                    foreach ($arr as &$item) {
+                        if (empty($item['uuid'])) {
+                            $item['uuid'] = Uuid::uuid4()->toString();
+                        }
+                    }
+                    unset($item);
+                }
                 $this->validateEntityIds($storyId, $arr, $tableName, $idCol);
                 $this->persistencePort->$method($storyId, $arr);
             }

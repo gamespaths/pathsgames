@@ -134,6 +134,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     is_safe=item.get("isSafe", 0),
@@ -170,6 +171,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
@@ -207,6 +209,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),

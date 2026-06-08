@@ -40,4 +40,11 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
     @Modifying
     @Query("DELETE FROM GamingMatchEntity m WHERE m.name LIKE :pattern")
     int deleteByNameLike(@Param("pattern") String pattern);
+
+    /**
+     * Deletes all matches for a given story.
+     * Used when deleting a story to avoid FK constraint violations.
+     */
+    @Modifying
+    void deleteByIdStory(Long idStory);
 }

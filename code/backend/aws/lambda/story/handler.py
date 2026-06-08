@@ -592,7 +592,7 @@ def import_story(event):
     raw_diffs = _assign_ids(data.get('difficulties', []), 'id')
     difficulties = []
     for d in raw_diffs:
-        diff_uuid = str(uuid_lib.uuid4())
+        diff_uuid = d.get('uuid') or str(uuid_lib.uuid4())
         # Map idTextDescription to a stub text dict for description
         id_diff_name = d.get('idTextName')
         id_diff_desc = d.get('idTextDescription')
@@ -628,7 +628,7 @@ def import_story(event):
     raw_char_templates = _assign_ids(data.get('characterTemplates', []), 'id_tipo')
     character_templates = []
     for ct in raw_char_templates:
-        ct_uuid = str(uuid_lib.uuid4())
+        ct_uuid = ct.get('uuid') or str(uuid_lib.uuid4())
         id_ct_name = ct.get('idTextName')
         id_ct_desc = ct.get('idTextDescription')
         ct_texts = _build_sub_entity_texts(raw_texts, id_ct_name, id_ct_desc)
@@ -653,7 +653,7 @@ def import_story(event):
     raw_classes = _assign_ids(data.get('classes', []), 'id')
     classes = []
     for cl in raw_classes:
-        cl_uuid = str(uuid_lib.uuid4())
+        cl_uuid = cl.get('uuid') or str(uuid_lib.uuid4())
         id_cl_name = cl.get('idTextName')
         id_cl_desc = cl.get('idTextDescription')
         cl_texts = _build_sub_entity_texts(raw_texts, id_cl_name, id_cl_desc)
@@ -674,7 +674,7 @@ def import_story(event):
     raw_traits = _assign_ids(data.get('traits', []), 'id')
     traits = []
     for tr in raw_traits:
-        tr_uuid = str(uuid_lib.uuid4())
+        tr_uuid = tr.get('uuid') or str(uuid_lib.uuid4())
         id_tr_name = tr.get('idTextName')
         id_tr_desc = tr.get('idTextDescription')
         tr_texts = _build_sub_entity_texts(raw_texts, id_tr_name, id_tr_desc)
@@ -705,7 +705,7 @@ def import_story(event):
     if id_card is not None and raw_cards:
         for c in raw_cards:
             if c.get('id') == id_card:
-                card_uuid = str(uuid_lib.uuid4())
+                card_uuid = c.get('uuid') or str(uuid_lib.uuid4())
                 id_card_name = c.get('idTextName') or c.get('idTextTitle')
                 id_card_desc = c.get('idTextDescription')
                 id_card_copyright = c.get('idTextCopyright')
@@ -746,7 +746,7 @@ def import_story(event):
     raw_creators_input = _assign_ids(data.get('creators', []), 'id')
     stored_creators = []
     for cr in raw_creators_input:
-        cr_uuid = str(uuid_lib.uuid4())
+        cr_uuid = cr.get('uuid') or str(uuid_lib.uuid4())
         stored_creators.append({
             'id':           _safe_int(cr.get('id')),
             'uuid':         cr_uuid,
@@ -762,7 +762,7 @@ def import_story(event):
     raw_cards_input = _assign_ids(data.get('cards', []), 'id')
     stored_cards = []
     for c in raw_cards_input:
-        c_uuid = str(uuid_lib.uuid4())
+        c_uuid = c.get('uuid') or str(uuid_lib.uuid4())
         stored_cards.append({
             'id':                _safe_int(c.get('id')),
             'uuid':              c_uuid,

@@ -61,7 +61,7 @@ export default function GameBookMobile({ gameData, story, onEndGame, endError })
       <div style={{ background: 'var(--card-body-background)', border: '2px solid var(--color-brown-mid)', borderRadius: 8, padding: 12 }}>
         <ActionRow type="action" options={actions ?? []} onEndGame={onEndGame} />
         {endError && (
-          <p className="end-game-error">
+          <p className="game-error  end-game-error">
             <i className="fas fa-exclamation-triangle me-2" />{endError}
           </p>
         )}

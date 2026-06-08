@@ -87,7 +87,7 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
     <ActionRow type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
       handleSelectionPreview={handleSelectionPreview} />
     {endError && (
-      <p className="end-game-error">
+      <p className="game-error end-game-error">
         <i className="fas fa-exclamation-triangle me-2" />{endError}
       </p>
     )}

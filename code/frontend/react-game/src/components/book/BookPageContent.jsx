@@ -12,7 +12,7 @@ import GameCardCreditsBar from '../layout/GameCardCreditsBar'
  * When `entity` + `entityType` are passed, renders a bonus-stats badges row
  * absolute-positioned above the image, top-right. Zero/missing values are hidden.
  */
-export default function BookPageContent({ card, story, loading, onClose, entity, entityType , extraContent=null}) {
+export default function BookPageContent({ card, story, loading, onClose, entity, entityType , extraContent=null, lockedReason}) {
   const { t } = useTranslation()
 
   const statItems = getNonZeroStats(entity, entityType).map(s => ({
@@ -47,16 +47,16 @@ export default function BookPageContent({ card, story, loading, onClose, entity,
       
       {description && (
         <div className="book-page-desc">
-          <BonusBadgeList items={statItems} className="book-page-stats" />
+          <BonusBadgeList items={statItems} className="book-page-stats" lockedReason={lockedReason} />
           <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }} />
         </div>
       )}
-
+      
       {extraContent && <div className="book-page-extra">{extraContent}</div>}
 
-        {card?.linkCopyright && (
-          <GameCardCreditsBar card={card} story={story} />
-        )}
+      {card?.linkCopyright && (
+        <GameCardCreditsBar card={card} story={story} />
+      )}
     </div>
   )
 }

@@ -672,3 +672,50 @@ Import Story And Verify Sub Entity Collections
 
     # Cleanup
     Delete Admin Story    ${uuid}
+
+Import Preserves Sub Entity UUIDs
+    [Documentation]    Import with explicit UUIDs in events/locations/items → UUIDs preserved.
+    [Tags]    admin    step14
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+
+    ${uuid}=    Set Variable    55555555-5555-4555-8555-555555555555
+    ${event_uuid}=    Set Variable    event-uuid-12345678-1234-1234-1234
+    ${location_uuid}=    Set Variable    location-uuid-87654321-4321-4321
+    ${item_uuid}=    Set Variable    item-uuid-abcdef01-2345-6789-abcd
+
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"uuid-test",
+    ...    "events":[{"id":1,"type":"NORMAL","uuid":"${event_uuid}"}],
+    ...    "locations":[{"id":1,"uuid":"${location_uuid}"}],
+    ...    "items":[{"id":1,"uuid":"${item_uuid}"}]}
+
+    # Import
+    ${r}=    POST On Session    admin_session    /api/admin/stories/import
+    ...    data=${payload}    headers=${headers}    expected_status=any
+    Should Be Equal As Integers    ${r.status_code}    201
+
+    # Fetch events and verify UUID preserved
+    ${e_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/events
+    ...    headers=${headers}
+    ${events}=    Set Variable    ${e_resp.json()}
+    Length Should Be    ${events}    1
+    Should Be Equal As Strings    ${events}[0][uuid]    ${event_uuid}
+
+    # Fetch locations and verify UUID preserved
+    ${l_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/locations
+    ...    headers=${headers}
+    ${locations}=    Set Variable    ${l_resp.json()}
+    Length Should Be    ${locations}    1
+    Should Be Equal As Strings    ${locations}[0][uuid]    ${location_uuid}
+
+    # Fetch items and verify UUID preserved
+    ${i_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/items
+    ...    headers=${headers}
+    ${items}=    Set Variable    ${i_resp.json()}
+    Length Should Be    ${items}    1
+    Should Be Equal As Strings    ${items}[0][uuid]    ${item_uuid}
+
+    # Cleanup
+    Delete Admin Story    ${uuid}

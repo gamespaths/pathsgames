@@ -187,8 +187,6 @@ export default function GameCard({
         </div>
       </div>
 
-
-
       {children}
     </div>
   )

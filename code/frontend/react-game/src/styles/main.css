@@ -2015,11 +2015,13 @@ html, body {
   margin-top: auto;
   padding-top: 12px;
 }
-.end-game-error {
-  color: #e74c3c;
+.game-error {
+  background-color: var(--bs-danger);
+  color: var(--color-gold-light);
   font-size: 0.82rem;
   font-style: italic;
-  margin-top: 6px;
+  margin: 6px;
+  padding: 1rem;
 }
 .game-location-card-wrap {
   display: flex;

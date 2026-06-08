@@ -30,7 +30,7 @@ export default function PrivacyModal() {
             </button>
           </div>
           <div className="modal-body" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.7 }}>
-            <p><strong style={{ color: 'var(--color-gold-light)' }}>Paths Games</strong> &copy; paths.games</p>
+            <p><strong style={{ color: 'var(--color-gold-light)' }}>Paths Games</strong> &copy; 2026</p>
             <p>{t('modals.privacy.intro')}</p>
             {SECTIONS.map(([titleKey, bodyKey]) => (
               <div key={titleKey}>

@@ -262,8 +262,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
 
         foreach ($locations as $loc) {
             $explicitId = self::getLong($loc, 'id');
+            $uuid = $loc['uuid'] ?? $this->generateUuid();
             $locParams = [
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_text_name' => $loc['idTextName'] ?? null,
                 ':id_text_description' => $loc['idTextDescription'] ?? null,
                 ':is_safe' => $loc['isSafe'] ?? 0,
@@ -276,10 +278,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             if ($explicitId !== null) {
                 $stmtLoc = $this->pdo->prepare("
                     INSERT INTO list_locations (
-                        id, id_story, id_text_name, id_text_description, is_safe, max_characters,
+                        id, id_story, uuid, id_text_name, id_text_description, is_safe, max_characters,
                         id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
                     ) VALUES (
-                        :id, :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
+                        :id, :id_story, :uuid, :id_text_name, :id_text_description, :is_safe, :max_characters,
                         :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
                     )
                 ");
@@ -287,10 +289,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             } else {
                 $stmtLoc = $this->pdo->prepare("
                     INSERT INTO list_locations (
-                        id_story, id_text_name, id_text_description, is_safe, max_characters,
+                        id_story, uuid, id_text_name, id_text_description, is_safe, max_characters,
                         id_event_on_enter, id_event_if_counter_zero, counter_start, id_card
                     ) VALUES (
-                        :id_story, :id_text_name, :id_text_description, :is_safe, :max_characters,
+                        :id_story, :uuid, :id_text_name, :id_text_description, :is_safe, :max_characters,
                         :id_event_on_enter, :id_event_if_counter_zero, :counter_start, :id_card
                     )
                 ");
@@ -326,8 +328,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
 
         foreach ($events as $ev) {
             $explicitId = self::getLong($ev, 'id');
+            $uuid = $ev['uuid'] ?? $this->generateUuid();
             $params = [
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_card' => $ev['idCard'] ?? null,
                 ':id_text_name' => $ev['idTextName'] ?? null,
                 ':id_text_description' => $ev['idTextDescription'] ?? null,
@@ -343,10 +347,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             if ($explicitId !== null) {
                 $stmtEv = $this->pdo->prepare("
                     INSERT INTO list_events (
-                        id, id_story, id_card, id_text_name, id_text_description, event_type, trigger_type,
+                        id, id_story, uuid, id_card, id_text_name, id_text_description, event_type, trigger_type,
                         energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
                     ) VALUES (
-                        :id, :id_story, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
+                        :id, :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
                         :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
                     )
                 ");
@@ -354,10 +358,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
             } else {
                 $stmtEv = $this->pdo->prepare("
                     INSERT INTO list_events (
-                        id_story, id_card, id_text_name, id_text_description, event_type, trigger_type,
+                        id_story, uuid, id_card, id_text_name, id_text_description, event_type, trigger_type,
                         energy_cost, coin_cost, id_event_next, flag_interrupt, flag_end_time, id_location
                     ) VALUES (
-                        :id_story, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
+                        :id_story, :uuid, :id_card, :id_text_name, :id_text_description, :event_type, :trigger_type,
                         :energy_cost, :coin_cost, :id_event_next, :flag_interrupt, :flag_end_time, :id_location
                     )
                 ");
@@ -382,8 +386,8 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
     public function saveItems(int $storyId, array $items): void
     {
         $stmtIt = $this->pdo->prepare("
-            INSERT INTO list_items (id_story, id_card, id_text_name, id_text_description, weight, id_class)
-            VALUES (:id_story, :id_card, :id_text_name, :id_text_description, :weight, :id_class)
+            INSERT INTO list_items (id_story, uuid, id_card, id_text_name, id_text_description, weight, id_class)
+            VALUES (:id_story, :uuid, :id_card, :id_text_name, :id_text_description, :weight, :id_class)
         ");
         $stmtEf = $this->pdo->prepare("
             INSERT INTO list_items_effects (id_story, id_item, effect_type, effect_value)
@@ -391,8 +395,10 @@ class StoryMysqlPersistenceRepository implements StoryPersistencePort
         ");
 
         foreach ($items as $it) {
+            $uuid = $it['uuid'] ?? $this->generateUuid();
             $stmtIt->execute([
                 ':id_story' => $storyId,
+                ':uuid' => $uuid,
                 ':id_card' => $it['idCard'] ?? null,
                 ':id_text_name' => $it['idTextName'] ?? null,
                 ':id_text_description' => $it['idTextDescription'] ?? null,

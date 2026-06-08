@@ -88,8 +88,8 @@ export default function StartBookModal({ story, onClose }) {
 
   // From OptionPicker / ConfigView: clicking the magnifying glass on an option
   // swaps the left-page preview without leaving the selection list.
-  function handleSelectionPreview(entity, type) {
-    setPreview(entity ? { entity, type } : null)
+  function handleSelectionPreview(entity, type , lockedReason) {
+    setPreview(entity ? { entity, type, lockedReason } : null)
   }
 
   // Mobile has no left page, so the (i) lens opens the big card in a modal.
@@ -125,13 +125,15 @@ export default function StartBookModal({ story, onClose }) {
       </div>
     )
   }
-  const leftContent = preview ? (
+  
+  const leftContent = preview ? ( //console.log("preview",preview);
     <CardPreviewOverlay
       card={preview.entity?.card}
       entity={preview.entity}
       entityType={preview.type}
       story={activeStory}
       onClose={handleBackOrClose}
+      lockedReason={preview.lockedReason}
     />
   ) : (
     <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
@@ -189,7 +191,7 @@ export default function StartBookModal({ story, onClose }) {
   )
 }
 
-export function CardPreviewOverlay({ card, entity, entityType, story, onClose }) {
+export function CardPreviewOverlay({ card, entity, entityType, story, onClose, lockedReason }) {
   console.log(card.entity);
   return (
     <div className="card-preview-overlay">
@@ -200,6 +202,7 @@ export function CardPreviewOverlay({ card, entity, entityType, story, onClose })
         loading={false}
         story={story}
         onClose={onClose}
+        lockedReason={lockedReason}
       />
     </div>
   )

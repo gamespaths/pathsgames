@@ -29,10 +29,10 @@ export default function OptionPicker({ type, options, selected, story, config, o
       <div className="selection-scroll">
         <div className="selection-list">
           {options.map((opt, i) => {
-            const previewHandler = onPreview ? () => onPreview(opt, type) : undefined
             const lockInfo = getOptionLockInfo({ type, option: opt, config, classesById  })
             const isLocked = !!lockInfo
-            const reason = lockMessage(lockInfo)
+            const lockedReason = lockMessage(lockInfo)
+            const previewHandler = onPreview ? () => onPreview(opt, type , lockedReason) : undefined
             return (
             <GameCard story={story}
               key={opt.uuid ?? opt.name ?? i}
@@ -45,7 +45,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
               description={opt.card?.description ?? opt.description}
               selected={selected?.uuid === opt.uuid && selected?.uuid}
               locked={isLocked}
-              lockedReason={reason} lockInfo={lockInfo} 
+              lockedReason={lockedReason} lockInfo={lockInfo} 
               onSelect={isLocked ? undefined : () => onSelect(opt)}
               onPreview={previewHandler}
               selectLabel={t('book.select')}

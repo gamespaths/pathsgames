@@ -76,6 +76,9 @@ class StoryImportService(StoryImportPort):
             # 5. Insert sub-entities with explicit-id support
             texts = data.get("texts", [])
             if texts:
+                for t in texts:
+                    if not t.get("uuid"):
+                        t["uuid"] = str(uuid.uuid4())
                 self._save_with_ids(story_id, texts, "list_texts", "id",
                                     self.persistence_port.save_texts)
 
@@ -88,7 +91,7 @@ class StoryImportService(StoryImportPort):
                 self._save_with_ids(story_id, diffs, "list_stories_difficulty", "id",
                                     self.persistence_port.save_difficulties)
 
-            # All other sub-entities
+            # All other sub-entities (with UUID auto-generation)
             entity_mapping = [
                 ("locations", "list_locations", "id", self.persistence_port.save_locations),
                 ("events", "list_events", "id", self.persistence_port.save_events),
@@ -111,6 +114,10 @@ class StoryImportService(StoryImportPort):
             for json_key, table_name, id_col, save_fn in entity_mapping:
                 arr = data.get(json_key, [])
                 if arr:
+                    # Ensure UUID exists for each item
+                    for item in arr:
+                        if not item.get("uuid"):
+                            item["uuid"] = str(uuid.uuid4())
                     self._save_with_ids(story_id, arr, table_name, id_col, save_fn)
 
             # 6. Sync PostgreSQL sequences

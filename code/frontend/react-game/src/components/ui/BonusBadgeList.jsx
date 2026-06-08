@@ -60,7 +60,7 @@ const STAT_VISUAL = {
 
 const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
-export default function BonusBadgeList({ items, className = '', showZeros = false }) {
+export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null }) {
   if (!items || items.length === 0) return null
 
   const visibleItems = showZeros
@@ -73,6 +73,11 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
 
   return (
     <div className={['player-stats-bar', 'bonus-badge-list', className].filter(Boolean).join(' ')}>
+      {lockedReason && (
+        <span className="stat-badge bonus-badge locked" title={lockedReason} aria-label={lockedReason}>
+          <i className="fas fa-lock" /> {lockedReason}
+        </span>
+      )}
       {visibleItems.map(item => {
         const visual = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
         return (
