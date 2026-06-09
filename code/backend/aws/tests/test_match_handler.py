@@ -490,9 +490,10 @@ def test_get_match_info_other_owner_returns_404(mock_jwt, mock_get):
     assert result['statusCode'] == 404
 
 
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_get_match_info_success(mock_jwt, mock_get):
+def test_get_match_info_success(mock_jwt, mock_get, mock_query):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
     def get_side(pk, sk='METADATA'):
@@ -792,9 +793,10 @@ def test_admin_match_route_rejects_non_admin(mock_jwt, mock_get):
     assert result['statusCode'] == 403
 
 
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_get_admin_match_info_returns_200_for_any_owner(mock_jwt, mock_get):
+def test_get_admin_match_info_returns_200_for_any_owner(mock_jwt, mock_get, mock_query):
     mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
     # match created by another user — admin info skips the ownership check
     mock_get.side_effect = _admin_get_side(

@@ -28,7 +28,14 @@
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.branch.name>develop</sonar.branch.name>
         <sonar.projectKey>paths-game-backend-java</sonar.projectKey>
-        <!--sonar command: mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN 
+        <!-- Copy-Paste Detector exclusions: the REST DTOs, domain models and JPA
+             entities are mirror data-classes (fields + getters/setters) that
+             intentionally repeat the same shape across the hexagonal layers
+             (core model <-> rest DTO <-> persistence entity). This is the shape
+             SonarSource itself recommends excluding from CPD; it removes the
+             unavoidable cross-layer duplication while real logic stays scanned. -->
+        <sonar.cpd.exclusions>**/adapters/rest/dto/**/*.java,**/core/model/**/*.java,**/core/entity/**/*.java</sonar.cpd.exclusions>
+        <!--sonar command: mvn clean package && mvn sonar:sonar -Dsonar.login=TOKEN
             no <sonar.projectKey>pathsgames-backend</sonar.projectKey>
         -->
     </properties>

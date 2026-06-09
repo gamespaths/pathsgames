@@ -1,6 +1,11 @@
 package games.paths.core.entity.match;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 /**
  * GamingCharacterInstanceEntity - JPA entity mapped to "gaming_character_instance".
@@ -8,23 +13,14 @@ import jakarta.persistence.*;
  *
  * <p>Step 21: a player materialises a character into a match by joining. The
  * row holds the final computed stats (template + class + difficulty + traits),
- * the current location and the runtime state flags.</p>
+ * the current location and the runtime state flags. The {@code (id, id_match)}
+ * key, {@code uuid} and audit timestamps come from
+ * {@link AbstractMatchScopedEntity}.</p>
  */
 @Entity
 @Table(name = "gaming_character_instance")
 @IdClass(GamingCharacterInstanceEntityId.class)
-public class GamingCharacterInstanceEntity {
-
-    @Id
-    @Column(name = "id")
-    private Long id;
-
-    @Id
-    @Column(name = "id_match")
-    private Long idMatch;
-
-    @Column(nullable = false, unique = true)
-    private String uuid;
+public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
 
     @Column(name = "id_user", nullable = false)
     private Long idUser;
@@ -68,16 +64,9 @@ public class GamingCharacterInstanceEntity {
     @Column(name = "counter_consecutive_pass", nullable = false)
     private Integer counterConsecutivePass;
 
-    @Column(name = "ts_insert", nullable = false, updatable = false)
-    private String tsInsert;
-
-    @Column(name = "ts_update", nullable = false)
-    private String tsUpdate;
-
     @PrePersist
     protected void onCreate() {
-        String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
+        applyUuidAndTimestamps();
         if (dexterity == null) dexterity = 1;
         if (intelligence == null) intelligence = 1;
         if (constitution == null) constitution = 1;
@@ -88,23 +77,12 @@ public class GamingCharacterInstanceEntity {
         if (isComa == null) isComa = false;
         if (clockInComa == null) clockInComa = 0;
         if (counterConsecutivePass == null) counterConsecutivePass = 0;
-        if (tsInsert == null) tsInsert = now;
-        if (tsUpdate == null) tsUpdate = now;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        tsUpdate = java.time.Instant.now().toString();
+        applyUpdateTimestamp();
     }
-
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getIdMatch() { return idMatch; }
-    public void setIdMatch(Long idMatch) { this.idMatch = idMatch; }
-
-    public String getUuid() { return uuid; }
-    public void setUuid(String uuid) { this.uuid = uuid; }
 
     public Long getIdUser() { return idUser; }
     public void setIdUser(Long idUser) { this.idUser = idUser; }
@@ -147,10 +125,4 @@ public class GamingCharacterInstanceEntity {
 
     public Integer getCounterConsecutivePass() { return counterConsecutivePass; }
     public void setCounterConsecutivePass(Integer counterConsecutivePass) { this.counterConsecutivePass = counterConsecutivePass; }
-
-    public String getTsInsert() { return tsInsert; }
-    public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }
-
-    public String getTsUpdate() { return tsUpdate; }
-    public void setTsUpdate(String tsUpdate) { this.tsUpdate = tsUpdate; }
 }

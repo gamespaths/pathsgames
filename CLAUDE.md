@@ -1,0 +1,212 @@
+# CLAUDE.md
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+This is a project to develop a new videogame web-based, it's similar to gamebook with branches and choices. 
+Main file documentation is
+- developer roadmap: `/mnt/Dati4/Workspace/pathsgames/documentation_v0/Roadmap.md`
+- main game-roles description: `/mnt/Dati4/Workspace/pathsgames/documentation_v0/Step01_StartProject.md`
+- su notebooklm è "PathsGames - Storytelling Game Platform" con NOTEBOOK="cd7b4625-76cd-4531-971a-98df705b840e"
+ 
+## Agents configuration
+
+Never use notebooklm if not indicated into prompt! If not indicated, ask me at the end if use it to update notebooklm files.
+
+Take your time. I prefer an accurate and thorough response over a quick one.
+
+Every time you run, every time, after change something, when you complete your task ask me if i wanna run sub-agent "paths-games-doc".
+
+Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
+
+Every time you run a command (example in bash) write the complete command and the last 10 result rows into workspace file ".agents/logs/YYYYMMDD.log"
+
+Every time if you chage/create code (java, python, php, react) remember to check unit test codes.
+
+At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
+
+Every time you run a command (example in bash) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
+
+## Project Overview
+
+**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/PHP/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
+
+---
+
+## Commands
+
+If you have to run python (or robot framework) command use ALWAYS virtual end from `source .venv/bin/activate`
+
+All commands must be run from the specified working directory.
+
+### Java Backend (primary) — `code/backend/java/`
+
+```bash
+mvn clean install -DskipTests           # build without tests
+mvn clean test                           # run all unit tests
+mvn -pl core test -DskipITs             # run core domain tests only (fastest)
+mvn -pl ms-launcher spring-boot:run     # start dev server (SQLite, public 8042 + admin 8044)
+mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod  # start prod (PostgreSQL, public 8080, admin 8044)
+curl -s http://localhost:8042/api/echo/status | python3 -m json.tool  # health check (public)
+curl -s http://localhost:8044/api/admin/matches  # admin API lives on 8044 (401 without admin token)
+```
+
+**Admin endpoint split (Step 20):** every `/api/admin/**` endpoint is served ONLY on the
+dedicated admin port **8044** (`game.admin.port`, second Tomcat connector); the public
+connector returns 404 for admin paths. Admin controllers live in `adapter-admin/` (incl.
+`MatchAdminController`). Lock 8044 to the owner IP at the network layer.
+
+Prod PostgreSQL on Docker:
+```bash
+docker run --name pathsgames-postgres -p 5432:5432 -e POSTGRES_DB=pathsgames -e POSTGRES_USER=pathsgames -e POSTGRES_PASSWORD=pathsgames -d postgres:latest
+```
+
+### Python Backend (alternative) — `code/backend/python/`
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python3 -m app.launcher                  # start dev server (public app 8042 + admin app 8044, one process)
+pytest tests                             # run tests
+pytest tests --cov=app --cov-report=term-missing
+```
+
+### PHP Backend (alternative) — `code/backend/php/`
+
+```bash
+php -S localhost:8042 -t public                              # public/player API (index.php)
+php -S localhost:8044 -t public public/index_admin.php       # admin API (index_admin.php) — run both
+XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text
+```
+
+### AWS Serverless Backend — `code/backend/aws/`
+Important to Cluade: NEVER RUN THIS SCRIPT WITHOUT ASK USER CONFIRMATION
+```bash
+/code/script/dev/aws_backend_deploy.sh
+/code/script/dev/aws_backend_remove.sh
+```
+
+### Robot E2E Tests — `code/tests/robot/`
+
+```bash
+# via scripts (from repo root)
+code/script/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
+code/script/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
+code/script/dev/run_robots/run_robot_with_local_python.sh
+code/script/dev/run_robots/run_robot_with_local_php.sh
+code/script/dev/run_robots/run_robot_with_aws_serverless.sh
+
+# manually (from code/tests/robot/)
+robot --variablefile variables/dev.yaml --outputdir reports/ tests/
+python -m robot --variablefile variables/dev.yaml tests/17_admin_crud  # single suite
+```
+
+Reports are written to `code/tests/robot/reports/report.html`.
+
+### React Admin Frontend — `code/frontend/react-admin/`
+
+```bash
+npm install
+npm run dev    # http://localhost:5172, proxies /api/* → http://localhost:8044 (admin port)
+npm run test
+```
+
+### SonarQube
+
+```bash
+code/script/dev/run_sonar_scanner_java.sh
+```
+
+---
+
+## Architecture
+
+### Multi-backend, shared API contract
+
+All four backends (Java, Python, PHP, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
+
+### Java backend — Hexagonal Architecture
+
+```
+ms-launcher          Spring Boot entry point; wires all adapters via DI
+core/                Pure domain — no framework dependencies
+  entity/story/      ~27 domain entities (Story, Mission, Location, Item, Character, ...)
+  port/              Interfaces (ports) that adapters implement
+  service/           Domain services (EchoService, StoryQueryService, StoryCrudService,
+                     StoryImportService, ContentQueryService, GuestAuthService,
+                     GuestAdminService, SessionService)
+  model/             Domain models (auth, story)
+  repository/        Repository interfaces
+adapter-rest/        REST controllers; OpenAPI specs in src/main/resources/openapi/
+adapter-auth/        JWT authentication, Google SSO, Spring Security
+adapter-admin/       Admin management REST endpoints
+adapter-websocket/   WebSocket for real-time game state sync
+adapter-postgres/    PostgreSQL JPA repositories + Flyway migrations (production)
+adapter-sqlite/      SQLite repositories + Flyway migrations (development)
+adapter-mongo/       MongoDB adapter for document registries
+adapter-kafka/       Kafka producer/consumer for async messaging
+```
+
+**Dev profile** (default): public port 8042, SQLite at `~/.paths.games/database.sqlite`.  
+**Prod profile**: public port 8080, PostgreSQL via env vars `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`.  
+**Admin port** (both profiles): `game.admin.port` (env `ADMIN_PORT`, default **8044**) — serves only `/api/admin/**`. See `documentation_v0/Step20_AdminEndpoint.md`.
+
+Both profiles use Flyway for schema migrations; migrations run automatically on startup.
+
+Flyway migrations live in:
+- `adapter-postgres/src/main/resources/db/migration/`
+- `adapter-sqlite/src/main/resources/db/migration/`
+
+To run prod locally you need **both** Maven and Spring profile flags:
+```bash
+mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod
+# -P prod → puts adapter-postgres on the classpath
+# -Dspring-boot.run.profiles=prod → loads application-prod.yml
+```
+
+### Python backend — same hexagonal pattern
+
+```
+app/core/            Pure domain (models, ports, services)
+app/adapters/        REST (FastAPI), auth, persistence (SQLite/PostgreSQL), websocket
+app/launcher.py      Entry point and DI wiring
+```
+
+### AWS backend — serverless
+
+API Gateway (HTTP v2) → Lambda functions (Python 3.13) → DynamoDB (Single Table Design with GSIs). Deployed with AWS SAM. Environments: `dev` / `prod`.
+
+### React Admin frontend
+
+React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medieval dark theme with `pg-*` CSS utility classes. Authenticates via a JWT admin token pasted on the login screen. Dev proxy routes `/api/*` to the admin port 8044 (the console only calls `/api/admin/**`).
+
+---
+
+## API open-api description
+- Open-API Folder `code/backend/java/adapter-rest/src/main/resources/openapi/`
+- All REST-API are open-api compatibile!
+
+## API Naming Conventions
+
+- Prefix: `/api/` (no explicit version in V1)
+- Path segments: **kebab-case**, resource names **plural nouns**
+- Context prefixes: `/api/auth/`, `/api/stories/`, `/api/games/`, `/api/game/{id}/`, `/api/gameplay/{id_game}/`, `/api/admin/`, `/api/echo/` (echo is unversioned)
+- HTTP verbs define actions; no verbs in URLs
+
+## Robot Test Suites
+
+| Suite | Coverage |
+|-------|----------|
+| `01_smoke` | Basic connectivity |
+| `12_auth` | Guest login, session management |
+| `14_admin` | Admin guest management |
+| `14_stories` | Story catalog |
+| `15_story_content` | Story content APIs |
+| `16_content_detail` | Content detail APIs |
+| `17_admin_crud` | Admin CRUD for all story entities |
+
+### Robot seed and command!
+| AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html
+| Java/SQLite | `R__insert_story_seed_data.sql` | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java/report.html
+| Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
+| Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
+| PHP | `code/backend/php/database_seed_dev_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_php.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-php/report.html
+

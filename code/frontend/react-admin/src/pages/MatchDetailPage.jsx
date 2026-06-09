@@ -41,12 +41,22 @@ function UuidCopy({ uuid, children }) {
     })
   }
 
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleClick(e)
+    }
+  }
+
   if (!uuid) return <span style={{ color: 'var(--color-ash)' }}>—</span>
 
   return (
     <span
+      role="button"
+      tabIndex={0}
       title={uuid}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer', fontFamily: children ? 'inherit' : 'monospace' }}
     >
       {children ?? shortUuid(uuid)}

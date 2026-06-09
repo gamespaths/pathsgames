@@ -1,7 +1,8 @@
 # AI
-*.agents*
+.agents/logs
+.agents/rules/_cavemem.mda
 .github/copilot-instructions.md
-CLAUDE.md
+#CLAUDE.md
 
 # Temp developer files
 #tutorial_story.json
