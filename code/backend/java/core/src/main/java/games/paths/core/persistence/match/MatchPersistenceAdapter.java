@@ -4,6 +4,9 @@ import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.port.match.MatchPersistencePort;
+import games.paths.core.repository.match.GamingBackpackResourcesRepository;
+import games.paths.core.repository.match.GamingCharacterInstanceRepository;
+import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
@@ -17,6 +20,10 @@ import java.util.Optional;
 /**
  * MatchPersistenceAdapter - JPA adapter implementing the
  * {@link MatchPersistencePort}. Step 19 — single-player match write side.
+ *
+ * <p>Step 21 — match deletion also removes the per-match character rows
+ * (instance / backpack / traits) so robot-test and admin deletes leave no
+ * orphans on SQLite, where foreign-key cascades are not enforced.</p>
  */
 @Repository
 @Transactional
@@ -25,13 +32,29 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final GamingMatchRepository matchRepository;
     private final GamingStateLocationsRepository locationsRepository;
     private final GamingStateRegistryRepository registryRepository;
+    private final GamingCharacterInstanceRepository characterRepository;
+    private final GamingBackpackResourcesRepository backpackRepository;
+    private final GamingCharacterTraitsRepository characterTraitsRepository;
 
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
                                    GamingStateLocationsRepository locationsRepository,
-                                   GamingStateRegistryRepository registryRepository) {
+                                   GamingStateRegistryRepository registryRepository,
+                                   GamingCharacterInstanceRepository characterRepository,
+                                   GamingBackpackResourcesRepository backpackRepository,
+                                   GamingCharacterTraitsRepository characterTraitsRepository) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
         this.registryRepository = registryRepository;
+        this.characterRepository = characterRepository;
+        this.backpackRepository = backpackRepository;
+        this.characterTraitsRepository = characterTraitsRepository;
+    }
+
+    /** Removes the per-match character rows (traits, backpack, instance) for the given match ids. */
+    private void deleteCharacterState(List<Long> matchIds) {
+        characterTraitsRepository.deleteByMatchIdIn(matchIds);
+        backpackRepository.deleteByMatchIdIn(matchIds);
+        characterRepository.deleteByMatchIdIn(matchIds);
     }
 
     @Override
@@ -70,6 +93,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         if (matchIds.isEmpty()) {
             return 0;
         }
+        deleteCharacterState(matchIds);
         locationsRepository.deleteByMatchIdIn(matchIds);
         registryRepository.deleteByMatchIdIn(matchIds);
         return matchRepository.deleteByNameLike(nameLikePattern);
@@ -98,8 +122,9 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         if (opt.isEmpty()) {
             return false;
         }
-        // Remove the derived runtime state (locations + registry) first.
+        // Remove the derived runtime state (characters + locations + registry) first.
         List<Long> matchIds = List.of(opt.get().getId());
+        deleteCharacterState(matchIds);
         locationsRepository.deleteByMatchIdIn(matchIds);
         registryRepository.deleteByMatchIdIn(matchIds);
         matchRepository.delete(opt.get());

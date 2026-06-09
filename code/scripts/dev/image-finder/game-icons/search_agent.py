@@ -59,7 +59,7 @@ ITALIAN_TO_ENGLISH = {
     "bambina": "baby girl",
     "spada": "sword",
     "guerriero": "warrior",
-    "mostro": "monster",
+    "mostro": "monster creature",
     "drago": "dragon",
     "fuoco": "fire",
     "acqua": "water",
@@ -108,7 +108,6 @@ ITALIAN_TO_ENGLISH = {
     "pozione": "potion",
     "bomba": "bomb",
     "esplosione": "explosion",
-    "veleno": "poison",
     "veloce": "speed sprint",
     "forza": "strength",
     "corsa": "run sprint",
@@ -128,7 +127,6 @@ ITALIAN_TO_ENGLISH = {
     "sangue": "blood",
     "ferita": "wound",
     "cura": "heal cure",
-    "veleno": "poison",
     "trappola": "trap",
     "timore": "fear",
     "coraggio": "courage",
@@ -139,7 +137,6 @@ ITALIAN_TO_ENGLISH = {
     "carta": "card",
     "torre": "tower",
     "dungeon": "dungeon",
-    "mostro": "monster creature",
     "goblin": "goblin",
     "elfo": "elf",
     "nano": "dwarf",
@@ -164,7 +161,6 @@ ITALIAN_TO_ENGLISH = {
     "mano": "hand",
     "piede": "foot",
     "testa": "head face",
-    "scheletro": "skeleton",
     "drago alato": "wyvern dragon wings",
     "mappa": "map",
     "bussola": "compass",
@@ -593,7 +589,7 @@ def build_html(results: list[dict], keyword: str) -> str:
       background: #5a3d7a;
       color: #f0e0ff;
     }}
-a    .btn-img:hover {{ background: #7a50a8; }}
+    .btn-img:hover {{ background: #7a50a8; }}
     .btn-img.copied {{ background: #2a7a50; }}
     .meta {{
       margin-top: 8px;

@@ -92,3 +92,55 @@ export async function endMatch(uuidMatch, uuidEvent, accessToken) {
   )
   return res.data
 }
+
+/** Synthesize a CharacterInstance mirroring what the backend would return. */
+function mockCharacter(uuidMatch, payload) {
+  return {
+    uuid: mockUuid(),
+    matchUuid: uuidMatch ?? null,
+    characterTemplateUuid: payload?.characterTemplateUuid ?? null,
+    classUuid: payload?.classUuid ?? null,
+    dexterity: 1, intelligence: 1, constitution: 1,
+    energy: 0, life: 1, sad: 0,
+    idLocation: null, locationUuid: null, locationName: null,
+    isSleeping: 0, isComa: 0,
+    traitUuids: payload?.traitUuids ?? [],
+    food: 0, magic: 0, coin: 0,
+  }
+}
+
+/**
+ * Step 21 — join a match: instantiate the caller's character. The optional
+ * `payload` carries the loadout (characterTemplateUuid / classUuid / traitUuids);
+ * when omitted the backend falls back to the loadout stored on the match.
+ * Throws on a backend error; mock mode synthesizes a character.
+ */
+export async function joinMatch(uuidMatch, payload, accessToken) {
+  const client = apiClient()
+  if (!client) return mockCharacter(uuidMatch, payload)
+  const res = await client.post(
+    `/api/matches/${uuidMatch}/join`,
+    payload ?? {},
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/** List the characters present in a match. */
+export async function getMatchPlayers(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return []
+  const res = await client.get(`/api/match/${uuidMatch}/players`, authConfig(accessToken))
+  return res.data
+}
+
+/** Retrieve a single character's full detail within a match. */
+export async function getCharacter(uuidMatch, uuidCharacter, accessToken) {
+  const client = apiClient()
+  if (!client) return null
+  const res = await client.get(
+    `/api/match/${uuidMatch}/characters/${uuidCharacter}`,
+    authConfig(accessToken),
+  )
+  return res.data
+}

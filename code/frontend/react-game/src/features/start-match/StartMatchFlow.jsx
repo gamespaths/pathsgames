@@ -9,7 +9,7 @@ import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { buildGameTypeCard, buildLoginCard, buildTermsCard } from '@/utils/loadoutCards'
-import { createMatch } from '@/api/matches'
+import { createMatch, joinMatch } from '@/api/matches'
 import ConfirmStep from './ConfirmStep'
 import MatchStatus from './MatchStatus'
 
@@ -42,7 +42,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   // token on match creation.
   const gate = useAntibot({ cookie: false })
 
-  // phase: 'confirm' → 'starting' → 'creating' → 'created' | 'error'
+  // phase: 'confirm' → 'starting' → 'creating' → 'joining' → 'created' | 'error'
   const [phase, setPhase] = useState('confirm')
   const [termsAccepted, setTermsAccepted] = useState(true)
   const [countdown, setCountdown] = useState(delaySeconds())
@@ -54,18 +54,27 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const runCreateMatch = useCallback(async () => {
     setPhase('creating')
     try {
+      // The selected loadout is reused for both create (stored on the match)
+      // and the Step 21 join (instantiates the character from it).
+      const loadout = {
+        characterTemplateUuid: config.character?.uuid ?? null,
+        classUuid: config.class?.uuid ?? null,
+        traitUuids: config.trait?.uuid ? [config.trait.uuid] : [],
+      }
       const payload = {
         storyUuid: story.uuid,
         difficultyUuid: config.difficulty?.uuid ?? null,
         name: story.title ?? story.name ?? null,
-        characterTemplateUuid: config.character?.uuid ?? null,
-        classUuid: config.class?.uuid ?? null,
-        traitUuids: config.trait?.uuid ? [config.trait.uuid] : [],
+        ...loadout,
         singlePlayer: 1,
         turnstileToken: gate.token,
       }
       const created = await createMatch(payload, user?.accessToken)
       setMatch(created)
+      // Step 21 — auto-join: materialise the character in the freshly created
+      // match before entering the game.
+      setPhase('joining')
+      await joinMatch(created.uuid, loadout, user?.accessToken)
       setPhase('created')
     } catch (e) {
       const apiError = e?.response?.data?.error

@@ -61,6 +61,43 @@ class MatchEventOption:
 
 
 @dataclass
+class CharacterInstanceInfo:
+    """Step 21 — a character materialised in a match (stats + location + backpack)."""
+
+    uuid: str
+    match_uuid: Optional[str] = None
+    user_uuid: Optional[str] = None
+    character_template_uuid: Optional[str] = None
+    class_uuid: Optional[str] = None
+    dexterity: int = 0
+    intelligence: int = 0
+    constitution: int = 0
+    energy: int = 0
+    life: int = 0
+    sad: int = 0
+    id_location: Optional[int] = None
+    location_uuid: Optional[str] = None
+    location_name: Optional[str] = None
+    is_sleeping: int = 0
+    is_coma: int = 0
+    trait_uuids: List[str] = field(default_factory=list)
+    food: int = 0
+    magic: int = 0
+    coin: int = 0
+
+
+@dataclass
+class JoinMatchCommand:
+    """Step 21 — command for POST /api/matches/{uuid}/join."""
+
+    match_uuid: str
+    user_uuid: str
+    character_template_uuid: Optional[str] = None
+    class_uuid: Optional[str] = None
+    trait_uuids: List[str] = field(default_factory=list)
+
+
+@dataclass
 class MatchDetail:
     match: MatchSummary
     current_location_id: Optional[int] = None
@@ -70,6 +107,27 @@ class MatchDetail:
     registry: List[MatchRegistryEntry] = field(default_factory=list)
     events: List[MatchEventOption] = field(default_factory=list)
     choices: List[MatchEventOption] = field(default_factory=list)
+    players: List[CharacterInstanceInfo] = field(default_factory=list)
+
+
+class CharacterJoinError(Exception):
+    """Raised by the character command service when a business rule prevents a
+    join. The :attr:`code` attribute drives the HTTP status mapping."""
+
+    INVALID_INPUT = "INVALID_INPUT"
+    MATCH_NOT_FOUND = "MATCH_NOT_FOUND"
+    USER_NOT_FOUND = "USER_NOT_FOUND"
+    USER_BANNED = "USER_BANNED"
+    TEMPLATE_NOT_FOUND = "TEMPLATE_NOT_FOUND"
+    CLASS_NOT_FOUND = "CLASS_NOT_FOUND"
+    CLASS_NOT_COMPATIBLE = "CLASS_NOT_COMPATIBLE"
+    ALREADY_JOINED = "ALREADY_JOINED"
+    MATCH_NOT_JOINABLE = "MATCH_NOT_JOINABLE"
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+        self.message = message
 
 
 class MatchCreationError(Exception):

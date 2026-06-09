@@ -9,6 +9,7 @@ class MatchDetail
      * @param MatchRegistryEntry[] $registry
      * @param MatchEventOption[] $events
      * @param MatchEventOption[] $choices
+     * @param CharacterInstanceInfo[] $players
      */
     public function __construct(
         public readonly MatchSummary $match,
@@ -18,7 +19,8 @@ class MatchDetail
         public readonly array $locations = [],
         public readonly array $registry = [],
         public readonly array $events = [],
-        public readonly array $choices = []
+        public readonly array $choices = [],
+        public readonly array $players = []
     ) {
     }
 
@@ -33,6 +35,7 @@ class MatchDetail
             'registry' => array_map(fn($r) => $r->toArray(), $this->registry),
             'events' => array_map(fn($e) => $e->toArray(), $this->events),
             'choices' => array_map(fn($c) => $c->toArray(), $this->choices),
+            'players' => array_map(fn($p) => $p->toSummaryArray(), $this->players),
         ];
     }
 }

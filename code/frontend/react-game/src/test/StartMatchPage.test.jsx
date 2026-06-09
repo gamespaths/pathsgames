@@ -29,10 +29,10 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
     user: { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok-1' },
   }),
 }))
-vi.mock('@/api/matches', () => ({ createMatch: vi.fn() }))
+vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn() }))
 
 import StartMatchPage from '../pages/StartMatchPage'
-import { createMatch } from '@/api/matches'
+import { createMatch, joinMatch } from '@/api/matches'
 
 const STORY = {
   uuid: 's1',
@@ -67,6 +67,7 @@ describe('StartMatchPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     ts.behavior = 'success'
+    joinMatch.mockResolvedValue({ uuid: 'c1' }) // Step 21 auto-join succeeds by default
     vi.stubEnv('VITE_MATCH_START_DELAY', '3') // 3s waits keep the test fast
     vi.useFakeTimers()
   })
@@ -116,7 +117,25 @@ describe('StartMatchPage', () => {
       turnstileToken: 'test-token',
     })
     expect(token).toBe('tok-1')
+    // Step 21 — the flow auto-joins the freshly created match with the loadout.
+    expect(joinMatch).toHaveBeenCalledTimes(1)
+    const [joinUuid, loadout] = joinMatch.mock.calls[0]
+    expect(joinUuid).toBe('m1')
+    expect(loadout).toMatchObject({ characterTemplateUuid: 'ch1', classUuid: 'cl1', traitUuids: ['tr1'] })
     expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)
+  })
+
+  it('surfaces an error when the auto-join fails', async () => {
+    createMatch.mockResolvedValue({ uuid: 'm1', status: 'CREATED' })
+    joinMatch.mockRejectedValueOnce(new Error('ALREADY_JOINED'))
+    renderPage({ story: STORY, config: CONFIG })
+    clickStart()
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+
+    expect(joinMatch).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByText(/startMatch\.error/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ALREADY_JOINED').length).toBeGreaterThan(0)
   })
 
   it('jumps to the game page after the created delay', async () => {

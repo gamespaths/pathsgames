@@ -12,6 +12,7 @@ import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.model.match.MatchTraitCodec;
+import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
@@ -33,13 +34,27 @@ public class MatchQueryService implements MatchQueryPort {
     private final MatchReadPort matchReadPort;
     private final StoryReadPort storyReadPort;
     private final UserAccessPort userAccessPort;
+    private final CharacterReadPort characterReadPort;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
                              UserAccessPort userAccessPort) {
+        this(matchReadPort, storyReadPort, userAccessPort, null);
+    }
+
+    /**
+     * Step 21 — the {@code characterReadPort} lets {@link #getMatchInfo} and
+     * {@link #getMatchInfoForAdmin} populate the {@code players} list of the
+     * returned {@link MatchDetail}. When {@code null} the players list stays empty.
+     */
+    public MatchQueryService(MatchReadPort matchReadPort,
+                             StoryReadPort storyReadPort,
+                             UserAccessPort userAccessPort,
+                             CharacterReadPort characterReadPort) {
         this.matchReadPort = matchReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
+        this.characterReadPort = characterReadPort;
     }
 
     @Override
@@ -188,6 +203,15 @@ public class MatchQueryService implements MatchQueryPort {
         // populating them belongs to Step 25+ but the contract is set now.
         detail.setEvents(new ArrayList<>());
         detail.setChoices(new ArrayList<>());
+
+        // Step 21 — populate the players/characters of the match (empty when no
+        // character read port is wired, e.g. in the legacy 3-arg constructor).
+        if (characterReadPort != null) {
+            Long requesterId = userCreatorUuid != null ? match.getIdUserCreator() : null;
+            detail.setPlayers(CharacterMapper.buildAll(
+                    characterReadPort.findCharactersByMatchId(match.getId()),
+                    match, storyReadPort, characterReadPort, userCreatorUuid, requesterId));
+        }
 
         return detail;
     }

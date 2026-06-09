@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { apiClient } from '../api/client'
-import { createMatch, listMatches, getMatchInfo, endMatch } from '../api/matches'
+import {
+  createMatch, listMatches, getMatchInfo, endMatch,
+  joinMatch, getMatchPlayers, getCharacter,
+} from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
 
@@ -40,6 +43,22 @@ describe('matches api', () => {
       const res = await endMatch('m1', 'evt-end-1')
       expect(res.status).toBe('ENDED')
       expect(res.uuid).toBe('m1')
+    })
+
+    it('joinMatch synthesizes a character carrying the match uuid and loadout', async () => {
+      const c = await joinMatch('m1', { characterTemplateUuid: 'ct1', traitUuids: ['t1'] })
+      expect(c.uuid).toBeTruthy()
+      expect(c.matchUuid).toBe('m1')
+      expect(c.characterTemplateUuid).toBe('ct1')
+      expect(c.traitUuids).toEqual(['t1'])
+    })
+
+    it('getMatchPlayers returns an empty array', async () => {
+      expect(await getMatchPlayers('m1')).toEqual([])
+    })
+
+    it('getCharacter returns null', async () => {
+      expect(await getCharacter('m1', 'c1')).toBeNull()
     })
   })
 
@@ -100,6 +119,36 @@ describe('matches api', () => {
     it('endMatch propagates a 406 EVENT_NOT_END_GAME error', async () => {
       patch.mockRejectedValue(new Error('EVENT_NOT_END_GAME'))
       await expect(endMatch('m1', 'evt-wrong', 'tok')).rejects.toThrow('EVENT_NOT_END_GAME')
+    })
+
+    it('joinMatch posts to /api/matches/{uuid}/join with the loadout and bearer token', async () => {
+      post.mockResolvedValue({ data: { uuid: 'c1', life: 137 } })
+      const res = await joinMatch('m1', { characterTemplateUuid: 'ct1' }, 'tok-abc')
+      expect(post).toHaveBeenCalledWith(
+        '/api/matches/m1/join',
+        { characterTemplateUuid: 'ct1' },
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok-abc' } }),
+      )
+      expect(res).toEqual({ uuid: 'c1', life: 137 })
+    })
+
+    it('joinMatch sends an empty body when no loadout is given', async () => {
+      post.mockResolvedValue({ data: { uuid: 'c1' } })
+      await joinMatch('m1', null, 'tok')
+      expect(post).toHaveBeenCalledWith('/api/matches/m1/join', {}, expect.any(Object))
+    })
+
+    it('getMatchPlayers gets /api/match/{uuid}/players', async () => {
+      get.mockResolvedValue({ data: [{ uuid: 'c1' }] })
+      const res = await getMatchPlayers('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/players', expect.any(Object))
+      expect(res).toEqual([{ uuid: 'c1' }])
+    })
+
+    it('getCharacter gets /api/match/{uuid}/characters/{uuidChar}', async () => {
+      get.mockResolvedValue({ data: { uuid: 'c1', life: 137 } })
+      await getCharacter('m1', 'c1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/characters/c1', expect.any(Object))
     })
   })
 })

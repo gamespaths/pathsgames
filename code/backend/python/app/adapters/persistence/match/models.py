@@ -66,3 +66,60 @@ class GamingStateRegistryEntity(Base):
     id_mission_steps = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class GamingCharacterInstanceEntity(Base):
+    """Step 21 — a character materialised in a match (one per user per match)."""
+
+    __tablename__ = "gaming_character_instance"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id_character_template = Column(Integer, nullable=False)
+    dexterity = Column(Integer, default=1, nullable=False)
+    intelligence = Column(Integer, default=1, nullable=False)
+    constitution = Column(Integer, default=1, nullable=False)
+    energy = Column(Integer, default=0, nullable=False)
+    life = Column(Integer, default=1, nullable=False)
+    sad = Column(Integer, default=0, nullable=False)
+    id_location = Column(Integer)
+    is_sleeping = Column(Integer, default=0, nullable=False)
+    is_coma = Column(Integer, default=0, nullable=False)
+    clock_in_coma = Column(Integer, default=0)
+    timestamp_last_pass = Column(String(50))
+    counter_consecutive_pass = Column(Integer, default=0, nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingBackpackResourcesEntity(Base):
+    """Step 21 — backpack resources seeded for a character instance."""
+
+    __tablename__ = "gaming_backpack_resources"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    food = Column(Integer, default=0, nullable=False)
+    magic = Column(Integer, default=0, nullable=False)
+    coin = Column(Integer, default=0, nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingCharacterTraitsEntity(Base):
+    """Step 21 — the traits selected for a character instance."""
+
+    __tablename__ = "gaming_character_traits"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_traits = Column(Integer, nullable=False)
+    id_event = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

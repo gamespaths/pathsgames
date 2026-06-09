@@ -55,6 +55,11 @@ class RouteRegistrar
 
             // Step 20.1 — Player ends a match by supplying the story's end-game event uuid
             $group->patch('/match/{uuidMatch}/end/{uuidEvent}', [$c['match'], 'endMatch']);
+
+            // Step 21 — Character template & class selection (player)
+            $group->post('/matches/{uuidMatch}/join', [$c['character'], 'join']);
+            $group->get('/match/{uuidMatch}/players', [$c['character'], 'listPlayers']);
+            $group->get('/match/{uuidMatch}/characters/{uuidCharacter}', [$c['character'], 'getCharacter']);
         })->add($authMiddleware);
     }
 

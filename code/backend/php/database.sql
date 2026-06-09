@@ -491,3 +491,56 @@ CREATE TABLE IF NOT EXISTS gaming_state_registry (
     PRIMARY KEY (id, id_match),
     FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- Step 21 — character template & class selection runtime tables.
+CREATE TABLE IF NOT EXISTS gaming_character_instance (
+    id BIGINT NOT NULL,
+    id_match BIGINT NOT NULL,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    id_user BIGINT NOT NULL,
+    id_character_template BIGINT NOT NULL,
+    dexterity INT NOT NULL DEFAULT 1,
+    intelligence INT NOT NULL DEFAULT 1,
+    constitution INT NOT NULL DEFAULT 1,
+    energy INT NOT NULL DEFAULT 0,
+    life INT NOT NULL DEFAULT 1,
+    sad INT NOT NULL DEFAULT 0,
+    id_location BIGINT DEFAULT NULL,
+    is_sleeping INT NOT NULL DEFAULT 0,
+    is_coma INT NOT NULL DEFAULT 0,
+    clock_in_coma INT DEFAULT 0,
+    timestamp_last_pass DATETIME DEFAULT NULL,
+    counter_consecutive_pass INT NOT NULL DEFAULT 0,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, id_match),
+    FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS gaming_backpack_resources (
+    id BIGINT NOT NULL,
+    id_match BIGINT NOT NULL,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    id_character_match BIGINT NOT NULL,
+    food INT NOT NULL DEFAULT 0,
+    magic INT NOT NULL DEFAULT 0,
+    coin INT NOT NULL DEFAULT 0,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, id_match),
+    UNIQUE KEY uq_backpack_char (id_character_match, id_match),
+    FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS gaming_character_traits (
+    id BIGINT NOT NULL,
+    id_match BIGINT NOT NULL,
+    uuid VARCHAR(36) NOT NULL UNIQUE,
+    id_character_match BIGINT NOT NULL,
+    id_traits BIGINT NOT NULL,
+    id_event BIGINT DEFAULT NULL,
+    ts_insert DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ts_update DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id, id_match),
+    FOREIGN KEY (id_match) REFERENCES gaming_match(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

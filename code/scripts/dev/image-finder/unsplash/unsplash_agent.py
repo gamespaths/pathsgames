@@ -42,7 +42,7 @@ def search_photos(query: str, max_results: int = 20) -> list[dict]:
     if not UNSPLASH_ACCESS_KEY or UNSPLASH_ACCESS_KEY == "YOUR_ACCESS_KEY_HERE":
         raise ValueError(
             "Unsplash Access Key not configured. "
-            "Edit .alnao/unsplash/config.py and insert your key."
+            "Edit unsplash/config.py or set the UNSPLASH_ACCESS_KEY environment variable."
         )
 
     per_page = min(max_results, 30)           # API max 30 per call

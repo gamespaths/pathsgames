@@ -6,6 +6,7 @@ use Games\Paths\Core\Domain\Matches\MatchDetail;
 use Games\Paths\Core\Domain\Matches\MatchLocationState;
 use Games\Paths\Core\Domain\Matches\MatchRegistryEntry;
 use Games\Paths\Core\Domain\Matches\MatchSummary;
+use Games\Paths\Core\Port\Matches\CharacterReadPort;
 use Games\Paths\Core\Port\Matches\MatchPersistencePort;
 use Games\Paths\Core\Port\Matches\MatchQueryPort;
 use Games\Paths\Core\Port\Matches\StoryMatchReadPort;
@@ -16,7 +17,9 @@ class MatchQueryService implements MatchQueryPort
     public function __construct(
         private readonly MatchPersistencePort $persistencePort,
         private readonly StoryMatchReadPort $storyReadPort,
-        private readonly UserAccessPort $userAccessPort
+        private readonly UserAccessPort $userAccessPort,
+        // Step 21 — optional; when set, buildDetail populates the players list.
+        private readonly ?CharacterReadPort $characterReadPort = null
     ) {
     }
 
@@ -136,6 +139,18 @@ class MatchQueryService implements MatchQueryPort
             ? $locationsById[$currentLocationId]
             : null;
 
+        // Step 21 — populate the players/characters of the match (empty when no
+        // character read port is wired).
+        $players = [];
+        if ($this->characterReadPort !== null) {
+            $requesterId = $userCreatorUuid !== null ? (int)$match['id_user_creator'] : null;
+            $players = CharacterMapper::buildAll(
+                $this->characterReadPort->findCharactersByMatchId((int)$match['id']),
+                $match, $this->storyReadPort, $this->characterReadPort,
+                $userCreatorUuid, $requesterId
+            );
+        }
+
         return new MatchDetail(
             match: $this->toSummary(
                 $match,
@@ -149,7 +164,8 @@ class MatchQueryService implements MatchQueryPort
             locations: $locationStates,
             registry: $registry,
             events: [],
-            choices: []
+            choices: [],
+            players: $players
         );
     }
 

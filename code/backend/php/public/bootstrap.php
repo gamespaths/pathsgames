@@ -63,11 +63,15 @@ use Games\Paths\Adapter\Rest\Story\StoryCrudAdminController;
 use Games\Paths\Adapter\Persistence\Matches\MatchMysqlPersistenceAdapter;
 use Games\Paths\Adapter\Persistence\Matches\StoryMatchMysqlReadAdapter;
 use Games\Paths\Adapter\Persistence\Matches\UserAccessMysqlAdapter;
+use Games\Paths\Adapter\Persistence\Matches\CharacterMysqlPersistenceAdapter;
 use Games\Paths\Core\Service\Matches\MatchCommandService;
 use Games\Paths\Core\Service\Matches\MatchQueryService;
+use Games\Paths\Core\Service\Matches\CharacterCommandService;
+use Games\Paths\Core\Service\Matches\CharacterQueryService;
 use Games\Paths\Core\Service\Matches\PropertySystemModeService;
 use Games\Paths\Adapter\Rest\Matches\MatchController;
 use Games\Paths\Adapter\Rest\Matches\MatchAdminController;
+use Games\Paths\Adapter\Rest\Matches\CharacterController;
 use Games\Paths\Adapter\Turnstile\TurnstileVerificationAdapter;
 
 // Dev-only test-data cleanup
@@ -195,10 +199,25 @@ $matchCommandService = new MatchCommandService(
     $matchSystemModeService,
     $turnstileAdapter
 );
+// Step 21 — character join wiring
+$characterPersistenceRepo = new CharacterMysqlPersistenceAdapter($pdo);
+$characterCommandService = new CharacterCommandService(
+    $storyMatchReadRepo,
+    $matchPersistenceRepo,
+    $userAccessRepo,
+    $characterPersistenceRepo
+);
+$characterQueryService = new CharacterQueryService(
+    $matchPersistenceRepo,
+    $characterPersistenceRepo,
+    $storyMatchReadRepo,
+    $userAccessRepo
+);
 $matchQueryService = new MatchQueryService(
     $matchPersistenceRepo,
     $storyMatchReadRepo,
-    $userAccessRepo
+    $userAccessRepo,
+    $characterPersistenceRepo
 );
 
 // Dev-only test-data cleanup service
@@ -215,6 +234,7 @@ $contentController = new ContentController($contentQueryService);
 $storyCrudAdminController = new StoryCrudAdminController($storyCrudService);
 $matchController = new MatchController($matchCommandService, $matchQueryService);
 $matchAdminController = new MatchAdminController($matchCommandService, $matchQueryService);
+$characterController = new CharacterController($characterCommandService, $characterQueryService);
 $devController = new DevController($testDataCleanupService, $devTestEndpointsEnabled);
 
 // ─── Authentication Middleware ───
@@ -244,6 +264,7 @@ return [
         'storyCrudAdmin' => $storyCrudAdminController,
         'match' => $matchController,
         'matchAdmin' => $matchAdminController,
+        'character' => $characterController,
         'dev' => $devController,
     ],
 ];

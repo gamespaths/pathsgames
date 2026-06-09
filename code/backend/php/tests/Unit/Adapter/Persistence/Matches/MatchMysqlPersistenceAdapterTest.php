@@ -92,6 +92,12 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
                 max_weight INTEGER,
                 min_character INTEGER,
                 max_character INTEGER,
+                life INTEGER DEFAULT 0,
+                energy INTEGER DEFAULT 0,
+                sad INTEGER DEFAULT 0,
+                dexterity INTEGER DEFAULT 0,
+                intelligence INTEGER DEFAULT 0,
+                constitution INTEGER DEFAULT 0,
                 PRIMARY KEY (id, id_story)
             )'
         );
@@ -121,6 +127,30 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
                 username TEXT,
                 role TEXT,
                 state INTEGER
+            )'
+        );
+        // Step 21 — character runtime tables (referenced by the cleanup deletes).
+        $this->pdo->exec(
+            'CREATE TABLE gaming_character_instance (
+                id INTEGER, id_match INTEGER, uuid TEXT, id_user INTEGER, id_character_template INTEGER,
+                dexterity INTEGER, intelligence INTEGER, constitution INTEGER, energy INTEGER, life INTEGER,
+                sad INTEGER, id_location INTEGER, is_sleeping INTEGER, is_coma INTEGER,
+                counter_consecutive_pass INTEGER, ts_insert TEXT, ts_update TEXT,
+                PRIMARY KEY (id, id_match)
+            )'
+        );
+        $this->pdo->exec(
+            'CREATE TABLE gaming_backpack_resources (
+                id INTEGER, id_match INTEGER, uuid TEXT, id_character_match INTEGER,
+                food INTEGER, magic INTEGER, coin INTEGER, ts_insert TEXT, ts_update TEXT,
+                PRIMARY KEY (id, id_match)
+            )'
+        );
+        $this->pdo->exec(
+            'CREATE TABLE gaming_character_traits (
+                id INTEGER, id_match INTEGER, uuid TEXT, id_character_match INTEGER, id_traits INTEGER,
+                ts_insert TEXT, ts_update TEXT,
+                PRIMARY KEY (id, id_match)
             )'
         );
     }

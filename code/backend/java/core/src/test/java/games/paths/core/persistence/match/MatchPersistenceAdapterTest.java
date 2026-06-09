@@ -3,6 +3,9 @@ package games.paths.core.persistence.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.repository.match.GamingBackpackResourcesRepository;
+import games.paths.core.repository.match.GamingCharacterInstanceRepository;
+import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
@@ -22,6 +25,9 @@ class MatchPersistenceAdapterTest {
     private GamingMatchRepository matchRepository;
     private GamingStateLocationsRepository locationsRepository;
     private GamingStateRegistryRepository registryRepository;
+    private GamingCharacterInstanceRepository characterRepository;
+    private GamingBackpackResourcesRepository backpackRepository;
+    private GamingCharacterTraitsRepository characterTraitsRepository;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -30,7 +36,11 @@ class MatchPersistenceAdapterTest {
         matchRepository = mock(GamingMatchRepository.class);
         locationsRepository = mock(GamingStateLocationsRepository.class);
         registryRepository = mock(GamingStateRegistryRepository.class);
-        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository);
+        characterRepository = mock(GamingCharacterInstanceRepository.class);
+        backpackRepository = mock(GamingBackpackResourcesRepository.class);
+        characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
+        adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
+                characterRepository, backpackRepository, characterTraitsRepository);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
     }
 
@@ -86,6 +96,7 @@ class MatchPersistenceAdapterTest {
         assertEquals(0, deleted);
         verify(locationsRepository, never()).deleteByMatchIdIn(any());
         verify(registryRepository, never()).deleteByMatchIdIn(any());
+        verify(characterRepository, never()).deleteByMatchIdIn(any());
         verify(matchRepository, never()).deleteByNameLike(any());
     }
 
@@ -98,6 +109,9 @@ class MatchPersistenceAdapterTest {
         int deleted = adapter.deleteMatchesByNameLike("robottest%");
 
         assertEquals(2, deleted);
+        verify(characterTraitsRepository).deleteByMatchIdIn(ids);
+        verify(backpackRepository).deleteByMatchIdIn(ids);
+        verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryRepository).deleteByMatchIdIn(ids);
         verify(matchRepository).deleteByNameLike("robottest%");
@@ -145,6 +159,9 @@ class MatchPersistenceAdapterTest {
 
         assertTrue(adapter.deleteMatchByUuid("u"));
 
+        verify(characterTraitsRepository).deleteByMatchIdIn(List.of(5L));
+        verify(backpackRepository).deleteByMatchIdIn(List.of(5L));
+        verify(characterRepository).deleteByMatchIdIn(List.of(5L));
         verify(locationsRepository).deleteByMatchIdIn(List.of(5L));
         verify(registryRepository).deleteByMatchIdIn(List.of(5L));
         verify(matchRepository).delete(m);

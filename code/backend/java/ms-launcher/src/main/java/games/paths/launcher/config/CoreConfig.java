@@ -15,6 +15,10 @@ import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 import games.paths.core.port.story.ContentQueryPort;
+import games.paths.core.port.match.CharacterCommandPort;
+import games.paths.core.port.match.CharacterPersistencePort;
+import games.paths.core.port.match.CharacterQueryPort;
+import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.MatchQueryPort;
@@ -32,6 +36,8 @@ import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
 import games.paths.core.service.story.ContentQueryService;
+import games.paths.core.service.match.CharacterCommandService;
+import games.paths.core.service.match.CharacterQueryService;
 import games.paths.core.service.match.MatchCommandService;
 import games.paths.core.service.match.MatchQueryService;
 import games.paths.core.service.match.PropertySystemModeService;
@@ -157,8 +163,29 @@ public class CoreConfig {
     @Bean
     public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
                                          StoryReadPort storyReadPort,
-                                         UserAccessPort userAccessPort) {
-        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
+                                         UserAccessPort userAccessPort,
+                                         CharacterReadPort characterReadPort) {
+        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort, characterReadPort);
+    }
+
+    // ───── Step 21: Character template & class selection ─────
+
+    @Bean
+    public CharacterCommandPort characterCommandPort(StoryReadPort storyReadPort,
+                                                     MatchReadPort matchReadPort,
+                                                     UserAccessPort userAccessPort,
+                                                     CharacterPersistencePort characterPersistencePort) {
+        return new CharacterCommandService(storyReadPort, matchReadPort,
+                userAccessPort, characterPersistencePort);
+    }
+
+    @Bean
+    public CharacterQueryPort characterQueryPort(MatchReadPort matchReadPort,
+                                                 CharacterReadPort characterReadPort,
+                                                 StoryReadPort storyReadPort,
+                                                 UserAccessPort userAccessPort) {
+        return new CharacterQueryService(matchReadPort, characterReadPort,
+                storyReadPort, userAccessPort);
     }
 
     // ───── Dev-only test-data cleanup ─────

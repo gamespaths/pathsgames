@@ -2,7 +2,13 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from app.core.models.match.match_models import MatchCreateCommand, MatchDetail, MatchSummary
+from app.core.models.match.match_models import (
+    CharacterInstanceInfo,
+    JoinMatchCommand,
+    MatchCreateCommand,
+    MatchDetail,
+    MatchSummary,
+)
 
 
 class MatchCommandPort(ABC):
@@ -141,6 +147,97 @@ class StoryMatchReadPort(ABC):
     def find_event_by_story_id_and_uuid(self, story_id: int, uuid_event: str) -> Optional[Dict[str, Any]]:
         """Step 20.1 — return ``{"id": int, "uuid": str}`` for the event with
         the given uuid in the given story, or ``None`` when no such event exists."""
+        ...
+
+    # === Step 21 — character template / class / trait lookups ===
+
+    @abstractmethod
+    def find_character_template_by_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        """Return a template dict (id_tipo, uuid, *_max, *_start, id_class_permitted,
+        id_class_prohibited) or None."""
+        ...
+
+    @abstractmethod
+    def find_character_templates_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Return all character templates of a story (used to map id_tipo -> uuid)."""
+        ...
+
+    @abstractmethod
+    def find_class_by_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        """Return a class dict (id, uuid, *_base, weight_max) or None."""
+        ...
+
+    @abstractmethod
+    def find_trait_by_uuid(self, story_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        """Return a trait dict (id, uuid, life/energy/sad/dexterity/intelligence/constitution) or None."""
+        ...
+
+    @abstractmethod
+    def find_traits_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Return all traits of a story (used to map trait id -> uuid)."""
+        ...
+
+    @abstractmethod
+    def find_class_bonuses_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Return all class-bonus rows of a story ({id_class, statistic, value})."""
+        ...
+
+
+class CharacterCommandPort(ABC):
+    @abstractmethod
+    def join(self, command: JoinMatchCommand) -> CharacterInstanceInfo:
+        """Step 21 — instantiate the caller's character in the match. Raises
+        :class:`CharacterJoinError` for validation failures."""
+
+
+class CharacterQueryPort(ABC):
+    @abstractmethod
+    def list_players(self, match_uuid: str, user_uuid: str) -> Optional[List[CharacterInstanceInfo]]:
+        """Return the characters of a match, or None when the match is missing
+        or the user has no access."""
+
+    @abstractmethod
+    def get_character(self, match_uuid: str, character_uuid: str, user_uuid: str) -> Optional[CharacterInstanceInfo]:
+        """Return a single character detail, or None when missing/not accessible."""
+
+
+class CharacterPersistencePort(ABC):
+    @abstractmethod
+    def save_character(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        ...
+
+    @abstractmethod
+    def save_backpack(self, row: Dict[str, Any]) -> None:
+        ...
+
+    @abstractmethod
+    def save_traits(self, rows: List[Dict[str, Any]]) -> None:
+        ...
+
+    @abstractmethod
+    def find_character_by_match_and_user(self, match_id: int, user_id: int) -> Optional[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def count_characters_by_match_id(self, match_id: int) -> int:
+        ...
+
+
+class CharacterReadPort(ABC):
+    @abstractmethod
+    def find_characters_by_match_id(self, match_id: int) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def find_character_by_match_and_uuid(self, match_id: int, uuid: str) -> Optional[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def find_backpack(self, match_id: int, character_id: int) -> Optional[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def find_traits(self, match_id: int, character_id: int) -> List[Dict[str, Any]]:
         ...
 
 

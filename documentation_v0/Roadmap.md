@@ -33,11 +33,12 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 18 | [Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
 | 20 | [Game first run](./Step20_GameWebSiteFirstRun.md) | ✅ | Game web site first run |
+| 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
 
 
 | Steps | Phase |
 | -- | -- |
-| 21-24 | Single-player match setup (create, character select, traits, frontend UI) |
+| 22-24 | Single-player match setup (story validation, traits, frontend UI) |
 | 25-27 | Core engine (turn cycle, time system, weather) |
 | 28-32 | Game mechanics — movement, events, choices |
 | 33-37 | Game mechanics — inventory, resources, registry, missions, experience |
@@ -66,15 +67,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 
 
-21. Character template and class selection
-    - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
-    - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
-    - Validate character template belongs to the story and class is compatible with selected template (backend)
-    - Create gaming_character_instance record with base stats from template, apply class stat bonuses (backend)
-    - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
-    - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
-    - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
-    - On admin project: create a matchs details page with players and characters list of a match (add others informations like locations, character positions, character choices, events status, actual registry, ecc..  )
 22. Story validation and integrity checking
     - Implement story validator service checking referential integrity across all story entities (backend)
     - Validate all location neighbors reference existing locations with consistent directions (backend)
@@ -765,8 +757,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
     | 0.19.2 | added step 19.1 (dev test-data cleanup) and step 19.2 (admin match control) to completed steps table | May 21, 2026 |
     | 0.20.5 | added Step 20a (admin endpoint split / port 8044 / AWS admin API + IP authorizer) to completed steps table | June 4, 2026 |
-    | 0.21.0 | added Step 21 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
-- **Last Updated**: June 5, 2026
+    | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
+    | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
+- **Last Updated**: June 9, 2026
 - **Status**: In progress
 
 

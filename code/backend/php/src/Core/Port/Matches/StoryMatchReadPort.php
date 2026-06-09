@@ -21,4 +21,18 @@ interface StoryMatchReadPort
      * or null when no such event exists.
      */
     public function findEventByStoryIdAndUuid(int $storyId, string $uuidEvent): ?array;
+
+    // === Step 21 — character template / class / trait lookups ===
+
+    public function findCharacterTemplateByUuid(int $storyId, string $uuid): ?array;
+
+    public function findCharacterTemplatesByStoryId(int $storyId): array;
+
+    public function findClassByUuid(int $storyId, string $uuid): ?array;
+
+    public function findTraitByUuid(int $storyId, string $uuid): ?array;
+
+    public function findTraitsByStoryId(int $storyId): array;
+
+    public function findClassBonusesByStoryId(int $storyId): array;
 }

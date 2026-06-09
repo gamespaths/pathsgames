@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from app.adapters.persistence.match.models import (
+    GamingBackpackResourcesEntity,
+    GamingCharacterInstanceEntity,
+    GamingCharacterTraitsEntity,
     GamingMatchEntity,
     GamingStateLocationEntity,
     GamingStateRegistryEntity,
@@ -174,6 +177,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             ]
             if not ids:
                 return 0
+            self._delete_character_state(session, ids)
             session.query(GamingStateLocationEntity).filter(
                 GamingStateLocationEntity.id_match.in_(ids)
             ).delete(synchronize_session=False)
@@ -209,7 +213,8 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             if entity is None:
                 return False
             match_id = entity.id
-            # Remove the derived runtime state (locations + registry) first.
+            # Remove the derived runtime state (characters + locations + registry) first.
+            self._delete_character_state(session, [match_id])
             session.query(GamingStateLocationEntity).filter(
                 GamingStateLocationEntity.id_match == match_id
             ).delete(synchronize_session=False)
@@ -219,6 +224,19 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             session.delete(entity)
             session.commit()
             return True
+
+    @staticmethod
+    def _delete_character_state(session, match_ids: List[int]) -> None:
+        """Step 21 — remove per-match character rows (traits, backpack, instances)."""
+        session.query(GamingCharacterTraitsEntity).filter(
+            GamingCharacterTraitsEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        session.query(GamingBackpackResourcesEntity).filter(
+            GamingBackpackResourcesEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        session.query(GamingCharacterInstanceEntity).filter(
+            GamingCharacterInstanceEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
 
     @staticmethod
     def _match_to_dict(entity: GamingMatchEntity) -> Dict[str, Any]:

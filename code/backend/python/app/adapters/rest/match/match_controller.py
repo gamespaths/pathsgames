@@ -62,6 +62,51 @@ def _summary_to_camel(summary):
     }
 
 
+def _character_summary_to_camel(p):
+    """Step 21 — lightweight character row (players list / MatchInfo.players)."""
+    return {
+        "uuid": p.uuid,
+        "userUuid": p.user_uuid,
+        "characterTemplateUuid": p.character_template_uuid,
+        "dexterity": p.dexterity,
+        "intelligence": p.intelligence,
+        "constitution": p.constitution,
+        "energy": p.energy,
+        "life": p.life,
+        "sad": p.sad,
+        "idLocation": p.id_location,
+        "locationName": p.location_name,
+        "isSleeping": p.is_sleeping,
+        "isComa": p.is_coma,
+    }
+
+
+def _character_full_to_camel(p):
+    """Step 21 — full character detail (join / character endpoint)."""
+    return {
+        "uuid": p.uuid,
+        "matchUuid": p.match_uuid,
+        "userUuid": p.user_uuid,
+        "characterTemplateUuid": p.character_template_uuid,
+        "classUuid": p.class_uuid,
+        "dexterity": p.dexterity,
+        "intelligence": p.intelligence,
+        "constitution": p.constitution,
+        "energy": p.energy,
+        "life": p.life,
+        "sad": p.sad,
+        "idLocation": p.id_location,
+        "locationUuid": p.location_uuid,
+        "locationName": p.location_name,
+        "isSleeping": p.is_sleeping,
+        "isComa": p.is_coma,
+        "traitUuids": list(p.trait_uuids),
+        "food": p.food,
+        "magic": p.magic,
+        "coin": p.coin,
+    }
+
+
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
@@ -89,6 +134,7 @@ def _detail_to_camel(detail):
         ],
         "events": [asdict(e) for e in detail.events],
         "choices": [asdict(c) for c in detail.choices],
+        "players": [_character_summary_to_camel(p) for p in detail.players],
     }
 
 

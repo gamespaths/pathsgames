@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.dto;
 
+import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchLocationState;
@@ -22,6 +23,7 @@ public class MatchInfoResponse {
     private List<RegistryEntryDto> registry = new ArrayList<>();
     private List<EventOptionDto> events = new ArrayList<>();
     private List<EventOptionDto> choices = new ArrayList<>();
+    private List<CharacterSummaryResponse> players = new ArrayList<>();
 
     public MatchInfoResponse() {
     }
@@ -44,6 +46,9 @@ public class MatchInfoResponse {
         }
         for (MatchEventOption c : d.getChoices()) {
             r.choices.add(EventOptionDto.fromModel(c));
+        }
+        for (CharacterInstanceInfo p : d.getPlayers()) {
+            r.players.add(CharacterSummaryResponse.fromModel(p));
         }
         return r;
     }
@@ -71,6 +76,9 @@ public class MatchInfoResponse {
 
     public List<EventOptionDto> getChoices() { return choices; }
     public void setChoices(List<EventOptionDto> choices) { this.choices = choices; }
+
+    public List<CharacterSummaryResponse> getPlayers() { return players; }
+    public void setPlayers(List<CharacterSummaryResponse> players) { this.players = players; }
 
     public static class LocationStateDto {
         private Long idLocation;

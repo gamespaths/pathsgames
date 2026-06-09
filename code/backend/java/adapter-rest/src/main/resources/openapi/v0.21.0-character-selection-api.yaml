@@ -1,0 +1,254 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Character Template & Class Selection API
+  description: |
+    OpenAPI specification for the **character template and class selection**
+    endpoints introduced in version 0.21.0 (Step 21).
+
+    A player joins a match and materialises a character. The final statistics
+    are computed from the character template (base stats), the selected class
+    (base attributes plus the class-bonus rows), the difficulty stat deltas and
+    the selected traits. Life and energy start at their computed maximum and the
+    character is placed at the story start location. A backpack
+    (`food`/`magic`/`coin`) is seeded for the character.
+
+    The join body is optional: when a field is omitted the backend falls back to
+    the loadout stored on the match at creation time (the single-player path).
+
+    The `GET /api/match/{uuidMatch}/info` and
+    `GET /api/admin/matches/{uuidMatch}/info` responses are additively extended
+    with a `players` array (the same `CharacterSummary` shape returned by
+    `GET /api/match/{uuidMatch}/players`).
+
+    All four backend implementations (Java, Python, PHP, AWS Lambda) honour this
+    contract. The Java backend is the reference.
+  version: 0.21.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server (public/player API)
+
+tags:
+  - name: Player Characters
+    description: Player-facing character endpoints
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/matches/{uuidMatch}/join:
+    post:
+      tags: [Player Characters]
+      summary: Join a match and instantiate a character
+      description: |
+        Creates the caller's `gaming_character_instance` (plus its backpack and
+        trait rows) in the given match. The request body is optional; any field
+        omitted falls back to the loadout stored on the match at creation.
+
+        One character per user per match: a second join returns `409
+        ALREADY_JOINED`. A match in a terminal status (`ENDED`/`GAMEOVER`)
+        returns `409 MATCH_NOT_JOINABLE`.
+      operationId: joinMatch
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinMatchRequest'
+      responses:
+        '201':
+          description: Character created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharacterInstance'
+        '400':
+          description: '`INVALID_INPUT` — no template available (none in body, none on the match)'
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: '`USER_BANNED` — the user is blocked or banned'
+        '404':
+          description: '`MATCH_NOT_FOUND` / `TEMPLATE_NOT_FOUND` / `CLASS_NOT_FOUND` / `USER_NOT_FOUND`'
+        '409':
+          description: '`ALREADY_JOINED` / `CLASS_NOT_COMPATIBLE` / `MATCH_NOT_JOINABLE`'
+
+  /api/match/{uuidMatch}/players:
+    get:
+      tags: [Player Characters]
+      summary: List the characters of a match
+      description: |
+        Returns the characters present in the match. Access is granted to the
+        match creator or to any user who already has a character in the match.
+      operationId: listMatchPlayers
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: Array of character summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CharacterSummary'
+        '401':
+          description: Missing or invalid Bearer token
+        '404':
+          description: '`MATCH_NOT_FOUND` — match missing or not accessible'
+
+  /api/match/{uuidMatch}/characters/{uuidCharacter}:
+    get:
+      tags: [Player Characters]
+      summary: Get a single character with all statistics
+      operationId: getMatchCharacter
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - name: uuidCharacter
+          in: path
+          required: true
+          description: The character instance uuid
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Character detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CharacterInstance'
+        '401':
+          description: Missing or invalid Bearer token
+        '404':
+          description: '`CHARACTER_NOT_FOUND` — match/character missing or not accessible'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      description: The match uuid
+      schema:
+        type: string
+  schemas:
+    JoinMatchRequest:
+      type: object
+      description: |
+        All fields optional. Omitted fields fall back to the loadout stored on
+        the match at creation time.
+      properties:
+        characterTemplateUuid:
+          type: string
+          nullable: true
+        classUuid:
+          type: string
+          nullable: true
+        traitUuids:
+          type: array
+          items:
+            type: string
+    CharacterSummary:
+      type: object
+      description: Lightweight character row used by the players list and embedded in MatchInfo.players
+      properties:
+        uuid:
+          type: string
+        userUuid:
+          type: string
+          nullable: true
+        characterTemplateUuid:
+          type: string
+          nullable: true
+        dexterity:
+          type: integer
+        intelligence:
+          type: integer
+        constitution:
+          type: integer
+        energy:
+          type: integer
+        life:
+          type: integer
+        sad:
+          type: integer
+        idLocation:
+          type: integer
+          format: int64
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        isSleeping:
+          type: integer
+        isComa:
+          type: integer
+    CharacterInstance:
+      type: object
+      description: Full character detail (computed stats, location, traits and backpack)
+      properties:
+        uuid:
+          type: string
+        matchUuid:
+          type: string
+        userUuid:
+          type: string
+          nullable: true
+        characterTemplateUuid:
+          type: string
+          nullable: true
+        classUuid:
+          type: string
+          nullable: true
+          description: Echoed on join; not persisted per-instance, so null on read endpoints
+        dexterity:
+          type: integer
+        intelligence:
+          type: integer
+        constitution:
+          type: integer
+        energy:
+          type: integer
+          description: Starts at the computed maximum
+        life:
+          type: integer
+          description: Starts at the computed maximum
+        sad:
+          type: integer
+        idLocation:
+          type: integer
+          format: int64
+          nullable: true
+        locationUuid:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        isSleeping:
+          type: integer
+        isComa:
+          type: integer
+        traitUuids:
+          type: array
+          items:
+            type: string
+        food:
+          type: integer
+        magic:
+          type: integer
+        coin:
+          type: integer

@@ -470,3 +470,14 @@ UPDATE list_stories SET id_card = 91001 WHERE id = 9002;
 INSERT INTO list_creator (id, id_story, creator_name, link) VALUES
 (91001, 9002, 'PathsMaster', 'https://paths.games');
 
+
+-- =============================================================
+-- Step 21 — backfill stable uuids for character templates, classes and traits.
+-- MySQL (unlike the SQLite/Postgres dev schema) has no UUID column default, so
+-- the seed inserts above leave these uuids NULL. Step 21 join/character endpoints
+-- resolve template/class/trait by uuid, and the story-content API exposes them,
+-- so deterministic uuids are required for both the app and the Robot tests.
+-- =============================================================
+UPDATE list_character_templates SET uuid = CONCAT('ct-', id_story, '-', id_tipo) WHERE uuid IS NULL OR uuid = '';
+UPDATE list_classes             SET uuid = CONCAT('cl-', id_story, '-', id)      WHERE uuid IS NULL OR uuid = '';
+UPDATE list_traits              SET uuid = CONCAT('tr-', id_story, '-', id)      WHERE uuid IS NULL OR uuid = '';

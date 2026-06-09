@@ -8,11 +8,13 @@ from app.core.models.match.match_models import (
     MatchSummary,
 )
 from app.core.ports.match.match_ports import (
+    CharacterReadPort,
     MatchPersistencePort,
     MatchQueryPort,
     StoryMatchReadPort,
     UserAccessPort,
 )
+from app.core.services.match.character_query_service import build_character_infos
 
 
 class MatchQueryService(MatchQueryPort):
@@ -21,10 +23,13 @@ class MatchQueryService(MatchQueryPort):
         match_persistence_port: MatchPersistencePort,
         story_read_port: StoryMatchReadPort,
         user_access_port: UserAccessPort,
+        character_read_port: Optional[CharacterReadPort] = None,
     ) -> None:
         self.match_persistence_port = match_persistence_port
         self.story_read_port = story_read_port
         self.user_access_port = user_access_port
+        # Step 21 — optional; when set, _build_detail populates the players list.
+        self.character_read_port = character_read_port
 
     def list_user_matches(self, user_uuid: str) -> List[MatchSummary]:
         if not user_uuid:
@@ -121,6 +126,17 @@ class MatchQueryService(MatchQueryPort):
             difficulty["uuid"] if difficulty else None,
         )
 
+        # Step 21 — populate the players/characters of the match (empty when no
+        # character read port is wired).
+        players = []
+        if self.character_read_port is not None:
+            requester_id = match.get("id_user_creator") if user_creator_uuid else None
+            players = build_character_infos(
+                self.character_read_port.find_characters_by_match_id(match["id"]),
+                match, self.story_read_port, self.character_read_port,
+                user_creator_uuid, requester_id,
+            )
+
         return MatchDetail(
             match=summary,
             current_location_id=current_loc_id,
@@ -130,6 +146,7 @@ class MatchQueryService(MatchQueryPort):
             registry=registry,
             events=[],
             choices=[],
+            players=players,
         )
 
     @staticmethod

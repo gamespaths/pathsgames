@@ -154,9 +154,14 @@ class MatchMysqlPersistenceAdapter implements MatchPersistencePort
 
     public function deleteMatchesByNameLike(string $nameLikePattern): int
     {
-        // Remove the derived runtime state (locations + registry) first, then
-        // the matches. Explicit child deletion keeps this correct even when
-        // foreign-key cascades are not enforced (e.g. SQLite).
+        // Remove the derived runtime state (characters + locations + registry)
+        // first, then the matches. Explicit child deletion keeps this correct
+        // even when foreign-key cascades are not enforced (e.g. SQLite).
+        $matchIdSubquery = '(SELECT id FROM gaming_match WHERE name LIKE :pattern)';
+        foreach (['gaming_character_traits', 'gaming_backpack_resources', 'gaming_character_instance'] as $table) {
+            $this->pdo->prepare("DELETE FROM {$table} WHERE id_match IN {$matchIdSubquery}")
+                ->execute([':pattern' => $nameLikePattern]);
+        }
         $this->pdo->prepare(
             'DELETE FROM gaming_state_locations WHERE id_match IN
                 (SELECT id FROM gaming_match WHERE name LIKE :pattern)'
@@ -207,7 +212,10 @@ class MatchMysqlPersistenceAdapter implements MatchPersistencePort
         if ($id === false) {
             return false;
         }
-        // Remove the derived runtime state (locations + registry) first.
+        // Remove the derived runtime state (characters + locations + registry) first.
+        foreach (['gaming_character_traits', 'gaming_backpack_resources', 'gaming_character_instance'] as $table) {
+            $this->pdo->prepare("DELETE FROM {$table} WHERE id_match = :id")->execute([':id' => $id]);
+        }
         $this->pdo->prepare('DELETE FROM gaming_state_locations WHERE id_match = :id')
             ->execute([':id' => $id]);
         $this->pdo->prepare('DELETE FROM gaming_state_registry WHERE id_match = :id')

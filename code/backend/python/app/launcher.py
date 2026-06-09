@@ -32,11 +32,15 @@ from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminCo
 from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
 from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
+from app.adapters.persistence.match.character_persistence_adapter import CharacterPersistenceAdapter
 from app.core.services.match.match_command_service import MatchCommandService
 from app.core.services.match.match_query_service import MatchQueryService
+from app.core.services.match.character_command_service import CharacterCommandService
+from app.core.services.match.character_query_service import CharacterQueryService
 from app.core.services.match.property_system_mode_service import PropertySystemModeService
 from app.adapters.rest.match.match_controller import MatchController
 from app.adapters.rest.match.match_admin_controller import MatchAdminController
+from app.adapters.rest.match.character_controller import CharacterController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
@@ -93,10 +97,25 @@ match_command_service = MatchCommandService(
     system_mode_service,
     turnstile_adapter,
 )
+# Step 21 — character join adapters and services
+character_persistence_adapter = CharacterPersistenceAdapter(SessionLocal)
+character_command_service = CharacterCommandService(
+    story_match_read_adapter,
+    match_persistence_adapter,
+    user_access_adapter,
+    character_persistence_adapter,
+)
+character_query_service = CharacterQueryService(
+    match_persistence_adapter,
+    character_persistence_adapter,
+    story_match_read_adapter,
+    user_access_adapter,
+)
 match_query_service = MatchQueryService(
     match_persistence_adapter,
     story_match_read_adapter,
     user_access_adapter,
+    character_persistence_adapter,
 )
 
 # Dev-only test-data cleanup service
@@ -113,6 +132,7 @@ content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_controller = MatchController(match_command_service, match_query_service)
 match_admin_controller = MatchAdminController(match_command_service, match_query_service)
+character_controller = CharacterController(character_command_service, character_query_service)
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
@@ -195,6 +215,7 @@ app = _build_app([
     story_controller.router,
     content_controller.router,
     match_controller.router,
+    character_controller.router,
 ])
 
 # Admin app — served ONLY on settings.admin_port. Hosts every /api/admin/** endpoint,
