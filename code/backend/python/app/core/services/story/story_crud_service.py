@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from app.core.ports.story.story_crud_port import StoryCrudPort
 from app.core.ports.story.story_read_port import StoryReadPort
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
+from app.core.ports.story.story_validator_port import StoryValidationException
 
 
 ENTITY_TYPES = [
@@ -20,9 +21,17 @@ ENTITY_TYPES = [
 
 
 class StoryCrudService(StoryCrudPort):
-    def __init__(self, read_port: StoryReadPort, persistence_port: StoryPersistencePort):
+    def __init__(self, read_port: StoryReadPort, persistence_port: StoryPersistencePort, validator_port=None):
         self.read_port = read_port
         self.persistence_port = persistence_port
+        self.validator_port = validator_port
+
+    def _validate_local(self, entity_type: str, data: Dict[str, Any]) -> None:
+        if self.validator_port is None:
+            return
+        report = self.validator_port.validate_entity(entity_type, data)
+        if not report.is_valid():
+            raise StoryValidationException(report)
 
     def _resolve_story_id(self, story_uuid: str) -> Optional[int]:
         if not story_uuid or not story_uuid.strip():
@@ -57,6 +66,7 @@ class StoryCrudService(StoryCrudPort):
         sid = self._resolve_story_id(story_uuid)
         if sid is None:
             return None
+        self._validate_local(entity_type, data)
         return self._create_by_type(sid, entity_type, data)
 
     # === update ===
@@ -66,6 +76,7 @@ class StoryCrudService(StoryCrudPort):
         sid = self._resolve_story_id(story_uuid)
         if sid is None:
             return None
+        self._validate_local(entity_type, data)
         return self._update_by_type(sid, entity_type, entity_uuid, data)
 
     # === delete ===

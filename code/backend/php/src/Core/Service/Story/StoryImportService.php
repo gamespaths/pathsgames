@@ -5,23 +5,35 @@ declare(strict_types=1);
 namespace Games\Paths\Core\Service\Story;
 
 use Games\Paths\Core\Domain\Story\StoryImportResult;
+use Games\Paths\Core\Domain\Story\StoryValidationException;
 use Games\Paths\Core\Port\Story\StoryImportPort;
 use Games\Paths\Core\Port\Story\StoryPersistencePort;
+use Games\Paths\Core\Port\Story\StoryValidatorPort;
 use Ramsey\Uuid\Uuid;
 
 class StoryImportService implements StoryImportPort
 {
     private StoryPersistencePort $persistencePort;
+    private ?StoryValidatorPort $validatorPort;
 
-    public function __construct(StoryPersistencePort $persistencePort)
+    public function __construct(StoryPersistencePort $persistencePort, ?StoryValidatorPort $validatorPort = null)
     {
         $this->persistencePort = $persistencePort;
+        $this->validatorPort = $validatorPort;
     }
 
     public function importStory(array $data): StoryImportResult
     {
         if (empty($data)) {
             throw new \InvalidArgumentException("Empty import data");
+        }
+
+        // Step 22: validate referential integrity before persisting anything (hard-fail).
+        if ($this->validatorPort !== null) {
+            $report = $this->validatorPort->validateImportData($data);
+            if (!$report->isValid()) {
+                throw new StoryValidationException($report);
+            }
         }
 
         $storyUuid = $data['uuid'] ?? '';

@@ -5,6 +5,7 @@ import games.paths.core.model.story.StorySummary;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryCrudPort;
+import games.paths.core.port.story.StoryValidatorPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -31,14 +32,16 @@ class StoryAdminControllerTest {
     private StoryImportPort storyImportPort;
     private StoryQueryPort storyQueryPort;
     private StoryCrudPort storyCrudPort;
+    private StoryValidatorPort storyValidatorPort;
 
     @BeforeEach
     void setup() {
         storyImportPort = mock(StoryImportPort.class);
         storyQueryPort = mock(StoryQueryPort.class);
         storyCrudPort = mock(StoryCrudPort.class);
+        storyValidatorPort = mock(StoryValidatorPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new StoryAdminController(storyImportPort, storyQueryPort, storyCrudPort)).build();
+                new StoryAdminController(storyImportPort, storyQueryPort, storyCrudPort, storyValidatorPort)).build();
     }
 
     // === POST /api/admin/stories/import ===
@@ -198,6 +201,53 @@ class StoryAdminControllerTest {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.error").value("STORY_NOT_FOUND"))
                     .andExpect(jsonPath("$.message").value("No story found with UUID: nonexistent"));
+        }
+    }
+
+    // === Step 22: validation ===
+
+    @Nested
+    @DisplayName("Story validation (Step 22)")
+    class Validation {
+
+        @Test
+        @DisplayName("import returns 400 INVALID_STORY with errors[] when validation fails")
+        void importValidationFails() throws Exception {
+            games.paths.core.model.story.StoryValidationReport report =
+                    new games.paths.core.model.story.StoryValidationReport();
+            report.add("R_EVENT_REF", "choices", "1", "idEvent", "choices idEvent=99 references a non-existent event");
+            when(storyImportPort.importStory(anyMap()))
+                    .thenThrow(new StoryValidatorPort.StoryValidationException(report));
+
+            mockMvc.perform(post("/api/admin/stories/import")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"uuid\":\"x\",\"choices\":[{\"id\":1,\"idEvent\":99}]}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("INVALID_STORY"))
+                    .andExpect(jsonPath("$.errors[0].field").value("idEvent"));
+        }
+
+        @Test
+        @DisplayName("GET /{uuid}/validate returns 200 report for a valid story")
+        void validateOk() throws Exception {
+            when(storyCrudPort.getStory("uuid-1")).thenReturn(Map.of("id", 5));
+            when(storyValidatorPort.validateStory(5L))
+                    .thenReturn(new games.paths.core.model.story.StoryValidationReport());
+
+            mockMvc.perform(get("/api/admin/stories/uuid-1/validate"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.valid").value(true))
+                    .andExpect(jsonPath("$.count").value(0));
+        }
+
+        @Test
+        @DisplayName("GET /{uuid}/validate returns 404 when story missing")
+        void validateNotFound() throws Exception {
+            when(storyCrudPort.getStory("ghost")).thenReturn(null);
+
+            mockMvc.perform(get("/api/admin/stories/ghost/validate"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("STORY_NOT_FOUND"));
         }
     }
 }

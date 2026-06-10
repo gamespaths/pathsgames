@@ -37,6 +37,10 @@ export const importStory = (storyJson) =>
 export const deleteStory = (uuid) =>
   apiClient().delete(`/api/admin/stories/${seg(uuid)}`).then(r => r.data)
 
+// GET /api/admin/stories/:uuid/validate — Step 22 integrity report
+export const validateStory = (uuid) =>
+  apiClient().get(`/api/admin/stories/${seg(uuid)}/validate`).then(r => r.data)
+
 // --- Sub-entity CRUD ---
 
 // GET /api/admin/stories/:uuidStory/:entityType

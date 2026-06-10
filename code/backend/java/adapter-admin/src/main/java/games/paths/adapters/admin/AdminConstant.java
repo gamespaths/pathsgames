@@ -18,7 +18,10 @@ public class AdminConstant {
     public static final String STORY_DELETED = "STORY_DELETED";
     public static final String STORY_IMPORT_SUCCESS = "STORY_IMPORT_SUCCESS";
     public static final String STORY_IMPORT_FAILED = "STORY_IMPORT_FAILED";
-    public static final String INVALID_IMPORT_DATA = "INVALID_IMPORT_DATA"; 
+    public static final String INVALID_IMPORT_DATA = "INVALID_IMPORT_DATA";
+    public static final String INVALID_STORY = "INVALID_STORY";
+    public static final String KEY_VALID = "valid";
+    public static final String KEY_ERRORS = "errors";
     public static final String EMPTY_IMPORT_DATA = "EMPTY_IMPORT_DATA";
     public static final String EMPTY_IMPORT_DATA_MESSAGE = "Request body must contain story data";
     public static final String STORY_NOT_FOUND_WITH_UUID = "No story found with UUID: ";

@@ -1,12 +1,15 @@
 package games.paths.adapters.admin.controller.story;
 
 import games.paths.adapters.admin.AdminConstant;
+import games.paths.adapters.admin.dto.story.StoryValidationReportResponse;
 import games.paths.core.port.story.StoryCrudPort;
+import games.paths.core.port.story.StoryValidatorPort;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -152,5 +155,16 @@ public class StoryCrudAdminController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "error", "ENTITY_NOT_FOUND",
                 "message", "No " + entityType + " found with UUID: " + entityUuid));
+    }
+
+    /** Step 22: entity-local validation failure on create/update → 400 INVALID_STORY. */
+    @ExceptionHandler(StoryValidatorPort.StoryValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(
+            StoryValidatorPort.StoryValidationException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(AdminConstant.KEY_ERROR, AdminConstant.INVALID_STORY);
+        body.put(AdminConstant.KEY_MESSAGE, ex.getReport().summary());
+        body.put(AdminConstant.KEY_ERRORS, StoryValidationReportResponse.fromModel(ex.getReport()).errors());
+        return ResponseEntity.badRequest().body(body);
     }
 }

@@ -94,7 +94,11 @@ class StoryCrudAdminController
         if (empty($data)) {
             return $this->jsonError($response, 400, 'EMPTY_DATA', 'Request body required');
         }
-        $result = $this->crudPort->createEntity($args['uuidStory'], $args['entityType'], $data);
+        try {
+            $result = $this->crudPort->createEntity($args['uuidStory'], $args['entityType'], $data);
+        } catch (\Games\Paths\Core\Domain\Story\StoryValidationException $e) {
+            return $this->validationError($response, $e);
+        }
         if ($result === null) {
             return $this->jsonError($response, 404, 'STORY_NOT_FOUND', 'No story: ' . $args['uuidStory']);
         }
@@ -126,12 +130,27 @@ class StoryCrudAdminController
         if (empty($data)) {
             return $this->jsonError($response, 400, 'EMPTY_DATA', 'Request body required');
         }
-        $result = $this->crudPort->updateEntity($args['uuidStory'], $args['entityType'], $args['entityUuid'], $data);
+        try {
+            $result = $this->crudPort->updateEntity($args['uuidStory'], $args['entityType'], $args['entityUuid'], $data);
+        } catch (\Games\Paths\Core\Domain\Story\StoryValidationException $e) {
+            return $this->validationError($response, $e);
+        }
         if ($result === null) {
             return $this->jsonError($response, 404, 'ENTITY_NOT_FOUND', 'Not found: ' . $args['entityUuid']);
         }
         $response->getBody()->write(json_encode($result));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function validationError(Response $response, \Games\Paths\Core\Domain\Story\StoryValidationException $e): Response
+    {
+        $report = $e->getReport();
+        $response->getBody()->write(json_encode([
+            'error' => 'INVALID_STORY',
+            'message' => $report->summary(),
+            'errors' => array_map(fn ($err) => $err->toArray(), $report->getErrors()),
+        ]));
+        return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
     }
 
     // DELETE /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}

@@ -14,6 +14,7 @@ import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.StoryValidatorPort;
 import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.CharacterPersistencePort;
@@ -35,6 +36,7 @@ import games.paths.core.service.dev.TestDataCleanupService;
 import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
+import games.paths.core.service.story.StoryValidatorService;
 import games.paths.core.service.story.ContentQueryService;
 import games.paths.core.service.match.CharacterCommandService;
 import games.paths.core.service.match.CharacterQueryService;
@@ -118,8 +120,14 @@ public class CoreConfig {
     }
 
     @Bean
-    public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort) {
-        return new StoryImportService(storyPersistencePort);
+    public StoryValidatorPort storyValidatorPort(StoryReadPort storyReadPort) {
+        return new StoryValidatorService(storyReadPort);
+    }
+
+    @Bean
+    public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort,
+            StoryValidatorPort storyValidatorPort) {
+        return new StoryImportService(storyPersistencePort, storyValidatorPort);
     }
 
     @Bean
@@ -128,8 +136,9 @@ public class CoreConfig {
     }
 
     @Bean
-    public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort) {
-        return new StoryCrudService(storyReadPort, storyPersistencePort);
+    public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort,
+            StoryValidatorPort storyValidatorPort) {
+        return new StoryCrudService(storyReadPort, storyPersistencePort, storyValidatorPort);
     }
 
     // ───── Step 19: Single-player match creation ─────

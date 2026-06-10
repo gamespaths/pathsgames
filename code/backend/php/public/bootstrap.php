@@ -176,9 +176,10 @@ $sessionService = new SessionService($jwtAdapter, $tokenRepo, 5);
 $guestAuthService = new GuestAuthService($guestRepo, $jwtAdapter);
 $guestAdminService = new GuestAdminService($guestRepo);
 $storyQueryService = new StoryQueryService($storyReadRepo);
-$storyImportService = new StoryImportService($storyPersistRepo);
+$storyValidatorService = new \Games\Paths\Core\Service\Story\StoryValidatorService($storyReadRepo);
+$storyImportService = new StoryImportService($storyPersistRepo, $storyValidatorService);
 $contentQueryService = new ContentQueryService($storyReadRepo);
-$storyCrudService = new StoryCrudService($storyReadRepo, $storyPersistRepo);
+$storyCrudService = new StoryCrudService($storyReadRepo, $storyPersistRepo, $storyValidatorService);
 
 // Step 19 — match wiring
 $matchPersistenceRepo = new MatchMysqlPersistenceAdapter($pdo);
@@ -229,7 +230,7 @@ $guestAuthController = new GuestAuthController($guestAuthService, $jwtAdapter, $
 $guestAdminController = new GuestAdminController($guestAdminService);
 $sessionController = new SessionController($sessionService);
 $storyController = new StoryController($storyQueryService);
-$storyAdminController = new StoryAdminController($storyQueryService, $storyImportService);
+$storyAdminController = new StoryAdminController($storyQueryService, $storyImportService, $storyValidatorService);
 $contentController = new ContentController($contentQueryService);
 $storyCrudAdminController = new StoryCrudAdminController($storyCrudService);
 $matchController = new MatchController($matchCommandService, $matchQueryService);

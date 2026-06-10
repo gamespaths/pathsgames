@@ -170,6 +170,13 @@ Resources:
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
 
+  # Step 22: GET /api/admin/stories/{uuid}/validate is intentionally NOT declared as a
+  # separate route. HTTP API rejects a literal segment ("validate") that sits at the same
+  # position as the {entityType} path variable of the entity route below. The existing
+  # "GET /api/admin/stories/{uuidStory}/{entityType}" route delivers the request to the
+  # Story function, and handler.lambda_handler intercepts any path ending in "/validate"
+  # before the entity-listing dispatch.
+
   CreateStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

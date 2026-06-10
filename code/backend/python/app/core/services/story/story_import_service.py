@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 from app.core.models.story.story_import_result import StoryImportResult
 from app.core.ports.story.story_import_port import StoryImportPort
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
+from app.core.ports.story.story_validator_port import StoryValidationException
 
 
 def _get_long(data, *keys):
@@ -34,8 +35,9 @@ _SCOPED_TABLES = {
 
 
 class StoryImportService(StoryImportPort):
-    def __init__(self, persistence_port: StoryPersistencePort):
+    def __init__(self, persistence_port: StoryPersistencePort, validator_port=None):
         self.persistence_port = persistence_port
+        self.validator_port = validator_port
         self._id_cache: Dict[str, int] = {}
 
     def delete_story(self, story_uuid: str) -> bool:
@@ -52,6 +54,12 @@ class StoryImportService(StoryImportPort):
     def import_story(self, data: Dict[str, Any]) -> StoryImportResult:
         if not data:
             raise ValueError("Empty import data")
+
+        # Step 22: validate referential integrity before persisting anything (hard-fail).
+        if self.validator_port is not None:
+            report = self.validator_port.validate_import_data(data)
+            if not report.is_valid():
+                raise StoryValidationException(report)
 
         self._id_cache.clear()
         try:

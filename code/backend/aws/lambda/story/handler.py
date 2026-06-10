@@ -36,6 +36,11 @@ import decimal
 from common import db_utils
 from common import jwt_utils
 
+try:
+    from story import story_validator
+except ImportError:  # when handler is imported as a top-level module in tests
+    import story_validator
+
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
 HEADERS = {"Content-Type": "application/json"}
@@ -74,6 +79,13 @@ def _ok(body, status=200):
 def _err(status, code, message):
     return {"statusCode": status, "headers": HEADERS,
             "body": _dumps({"error": code, "message": message})}
+
+def _validation_400(errors):
+    """Step 22: 400 body for a failed story validation, carrying the errors[] array."""
+    return {"statusCode": 400, "headers": HEADERS,
+            "body": _dumps({"error": "INVALID_STORY",
+                            "message": story_validator.summary(errors),
+                            "errors": errors})}
 
 def _normalize_path(raw_path):
     if raw_path.startswith('/api/'):
@@ -421,6 +433,9 @@ def lambda_handler(event, context):
     # admin — static routes before parameterised
     if path == '/api/admin/stories/import' and method == 'POST':
         return import_story(event)
+    if method == 'GET' and path.endswith('/validate') and path.startswith('/api/admin/stories/'):
+        v_uuid = params.get('uuid') or path.split('/')[-2]
+        return validate_story(event, v_uuid)
     if path == '/api/admin/stories' and method == 'GET':
         return list_all_stories(event)
     if path == '/api/admin/stories' and method == 'POST':
@@ -538,6 +553,11 @@ def import_story(event):
 
     if not data:
         return _err(400, 'EMPTY_IMPORT_DATA', 'storyData must not be null or empty')
+
+    # Step 22: validate referential integrity before persisting anything (hard-fail).
+    validation_errors = story_validator.validate_story_dict(data)
+    if validation_errors:
+        return _validation_400(validation_errors)
 
     story_uuid = data.get('uuid')
     if not story_uuid:
@@ -951,6 +971,19 @@ def get_admin_story(event, story_uuid):
     return _ok(_story_detail(item, lang))
 
 
+def validate_story(event, story_uuid):
+    # Step 22: read-only integrity report for a persisted story.
+    _, err = _require_admin(event)
+    if err:
+        return err
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND',
+                    f'No story found with UUID: {story_uuid}')
+    errors = story_validator.validate_story_dict(item)
+    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors})
+
+
 def delete_story(event, story_uuid):
     _, err = _require_admin(event)
     if err:
@@ -1134,6 +1167,11 @@ def create_entity(event, story_uuid, entity_type):
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
 
+    # Step 22: entity-local (lenient) validation before persisting.
+    local_errors = story_validator.validate_entity(entity_type, data)
+    if local_errors:
+        return _validation_400(local_errors)
+
     ent_uuid = str(uuid_lib.uuid4())
     data['uuid'] = ent_uuid
     data['idStory'] = item.get('id', story_uuid)
@@ -1194,6 +1232,11 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
         data = json.loads(event.get('body', '{}'))
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    # Step 22: entity-local (lenient) validation before persisting.
+    local_errors = story_validator.validate_entity(entity_type, data)
+    if local_errors:
+        return _validation_400(local_errors)
 
     # Update fields in place
     for k, v in data.items():

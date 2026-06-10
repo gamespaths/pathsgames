@@ -3,11 +3,14 @@ package games.paths.adapters.admin.controller.story;
 import games.paths.adapters.admin.AdminConstant;
 import games.paths.adapters.admin.dto.story.StoryImportResponse;
 import games.paths.adapters.admin.dto.story.StorySummaryResponse;
+import games.paths.adapters.admin.dto.story.StoryValidationReportResponse;
 import games.paths.core.model.story.StoryImportResult;
 import games.paths.core.model.story.StorySummary;
+import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryCrudPort;
+import games.paths.core.port.story.StoryValidatorPort;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,11 +48,14 @@ public class StoryAdminController {
     private final StoryImportPort storyImportPort;
     private final StoryQueryPort storyQueryPort;
     private final StoryCrudPort storyCrudPort;
+    private final StoryValidatorPort storyValidatorPort;
 
-    public StoryAdminController(StoryImportPort storyImportPort, StoryQueryPort storyQueryPort, StoryCrudPort storyCrudPort) {
+    public StoryAdminController(StoryImportPort storyImportPort, StoryQueryPort storyQueryPort,
+            StoryCrudPort storyCrudPort, StoryValidatorPort storyValidatorPort) {
         this.storyImportPort = storyImportPort;
         this.storyQueryPort = storyQueryPort;
         this.storyCrudPort = storyCrudPort;
+        this.storyValidatorPort = storyValidatorPort;
     }
 
     /**
@@ -79,12 +85,42 @@ public class StoryAdminController {
                     result.classesImported(),
                     result.choicesImported());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (StoryValidatorPort.StoryValidationException e) {
+            return ResponseEntity.badRequest().body(validationErrorBody(e.getReport()));
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new LinkedHashMap<>();
             error.put(AdminConstant.KEY_ERROR, AdminConstant.INVALID_IMPORT_DATA);
             error.put(AdminConstant.KEY_MESSAGE, e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
+    }
+
+    /**
+     * GET /api/admin/stories/{uuid}/validate
+     * Runs the full story integrity validator against a persisted story and returns the
+     * report without modifying anything.
+     */
+    @GetMapping("/{uuid}/validate")
+    public ResponseEntity<Object> validateStory(@PathVariable String uuid) {
+        Map<String, Object> story = storyCrudPort.getStory(uuid);
+        if (story == null) {
+            Map<String, String> error = new LinkedHashMap<>();
+            error.put(AdminConstant.KEY_ERROR, AdminConstant.STORY_NOT_FOUND);
+            error.put(AdminConstant.KEY_MESSAGE, AdminConstant.STORY_NOT_FOUND_WITH_UUID + uuid);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+        Long storyId = story.get("id") instanceof Number n ? n.longValue() : null;
+        StoryValidationReport report = storyValidatorPort.validateStory(storyId);
+        return ResponseEntity.ok(StoryValidationReportResponse.fromModel(report));
+    }
+
+    /** Builds the 400 body for a failed validation: error code, message and errors[]. */
+    private Map<String, Object> validationErrorBody(StoryValidationReport report) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(AdminConstant.KEY_ERROR, AdminConstant.INVALID_STORY);
+        body.put(AdminConstant.KEY_MESSAGE, report.summary());
+        body.put(AdminConstant.KEY_ERRORS, StoryValidationReportResponse.fromModel(report).errors());
+        return body;
     }
 
     /**

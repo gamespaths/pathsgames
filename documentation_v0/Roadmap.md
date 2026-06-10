@@ -34,6 +34,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
 | 20 | [Game first run](./Step20_GameWebSiteFirstRun.md) | ✅ | Game web site first run |
 | 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
+| 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
 
 
 | Steps | Phase |
@@ -67,15 +68,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 
 
-22. Story validation and integrity checking
-    - Implement story validator service checking referential integrity across all story entities (backend)
-    - Validate all location neighbors reference existing locations with consistent directions (backend)
-    - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)
-    - Validate all choices have at least one option or an otherwise fallback; verify conditions reference valid keys (backend)
-    - Validate character templates have valid stat ranges and classes have defined bonuses (backend)
-    - Integrate validation into story import and admin CRUD operations to prevent saving invalid story data (backend)
-    - Write backend unit tests for all validation rules covering valid stories, broken references, and edge cases (backend tests)
-23. Character traits and stats initialization
+
+23. Character stats initialization
     - Implement trait listing for selected class filtered by id_class_permitted and id_class_prohibited (backend)
     - Assign traits during character creation (within POST /matches and POST /matches/{uuid_match}/join flow) (backend)
     - Validate trait cost limits based on difficulty (positive/negative cost budget) and class restrictions (backend)
@@ -83,15 +77,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Persist gaming_character_traits records and finalize gaming_character_instance with computed stats (backend)
     - Set character initial location to story start location and energy/life to maximum values (backend)
     - Write backend unit tests for trait selection, cost validation, stat computation, and initialization edge cases (backend tests)
-24. Frontend: Match creation and character selection UI
-    - Build match creation page with story selector, difficulty picker, and "Create Match" button (frontend)
-    - Build character template selection screen displaying templates as collectible cards with stats preview (frontend)
-    - Build class selection screen showing class bonuses, stat modifiers, and available traits (frontend)
-    - Build trait selection screen with cost budget indicator, class compatibility filters, and stat preview (frontend)
-    - Build character summary/confirmation screen showing final stats, inventory, and starting location (frontend)
-    - Integrate match and character APIs with state management, handle loading and validation errors (frontend)
-    - Write frontend unit tests for all selection screens, stat calculations display, and API integration (frontend tests)
-25. Turn cycle engine for single-player
+24. Turn cycle engine for single-player
     - Implement turn priority calculation: (DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + CHARACTER_ID (backend)
     - Initialize gaming_turn_queue on match start with calculated priorities and timestamps (backend)
     - Implement POST /matches/{uuid_match}/start endpoint to transition match from CREATED to RUNNING (backend)
@@ -219,14 +205,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Validate snapshot integrity against current schema version before restoration (backend)
     - Build frontend admin snapshot viewer with list, details, and restore action (frontend)
     - Write backend unit tests for snapshot creation, serialization, restoration, integrity validation, and listing (backend tests)
-41. Frontend: Single-player game board and gameplay UI
-    - Build main game board layout: top (weather, clock, character card), center (location grid with actions), bottom (character book) (frontend)
-    - Build location card component showing name, description, image, available events, and neighbor directions (frontend)
-    - Build event/choice interaction modals displaying narrative text, options, and effect previews (frontend)
-    - Build character stats panel showing energy, life, sadness, DES/INT/COS, experience, and trait badges (frontend)
-    - Build inventory panel with item cards, resource counters, weight indicator, and use/discard actions (frontend)
-    - Build mission sidebar showing active missions as cards with step indicators and registry highlights (frontend)
-    - Write frontend unit tests for all game board components, interaction flows, stat displays, and state management (frontend tests)
+41. Security updates
+    - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
+    - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
+    - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)
 42. Launch beta version with guest and single-player game
     - Verify all single-player features: match creation, character setup, full turn cycle, events, choices, inventory, missions (all)
     - Run complete playthrough of test story from start to finish, document and fix all blocking bugs (all)
@@ -235,10 +217,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Configure beta environment DNS, HTTPS, and basic monitoring health checks (infra)
     - Run smoke tests on beta environment: guest login, story selection, match creation, gameplay cycle (all)
     - Write release notes documenting beta features, known limitations, and feedback collection process (docs)
-43. Security updates
-    - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
-    - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
-    - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)
     
 
 

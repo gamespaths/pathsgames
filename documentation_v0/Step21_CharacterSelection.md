@@ -591,7 +591,7 @@ tests passing.
   ```
   ciao read step 21 on roadmap file (documentation_v0/Roadmap.md) and write a plan to realize all components. 
   projects are backend/java, robot test, react-game, react-admin, aws lambda and php and python project. 
-  don't look and change backend/node project. at the end write Step21_xxx.md file with specific documentation agent. let's go
+  at the end write Step21_xxx.md file with specific documentation agent. let's go
 
   ```
 - **Document Version**: 0.21.0

@@ -12,8 +12,9 @@ vi.mock('../../api/storyApi', () => ({
   deleteEntity: vi.fn(),
   createEntity: vi.fn(),
   updateEntity: vi.fn(),
+  validateStory: vi.fn(),
 }))
-import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../../api/storyApi'
+import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity, validateStory } from '../../api/storyApi'
 
 const MOCK_STORY = {
   uuid: 'story-123',
@@ -303,5 +304,30 @@ describe('StoryEditorPage', () => {
     await userEvent.click(trashBtn)
     await userEvent.click(screen.getByText('Confirm'))
     await waitFor(() => expect(textsCalls).toBeGreaterThan(before))
+  })
+
+  // --- Step 22: validation report ---
+
+  it('shows a success report when the story is valid', async () => {
+    validateStory.mockResolvedValue({ valid: true, count: 0, errors: [] })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Validate story/i }))
+    expect(await screen.findByText(/Story is valid/i)).toBeInTheDocument()
+    expect(validateStory).toHaveBeenCalledWith('story-123')
+  })
+
+  it('lists integrity errors when the story is invalid', async () => {
+    validateStory.mockResolvedValue({
+      valid: false,
+      count: 1,
+      errors: [{ rule: 'R_EVENT_REF', entityType: 'choices', entityId: '1', field: 'idEvent',
+                 message: 'choices idEvent=99 references a non-existent event' }],
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Validate story/i }))
+    expect(await screen.findByText(/1 integrity issue found/i)).toBeInTheDocument()
+    expect(screen.getByTestId('validation-error')).toHaveTextContent('references a non-existent event')
   })
 })

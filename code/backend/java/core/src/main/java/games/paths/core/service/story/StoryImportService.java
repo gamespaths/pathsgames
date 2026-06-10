@@ -2,8 +2,10 @@ package games.paths.core.service.story;
 
 import games.paths.core.entity.story.*;
 import games.paths.core.model.story.StoryImportResult;
+import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
+import games.paths.core.port.story.StoryValidatorPort;
 
 import java.util.*;
 
@@ -16,10 +18,18 @@ import java.util.*;
 public class StoryImportService implements StoryImportPort {
 
     private final StoryPersistencePort persistencePort;
+    private final StoryValidatorPort validatorPort;
     private final ThreadLocal<Map<String, Long>> scopedIdCache = ThreadLocal.withInitial(HashMap::new);
 
+    /** Backward-compatible constructor (no validation) used by legacy callers/tests. */
     public StoryImportService(StoryPersistencePort persistencePort) {
+        this(persistencePort, null);
+    }
+
+    /** Step 22: with a validator the import map is integrity-checked before persistence. */
+    public StoryImportService(StoryPersistencePort persistencePort, StoryValidatorPort validatorPort) {
         this.persistencePort = persistencePort;
+        this.validatorPort = validatorPort;
     }
 
     @Override
@@ -28,6 +38,14 @@ public class StoryImportService implements StoryImportPort {
         try {
         if (storyData == null || storyData.isEmpty()) {
             throw new IllegalArgumentException("storyData must not be null or empty");
+        }
+
+        // Step 22: validate referential integrity before any row is written (hard-fail).
+        if (validatorPort != null) {
+            StoryValidationReport report = validatorPort.validateImportData(storyData);
+            if (!report.isValid()) {
+                throw new StoryValidatorPort.StoryValidationException(report);
+            }
         }
 
         // Extract story header

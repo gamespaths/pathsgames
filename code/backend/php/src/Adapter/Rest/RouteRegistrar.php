@@ -83,6 +83,7 @@ class RouteRegistrar
             // Admin - Stories
             $group->get('/admin/stories', [$c['storyAdmin'], 'listAllStories']);
             $group->post('/admin/stories/import', [$c['storyAdmin'], 'importStory']);
+            $group->get('/admin/stories/{uuid}/validate', [$c['storyAdmin'], 'validateStory']);
             $group->delete('/admin/stories/{uuid}', [$c['storyAdmin'], 'deleteStory']);
 
             // Admin - Story Entity CRUD (Step 17)

@@ -348,6 +348,7 @@ def test_import_story_persists_character_template_class_fields():
     payload = {
         'uuid': 'imp-ct-1',
         'texts': [],
+        'classes': [{'id': 1}, {'id': 5}],
         'characterTemplates': [
             {'idTextName': 1, 'id_tipo': 2,
              'idClassPermitted': 5, 'idClassProhibited': 1},
@@ -653,3 +654,58 @@ def test_get_story_with_enriched_entities():
     assert body['uuid'] == 'rich-1'
     assert len(body['difficulties']) == 1
     assert body['difficulties'][0]['life'] == 100
+
+
+# ─── Step 22: story validation ──────────────────────────────────────────────
+
+def test_import_story_invalid_reference_returns_400():
+    payload = {
+        'uuid': 'inv-1',
+        'events': [{'id': 1}],
+        'choices': [{'id': 1, 'idEvent': 99, 'otherwiseFlag': 1}],  # dangling event
+    }
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', return_value=True):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body=payload)
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    body = _body(result)
+    assert body['error'] == 'INVALID_STORY'
+    assert any(e['field'] == 'idEvent' for e in body['errors'])
+
+
+def test_validate_story_endpoint_returns_report():
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, STORY_ITEM]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/story-uuid-1/validate')
+        event['pathParameters'] = {'uuid': 'story-uuid-1'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['valid'] is True
+    assert body['count'] == 0
+
+
+def test_validate_story_endpoint_not_found():
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/ghost/validate')
+        event['pathParameters'] = {'uuid': 'ghost'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+
+
+def test_create_entity_class_conflict_returns_400():
+    item = dict(STORY_ITEM)
+    item['id'] = 1
+    item['traits'] = []
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, item]):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/story-uuid-1/traits',
+                            body={'idClassPermitted': 3, 'idClassProhibited': 3})
+        event['pathParameters'] = {'uuidStory': 'story-uuid-1', 'entityType': 'traits'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_STORY'

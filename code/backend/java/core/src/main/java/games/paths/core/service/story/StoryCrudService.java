@@ -1,9 +1,11 @@
 package games.paths.core.service.story;
 
 import games.paths.core.entity.story.*;
+import games.paths.core.model.story.StoryValidationReport;
 import games.paths.core.port.story.StoryCrudPort;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.StoryValidatorPort;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,10 +20,30 @@ public class StoryCrudService implements StoryCrudPort {
 
     private final StoryReadPort readPort;
     private final StoryPersistencePort persistencePort;
+    private final StoryValidatorPort validatorPort;
 
+    /** Backward-compatible constructor (no validation) used by legacy callers/tests. */
     public StoryCrudService(StoryReadPort readPort, StoryPersistencePort persistencePort) {
+        this(readPort, persistencePort, null);
+    }
+
+    /** Step 22: with a validator, create/update run entity-local (lenient) checks. */
+    public StoryCrudService(StoryReadPort readPort, StoryPersistencePort persistencePort,
+            StoryValidatorPort validatorPort) {
         this.readPort = readPort;
         this.persistencePort = persistencePort;
+        this.validatorPort = validatorPort;
+    }
+
+    /** Runs entity-local validation; throws on failure. No-op when no validator wired. */
+    private void validateLocal(String entityType, Map<String, Object> data) {
+        if (validatorPort == null) {
+            return;
+        }
+        StoryValidationReport report = validatorPort.validateEntity(entityType, data);
+        if (!report.isValid()) {
+            throw new StoryValidatorPort.StoryValidationException(report);
+        }
     }
 
     @Override
@@ -54,6 +76,7 @@ public class StoryCrudService implements StoryCrudPort {
         if (storyOpt.isEmpty())
             return null;
         Long sid = storyOpt.get().getId();
+        validateLocal(entityType, data);
         return createByType(sid, entityType, data);
     }
 
@@ -66,6 +89,7 @@ public class StoryCrudService implements StoryCrudPort {
         if (storyOpt.isEmpty())
             return null;
         Long sid = storyOpt.get().getId();
+        validateLocal(entityType, data);
         return updateByType(sid, entityType, entityUuid, data);
     }
 

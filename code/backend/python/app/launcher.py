@@ -19,6 +19,7 @@ from app.adapters.persistence.story.story_read_adapter import StoryReadAdapter
 from app.adapters.persistence.story.story_persistence_adapter import StoryPersistenceAdapter
 from app.core.services.story.story_query_service import StoryQueryService
 from app.core.services.story.story_import_service import StoryImportService
+from app.core.services.story.story_validator_service import StoryValidatorService
 from app.adapters.rest.story.story_controller import StoryController
 from app.adapters.rest.story.story_admin_controller import StoryAdminController
 
@@ -76,9 +77,10 @@ session_service = SessionService(jwt_adapter, token_persistence, 5)
 guest_auth_service = GuestAuthService(jwt_adapter, persistence_adapter)
 guest_admin_service = GuestAdminService(persistence_adapter)
 story_query_service = StoryQueryService(story_read_adapter)
-story_import_service = StoryImportService(story_persistence_adapter)
+story_validator_service = StoryValidatorService(story_read_adapter)
+story_import_service = StoryImportService(story_persistence_adapter, story_validator_service)
 content_query_service = ContentQueryService(story_read_adapter)
-story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter)
+story_crud_service = StoryCrudService(story_read_adapter, story_persistence_adapter, story_validator_service)
 
 # Step 19 — match adapters and services
 match_persistence_adapter = MatchPersistenceAdapter(SessionLocal)
@@ -127,7 +129,7 @@ guest_auth_controller = GuestAuthController(guest_auth_service, jwt_adapter, tok
 guest_admin_controller = GuestAdminController(guest_admin_service)
 session_controller = SessionController(session_service)
 story_controller = StoryController(story_query_service)
-story_admin_controller = StoryAdminController(story_query_service, story_import_service)
+story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_controller = MatchController(match_command_service, match_query_service)

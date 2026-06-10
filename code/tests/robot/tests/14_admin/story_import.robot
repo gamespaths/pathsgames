@@ -220,9 +220,9 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
     ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
-    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
+    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
-    
+
     ${r1}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${p1}    headers=${headers}    expected_status=any
     Should Be Equal As Integers    ${r1.status_code}    201
@@ -233,7 +233,7 @@ Import Multiple Stories With All Internal IDs Shared
     ...    "texts":[{"id":1,"idText":1,"lang":"en","shortText":"Title"},{"id":2,"idText":2,"lang":"en","shortText":"Desc"}],
     ...    "difficulties":[{"id":1,"expCost":1}],"classes":[{"id":1,"weightMax":10}],"traits":[{"id":1,"costPositive":0}],
     ...    "characterTemplates":[{"id":1,"lifeMax":10}],"locations":[{"id":1,"isSafe":1}],"events":[{"id":1,"type":"NORMAL"}],
-    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1}],
+    ...    "items":[{"id":1,"weight":1}],"keys":[{"id":1,"name":"K"}],"choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
     ...    "weatherRules":[{"id":1,"probability":0.5}],"missions":[{"id":1,"name":"M"}]}
 
     ${r2}=    POST On Session    admin_session    /api/admin/stories/import
@@ -324,7 +324,7 @@ Import Explicit ID For list_character_templates Returns 201
     Import With Explicit List Entity Id
     ...    68888888-8888-4888-8888-888888888888
     ...    characterTemplates
-    ...    {"id":971008,"idTextName":100,"idTextDescription":101,"lifeMax":1,"energyMax":0,"sadMax":0,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}
+    ...    {"id":971008,"idTextName":100,"idTextDescription":101,"lifeMax":1,"energyMax":1,"sadMax":0,"dexterityStart":1,"intelligenceStart":1,"constitutionStart":1}
 
 Import list_character_templates Round-Trips idTextName And idTextDescription
     [Documentation]    Imports a story with a character template having idCard, idTextName, idTextDescription
@@ -424,7 +424,7 @@ Import Explicit ID For list_choices Returns 201
     Import With Explicit List Entity Id
     ...    6ccccccc-cccc-4ccc-8ccc-cccccccccccc
     ...    choices
-    ...    {"id":971012,"priority":0,"otherwiseFlag":0,"isProgress":0}
+    ...    {"id":971012,"priority":0,"otherwiseFlag":1,"isProgress":0}
 
 Import Explicit ID For list_weather_rules Returns 201
     [Documentation]    Import accepts explicit id for list_weather_rules rows.

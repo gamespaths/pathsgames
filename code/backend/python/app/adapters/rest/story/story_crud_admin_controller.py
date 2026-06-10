@@ -12,6 +12,15 @@ Routes:
 from fastapi import APIRouter, Path, HTTPException, Body, Request
 from typing import Dict, Any, List
 from app.core.ports.story.story_crud_port import StoryCrudPort
+from app.core.ports.story.story_validator_port import StoryValidationException
+
+
+def _validation_400(e: StoryValidationException) -> HTTPException:
+    return HTTPException(status_code=400, detail={
+        "error": "INVALID_STORY",
+        "message": e.report.summary(),
+        "errors": [err.to_dict() for err in e.report.errors],
+    })
 
 
 class StoryCrudAdminController:
@@ -71,7 +80,10 @@ class StoryCrudAdminController:
         self._require_admin(req)
         if not data:
             raise HTTPException(status_code=400, detail={"error": "EMPTY_DATA", "message": "Request body required"})
-        result = self.crud_port.create_entity(uuidStory, entityType, data)
+        try:
+            result = self.crud_port.create_entity(uuidStory, entityType, data)
+        except StoryValidationException as e:
+            raise _validation_400(e)
         if result is None:
             raise HTTPException(status_code=404, detail={"error": "STORY_NOT_FOUND", "message": f"No story: {uuidStory}"})
         return result
@@ -87,7 +99,10 @@ class StoryCrudAdminController:
         self._require_admin(req)
         if not data:
             raise HTTPException(status_code=400, detail={"error": "EMPTY_DATA", "message": "Request body required"})
-        result = self.crud_port.update_entity(uuidStory, entityType, entityUuid, data)
+        try:
+            result = self.crud_port.update_entity(uuidStory, entityType, entityUuid, data)
+        except StoryValidationException as e:
+            raise _validation_400(e)
         if result is None:
             raise HTTPException(status_code=404, detail={"error": "ENTITY_NOT_FOUND", "message": f"Not found: {entityUuid}"})
         return result

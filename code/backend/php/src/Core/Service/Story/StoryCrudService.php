@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Games\Paths\Core\Service\Story;
 
+use Games\Paths\Core\Domain\Story\StoryValidationException;
 use Games\Paths\Core\Port\Story\StoryCrudPort;
 use Games\Paths\Core\Port\Story\StoryReadPort;
 use Games\Paths\Core\Port\Story\StoryPersistencePort;
+use Games\Paths\Core\Port\Story\StoryValidatorPort;
 
 /**
  * StoryCrudService — Domain service implementing admin CRUD for all story entities.
@@ -16,6 +18,7 @@ class StoryCrudService implements StoryCrudPort
 {
     private StoryReadPort $readPort;
     private StoryPersistencePort $persistencePort;
+    private ?StoryValidatorPort $validatorPort;
 
     private const TABLE_MAP = [
         'difficulties' => 'list_stories_difficulty',
@@ -42,10 +45,22 @@ class StoryCrudService implements StoryCrudPort
         'mission-steps' => 'list_missions_steps',
     ];
 
-    public function __construct(StoryReadPort $readPort, StoryPersistencePort $persistencePort)
+    public function __construct(StoryReadPort $readPort, StoryPersistencePort $persistencePort, ?StoryValidatorPort $validatorPort = null)
     {
         $this->readPort = $readPort;
         $this->persistencePort = $persistencePort;
+        $this->validatorPort = $validatorPort;
+    }
+
+    private function validateLocal(string $entityType, array $data): void
+    {
+        if ($this->validatorPort === null) {
+            return;
+        }
+        $report = $this->validatorPort->validateEntity($entityType, $data);
+        if (!$report->isValid()) {
+            throw new StoryValidationException($report);
+        }
     }
 
     public function listEntities(string $storyUuid, string $entityType): ?array
@@ -91,6 +106,7 @@ class StoryCrudService implements StoryCrudPort
         if (!$table) {
             return null;
         }
+        $this->validateLocal($entityType, $data);
         $newUuid = $this->generateUuid();
         $data['uuid'] = $newUuid;
         $this->persistencePort->saveEntity($sid, $table, $data);
@@ -115,6 +131,7 @@ class StoryCrudService implements StoryCrudPort
         if (!$existing) {
             return null;
         }
+        $this->validateLocal($entityType, $data);
         $this->persistencePort->updateEntity($sid, $table, $entityUuid, $data);
         $raw = $this->readPort->findEntityByStoryAndUuid($sid, $table, $entityUuid);
         return $raw ? $this->toCamelKeys($raw) : null;
