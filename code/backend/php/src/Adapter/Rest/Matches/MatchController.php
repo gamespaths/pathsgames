@@ -20,6 +20,11 @@ class MatchController
         MatchCreationException::USER_NOT_FOUND => 404,
         MatchCreationException::USER_BANNED => 403,
         MatchCreationException::MAINTENANCE_MODE => 503,
+        // Step 23 — trait selection validation on the creator loadout
+        MatchCreationException::TRAIT_NOT_FOUND => 400,
+        MatchCreationException::TRAIT_DUPLICATED => 400,
+        MatchCreationException::TRAIT_NOT_COMPATIBLE => 400,
+        MatchCreationException::TRAIT_COST_EXCEEDED => 400,
     ];
 
     public function __construct(

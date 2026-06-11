@@ -90,7 +90,9 @@ class StoryQueryService implements StoryQueryPort
                 isset($rd['dexterity']) ? (int)$rd['dexterity'] : 10,
                 isset($rd['intelligence']) ? (int)$rd['intelligence'] : 10,
                 isset($rd['constitution']) ? (int)$rd['constitution'] : 10,
-                isset($rd['weight']) ? (int)$rd['weight'] : 10
+                isset($rd['weight']) ? (int)$rd['weight'] : 10,
+                isset($rd['trait_cost_positive_budget']) ? (int)$rd['trait_cost_positive_budget'] : null,
+                isset($rd['trait_cost_negative_budget']) ? (int)$rd['trait_cost_negative_budget'] : null
             );
         }
 
@@ -163,26 +165,7 @@ class StoryQueryService implements StoryQueryPort
 
         $traits = [];
         foreach ($rawTraits as $tr) {
-            $trName = $this->resolveText($texts, isset($tr['id_text_name']) ? (int)$tr['id_text_name'] : null, $lang);
-            $trDesc = $this->resolveText($texts, isset($tr['id_text_description']) ? (int)$tr['id_text_description'] : null, $lang);
-            $traits[] = new TraitInfo(
-                $tr['uuid'] ?? (string)($tr['id'] ?? ''),
-                $trName,
-                $trDesc,
-                isset($tr['cost_positive']) ? (int)$tr['cost_positive'] : 0,
-                isset($tr['cost_negative']) ? (int)$tr['cost_negative'] : 0,
-                isset($tr['id_class_permitted']) ? (int)$tr['id_class_permitted'] : null,
-                isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null,
-                isset($tr['id_card']) ? (int)$tr['id_card'] : null,
-                $this->resolveCard($storyId, $texts, isset($tr['id_card']) ? (int)$tr['id_card'] : null, $lang),
-                isset($tr['life']) ? (int)$tr['life'] : 0,
-                isset($tr['energy']) ? (int)$tr['energy'] : 0,
-                isset($tr['sad']) ? (int)$tr['sad'] : 0,
-                isset($tr['dexterity']) ? (int)$tr['dexterity'] : 0,
-                isset($tr['intelligence']) ? (int)$tr['intelligence'] : 0,
-                isset($tr['constitution']) ? (int)$tr['constitution'] : 0,
-                isset($tr['weight']) ? (int)$tr['weight'] : 0
-            );
+            $traits[] = $this->toTraitInfo($storyId, $texts, $tr, $lang);
         }
 
         // Step 15: Card
@@ -246,6 +229,81 @@ class StoryQueryService implements StoryQueryPort
             $card,
             isset($rawStory['id_text_clock_singular']) ? (int)$rawStory['id_text_clock_singular'] : null,
             isset($rawStory['id_text_clock_plural']) ? (int)$rawStory['id_text_clock_plural'] : null
+        );
+    }
+
+    // === Step 23: Trait listing filtered by class ===
+
+    /**
+     * Lists the story traits selectable with the given class.
+     *
+     * @return array{0: string, 1: TraitInfo[]} [status, traits] where status is
+     *         "OK", "STORY_NOT_FOUND" or "CLASS_NOT_FOUND"
+     */
+    public function listTraitsForClass(string $storyUuid, string $classUuid, string $lang = 'en'): array
+    {
+        if (trim($storyUuid) === '') {
+            return ['STORY_NOT_FOUND', []];
+        }
+        $rawStory = $this->readPort->findStoryByUuid($storyUuid);
+        if (!$rawStory) {
+            return ['STORY_NOT_FOUND', []];
+        }
+        $storyId = (int) $rawStory['id'];
+
+        $classId = null;
+        if (trim($classUuid) !== '') {
+            foreach ($this->readPort->findClassesForStory($storyId) as $c) {
+                if (($c['uuid'] ?? null) === $classUuid) {
+                    $classId = isset($c['id']) ? (int)$c['id'] : null;
+                    break;
+                }
+            }
+        }
+        if ($classId === null) {
+            return ['CLASS_NOT_FOUND', []];
+        }
+
+        $texts = $this->readPort->findTextsForStory($storyId);
+        $traits = [];
+        foreach ($this->readPort->findTraitsForStory($storyId) as $tr) {
+            if ($this->isTraitSelectable($tr, $classId)) {
+                $traits[] = $this->toTraitInfo($storyId, $texts, $tr, $lang);
+            }
+        }
+        return ['OK', $traits];
+    }
+
+    private function isTraitSelectable(array $tr, int $classId): bool
+    {
+        $permitted = $tr['id_class_permitted'] ?? null;
+        $prohibited = $tr['id_class_prohibited'] ?? null;
+        $permittedOk = $permitted === null || (int)$permitted === $classId;
+        $prohibitedOk = $prohibited === null || (int)$prohibited !== $classId;
+        return $permittedOk && $prohibitedOk;
+    }
+
+    private function toTraitInfo(int $storyId, array $texts, array $tr, string $lang): TraitInfo
+    {
+        $trName = $this->resolveText($texts, isset($tr['id_text_name']) ? (int)$tr['id_text_name'] : null, $lang);
+        $trDesc = $this->resolveText($texts, isset($tr['id_text_description']) ? (int)$tr['id_text_description'] : null, $lang);
+        return new TraitInfo(
+            $tr['uuid'] ?? (string)($tr['id'] ?? ''),
+            $trName,
+            $trDesc,
+            isset($tr['cost_positive']) ? (int)$tr['cost_positive'] : 0,
+            isset($tr['cost_negative']) ? (int)$tr['cost_negative'] : 0,
+            isset($tr['id_class_permitted']) ? (int)$tr['id_class_permitted'] : null,
+            isset($tr['id_class_prohibited']) ? (int)$tr['id_class_prohibited'] : null,
+            isset($tr['id_card']) ? (int)$tr['id_card'] : null,
+            $this->resolveCard($storyId, $texts, isset($tr['id_card']) ? (int)$tr['id_card'] : null, $lang),
+            isset($tr['life']) ? (int)$tr['life'] : 0,
+            isset($tr['energy']) ? (int)$tr['energy'] : 0,
+            isset($tr['sad']) ? (int)$tr['sad'] : 0,
+            isset($tr['dexterity']) ? (int)$tr['dexterity'] : 0,
+            isset($tr['intelligence']) ? (int)$tr['intelligence'] : 0,
+            isset($tr['constitution']) ? (int)$tr['constitution'] : 0,
+            isset($tr['weight']) ? (int)$tr['weight'] : 0
         );
     }
 

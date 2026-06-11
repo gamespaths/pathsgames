@@ -3,6 +3,7 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.LocationEntity;
@@ -95,6 +96,8 @@ public class MatchCommandService implements MatchCommandPort {
                         .orElseThrow(() -> new MatchCreationException(
                                 MatchCreationException.Code.DIFFICULTY_NOT_FOUND,
                                 "Difficulty not found: " + command.getDifficultyUuid()));
+
+        validateCreatorTraitSelection(story, difficulty, command);
 
         List<LocationEntity> locations = storyReadPort.findLocationsByStoryId(story.getId());
         if (locations == null || locations.isEmpty()) {
@@ -205,6 +208,29 @@ public class MatchCommandService implements MatchCommandPort {
 
         persistencePort.updateMatchFields(uuidMatch, MatchStatuses.ENDED, null);
         return EndMatchOutcome.COMPLETED;
+    }
+
+    /**
+     * Step 23 — validates the creator loadout traits against the selected
+     * class and the difficulty cost budgets. The class is resolved leniently:
+     * an unknown class uuid is treated as "no class", so permitted-restricted
+     * traits fail with TRAIT_NOT_COMPATIBLE.
+     */
+    private void validateCreatorTraitSelection(StoryEntity story,
+                                               StoryDifficultyEntity difficulty,
+                                               MatchCreateCommand command) {
+        ClassEntity clazz = null;
+        if (!isBlank(command.getClassUuid())) {
+            clazz = storyReadPort.findClassByStoryIdAndUuid(story.getId(), command.getClassUuid())
+                    .orElse(null);
+        }
+        try {
+            TraitSelectionValidator.resolveAndValidate(
+                    storyReadPort, story.getId(), clazz, difficulty, command.getTraitUuids());
+        } catch (TraitSelectionValidator.TraitSelectionException ex) {
+            throw new MatchCreationException(
+                    MatchCreationException.Code.valueOf(ex.getViolation().name()), ex.getMessage());
+        }
     }
 
     private void applyKeyDefaultValue(GamingStateRegistryEntity r, String rawValue) {

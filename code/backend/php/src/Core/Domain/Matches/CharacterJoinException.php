@@ -13,6 +13,11 @@ class CharacterJoinException extends \RuntimeException
     public const CLASS_NOT_COMPATIBLE = 'CLASS_NOT_COMPATIBLE';
     public const ALREADY_JOINED = 'ALREADY_JOINED';
     public const MATCH_NOT_JOINABLE = 'MATCH_NOT_JOINABLE';
+    // Step 23 — trait selection validation
+    public const TRAIT_NOT_FOUND = 'TRAIT_NOT_FOUND';
+    public const TRAIT_DUPLICATED = 'TRAIT_DUPLICATED';
+    public const TRAIT_NOT_COMPATIBLE = 'TRAIT_NOT_COMPATIBLE';
+    public const TRAIT_COST_EXCEEDED = 'TRAIT_COST_EXCEEDED';
 
     private string $code_id;
 

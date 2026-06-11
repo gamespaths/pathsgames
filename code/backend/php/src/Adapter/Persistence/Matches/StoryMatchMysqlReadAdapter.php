@@ -37,7 +37,8 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, uuid, exp_cost, max_weight, min_character, max_character,
-                    life, energy, sad, dexterity, intelligence, constitution
+                    life, energy, sad, dexterity, intelligence, constitution,
+                    trait_cost_positive_budget, trait_cost_negative_budget
              FROM list_stories_difficulty WHERE id_story = :s AND uuid = :u LIMIT 1'
         );
         $stmt->execute([':s' => $storyId, ':u' => $difficultyUuid]);
@@ -49,7 +50,8 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, uuid, exp_cost, max_weight, min_character, max_character,
-                    life, energy, sad, dexterity, intelligence, constitution
+                    life, energy, sad, dexterity, intelligence, constitution,
+                    trait_cost_positive_budget, trait_cost_negative_budget
              FROM list_stories_difficulty WHERE id_story = :s AND id = :i LIMIT 1'
         );
         $stmt->execute([':s' => $storyId, ':i' => $difficultyId]);
@@ -92,7 +94,8 @@ class StoryMatchMysqlReadAdapter implements StoryMatchReadPort
          constitution_start, id_class_permitted, id_class_prohibited';
 
     private const TRAIT_COLS =
-        'id, uuid, life, energy, sad, dexterity, intelligence, constitution';
+        'id, uuid, life, energy, sad, dexterity, intelligence, constitution,
+         cost_positive, cost_negative, id_class_permitted, id_class_prohibited';
 
     public function findCharacterTemplateByUuid(int $storyId, string $uuid): ?array
     {

@@ -3,9 +3,11 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.story.ClassEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.KeyEntity;
 import games.paths.core.entity.story.LocationEntity;
+import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchCreateCommand;
@@ -89,6 +91,22 @@ class MatchCommandServiceTest {
         k.setName(name);
         k.setValue(value);
         return k;
+    }
+
+    private ClassEntity storyClass(Long id, String uuid) {
+        ClassEntity c = new ClassEntity();
+        c.setId(id);
+        c.setUuid(uuid);
+        return c;
+    }
+
+    private TraitEntity costTrait(Long id, String uuid, int costPositive, int costNegative) {
+        TraitEntity t = new TraitEntity();
+        t.setId(id);
+        t.setUuid(uuid);
+        t.setCostPositive(costPositive);
+        t.setCostNegative(costNegative);
+        return t;
     }
 
     @Nested
@@ -354,6 +372,13 @@ class MatchCommandServiceTest {
             when(storyReadPort.findLocationsByStoryId(2L))
                     .thenReturn(List.of(location(10L, "loc", 0)));
             when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            // Step 23 — loadout traits are validated at creation
+            when(storyReadPort.findClassByStoryIdAndUuid(2L, "class-uuid"))
+                    .thenReturn(Optional.of(storyClass(30L, "class-uuid")));
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(40L, "trait-1", 1, 0)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(41L, "trait-2", 1, 0)));
 
             MatchCreateCommand command = new MatchCreateCommand(
                     "user-uuid", "story-uuid", "diff-uuid", "My match", "char-tpl",
@@ -410,9 +435,11 @@ class MatchCommandServiceTest {
         @Test
         @DisplayName("Code enum has expected entries")
         void codes() {
-            assertEquals(8, MatchCommandPort.MatchCreationException.Code.values().length);
+            assertEquals(12, MatchCommandPort.MatchCreationException.Code.values().length);
             assertEquals(MatchCommandPort.MatchCreationException.Code.USER_BANNED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("USER_BANNED"));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_COST_EXCEEDED,
+                    MatchCommandPort.MatchCreationException.Code.valueOf("TRAIT_COST_EXCEEDED"));
         }
 
         @Test
@@ -720,6 +747,111 @@ class MatchCommandServiceTest {
             assertEquals(MatchCommandPort.EndMatchOutcome.COMPLETED,
                     service.endMatch("m1", "ev", "u"));
             verify(persistencePort).updateMatchFields("m1", "ENDED", null);
+        }
+    }
+
+    @Nested
+    @DisplayName("Step 23 — creator loadout trait validation")
+    class CreatorTraitValidation {
+
+        @BeforeEach
+        void wireOk() {
+            when(systemModePort.isMaintenance()).thenReturn(false);
+            when(userAccessPort.findByUuid("user-uuid")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryByUuid("story-uuid")).thenReturn(Optional.of(story(2L, "story-uuid")));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            when(storyReadPort.findClassByStoryIdAndUuid(2L, "class-uuid"))
+                    .thenReturn(Optional.of(storyClass(30L, "class-uuid")));
+        }
+
+        private void wireDifficulty(Integer positiveBudget, Integer negativeBudget) {
+            StoryDifficultyEntity d = difficulty(3L, "diff-uuid", 5);
+            d.setTraitCostPositiveBudget(positiveBudget);
+            d.setTraitCostNegativeBudget(negativeBudget);
+            when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "diff-uuid"))
+                    .thenReturn(Optional.of(d));
+        }
+
+        private MatchCreateCommand loadoutCmd(List<String> traits) {
+            return new MatchCreateCommand("user-uuid", "story-uuid", "diff-uuid",
+                    "My match", "char-tpl", "class-uuid", traits, 1);
+        }
+
+        @Test
+        @DisplayName("unknown trait uuid → TRAIT_NOT_FOUND")
+        void unknownTrait() {
+            wireDifficulty(null, null);
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "ghost")).thenReturn(Optional.empty());
+
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> service.createMatch(loadoutCmd(List.of("ghost"))));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_NOT_FOUND, ex.getCode());
+            verify(persistencePort, never()).saveMatch(any());
+        }
+
+        @Test
+        @DisplayName("duplicated trait uuid → TRAIT_DUPLICATED")
+        void duplicatedTrait() {
+            wireDifficulty(null, null);
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(40L, "trait-1", 1, 0)));
+
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> service.createMatch(loadoutCmd(List.of("trait-1", "trait-1"))));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_DUPLICATED, ex.getCode());
+        }
+
+        @Test
+        @DisplayName("trait prohibited for the selected class → TRAIT_NOT_COMPATIBLE")
+        void prohibitedTrait() {
+            wireDifficulty(null, null);
+            TraitEntity t = costTrait(40L, "trait-1", 1, 0);
+            t.setIdClassProhibited(30); // selected class id is 30
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-1")).thenReturn(Optional.of(t));
+
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> service.createMatch(loadoutCmd(List.of("trait-1"))));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_NOT_COMPATIBLE, ex.getCode());
+        }
+
+        @Test
+        @DisplayName("positive budget exceeded → TRAIT_COST_EXCEEDED")
+        void positiveBudgetExceeded() {
+            wireDifficulty(1, null);
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(40L, "trait-1", 1, 0)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(41L, "trait-2", 1, 0)));
+
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> service.createMatch(loadoutCmd(List.of("trait-1", "trait-2"))));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_COST_EXCEEDED, ex.getCode());
+        }
+
+        @Test
+        @DisplayName("budgets respected (exact) → match created")
+        void exactBudgetOk() {
+            wireDifficulty(2, 2);
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(40L, "trait-1", 1, 1)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(2L, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(41L, "trait-2", 1, 1)));
+            when(persistencePort.saveMatch(any())).thenAnswer(inv -> {
+                GamingMatchEntity m = inv.getArgument(0);
+                m.setId(42L);
+                m.setUuid("match-uuid");
+                return m;
+            });
+
+            MatchSummary result = service.createMatch(loadoutCmd(List.of("trait-1", "trait-2")));
+            assertNotNull(result);
+            assertEquals(List.of("trait-1", "trait-2"), result.getTraitUuids());
         }
     }
 }

@@ -35,6 +35,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 20 | [Game first run](./Step20_GameWebSiteFirstRun.md) | ✅ | Game web site first run |
 | 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
 | 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
+| 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
 
 
 | Steps | Phase |
@@ -69,14 +70,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 
 
-23. Character stats initialization
-    - Implement trait listing for selected class filtered by id_class_permitted and id_class_prohibited (backend)
-    - Assign traits during character creation (within POST /matches and POST /matches/{uuid_match}/join flow) (backend)
-    - Validate trait cost limits based on difficulty (positive/negative cost budget) and class restrictions (backend)
-    - Calculate final starting stats: base template + class bonuses + trait adjustments (backend)
-    - Persist gaming_character_traits records and finalize gaming_character_instance with computed stats (backend)
-    - Set character initial location to story start location and energy/life to maximum values (backend)
-    - Write backend unit tests for trait selection, cost validation, stat computation, and initialization edge cases (backend tests)
 24. Turn cycle engine for single-player
     - Implement turn priority calculation: (DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + CHARACTER_ID (backend)
     - Initialize gaming_turn_queue on match start with calculated priorities and timestamps (backend)
@@ -737,7 +730,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.20.5 | added Step 20a (admin endpoint split / port 8044 / AWS admin API + IP authorizer) to completed steps table | June 4, 2026 |
     | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
     | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
-- **Last Updated**: June 9, 2026
+    | 0.23.1 | added new frontend `python-flask-game` (Flask + Jinja2 SSR alternative to react-game, port 5099, mock + live backend mode, 35 pytest tests) | June 11, 2026 |
+- **Last Updated**: June 11, 2026
 - **Status**: In progress
 
 

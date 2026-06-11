@@ -64,6 +64,8 @@ class StoryQueryService(StoryQueryPort):
                 costHelpComa=rd.get("cost_help_coma", 3),
                 costMaxCharacteristics=rd.get("cost_max_characteristics", 3),
                 numberMaxFreeAction=rd.get("number_max_free_action", 1),
+                traitCostPositiveBudget=rd.get("trait_cost_positive_budget"),
+                traitCostNegativeBudget=rd.get("trait_cost_negative_budget"),
                 idCard=rd.get("id_card"),
                 card=self._resolve_card(story_id, texts, rd.get("id_card"), lang),
                 life=rd.get("life", 100),
@@ -137,28 +139,7 @@ class StoryQueryService(StoryQueryPort):
                 idClassProhibited=t.get("id_class_prohibited"),
             ))
 
-        traits = []
-        for tr in raw_traits:
-            tr_name = self._resolve_text(texts, tr.get("id_text_name"), lang)
-            tr_desc = self._resolve_text(texts, tr.get("id_text_description"), lang)
-            traits.append(TraitInfo(
-                uuid=tr.get("uuid") or str(tr.get("id", "")),
-                name=tr_name,
-                description=tr_desc,
-                costPositive=tr.get("cost_positive", 0) or 0,
-                costNegative=tr.get("cost_negative", 0) or 0,
-                idClassPermitted=tr.get("id_class_permitted"),
-                idClassProhibited=tr.get("id_class_prohibited"),
-                idCard=tr.get("id_card"),
-                card=self._resolve_card(story_id, texts, tr.get("id_card"), lang),
-                life=tr.get("life", 0) or 0,
-                energy=tr.get("energy", 0) or 0,
-                sad=tr.get("sad", 0) or 0,
-                dexterity=tr.get("dexterity", 0) or 0,
-                intelligence=tr.get("intelligence", 0) or 0,
-                constitution=tr.get("constitution", 0) or 0,
-                weight=tr.get("weight", 0) or 0,
-            ))
+        traits = [self._to_trait_info(story_id, texts, tr, lang) for tr in raw_traits]
 
         # Step 15: Card
         card = None
@@ -266,6 +247,70 @@ class StoryQueryService(StoryQueryPort):
             card=card,
             idTextClockSingular=raw_story.get("id_text_clock_singular"),
             idTextClockPlural=raw_story.get("id_text_clock_plural")
+        )
+
+    # === Step 23: Trait listing filtered by class ===
+
+    def list_traits_for_class(self, story_uuid: str, class_uuid: str, lang: str = "en"):
+        """Lists the story traits selectable with the given class.
+
+        Returns a ``(status, traits)`` tuple where status is ``"OK"``,
+        ``"STORY_NOT_FOUND"`` or ``"CLASS_NOT_FOUND"``.
+        """
+        if not story_uuid or not story_uuid.strip():
+            return "STORY_NOT_FOUND", []
+        raw_story = self.read_port.find_story_by_uuid(story_uuid)
+        if not raw_story:
+            return "STORY_NOT_FOUND", []
+        story_id = raw_story["id"]
+
+        clazz = None
+        if class_uuid and class_uuid.strip():
+            for c in self.read_port.find_classes_for_story(story_id):
+                if c.get("uuid") == class_uuid:
+                    clazz = c
+                    break
+        if clazz is None:
+            return "CLASS_NOT_FOUND", []
+        class_id = clazz.get("id")
+
+        texts = self.read_port.find_texts_for_story(story_id)
+        traits = [
+            self._to_trait_info(story_id, texts, tr, lang)
+            for tr in self.read_port.find_traits_for_story(story_id)
+            if self._is_trait_selectable(tr, class_id)
+        ]
+        return "OK", traits
+
+    @staticmethod
+    def _is_trait_selectable(tr: Dict[str, Any], class_id) -> bool:
+        permitted = tr.get("id_class_permitted")
+        prohibited = tr.get("id_class_prohibited")
+        permitted_ok = permitted is None or (class_id is not None and permitted == class_id)
+        prohibited_ok = prohibited is None or class_id is None or prohibited != class_id
+        return permitted_ok and prohibited_ok
+
+    def _to_trait_info(self, story_id: int, texts: List[Dict[str, Any]],
+                       tr: Dict[str, Any], lang: str) -> TraitInfo:
+        tr_name = self._resolve_text(texts, tr.get("id_text_name"), lang)
+        tr_desc = self._resolve_text(texts, tr.get("id_text_description"), lang)
+        return TraitInfo(
+            uuid=tr.get("uuid") or str(tr.get("id", "")),
+            name=tr_name,
+            description=tr_desc,
+            costPositive=tr.get("cost_positive", 0) or 0,
+            costNegative=tr.get("cost_negative", 0) or 0,
+            idClassPermitted=tr.get("id_class_permitted"),
+            idClassProhibited=tr.get("id_class_prohibited"),
+            idCard=tr.get("id_card"),
+            card=self._resolve_card(story_id, texts, tr.get("id_card"), lang),
+            life=tr.get("life", 0) or 0,
+            energy=tr.get("energy", 0) or 0,
+            sad=tr.get("sad", 0) or 0,
+            dexterity=tr.get("dexterity", 0) or 0,
+            intelligence=tr.get("intelligence", 0) or 0,
+            constitution=tr.get("constitution", 0) or 0,
+            weight=tr.get("weight", 0) or 0,
         )
 
     def _resolve_card(self, story_id: int, texts: List[Dict[str, Any]], id_card: Optional[int], lang: str) -> Optional[CardInfo]:

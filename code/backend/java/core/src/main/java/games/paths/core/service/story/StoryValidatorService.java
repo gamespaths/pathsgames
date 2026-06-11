@@ -237,6 +237,9 @@ public class StoryValidatorService implements StoryValidatorPort {
             r.add("R6_DIFFICULTY_RANGE", type, id, "minCharacter",
                     "minCharacter (" + min + ") exceeds maxCharacter (" + max + ")");
         }
+        // Step 23 — trait cost budgets must not be negative (null = no limit)
+        checkNonNegative(r, type, id, "traitCostPositiveBudget", asInt(d.get("traitCostPositiveBudget")));
+        checkNonNegative(r, type, id, "traitCostNegativeBudget", asInt(d.get("traitCostNegativeBudget")));
     }
 
     private void checkPositive(StoryValidationReport r, String type, String id, String field, Integer v) {

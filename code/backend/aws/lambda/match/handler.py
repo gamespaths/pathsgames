@@ -304,6 +304,50 @@ def _sum_bonus(bonuses, stat):
               if str(b.get('statistic', '')).lower() == stat)
 
 
+def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
+    """Step 23 — strict trait selection validation shared by create and join.
+
+    Returns (traits, error_response): unknown uuids, duplicates, class
+    incompatibilities and difficulty cost-budget overruns are rejected.
+    A None/missing budget means "no limit"; blank uuids are ignored.
+    """
+    all_traits = story.get('traits') or []
+    class_id = clazz.get('id') if clazz else None
+    resolved = []
+    seen = set()
+    for uuid in (trait_uuids or []):
+        if not uuid or not str(uuid).strip():
+            continue
+        key = str(uuid).strip()
+        if key in seen:
+            return None, _err(400, 'TRAIT_DUPLICATED', f'Trait selected more than once: {key}')
+        seen.add(key)
+        trait = next((t for t in all_traits if t.get('uuid') == key), None)
+        if trait is None:
+            return None, _err(400, 'TRAIT_NOT_FOUND', f'Trait not found: {key}')
+        permitted = trait.get('idClassPermitted')
+        prohibited = trait.get('idClassProhibited')
+        if permitted is not None and (class_id is None or int(permitted) != int(class_id)):
+            return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
+                              f'Trait {key} is permitted only for another class')
+        if prohibited is not None and class_id is not None and int(prohibited) == int(class_id):
+            return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
+                              f'Trait {key} is prohibited for the selected class')
+        resolved.append(trait)
+    if difficulty and resolved:
+        total_positive = sum(_nz(t.get('costPositive')) for t in resolved)
+        total_negative = sum(_nz(t.get('costNegative')) for t in resolved)
+        positive_budget = difficulty.get('traitCostPositiveBudget')
+        negative_budget = difficulty.get('traitCostNegativeBudget')
+        if positive_budget is not None and total_positive > int(positive_budget):
+            return None, _err(400, 'TRAIT_COST_EXCEEDED',
+                              f'Total positive trait cost {total_positive} exceeds the difficulty budget {positive_budget}')
+        if negative_budget is not None and total_negative > int(negative_budget):
+            return None, _err(400, 'TRAIT_COST_EXCEEDED',
+                              f'Total negative trait cost {total_negative} exceeds the difficulty budget {negative_budget}')
+    return resolved, None
+
+
 # ─── domain operations ───────────────────────────────────────────────────────
 
 def _create_match(user, body):
@@ -331,6 +375,15 @@ def _create_match(user, body):
     matched_diff = next((d for d in difficulties if d.get('uuid') == difficulty_uuid), None)
     if matched_diff is None:
         return _err(404, 'DIFFICULTY_NOT_FOUND', f'Difficulty not found: {difficulty_uuid}')
+
+    # Step 23 — validate the creator loadout traits; an unknown class uuid is
+    # treated as "no class" (permitted-restricted traits then fail).
+    loadout_class = next((c for c in (story.get('classes') or [])
+                          if c.get('uuid') == (body or {}).get('classUuid')), None)
+    _, trait_err = _resolve_and_validate_traits(
+        story, loadout_class, matched_diff, (body or {}).get('traitUuids'))
+    if trait_err:
+        return trait_err
 
     locations = story.get('locations') or []
     if not locations:
@@ -520,10 +573,11 @@ def _join_match(user, match_uuid, body):
         if compat_err:
             return compat_err
 
-    all_traits = story.get('traits') or []
-    traits = [t for u in trait_uuids for t in all_traits if t.get('uuid') == u]
     difficulty = next((d for d in (story.get('difficulties') or [])
                        if d.get('uuid') == match.get('difficultyUuid')), None)
+    traits, trait_err = _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids)
+    if trait_err:
+        return trait_err
     bonuses = [b for b in (story.get('classBonuses') or [])
                if clazz is not None and b.get('idClass') == clazz.get('id')]
 

@@ -1,0 +1,96 @@
+"""Step23Helper — pure-python helpers for the Step 23 trait-selection suite.
+
+The robot tests resolve their data dynamically from a public story's detail
+(uuids are seed-generated), so these helpers search the detail JSON for the
+combinations each scenario needs. Every function returns ``None``-friendly
+structures so a suite can skip a scenario when the running backend's seed
+does not expose it (e.g. the Python seed has no class-restricted traits).
+"""
+
+
+def _nz(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _is_selectable(trait, class_id):
+    permitted = trait.get("idClassPermitted")
+    prohibited = trait.get("idClassProhibited")
+    permitted_ok = permitted is None or (class_id is not None and int(permitted) == int(class_id))
+    prohibited_ok = prohibited is None or class_id is None or int(prohibited) != int(class_id)
+    return permitted_ok and prohibited_ok
+
+
+def filtered_trait_uuids(detail, class_uuid):
+    """The trait uuids selectable with the given class (client-side filter)."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    return [t.get("uuid") for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+
+
+def find_incompatible_trait(detail, class_uuid):
+    """A trait uuid NOT selectable with the given class, or '' when none exists."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    for t in detail.get("traits") or []:
+        if not _is_selectable(t, class_id):
+            return t.get("uuid") or ""
+    return ""
+
+
+def find_positive_budget_overflow(detail):
+    """Finds (class_uuid, [trait_uuids]) whose summed costPositive exceeds the
+    first difficulty's traitCostPositiveBudget, using only traits compatible
+    with that class. Returns ('', []) when no such combination exists."""
+    difficulties = detail.get("difficulties") or []
+    budget = difficulties[0].get("traitCostPositiveBudget") if difficulties else None
+    if budget is None:
+        return "", []
+    for clazz in detail.get("classes") or []:
+        class_id = clazz.get("id")
+        compatible = [t for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+        positives = [t for t in compatible if _nz(t.get("costPositive")) > 0]
+        selection = []
+        total = 0
+        for t in positives:
+            selection.append(t.get("uuid"))
+            total += _nz(t.get("costPositive"))
+            if total > int(budget):
+                return clazz.get("uuid") or "", selection
+    return "", []
+
+
+def find_negative_budget_overflow(detail):
+    """Same as find_positive_budget_overflow but for costNegative against the
+    first difficulty's traitCostNegativeBudget."""
+    difficulties = detail.get("difficulties") or []
+    budget = difficulties[0].get("traitCostNegativeBudget") if difficulties else None
+    if budget is None:
+        return "", []
+    for clazz in detail.get("classes") or []:
+        class_id = clazz.get("id")
+        compatible = [t for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+        negatives = [t for t in compatible if _nz(t.get("costNegative")) > 0]
+        selection = []
+        total = 0
+        for t in negatives:
+            selection.append(t.get("uuid"))
+            total += _nz(t.get("costNegative"))
+            if total > int(budget):
+                return clazz.get("uuid") or "", selection
+    return "", []
+
+
+def trait_stat_deltas(detail, trait_uuid):
+    """The five stat deltas of a trait as a dict (life, energy, dexterity,
+    intelligence, constitution) — the fields applied at character creation."""
+    trait = next((t for t in (detail.get("traits") or []) if t.get("uuid") == trait_uuid), {})
+    return {
+        "life": _nz(trait.get("life")),
+        "energy": _nz(trait.get("energy")),
+        "dexterity": _nz(trait.get("dexterity")),
+        "intelligence": _nz(trait.get("intelligence")),
+        "constitution": _nz(trait.get("constitution")),
+    }

@@ -709,3 +709,53 @@ def test_create_entity_class_conflict_returns_400():
         result = lambda_handler(event, {})
     assert result['statusCode'] == 400
     assert _body(result)['error'] == 'INVALID_STORY'
+
+
+# ── Step 23: trait listing filtered by class ──────────────────────────────────
+
+def _step23_story():
+    return {
+        'PK': 'STORY#s23', 'SK': 'METADATA', 'uuid': 's23', 'visibility': 'PUBLIC',
+        'classes': [{'uuid': 'cl-1', 'id': 30}],
+        'traits': [
+            {'uuid': 'tr-unrestricted', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-permitted-match', 'id': 2, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': 30, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-permitted-other', 'id': 3, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': 99, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-prohibited-match', 'id': 4, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': 30, 'texts': {}},
+            {'uuid': 'tr-prohibited-other', 'id': 5, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': 99, 'texts': {}},
+        ],
+    }
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_filters(mock_get):
+    mock_get.return_value = _step23_story()
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/s23/classes/cl-1/traits'), {})
+    assert result['statusCode'] == 200
+    body = json.loads(result['body'])
+    assert [t['uuid'] for t in body] == ['tr-unrestricted', 'tr-permitted-match', 'tr-prohibited-other']
+    assert body[0]['costPositive'] == 1
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_story_not_found(mock_get):
+    mock_get.return_value = None
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/ghost/classes/cl-1/traits'), {})
+    assert result['statusCode'] == 404
+    assert json.loads(result['body'])['error'] == 'STORY_NOT_FOUND'
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_class_not_found(mock_get):
+    mock_get.return_value = _step23_story()
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/s23/classes/ghost/traits'), {})
+    assert result['statusCode'] == 404
+    assert json.loads(result['body'])['error'] == 'CLASS_NOT_FOUND'

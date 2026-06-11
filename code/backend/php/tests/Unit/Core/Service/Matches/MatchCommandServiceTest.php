@@ -312,6 +312,14 @@ class MatchCommandServiceTest extends TestCase
         $this->storyRead->method('findDifficultyByUuid')->willReturn($this->difficulty());
         $this->storyRead->method('findLocationsByStoryId')->willReturn([['id' => 10, 'uuid' => 'l', 'counter_start' => 0]]);
         $this->storyRead->method('findKeysByStoryId')->willReturn([]);
+        // Step 23 — loadout traits are validated at creation
+        $this->storyRead->method('findClassByUuid')->willReturn(['id' => 30, 'uuid' => 'class-uuid']);
+        $this->storyRead->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            't1' => ['id' => 40, 'uuid' => 't1', 'cost_positive' => 1, 'cost_negative' => 0,
+                     'id_class_permitted' => null, 'id_class_prohibited' => null],
+            't2' => ['id' => 41, 'uuid' => 't2', 'cost_positive' => 1, 'cost_negative' => 0,
+                     'id_class_permitted' => null, 'id_class_prohibited' => null],
+        ][$u] ?? null);
 
         $savedArg = [];
         $this->persistence->method('saveMatch')->willReturnCallback(function ($match) use (&$savedArg) {
@@ -466,5 +474,71 @@ class MatchCommandServiceTest extends TestCase
             ->with('m1', 'ENDED', null)
             ->willReturn(true);
         $this->assertSame('COMPLETED', $this->service->endMatch('m1', 'ev', 'user-uuid'));
+    }
+
+    // ─── Step 23: creator loadout trait validation ──────────────────────────
+
+    private function wireCreateOk(?array $difficulty = null): void
+    {
+        $this->systemMode->method('isMaintenance')->willReturn(false);
+        $this->userAccess->method('findByUuid')->willReturn($this->user());
+        $this->storyRead->method('findStoryByUuid')->willReturn($this->story());
+        $this->storyRead->method('findDifficultyByUuid')->willReturn($difficulty ?? $this->difficulty());
+        $this->storyRead->method('findLocationsByStoryId')->willReturn([['id' => 10, 'uuid' => 'l', 'counter_start' => 0]]);
+        $this->storyRead->method('findKeysByStoryId')->willReturn([]);
+        $this->storyRead->method('findClassByUuid')->willReturn(['id' => 30, 'uuid' => 'class-uuid']);
+    }
+
+    private function assertCreateCode(string $code, MatchCreateCommand $command): void
+    {
+        try {
+            $this->service->createMatch($command);
+            $this->fail('Expected MatchCreationException');
+        } catch (MatchCreationException $e) {
+            $this->assertSame($code, $e->getCodeId());
+        }
+    }
+
+    public function testCreateUnknownTraitNotFound(): void
+    {
+        $this->wireCreateOk();
+        $this->storyRead->method('findTraitByUuid')->willReturn(null);
+        $this->persistence->expects($this->never())->method('saveMatch');
+        $this->assertCreateCode(MatchCreationException::TRAIT_NOT_FOUND,
+            new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'class-uuid', ['ghost'], 1));
+    }
+
+    public function testCreateDuplicatedTrait(): void
+    {
+        $this->wireCreateOk();
+        $this->storyRead->method('findTraitByUuid')->willReturn(
+            ['id' => 40, 'uuid' => 't1', 'cost_positive' => 1, 'cost_negative' => 0,
+             'id_class_permitted' => null, 'id_class_prohibited' => null]);
+        $this->assertCreateCode(MatchCreationException::TRAIT_DUPLICATED,
+            new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'class-uuid', ['t1', 't1'], 1));
+    }
+
+    public function testCreateProhibitedTrait(): void
+    {
+        $this->wireCreateOk();
+        $this->storyRead->method('findTraitByUuid')->willReturn(
+            ['id' => 40, 'uuid' => 't1', 'cost_positive' => 1, 'cost_negative' => 0,
+             'id_class_permitted' => null, 'id_class_prohibited' => 30]);
+        $this->assertCreateCode(MatchCreationException::TRAIT_NOT_COMPATIBLE,
+            new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'class-uuid', ['t1'], 1));
+    }
+
+    public function testCreatePositiveBudgetExceeded(): void
+    {
+        $difficulty = array_merge($this->difficulty(), ['trait_cost_positive_budget' => 1]);
+        $this->wireCreateOk($difficulty);
+        $this->storyRead->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            't1' => ['id' => 40, 'uuid' => 't1', 'cost_positive' => 1, 'cost_negative' => 0,
+                     'id_class_permitted' => null, 'id_class_prohibited' => null],
+            't2' => ['id' => 41, 'uuid' => 't2', 'cost_positive' => 1, 'cost_negative' => 0,
+                     'id_class_permitted' => null, 'id_class_prohibited' => null],
+        ][$u] ?? null);
+        $this->assertCreateCode(MatchCreationException::TRAIT_COST_EXCEEDED,
+            new MatchCreateCommand('u', 's', 'd', 'n', 'ct', 'class-uuid', ['t1', 't2'], 1));
     }
 }

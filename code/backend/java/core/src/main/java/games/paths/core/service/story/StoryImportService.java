@@ -240,6 +240,8 @@ public class StoryImportService implements StoryImportPort {
             e.setCostHelpComa(getInteger(item, "costHelpComa"));
             e.setCostMaxCharacteristics(getInteger(item, "costMaxCharacteristics"));
             e.setNumberMaxFreeAction(getInteger(item, "numberMaxFreeAction"));
+            e.setTraitCostPositiveBudget(getInteger(item, "traitCostPositiveBudget"));
+            e.setTraitCostNegativeBudget(getInteger(item, "traitCostNegativeBudget"));
             e.setLife(getInteger(item, "life"));
             e.setEnergy(getInteger(item, "energy"));
             e.setSad(getInteger(item, "sad"));

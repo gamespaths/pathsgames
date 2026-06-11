@@ -133,6 +133,14 @@ Resources:
       RouteKey: "GET /api/stories/{uuid}"
       Target: !Sub "integrations/${StoryIntegration}"
 
+  # Step 23: trait listing filtered by class
+  ListTraitsForClassRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/stories/{uuidStory}/classes/{uuidClass}/traits"
+      Target: !Sub "integrations/${StoryIntegration}"
+
   # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
   ImportStoryRoute:
     Type: AWS::ApiGatewayV2::Route

@@ -41,6 +41,8 @@ class RouteRegistrar
             $group->get('/stories/groups', [$c['story'], 'listGroups']);
             $group->get('/stories/category/{category}', [$c['story'], 'listStoriesByCategory']);
             $group->get('/stories/group/{group}', [$c['story'], 'listStoriesByGroup']);
+            // Step 23 — trait listing filtered by class
+            $group->get('/stories/{uuidStory}/classes/{uuidClass}/traits', [$c['story'], 'listTraitsForClass']);
             $group->get('/stories/{uuid}', [$c['story'], 'getStory']);
 
             // Content Detail (Public)

@@ -81,6 +81,8 @@ class MatchCommandService implements MatchCommandPort
             );
         }
 
+        $this->validateCreatorTraitSelection($story, $difficulty, $command);
+
         $locations = $this->storyReadPort->findLocationsByStoryId($story['id']);
         if (empty($locations)) {
             throw new MatchCreationException(
@@ -204,6 +206,32 @@ class MatchCommandService implements MatchCommandPort
 
         $this->persistencePort->updateMatchFields($uuidMatch, MatchStatuses::ENDED, null);
         return 'COMPLETED';
+    }
+
+    /**
+     * Step 23 — validates the creator loadout traits against the selected
+     * class and the difficulty cost budgets. The class is resolved leniently:
+     * an unknown class uuid is treated as "no class", so permitted-restricted
+     * traits fail with TRAIT_NOT_COMPATIBLE.
+     */
+    private function validateCreatorTraitSelection(array $story, array $difficulty, MatchCreateCommand $command): void
+    {
+        $class = null;
+        $classUuid = $command->getClassUuid();
+        if ($classUuid !== null && $classUuid !== '') {
+            $class = $this->storyReadPort->findClassByUuid((int)$story['id'], $classUuid);
+        }
+        try {
+            TraitSelectionValidator::resolveAndValidate(
+                $this->storyReadPort,
+                (int)$story['id'],
+                $class,
+                $difficulty,
+                $command->getTraitUuids()
+            );
+        } catch (TraitSelectionException $e) {
+            throw new MatchCreationException($e->getCodeId(), $e->getMessage());
+        }
     }
 
     private function applyDefault(array &$row, $rawValue): void

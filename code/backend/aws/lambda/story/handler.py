@@ -274,6 +274,11 @@ def _story_detail(item, lang):
             'intelligence':          _safe_int(d.get('intelligence', 0)),
             'constitution':          _safe_int(d.get('constitution', 0)),
             'weight':                _safe_int(d.get('weight', 0)),
+            # Step 23 — trait cost budgets; None = no limit
+            'traitCostPositiveBudget': _safe_int(d.get('traitCostPositiveBudget'))
+                                       if d.get('traitCostPositiveBudget') is not None else None,
+            'traitCostNegativeBudget': _safe_int(d.get('traitCostNegativeBudget'))
+                                       if d.get('traitCostNegativeBudget') is not None else None,
             'idCard':                _safe_int(d_id_card) if d_id_card is not None else None,
             'card':                  _build_card(d_id_card, lang),
         })
@@ -332,28 +337,7 @@ def _story_detail(item, lang):
 
     # Step 15: Traits
     raw_traits = item.get('traits', [])
-    traits = []
-    for tr in raw_traits:
-        tr_id_card = tr.get('idCard')
-        traits.append({
-            'uuid':              tr.get('uuid'),
-            'id':                _safe_int(tr.get('id')),
-            'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
-            'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
-            'costPositive':      _safe_int(tr.get('costPositive')),
-            'costNegative':      _safe_int(tr.get('costNegative')),
-            'idClassPermitted':  tr.get('idClassPermitted'),
-            'idClassProhibited': tr.get('idClassProhibited'),
-            'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
-            'card':              _build_card(tr_id_card, lang),
-            'life':              _safe_int(tr.get('life')),
-            'energy':            _safe_int(tr.get('energy')),
-            'sad':               _safe_int(tr.get('sad')),
-            'dexterity':         _safe_int(tr.get('dexterity')),
-            'intelligence':      _safe_int(tr.get('intelligence')),
-            'constitution':      _safe_int(tr.get('constitution')),
-            'weight':            _safe_int(tr.get('weight')),
-        })
+    traits = [_trait_detail(item, tr, lang) for tr in raw_traits]
 
     # Step 15: story-level card
     idCard = item.get('idCard')
@@ -426,6 +410,13 @@ def lambda_handler(event, context):
     # public
     if path == '/api/stories' and method == 'GET':
         return list_stories(event)
+    # Step 23: /api/stories/{uuidStory}/classes/{uuidClass}/traits
+    parts = path.split('/')
+    if (method == 'GET' and path.startswith('/api/stories/') and len(parts) == 7
+            and parts[4] == 'classes' and parts[6] == 'traits'):
+        return list_traits_for_class(event,
+                                     params.get('uuidStory') or parts[3],
+                                     params.get('uuidClass') or parts[5])
     if path.startswith('/api/stories/') and method == 'GET' and len(path.split('/')) == 4:
         uid = params.get('uuid') or path.split('/')[-1]
         return get_story(event, uid)
@@ -488,6 +479,59 @@ def get_story(event, story_uuid):
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
     return _ok(_story_detail(item, lang))
+
+
+# ─── Step 23: trait listing filtered by class ─────────────────────────────────
+
+def _trait_detail(item, tr, lang):
+    tr_id_card = tr.get('idCard')
+    card = _find_card_from_raw(item.get('raw_cards', []), item.get('raw_texts', []),
+                               tr_id_card, lang)
+    return {
+        'uuid':              tr.get('uuid'),
+        'id':                _safe_int(tr.get('id')),
+        'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
+        'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
+        'costPositive':      _safe_int(tr.get('costPositive')),
+        'costNegative':      _safe_int(tr.get('costNegative')),
+        'idClassPermitted':  tr.get('idClassPermitted'),
+        'idClassProhibited': tr.get('idClassProhibited'),
+        'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
+        'card':              card,
+        'life':              _safe_int(tr.get('life')),
+        'energy':            _safe_int(tr.get('energy')),
+        'sad':               _safe_int(tr.get('sad')),
+        'dexterity':         _safe_int(tr.get('dexterity')),
+        'intelligence':      _safe_int(tr.get('intelligence')),
+        'constitution':      _safe_int(tr.get('constitution')),
+        'weight':            _safe_int(tr.get('weight')),
+    }
+
+
+def list_traits_for_class(event, story_uuid, class_uuid):
+    """GET /api/stories/{uuidStory}/classes/{uuidClass}/traits — Step 23.
+
+    A trait is selectable when idClassPermitted is null or equals the class
+    and idClassProhibited is null or differs from the class.
+    """
+    lang = _get_lang(event)
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'No story found with UUID: {story_uuid}')
+    clazz = next((c for c in (item.get('classes') or []) if c.get('uuid') == class_uuid), None)
+    if clazz is None:
+        return _err(404, 'CLASS_NOT_FOUND', f'No class found with UUID: {class_uuid}')
+    class_id = _safe_int(clazz.get('id'))
+
+    def selectable(tr):
+        permitted = tr.get('idClassPermitted')
+        prohibited = tr.get('idClassProhibited')
+        permitted_ok = permitted is None or (class_id is not None and int(permitted) == class_id)
+        prohibited_ok = prohibited is None or class_id is None or int(prohibited) != class_id
+        return permitted_ok and prohibited_ok
+
+    traits = [_trait_detail(item, tr, lang) for tr in (item.get('traits') or []) if selectable(tr)]
+    return _ok(traits)
 
 
 # ─── Step 15: Category and Group endpoints ────────────────────────────────────

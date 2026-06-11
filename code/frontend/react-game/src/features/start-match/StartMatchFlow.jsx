@@ -56,10 +56,15 @@ export default function StartMatchFlow({ story, config, storyId }) {
     try {
       // The selected loadout is reused for both create (stored on the match)
       // and the Step 21 join (instantiates the character from it).
+      // Step 23 — every selected trait is sent; the backend validates the
+      // class restrictions and the difficulty cost budgets.
+      const selectedTraits = Array.isArray(config.traits)
+        ? config.traits
+        : (config.trait ? [config.trait] : [])
       const loadout = {
         characterTemplateUuid: config.character?.uuid ?? null,
         classUuid: config.class?.uuid ?? null,
-        traitUuids: config.trait?.uuid ? [config.trait.uuid] : [],
+        traitUuids: selectedTraits.map(tr => tr?.uuid).filter(Boolean),
       }
       const payload = {
         storyUuid: story.uuid,

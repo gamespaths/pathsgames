@@ -252,6 +252,9 @@ class StoryValidatorService(StoryValidatorPort):
         if mn is not None and mx is not None and mx > 0 and mn > mx:
             r.add("R6_DIFFICULTY_RANGE", t, eid, "minCharacter",
                   f"minCharacter ({mn}) exceeds maxCharacter ({mx})")
+        # Step 23 — trait cost budgets must not be negative (None = no limit)
+        self._non_negative(r, t, eid, "traitCostPositiveBudget", _as_int(_get(d, "traitCostPositiveBudget")))
+        self._non_negative(r, t, eid, "traitCostNegativeBudget", _as_int(_get(d, "traitCostNegativeBudget")))
 
     def _positive(self, r, t, eid, fld, v):
         if v is not None and v <= 0:

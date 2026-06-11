@@ -24,6 +24,11 @@ class CharacterController
         CharacterJoinException::ALREADY_JOINED => 409,
         CharacterJoinException::CLASS_NOT_COMPATIBLE => 409,
         CharacterJoinException::MATCH_NOT_JOINABLE => 409,
+        // Step 23 — trait selection validation
+        CharacterJoinException::TRAIT_NOT_FOUND => 400,
+        CharacterJoinException::TRAIT_DUPLICATED => 400,
+        CharacterJoinException::TRAIT_NOT_COMPATIBLE => 400,
+        CharacterJoinException::TRAIT_COST_EXCEEDED => 400,
     ];
 
     public function __construct(

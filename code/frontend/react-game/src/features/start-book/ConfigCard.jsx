@@ -1,13 +1,16 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
 
-export default function ConfigCard({ 
+export default function ConfigCard({
     type, value, locked, lockedIcon,lockInfo,
-    selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview, selectLabel }) {
+    selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview, selectLabel,
+    selectedCount }) {
   const { t } = useTranslation()
   const singleOption = count === 1
   const previewHandler = singleOption ? () => onPagePreview(value, type) : onPreview ? () => onPreview(value, type) : undefined
 
+  // Step 23 — the trait card shows how many traits are selected (multi-select)
+  const label = t(`book.${type}`) + (selectedCount > 1 ? ` (${selectedCount})` : '')
 
   return (
     <GameCard
@@ -15,7 +18,7 @@ export default function ConfigCard({
       story={story}
       hideCredits={false}
       card={value?.card}
-      label={t(`book.${type}`)}
+      label={label}
       imageAlt={value?.name}
       name={value?.name}
       icon={value?.icon}

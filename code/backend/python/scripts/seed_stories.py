@@ -59,7 +59,9 @@ def seed():
         ],
         "difficulties": [
             {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20,
-             "life": 120, "energy": 110, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12}
+             "life": 120, "energy": 110, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12,
+             # Step 23 — trait cost budgets (None/missing = no limit)
+             "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
         "locations": [
             {"idTextName": 100, "idTextDescription": 100, "isSafe": 1}
@@ -80,9 +82,13 @@ def seed():
             }
         ],
         "traits": [
-            {"idTextName": 700, "idTextDescription": 700, "cost": 1,
+            {"idTextName": 700, "idTextDescription": 700, "costPositive": 1, "costNegative": 0,
              "life": 2, "energy": 0, "sad": 0, "dexterity": 0,
-             "intelligence": 0, "constitution": 1, "weight": 0}
+             "intelligence": 0, "constitution": 1, "weight": 0},
+            # Step 23 — negative-cost trait
+            {"idTextName": 700, "idTextDescription": 700, "costPositive": 0, "costNegative": 2,
+             "life": -2, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 0, "constitution": 0, "weight": 0}
         ],
         "characterTemplates": [
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,

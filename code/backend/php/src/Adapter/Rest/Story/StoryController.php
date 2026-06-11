@@ -77,4 +77,33 @@ class StoryController
         $response->getBody()->write(json_encode($stories));
         return $response->withHeader('Content-Type', 'application/json');
     }
+
+    /**
+     * Step 23 — GET /api/stories/{uuidStory}/classes/{uuidClass}/traits
+     * Lists the story traits selectable with the given class.
+     */
+    public function listTraitsForClass(Request $request, Response $response, array $args): Response
+    {
+        $uuidStory = $args['uuidStory'];
+        $uuidClass = $args['uuidClass'];
+        $lang = $request->getQueryParams()['lang'] ?? 'en';
+
+        [$status, $traits] = $this->queryPort->listTraitsForClass($uuidStory, $uuidClass, $lang);
+        if ($status === 'STORY_NOT_FOUND') {
+            $response->getBody()->write(json_encode([
+                'error' => 'STORY_NOT_FOUND',
+                'message' => 'No story found with UUID: ' . $uuidStory
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+        if ($status === 'CLASS_NOT_FOUND') {
+            $response->getBody()->write(json_encode([
+                'error' => 'CLASS_NOT_FOUND',
+                'message' => 'No class found with UUID: ' . $uuidClass
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+        }
+        $response->getBody()->write(json_encode($traits));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
 }

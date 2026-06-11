@@ -129,7 +129,8 @@ public class CharacterController {
             case MATCH_NOT_FOUND, TEMPLATE_NOT_FOUND, CLASS_NOT_FOUND, USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case USER_BANNED -> HttpStatus.FORBIDDEN;
             case ALREADY_JOINED, CLASS_NOT_COMPATIBLE, MATCH_NOT_JOINABLE -> HttpStatus.CONFLICT;
-            case INVALID_INPUT -> HttpStatus.BAD_REQUEST;
+            case INVALID_INPUT, TRAIT_NOT_FOUND, TRAIT_DUPLICATED,
+                 TRAIT_NOT_COMPATIBLE, TRAIT_COST_EXCEEDED -> HttpStatus.BAD_REQUEST;
         };
     }
 }

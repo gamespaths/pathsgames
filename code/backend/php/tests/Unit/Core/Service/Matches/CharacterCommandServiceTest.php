@@ -263,7 +263,8 @@ class CharacterCommandServiceTest extends TestCase
 
     public function testNoDifficulty(): void
     {
-        $this->matchP->method('findMatchByUuid')->willReturn($this->match());
+        // Step 23: no traits selected (unknown trait uuids are now rejected)
+        $this->matchP->method('findMatchByUuid')->willReturn($this->match(['trait_uuids' => []]));
         $this->userA->method('findByUuid')->willReturn($this->user());
         $this->charP->method('findCharacterByMatchAndUser')->willReturn(null);
         $this->charP->method('countCharactersByMatchId')->willReturn(0);
@@ -273,9 +274,114 @@ class CharacterCommandServiceTest extends TestCase
         $this->story->method('findClassByUuid')->willReturn($this->clazz());
         $this->story->method('findClassBonusesByStoryId')->willReturn($this->bonuses());
         $this->story->method('findDifficultyById')->willReturn(null);
-        $this->story->method('findTraitByUuid')->willReturn(null);
         $this->story->method('findLocationsByStoryId')->willReturn([]);
+        $info = $this->service->join(new JoinMatchCommand('match-uuid', 'user-uuid', 'tpl-uuid', 'class-uuid', []));
+        $this->assertSame(6, $info->dexterity);  // 3+3+0+0(no traits)
+    }
+
+    // ─── Step 23: trait selection validation ────────────────────────────────
+
+    private function costTrait(int $id, string $uuid, int $costPositive = 0, int $costNegative = 0,
+                               ?int $permitted = null, ?int $prohibited = null): array
+    {
+        return ['id' => $id, 'uuid' => $uuid,
+                'cost_positive' => $costPositive, 'cost_negative' => $costNegative,
+                'id_class_permitted' => $permitted, 'id_class_prohibited' => $prohibited];
+    }
+
+    private function wireUpToTraits(?array $difficulty = null, array $matchOver = []): void
+    {
+        $this->matchP->method('findMatchByUuid')->willReturn($this->match($matchOver));
+        $this->userA->method('findByUuid')->willReturn($this->user());
+        $this->charP->method('findCharacterByMatchAndUser')->willReturn(null);
+        $this->charP->method('countCharactersByMatchId')->willReturn(0);
+        $this->charP->method('saveCharacter')->willReturnCallback(
+            fn(array $row) => array_merge($row, ['uuid' => 'char-uuid'])
+        );
+        $this->story->method('findStoryById')->willReturn(['id' => 9001, 'id_location_start' => 90001]);
+        $this->story->method('findCharacterTemplateByUuid')->willReturn($this->template());
+        $this->story->method('findClassByUuid')->willReturn($this->clazz());
+        $this->story->method('findClassBonusesByStoryId')->willReturn([]);
+        $this->story->method('findDifficultyById')->willReturn($difficulty ?? $this->difficulty());
+        $this->story->method('findLocationsByStoryId')->willReturn([]);
+    }
+
+    public function testUnknownTraitNotFound(): void
+    {
+        $this->wireUpToTraits();
+        $this->story->method('findTraitByUuid')->willReturn(null);
+        $this->assertCode(CharacterJoinException::TRAIT_NOT_FOUND, fn() => $this->service->join($this->cmd()));
+    }
+
+    public function testDuplicatedTrait(): void
+    {
+        $this->wireUpToTraits();
+        $this->story->method('findTraitByUuid')->willReturn($this->costTrait(90001, 'trait-1', 1));
+        $cmd = new JoinMatchCommand('match-uuid', 'user-uuid', 'tpl-uuid', 'class-uuid', ['trait-1', 'trait-1']);
+        $this->assertCode(CharacterJoinException::TRAIT_DUPLICATED, fn() => $this->service->join($cmd));
+    }
+
+    public function testTraitPermittedForOtherClass(): void
+    {
+        $this->wireUpToTraits();
+        $this->story->method('findTraitByUuid')
+            ->willReturn($this->costTrait(90001, 'trait-1', 1, 0, 99999));
+        $cmd = new JoinMatchCommand('match-uuid', 'user-uuid', 'tpl-uuid', 'class-uuid', ['trait-1']);
+        $this->assertCode(CharacterJoinException::TRAIT_NOT_COMPATIBLE, fn() => $this->service->join($cmd));
+    }
+
+    public function testTraitProhibitedForClass(): void
+    {
+        $this->wireUpToTraits();
+        $this->story->method('findTraitByUuid')
+            ->willReturn($this->costTrait(90001, 'trait-1', 1, 0, null, 90001));
+        $cmd = new JoinMatchCommand('match-uuid', 'user-uuid', 'tpl-uuid', 'class-uuid', ['trait-1']);
+        $this->assertCode(CharacterJoinException::TRAIT_NOT_COMPATIBLE, fn() => $this->service->join($cmd));
+    }
+
+    public function testPositiveBudgetExceeded(): void
+    {
+        $difficulty = array_merge($this->difficulty(), ['trait_cost_positive_budget' => 1]);
+        $this->wireUpToTraits($difficulty);
+        $this->story->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            'trait-1' => $this->costTrait(90001, 'trait-1', 1),
+            'trait-2' => $this->costTrait(90002, 'trait-2', 1),
+        ][$u] ?? null);
+        $this->assertCode(CharacterJoinException::TRAIT_COST_EXCEEDED, fn() => $this->service->join($this->cmd()));
+    }
+
+    public function testNegativeBudgetExceeded(): void
+    {
+        $difficulty = array_merge($this->difficulty(), ['trait_cost_negative_budget' => 3]);
+        $this->wireUpToTraits($difficulty);
+        $this->story->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            'trait-1' => $this->costTrait(90001, 'trait-1', 0, 2),
+            'trait-2' => $this->costTrait(90002, 'trait-2', 0, 2),
+        ][$u] ?? null);
+        $this->assertCode(CharacterJoinException::TRAIT_COST_EXCEEDED, fn() => $this->service->join($this->cmd()));
+    }
+
+    public function testExactBudgetOk(): void
+    {
+        $difficulty = array_merge($this->difficulty(),
+            ['trait_cost_positive_budget' => 2, 'trait_cost_negative_budget' => 2]);
+        $this->wireUpToTraits($difficulty);
+        $this->story->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            'trait-1' => $this->costTrait(90001, 'trait-1', 1, 1),
+            'trait-2' => $this->costTrait(90002, 'trait-2', 1, 1),
+        ][$u] ?? null);
         $info = $this->service->join($this->cmd());
-        $this->assertSame(6, $info->dexterity);  // 3+3+0+0(traits unresolved)
+        $this->assertSame(['trait-1', 'trait-2'], $info->traitUuids);
+    }
+
+    public function testNullBudgetsUnlimited(): void
+    {
+        $this->wireUpToTraits();
+        $this->story->method('findTraitByUuid')->willReturnCallback(fn(int $s, string $u) => [
+            'trait-1' => $this->costTrait(90001, 'trait-1', 50, 50),
+            'trait-2' => $this->costTrait(90002, 'trait-2', 50, 50),
+        ][$u] ?? null);
+        $info = $this->service->join($this->cmd());
+        $this->assertSame(['trait-1', 'trait-2'], $info->traitUuids);
     }
 }

@@ -57,6 +57,16 @@ STORY_ITEM = {
         {'id': 3, 'keyName': 'k3', 'keyValue': '   '},
         {'id': 4, 'keyName': 'k4', 'keyValue': None},
     ],
+    # Step 23 — creator loadout traits are validated at creation
+    'classes': [
+        {'id': 30, 'uuid': 'cl'},
+    ],
+    'traits': [
+        {'id': 40, 'uuid': 't1', 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': None, 'idClassProhibited': None},
+        {'id': 41, 'uuid': 't2', 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': None, 'idClassProhibited': None},
+    ],
 }
 
 

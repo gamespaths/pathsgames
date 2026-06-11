@@ -459,17 +459,148 @@ class CharacterCommandServiceTest {
             assertEquals(7, info.getDexterity());
         }
 
+    }
+
+    // ─── Step 23: trait selection validation ─────────────────────────────────
+
+    @Nested
+    class TraitValidation {
+
+        private TraitEntity costTrait(long id, String uuid, int costPositive, int costNegative) {
+            TraitEntity t = trait(id, uuid, 0, 0, 0, 0, 0);
+            t.setCostPositive(costPositive);
+            t.setCostNegative(costNegative);
+            return t;
+        }
+
+        private StoryDifficultyEntity budgetDifficulty(Integer positiveBudget, Integer negativeBudget) {
+            StoryDifficultyEntity d = difficulty();
+            d.setTraitCostPositiveBudget(positiveBudget);
+            d.setTraitCostNegativeBudget(negativeBudget);
+            return d;
+        }
+
         @Test
-        void unresolvedTraitsAreSkipped() {
+        void unknownTrait_traitNotFound() {
             wireFullGraph();
             when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-2")).thenReturn(Optional.empty());
 
-            service.join(cmd());
+            assertEquals(CharacterJoinException.Code.TRAIT_NOT_FOUND,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+            verify(persistencePort, never()).saveCharacter(any());
+        }
 
-            @SuppressWarnings("unchecked")
-            ArgumentCaptor<List<GamingCharacterTraitsEntity>> traitCap = ArgumentCaptor.forClass(List.class);
-            verify(persistencePort).saveTraits(traitCap.capture());
-            assertEquals(1, traitCap.getValue().size());
+        @Test
+        void duplicateTrait_traitDuplicated() {
+            wireFullGraph();
+            JoinMatchCommand c = new JoinMatchCommand("match-uuid", "user-uuid", "tpl-uuid", "class-uuid",
+                    List.of("trait-1", "trait-1"));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_DUPLICATED,
+                    assertThrows(CharacterJoinException.class, () -> service.join(c)).getCode());
+        }
+
+        @Test
+        void traitPermittedForOtherClass_notCompatible() {
+            wireFullGraph();
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            t.setIdClassPermitted(99999); // selected class id is 90001
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_NOT_COMPATIBLE,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+        }
+
+        @Test
+        void traitPermittedForSelectedClass_ok() {
+            wireFullGraph();
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            t.setIdClassPermitted(90001); // matches selected class
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+
+            CharacterInstanceInfo info = service.join(cmd());
+            assertEquals(List.of("trait-1", "trait-2"), info.getTraitUuids());
+        }
+
+        @Test
+        void traitProhibitedForSelectedClass_notCompatible() {
+            wireFullGraph();
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            t.setIdClassProhibited(90001); // selected class id is 90001
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_NOT_COMPATIBLE,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+        }
+
+        @Test
+        void permittedRestrictedTraitWithoutClass_notCompatible() {
+            wireFullGraph();
+            GamingMatchEntity m = match();
+            m.setClassUuid(null);
+            when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(m));
+            TraitEntity t = trait(90001L, "trait-1", 2, 0, 0, 0, 1);
+            t.setIdClassPermitted(90001);
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1")).thenReturn(Optional.of(t));
+            JoinMatchCommand c = new JoinMatchCommand("match-uuid", "user-uuid", "tpl-uuid", null,
+                    List.of("trait-1"));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_NOT_COMPATIBLE,
+                    assertThrows(CharacterJoinException.class, () -> service.join(c)).getCode());
+        }
+
+        @Test
+        void positiveBudgetExceeded_costExceeded() {
+            wireFullGraph();
+            when(storyReadPort.findDifficultiesByStoryId(STORY_ID))
+                    .thenReturn(List.of(budgetDifficulty(1, null)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(90001L, "trait-1", 1, 0)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(90002L, "trait-2", 1, 0)));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_COST_EXCEEDED,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+        }
+
+        @Test
+        void negativeBudgetExceeded_costExceeded() {
+            wireFullGraph();
+            when(storyReadPort.findDifficultiesByStoryId(STORY_ID))
+                    .thenReturn(List.of(budgetDifficulty(null, 3)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(90001L, "trait-1", 0, 2)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(90002L, "trait-2", 0, 2)));
+
+            assertEquals(CharacterJoinException.Code.TRAIT_COST_EXCEEDED,
+                    assertThrows(CharacterJoinException.class, () -> service.join(cmd())).getCode());
+        }
+
+        @Test
+        void exactBudget_ok() {
+            wireFullGraph();
+            when(storyReadPort.findDifficultiesByStoryId(STORY_ID))
+                    .thenReturn(List.of(budgetDifficulty(2, 2)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(90001L, "trait-1", 1, 1)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(90002L, "trait-2", 1, 1)));
+
+            CharacterInstanceInfo info = service.join(cmd());
+            assertEquals(List.of("trait-1", "trait-2"), info.getTraitUuids());
+        }
+
+        @Test
+        void nullBudgets_unlimited() {
+            wireFullGraph();
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-1"))
+                    .thenReturn(Optional.of(costTrait(90001L, "trait-1", 50, 50)));
+            when(storyReadPort.findTraitByStoryIdAndUuid(STORY_ID, "trait-2"))
+                    .thenReturn(Optional.of(costTrait(90002L, "trait-2", 50, 50)));
+
+            CharacterInstanceInfo info = service.join(cmd());
+            assertEquals(List.of("trait-1", "trait-2"), info.getTraitUuids());
         }
     }
 }

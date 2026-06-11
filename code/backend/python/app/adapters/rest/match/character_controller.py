@@ -27,6 +27,11 @@ _STATUS_BY_CODE = {
     CharacterJoinError.ALREADY_JOINED: status.HTTP_409_CONFLICT,
     CharacterJoinError.CLASS_NOT_COMPATIBLE: status.HTTP_409_CONFLICT,
     CharacterJoinError.MATCH_NOT_JOINABLE: status.HTTP_409_CONFLICT,
+    # Step 23 — trait selection validation
+    CharacterJoinError.TRAIT_NOT_FOUND: status.HTTP_400_BAD_REQUEST,
+    CharacterJoinError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,
+    CharacterJoinError.TRAIT_NOT_COMPATIBLE: status.HTTP_400_BAD_REQUEST,
+    CharacterJoinError.TRAIT_COST_EXCEEDED: status.HTTP_400_BAD_REQUEST,
 }
 
 

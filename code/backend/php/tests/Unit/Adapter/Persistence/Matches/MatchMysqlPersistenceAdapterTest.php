@@ -98,6 +98,8 @@ class MatchMysqlPersistenceAdapterTest extends TestCase
                 dexterity INTEGER DEFAULT 0,
                 intelligence INTEGER DEFAULT 0,
                 constitution INTEGER DEFAULT 0,
+                trait_cost_positive_budget INTEGER,
+                trait_cost_negative_budget INTEGER,
                 PRIMARY KEY (id, id_story)
             )'
         );

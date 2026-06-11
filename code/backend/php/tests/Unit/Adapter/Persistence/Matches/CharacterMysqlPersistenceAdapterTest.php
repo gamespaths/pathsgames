@@ -82,11 +82,13 @@ class CharacterMysqlPersistenceAdapterTest extends TestCase
         $this->pdo->exec('CREATE TABLE list_classes_bonus (id INTEGER, id_story INTEGER, uuid TEXT,
             id_class INTEGER, statistic TEXT, value INTEGER)');
         $this->pdo->exec('CREATE TABLE list_traits (id INTEGER, id_story INTEGER, uuid TEXT,
-            life INTEGER, energy INTEGER, sad INTEGER, dexterity INTEGER, intelligence INTEGER, constitution INTEGER)');
+            life INTEGER, energy INTEGER, sad INTEGER, dexterity INTEGER, intelligence INTEGER, constitution INTEGER,
+            cost_positive INTEGER DEFAULT 0, cost_negative INTEGER DEFAULT 0,
+            id_class_permitted INTEGER, id_class_prohibited INTEGER)');
         $this->pdo->exec("INSERT INTO list_character_templates VALUES (90001, 9001, 'tpl', 12, 12, 8, 3, 3, 3, NULL, 90002)");
         $this->pdo->exec("INSERT INTO list_classes VALUES (90001, 9001, 'cls', 12, 3, 3, 3)");
         $this->pdo->exec("INSERT INTO list_classes_bonus VALUES (1, 9001, 'b', 90001, 'life', 3)");
-        $this->pdo->exec("INSERT INTO list_traits VALUES (90001, 9001, 'trait-1', 2, 0, 0, 0, 0, 1)");
+        $this->pdo->exec("INSERT INTO list_traits VALUES (90001, 9001, 'trait-1', 2, 0, 0, 0, 0, 1, 1, 0, NULL, NULL)");
 
         $read = new StoryMatchMysqlReadAdapter($this->pdo);
         $tpl = $read->findCharacterTemplateByUuid(9001, 'tpl');

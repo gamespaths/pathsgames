@@ -184,6 +184,18 @@ Pick Story Loadout
     END
     Fail    No public story with a difficulty, character template and class was found
 
+# ── Step 23 — trait listing filtered by class ──
+
+Get Traits For Class
+    [Documentation]    GET /api/stories/{uuidStory}/classes/{uuidClass}/traits —
+    ...                Step 23. Public endpoint: returns the traits selectable
+    ...                with the given class (id_class_permitted/prohibited filter).
+    [Arguments]    ${story_uuid}    ${class_uuid}    ${expected_status}=any
+    ${response}=    GET On Session    public_session
+    ...    /api/stories/${story_uuid}/classes/${class_uuid}/traits
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
 Join Match
     [Documentation]    POST /api/matches/{uuidMatch}/join. Loadout fields are optional;
     ...                pass ${NONE} to omit one (the backend falls back to the match loadout).

@@ -36,7 +36,12 @@ public interface CharacterCommandPort {
             CLASS_NOT_FOUND,
             CLASS_NOT_COMPATIBLE,
             ALREADY_JOINED,
-            MATCH_NOT_JOINABLE
+            MATCH_NOT_JOINABLE,
+            // Step 23 — trait selection validation
+            TRAIT_NOT_FOUND,
+            TRAIT_DUPLICATED,
+            TRAIT_NOT_COMPATIBLE,
+            TRAIT_COST_EXCEEDED
         }
 
         private final Code code;

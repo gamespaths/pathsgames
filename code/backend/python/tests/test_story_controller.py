@@ -57,3 +57,28 @@ def test_list_stories_by_group(client, mock_query_port):
     mock_query_port.list_stories_by_group.return_value = []
     response = client.get("/api/stories/group/G1")
     assert response.status_code == 200
+
+# ─── Step 23: trait listing filtered by class ───────────────────────────────
+
+def test_list_traits_for_class_ok(client, mock_query_port):
+    from app.core.models.story.trait_info import TraitInfo
+    mock_query_port.list_traits_for_class.return_value = (
+        "OK", [TraitInfo(uuid="tr-1", costPositive=1, costNegative=0)])
+    response = client.get("/api/stories/s1/classes/c1/traits?lang=en")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["uuid"] == "tr-1"
+    mock_query_port.list_traits_for_class.assert_called_with("s1", "c1", "en")
+
+def test_list_traits_for_class_story_not_found(client, mock_query_port):
+    mock_query_port.list_traits_for_class.return_value = ("STORY_NOT_FOUND", [])
+    response = client.get("/api/stories/ghost/classes/c1/traits")
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"] == "STORY_NOT_FOUND"
+
+def test_list_traits_for_class_class_not_found(client, mock_query_port):
+    mock_query_port.list_traits_for_class.return_value = ("CLASS_NOT_FOUND", [])
+    response = client.get("/api/stories/s1/classes/ghost/traits")
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"] == "CLASS_NOT_FOUND"

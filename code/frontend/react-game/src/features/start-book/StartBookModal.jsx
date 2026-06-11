@@ -9,12 +9,14 @@ import StartBookMobile from './StartBookMobile'
 import CardPreviewModal from '../../components/modals/CardPreviewModal'
 import { getStoryDetail } from '../../api/stories'
 import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
+import { canAddTrait, toggleTrait } from '../../utils/traitBudget'
 
 function buildInitialConfig(story) {
   return {
     character: story?.characterTemplates?.[0] ?? null,
     class: story?.classes?.[0] ?? null,
-    trait: story?.traits?.[0] ?? null,
+    // Step 23 — multiple traits can be selected (within the difficulty budgets)
+    traits: story?.traits?.[0] ? [story.traits[0]] : [],
     difficulty: story?.difficulties?.[0] ?? null,
   }
 }
@@ -54,11 +56,23 @@ export default function StartBookModal({ story, onClose }) {
 
   function handleSelect(opt) {
     const changedType = selectionType
+    // Step 23 — traits are multi-select: toggle in/out (budget enforced by the
+    // picker via canAddTrait) and keep the selection list open.
+    if (changedType === 'trait') {
+      setConfig(prev => {
+        const alreadySelected = (prev.traits ?? []).some(t => t?.uuid === opt.uuid)
+        if (!alreadySelected && !canAddTrait(opt, prev.traits, prev.difficulty)) {
+          return prev
+        }
+        return { ...prev, traits: toggleTrait(opt, prev.traits) }
+      })
+      return
+    }
     setConfig(prev => {
       const next = { ...prev, [changedType]: opt }
-      // When the class changes, re-validate character and trait against the
-      // new class. If the current selection becomes incompatible, replace it
-      // with the first compatible option from the story.
+      // When the class changes, re-validate character and traits against the
+      // new class. An incompatible character is replaced with the first
+      // compatible option; incompatible traits are dropped from the selection.
       if (changedType === 'class') {
         const classesById = buildClassesById(activeStory?.classes)
         const reselect = (type, optionsList) => {
@@ -69,7 +83,9 @@ export default function StartBookModal({ story, onClose }) {
           return optionsList.find(o => !getOptionLockInfo({ type, option: o, config: next, classesById })) ?? null
         }
         next.character = reselect('character', activeStory?.characterTemplates ?? [])
-        next.trait = reselect('trait', activeStory?.traits ?? [])
+        next.traits = (next.traits ?? []).filter(
+          tr => !getOptionLockInfo({ type: 'trait', option: tr, config: next, classesById })
+        )
       }
       return next
     })
@@ -145,7 +161,7 @@ export default function StartBookModal({ story, onClose }) {
       <OptionPicker
         type={selectionType}
         options={getOptionsForType(selectionType, activeStory)}
-        selected={config[selectionType]}
+        selected={selectionType === 'trait' ? config.traits : config[selectionType]}
         story={activeStory}
         config={config}
         onSelect={handleSelect}

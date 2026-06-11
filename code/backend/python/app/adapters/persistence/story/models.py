@@ -51,6 +51,9 @@ class StoryDifficultyEntity(Base):
     cost_help_coma = Column(Integer)
     cost_max_characteristics = Column(Integer)
     number_max_free_action = Column(Integer)
+    # Step 23 — trait cost budgets; NULL = no limit
+    trait_cost_positive_budget = Column(Integer)
+    trait_cost_negative_budget = Column(Integer)
     life = Column(Integer, nullable=False, default=0)
     energy = Column(Integer, nullable=False, default=0)
     sad = Column(Integer, nullable=False, default=0)

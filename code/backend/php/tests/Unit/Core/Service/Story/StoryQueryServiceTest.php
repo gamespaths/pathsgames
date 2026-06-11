@@ -489,4 +489,51 @@ class StoryQueryServiceTest extends TestCase
         $this->assertSame(0, $detail->traits[0]->costPositive);
         $this->assertSame(0, $detail->traits[0]->costNegative);
     }
+
+    // ─── Step 23: trait listing filtered by class ────────────────────────────
+
+    private function traitRow(string $uuid, ?int $permitted = null, ?int $prohibited = null): array
+    {
+        return ['id' => 1, 'uuid' => $uuid, 'cost_positive' => 2, 'cost_negative' => 1,
+                'id_class_permitted' => $permitted, 'id_class_prohibited' => $prohibited,
+                'life' => 0, 'energy' => 0, 'sad' => 0, 'dexterity' => 0,
+                'intelligence' => 0, 'constitution' => 0, 'weight' => 0];
+    }
+
+    public function testTraitsForClassStoryNotFound(): void
+    {
+        $this->readPort->method('findStoryByUuid')->willReturn(null);
+        [$status, $traits] = $this->service->listTraitsForClass('ghost', 'c1');
+        $this->assertSame('STORY_NOT_FOUND', $status);
+        $this->assertSame([], $traits);
+    }
+
+    public function testTraitsForClassClassNotFound(): void
+    {
+        $this->readPort->method('findStoryByUuid')->willReturn(['id' => 1, 'uuid' => 'u1']);
+        $this->readPort->method('findClassesForStory')->willReturn([]);
+        [$status, $traits] = $this->service->listTraitsForClass('u1', 'ghost');
+        $this->assertSame('CLASS_NOT_FOUND', $status);
+        $this->assertSame([], $traits);
+    }
+
+    public function testTraitsForClassFiltersByRestrictions(): void
+    {
+        $this->readPort->method('findStoryByUuid')->willReturn(['id' => 1, 'uuid' => 'u1']);
+        $this->readPort->method('findClassesForStory')->willReturn([['id' => 30, 'uuid' => 'c1']]);
+        $this->readPort->method('findTextsForStory')->willReturn([]);
+        $this->readPort->method('findTraitsForStory')->willReturn([
+            $this->traitRow('tr-unrestricted'),
+            $this->traitRow('tr-permitted-match', 30),
+            $this->traitRow('tr-permitted-other', 999),
+            $this->traitRow('tr-prohibited-match', null, 30),
+            $this->traitRow('tr-prohibited-other', null, 999),
+        ]);
+        [$status, $traits] = $this->service->listTraitsForClass('u1', 'c1');
+        $this->assertSame('OK', $status);
+        $this->assertSame(['tr-unrestricted', 'tr-permitted-match', 'tr-prohibited-other'],
+            array_map(fn($t) => $t->uuid, $traits));
+        $this->assertSame(2, $traits[0]->costPositive);
+        $this->assertSame(1, $traits[0]->costNegative);
+    }
 }

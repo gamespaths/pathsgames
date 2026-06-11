@@ -52,6 +52,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'costHelpComa', label: 'Cost Help Coma', type: 'number' },
       { key: 'costMaxCharacteristics', label: 'Cost Max Characteristics', type: 'number' },
       { key: 'numberMaxFreeAction', label: 'Max Free Actions', type: 'number' },
+      // Step 23 — trait cost budgets (empty = no limit)
+      { key: 'traitCostPositiveBudget', label: 'Trait Cost Budget (+)', type: 'number' },
+      { key: 'traitCostNegativeBudget', label: 'Trait Cost Budget (−)', type: 'number' },
       { key: 'life', label: 'Life', type: 'number' },
       { key: 'energy', label: 'Energy', type: 'number' },
       { key: 'sad', label: 'Sad', type: 'number' },

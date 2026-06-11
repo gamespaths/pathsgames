@@ -31,3 +31,9 @@ class StoryQueryPort(ABC):
     @abstractmethod
     def list_stories_by_group(self, group: str, lang: str = "en") -> List[StorySummary]:
         pass
+
+    # Step 23 — non-abstract for backward compatibility with existing fakes.
+    def list_traits_for_class(self, story_uuid: str, class_uuid: str, lang: str = "en"):
+        """Returns ``(status, traits)`` with status in
+        {"OK", "STORY_NOT_FOUND", "CLASS_NOT_FOUND"}."""
+        raise NotImplementedError

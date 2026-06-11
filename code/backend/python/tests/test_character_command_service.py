@@ -320,14 +320,120 @@ def test_no_difficulty(env):
     assert info.dexterity == 7   # 3+3+0+1
 
 
-def test_unresolved_traits_skipped(env):
+def test_unknown_trait_not_found(env):
+    """Step 23 — unknown trait uuids are rejected (was silently skipped)."""
     service, story, match_p, user_a, char_p = env
     _wire_full(story, match_p, user_a, char_p)
     story.find_trait_by_uuid.side_effect = lambda sid, u: (
         _trait(90001, life=2, con=1) if u == "trait-1" else None
     )
 
-    service.join(_cmd())
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd())
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_FOUND
+    char_p.save_character.assert_not_called()
 
-    trait_rows = char_p.save_traits.call_args[0][0]
-    assert len(trait_rows) == 1
+
+# ─── Step 23: trait selection validation ────────────────────────────────────
+
+
+def _cost_trait(tid, cost_positive=0, cost_negative=0, permitted=None, prohibited=None):
+    return {**_trait(tid), "cost_positive": cost_positive, "cost_negative": cost_negative,
+            "id_class_permitted": permitted, "id_class_prohibited": prohibited}
+
+
+def test_duplicate_trait(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(trait_uuids=["trait-1", "trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_DUPLICATED
+
+
+def test_trait_permitted_other_class(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = _cost_trait(90001, permitted=99999)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(trait_uuids=["trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_COMPATIBLE
+
+
+def test_trait_prohibited_for_class(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = _cost_trait(90001, prohibited=90001)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(trait_uuids=["trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_COMPATIBLE
+
+
+def test_permitted_trait_without_class(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    match_p.find_match_by_uuid.return_value = _match(class_uuid=None)
+    story.find_trait_by_uuid.side_effect = None
+    story.find_trait_by_uuid.return_value = _cost_trait(90001, permitted=90001)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd(class_uuid=None, trait_uuids=["trait-1"]))
+    assert exc.value.code == CharacterJoinError.TRAIT_NOT_COMPATIBLE
+
+
+def test_positive_budget_exceeded(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_difficulty_by_id.return_value = {**_difficulty(), "trait_cost_positive_budget": 1}
+    story.find_trait_by_uuid.side_effect = lambda sid, u: {
+        "trait-1": _cost_trait(90001, cost_positive=1),
+        "trait-2": _cost_trait(90002, cost_positive=1),
+    }.get(u)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd())
+    assert exc.value.code == CharacterJoinError.TRAIT_COST_EXCEEDED
+
+
+def test_negative_budget_exceeded(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_difficulty_by_id.return_value = {**_difficulty(), "trait_cost_negative_budget": 3}
+    story.find_trait_by_uuid.side_effect = lambda sid, u: {
+        "trait-1": _cost_trait(90001, cost_negative=2),
+        "trait-2": _cost_trait(90002, cost_negative=2),
+    }.get(u)
+
+    with pytest.raises(CharacterJoinError) as exc:
+        service.join(_cmd())
+    assert exc.value.code == CharacterJoinError.TRAIT_COST_EXCEEDED
+
+
+def test_exact_budget_ok(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_difficulty_by_id.return_value = {
+        **_difficulty(), "trait_cost_positive_budget": 2, "trait_cost_negative_budget": 2}
+    story.find_trait_by_uuid.side_effect = lambda sid, u: {
+        "trait-1": _cost_trait(90001, cost_positive=1, cost_negative=1),
+        "trait-2": _cost_trait(90002, cost_positive=1, cost_negative=1),
+    }.get(u)
+
+    info = service.join(_cmd())
+    assert info.trait_uuids == ["trait-1", "trait-2"]
+
+
+def test_null_budgets_unlimited(env):
+    service, story, match_p, user_a, char_p = env
+    _wire_full(story, match_p, user_a, char_p)
+    story.find_trait_by_uuid.side_effect = lambda sid, u: {
+        "trait-1": _cost_trait(90001, cost_positive=50, cost_negative=50),
+        "trait-2": _cost_trait(90002, cost_positive=50, cost_negative=50),
+    }.get(u)
+
+    info = service.join(_cmd())
+    assert info.trait_uuids == ["trait-1", "trait-2"]

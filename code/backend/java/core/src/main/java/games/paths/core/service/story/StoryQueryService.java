@@ -92,6 +92,8 @@ public class StoryQueryService implements StoryQueryPort {
                     .weight(diff.getWeight() != null ? diff.getWeight() : 10)
                     .idCard(diff.getIdCard())
                     .card(resolveCardInfo(story.getId(), diff.getIdCard(), lang))
+                    .traitCostPositiveBudget(diff.getTraitCostPositiveBudget())
+                    .traitCostNegativeBudget(diff.getTraitCostNegativeBudget())
                     .build());
         }
 
@@ -154,26 +156,7 @@ public class StoryQueryService implements StoryQueryPort {
         List<TraitEntity> traitEntities = readPort.findTraitsByStoryId(story.getId());
         List<TraitInfo> traits = new ArrayList<>();
         for (TraitEntity tr : traitEntities) {
-            String trName = resolveText(story.getId(), tr.getIdTextName(), lang);
-            String trDesc = resolveText(story.getId(), tr.getIdTextDescription(), lang);
-            traits.add(TraitInfo.builder()
-                    .uuid(tr.getUuid())
-                    .name(trName)
-                    .description(trDesc)
-                    .costPositive(tr.getCostPositive() != null ? tr.getCostPositive() : 0)
-                    .costNegative(tr.getCostNegative() != null ? tr.getCostNegative() : 0)
-                    .idClassPermitted(tr.getIdClassPermitted())
-                    .idClassProhibited(tr.getIdClassProhibited())
-                    .idCard(tr.getIdCard())
-                    .card(resolveCardInfo(story.getId(), tr.getIdCard(), lang))
-                    .life(tr.getLife() != null ? tr.getLife() : 0)
-                    .energy(tr.getEnergy() != null ? tr.getEnergy() : 0)
-                    .sad(tr.getSad() != null ? tr.getSad() : 0)
-                    .dexterity(tr.getDexterity() != null ? tr.getDexterity() : 0)
-                    .intelligence(tr.getIntelligence() != null ? tr.getIntelligence() : 0)
-                    .constitution(tr.getConstitution() != null ? tr.getConstitution() : 0)
-                    .weight(tr.getWeight() != null ? tr.getWeight() : 0)
-                    .build());
+            traits.add(toTraitInfo(story.getId(), tr, lang));
         }
 
         // Step 15: Resolve card info
@@ -241,7 +224,71 @@ public class StoryQueryService implements StoryQueryPort {
         return mapToSummaries(stories, lang);
     }
 
+    // === Step 23: Trait listing filtered by class ===
+
+    @Override
+    public TraitsForClassResult listTraitsForClass(String storyUuid, String classUuid, String lang) {
+        if (storyUuid == null || storyUuid.isBlank()) {
+            return TraitsForClassResult.storyNotFound();
+        }
+        Optional<StoryEntity> storyOpt = readPort.findStoryByUuid(storyUuid);
+        if (storyOpt.isEmpty()) {
+            return TraitsForClassResult.storyNotFound();
+        }
+        StoryEntity story = storyOpt.get();
+
+        if (classUuid == null || classUuid.isBlank()) {
+            return TraitsForClassResult.classNotFound();
+        }
+        Optional<ClassEntity> classOpt = readPort.findClassByStoryIdAndUuid(story.getId(), classUuid);
+        if (classOpt.isEmpty()) {
+            return TraitsForClassResult.classNotFound();
+        }
+        Long classId = classOpt.get().getId();
+
+        List<TraitInfo> traits = new ArrayList<>();
+        for (TraitEntity tr : readPort.findTraitsByStoryId(story.getId())) {
+            if (isTraitSelectableForClass(tr, classId)) {
+                traits.add(toTraitInfo(story.getId(), tr, lang));
+            }
+        }
+        return TraitsForClassResult.ok(traits);
+    }
+
+    private static boolean isTraitSelectableForClass(TraitEntity tr, Long classId) {
+        Integer permitted = tr.getIdClassPermitted();
+        Integer prohibited = tr.getIdClassProhibited();
+        boolean permittedOk = permitted == null
+                || (classId != null && permitted.longValue() == classId);
+        boolean prohibitedOk = prohibited == null
+                || classId == null || prohibited.longValue() != classId;
+        return permittedOk && prohibitedOk;
+    }
+
     // === Private helpers ===
+
+    private TraitInfo toTraitInfo(Long storyId, TraitEntity tr, String lang) {
+        String trName = resolveText(storyId, tr.getIdTextName(), lang);
+        String trDesc = resolveText(storyId, tr.getIdTextDescription(), lang);
+        return TraitInfo.builder()
+                .uuid(tr.getUuid())
+                .name(trName)
+                .description(trDesc)
+                .costPositive(tr.getCostPositive() != null ? tr.getCostPositive() : 0)
+                .costNegative(tr.getCostNegative() != null ? tr.getCostNegative() : 0)
+                .idClassPermitted(tr.getIdClassPermitted())
+                .idClassProhibited(tr.getIdClassProhibited())
+                .idCard(tr.getIdCard())
+                .card(resolveCardInfo(storyId, tr.getIdCard(), lang))
+                .life(tr.getLife() != null ? tr.getLife() : 0)
+                .energy(tr.getEnergy() != null ? tr.getEnergy() : 0)
+                .sad(tr.getSad() != null ? tr.getSad() : 0)
+                .dexterity(tr.getDexterity() != null ? tr.getDexterity() : 0)
+                .intelligence(tr.getIntelligence() != null ? tr.getIntelligence() : 0)
+                .constitution(tr.getConstitution() != null ? tr.getConstitution() : 0)
+                .weight(tr.getWeight() != null ? tr.getWeight() : 0)
+                .build();
+    }
 
     private List<StorySummary> mapToSummaries(List<StoryEntity> stories, String lang) {
         List<StorySummary> summaries = new ArrayList<>();

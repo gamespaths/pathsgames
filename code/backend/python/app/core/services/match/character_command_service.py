@@ -14,6 +14,7 @@ from app.core.ports.match.match_ports import (
     StoryMatchReadPort,
     UserAccessPort,
 )
+from app.core.services.match import trait_selection_validator
 
 
 _BANNED_STATES = {3, 4}
@@ -80,8 +81,8 @@ class CharacterCommandService(CharacterCommandPort):
                                          f"Class not found: {class_uuid}")
             self._validate_class(template, clazz)
 
-        traits = self._resolve_traits(story["id"], trait_uuids)
         difficulty = self.story_read_port.find_difficulty_by_id(story["id"], match.get("id_difficulty"))
+        traits = self._resolve_and_validate_traits(story["id"], clazz, difficulty, trait_uuids)
         class_bonuses = self._resolve_bonuses(story["id"], clazz)
 
         next_id = self.character_persistence_port.count_characters_by_match_id(match["id"]) + 1
@@ -126,15 +127,15 @@ class CharacterCommandService(CharacterCommandPort):
             raise CharacterJoinError(CharacterJoinError.CLASS_NOT_COMPATIBLE,
                                      "Selected class is prohibited for this character template")
 
-    def _resolve_traits(self, story_id: int, trait_uuids: List[str]) -> List[Dict[str, Any]]:
-        resolved = []
-        for uuid in trait_uuids:
-            if not uuid:
-                continue
-            trait = self.story_read_port.find_trait_by_uuid(story_id, uuid)
-            if trait is not None:
-                resolved.append(trait)
-        return resolved
+    def _resolve_and_validate_traits(self, story_id: int, clazz, difficulty,
+                                     trait_uuids: List[str]) -> List[Dict[str, Any]]:
+        """Step 23 — strict trait resolution: unknown uuids, duplicates, class
+        incompatibilities and difficulty cost-budget overruns are rejected."""
+        try:
+            return trait_selection_validator.resolve_and_validate(
+                self.story_read_port, story_id, clazz, difficulty, trait_uuids)
+        except trait_selection_validator.TraitSelectionError as exc:
+            raise CharacterJoinError(exc.code, exc.message) from exc
 
     def _resolve_bonuses(self, story_id: int, clazz: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if clazz is None:

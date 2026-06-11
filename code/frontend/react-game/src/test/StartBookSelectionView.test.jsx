@@ -25,7 +25,7 @@ const STORY = {
   classes: [{ uuid: 'c1', name: 'Fighter', card: { title: 'Fighter' } }],
 }
 
-const CONFIG = { class: { uuid: 'c1' }, character: null, trait: null, difficulty: null }
+const CONFIG = { class: { uuid: 'c1' }, character: null, traits: [], difficulty: null }
 
 describe('StartBook SelectionView', () => {
   it('renders all options', () => {

@@ -33,6 +33,14 @@ public class StoryDifficultyEntity extends StatStoryEntity {
     @Column(name = "number_max_free_action", nullable = false)
     private Integer numberMaxFreeAction;
 
+    /** Step 23 — max Σ cost_positive over selected traits; NULL = no limit. */
+    @Column(name = "trait_cost_positive_budget")
+    private Integer traitCostPositiveBudget;
+
+    /** Step 23 — max Σ cost_negative over selected traits; NULL = no limit. */
+    @Column(name = "trait_cost_negative_budget")
+    private Integer traitCostNegativeBudget;
+
     @PrePersist
     protected void onCreate() {
         if (expCost == null) expCost = 5;
@@ -65,4 +73,10 @@ public class StoryDifficultyEntity extends StatStoryEntity {
 
     public Integer getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public void setNumberMaxFreeAction(Integer numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; }
+
+    public Integer getTraitCostPositiveBudget() { return traitCostPositiveBudget; }
+    public void setTraitCostPositiveBudget(Integer traitCostPositiveBudget) { this.traitCostPositiveBudget = traitCostPositiveBudget; }
+
+    public Integer getTraitCostNegativeBudget() { return traitCostNegativeBudget; }
+    public void setTraitCostNegativeBudget(Integer traitCostNegativeBudget) { this.traitCostNegativeBudget = traitCostNegativeBudget; }
 }

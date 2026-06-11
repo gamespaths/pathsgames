@@ -234,6 +234,9 @@ final class StoryValidatorService implements StoryValidatorPort
         if ($min !== null && $max !== null && $max > 0 && $min > $max) {
             $r->add('R6_DIFFICULTY_RANGE', $t, $eid, 'minCharacter', "minCharacter ({$min}) exceeds maxCharacter ({$max})");
         }
+        // Step 23 — trait cost budgets must not be negative (null = no limit)
+        $this->nonNegative($r, $t, $eid, 'traitCostPositiveBudget', self::asInt(self::field($d, 'traitCostPositiveBudget')));
+        $this->nonNegative($r, $t, $eid, 'traitCostNegativeBudget', self::asInt(self::field($d, 'traitCostNegativeBudget')));
     }
 
     private function positive(StoryValidationReport $r, string $t, ?string $eid, string $field, ?int $v): void

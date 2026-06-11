@@ -113,8 +113,8 @@ public class CharacterCommandService implements CharacterCommandPort {
             validateClassCompatibility(template, clazz);
         }
 
-        List<TraitEntity> traits = resolveTraits(story.getId(), traitUuids);
         StoryDifficultyEntity difficulty = resolveDifficulty(story.getId(), match.getIdDifficulty());
+        List<TraitEntity> traits = resolveAndValidateTraits(story.getId(), clazz, difficulty, traitUuids);
         List<ClassBonusEntity> classBonuses = resolveClassBonuses(story.getId(), clazz);
 
         long nextId = persistencePort.countCharactersByMatchId(match.getId()) + 1L;
@@ -162,15 +162,20 @@ public class CharacterCommandService implements CharacterCommandPort {
         }
     }
 
-    private List<TraitEntity> resolveTraits(Long storyId, List<String> traitUuids) {
-        List<TraitEntity> resolved = new ArrayList<>();
-        for (String uuid : traitUuids) {
-            if (isBlank(uuid)) {
-                continue;
-            }
-            storyReadPort.findTraitByStoryIdAndUuid(storyId, uuid).ifPresent(resolved::add);
+    /**
+     * Step 23 — strict trait resolution: unknown uuids, duplicates, class
+     * incompatibilities and difficulty cost-budget overruns are rejected.
+     */
+    private List<TraitEntity> resolveAndValidateTraits(Long storyId, ClassEntity clazz,
+                                                       StoryDifficultyEntity difficulty,
+                                                       List<String> traitUuids) {
+        try {
+            return TraitSelectionValidator.resolveAndValidate(
+                    storyReadPort, storyId, clazz, difficulty, traitUuids);
+        } catch (TraitSelectionValidator.TraitSelectionException ex) {
+            throw new CharacterJoinException(
+                    CharacterJoinException.Code.valueOf(ex.getViolation().name()), ex.getMessage());
         }
-        return resolved;
     }
 
     private StoryDifficultyEntity resolveDifficulty(Long storyId, Long difficultyId) {

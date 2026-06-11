@@ -144,9 +144,15 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90098, 9001, 212, 'en', 'The Gym Star', 'An athletic character with high dexterity.');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90102, 9001, 10, 'en', 'turn', 'turn');
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90103, 9001, 11, 'en', 'turns', 'turns');
+-- Step 23: negative-cost trait texts
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90104, 9001, 703, 'en', 'Frail Body', 'A fragile constitution lowers your maximum life.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90105, 9001, 703, 'it', 'Corpo Fragile', 'Una costituzione fragile riduce la vita massima.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90106, 9001, 704, 'en', 'Weary Soul', 'Chronic tiredness lowers your maximum energy.');
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES (90107, 9001, 704, 'it', 'Anima Stanca', 'Una stanchezza cronica riduce la energia massima.');
 
 -- ── Story 1 Difficulties ────────────────────────────────────────
-INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES (90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110, 0, 12, 12, 12, 12);
+-- Step 23: difficulty 90001 caps trait costs (positive 2 / negative 3)
+INSERT INTO list_stories_difficulty (id, id_story, id_text_description, exp_cost, max_weight, min_character, max_character, cost_help_coma, cost_max_characteristics, number_max_free_action, life, energy, sad, dexterity, intelligence, constitution, weight, trait_cost_positive_budget, trait_cost_negative_budget) VALUES (90001, 9001, 300, 1, 20, 1, 4, 1, 1, 3, 120, 110, 0, 12, 12, 12, 12, 2, 3);
 
 -- ── Story 1 Classes ─────────────────────────────────────────────
 INSERT INTO list_classes (id, id_story, id_text_name, id_text_description, weight_max, dexterity_base, intelligence_base, constitution_base) VALUES (90001, 9001, 200, 200, 12, 3, 3, 3);
@@ -165,9 +171,13 @@ INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES
 INSERT INTO list_classes_bonus (id, id_story, id_class, statistic, value) VALUES (90009, 9001, 90003, 'energy', 4);
 
 -- ── Story 1 Traits ──────────────────────────────────────────────
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES (90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES (90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0);
-INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight) VALUES (90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1);
+-- Step 23: 90002 permitted only for class 90002, 90003 prohibited for class 90001,
+-- 90004/90005 are negative-cost traits; 90001 stays unrestricted (robot loadout default)
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 700, 700, 1, 0,  2, 0, 0, 0, 0, 1, 0, NULL, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90002, 9001, 701, 701, 1, 0,  0, 2, 0, 1, 0, 0, 0, 90002, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90003, 9001, 702, 702, 1, 0,  0, 0, 0, 0, 2, 0, 1, NULL, 90001);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90004, 9001, 703, 703, 0, 2, -2, 0, 0, 0, 0, 0, 0, NULL, NULL);
+INSERT INTO list_traits (id, id_story, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight, id_class_permitted, id_class_prohibited) VALUES (90005, 9001, 704, 704, 0, 2,  0,-2, 0, 0, 0, 0, 0, NULL, NULL);
 
 -- ── Story 1 Character Templates ─────────────────────────────────
 INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 210, 210, 12, 12, 8, 3, 3, 3, NULL,  NULL);

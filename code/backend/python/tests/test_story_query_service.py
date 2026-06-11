@@ -452,3 +452,42 @@ def test_list_all_stories_default_lang(mock_read_port):
     service = StoryQueryService(mock_read_port)
     results = service.list_all_stories(None)
     assert results == []
+
+# ─── Step 23: trait listing filtered by class ───────────────────────────────
+
+def _trait_row(uuid, permitted=None, prohibited=None):
+    return {"id": 1, "uuid": uuid, "id_text_name": None, "id_text_description": None,
+            "cost_positive": 2, "cost_negative": 1,
+            "id_class_permitted": permitted, "id_class_prohibited": prohibited,
+            "life": 0, "energy": 0, "sad": 0, "dexterity": 0,
+            "intelligence": 0, "constitution": 0, "weight": 0}
+
+def test_traits_for_class_story_not_found(mock_read_port):
+    service = StoryQueryService(mock_read_port)
+    status, traits = service.list_traits_for_class("ghost", "c1")
+    assert status == "STORY_NOT_FOUND"
+    assert traits == []
+
+def test_traits_for_class_class_not_found(mock_read_port):
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
+    service = StoryQueryService(mock_read_port)
+    status, traits = service.list_traits_for_class("s1", "ghost")
+    assert status == "CLASS_NOT_FOUND"
+    assert traits == []
+
+def test_traits_for_class_filters_by_restrictions(mock_read_port):
+    mock_read_port.find_story_by_uuid.return_value = {"id": 1, "uuid": "s1"}
+    mock_read_port.find_classes_for_story.return_value = [{"id": 30, "uuid": "c1"}]
+    mock_read_port.find_traits_for_story.return_value = [
+        _trait_row("tr-unrestricted"),
+        _trait_row("tr-permitted-match", permitted=30),
+        _trait_row("tr-permitted-other", permitted=999),
+        _trait_row("tr-prohibited-match", prohibited=30),
+        _trait_row("tr-prohibited-other", prohibited=999),
+    ]
+    service = StoryQueryService(mock_read_port)
+    status, traits = service.list_traits_for_class("s1", "c1")
+    assert status == "OK"
+    assert [t.uuid for t in traits] == ["tr-unrestricted", "tr-permitted-match", "tr-prohibited-other"]
+    assert traits[0].costPositive == 2
+    assert traits[0].costNegative == 1

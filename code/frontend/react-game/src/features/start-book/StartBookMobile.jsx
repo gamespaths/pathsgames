@@ -32,7 +32,7 @@ export default function StartBookMobile({
         <OptionPicker
           type={selectionType}
           options={getOptionsForType(selectionType)}
-          selected={config[selectionType]}
+          selected={selectionType === 'trait' ? config.traits : config[selectionType]}
           story={activeStory}
           config={config}
           onSelect={onSelect}

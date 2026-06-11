@@ -19,6 +19,9 @@ public class DifficultyInfo extends AbstractStatInfo {
     private final int numberMaxFreeAction;
     private final Integer idCard;
     private final CardInfo card;
+    /** Step 23 — trait cost budgets; null = no limit. */
+    private final Integer traitCostPositiveBudget;
+    private final Integer traitCostNegativeBudget;
 
     private DifficultyInfo(Builder builder) {
         super(builder);
@@ -33,6 +36,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         this.numberMaxFreeAction = builder.numberMaxFreeAction;
         this.idCard = builder.idCard;
         this.card = builder.card;
+        this.traitCostPositiveBudget = builder.traitCostPositiveBudget;
+        this.traitCostNegativeBudget = builder.traitCostNegativeBudget;
     }
 
     public String getUuid() { return uuid; }
@@ -46,6 +51,8 @@ public class DifficultyInfo extends AbstractStatInfo {
     public int getNumberMaxFreeAction() { return numberMaxFreeAction; }
     public Integer getIdCard() { return idCard; }
     public CardInfo getCard() { return card; }
+    public Integer getTraitCostPositiveBudget() { return traitCostPositiveBudget; }
+    public Integer getTraitCostNegativeBudget() { return traitCostNegativeBudget; }
 
     public static Builder builder() { return new Builder(); }
 
@@ -61,6 +68,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         private int numberMaxFreeAction;
         private Integer idCard;
         private CardInfo card;
+        private Integer traitCostPositiveBudget;
+        private Integer traitCostNegativeBudget;
 
         @Override
         protected Builder self() { return this; }
@@ -76,6 +85,8 @@ public class DifficultyInfo extends AbstractStatInfo {
         public Builder numberMaxFreeAction(int numberMaxFreeAction) { this.numberMaxFreeAction = numberMaxFreeAction; return this; }
         public Builder idCard(Integer idCard) { this.idCard = idCard; return this; }
         public Builder card(CardInfo card) { this.card = card; return this; }
+        public Builder traitCostPositiveBudget(Integer v) { this.traitCostPositiveBudget = v; return this; }
+        public Builder traitCostNegativeBudget(Integer v) { this.traitCostNegativeBudget = v; return this; }
 
         public DifficultyInfo build() {
             return new DifficultyInfo(this);

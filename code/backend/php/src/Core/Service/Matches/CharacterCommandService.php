@@ -101,8 +101,8 @@ class CharacterCommandService implements CharacterCommandPort
             $this->validateClass($template, $class);
         }
 
-        $traits = $this->resolveTraits((int)$story['id'], $traitUuids);
         $difficulty = $this->storyReadPort->findDifficultyById((int)$story['id'], (int)$match['id_difficulty']);
+        $traits = $this->resolveAndValidateTraits((int)$story['id'], $class, $difficulty, $traitUuids);
         $bonuses = $this->resolveBonuses((int)$story['id'], $class);
 
         $nextId = $this->characterPersistencePort->countCharactersByMatchId((int)$match['id']) + 1;
@@ -152,19 +152,23 @@ class CharacterCommandService implements CharacterCommandPort
         }
     }
 
-    private function resolveTraits(int $storyId, array $traitUuids): array
+    /**
+     * Step 23 — strict trait resolution: unknown uuids, duplicates, class
+     * incompatibilities and difficulty cost-budget overruns are rejected.
+     */
+    private function resolveAndValidateTraits(int $storyId, ?array $class, ?array $difficulty, array $traitUuids): array
     {
-        $resolved = [];
-        foreach ($traitUuids as $uuid) {
-            if ($uuid === null || $uuid === '') {
-                continue;
-            }
-            $trait = $this->storyReadPort->findTraitByUuid($storyId, (string)$uuid);
-            if ($trait !== null) {
-                $resolved[] = $trait;
-            }
+        try {
+            return TraitSelectionValidator::resolveAndValidate(
+                $this->storyReadPort,
+                $storyId,
+                $class,
+                $difficulty,
+                $traitUuids
+            );
+        } catch (TraitSelectionException $e) {
+            throw new CharacterJoinException($e->getCodeId(), $e->getMessage());
         }
-        return $resolved;
     }
 
     private function resolveBonuses(int $storyId, ?array $class): array

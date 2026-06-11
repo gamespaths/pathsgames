@@ -123,6 +123,11 @@ class CharacterJoinError(Exception):
     CLASS_NOT_COMPATIBLE = "CLASS_NOT_COMPATIBLE"
     ALREADY_JOINED = "ALREADY_JOINED"
     MATCH_NOT_JOINABLE = "MATCH_NOT_JOINABLE"
+    # Step 23 — trait selection validation
+    TRAIT_NOT_FOUND = "TRAIT_NOT_FOUND"
+    TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
+    TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
+    TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -143,6 +148,11 @@ class MatchCreationError(Exception):
     MAINTENANCE_MODE = "MAINTENANCE_MODE"
     STORY_HAS_NO_LOCATIONS = "STORY_HAS_NO_LOCATIONS"
     TURNSTILE_VALIDATION_FAILED = "TURNSTILE_VALIDATION_FAILED"
+    # Step 23 — trait selection validation on the creator loadout
+    TRAIT_NOT_FOUND = "TRAIT_NOT_FOUND"
+    TRAIT_DUPLICATED = "TRAIT_DUPLICATED"
+    TRAIT_NOT_COMPATIBLE = "TRAIT_NOT_COMPATIBLE"
+    TRAIT_COST_EXCEEDED = "TRAIT_COST_EXCEEDED"
 
     def __init__(self, code: str, message: str):
         super().__init__(message)

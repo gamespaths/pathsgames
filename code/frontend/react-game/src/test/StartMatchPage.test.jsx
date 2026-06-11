@@ -42,7 +42,7 @@ const STORY = {
 const CONFIG = {
   character:  { uuid: 'ch1', name: 'Ranger' },
   class:      { uuid: 'cl1', name: 'Mage' },
-  trait:      { uuid: 'tr1', name: 'Brave' },
+  traits:     [{ uuid: 'tr1', name: 'Brave' }],
   difficulty: { uuid: 'df1', name: 'Normal' },
 }
 

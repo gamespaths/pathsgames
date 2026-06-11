@@ -14,6 +14,7 @@ class StoryController:
         self.router.add_api_route("/groups", self.list_groups, methods=["GET"], response_model=List[str])
         self.router.add_api_route("/category/{category}", self.list_stories_by_category, methods=["GET"], response_model=List[StorySummary])
         self.router.add_api_route("/group/{group}", self.list_stories_by_group, methods=["GET"], response_model=List[StorySummary])
+        self.router.add_api_route("/{uuid_story}/classes/{uuid_class}/traits", self.list_traits_for_class, methods=["GET"])
         self.router.add_api_route("/{uuid}", self.get_story, methods=["GET"], response_model=StoryDetail)
 
     async def list_stories(self, lang: str = Query("en")) -> List[StorySummary]:
@@ -39,3 +40,19 @@ class StoryController:
 
     async def list_stories_by_group(self, group: str = Path(...), lang: str = Query("en")) -> List[StorySummary]:
         return self.query_port.list_stories_by_group(group, lang)
+
+    async def list_traits_for_class(self, uuid_story: str = Path(...), uuid_class: str = Path(...),
+                                    lang: str = Query("en")):
+        """Step 23 — lists the story traits selectable with the given class."""
+        status_code, traits = self.query_port.list_traits_for_class(uuid_story, uuid_class, lang)
+        if status_code == "STORY_NOT_FOUND":
+            raise HTTPException(status_code=404, detail={
+                "error": "STORY_NOT_FOUND",
+                "message": f"No story found with UUID: {uuid_story}"
+            })
+        if status_code == "CLASS_NOT_FOUND":
+            raise HTTPException(status_code=404, detail={
+                "error": "CLASS_NOT_FOUND",
+                "message": f"No class found with UUID: {uuid_class}"
+            })
+        return traits

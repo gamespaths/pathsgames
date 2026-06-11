@@ -189,6 +189,11 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "dexterity": entity.dexterity,
             "intelligence": entity.intelligence,
             "constitution": entity.constitution,
+            # Step 23 — costs and class restrictions for trait validation
+            "cost_positive": entity.cost_positive,
+            "cost_negative": entity.cost_negative,
+            "id_class_permitted": entity.id_class_permitted,
+            "id_class_prohibited": entity.id_class_prohibited,
         }
 
     @staticmethod
@@ -211,6 +216,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "max_weight": entity.max_weight,
             "min_character": entity.min_character,
             "max_character": entity.max_character,
+            # Step 23 — trait cost budgets; None = no limit
+            "trait_cost_positive_budget": entity.trait_cost_positive_budget,
+            "trait_cost_negative_budget": entity.trait_cost_negative_budget,
             # Step 21 — stat deltas applied to the character at join time.
             "life": entity.life,
             "energy": entity.energy,

@@ -26,7 +26,7 @@ vi.mock('../features/start-book/OptionPicker', () => ({
 import StartBookMobile from '../features/start-book/StartBookMobile'
 
 const STORY = { title: 'Forest Quest', card: { urlImage: 'x.png' }, description: 'desc' }
-const config = { character: null, class: null, trait: null, difficulty: null }
+const config = { character: null, class: null, traits: [], difficulty: null }
 
 function setup(props = {}) {
   const handlers = {

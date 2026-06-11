@@ -933,6 +933,8 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("costHelpComa", d.getCostHelpComa());
             m.put("costMaxCharacteristics", d.getCostMaxCharacteristics());
             m.put("numberMaxFreeAction", d.getNumberMaxFreeAction());
+            m.put("traitCostPositiveBudget", d.getTraitCostPositiveBudget());
+            m.put("traitCostNegativeBudget", d.getTraitCostNegativeBudget());
             m.put("life", d.getLife());
             m.put("energy", d.getEnergy());
             m.put("sad", d.getSad());
@@ -1220,6 +1222,10 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostMaxCharacteristics(intVal(d, "costMaxCharacteristics"));
         if (d.containsKey("numberMaxFreeAction"))
             e.setNumberMaxFreeAction(intVal(d, "numberMaxFreeAction"));
+        if (d.containsKey("traitCostPositiveBudget"))
+            e.setTraitCostPositiveBudget(intVal(d, "traitCostPositiveBudget"));
+        if (d.containsKey("traitCostNegativeBudget"))
+            e.setTraitCostNegativeBudget(intVal(d, "traitCostNegativeBudget"));
         if (d.containsKey("life"))
             e.setLife(intVal(d, "life"));
         if (d.containsKey("energy"))

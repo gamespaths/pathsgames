@@ -39,4 +39,12 @@ interface StoryQueryPort
      * @return \Games\Paths\Core\Domain\Story\StorySummary[]
      */
     public function listStoriesByGroup(string $group, string $lang = 'en'): array;
+
+    /**
+     * Step 23 — lists the story traits selectable with the given class.
+     *
+     * @return array{0: string, 1: \Games\Paths\Core\Domain\Story\TraitInfo[]}
+     *         [status, traits] with status "OK" | "STORY_NOT_FOUND" | "CLASS_NOT_FOUND"
+     */
+    public function listTraitsForClass(string $storyUuid, string $classUuid, string $lang = 'en'): array;
 }

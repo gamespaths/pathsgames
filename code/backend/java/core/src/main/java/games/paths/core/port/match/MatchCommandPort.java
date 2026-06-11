@@ -106,7 +106,12 @@ public interface MatchCommandPort {
             USER_BANNED,
             MAINTENANCE_MODE,
             STORY_HAS_NO_LOCATIONS,
-            TURNSTILE_VALIDATION_FAILED
+            TURNSTILE_VALIDATION_FAILED,
+            // Step 23 — trait selection validation on the creator loadout
+            TRAIT_NOT_FOUND,
+            TRAIT_DUPLICATED,
+            TRAIT_NOT_COMPATIBLE,
+            TRAIT_COST_EXCEEDED
         }
 
         private final Code code;

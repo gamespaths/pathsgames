@@ -278,3 +278,120 @@ def test_match_info_includes_players(mock_jwt, mock_get, mock_query):
     body = _body(r)
     assert len(body['players']) == 1
     assert body['players'][0]['uuid'] == 'c1'
+
+
+# ── Step 23: trait selection validation ──────────────────────────────────────
+
+def _story_with(traits=None, difficulties=None):
+    story = {**STORY}
+    if traits is not None:
+        story['traits'] = traits
+    if difficulties is not None:
+        story['difficulties'] = difficulties
+    return story
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_unknown_trait_not_found(mock_jwt, mock_get, mock_query):
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match())
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['ghost']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_NOT_FOUND'
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_duplicated_trait(mock_jwt, mock_get, mock_query):
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match())
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1', 'trait-1']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_DUPLICATED'
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_trait_not_compatible_permitted(mock_jwt, mock_get, mock_query):
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': 99, 'idClassProhibited': None}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_NOT_COMPATIBLE'
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_trait_not_compatible_prohibited(mock_jwt, mock_get, mock_query):
+    story = _story_with(traits=[
+        {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+         'idClassPermitted': None, 'idClassProhibited': 1}])  # selected class id 1
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_NOT_COMPATIBLE'
+
+
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_positive_budget_exceeded(mock_jwt, mock_get, mock_query):
+    story = _story_with(
+        traits=[
+            {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': None},
+            {'uuid': 'trait-2', 'id': 2, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': None}],
+        difficulties=[{'uuid': 'diff1', 'expCost': 5, 'traitCostPositiveBudget': 1}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1', 'trait-2']}), {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'TRAIT_COST_EXCEEDED'
+
+
+@patch('match.handler.db_utils.put_item')
+@patch('match.handler.db_utils.query_by_pk')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_join_exact_budget_ok(mock_jwt, mock_get, mock_query, mock_put):
+    story = _story_with(
+        traits=[
+            {'uuid': 'trait-1', 'id': 1, 'costPositive': 1, 'costNegative': 1,
+             'idClassPermitted': None, 'idClassProhibited': None},
+            {'uuid': 'trait-2', 'id': 2, 'costPositive': 1, 'costNegative': 1,
+             'idClassPermitted': None, 'idClassProhibited': None}],
+        difficulties=[{'uuid': 'diff1', 'expCost': 5,
+                       'traitCostPositiveBudget': 2, 'traitCostNegativeBudget': 2}])
+    mock_jwt.return_value = _claims()
+    mock_get.side_effect = _store(match=_match(), story=story)
+    mock_query.return_value = []
+    from match.handler import lambda_handler
+    result = lambda_handler(_event('POST', '/api/matches/m1/join',
+                                   body={'traitUuids': ['trait-1', 'trait-2']}), {})
+    assert result['statusCode'] == 201
+    assert _body(result)['traitUuids'] == ['trait-1', 'trait-2']

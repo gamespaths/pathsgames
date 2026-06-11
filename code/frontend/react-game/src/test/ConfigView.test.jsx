@@ -16,7 +16,7 @@ vi.mock('../components/ui/BonusBadgeList', () => ({ default: () => <div /> }))
 
 import ConfigView from '../features/start-book/ConfigView'
 
-const config = { character: null, class: null, trait: null, difficulty: null }
+const config = { character: null, class: null, traits: [], difficulty: null }
 
 function setup(props = {}) {
   const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onPreview: vi.fn() }

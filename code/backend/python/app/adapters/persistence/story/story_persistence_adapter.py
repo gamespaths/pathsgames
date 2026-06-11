@@ -122,6 +122,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             "min_character": "minCharacter", "max_character": "maxCharacter",
             "cost_help_coma": "costHelpComa", "cost_max_characteristics": "costMaxCharacteristics",
             "number_max_free_action": "numberMaxFreeAction",
+            "trait_cost_positive_budget": "traitCostPositiveBudget",
+            "trait_cost_negative_budget": "traitCostNegativeBudget",
             "life": "life", "energy": "energy", "sad": "sad",
             "dexterity": "dexterity", "intelligence": "intelligence",
             "constitution": "constitution", "weight": "weight"

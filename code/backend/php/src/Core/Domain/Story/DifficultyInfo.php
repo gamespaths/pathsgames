@@ -24,7 +24,10 @@ class DifficultyInfo
         public int $dexterity = 10,
         public int $intelligence = 10,
         public int $constitution = 10,
-        public int $weight = 10
+        public int $weight = 10,
+        // Step 23 — trait cost budgets; null = no limit
+        public ?int $traitCostPositiveBudget = null,
+        public ?int $traitCostNegativeBudget = null
     ) {
     }
 }

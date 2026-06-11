@@ -131,6 +131,8 @@ SEED_STORIES = [
                 "numberMaxFreeAction": 3,
                 "life": 120, "energy": 110, "sad": 0,
                 "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12,
+                # Step 23 — trait cost budgets (None = no limit)
+                "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3,
             },
         ],
         "difficulty_count": 1,
@@ -179,6 +181,9 @@ SEED_STORIES = [
             {"uuid": "cb-tut-3", "idClass": 2, "statistic": "int",    "value": 3},
             {"uuid": "cb-tut-4", "idClass": 3, "statistic": "dex",    "value": 3},
         ],
+        # Step 23 — tr-tut-quick permitted only for class 2, tr-tut-resilient
+        # prohibited for class 1, tr-tut-frail/tr-tut-weary are negative-cost;
+        # tr-tut-brave stays unrestricted (robot loadout default)
         "traits": [
             {"uuid": "tr-tut-brave",  "id": 1, "costPositive": 1, "costNegative": 0,
              "idClassPermitted": None, "idClassProhibited": None,
@@ -186,15 +191,30 @@ SEED_STORIES = [
              "intelligence": 0, "constitution": 1, "weight": 0,
              "idCard": None, "texts": {}},
             {"uuid": "tr-tut-quick",  "id": 2, "costPositive": 1, "costNegative": 0,
-             "idClassPermitted": None, "idClassProhibited": None,
+             "idClassPermitted": 2, "idClassProhibited": None,
              "life": 0, "energy": 2, "sad": 0, "dexterity": 1,
+             "intelligence": 0, "constitution": 0, "weight": 0,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-resilient", "id": 3, "costPositive": 1, "costNegative": 0,
+             "idClassPermitted": None, "idClassProhibited": 1,
+             "life": 0, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 2, "constitution": 0, "weight": 1,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-frail",  "id": 4, "costPositive": 0, "costNegative": 2,
+             "idClassPermitted": None, "idClassProhibited": None,
+             "life": -2, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 0, "constitution": 0, "weight": 0,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-weary",  "id": 5, "costPositive": 0, "costNegative": 2,
+             "idClassPermitted": None, "idClassProhibited": None,
+             "life": 0, "energy": -2, "sad": 0, "dexterity": 0,
              "intelligence": 0, "constitution": 0, "weight": 0,
              "idCard": None, "texts": {}},
         ],
         "card":               None,
         "class_count":        3,
         "template_count":     3,
-        "trait_count":        2,
+        "trait_count":        5,
         # idCard points to raw_cards[0].id
         "idCard":             1,
         # Step 16: raw content data for content detail endpoints

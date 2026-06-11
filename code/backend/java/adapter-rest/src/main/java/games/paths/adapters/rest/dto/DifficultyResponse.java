@@ -14,6 +14,9 @@ public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
     private int numberMaxFreeAction;
     private Integer idCard;
     private CardInfoResponse card;
+    /** Step 23 — trait cost budgets; null = no limit. */
+    private Integer traitCostPositiveBudget;
+    private Integer traitCostNegativeBudget;
 
     public DifficultyResponse() {}
 
@@ -56,4 +59,10 @@ public class DifficultyResponse extends AbstractStatBlockUuidDescriptionDto {
 
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
+
+    public Integer getTraitCostPositiveBudget() { return traitCostPositiveBudget; }
+    public void setTraitCostPositiveBudget(Integer traitCostPositiveBudget) { this.traitCostPositiveBudget = traitCostPositiveBudget; }
+
+    public Integer getTraitCostNegativeBudget() { return traitCostNegativeBudget; }
+    public void setTraitCostNegativeBudget(Integer traitCostNegativeBudget) { this.traitCostNegativeBudget = traitCostNegativeBudget; }
 }

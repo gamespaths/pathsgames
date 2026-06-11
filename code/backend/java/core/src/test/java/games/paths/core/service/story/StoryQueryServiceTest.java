@@ -14,6 +14,7 @@ import games.paths.core.model.story.DifficultyInfo;
 import games.paths.core.model.story.StoryDetail;
 import games.paths.core.model.story.StorySummary;
 import games.paths.core.model.story.TraitInfo;
+import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -847,6 +848,107 @@ class StoryQueryServiceTest {
 
             assertNotNull(result);
             assertTrue(result.isEmpty());
+        }
+    }
+
+    // === SECTION: STEP 23 — TRAITS FOR CLASS ===
+
+    @Nested
+    @DisplayName("List Traits For Class Tests (Step 23)")
+    class ListTraitsForClass {
+
+        private static final long CLASS_ID = 30L;
+
+        private ClassEntity selectedClass() {
+            ClassEntity cl = createClassEntity(1L, "class-1", 100, 101);
+            cl.setId(CLASS_ID);
+            return cl;
+        }
+
+        private TraitEntity restrictedTrait(String uuid, Integer permitted, Integer prohibited) {
+            TraitEntity tr = createTraitEntity(1L, uuid, 700, 701);
+            tr.setIdClassPermitted(permitted);
+            tr.setIdClassProhibited(prohibited);
+            return tr;
+        }
+
+        @Test
+        @DisplayName("Should report STORY_NOT_FOUND for unknown story uuid")
+        void storyNotFound() {
+            when(readPort.findStoryByUuid("unknown")).thenReturn(Optional.empty());
+
+            StoryQueryPort.TraitsForClassResult result =
+                    storyQueryService.listTraitsForClass("unknown", "class-1", "en");
+
+            assertEquals(StoryQueryPort.TraitsForClassResult.Status.STORY_NOT_FOUND, result.status());
+            assertTrue(result.traits().isEmpty());
+        }
+
+        @Test
+        @DisplayName("Should report CLASS_NOT_FOUND for unknown class uuid")
+        void classNotFound() {
+            StoryEntity story = createStoryEntity("uuid-1", "a", 1, 2, "PUBLIC", 1, 0);
+            when(readPort.findStoryByUuid("uuid-1")).thenReturn(Optional.of(story));
+            when(readPort.findClassByStoryIdAndUuid(1L, "ghost")).thenReturn(Optional.empty());
+
+            StoryQueryPort.TraitsForClassResult result =
+                    storyQueryService.listTraitsForClass("uuid-1", "ghost", "en");
+
+            assertEquals(StoryQueryPort.TraitsForClassResult.Status.CLASS_NOT_FOUND, result.status());
+        }
+
+        @Test
+        @DisplayName("Should filter traits by id_class_permitted and id_class_prohibited")
+        void filtersByClassRestrictions() {
+            StoryEntity story = createStoryEntity("uuid-1", "a", 1, 2, "PUBLIC", 1, 0);
+            when(readPort.findStoryByUuid("uuid-1")).thenReturn(Optional.of(story));
+            when(readPort.findClassByStoryIdAndUuid(1L, "class-1"))
+                    .thenReturn(Optional.of(selectedClass()));
+            when(readPort.findTraitsByStoryId(1L)).thenReturn(List.of(
+                    restrictedTrait("tr-unrestricted", null, null),
+                    restrictedTrait("tr-permitted-match", (int) CLASS_ID, null),
+                    restrictedTrait("tr-permitted-other", 99999, null),
+                    restrictedTrait("tr-prohibited-match", null, (int) CLASS_ID),
+                    restrictedTrait("tr-prohibited-other", null, 99999)));
+
+            StoryQueryPort.TraitsForClassResult result =
+                    storyQueryService.listTraitsForClass("uuid-1", "class-1", "en");
+
+            assertEquals(StoryQueryPort.TraitsForClassResult.Status.OK, result.status());
+            List<String> uuids = result.traits().stream().map(TraitInfo::getUuid).toList();
+            assertEquals(List.of("tr-unrestricted", "tr-permitted-match", "tr-prohibited-other"), uuids);
+        }
+
+        @Test
+        @DisplayName("Should expose costs and class restrictions on the returned traits")
+        void exposesCostsAndRestrictions() {
+            StoryEntity story = createStoryEntity("uuid-1", "a", 1, 2, "PUBLIC", 1, 0);
+            when(readPort.findStoryByUuid("uuid-1")).thenReturn(Optional.of(story));
+            when(readPort.findClassByStoryIdAndUuid(1L, "class-1"))
+                    .thenReturn(Optional.of(selectedClass()));
+            when(readPort.findTraitsByStoryId(1L))
+                    .thenReturn(List.of(restrictedTrait("tr-1", (int) CLASS_ID, null)));
+
+            StoryQueryPort.TraitsForClassResult result =
+                    storyQueryService.listTraitsForClass("uuid-1", "class-1", "en");
+
+            TraitInfo info = result.traits().get(0);
+            assertEquals(2, info.getCostPositive());
+            assertEquals(1, info.getCostNegative());
+            assertEquals((int) CLASS_ID, info.getIdClassPermitted());
+            assertNull(info.getIdClassProhibited());
+        }
+
+        @Test
+        @DisplayName("Should report STORY_NOT_FOUND for blank story uuid and CLASS_NOT_FOUND for blank class uuid")
+        void blankInputs() {
+            assertEquals(StoryQueryPort.TraitsForClassResult.Status.STORY_NOT_FOUND,
+                    storyQueryService.listTraitsForClass("  ", "class-1", "en").status());
+
+            StoryEntity story = createStoryEntity("uuid-1", "a", 1, 2, "PUBLIC", 1, 0);
+            when(readPort.findStoryByUuid("uuid-1")).thenReturn(Optional.of(story));
+            assertEquals(StoryQueryPort.TraitsForClassResult.Status.CLASS_NOT_FOUND,
+                    storyQueryService.listTraitsForClass("uuid-1", " ", "en").status());
         }
     }
 }

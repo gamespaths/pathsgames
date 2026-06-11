@@ -162,24 +162,30 @@ Create Match With Loadout Persists Character Class Traits And Flag
     [Documentation]    POST /api/matches with characterTemplateUuid, classUuid,
     ...                traitUuids and singlePlayer returns 201; the loadout is
     ...                persisted and read back via GET /api/match/{uuid}/info.
+    ...                Step 23: the loadout traits are validated at creation, so a
+    ...                real loadout is resolved from the story detail (bogus trait
+    ...                uuids now fail with 400 TRAIT_NOT_FOUND — see suite 23).
     [Tags]    matches    step19
+    ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
     ${traits}=    Create List
-    ...    11111111-1111-1111-1111-111111111111
-    ...    22222222-2222-2222-2222-222222222222
-    ${response}=    Create Match With Loadout    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
-    ...    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb    ${traits}    ${1}
+    IF    '${trait}' != ''
+        Append To List    ${traits}    ${trait}
+    END
+    ${expected_traits}=    Get Length    ${traits}
+    ${response}=    Create Match With Loadout    ${TOKEN}    ${story}    ${difficulty}
+    ...    ${character}    ${class}    ${traits}    ${1}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Should Be Equal As Integers    ${body}[singlePlayer]    1
-    Should Be Equal As Strings    ${body}[characterTemplateUuid]    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
-    Should Be Equal As Strings    ${body}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
-    Length Should Be    ${body}[traitUuids]    2
+    Should Be Equal As Strings    ${body}[characterTemplateUuid]    ${character}
+    Should Be Equal As Strings    ${body}[classUuid]    ${class}
+    Length Should Be    ${body}[traitUuids]    ${expected_traits}
     ${info}=    Get Match Info    ${TOKEN}    ${body}[uuid]
     Status Should Be    ${info}    200
     ${match}=    Set Variable    ${info.json()}[match]
     Should Be Equal As Integers    ${match}[singlePlayer]    1
-    Should Be Equal As Strings    ${match}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
-    Length Should Be    ${match}[traitUuids]    2
+    Should Be Equal As Strings    ${match}[classUuid]    ${class}
+    Length Should Be    ${match}[traitUuids]    ${expected_traits}
 
 
 *** Keywords ***
