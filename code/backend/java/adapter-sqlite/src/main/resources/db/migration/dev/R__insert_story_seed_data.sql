@@ -16,7 +16,7 @@
 
 -- =============================================
 -- Important note from dev-team: when you edit this file, 
--- make sure to update the corresponding file in the PHP backend and Python backend 
+-- make sure to update the corresponding file in the Python backend 
 -- (database_seed_dev_data.sql and seed_stories.py respectively) as well, to keep them in sync.
 -- The two files should have identical content, just adapted to their respective SQL dialects.
 -- Without alling the three files, the story seed data will not work correctly in all environments.

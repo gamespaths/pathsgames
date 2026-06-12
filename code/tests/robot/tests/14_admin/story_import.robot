@@ -329,7 +329,7 @@ Import Explicit ID For list_character_templates Returns 201
 Import list_character_templates Round-Trips idTextName And idTextDescription
     [Documentation]    Imports a story with a character template having idCard, idTextName, idTextDescription
     ...                set, then reads back the character-templates collection and asserts the three FK
-    ...                fields are persisted (consistent across Java, Python, PHP and AWS backends).
+    ...                fields are persisted (consistent across Java, Python and AWS backends).
     [Tags]    admin    step14
     ${uuid}=    Set Variable    68888888-8888-4888-8888-888888888889
     &{headers}=    Create Dictionary

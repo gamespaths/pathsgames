@@ -2,7 +2,7 @@
 
 Attached to PathsGamesAdminApi (the dedicated admin endpoint). It gates every /api/admin/**
 route by source IP BEFORE the request reaches the domain Lambdas — the API-Gateway-level
-equivalent of the per-port firewall used by the Java/Python/PHP backends.
+equivalent of the per-port firewall used by the Java/Python/AWS backends.
 
 HTTP API request authorizer with simple responses (payload format 2.0): return
 {"isAuthorized": bool}. The in-Lambda _check_admin_ip in each handler stays as

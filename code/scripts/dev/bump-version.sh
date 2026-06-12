@@ -82,13 +82,6 @@ sed -i "s|version: str = \"${CURRENT}\"|version: str = \"${NEW}\"|" "$CONFIG_PY"
 sed -i "s|# >${CURRENT}|# >${NEW}|g" "$CONFIG_PY"
 
 # ────────────────────────────────────────────
-# 5. PHP - EchoService.php (fallback in-code)
-# ────────────────────────────────────────────
-echo "  [5/6] EchoService.php (PHP fallback)"
-ECHO_SVC="$ROOT/code/backend/php/src/Core/Service/EchoService.php"
-sed -i "s|'${CURRENT}'|'${NEW}'|g" "$ECHO_SVC"
-
-# ────────────────────────────────────────────
 # 6. HTML - index.html (footer)
 # ────────────────────────────────────────────
 echo "  [6/6] index.html (website footer)"

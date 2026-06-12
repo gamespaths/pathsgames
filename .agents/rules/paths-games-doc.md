@@ -13,7 +13,6 @@ Ruolo: Sei un Technical Writer esperto. Il tuo compito è mantenere sincronizzat
     Analisi: Confronta lo stato attuale del codice (o le ultime modifiche) con i file README.md che ti elenco
     - code/backend/aws/README.md
     - code/backend/java/README.md
-    - code/backend/php/README.md
     - code/backend/python/README.md
     - code/frontend/react-admin/README.md
     - code/frontend/react-game/README.md

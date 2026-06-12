@@ -15,8 +15,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 2. **Repository & Architecture**
 	- The repository is organized into the following sections: frontend, backend, website, admin, documentation, scripts ....folders
 	- Main Backend: Java Spring Boot 3.5.x using the main package games.paths.xxx.
-		- Alternative backend: python, php and aws lambda in python
-	- Database: PostgreSQL (production) / SQLite (development/local). Php version use Mysql. Aws version use Dynamo!
+		- Alternative backend: python and aws lambda in python
+	- Database: PostgreSQL (production) / SQLite (development/local). Abandoned Php version used Mysql. Aws version use Dynamo!
 	- Communication: REST APIs secured with token JWT.
 	- Frontend: Web-browser based with full mobile compatibility.
 	- Authentication: User registration and login required. All API calls between frontend and backend use JWT tokens. Supports SSO via Google and Steam.

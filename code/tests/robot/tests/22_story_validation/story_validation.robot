@@ -10,7 +10,7 @@
 # references, event-chain cycles, empty choices, class conflicts) and exposes a
 # read-only validation report. Admin CRUD is lenient (forward refs allowed).
 #
-# Backend-agnostic: runs green against java-sqlite, java-postgres, python, php.
+# Backend-agnostic: runs green against java-sqlite, java-postgres, python.
 #
 # Tags: admin, validation, step22
 # ---------------------------------------------------------------------------

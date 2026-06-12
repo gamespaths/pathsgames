@@ -14,7 +14,7 @@ info:
     returned in any API payload (request body, response body, error message
     or content-detail endpoint).
 
-    All four backend implementations (Java, Python, PHP, AWS Lambda) honour
+    All four backend implementations (Java, Python, AWS Lambda) honour
     this contract. The Java backend is the reference.
   version: 0.20.1
   contact:

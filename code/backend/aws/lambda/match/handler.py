@@ -151,7 +151,7 @@ def _is_maintenance():
 
 
 def _apply_default(row, raw_value):
-    """Mirror of the Java/Python/PHP default-value parser."""
+    """Mirror of the Java/Python/AWS default-value parser."""
     if raw_value is None:
         return
     text = str(raw_value).strip()

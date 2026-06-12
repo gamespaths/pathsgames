@@ -35,7 +35,7 @@ Step 23 covers the following items from the roadmap:
   `list_stories_difficulty` that bound how much positive and negative trait cost a
   player may select.  `NULL` means no limit.
 - Flyway migrations for Java (SQLite and PostgreSQL); SQLAlchemy model update for
-  Python; `database.sql` update for PHP; DynamoDB embedded field for AWS.
+  Python; DynamoDB embedded field for AWS.
 - `TraitSelectionValidator` (or equivalent) extracted as a shared service so both the
   create-match and join-match paths apply identical rules.
 - Validation order on join: match → user → template → class (Step 21 rules) →
@@ -212,8 +212,6 @@ default, making the migration fully backward-compatible.
 
 **Python:** `StoryDifficultyEntity` in `app/adapters/persistence/story/models.py` gains the two columns.  The dev database is recreated by the robot launch script.
 
-**PHP:** `database.sql` updated.  No migration framework is used by the PHP backend; existing dev databases must be recreated or altered manually.
-
 **AWS:** `traitCostPositiveBudget` / `traitCostNegativeBudget` are embedded in the `difficulties[]` attribute of the `STORY#` DynamoDB item.
 
 ### 5.2 Existing tables read by the new endpoint
@@ -315,17 +313,6 @@ validator/listing/controller tests added to existing test files.
 
 Result: **505 passed**.
 
-### 7.3 PHP
-
-```bash
-cd code/backend/php && XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text
-```
-
-New files: `src/Core/Service/Matches/TraitSelectionValidator.php`,
-`TraitSelectionException.php`. New tests in `CharacterCommandServiceTest`,
-`MatchCommandServiceTest`, `StoryQueryServiceTest`.
-
-Result: **558 tests OK**.
 
 ### 7.4 AWS
 
@@ -445,7 +432,6 @@ design).
 | Java SQLite | `adapter-sqlite/.../R__insert_story_seed_data.sql` |
 | Java PostgreSQL | `adapter-postgres/.../R__insert_dev_test_data.sql` |
 | Python | `app/adapters/persistence/seed_dev_data.py`, `scripts/seed_stories.py` |
-| PHP | `database_seed_dev_data.sql` |
 | AWS | `lambda/seed/handler.py` |
 
 Seed data highlights:
@@ -467,7 +453,6 @@ Seed data highlights:
 | Java + SQLite | 288 | 288 |
 | Java + PostgreSQL | 288 | 288 |
 | Python | 288 | 288 |
-| PHP | 288 | 288 |
 | AWS | not run (deploy requires confirmation) | — |
 
 ```bash
@@ -480,8 +465,6 @@ code/script/dev/run_robots/run_robot_with_local_java_postgres.sh
 # Python
 code/script/dev/run_robots/run_robot_with_local_python.sh
 
-# PHP
-code/script/dev/run_robots/run_robot_with_local_php.sh
 ```
 
 Reports are written to the respective `reports-local-*/report.html` folder.
@@ -494,7 +477,6 @@ Reports are written to the respective `reports-local-*/report.html` folder.
 |---------|---------------|-----------------|------------------------|------------|
 | Java | `StoryQueryService.listTraitsForClass` + `StoryQueryPort.TraitsForClassResult` | `core/.../service/match/TraitSelectionValidator` | `CharacterCommandService.resolveAndValidateTraits`; `MatchCommandService.validateCreatorTraitSelection` | `StoryController` new GET; `CharacterController` + `MatchController` map 4 codes → 400 |
 | Python | `story_query_service.list_traits_for_class` | `app/core/services/match/trait_selection_validator.py` | `character_command_service.py` + `match_command_service.py` | `story_controller` new route; controller status maps → 400 |
-| PHP | `StoryQueryService::listTraitsForClass` | `src/Core/Service/Matches/TraitSelectionValidator.php` + `TraitSelectionException.php` | `CharacterCommandService.php` + `MatchCommandService.php` | `StoryController::listTraitsForClass`; `RouteRegistrar` route; `StoryMatchMysqlReadAdapter` SELECT extended |
 | AWS | `lambda/story/handler.py` `list_traits_for_class` + `_trait_detail` | `lambda/match/handler.py` `_resolve_and_validate_traits` (shared) | `_create_match` + `_join_match` | `template/story.yaml` `ListTraitsForClassRoute`; `lambda/seed/handler.py` enriched seeds |
 
 ---
@@ -504,7 +486,7 @@ Reports are written to the respective `reports-local-*/report.html` folder.
 - Created with AI prompts:
   ```
   ciao read step 23 on roadmap file (documentation_v0/Roadmap.md) and write a plan to realize all components. 
-  projects are backend/java, robot test, react-game, react-admin, aws lambda and php and python project. 
+  projects are backend/java, robot test, react-game, react-admin, aws lambda and python project. 
   don't look and change backend/node project. at the end write Step21_xxx.md file with specific documentation agent. let's go
 
   ciao, start a new adventure: new project "frontend/python-flask-game", i wanna create game website with python-flask tecnoloty and use javascript less as possibile.

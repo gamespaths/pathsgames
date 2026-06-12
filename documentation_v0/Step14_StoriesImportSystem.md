@@ -15,7 +15,7 @@ This document describes the implementation of **Step 14: Story Import System and
 | **ID policy** | Explicit numeric `id` supported; duplicate ID per table raises 400 ERROR |
 | **Public API** | Story listing and detail retrieval (no auth required) |
 | **Admin API** | Story import, listing, and deletion (ADMIN role required) |
-| **Backends** | Java, Python, PHP, AWS Lambda (DynamoDB) |
+| **Backends** | Java, Python, AWS Lambda (DynamoDB) |
 
 ### Update (May 2026)
 
@@ -176,7 +176,7 @@ Returns the full detail of a single story by UUID.
 
 > **Note (Step 20a — admin endpoint split):** every `/api/admin/**` endpoint below is now
 > served on the **dedicated admin endpoint**, not the public one — the admin port **8044**
-> (Java/Python/PHP) or the separate IP-restricted admin HTTP API (AWS). The ADMIN-role JWT
+> (Java/Python) or the separate IP-restricted admin HTTP API (AWS). The ADMIN-role JWT
 > check is a second layer behind that network/IP boundary. See
 > [Step20_AdminEndpoint.md](Step20_AdminEndpoint.md).
 

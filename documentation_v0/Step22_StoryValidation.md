@@ -4,8 +4,7 @@ This document describes the implementation of **Step 22** as requested in the Ro
 
 Step 22 adds a **StoryValidator** domain service that checks referential integrity and
 domain rules across all ~29 story entities. The validator is wired into two write paths
-and one read path, identically across the four backends (Java reference, Python, PHP,
-AWS):
+and one read path, identically across the four backends (Java reference, Python, AWS):
 
 - **Story import** — `POST /api/admin/stories/import` now validates the whole import map
   *before any row is persisted*. On failure it returns **HTTP 400 `INVALID_STORY`** with a
@@ -32,7 +31,7 @@ scope.
 | Character-template stat ranges + class permitted≠prohibited; class refs | ✅ |
 | Integrate into import (hard-fail) and admin CRUD (lenient) | ✅ |
 | `GET /api/admin/stories/{uuid}/validate` read-only report | ✅ |
-| Backend unit tests (valid stories, broken refs, edge cases) — Java/Python/PHP/AWS | ✅ |
+| Backend unit tests (valid stories, broken refs, edge cases) — Java/Python/AWS | ✅ |
 | Robot suite `22_story_validation` | ✅ |
 | react-admin "Validate story" button + report panel | ✅ |
 
@@ -113,7 +112,6 @@ All endpoints are served only on the admin port **8044** and require ADMIN role.
 |---------|-----------|-----------------------------------|
 | **Java** | `core/.../service/story/StoryValidatorService` implementing `port/story/StoryValidatorPort` (with nested `StoryValidationException`); models `StoryValidationError` + `StoryValidationReport`. | `StoryImportService` (2-arg ctor) hard-fails; `StoryCrudService` (3-arg ctor) lenient; `CoreConfig` bean wiring; `StoryAdminController` validate endpoint + import 400; `StoryCrudAdminController` `@ExceptionHandler`. DTOs `StoryValidationReportResponse` / `StoryValidationErrorResponse`. |
 | **Python** | `app/core/services/story/story_validator_service.py` + `app/core/ports/story/story_validator_port.py` (`StoryValidationError`/`Report`/`Exception`). | `story_import_service.py`, `story_crud_service.py` (optional `validator_port`); `launcher.py` wiring; `story_admin_controller.py` (validate route + import 400) and `story_crud_admin_controller.py` (400 mapping). |
-| **PHP** | `src/Core/Service/Story/StoryValidatorService.php` + `src/Core/Port/Story/StoryValidatorPort.php`; domain `StoryValidationError`/`Report`/`Exception`. | `StoryImportService` / `StoryCrudService` (optional ctor arg); `bootstrap.php` wiring; `RouteRegistrar` validate route; `StoryAdminController` + `StoryCrudAdminController` 400 mapping. |
 | **AWS** | Standalone `lambda/story/story_validator.py` (`validate_story_dict`, `validate_entity`, `summary`). | `lambda/story/handler.py`: `import_story` 400, `create_entity`/`update_entity` lenient, `validate_story` handler + route; `template/story.yaml` `ValidateStoryRoute`. Code + tests only (not deployed). |
 
 ---
@@ -126,7 +124,6 @@ All endpoints are served only on the admin port **8044** and require ADMIN role.
 |---------|----------------------|--------|
 | Java | `StoryValidatorServiceTest` (rules R1–R7, cycle, lenient, DB-path) + controller validation tests | `mvn -pl core,adapter-admin -am test` → core 250, admin 66, **BUILD SUCCESS** |
 | Python | `tests/test_story_validator_service.py` (28 cases) | `pytest tests` → **487 passed** |
-| PHP | `tests/Unit/Core/Service/Story/StoryValidatorServiceTest.php` | `vendor/bin/phpunit tests` → **543 passed** |
 | AWS | `tests/test_story_validator.py` + handler validation tests | `pytest tests` → **246 passed** |
 
 Each suite covers: a fully-consistent story passing; each broken-reference variant;
@@ -167,9 +164,6 @@ existing `ErrorAlert` + `client.js` interceptor. New API function
   `StoryCrudAdminController`; DTOs; OpenAPI yaml; tests.
 - **Python**: `story_validator_port.py`, `story_validator_service.py`; edits to import/crud
   services, `launcher.py`, both admin controllers; tests.
-- **PHP**: `Domain/Story/StoryValidation{Error,Report,Exception}.php`,
-  `Port/Story/StoryValidatorPort.php`, `Service/Story/StoryValidatorService.php`; edits to
-  import/crud services, `bootstrap.php`, `RouteRegistrar`, both admin controllers; tests.
 - **AWS**: `lambda/story/story_validator.py`; edits to `lambda/story/handler.py`,
   `template/story.yaml`; tests.
 - **Robot**: `tests/22_story_validation/story_validation.robot`, `resources/stories.resource`,
@@ -184,7 +178,7 @@ existing `ErrorAlert` + `client.js` interceptor. New API function
 - Created with AI prompt:
   ```
   ciao read step 22 on roadmap file (documentation_v0/Roadmap.md) and write a plan to realize all components.
-  projects are backend/java, robot test, react-game, react-admin, aws lambda and php and python project.
+  projects are backend/java, robot test, react-game, react-admin, aws lambda and python project.
   at the end write Step22_xxx.md file with specific documentation agent. let's go
   ```
 - **Document Version**: 0.22.0

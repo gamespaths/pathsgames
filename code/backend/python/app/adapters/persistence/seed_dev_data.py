@@ -1,7 +1,7 @@
 """
 Development seed data for Robot Framework integration tests.
 Inserts DEMO_1 (tutorial) and DEMO_2 (valvassore) stories with all related entities.
-Adapted from Java R__insert_story_seed_data.sql to Python/PHP column names.
+Adapted from Java R__insert_story_seed_data.sql to Python column names.
 """
 from sqlalchemy import text
 

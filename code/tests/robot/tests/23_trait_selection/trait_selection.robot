@@ -15,7 +15,7 @@
 # All data is resolved at runtime from the public story detail (seeded uuids
 # are auto-generated). Scenarios that the running backend's seed cannot
 # express (e.g. no class-restricted traits) are skipped, keeping the suite
-# backend-agnostic across java-sqlite, java-postgres, python, php and aws.
+# backend-agnostic across java-sqlite, java-postgres, python and aws.
 #
 # Tags: characters, traits, step23
 # ---------------------------------------------------------------------------

@@ -22,22 +22,22 @@
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                     Browser (this prototype)              │
+│                     Browser (this prototype)             │
 │                                                          │
 │  ┌─────────────┐    ┌────────────────────────────────┐   │
-│  │  stories.js  │    │         main.js                │   │
-│  │ (static)     │    │ (API integration + rendering)  │   │
-│  │              │    │                                │   │
-│  │ LOCAL_CONFIG │◄───│ getLocalConfig(story)          │   │
-│  │ LOCATIONS    │◄───│ renderLocation(id)             │   │
-│  │ FALLBACK     │◄───│ loadStories() [if API fails]  │   │
+│  │  stories.js │    │         main.js                │   │
+│  │ (static)    │    │ (API integration + rendering)  │   │
+│  │             │    │                                │   │
+│  │ LOCAL_CONFIG│◄───│ getLocalConfig(story)          │   │
+│  │ LOCATIONS   │◄───│ renderLocation(id)             │   │
+│  │ FALLBACK    │◄───│ loadStories() [if API fails]   │   │
 │  └─────────────┘    └─────────┬──────────────────────┘   │
 │                               │                          │
 └───────────────────────────────┼──────────────────────────┘
                                 │ fetch()
                                 ▼
 ┌──────────────────────────────────────────────────────────┐
-│              Backend API (Java / Python / PHP / AWS)      │
+│              Backend API (Java / Python / AWS)           │
 │                                                          │
 │  GET /api/stories               → Story list (catalog)   │
 │  GET /api/stories/{uuid}        → Story detail (enriched)│

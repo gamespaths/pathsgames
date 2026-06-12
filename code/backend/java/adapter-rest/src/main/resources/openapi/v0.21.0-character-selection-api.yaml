@@ -20,7 +20,7 @@ info:
     with a `players` array (the same `CharacterSummary` shape returned by
     `GET /api/match/{uuidMatch}/players`).
 
-    All four backend implementations (Java, Python, PHP, AWS Lambda) honour this
+    All four backend implementations (Java, Python, AWS Lambda) honour this
     contract. The Java backend is the reference.
   version: 0.21.0
   contact:

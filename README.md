@@ -59,15 +59,6 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - Execute test `pytest tests` or `pytest tests --cov=app --cov-report=term-missing`
     - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-python): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-python&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-python)
 
-
----
-<img src="https://img.shields.io/badge/php-474A8A?logo=php&logoColor=white" /> <img src="https://img.shields.io/badge/MySql-gray?logo=MySql&logoColor=white" />
-
-- **Php**: the developers team area creating an alternative backend version developed with php, see [README](./code/backend/php/README.md) for all details.
-    - Start service into configured environment `php -S localhost:8042 -t public `
-    - Execute test `XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text`
-    - [SonarCloud](https://sonarcloud.io/project/information?id=paths-game-backend-php): [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=bugs)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=coverage)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=paths-game-backend-php&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=paths-game-backend-php)
-
 ---
 <img src="https://img.shields.io/badge/AWS%20Lambda-%23FF9900?logo=amazonaws&logoColor=white" /> <img src="https://img.shields.io/badge/Python-3766AB?logo=python&logoColor=white" /> <img src="https://img.shields.io/badge/Pytest-0A9EDC?logo=pytest&logoColor=white" />
 
@@ -130,7 +121,6 @@ Documents includes all steps and the roadmap for create paths.games components, 
     - Backend-ci: Runs main backend build, test, and packaging pipeline for all supported stacks.
     - Sonarqube-aws-lambda: Analyzes AWS Lambda backend code quality and security with SonarQube.
     - Sonarqube-java: Runs SonarQube analysis for the Java backend, checking code quality and coverage.
-    - Sonarqube-php: Runs SonarQube analysis for the PHP backend, checking code quality and coverage.
     - Sonarqube-python: Runs SonarQube analysis for the Python backend, checking code quality and coverage.
     - Sonarqube-react-game: Runs SonarQube analysis for the React-game frontend, checking code quality and coverage.
     - Sonarqube-react-admin: Runs SonarQube analysis for the React-admin frontend, checking code quality and coverage.

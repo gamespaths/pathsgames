@@ -43,15 +43,7 @@ Authorization: Bearer <player access token>
   response (request, success, 404, or 406). This applies to all four
   backends and is asserted by Robot E2E.
 
-### Where the code lives
 
-| Layer | Java | Python | PHP | AWS Lambda |
-|-------|------|--------|-----|------------|
-| Port (interface) | [MatchCommandPort.java](code/backend/java/core/src/main/java/games/paths/core/port/match/MatchCommandPort.java) | [match_ports.py](code/backend/python/app/core/ports/match/match_ports.py) | [MatchCommandPort.php](code/backend/php/src/Core/Port/Matches/MatchCommandPort.php) | inline (`handler.py`) |
-| Service | [MatchCommandService.java](code/backend/java/core/src/main/java/games/paths/core/service/match/MatchCommandService.java) | [match_command_service.py](code/backend/python/app/core/services/match/match_command_service.py) | [MatchCommandService.php](code/backend/php/src/Core/Service/Matches/MatchCommandService.php) | [match/handler.py](code/backend/aws/lambda/match/handler.py) `_end_match` |
-| Controller / route | [MatchController.java](code/backend/java/adapter-rest/src/main/java/games/paths/adapters/rest/controller/match/MatchController.java) `endMatch()` | [match_controller.py](code/backend/python/app/adapters/rest/match/match_controller.py) `end_match()` | [MatchController.php](code/backend/php/src/Adapter/Rest/Matches/MatchController.php) `endMatch()` + `public/index.php` PATCH route | [match.yaml](code/backend/aws/template/match.yaml) `EndMatchRoute` + dispatcher in `handler.py` |
-| Story-event lookup | `StoryReadPort.findEventByStoryIdAndUuid` + new `findStoryById` | `StoryMatchReadPort.find_event_by_story_id_and_uuid` + `find_story_by_id` | `StoryMatchReadPort::findEventByStoryIdAndUuid` + `findStoryById` | DynamoDB `STORY#{uuid}` item embeds `events[]` and `idEventEndGame` |
-| OpenAPI spec | [v0.20.1-match-end-api.yaml](code/backend/java/adapter-rest/src/main/resources/openapi/v0.20.1-match-end-api.yaml) | (shared) | (shared) | (shared) |
 
 ### Tests
 
@@ -62,7 +54,6 @@ Authorization: Bearer <player access token>
   adapter-rest → BUILD SUCCESS.
 - **Python**: 8 service tests in `test_match_command_service.py` + 4 controller
   tests in `test_match_controller.py`. Full suite: 393 passed.
-- **PHP**: 7 service tests + 4 controller tests via PHPUnit. Full suite: 453 passed.
 - **AWS Lambda**: 6 new handler tests in `test_match_handler.py` (401, 404 match
   unknown, 404 wrong owner, 406 story missing end event, 406 wrong event, 200
   success). Full suite: 184 passed.
@@ -732,7 +723,7 @@ Shorthand position/padding helpers used inline in JSX:
 Isolate every `/api/admin/**` endpoint onto a **separate network boundary** so the admin
 surface can be locked down to the owner's IP, independently of the public/player API.
 
-- **Java / Python / PHP** — admin APIs are served on a dedicated **port 8044**; the public
+- **Java / Python** — admin APIs are served on a dedicated **port 8044**; the public
   API stays on 8042 (8080 in Java prod).
 - **AWS** — admin APIs are served on a **separate HTTP API** gated by an IP-allow-list
   Lambda authorizer (there is no "port" in API Gateway).
@@ -750,12 +741,12 @@ path-prefix check (`/api/admin/`). Admin match endpoints were also embedded in t
 ## Architecture
 
 ```
-                 ┌─────────────────────────── public ───────────────────────────┐
-  player/public  │  8042 (Java/Python/PHP) · 8080 (Java prod) · PathsGamesApi    │
+                 ┌──────────────────────────── public ────────────────────────────┐
+  player/public  │  8042 (Java/Python)     · 8080 (Java prod) · PathsGamesApi     │
                  │  /api/echo, /api/auth, /api/stories, /api/content, /api/matches│
-                 └───────────────────────────────────────────────────────────────┘
-                 ┌─────────────────────────── admin ────────────────────────────┐
-  admin only     │  8044 (Java/Python/PHP) · PathsGamesAdminApi (AWS)            │
+                 └────────────────────────────────────────────────────────────────┘
+                 ┌──────────────────────────── admin ────────────────────────────┐
+  admin only     │  8044 (Java/Python) · PathsGamesAdminApi (AWS)                │
   (firewall to   │  /api/admin/**  → guests, stories CRUD, match management      │
    owner IP)     │  AWS: + IP-allow-list Lambda authorizer                       │
                  └───────────────────────────────────────────────────────────────┘
@@ -771,7 +762,6 @@ as the public endpoint, so the admin endpoint can be monitored independently:
 - **Java** — `AdminPortFilter` allows `/api/echo/status` on the admin connector (the shared
   `EchoController` already answers on both connectors).
 - **Python** — `echo_controller.router` is included on `app_admin`.
-- **PHP** — `RouteRegistrar::registerAdmin` registers `GET /api/echo/status`.
 - **AWS** — the `EchoFunction` gets a route on the admin API (`EchoAdminRoute`), gated by the
   same IP authorizer as the other admin routes.
 
@@ -786,7 +776,6 @@ the same IP boundary (no admin JWT required; the network/IP gate is the protecti
 - **Java** — `AdminPortFilter` treats `/api/dev/**` as admin-only (served on 8044, 404 on 8042);
   the shared `DevController` answers on the admin connector.
 - **Python** — `dev_controller.router` is mounted on `app_admin` only.
-- **PHP** — `RouteRegistrar::registerAdmin` registers `POST /api/dev/cleanup` (removed from public).
 - **AWS** — the `SeedFunction` routes (`/api/dev/seed`, `/api/dev/cleanup`) live on the admin API
   with the IP authorizer; the `SeedEndpoint` output points at the admin API.
 
@@ -820,19 +809,6 @@ Run: `mvn -pl ms-launcher spring-boot:run` → public 8042 + admin 8044 in one J
 
 Run: `python3 -m app.launcher` → public 8042 + admin 8044 in one process.
 
-## PHP — `code/backend/php/`
-
-- Admin match methods extracted into **`src/Adapter/Rest/Matches/MatchAdminController.php`**.
-- Shared wiring moved to **`public/bootstrap.php`**; routes split into
-  **`src/Adapter/Rest/RouteRegistrar.php`** (`registerPublic` / `registerAdmin`).
-- Two front controllers: **`public/index.php`** (public only) and
-  **`public/index_admin.php`** (admin only).
-
-Run both:
-```bash
-php -S localhost:8042 -t public                            # public
-php -S localhost:8044 -t public public/index_admin.php     # admin
-```
 
 ## AWS — `code/backend/aws/`
 
@@ -869,7 +845,7 @@ sam deploy ... --parameter-overrides AdminIpWhitelist=<your.ip.here>
   `aws.yaml`). The shared **`Create Admin Session`** keyword (`resources/common.resource`) now
   opens its session against `${ADMIN_BASE_URL}` — suites `14_admin` and `17_admin_crud` are
   unchanged.
-- Local run scripts (`run_robot_with_local_java*.sh`, `_python.sh`, `_php.sh`) start/await the
+- Local run scripts (`run_robot_with_local_java*.sh`, `_python.sh`) start/await the
   8044 admin listener and clean it up.
 
 ## Infra
@@ -884,7 +860,7 @@ sam deploy ... --parameter-overrides AdminIpWhitelist=<your.ip.here>
 
 | Backend | Mechanism |
 |---|---|
-| Java / Python / PHP (bare) | OS firewall / cloud security group rule allowing 8044 only from your IP |
+| Java / Python  | OS firewall / cloud security group rule allowing 8044 only from your IP |
 | Java docker-compose | host port `8044` mapping + host firewall / security group |
 | AWS | `AdminIpWhitelist` deploy parameter → the Lambda authorizer rejects other IPs with 403 |
 
@@ -903,7 +879,6 @@ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8044/api/echo/status  
 
 - **Java:** `mvn test` — `MatchAdminControllerTest`, `AdminPortFilterTest`, `AdminServerConfigTest`.
 - **Python:** `pytest tests` — `test_match_admin_controller.py`, `test_launcher_apps.py`.
-- **PHP:** `vendor/bin/phpunit tests/Unit` — `MatchAdminControllerTest`, `RouteRegistrarTest`.
 - **AWS:** `sam validate`; `pytest tests/test_authorizer_handler.py`.
 - **Frontend:** `npm run test` (react-admin); **Robot:** suites `14_admin`, `17_admin_crud`.
 
@@ -1207,10 +1182,10 @@ curl http://localhost:8044/api/admin/matches
 - Created with AI assistance (Claude via Claude Code).
   - i wanna add Turnstile anti-robot on react-game proeject
     - ciao, new update i added "Cloudflare Turnstile anti-bot" on react-game project but now i wanna validate token on serve side , let's go!
-      - change others backend (python, php and aws lambda)
+      - change others backend (python and aws lambda)
       - add robot test too if it's possibile, create "code/tests/robot/tests/20_website"
   - check all project and all documentation files, check where and who to set complete a match.
-    - now i wanna create an new api PATCH `/match/{uuid_match}/end/{uuid_event}`: to complete the match (set on ENDED state) if event is the "idEventEndGame" of story of match (never return idEventEndGame values on API), if event is not the idEventEndGame return "406 Not Acceptable". use "0.20.1" version, we are on step 20. please develop all backend (java, php,python, aws lambda), remember to add robot tests. In this session don't change frontend-react projects.
+    - now i wanna create an new api PATCH `/match/{uuid_match}/end/{uuid_event}`: to complete the match (set on ENDED state) if event is the "idEventEndGame" of story of match (never return idEventEndGame values on API), if event is not the idEventEndGame return "406 Not Acceptable". use "0.20.1" version, we are on step 20. please develop all backend (java, python, aws lambda), remember to add robot tests. In this session don't change frontend-react projects.
   - read documentation_v0/Step20_GameWebSiteFirstRun.md and let's go to import match end into react-game project and GameBook components: refactor LocationCard to use GameCard component, if there are not any location into story object, show story big card. refactor PlayerStats to use BonusBadgeList. refactor NeighborRow and ActionsRow to use GameCard little. If actions has "endGame"="true" show button "End game" to call "end game api" and hide GameBook and show EndGameBook with on left story card and on right endGameCard from gameData.json and a button "close" to restart from home page. 
     - into GameBook refactor NeighborRow and ActionsRow to a SelectionView
   - check projects, website folder and react-game project, actualy i'm using cookies-yes but i wanna manage cookies into project, what do you succest?
@@ -1231,7 +1206,7 @@ curl http://localhost:8044/api/admin/matches
     - instance should be with name "api-test-server2" and security group "api-test-server2-sg", every resouces created with tags env=test , createdBy=SH, project=PathsGames. into start i wanna create a dns record "api-test-server2.paths.games" into hosted zone "paths.games" with ID "XXXX" (all on .env). remember stop must be delete record too.another change on start if resources already exist don't throw error but continue and continue script steps, on stop if any resource doesn't exist don't throw error and continue script steps
   - hi, actualy on "configview" there is a start game button when clicked start the Turnstile and after onStartGame api. I wanna change this logic: move termsAccepted to X, when "start game" pressed hide ConfigView and show StartGameView with same graphics of ConfigView: 6 card and buttons on bottom. fist ConfigCard is term of conditions (x) point, with button di select/deselect conditions and onPreview must open modal. Second is gameType (same of ConfigView), 3rd card is login (same of ConfigView). Second row hide at loading, start the TurnstileWidget and when ok, show second row. 4th is new card "antibot ok" (create buildAntibotCard on loadoutCards). 5yh is free to play card (create buldFreeToPlay) and 6 is story card. On botton , after TurnstileWidget start setPhase to create the match. Let's go
     - yes: apply to mobile layout. on mobile i wanna change StartBookModal: remove book-mobile-config-card and use GameCard with 2 cards for every rows. on mobile on SelectionView i wanna 2 cards for every rows. Let's go
-  - check all documentation files and backend projects (java, python, php e aws lambda). i wanna move all APIs to different port (default 8044). i wanna code-refactor to have ALWAYS separeted files and endpoints (example in java there is adapter-admin). for aws lambda I wanna different endpoint with IP limitations (example my IP). always remember to chage unit test and robot test. after check and edit frontend projects (only admin?), (create new if necessary). at the end write documentation_v0/Step20_AdminEndpoint.md and update notebooklm. take your time and use plan mode. let's go!
+  - check all documentation files and backend projects (java, python e aws lambda). i wanna move all APIs to different port (default 8044). i wanna code-refactor to have ALWAYS separeted files and endpoints (example in java there is adapter-admin). for aws lambda I wanna different endpoint with IP limitations (example my IP). always remember to chage unit test and robot test. after check and edit frontend projects (only admin?), (create new if necessary). at the end write documentation_v0/Step20_AdminEndpoint.md and update notebooklm. take your time and use plan mode. let's go!
     - move admin APIs to another port (default 8044), on AWS Backend create a second API gateway with authorizer limited to my IP. update all robot test and all documentation
 
 

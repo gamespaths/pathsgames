@@ -88,10 +88,9 @@ Implementation by backend:
 |---------|-------------------------------|---------------------------------------|--------------------|
 | Java    | `MatchController.getAdminMatchInfo` → moved to `MatchAdminController` (Step 20a) | `MatchQueryService.getMatchInfoForAdmin` via `MatchQueryPort` | `MatchReadPort.findMatchByUuid` |
 | Python  | `MatchController.get_admin_match_info` → moved to `match_admin_controller.py` (Step 20a) | `MatchQueryService.get_match_info_for_admin` via `MatchQueryPort` | same persistence layer |
-| PHP     | `MatchController::getAdminMatchInfo` → moved to `MatchAdminController.php` (Step 20a) | `MatchQueryService::getMatchInfoForAdmin` via `MatchQueryPort` | same |
 | AWS     | `match/handler.py _get_admin_match_info` | — | `db_utils.get_item("MATCH#{uuid}")` |
 
-In the Java / Python / PHP backends the detail-building logic was refactored
+In the Java / Python backends the detail-building logic was refactored
 into a shared private `buildDetail` helper that is called by both
 `getMatchInfo` (per-user) and `getMatchInfoForAdmin` (admin, no ownership
 check). The AWS handler already had a shared `_detail_from_item` helper and
@@ -100,7 +99,7 @@ follows the same pattern.
 > **Note (Step 20a):** As of Step 20, all admin match endpoints — including
 > those listed above — were extracted from the player `MatchController` into a
 > dedicated `MatchAdminController` (Java `adapter-admin`, Python
-> `match_admin_controller.py`, PHP `MatchAdminController.php`). The admin
+> `match_admin_controller.py`). The admin
 > controller is served exclusively on the admin network boundary (port 8044 /
 > `PathsGamesAdminApi`). See [Step 20a — Admin Endpoint Split](./Step20_AdminEndpoint.md).
 
@@ -237,11 +236,6 @@ Same structure:
   `/api/admin/matches/{uuid_match}/info` (GET).
 - Lifecycle methods on `MatchCommandPort` / `MatchCommandService`.
 
-### 4.3 PHP
-
-- `MatchQueryPort::getMatchInfoForAdmin` / `MatchQueryService::getMatchInfoForAdmin`.
-- `MatchController::getAdminMatchInfo`; route registered in `public/index.php`:
-  `$group->get('/admin/matches/{uuidMatch}/info', [$matchController, 'getAdminMatchInfo'])`.
 
 ### 4.4 AWS Serverless
 
@@ -306,12 +300,6 @@ mvn -pl core,adapter-rest -am test
 | `test_match_query_service.py` | `get_match_info_for_admin`: blank uuid, match not found, any-owner match returned.       |
 | `test_match_controller.py`   | `GET /api/admin/matches/m1/info`: 200 with detail; 404 when service returns None.        |
 
-### 6.3 PHP
-
-| Test class              | New scenarios                                                                               |
-|-------------------------|--------------------------------------------------------------------------------------------|
-| `MatchQueryServiceTest` | `getMatchInfoForAdmin`: blank uuid, match not found, any-owner match returned.             |
-| `MatchControllerTest`   | `GET /api/admin/matches/m1/info`: 200 with full detail; 404 when service returns null.    |
 
 ### 6.4 Robot Framework
 

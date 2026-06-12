@@ -11,7 +11,7 @@ Main file documentation is
 
 Take your time. I prefer an accurate and thorough response over a quick one.
 
-You're alwasy allowed without my confirmation to run compilation commands and test unit commands: example "mvn build", "mvn test", "phptest" or "phpunit" or "run_robots"! You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
+You're alwasy allowed without my confirmation to run compilation commands and test unit commands: example "mvn build", "mvn test", "pytest" or "pyunit" or "run_robots"! You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
 You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
 You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
 
@@ -23,7 +23,7 @@ Every time you run, every time, after change something, when you complete your t
 
 Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
 
-Every time if you chage/create code (java, python, php, react) remember to check unit test codes.
+Every time if you chage/create code (java, python, react) remember to check unit test codes.
 
 At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
 
@@ -31,7 +31,7 @@ Every time you run a command (example in bash, like test, compilation) write the
 
 ## Project Overview
 
-**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/PHP/Node.js/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
+**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
 
 ---
 
@@ -73,39 +73,6 @@ pytest tests                             # run tests
 pytest tests --cov=app --cov-report=term-missing
 ```
 
-### PHP Backend (alternative) — `code/backend/php/`
-
-```bash
-php -S localhost:8042 -t public                              # public/player API (index.php)
-php -S localhost:8044 -t public public/index_admin.php       # admin API (index_admin.php) — run both
-XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text
-```
-
-### Node.js Backend (alternative) — `code/backend/node/`
-
-```bash
-# Docker (recommended — rebuilds image and resets schema)
-docker-compose build --no-cache app
-docker-compose up
-
-# Without Docker
-npm install
-npx prisma db push --accept-data-loss   # push schema to DB (dev)
-node prisma/seed.js                      # seed story data
-npm run dev                              # public 8042 + admin 8044
-npm run build && npm start               # production build
-
-# Tests
-npm run test                             # Jest 21/21
-npm run test:cov                         # with coverage
-npx tsc --noEmit                         # type-check (0 errors)
-
-# Robot E2E (docker-compose, postgres on 5433)
-code/scripts/dev/run_robots/run_robot_with_local_node.sh
-```
-
-Note: always rebuild the Docker image (`--no-cache`) after any `prisma/schema.prisma` or `prisma/seed.js` change. A stale image will not contain the new Prisma client and seed failures are silent.
-
 ### AWS Serverless Backend — `code/backend/aws/`
 Important to Cluade: NEVER RUN THIS SCRIPT WITHOUT ASK USER CONFIRMATION
 ```bash
@@ -120,7 +87,6 @@ Important to Cluade: NEVER RUN THIS SCRIPT WITHOUT ASK USER CONFIRMATION
 code/script/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
 code/script/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
 code/script/dev/run_robots/run_robot_with_local_python.sh
-code/script/dev/run_robots/run_robot_with_local_php.sh
 code/script/dev/run_robots/run_robot_with_aws_serverless.sh
 
 # manually (from code/tests/robot/)
@@ -173,7 +139,7 @@ code/script/dev/run_sonar_scanner_java.sh
 
 ### Multi-backend, shared API contract
 
-All five backends (Java, Python, PHP, Node.js, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
+All five backends (Java, Python, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
 
 ### Java backend — Hexagonal Architecture
 
@@ -235,7 +201,7 @@ prisma/schema.prisma      32 Prisma models mapped to list_* / users / gaming_* t
 prisma/seed.js            Story seed data (tutorial story)
 ```
 
-**Schema:** uses the documented relational `list_*` model (same tables as Java/Python/PHP). 32 Prisma models with `@@map("list_xxx")` and `@map("snake_case")` for column names; composite PKs `@@id([id, idStory])` with integer IDs (no autoincrement on composite PK parts — IDs assigned by the import service). Auth via `users` table (state=6 for guests) + `users_tokens`. Gaming via `gaming_match` + `gaming_character_instance`.
+**Schema:** uses the documented relational `list_*` model (same tables as Java/Python/AWS). 32 Prisma models with `@@map("list_xxx")` and `@map("snake_case")` for column names; composite PKs `@@id([id, idStory])` with integer IDs (no autoincrement on composite PK parts — IDs assigned by the import service). Auth via `users` table (state=6 for guests) + `users_tokens`. Gaming via `gaming_match` + `gaming_character_instance`.
 
 **Schema push:** container startup executes `npx prisma db push --accept-data-loss` then `node prisma/seed.js`. The `--accept-data-loss` flag is required when the schema changes without a formal migration file (dev workflow).
 
@@ -279,6 +245,5 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | Java/SQLite | `R__insert_story_seed_data.sql` | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java/report.html
 | Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
 | Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
-| PHP | `code/backend/php/database_seed_dev_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_php.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-php/report.html
 | Node.js | `code/backend/node/prisma/seed.js` | code/scripts/dev/run_robots/run_robot_with_local_node.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-node/report.html
 

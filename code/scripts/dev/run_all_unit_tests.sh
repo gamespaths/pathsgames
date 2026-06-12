@@ -9,9 +9,7 @@
 #   Backend unit:
 #     - java         mvn test            (surefire reports, all modules)
 #     - python       pytest              (code/backend/python, .venv)
-#     - php          phpunit             (code/backend/php -> build/logs/junit.xml)
 #     - aws          pytest              (code/backend/aws, .venv)
-#     - node         jest                (code/backend/node)
 #   Frontend unit (vitest):
 #     - react-admin  code/frontend/react-admin
 #     - react-game   code/frontend/react-game
@@ -29,9 +27,7 @@ set -uo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 JAVA_DIR="$PROJECT_ROOT/code/backend/java"
 PY_DIR="$PROJECT_ROOT/code/backend/python"
-PHP_DIR="$PROJECT_ROOT/code/backend/php"
 AWS_DIR="$PROJECT_ROOT/code/backend/aws"
-NODE_DIR="$PROJECT_ROOT/code/backend/node"
 RESULTS_DIR="$PROJECT_ROOT/code/scripts/dev/run_robot_results"
 TS="$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$RESULTS_DIR"
@@ -130,17 +126,6 @@ run_python() {
 	finish python "$rc" "$t" "$f"
 }
 
-run_php() {
-	want php || return 0
-	local log="$RESULTS_DIR/UNIT_php_${TS}.log"
-	local xml="$PHP_DIR/build/logs/junit.xml"
-	banner "php unit (phpunit)     log: $log"
-	( cd "$PHP_DIR" && vendor/bin/phpunit tests ) >"$log" 2>&1
-	local rc=$?
-	read -r t f < <(parse_junit "$xml")
-	finish php "$rc" "$t" "$f"
-}
-
 run_aws() {
 	want aws || return 0
 	local log="$RESULTS_DIR/UNIT_aws_${TS}.log"
@@ -153,17 +138,6 @@ run_aws() {
 	local rc=$?
 	read -r t f < <(parse_junit "$xml")
 	finish aws "$rc" "$t" "$f"
-}
-
-run_node() {
-	want node || return 0
-	local log="$RESULTS_DIR/UNIT_node_${TS}.log"
-	local json="$NODE_DIR/.jest-out.json"
-	banner "node unit (jest)       log: $log"
-	( cd "$NODE_DIR" && npx jest --json --outputFile="$json" ) >"$log" 2>&1
-	local rc=$?
-	read -r t f < <(parse_jest_json "$json")
-	finish node "$rc" "$t" "$f"
 }
 
 run_frontend() { # name dir
@@ -188,9 +162,7 @@ echo "PathsGames — run_all_tests (UNIT)  ($TS)"
 
 run_java
 run_python
-run_php
 run_aws
-#run_node
 run_frontend react-admin code/frontend/react-admin
 run_frontend react-game  code/frontend/react-game
 

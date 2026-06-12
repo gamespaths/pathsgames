@@ -32,7 +32,7 @@ info:
     Σ class_bonus`; life and energy start at their computed maximum and the
     character is placed at the story start location.
 
-    All four backend implementations (Java, Python, PHP, AWS Lambda) honour this
+    All four backend implementations (Java, Python, AWS Lambda) honour this
     contract. The Java backend is the reference.
   version: 0.23.0
   contact:

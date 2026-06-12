@@ -81,18 +81,6 @@ Three additional backend implementations follow the same hexagonal architecture 
 - Same hexagonal structure: `app/core/` (domain), `app/adapters/` (REST, auth, persistence)
 - Entry point: `app/launcher.py`; public port 8042, admin port 8044
 
-### PHP backend (`code/backend/php/`)
-- Plain PHP with hexagonal architecture; no framework
-- Public entry point `public/index.php` (port 8042), admin entry point `public/index_admin.php` (port 8044)
-- SQLite (dev) / PostgreSQL (prod)
-
-### Node.js backend (`code/backend/node/`)
-- Fastify 4 + TypeScript 5 + Prisma 5 + PostgreSQL 16
-- Same hexagonal structure: `src/core/` (services, models, ports), `src/adapters/` (REST controllers, Prisma repositories, JWT auth)
-- **Database schema:** implements the documented `list_*` relational model (32 Prisma models with `@@map` and `@map` for snake_case DB names, composite PKs `@@id([id, idStory])` with integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`)
-- Schema managed via `prisma db push` (dev) with `--accept-data-loss` on container startup + `node prisma/seed.js`
-- Public port 8042, admin port 8044; 21/21 Jest tests, 288/288 Robot tests
-
 ### AWS Serverless backend (`code/backend/aws/`)
 - AWS SAM: API Gateway (HTTP v2) → Lambda (Python 3.13) → DynamoDB (Single Table Design)
 - Does not use the relational `list_*` schema; uses DynamoDB key-prefix design instead

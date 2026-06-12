@@ -208,7 +208,7 @@ user in the match).
 ## 5. Tables
 
 No new Flyway migration was created for Java or Python — all three tables were
-already part of the schema introduced in v0.10.6.  The PHP backend added the
+already part of the schema introduced in v0.10.6.  The backend added the
 three tables to `database.sql` as part of this step.
 
 | Table                       | Read | Write | Notes                                                  |
@@ -373,16 +373,6 @@ cd code/backend/python && source .venv/bin/activate && pytest tests
 `character_command_service.py`, `character_query_service.py`,
 `character_controller.py`. Coverage on new modules ~98 %.
 
-### 7.3 PHP
-
-```bash
-cd code/backend/php && XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text
-```
-
-516 tests pass. **Seed fix:** `database_seed_dev_data.sql` now includes UPDATE
-statements that backfill UUIDs for rows in `list_character_templates`,
-`list_classes` and `list_traits` — required because MySQL does not evaluate
-UUID() as a column default the same way SQLite does.
 
 ### 7.4 AWS
 
@@ -493,8 +483,7 @@ code/script/dev/run_robots/run_robot_with_local_java_postgres.sh
 # Python
 code/script/dev/run_robots/run_robot_with_local_python.sh
 
-# PHP
-code/script/dev/run_robots/run_robot_with_local_php.sh
+
 ```
 
 Reports are written to the respective `reports-local-*/report.html` folder.
@@ -507,7 +496,6 @@ Reports are written to the respective `reports-local-*/report.html` folder.
 |---------|-------------|---------------|-------------|-----------------|-----------|
 | Java    | `core/.../service/match/CharacterCommandService` | `CharacterQueryService` | `CharacterPersistenceAdapter` + `CharacterReadAdapter` | `adapter-rest/.../controller/match/CharacterController` | `ms-launcher/.../CoreConfig` |
 | Python  | `app/core/services/match/character_command_service.py` | `character_query_service.py` | `app/adapters/persistence/match/character_persistence_adapter.py` | `app/adapters/rest/match/character_controller.py` | `app/launcher.py` |
-| PHP     | `src/Core/Service/Matches/CharacterCommandService.php` | `CharacterQueryService.php` | `src/Adapter/Persistence/Matches/CharacterMysqlPersistenceAdapter.php` | `src/Adapter/Rest/Matches/CharacterController.php` | `bootstrap.php` |
 | AWS     | `lambda/match/handler.py` `_join_match` | `_list_players`, `_get_character` | DynamoDB items `PK=MATCH#…, SK=CHARACTER#…` | Inline in handler; routes in `template/match.yaml` | Not deployed (code + tests only) |
 
 ---
@@ -537,7 +525,7 @@ PostgreSQL enforces strict type checking — this caused a 500 error on
 enforce the column type at the driver level.  PostgreSQL does — hence the fix was only
 visible when running the Java+Postgres robot suite.
 
-**Result:** all four robot backends (`java-sqlite`, `java-postgres`, `python`, `php`)
+**Result:** all four robot backends (`java-sqlite`, `java-postgres`, `python`)
 now pass the full `21_character_selection` suite (7 tests).
 
 ### 12.2 `CharacterSummaryResponse` missing `classUuid` and `traitUuids`
@@ -554,7 +542,6 @@ match-info players list.
 | Backend | Change |
 |---------|--------|
 | Java    | `CharacterSummaryResponse.java`: added `classUuid` (String) and `traitUuids` (List\<String\>); `fromModel` mapping updated; getters/setters added |
-| PHP     | `CharacterInstanceInfo.php` `toSummaryArray()`: added `'classUuid'` and `'traitUuids'` keys |
 | AWS     | `lambda/match/handler.py` `_character_summary()`: added `"classUuid"` and `"traitUuids"` keys |
 | Python  | Already complete — both fields were present before this fix |
 
@@ -590,7 +577,7 @@ tests passing.
 - Created with AI prompt:
   ```
   ciao read step 21 on roadmap file (documentation_v0/Roadmap.md) and write a plan to realize all components. 
-  projects are backend/java, robot test, react-game, react-admin, aws lambda and php and python project. 
+  projects are backend/java, robot test, react-game, react-admin, aws lambda and python project. 
   at the end write Step21_xxx.md file with specific documentation agent. let's go
 
   ```
@@ -598,7 +585,7 @@ tests passing.
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.21.0 | Character template & class selection — join, players, character detail endpoints across all backends; admin MatchDetailPage; react-game auto-join flow | June 9, 2026 |
-    | 0.21.0 | Post-release fixes: PostgreSQL boolean type mismatch on `is_sleeping`/`is_coma`; `classUuid`+`traitUuids` added to `CharacterSummaryResponse` (Java/PHP/AWS); react-admin MatchDetailPage `UuidCopy` component + Difficulty row + Class/Traits columns | June 9, 2026 |
+    | 0.21.0 | Post-release fixes: PostgreSQL boolean type mismatch on `is_sleeping`/`is_coma`; `classUuid`+`traitUuids` added to `CharacterSummaryResponse` (Java/AWS); react-admin MatchDetailPage `UuidCopy` component + Difficulty row + Class/Traits columns | June 9, 2026 |
 
 - **Last Updated**: June 9, 2026
 - **Status**: Complete
