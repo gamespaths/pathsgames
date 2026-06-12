@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% from 'partials/legal_macro.html' import legal_page with context %}
+{% block title %}{{ t('modals.privacy.title') }} — {{ t('nav.brand') }}{% endblock %}
+{% block content %}
+{{ legal_page('modals.privacy.title', 'modals.privacy.intro', [
+  ('modals.privacy.controllerTitle', 'modals.privacy.controllerBody'),
+  ('modals.privacy.dataTitle', 'modals.privacy.dataBody'),
+  ('modals.privacy.purposesTitle', 'modals.privacy.purposesBody'),
+  ('modals.privacy.cookiesTitle', 'modals.privacy.cookiesBody'),
+  ('modals.privacy.sharingTitle', 'modals.privacy.sharingBody'),
+  ('modals.privacy.transfersTitle', 'modals.privacy.transfersBody'),
+  ('modals.privacy.retentionTitle', 'modals.privacy.retentionBody'),
+  ('modals.privacy.rightsTitle', 'modals.privacy.rightsBody'),
+  ('modals.privacy.childrenTitle', 'modals.privacy.childrenBody'),
+  ('modals.privacy.securityTitle', 'modals.privacy.securityBody'),
+  ('modals.privacy.changesTitle', 'modals.privacy.changesBody')
+], 'modals.privacy.updated') }}
+{% endblock %}

@@ -1,6 +1,6 @@
 # Paths Games - AWS Serverless Backend
 
-Welcome to the **Serverless** version of the Paths Games backend! This project offers a high-performance, scalable, and extremely cost-effective alternative to traditional backends (Java/Python/PHP) based on relational databases.
+Welcome to the **Serverless** version of the Paths Games backend! This project offers a high-performance, scalable, and extremely cost-effective alternative to traditional backends (Java/Python/PHP/Node.js) based on relational databases.
 
 ## 🚀 Architecture 
 
@@ -216,6 +216,10 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 - Story admin CRUD (create, update, delete) via `StoryFunction`.
 - Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
+
+
+
+
 
 # < Paths Games />
 

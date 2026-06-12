@@ -1,0 +1,25 @@
+{% set menu = [
+  {'section': 'Overview'},
+  {'to': url_for('dashboard.index'), 'icon': 'fas fa-tachometer-alt', 'label': 'Dashboard', 'match': 'dashboard'},
+  {'section': 'Guests'},
+  {'to': url_for('guests.index'), 'icon': 'fas fa-user-secret', 'label': 'Guest Users', 'match': 'guests'},
+  {'section': 'Stories'},
+  {'to': url_for('stories.index'), 'icon': 'fas fa-book-open', 'label': 'Stories', 'match': 'stories'},
+  {'to': url_for('story_import.page'), 'icon': 'fas fa-file-import', 'label': 'Import Story', 'match': 'story_import'},
+  {'section': 'Matches'},
+  {'to': url_for('matches.index'), 'icon': 'fas fa-gamepad', 'label': 'Matches', 'match': 'matches'},
+  {'section': 'System'},
+  {'to': url_for('echo.index'), 'icon': 'fas fa-heartbeat', 'label': 'Server Status', 'match': 'echo'},
+] %}
+<aside class="pg-sidebar">
+  {% for item in menu %}
+    {% if item.section %}
+      <p class="pg-sidebar-section">{{ item.section }}</p>
+    {% else %}
+      {% set active = request.blueprint == item.match or (item.match == 'stories' and request.blueprint == 'editor') %}
+      <a href="{{ item.to }}" class="pg-sidebar-link{{ ' active' if active else '' }}">
+        <i class="{{ item.icon }}"></i>{{ item.label }}
+      </a>
+    {% endif %}
+  {% endfor %}
+</aside>

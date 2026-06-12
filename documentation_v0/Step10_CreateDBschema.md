@@ -637,7 +637,7 @@ ORDER BY installed_rank;
     > Read all files into documentation_v0 folder to have project overview. Create SQL files for PostgreSQL and SQLite, one file per table category. Write Step10_CreateDBschema.md documentation with Flyway description and usage guide.
 
     > Now i wanna add uuid item in all tables , the value will be a generated with a randon value when a row is added in a table, the uuid value will be used in API method (to avoid use ID value in public http api)
-- **Document Version**: 0.19.5
+- **Document Version**: 0.23.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.10.0 | Initial version: 52 tables, 13 migration files per dialect, indexes, seed data, Flyway guide | March 19, 2026 |
@@ -647,7 +647,7 @@ ORDER BY installed_rank;
     | 0.19.4 | Characters and traits not permitted for class selection | May 18, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+- **Last Updated**: June 12, 2026
 - **Status**: Complete ✅
 
 

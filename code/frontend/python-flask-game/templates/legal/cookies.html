@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% from 'partials/legal_macro.html' import legal_page with context %}
+{% block title %}{{ t('modals.cookies.title') }} — {{ t('nav.brand') }}{% endblock %}
+{% block content %}
+{{ legal_page('modals.cookies.title', 'modals.cookies.intro', [
+  ('modals.cookies.necessaryTitle', 'modals.cookies.necessaryBody'),
+  ('modals.cookies.analyticsTitle', 'modals.cookies.analyticsBody'),
+  ('modals.cookies.legalTitle', 'modals.cookies.legalBody'),
+  ('modals.cookies.manageTitle', 'modals.cookies.manageBody'),
+  ('modals.cookies.thirdPartyTitle', 'modals.cookies.thirdPartyBody'),
+  ('modals.cookies.rightsTitle', 'modals.cookies.rightsBody')
+], 'modals.cookies.updated') }}
+
+<div class="pg-legal pg-cookie-prefs">
+  <h2>{{ t('modals.cookies.manage') }}</h2>
+  <p>{{ t('modals.cookies.manageBody') }}</p>
+  <div class="pg-cookie-prefs__actions">
+    <form method="post" action="{{ url_for('prefs.set_consent') }}" class="pg-inline-form">
+      <input type="hidden" name="next" value="{{ url_for('legal.cookies') }}">
+      <input type="hidden" name="consent" value="necessary">
+      <button type="submit" class="btn-secondary-pg">Reject analytics</button>
+    </form>
+    <form method="post" action="{{ url_for('prefs.set_consent') }}" class="pg-inline-form">
+      <input type="hidden" name="next" value="{{ url_for('legal.cookies') }}">
+      <input type="hidden" name="consent" value="all">
+      <button type="submit" class="btn-start-game">Accept analytics</button>
+    </form>
+  </div>
+  <p class="pg-legal__updated">{{ 'Current choice' }}: <b>{{ consent or '—' }}</b></p>
+</div>
+{% endblock %}

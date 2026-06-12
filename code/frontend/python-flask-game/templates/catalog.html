@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="hero-section" style="background-image:url('https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80')">
+  <div class="hero-overlay">
+    <h1 class="hero-title">{{ t('home.heroTitle') }}</h1>
+    <p class="hero-sub">{{ t('home.heroSub') }}</p>
+  </div>
+</section>
+
+{% if not grouped %}
+  <div class="stories-section"><p class="stories-empty">{{ t('home.noStories') }}</p></div>
+{% else %}
+  {% for category, stories in grouped.items() %}
+  <div class="stories-section">
+    <h2 class="section-label"><i class="fas fa-book-open me-2"></i>{{ category }}</h2>
+    <div class="stories-grid">
+      {% for story in stories %}
+        {% set badge = badges.get(story.uuid) %}
+        <a class="pg-card pg-card--home story-netflix-card" href="{{ url_for('catalog.story_detail', uuid=story.uuid) }}">
+          {% if not badge %}
+            <span class="story-card-badge">{{ story.category }}</span>
+          {% elif badge == 'active' %}
+            <span class="story-card-status story-card-status--active"><i class="fas fa-play me-1"></i>{{ t('home.badgeResume') }}</span>
+          {% elif badge == 'completed' %}
+            <span class="story-card-status story-card-status--completed"><i class="fas fa-check me-1"></i>{{ t('home.badgeCompleted') }}</span>
+          {% endif %}
+          <div class="story-card-play-icon"><i class="fas fa-play"></i></div>
+          <img src="{{ story.card.urlImage if story.card }}" alt="{{ story.title }}" class="story-card-img" loading="lazy">
+          <div class="story-card-body">
+            <h4 class="story-card-title">{{ story.title }}</h4>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

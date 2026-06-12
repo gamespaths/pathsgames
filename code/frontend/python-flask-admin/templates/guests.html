@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Guests — Paths Games Admin{% endblock %}
+{% block content %}
+<h2 class="pg-page-title"><i class="fas fa-user-secret"></i>Guest Users</h2>
+{% if error %}<div class="pg-alert pg-alert-danger mb-3"><i class="fas fa-exclamation-triangle"></i><span>{{ error }}</span></div>{% endif %}
+
+{% if stats %}
+<div class="row g-3 mb-4">
+  {% for icon, label, key in [('fas fa-users','Total','totalGuests'),('fas fa-user-check','Active','activeGuests'),('fas fa-user-clock','Expired','expiredGuests')] %}
+  <div class="col-4">
+    <div class="pg-card"><div class="pg-card-title"><i class="{{ icon }} me-1"></i>{{ label }}</div>
+      <div class="pg-stat-value">{{ stats.get(key, '—') }}</div></div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-end mb-3">
+  <form method="post" action="{{ url_for('guests.delete_expired') }}"
+        onsubmit="return confirm('Delete all expired guests?')">
+    <button class="pg-btn pg-btn-danger pg-btn-sm" type="submit"><i class="fas fa-broom"></i>Delete expired</button>
+  </form>
+</div>
+
+<div class="pg-card">
+  <table class="pg-table">
+    <thead><tr><th>Username</th><th>UUID</th><th>Created</th><th>Last seen</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for g in guests %}
+      <tr>
+        <td>{{ g.username or '—' }}</td>
+        <td><code style="font-size:.7rem">{{ g.uuid }}</code></td>
+        <td>{{ g.tsInsert or g.createdAt or '—' }}</td>
+        <td>{{ g.tsLastSeen or g.lastSeen or '—' }}</td>
+        <td>
+          {% if g.expired %}<span class="pg-badge pg-badge-danger">Expired</span>
+          {% else %}<span class="pg-badge pg-badge-success">Active</span>{% endif %}
+        </td>
+        <td class="text-end">
+          <form method="post" action="{{ url_for('guests.delete', uuid=g.uuid) }}"
+                onsubmit="return confirm('Delete this guest?')">
+            <button class="pg-btn pg-btn-danger pg-btn-sm" type="submit"><i class="fas fa-trash"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="color:var(--color-ash)">No guests found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% from 'partials/game_card.html' import game_card %}
+{% block title %}{{ t('modals.guestUser.title') }}{% endblock %}
+{% block content %}
+<div class="pg-detail-stage">
+  <div class="book-wrapper">
+    <div class="book-spine"></div>
+
+    {# LEFT — profile #}
+    <div class="book-page book-page-left">
+      <div class="book-page-content pg-profile">
+        <div class="pg-profile-avatar"><i class="fas fa-user-circle"></i></div>
+        <h2 class="book-page-title">{{ t('modals.guestUser.title') }}</h2>
+        <p class="book-page-desc">{{ t('modals.guestUser.anonymous') }}</p>
+        <p class="pg-profile-id"><b>{{ t('modals.guestUser.uuidLabel') }}:</b><br><code>{{ guest_id }}</code></p>
+        <div class="book-page-desc">{{ t('modals.guestUser.body')|safe }}</div>
+      </div>
+    </div>
+
+    {# RIGHT — matches #}
+    <div class="book-page book-page-right">
+      <div class="config-view-wrap">
+        <h3 class="matches-list-title"><i class="fas fa-scroll me-2"></i>{{ t('matches.title') }}</h3>
+
+        {% if not matches %}
+          <p class="matches-list-empty">{{ t('matches.noMatches') }}</p>
+        {% else %}
+          <div class="config-cards-area selection-list">
+            {% for m in matches %}
+              {% set story = story_map.get(m.storyUuid) %}
+              {% set resumable = m.status in ('CREATED', 'RUNNING') %}
+              {% set card_item = {'card': (story.card if story else None), 'name': (story.title if story else t('matches.unknownStory')), 'icon': 'fas fa-book-open'} %}
+              {% call game_card(card_item, label=(story.title if story else t('matches.unknownStory'))) %}
+                {% if resumable %}
+                  <a class="gc-footer__btn" href="{{ url_for('match.match', uuid=m.uuid) }}">
+                    <i class="fas fa-play me-1"></i><span class="gc-footer__btn-label">{{ t('matches.resume') }}</span>
+                  </a>
+                {% else %}
+                  <span class="gc-footer__coming-soon">
+                    <i class="fas fa-check-circle me-1"></i>{{ t('matches.status.' ~ m.status) }}
+                  </span>
+                {% endif %}
+              {% endcall %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

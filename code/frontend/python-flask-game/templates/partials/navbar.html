@@ -1,0 +1,31 @@
+<nav class="navbar-medieval">
+  <a class="navbar-brand-pg" href="{{ url_for('catalog.catalog') }}">
+    <i class="fas fa-dice-d20 navbar-dice"></i>
+    <span class="navbar-brand-text">{{ t('nav.brand') }}</span>
+  </a>
+
+  <div class="navbar-right">
+    {# Accessibility (low-vision) theme toggle — server-side, no JS #}
+    <form method="post" action="{{ url_for('prefs.set_theme') }}" class="pg-inline-form">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+      <input type="hidden" name="theme" value="{{ 'default' if theme == 'access' else 'access' }}">
+      <button class="nav-user-btn" type="submit"
+              title="{{ 'Standard theme' if theme == 'access' else 'High-contrast / large-text theme' }}">
+        <i class="fas fa-{{ 'eye-slash' if theme == 'access' else 'low-vision' }}"></i>
+      </button>
+    </form>
+
+    {# Language switch #}
+    <form method="post" action="{{ url_for('prefs.set_lang') }}" class="pg-inline-form">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+      <input type="hidden" name="lang" value="{{ 'it' if lang == 'en' else 'en' }}">
+      <button class="nav-user-btn" type="submit" title="Language">
+        <i class="fas fa-language"></i><span>{{ (lang or 'en')|upper }}</span>
+      </button>
+    </form>
+
+    <a class="nav-user-btn" href="{{ url_for('user.profile') }}" title="{{ t('nav.guest') }}">
+      <i class="fas fa-user-circle"></i><span>{{ t('nav.guest') }}</span>
+    </a>
+  </div>
+</nav>

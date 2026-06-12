@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Paths Games Admin{% endblock %}
+{% block content %}
+<h2 class="pg-page-title"><i class="fas fa-tachometer-alt"></i>Dashboard</h2>
+
+<div class="pg-card mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <span class="status-dot {{ 'online' if server else 'offline' }}"></span>
+    <span style="font-family:'Cinzel',serif;color:var(--color-gold-light)">Server {{ 'Online' if server else 'Offline' }}</span>
+    {% if server and server.properties and server.properties.version %}
+      <span class="pg-badge pg-badge-gold">v{{ server.properties.version }}</span>
+    {% endif %}
+    {% if server and server.timestamp %}
+      <span style="color:var(--color-ash);font-size:.78rem;margin-left:auto"><i class="fas fa-clock me-1"></i>{{ server.timestamp }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% set cards = [
+    ('fas fa-users', 'Total Guests', (stats.totalGuests if stats else None)),
+    ('fas fa-user-check', 'Active Guests', (stats.activeGuests if stats else None)),
+    ('fas fa-user-clock', 'Expired Guests', (stats.expiredGuests if stats else None)),
+    ('fas fa-book-open', 'Stories (all)', story_count)
+  ] %}
+  {% for icon, label, value in cards %}
+  <div class="col-6 col-md-3">
+    <div class="pg-card">
+      <div class="pg-card-title"><i class="{{ icon }} me-1"></i>{{ label }}</div>
+      <div class="pg-stat-value">{{ value if value is not none else '—' }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="pg-card">
+  <div class="pg-card-title mb-3"><i class="fas fa-bolt me-1"></i>Quick actions</div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="pg-btn pg-btn-ghost" href="{{ url_for('stories.index') }}"><i class="fas fa-book-open"></i>Stories</a>
+    <a class="pg-btn pg-btn-ghost" href="{{ url_for('story_import.page') }}"><i class="fas fa-file-import"></i>Import Story</a>
+    <a class="pg-btn pg-btn-ghost" href="{{ url_for('matches.index') }}"><i class="fas fa-gamepad"></i>Matches</a>
+    <a class="pg-btn pg-btn-ghost" href="{{ url_for('guests.index') }}"><i class="fas fa-user-secret"></i>Guests</a>
+  </div>
+</div>
+{% endblock %}

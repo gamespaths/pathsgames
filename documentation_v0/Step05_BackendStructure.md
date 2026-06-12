@@ -70,7 +70,33 @@ The shared services module provides cross-cutting functionalities used by multip
 - First **service start** with command `mvn -pl ms-launcher spring-boot:run `
 - Check **echo API** with command `curl -s http://localhost:8042/api/echo/status | python3 -m json.tool`
 - Run **unit test** with command `mvn clean test`
-- Write the specific **README** with tecnical details about backend project 
+- Write the specific **README** with tecnical details about backend project
+
+## 7. Alternative backend implementations
+
+Three additional backend implementations follow the same hexagonal architecture pattern and share the same REST API contract. All are validated by the Robot Framework E2E suite.
+
+### Python backend (`code/backend/python/`)
+- FastAPI + SQLite (dev) / PostgreSQL (prod)
+- Same hexagonal structure: `app/core/` (domain), `app/adapters/` (REST, auth, persistence)
+- Entry point: `app/launcher.py`; public port 8042, admin port 8044
+
+### PHP backend (`code/backend/php/`)
+- Plain PHP with hexagonal architecture; no framework
+- Public entry point `public/index.php` (port 8042), admin entry point `public/index_admin.php` (port 8044)
+- SQLite (dev) / PostgreSQL (prod)
+
+### Node.js backend (`code/backend/node/`)
+- Fastify 4 + TypeScript 5 + Prisma 5 + PostgreSQL 16
+- Same hexagonal structure: `src/core/` (services, models, ports), `src/adapters/` (REST controllers, Prisma repositories, JWT auth)
+- **Database schema:** implements the documented `list_*` relational model (32 Prisma models with `@@map` and `@map` for snake_case DB names, composite PKs `@@id([id, idStory])` with integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`)
+- Schema managed via `prisma db push` (dev) with `--accept-data-loss` on container startup + `node prisma/seed.js`
+- Public port 8042, admin port 8044; 21/21 Jest tests, 288/288 Robot tests
+
+### AWS Serverless backend (`code/backend/aws/`)
+- AWS SAM: API Gateway (HTTP v2) → Lambda (Python 3.13) → DynamoDB (Single Table Design)
+- Does not use the relational `list_*` schema; uses DynamoDB key-prefix design instead
+- Deploy/remove via `code/scripts/dev/aws_backend_deploy.sh` / `aws_backend_remove.sh` (requires confirmation)
 
 
 # Version Control
@@ -89,13 +115,14 @@ The shared services module provides cross-cutting functionalities used by multip
 
     > in this file, in point 1, i wanna to add jpa tecnology (no JDBC)  
     
-- **Document Version**: 0.12.0
+- **Document Version**: 0.23.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5 | first version of document | February 20, 2026 |
     | 0.10.12 | added Flyway migration details to persistence module | March 19, 2026 |
     | 0.12.0 | added JPA uses details | March 27, 2026 |
-- **Last Updated**: March 19, 2026
+    | 0.23.1 | added sections documenting Python and AWS alternative backends | June 12, 2026 |
+- **Last Updated**: June 12, 2026
 - **Status**: ✅ Complete
 
 

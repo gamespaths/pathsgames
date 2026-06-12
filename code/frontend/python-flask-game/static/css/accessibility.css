@@ -1,0 +1,75 @@
+/* =============================================================
+   accessibility.css — low-vision theme.
+   Activated server-side via <body class="theme-access">.
+   High contrast, larger text, strong focus outlines.
+   ============================================================= */
+
+/* Always-on: visible keyboard focus for everyone. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--color-gold-shine);
+  outline-offset: 2px;
+}
+
+body.theme-access {
+  /* Brighter, higher-contrast palette overrides on the shared tokens. */
+  --text-primary: #ffffff;
+  --text-secondary: #ffe9b0;
+  --text-muted: #f0d590;
+  --color-parchment-dark: #ffe9c4;
+  --bg-page: #000000;
+  background-color: #000000;
+  font-size: 1.18rem;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+body.theme-access .navbar-medieval {
+  background: #000;
+  border-bottom: 3px solid var(--color-gold-shine);
+}
+
+body.theme-access .hero-title,
+body.theme-access .section-label,
+body.theme-access .config-title,
+body.theme-access .story-card-title,
+body.theme-access .book-page-title {
+  color: var(--color-gold-shine);
+  text-shadow: none;
+}
+
+/* Larger interactive targets and clearer borders. */
+body.theme-access .btn-start-game,
+body.theme-access .btn-secondary-pg,
+body.theme-access .gc-footer__btn,
+body.theme-access .nav-user-btn {
+  font-size: 1.05rem;
+  border-width: 2px;
+}
+
+body.theme-access .pg-card,
+body.theme-access .story-netflix-card,
+body.theme-access .pg-match-main,
+body.theme-access .pg-match-side {
+  border-color: var(--color-gold-shine);
+}
+
+/* Remove low-contrast italics / faint descriptions. */
+body.theme-access .pg-card__desc,
+body.theme-access .book-page-desc,
+body.theme-access .pg-location-body p {
+  font-style: normal;
+  color: var(--text-secondary);
+}
+
+/* Calmer motion for vestibular comfort. */
+body.theme-access * {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.05s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001s !important; transition-duration: 0.05s !important; }
+}

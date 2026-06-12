@@ -1,0 +1,14 @@
+{% macro legal_page(title_key, intro_key, sections, updated_key) %}
+<article class="pg-legal">
+  <h1 class="pg-legal__title">{{ t(title_key) }}</h1>
+  <p class="pg-legal__intro">{{ t(intro_key) }}</p>
+  {% for title_k, body_k in sections %}
+    <section class="pg-legal__section">
+      <h2>{{ t(title_k) }}</h2>
+      <p>{{ t(body_k) }}</p>
+    </section>
+  {% endfor %}
+  <p class="pg-legal__updated">{{ t(updated_key) }}</p>
+  <a class="btn-secondary-pg" href="{{ url_for('catalog.catalog') }}"><i class="fas fa-arrow-left me-1"></i>{{ t('matches.home') }}</a>
+</article>
+{% endmacro %}

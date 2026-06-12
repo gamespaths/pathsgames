@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}{{ t('book.startGame') }} — {{ story.title }}{% endblock %}
+{% block content %}
+<div class="pg-detail-stage start-match-wrapper">
+  <div class="book-wrapper">
+    <div class="book-page book-page-right" style="width:100%">
+      <div class="config-view-wrap" style="padding:1.4rem">
+        <h3 class="config-title"><i class="fas fa-play me-2"></i>{{ t('book.startGame') }} — {{ story.title }}</h3>
+
+        <ul class="pg-summary-list">
+          <li><i class="fas fa-shield-alt me-2"></i><b>{{ t('book.class') }}:</b> {{ selection.class.name if selection.class else '—' }}</li>
+          <li><i class="fas fa-user me-2"></i><b>{{ t('book.character') }}:</b> {{ selection.character.name if selection.character else '—' }}</li>
+          <li><i class="fas fa-star me-2"></i><b>{{ t('book.trait') }}:</b>
+            {{ selection.traits|map(attribute='name')|join(', ') if selection.traits else '—' }}</li>
+          <li><i class="fas fa-gauge-high me-2"></i><b>{{ t('book.difficulty') }}:</b> {{ selection.difficulty.name if selection.difficulty else '—' }}</li>
+        </ul>
+
+        {% if error %}
+          <p class="pg-antibot-error"><i class="fas fa-exclamation-triangle me-2"></i>{{ t(error) }}</p>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('match.start', uuid=story_uuid) }}" class="pg-antibot-form">
+          {# Honeypot: must stay empty; hidden from humans, tempting for bots. #}
+          <div class="pg-honeypot" aria-hidden="true">
+            <label>Leave this field empty
+              <input type="text" name="{{ honeypot_field }}" tabindex="-1" autocomplete="off">
+            </label>
+          </div>
+
+          <label class="pg-antibot-label">
+            <i class="fas fa-robot me-2"></i>{{ t('antibot.verifying') }}
+            <span class="pg-antibot-q">{{ challenge }} = ?</span>
+          </label>
+          <input class="pg-antibot-input" type="text" name="captcha" inputmode="numeric"
+                 autocomplete="off" required autofocus>
+
+          <div class="page-footer">
+            <a class="btn-secondary-pg" href="{{ url_for('catalog.story_detail', uuid=story_uuid) }}">
+              <i class="fas fa-arrow-left me-1"></i>{{ t('book.back') }}
+            </a>
+            <button type="submit" class="btn-start-game">
+              <i class="fas fa-play me-2"></i>{{ t('book.startGame') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

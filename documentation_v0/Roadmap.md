@@ -360,6 +360,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
     - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
 61. Multiplayer turn cycle — turn order and active player
+    - Turn cycle engine for multi-player (see step 24)
     - Extend turn engine to manage multiple characters with priority-based ordering in gaming_turn_queue (backend)
     - Track current active character in gaming_match.id_character_current_turn and broadcast changes (backend)
     - Implement turn advancement: move to next character in queue when current turn completes (backend)
@@ -731,7 +732,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
     | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
     | 0.23.1 | added new frontend `python-flask-game` (Flask + Jinja2 SSR alternative to react-game, port 5099, mock + live backend mode, 35 pytest tests) | June 11, 2026 |
-- **Last Updated**: June 11, 2026
+    | 0.23.2 | Node.js backend reaches full API parity (stages 0–5): Prisma schema reworked with StoryText/StoryClass/Trait/CharacterTemplate/CharacterInstance; StoryImportService full graph persistence; content detail APIs (suite 16); story validation engine (suite 22); character join + stats initialization (suite 21/23); trait cost-budget enforcement; tsc 0 errors, 20/20 jest tests | June 11, 2026 |
+    | 0.23.3 | Fix run_robot_with_local_node.sh: added `docker-compose build --no-cache app` before `docker-compose up -d` to prevent stale image reuse after schema/seed changes (silent seed failure was causing 186/288 Robot failures) | June 12, 2026 |
+    | 0.23.4 | Node.js backend migrated from cuid-based schema to the documented relational `list_*` model (same as Java/Python/PHP): 32 Prisma models with `@@map` snake_case table names, composite PK `@@id([id, idStory])`, integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`; `prisma db push --accept-data-loss` + seed on container startup; 288/288 Robot tests pass | June 12, 2026 |
+- **Last Updated**: June 12, 2026
 - **Status**: In progress
 
 

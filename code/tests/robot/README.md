@@ -1,6 +1,6 @@
 # Paths Games — Robot Framework Integration Tests
 
-End-to-end API tests for the Paths Games Java backend.
+End-to-end API tests for the Paths Games backend. The same test suite validates all five backend implementations (Java, Python, PHP, Node.js, AWS) via `variables/dev.yaml`.
 
 ## Structure
 
@@ -68,7 +68,18 @@ There is no `username+password` login endpoint — tokens are:
 
 ## Running Tests
 
-Make sure the backend server is running on port 8042 (`mvn spring-boot:run`).
+Start the desired backend first, then run the Robot tests. Use the convenience scripts from the repo root:
+
+| Backend | Script |
+|---|---|
+| Java + SQLite | `code/scripts/dev/run_robots/run_robot_with_local_java.sh` |
+| Java + PostgreSQL | `code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh` |
+| Python | `code/scripts/dev/run_robots/run_robot_with_local_python.sh` |
+| PHP | `code/scripts/dev/run_robots/run_robot_with_local_php.sh` |
+| Node.js | `code/scripts/dev/run_robots/run_robot_with_local_node.sh` (docker-compose, postgres on 5433) |
+| AWS Serverless | `code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh` |
+
+Alternatively, start any backend manually on port 8042 (public) + 8044 (admin), then:
 
 ### All tests
 

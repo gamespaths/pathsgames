@@ -518,12 +518,14 @@ Reports are written to the respective `reports-local-*/report.html` folder.
   a page to import a new story. a page to admin/list/change match with full detail page. and search if there are others page there are in react-admin and add it to new project.
 
   ```
-- **Document Version**: 0.23.0
+- **Document Version**: 0.23.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.23.0 | Character stats initialization — class-filtered trait listing, strict trait validation (TRAIT_NOT_FOUND/DUPLICATED/NOT_COMPATIBLE/COST_EXCEEDED) on match create/join, difficulty cost budgets, dev seeds, robot suite 23_trait_selection | June 11, 2026 |
+    | 0.23.1 | added sections documenting Python and AWS alternative backends | June 11, 2026 |
 
-- **Last Updated**: June 11, 2026
+
+- **Last Updated**: June 12, 2026
 - **Status**: Complete
 
 

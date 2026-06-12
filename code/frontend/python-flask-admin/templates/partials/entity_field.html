@@ -1,0 +1,24 @@
+{# Render one entity form field (input / select / textarea / checkbox). #}
+{% macro entity_field(field, value) %}
+  {% set val = '' if value is none else value %}
+  <div class="mb-2">
+    <label class="pg-label">{{ field.label }}</label>
+    {% if field.type == 'checkbox' %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="{{ field.key }}" value="1" {{ 'checked' if value else '' }}>
+      </div>
+    {% elif field.type == 'textarea' %}
+      <textarea class="pg-textarea" name="{{ field.key }}" rows="3">{{ val }}</textarea>
+    {% elif field.type == 'select' %}
+      <select class="pg-input" name="{{ field.key }}">
+        <option value="">—</option>
+        {% for opt in field.options %}
+          <option value="{{ opt.value }}" {{ 'selected' if (val|string) == (opt.value|string) else '' }}>{{ opt.label }}</option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <input class="pg-input" type="{{ 'number' if field.type == 'number' else 'text' }}"
+             name="{{ field.key }}" value="{{ val }}" {{ 'step=any' if field.type == 'number' else '' }}>
+    {% endif %}
+  </div>
+{% endmacro %}

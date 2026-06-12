@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% from 'partials/legal_macro.html' import legal_page with context %}
+{% block title %}{{ t('modals.terms.title') }} — {{ t('nav.brand') }}{% endblock %}
+{% block content %}
+{{ legal_page('modals.terms.title', 'modals.terms.intro', [
+  ('modals.terms.acceptanceTitle', 'modals.terms.acceptanceBody'),
+  ('modals.terms.serviceTitle', 'modals.terms.serviceBody'),
+  ('modals.terms.guestTitle', 'modals.terms.guestBody'),
+  ('modals.terms.useTitle', 'modals.terms.useBody'),
+  ('modals.terms.ipTitle', 'modals.terms.ipBody'),
+  ('modals.terms.disclaimerTitle', 'modals.terms.disclaimerBody'),
+  ('modals.terms.liabilityTitle', 'modals.terms.liabilityBody'),
+  ('modals.terms.availabilityTitle', 'modals.terms.availabilityBody'),
+  ('modals.terms.thirdPartyTitle', 'modals.terms.thirdPartyBody'),
+  ('modals.terms.privacyRefTitle', 'modals.terms.privacyRefBody'),
+  ('modals.terms.lawTitle', 'modals.terms.lawBody'),
+  ('modals.terms.changesTitle', 'modals.terms.changesBody')
+], 'modals.terms.updated') }}
+{% endblock %}

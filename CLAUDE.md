@@ -9,25 +9,29 @@ Main file documentation is
  
 ## Agents configuration
 
-Never use notebooklm if not indicated into prompt! If not indicated, ask me at the end if use it to update notebooklm files.
-
 Take your time. I prefer an accurate and thorough response over a quick one.
+
+You're alwasy allowed without my confirmation to run compilation commands and test unit commands: example "mvn build", "mvn test", "phptest" or "phpunit" or "run_robots"! You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
+You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
+You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
+
+
+
+Never use notebooklm if not indicated into prompt! If not indicated, ask me at the end if use it to update notebooklm files.
 
 Every time you run, every time, after change something, when you complete your task ask me if i wanna run sub-agent "paths-games-doc".
 
 Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
 
-Every time you run a command (example in bash) write the complete command and the last 10 result rows into workspace file ".agents/logs/YYYYMMDD.log"
-
 Every time if you chage/create code (java, python, php, react) remember to check unit test codes.
 
 At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
 
-Every time you run a command (example in bash) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
+Every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
 
 ## Project Overview
 
-**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/PHP/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
+**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/PHP/Node.js/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
 
 ---
 
@@ -77,6 +81,31 @@ php -S localhost:8044 -t public public/index_admin.php       # admin API (index_
 XDEBUG_MODE=coverage vendor/bin/phpunit tests --coverage-text
 ```
 
+### Node.js Backend (alternative) — `code/backend/node/`
+
+```bash
+# Docker (recommended — rebuilds image and resets schema)
+docker-compose build --no-cache app
+docker-compose up
+
+# Without Docker
+npm install
+npx prisma db push --accept-data-loss   # push schema to DB (dev)
+node prisma/seed.js                      # seed story data
+npm run dev                              # public 8042 + admin 8044
+npm run build && npm start               # production build
+
+# Tests
+npm run test                             # Jest 21/21
+npm run test:cov                         # with coverage
+npx tsc --noEmit                         # type-check (0 errors)
+
+# Robot E2E (docker-compose, postgres on 5433)
+code/scripts/dev/run_robots/run_robot_with_local_node.sh
+```
+
+Note: always rebuild the Docker image (`--no-cache`) after any `prisma/schema.prisma` or `prisma/seed.js` change. A stale image will not contain the new Prisma client and seed failures are silent.
+
 ### AWS Serverless Backend — `code/backend/aws/`
 Important to Cluade: NEVER RUN THIS SCRIPT WITHOUT ASK USER CONFIRMATION
 ```bash
@@ -109,6 +138,29 @@ npm run dev    # http://localhost:5172, proxies /api/* → http://localhost:8044
 npm run test
 ```
 
+### Flask Admin Console (alternative) — `code/frontend/python-flask-admin/`
+
+```bash
+cd code/frontend/python-flask-admin
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python run.py                                        # http://localhost:5098 (admin port 8044)
+ADMIN_BASE_URL=http://localhost:8044 python run.py   # explicit backend URL
+pytest                                               # run 35 unit tests (backend mocked)
+pytest --cov=app --cov-report=term-missing           # with coverage
+```
+
+### Flask Game Frontend (alternative) — `code/frontend/python-flask-game/`
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python run.py                                   # http://localhost:5099 (mock data)
+BASE_URL=http://localhost:8042 python run.py    # live backend mode
+pytest                                          # run 35 unit tests
+pytest --cov=app --cov-report=term-missing      # with coverage
+```
+
 ### SonarQube
 
 ```bash
@@ -121,7 +173,7 @@ code/script/dev/run_sonar_scanner_java.sh
 
 ### Multi-backend, shared API contract
 
-All four backends (Java, Python, PHP, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
+All five backends (Java, Python, PHP, Node.js, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
 
 ### Java backend — Hexagonal Architecture
 
@@ -170,6 +222,25 @@ app/adapters/        REST (FastAPI), auth, persistence (SQLite/PostgreSQL), webs
 app/launcher.py      Entry point and DI wiring
 ```
 
+### Node.js backend — Fastify/TypeScript/Prisma
+
+```
+src/core/                 Pure domain (services, models, port interfaces — no framework)
+src/adapters/rest/        Fastify controllers (11 controllers, dual Fastify instances)
+src/adapters/persistence/ Prisma repositories (7 implementations)
+src/adapters/auth/        JWT token adapter
+src/__tests__/            Jest unit tests (21 tests)
+src/main.ts               Entry point + manual DI wiring
+prisma/schema.prisma      32 Prisma models mapped to list_* / users / gaming_* tables
+prisma/seed.js            Story seed data (tutorial story)
+```
+
+**Schema:** uses the documented relational `list_*` model (same tables as Java/Python/PHP). 32 Prisma models with `@@map("list_xxx")` and `@map("snake_case")` for column names; composite PKs `@@id([id, idStory])` with integer IDs (no autoincrement on composite PK parts — IDs assigned by the import service). Auth via `users` table (state=6 for guests) + `users_tokens`. Gaming via `gaming_match` + `gaming_character_instance`.
+
+**Schema push:** container startup executes `npx prisma db push --accept-data-loss` then `node prisma/seed.js`. The `--accept-data-loss` flag is required when the schema changes without a formal migration file (dev workflow).
+
+**Ports:** public 8042, admin 8044 (same as all other backends).
+
 ### AWS backend — serverless
 
 API Gateway (HTTP v2) → Lambda functions (Python 3.13) → DynamoDB (Single Table Design with GSIs). Deployed with AWS SAM. Environments: `dev` / `prod`.
@@ -209,4 +280,5 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
 | Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
 | PHP | `code/backend/php/database_seed_dev_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_php.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-php/report.html
+| Node.js | `code/backend/node/prisma/seed.js` | code/scripts/dev/run_robots/run_robot_with_local_node.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-node/report.html
 
