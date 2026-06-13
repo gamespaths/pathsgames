@@ -409,6 +409,14 @@ def test_create_story_success():
     assert result['statusCode'] == 201
     assert 'uuid' in _body(result)
 
+def test_create_story_empty_body_returns_400():
+    with patch('story.handler.db_utils.get_item', return_value=ADMIN_USER):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories', body={})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'EMPTY_IMPORT_DATA'
+
 
 # ── update_story ──────────────────────────────────────────────────────────────
 

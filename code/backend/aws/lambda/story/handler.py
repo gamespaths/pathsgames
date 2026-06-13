@@ -1114,6 +1114,9 @@ def create_story(event):
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
 
+    if not data:
+        return _err(400, 'EMPTY_IMPORT_DATA', 'Request body must contain story data')
+
     story_uuid = str(uuid_lib.uuid4())
     story_item = {
         'PK':         f'STORY#{story_uuid}',

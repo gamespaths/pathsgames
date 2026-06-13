@@ -169,6 +169,29 @@ Validate Admin Story
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
+Create Admin Entity
+    [Documentation]    POST /api/admin/stories/{uuid}/{entityType} with a JSON body.
+    ...                Entity-local (lenient) validation: forward references are NOT
+    ...                checked, so a reference to a not-yet-existing entity still
+    ...                returns 201. Returns the response (any status).
+    [Arguments]    ${uuid}    ${entity_type}    ${json_body}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    POST On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}    json=${json_body}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Delete Admin Entity
+    [Documentation]    DELETE /api/admin/stories/{uuid}/{entityType}/{entityUuid}.
+    [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    DELETE On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
 # ── Step 16: Content Info Keywords ────────────────────────────────────
 
 Get Card Info

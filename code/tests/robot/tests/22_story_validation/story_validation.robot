@@ -131,3 +131,142 @@ Validate Without Token Returns 401
     ${response}=    GET On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/validate
     ...    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
+
+Import Template With Zero Life Returns 400
+    [Documentation]    A character template with lifeMax=0 fails the stat-range rule.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-0006-4000-8000-000000000006","author":"val-test",
+    ...    "characterTemplates":[{"id":1,"lifeMax":0,"energyMax":10}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R6_STAT_RANGE
+
+Import Template With Zero Energy Returns 400
+    [Documentation]    A character template with energyMax=0 fails the stat-range rule.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-0007-4000-8000-000000000007","author":"val-test",
+    ...    "characterTemplates":[{"id":1,"lifeMax":10,"energyMax":0}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R6_STAT_RANGE
+
+Create Difficulty With Inverted Character Range Returns 400
+    [Documentation]    The difficulty character-range rule (R6_DIFFICULTY_RANGE) is
+    ...                entity-local: it is enforced on admin CRUD create, not on import.
+    ...                A difficulty whose minCharacter exceeds maxCharacter is rejected.
+    [Tags]    admin    validation    step22
+    &{data}=    Create Dictionary    minCharacter=${5}    maxCharacter=${2}
+    ${response}=    Create Admin Entity    ${DEMO_1_UUID}    difficulties    ${data}
+    Should Be Equal As Integers    ${response.status_code}    400
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Strings    ${body}[error]    INVALID_STORY
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R6_DIFFICULTY_RANGE
+
+Import Condition With Unknown Key Returns 400
+    [Documentation]    A choice-condition whose key is not declared in keys[] fails.
+    ...                The choice has an otherwise fallback so only R4_CONDITION_KEY fires.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-0009-4000-8000-000000000009","author":"val-test",
+    ...    "events":[{"id":1,"type":"NORMAL"}],
+    ...    "choices":[{"id":1,"idEvent":1,"otherwiseFlag":1}],
+    ...    "choiceConditions":[{"id":1,"idChoices":1,"key":"NOPE"}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R4_CONDITION_KEY
+
+Import Neighbor Self Loop Returns 400
+    [Documentation]    A neighbor whose from-location equals its to-location fails.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-000a-4000-8000-00000000000a","author":"val-test",
+    ...    "locations":[{"id":1}],
+    ...    "locationNeighbors":[{"id":1,"idLocationFrom":1,"idLocationTo":1,"direction":"N"}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R2_NEIGHBOR_SELF
+
+Import Neighbor Without Direction Returns 400
+    [Documentation]    A neighbor with a blank direction fails.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-000b-4000-8000-00000000000b","author":"val-test",
+    ...    "locations":[{"id":1},{"id":2}],
+    ...    "locationNeighbors":[{"id":1,"idLocationFrom":1,"idLocationTo":2,"direction":""}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R2_NEIGHBOR_DIR
+
+Import Duplicate Neighbor Direction Returns 400
+    [Documentation]    Two neighbors sharing (from, direction) but pointing at different
+    ...                locations fail the duplicate-direction rule.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-000c-4000-8000-00000000000c","author":"val-test",
+    ...    "locations":[{"id":1},{"id":2},{"id":3}],
+    ...    "locationNeighbors":[
+    ...    {"id":1,"idLocationFrom":1,"idLocationTo":2,"direction":"N"},
+    ...    {"id":2,"idLocationFrom":1,"idLocationTo":3,"direction":"N"}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R2_NEIGHBOR_DUP
+
+Import Event Self Cycle Returns 400
+    [Documentation]    An event whose idEventNext points to itself is a cycle.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-000d-4000-8000-00000000000d","author":"val-test",
+    ...    "events":[{"id":1,"idEventNext":1}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R3_EVENT_CYCLE
+
+Import With Multiple Errors Returns All
+    [Documentation]    A payload with two distinct violations (dangling choice idEvent
+    ...                AND a self-loop neighbor) reports both — the validator does not
+    ...                stop at the first error.
+    [Tags]    admin    validation    step22
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"a1111111-000e-4000-8000-00000000000e","author":"val-test",
+    ...    "locations":[{"id":1}],
+    ...    "events":[{"id":1,"type":"NORMAL"}],
+    ...    "choices":[{"id":1,"idEvent":999,"otherwiseFlag":1}],
+    ...    "locationNeighbors":[{"id":1,"idLocationFrom":1,"idLocationTo":1,"direction":"N"}]}
+    ${body}=    Import Payload Should Fail Validation    ${payload}
+    ${count}=    Evaluate    len($body['errors'])
+    Should Be True    ${count} >= 2
+    ${rules}=    Evaluate    [e['rule'] for e in $body['errors']]
+    Should Contain    ${rules}    R_EVENT_REF
+    Should Contain    ${rules}    R2_NEIGHBOR_SELF
+
+Validate Imported Story Reports Valid
+    [Documentation]    Regression guard: a full imported demo story (DEMO_3) must validate
+    ...                clean — valid:true and zero errors. Backends whose seed does not
+    ...                include this story (validate → 404) skip the scenario.
+    [Tags]    admin    validation    step22
+    ${response}=    Validate Admin Story    ${DEMO_3_UUID}
+    IF    ${response.status_code} == 404
+        Pass Execution    Backend seed has no DEMO_3 imported story — scenario skipped
+    END
+    Should Be Equal As Integers    ${response.status_code}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal    ${body}[valid]    ${True}
+    Should Be Equal As Integers    ${body}[count]    0
+
+Create Event With Forward Location Reference Is Lenient
+    [Documentation]    Admin CRUD runs entity-local validation only — it never hard-fails a
+    ...                forward reference with 400 INVALID_STORY. The persistence layer may
+    ...                still enforce the FK: backends without FK enforcement (SQLite) persist
+    ...                and return 201; backends that enforce it (PostgreSQL) reject cleanly
+    ...                with 409 CONSTRAINT_VIOLATION (never a 500).
+    [Tags]    admin    validation    step22
+    &{data}=    Create Dictionary    type=NORMAL    idSpecificLocation=${99999}
+    ${response}=    Create Admin Entity    ${DEMO_1_UUID}    events    ${data}
+    Should Be True    ${response.status_code} == 201 or ${response.status_code} == 409
+    IF    ${response.status_code} == 201
+        Set Test Variable    ${CREATED_EVENT_UUID}    ${response.json()}[uuid]
+        Delete Admin Entity    ${DEMO_1_UUID}    events    ${CREATED_EVENT_UUID}
+    END

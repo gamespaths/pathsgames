@@ -14,6 +14,8 @@
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
+Library    ../../resources/JwtHelper.py
+Library    ../../resources/Step21Helper.py
 Resource   ../../resources/common.resource
 Resource   ../../resources/auth.resource
 Resource   ../../resources/matches.resource
@@ -97,12 +99,81 @@ Get Unknown Character Returns 404
     ${response}=    Get Character Detail    ${TOKEN}    ${MATCH_UUID}    ${UNKNOWN_UUID}
     Status Should Be    ${response}    404
 
+Match Info Exposes Players Array
+    [Documentation]    GET /api/match/{uuid}/info carries the additive players[] array (Step
+    ...                21 §2.4) listing the joined character.
+    [Tags]    characters    step21
+    ${response}=    Get Match Info    ${TOKEN}    ${MATCH_UUID}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Dictionary Should Contain Key    ${body}    players
+    Should Not Be Empty    ${body}[players]
+    ${uuids}=    Evaluate    [p.get('uuid') for p in $body['players']]
+    Should Contain    ${uuids}    ${CHAR_UUID}
+
+Join With Unknown Template Returns 404
+    [Documentation]    Joining with an unresolvable characterTemplateUuid → 404 TEMPLATE_NOT_FOUND.
+    [Tags]    characters    step21
+    ${match_uuid}=    Create Fresh Joinable Match
+    ${response}=    Join Match    ${TOKEN}    ${match_uuid}
+    ...    no-such-template    ${CLASS_UUID}    ${NONE}    expected_status=404
+    Should Be Equal As Strings    ${response.json()}[error]    TEMPLATE_NOT_FOUND
+
+Join With Unknown Class Returns 404
+    [Documentation]    Joining with an unresolvable classUuid → 404 CLASS_NOT_FOUND.
+    [Tags]    characters    step21
+    ${match_uuid}=    Create Fresh Joinable Match
+    ${response}=    Join Match    ${TOKEN}    ${match_uuid}
+    ...    ${CHARACTER_UUID}    no-such-class    ${NONE}    expected_status=404
+    Should Be Equal As Strings    ${response.json()}[error]    CLASS_NOT_FOUND
+
+Join With Incompatible Class Returns 409
+    [Documentation]    A template restricted to (or prohibiting) a class, joined with an
+    ...                incompatible class → 409 CLASS_NOT_COMPATIBLE. Skipped when the seed
+    ...                exposes no class-restricted template.
+    [Tags]    characters    step21
+    ${tpl_uuid}    ${cls_uuid}=    Find Incompatible Template Class    ${DETAIL}
+    IF    '${tpl_uuid}' == ''
+        Pass Execution    Seed has no class-restricted template — scenario skipped
+    END
+    ${match_uuid}=    Create Fresh Joinable Match
+    ${response}=    Join Match    ${TOKEN}    ${match_uuid}
+    ...    ${tpl_uuid}    ${cls_uuid}    ${NONE}    expected_status=409
+    Should Be Equal As Strings    ${response.json()}[error]    CLASS_NOT_COMPATIBLE
+
+Join Terminated Match Returns 409
+    [Documentation]    A match stopped by the admin (status ENDED) is no longer joinable →
+    ...                409 MATCH_NOT_JOINABLE.
+    [Tags]    characters    step21
+    ${match_uuid}=    Create Fresh Joinable Match
+    ${stop}=    Admin Stop Match    ${ADMIN_TOKEN}    ${match_uuid}
+    Status Should Be    ${stop}    200
+    ${response}=    Join Match    ${TOKEN}    ${match_uuid}
+    ...    ${CHARACTER_UUID}    ${CLASS_UUID}    ${NONE}    expected_status=409
+    Should Be Equal As Strings    ${response.json()}[error]    MATCH_NOT_JOINABLE
+
+Get Players From Non Participant Returns 404
+    [Documentation]    A guest who has no character in the match cannot list its players → 404.
+    [Tags]    characters    step21
+    ${other}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${other}    201
+    ${response}=    Get Match Players    ${other.json()}[accessToken]    ${MATCH_UUID}
+    Status Should Be    ${response}    404
+
 
 *** Keywords ***
+
+Create Fresh Joinable Match
+    [Documentation]    Creates a new CREATED (joinable) single-player match and returns its uuid.
+    ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_step21
+    Status Should Be    ${match}    201
+    RETURN    ${match.json()}[uuid]
 
 Suite Setup Character Selection
     [Documentation]    Logs in as guest and resolves a real joinable loadout from a
     ...                public story (story, difficulty, character template, class, trait).
+    ...                Also opens an admin session (admin port) and loads the full story
+    ...                detail for the class-compatibility / players scenarios.
     Create Public Session
     ${response}=    POST On Session    public_session    /api/auth/guest
     Status Should Be    ${response}    201
@@ -113,3 +184,9 @@ Suite Setup Character Selection
     Set Suite Variable    ${CHARACTER_UUID}    ${character}
     Set Suite Variable    ${CLASS_UUID}        ${class}
     Set Suite Variable    ${TRAIT_UUID}        ${trait}
+    ${detail}=    GET On Session    public_session    /api/stories/${story}
+    Status Should Be    ${detail}    200
+    Set Suite Variable    ${DETAIL}    ${detail.json()}
+    ${admin_token}=    Generate Admin Token
+    Set Suite Variable    ${ADMIN_TOKEN}    ${admin_token}
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false

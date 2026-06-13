@@ -150,6 +150,100 @@ Pass Without Token Returns 401
     ...    /api/gameplay/00000000-0000-0000-0000-000000000000/action/pass    expected_status=any
     Status Should Be    ${response}    401
 
+Turn Sequence On Created Match Returns Empty Queue
+    [Documentation]    Before /start the match is CREATED: turn-sequence returns 200 with
+    ...                the match status and an empty queue (no rows built yet).
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    ${response}=    Get Turn Sequence    ${TOKEN}    ${match}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Strings    ${body}[status]    CREATED
+    Should Be Empty    ${body}[queue]
+
+Pass By Non Participant Returns 404
+    [Documentation]    A user with no character in the match cannot pass → 404 MATCH_NOT_FOUND.
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    ${other}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${other}    201
+    ${response}=    Pass Turn    ${other.json()}[accessToken]    ${match}
+    Status Should Be    ${response}    404
+    Should Be Equal As Strings    ${response.json()}[error]    MATCH_NOT_FOUND
+
+Start By Non Creator Returns 404
+    [Documentation]    Only the creator may start: another user gets 404 (existence is not
+    ...                leaked to third parties).
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    ${other}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${other}    201
+    ${response}=    Start Match    ${other.json()}[accessToken]    ${match}
+    Status Should Be    ${response}    404
+    Should Be Equal As Strings    ${response.json()}[error]    MATCH_NOT_FOUND
+
+Priority Matches Formula
+    [Documentation]    The stored priority equals (DEX*3+INT*2+COS*1)*1000 + LIFE*10 + id.
+    [Tags]    turn-cycle    step24
+    ${match}    ${character}=    New Match Returning Character
+    ${start}=    Start Match    ${TOKEN}    ${match}
+    Status Should Be    ${start}    200
+    ${seq}=    Get Turn Sequence    ${TOKEN}    ${match}
+    ${entry}=    Set Variable    ${seq.json()}[queue][0]
+    ${expected}=    Evaluate
+    ...    (${character}[dexterity]*3 + ${character}[intelligence]*2 + ${character}[constitution])*1000 + ${character}[life]*10 + ${entry}[idCharacter]
+    Should Be Equal As Integers    ${entry}[priority]    ${expected}
+
+Pass Keeps Single Active Turn
+    [Documentation]    After a single-player pass the turn cycle reactivates the only
+    ...                character: exactly one ACTIVE entry remains and the active character
+    ...                is set (the single-player rollover loops on the same character).
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    Pass Turn    ${TOKEN}    ${match}    200
+    ${seq}=    Get Turn Sequence    ${TOKEN}    ${match}
+    ${body}=    Set Variable    ${seq.json()}
+    ${active}=    Count Status    ${body}[queue]    ACTIVE
+    Should Be Equal As Integers    ${active}    1
+    Should Not Be Equal    ${body}[activeCharacterUuid]    ${None}
+
+Single Player Pass Does Not Advance Clock
+    [Documentation]    Real contract: passing the only character resets its turn in the
+    ...                same clock cycle (no time advancement in Step 24) — currentClock is
+    ...                unchanged while passCounter grows.
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    ${start}=    Start Match    ${TOKEN}    ${match}
+    ${clock_before}=    Set Variable    ${start.json()}[currentClock]
+    Pass Turn    ${TOKEN}    ${match}    200
+    ${seq}=    Get Turn Sequence    ${TOKEN}    ${match}
+    ${body}=    Set Variable    ${seq.json()}
+    Should Be Equal As Integers    ${body}[currentClock]    ${clock_before}
+    ${active}=    Count Status    ${body}[queue]    ACTIVE
+    Should Be Equal As Integers    ${active}    1
+
+Multiple Consecutive Passes Accumulate Pass Counter
+    [Documentation]    Three consecutive passes accumulate the pass counter to 3 on the
+    ...                single character while keeping exactly one ACTIVE entry — stress of
+    ...                the single-player turn loop.
+    [Tags]    turn-cycle    step24
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    FOR    ${i}    IN RANGE    3
+        Pass Turn    ${TOKEN}    ${match}    200
+    END
+    ${seq}=    Get Turn Sequence    ${TOKEN}    ${match}
+    ${body}=    Set Variable    ${seq.json()}
+    ${max_pass}=    Set Variable    ${0}
+    FOR    ${entry}    IN    @{body}[queue]
+        ${max_pass}=    Evaluate    max(${max_pass}, ${entry}[passCounter])
+    END
+    Should Be Equal As Integers    ${max_pass}    ${3}
+    ${active}=    Count Status    ${body}[queue]    ACTIVE
+    Should Be Equal As Integers    ${active}    1
+
 
 *** Keywords ***
 
@@ -168,6 +262,12 @@ Suite Setup Turn Cycle
 
 New Match With Character
     [Documentation]    Creates a CREATED match and joins one character; returns the match uuid.
+    ${match_uuid}    ${character}=    New Match Returning Character
+    RETURN    ${match_uuid}
+
+New Match Returning Character
+    [Documentation]    Creates a CREATED match, joins one character, and returns both the
+    ...                match uuid and the created character JSON (with its stats).
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_turn
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]
@@ -177,7 +277,7 @@ New Match With Character
     END
     ${join}=    Join Match    ${TOKEN}    ${match_uuid}    ${CHARACTER_UUID}    ${CLASS_UUID}    ${trait_list}
     Status Should Be    ${join}    201
-    RETURN    ${match_uuid}
+    RETURN    ${match_uuid}    ${join.json()}
 
 Count Status
     [Documentation]    Counts queue entries with the given status.

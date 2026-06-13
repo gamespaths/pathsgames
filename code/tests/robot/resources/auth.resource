@@ -64,3 +64,11 @@ Call Logout
     ...    headers=${headers}
     ...    expected_status=any
     RETURN    ${response}
+
+Refresh Session
+    [Documentation]    POST /api/auth/refresh on the given session (no body). The HttpOnly
+    ...                pathsgames.refreshToken cookie is sent automatically by the session
+    ...                cookie jar. Returns the response (any status).
+    [Arguments]    ${session}=public_session
+    ${response}=    POST On Session    ${session}    /api/auth/refresh    expected_status=any
+    RETURN    ${response}

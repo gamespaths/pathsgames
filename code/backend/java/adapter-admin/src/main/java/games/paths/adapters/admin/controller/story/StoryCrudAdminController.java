@@ -167,4 +167,20 @@ public class StoryCrudAdminController {
         body.put(AdminConstant.KEY_ERRORS, StoryValidationReportResponse.fromModel(ex.getReport()).errors());
         return ResponseEntity.badRequest().body(body);
     }
+
+    /**
+     * A persistence constraint rejected the write — e.g. a foreign key pointing at a
+     * not-yet-created entity on a backend that enforces FKs (PostgreSQL). Surface a clean
+     * 409 CONSTRAINT_VIOLATION instead of leaking a 500. Backends that do not enforce the
+     * constraint (SQLite) persist the row and return 201 as before.
+     */
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(
+            org.springframework.dao.DataIntegrityViolationException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(AdminConstant.KEY_ERROR, "CONSTRAINT_VIOLATION");
+        body.put(AdminConstant.KEY_MESSAGE,
+                "The entity references a related row that does not exist or violates a constraint");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
 }

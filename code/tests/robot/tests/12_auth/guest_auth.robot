@@ -111,3 +111,21 @@ Revoked Token Is Rejected By Me Endpoint
     ${logout_response}=    POST On Session    public_session    /api/auth/logout/all
     ...    headers=${headers}    expected_status=any
     Status Should Be    ${logout_response}    200
+
+Guest Resume With Cookie Returns Session
+    [Documentation]    POST /api/auth/guest/resume replaying the HttpOnly guest cookie returns
+    ...                a valid session for the same guest. The guest cookie is Secure
+    ...                (SameSite=None) so it is replayed as an explicit Cookie header rather
+    ...                than relying on the session jar over http.
+    [Tags]    auth    step12
+    Create Public Session
+    ${login}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${login}    201
+    ${cookie}=    Evaluate    next((f"{k}={v}" for k, v in $login.cookies.items() if 'guest' in k.lower()), '')
+    Should Not Be Empty    ${cookie}
+    ${headers}=    Create Dictionary    Cookie=${cookie}
+    ${resume}=    POST On Session    public_session    /api/auth/guest/resume
+    ...    headers=${headers}    expected_status=any
+    Should Be True    ${resume.status_code} == 200 or ${resume.status_code} == 201
+    Dictionary Should Contain Key    ${resume.json()}    accessToken
+    Should Not Be Empty    ${resume.json()}[accessToken]

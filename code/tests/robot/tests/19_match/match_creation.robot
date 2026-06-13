@@ -12,6 +12,7 @@
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
+Library    ../../resources/JwtHelper.py
 Resource   ../../resources/common.resource
 Resource   ../../resources/auth.resource
 Resource   ../../resources/matches.resource
@@ -56,6 +57,30 @@ Create Match With Unknown Difficulty Returns 404
     ${response}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${UNKNOWN_UUID}
     Status Should Be    ${response}    404
     Response Field Should Equal    ${response}    error    DIFFICULTY_NOT_FOUND
+
+Create Match For Story Without Locations Returns 400
+    [Documentation]    A story that has a difficulty but no locations cannot start a match:
+    ...                POST /api/matches → 400 STORY_HAS_NO_LOCATIONS. The fixture story is
+    ...                imported via the admin API and removed in teardown.
+    [Tags]    matches    step19
+    ${admin_token}=    Generate Admin Token
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    &{ah}=    Create Dictionary    Authorization=Bearer ${admin_token}    Content-Type=application/json
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"f0000019-0000-4000-8000-000000000019","author":"robottest_nolocs",
+    ...    "difficulties":[{"id":1}]}
+    ${imp}=    POST On Session    admin_session    /api/admin/stories/import
+    ...    data=${payload}    headers=${ah}    expected_status=any
+    Status Should Be    ${imp}    201
+    ${diffs}=    GET On Session    admin_session
+    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019/difficulties    headers=${ah}
+    Status Should Be    ${diffs}    200
+    ${diff_uuid}=    Set Variable    ${diffs.json()}[0][uuid]
+    ${response}=    Create Match    ${TOKEN}    f0000019-0000-4000-8000-000000000019    ${diff_uuid}
+    Status Should Be    ${response}    400
+    Should Be Equal As Strings    ${response.json()}[error]    STORY_HAS_NO_LOCATIONS
+    [Teardown]    Run Keyword And Ignore Error    DELETE On Session    admin_session
+    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019    headers=${ah}
 
 Create Match Happy Path Returns 201
     [Documentation]    Valid story+difficulty creates a match (201) and surfaces a uuid.

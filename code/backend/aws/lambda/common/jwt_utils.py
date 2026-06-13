@@ -65,19 +65,26 @@ def generate_access_token(user_uuid, username, role, exp_seconds=1800):
     })
 
 
-def generate_refresh_token(user_uuid, exp_seconds=15_552_000):
-    """Generate a signed HS256 refresh JWT."""
+def generate_refresh_token(user_uuid, exp_seconds=15_552_000, token_version=0):
+    """Generate a signed HS256 refresh JWT.
+
+    The ``ver`` claim carries the user's current token version so that logout and
+    refresh-rotation can revoke previously issued refresh tokens server-side (the
+    user item stores the authoritative ``token_version``).
+    """
     now = int(time.time())
     return _sign_jwt({
         'sub':  user_uuid,
         'type': 'refresh',
+        'ver':  token_version,
         'iat':  now,
         'exp':  now + exp_seconds,
     })
 
 
-def verify_refresh_token(token):
-    """Verify a refresh token. Returns the user UUID string or None."""
+def decode_refresh_token(token):
+    """Verify a refresh token and return its full payload dict (with ``sub`` and
+    ``ver``) or None when invalid/expired."""
     if not token:
         return None
     try:
@@ -96,9 +103,15 @@ def verify_refresh_token(token):
         exp = payload.get('exp')
         if exp is not None and time.time() > exp:
             return None
-        return payload.get('sub')
+        return payload
     except Exception:
         return None
+
+
+def verify_refresh_token(token):
+    """Verify a refresh token. Returns the user UUID string or None."""
+    payload = decode_refresh_token(token)
+    return payload.get('sub') if payload else None
 
 
 def verify_access_token(token):

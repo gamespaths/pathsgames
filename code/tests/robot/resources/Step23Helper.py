@@ -83,6 +83,62 @@ def find_negative_budget_overflow(detail):
     return "", []
 
 
+def find_null_budget_difficulty(detail):
+    """The uuid of the first difficulty whose positive AND negative budgets are both
+    NULL (unlimited), or '' when none exists."""
+    for d in detail.get("difficulties") or []:
+        if d.get("traitCostPositiveBudget") is None and d.get("traitCostNegativeBudget") is None:
+            return d.get("uuid") or ""
+    return ""
+
+
+def find_permitted_match_trait(detail, class_uuid):
+    """A trait uuid whose idClassPermitted equals the given class id (happy path of
+    the permitted filter), or '' when none exists."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    if class_id is None:
+        return ""
+    for t in detail.get("traits") or []:
+        permitted = t.get("idClassPermitted")
+        if permitted is not None and int(permitted) == int(class_id):
+            return t.get("uuid") or ""
+    return ""
+
+
+def find_prohibited_other_trait(detail, class_uuid):
+    """A trait uuid that has idClassProhibited set to a class different from the given
+    one (so it stays selectable with it), or '' when none exists."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    for t in detail.get("traits") or []:
+        prohibited = t.get("idClassProhibited")
+        if prohibited is not None and (class_id is None or int(prohibited) != int(class_id)) \
+                and _is_selectable(t, class_id):
+            return t.get("uuid") or ""
+    return ""
+
+
+def find_two_compatible_traits(detail, class_uuid):
+    """Up to two distinct trait uuids selectable with the given class. Returns fewer
+    than two when the seed does not expose enough compatible traits."""
+    clazz = next((c for c in (detail.get("classes") or []) if c.get("uuid") == class_uuid), None)
+    class_id = clazz.get("id") if clazz else None
+    uuids = [t.get("uuid") for t in (detail.get("traits") or []) if _is_selectable(t, class_id)]
+    return uuids[:2]
+
+
+def sum_trait_stat_deltas(detail, trait_uuids):
+    """The summed stat deltas (life, energy, dexterity, intelligence, constitution)
+    across the given trait uuids."""
+    total = {"life": 0, "energy": 0, "dexterity": 0, "intelligence": 0, "constitution": 0}
+    for uuid in trait_uuids:
+        deltas = trait_stat_deltas(detail, uuid)
+        for k in total:
+            total[k] += deltas[k]
+    return total
+
+
 def trait_stat_deltas(detail, trait_uuid):
     """The five stat deltas of a trait as a dict (life, energy, dexterity,
     intelligence, constitution) — the fields applied at character creation."""
