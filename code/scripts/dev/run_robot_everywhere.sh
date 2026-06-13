@@ -15,7 +15,6 @@ declare -a ENVS
 ENVS+=("AWS|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh|reports-aws")
 ENVS+=("LOCAL_JAVA_POSTGRES|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh|reports-local-java-postgres")
 ENVS+=("LOCAL_JAVA|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_java.sh|reports-local-java")
-ENVS+=("LOCAL_NODE|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_node.sh|reports-local-node")
 ENVS+=("LOCAL_PYTHON|$WORKDIR/code/scripts/dev/run_robots/run_robot_with_local_python.sh|reports-local-python")
 
 # Results arrays

@@ -112,10 +112,10 @@
     "created": "Iniziata",
     "clock": "Orologio",
     "status": {
-      "CREATED":  "Pronta",
-      "RUNNING":  "In Corso",
-      "PAUSED":   "In Pausa",
-      "ENDED":    "Finita",
+      "CREATED": "Pronta",
+      "RUNNING": "In Corso",
+      "PAUSED": "In Pausa",
+      "ENDED": "Finita",
       "GAMEOVER": "Game Over"
     }
   },
@@ -144,7 +144,15 @@
     "execute": "Esegui",
     "endGame": "Termina Partita",
     "endGameTitle": "Avventura Conclusa",
-    "endGameClose": "Chiudi"
+    "endGameClose": "Chiudi",
+    "turn": {
+      "title": "Ordine dei turni",
+      "status": "Stato",
+      "empty": "La partita non è ancora iniziata.",
+      "start": "Avvia partita",
+      "pass": "Passa il turno",
+      "passCount": "Passaggi"
+    }
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",

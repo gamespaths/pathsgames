@@ -5,6 +5,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
 import { fmtDate, shortUuid, StatusBadge, fetchStoryCtx } from '../components/match/MatchDetailModal'
+import TurnOrderPanel from '../components/match/TurnOrderPanel'
 
 /**
  * MatchDetailPage — Step 21 dedicated admin match details page (/matches/:uuid).
@@ -365,6 +366,11 @@ export default function MatchDetailPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Step 24 — projected turn order */}
+          <div className="mb-4">
+            <TurnOrderPanel players={players} nameOf={templateName} />
           </div>
 
           {/* Locations */}

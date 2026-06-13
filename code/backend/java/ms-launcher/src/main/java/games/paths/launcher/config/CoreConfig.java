@@ -177,6 +177,15 @@ public class CoreConfig {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort, characterReadPort);
     }
 
+    // ───── Step 24: Turn cycle engine (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.match.TurnCyclePort turnCyclePort(
+            games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
+            UserAccessPort userAccessPort) {
+        return new games.paths.core.service.match.TurnCycleService(turnCycleStorePort, userAccessPort);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean

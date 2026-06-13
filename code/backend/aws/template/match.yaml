@@ -167,6 +167,28 @@ Resources:
       RouteKey: "GET /api/match/{uuidMatch}/characters/{uuidCharacter}"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 24 — single-player turn cycle (player API)
+  StartMatchRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/matches/{uuidMatch}/start"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  PassTurnRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/pass"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  GetTurnSequenceRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/match/{uuidMatch}/turn-sequence"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # ── admin match control (modify / stop / delete) — admin API + IP authorizer ──
   ListMatchStatusesRoute:
     Type: AWS::ApiGatewayV2::Route

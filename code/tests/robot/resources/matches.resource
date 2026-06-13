@@ -284,3 +284,29 @@ Admin Delete Match
     ...    headers=${headers}
     ...    expected_status=${expected_status}
     RETURN    ${response}
+
+# ── Step 24 — turn cycle engine ──
+
+Start Match
+    [Documentation]    POST /api/matches/{uuidMatch}/start — CREATED -> RUNNING + turn queue.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    POST On Session    public_session    /api/matches/${match_uuid}/start
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Pass Turn
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/pass — voluntary turn pass.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/pass
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Turn Sequence
+    [Documentation]    GET /api/match/{uuidMatch}/turn-sequence — turn queue with status.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/turn-sequence
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}

@@ -123,3 +123,22 @@ class GamingCharacterTraitsEntity(Base):
     id_event = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class GamingTurnQueueEntity(Base):
+    """Step 24 — single-player turn queue. One row per character of a match.
+    ``status`` carries the explicit turn lifecycle WAITING -> ACTIVE -> COMPLETED."""
+
+    __tablename__ = "gaming_turn_queue"
+
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_character_match = Column(Integer, primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer, nullable=False)
+    timestamp_start = Column(String(50))
+    timestamp_end = Column(String(50))
+    pass_counter = Column(Integer, default=0, nullable=False)
+    priority = Column(Integer, default=0, nullable=False)
+    status = Column(String(20), default="WAITING", nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

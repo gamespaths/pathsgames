@@ -142,7 +142,7 @@ For tables with a surrogate auto-increment key and a natural parent scope (`id_s
 | Story Reference (`list_*`) | `(id, id_story)` | Guarantees entity uniqueness per story. Allows explicit `id` insertion from import data. |
 | Gaming Runtime (`gaming_*`) | `(id, id_match)` | Guarantees entity uniqueness per match. |
 | `gaming_state_locations` | `(id_match, id_location)` | Each location has exactly one state row per match. |
-| `gaming_turn_queue` | `(id_match, id_character_match)` | Each character appears at most once in the turn queue per match. |
+| `gaming_turn_queue` | `(id_match, id_character_match)` | Each character appears at most once in the turn queue per match. A `status` column (`WAITING`/`ACTIVE`/`COMPLETED`) was added in migration `V0.24.0` (Step 24) as the explicit turn-lifecycle source of truth. |
 
 **Identity Rules**:
 - `list_character_templates` uses `(id_tipo, id_story)` as its primary key.

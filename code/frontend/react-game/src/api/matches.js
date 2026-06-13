@@ -144,3 +144,66 @@ export async function getCharacter(uuidMatch, uuidCharacter, accessToken) {
   )
   return res.data
 }
+
+/* ── Step 24 — single-player turn cycle ───────────────────────────────────── */
+
+/** Synthesize a TurnSequence mirroring what the backend would return (mock). */
+function mockSequence(uuidMatch, status = 'RUNNING') {
+  return {
+    matchUuid: uuidMatch ?? null,
+    currentClock: 0,
+    status,
+    activeCharacterUuid: null,
+    queue: [],
+  }
+}
+
+/**
+ * Start a match: CREATED → RUNNING, build the turn queue and activate the first
+ * turn. Returns the resulting turn sequence. Throws on a backend error
+ * (409 MATCH_NOT_STARTABLE / NO_CHARACTERS_JOINED, 404 MATCH_NOT_FOUND).
+ */
+export async function startMatch(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return mockSequence(uuidMatch, 'RUNNING')
+  const res = await client.post(
+    `/api/matches/${uuidMatch}/start`,
+    null,
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
+ * Pass the active character's turn (no energy cost). Completes the current turn
+ * and activates the next character. Throws on a backend error
+ * (409 MATCH_NOT_RUNNING / NOT_YOUR_TURN, 404 MATCH_NOT_FOUND).
+ */
+export async function passTurn(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) {
+    return {
+      matchUuid: uuidMatch ?? null,
+      passedCharacterUuid: null,
+      nextActiveCharacterUuid: null,
+      status: 'RUNNING',
+    }
+  }
+  const res = await client.post(
+    `/api/gameplay/${uuidMatch}/action/pass`,
+    null,
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/** Read the current turn queue with statuses for a match owned by the caller. */
+export async function getTurnSequence(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return mockSequence(uuidMatch)
+  const res = await client.get(
+    `/api/match/${uuidMatch}/turn-sequence`,
+    authConfig(accessToken),
+  )
+  return res.data
+}

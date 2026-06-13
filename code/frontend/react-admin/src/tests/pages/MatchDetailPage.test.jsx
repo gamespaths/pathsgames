@@ -86,7 +86,9 @@ describe('MatchDetailPage', () => {
     renderPage()
     expect(await screen.findByText('Saturday run')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('Players & characters (1)')).toBeInTheDocument())
-    expect(await screen.findByText('Warrior')).toBeInTheDocument()
+    // "Warrior" now appears both in the players table and the Step 24 projected
+    // turn-order panel, so there are two occurrences.
+    expect((await screen.findAllByText('Warrior')).length).toBeGreaterThan(0)
     expect(screen.getByText('137')).toBeInTheDocument()
     expect(screen.getByText('127')).toBeInTheDocument()
     expect(screen.getAllByText('location-90001').length).toBeGreaterThan(0)

@@ -42,6 +42,9 @@ from app.core.services.match.property_system_mode_service import PropertySystemM
 from app.adapters.rest.match.match_controller import MatchController
 from app.adapters.rest.match.match_admin_controller import MatchAdminController
 from app.adapters.rest.match.character_controller import CharacterController
+from app.adapters.persistence.match.turn_cycle_store_adapter import TurnCycleStoreAdapter
+from app.core.services.match.turn_cycle_service import TurnCycleService
+from app.adapters.rest.match.turn_cycle_controller import TurnCycleController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
@@ -135,6 +138,9 @@ story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_controller = MatchController(match_command_service, match_query_service)
 match_admin_controller = MatchAdminController(match_command_service, match_query_service)
 character_controller = CharacterController(character_command_service, character_query_service)
+turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
+turn_cycle_service = TurnCycleService(turn_cycle_store_adapter)
+turn_cycle_controller = TurnCycleController(turn_cycle_service)
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
@@ -218,6 +224,7 @@ app = _build_app([
     content_controller.router,
     match_controller.router,
     character_controller.router,
+    turn_cycle_controller.router,
 ])
 
 # Admin app — served ONLY on settings.admin_port. Hosts every /api/admin/** endpoint,

@@ -3,6 +3,7 @@ import { apiClient } from '../api/client'
 import {
   createMatch, listMatches, getMatchInfo, endMatch,
   joinMatch, getMatchPlayers, getCharacter,
+  startMatch, passTurn, getTurnSequence,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -59,6 +60,25 @@ describe('matches api', () => {
 
     it('getCharacter returns null', async () => {
       expect(await getCharacter('m1', 'c1')).toBeNull()
+    })
+
+    it('startMatch synthesizes a RUNNING turn sequence carrying the match uuid', async () => {
+      const seq = await startMatch('m1')
+      expect(seq.matchUuid).toBe('m1')
+      expect(seq.status).toBe('RUNNING')
+      expect(seq.queue).toEqual([])
+    })
+
+    it('passTurn synthesizes a RUNNING pass result carrying the match uuid', async () => {
+      const res = await passTurn('m1')
+      expect(res.matchUuid).toBe('m1')
+      expect(res.status).toBe('RUNNING')
+    })
+
+    it('getTurnSequence synthesizes a sequence carrying the match uuid', async () => {
+      const seq = await getTurnSequence('m1')
+      expect(seq.matchUuid).toBe('m1')
+      expect(seq.queue).toEqual([])
     })
   })
 
@@ -149,6 +169,45 @@ describe('matches api', () => {
       get.mockResolvedValue({ data: { uuid: 'c1', life: 137 } })
       await getCharacter('m1', 'c1', 'tok')
       expect(get).toHaveBeenCalledWith('/api/match/m1/characters/c1', expect.any(Object))
+    })
+
+    it('startMatch posts to /api/matches/{uuid}/start with the bearer token', async () => {
+      post.mockResolvedValue({ data: { status: 'RUNNING', queue: [] } })
+      const res = await startMatch('m1', 'tok-1')
+      expect(post).toHaveBeenCalledWith(
+        '/api/matches/m1/start',
+        null,
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok-1' } }),
+      )
+      expect(res).toEqual({ status: 'RUNNING', queue: [] })
+    })
+
+    it('startMatch propagates a 409 NO_CHARACTERS_JOINED error', async () => {
+      post.mockRejectedValue(new Error('NO_CHARACTERS_JOINED'))
+      await expect(startMatch('m1', 'tok')).rejects.toThrow('NO_CHARACTERS_JOINED')
+    })
+
+    it('passTurn posts to /api/gameplay/{uuid}/action/pass with the bearer token', async () => {
+      post.mockResolvedValue({ data: { status: 'RUNNING', passedCharacterUuid: 'c1' } })
+      const res = await passTurn('m1', 'tok-2')
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/pass',
+        null,
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok-2' } }),
+      )
+      expect(res.passedCharacterUuid).toBe('c1')
+    })
+
+    it('passTurn propagates a 409 MATCH_NOT_RUNNING error', async () => {
+      post.mockRejectedValue(new Error('MATCH_NOT_RUNNING'))
+      await expect(passTurn('m1', 'tok')).rejects.toThrow('MATCH_NOT_RUNNING')
+    })
+
+    it('getTurnSequence gets /api/match/{uuid}/turn-sequence', async () => {
+      get.mockResolvedValue({ data: { status: 'RUNNING', queue: [{ characterUuid: 'c1' }] } })
+      const res = await getTurnSequence('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/turn-sequence', expect.any(Object))
+      expect(res.queue).toEqual([{ characterUuid: 'c1' }])
     })
   })
 })

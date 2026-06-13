@@ -113,10 +113,10 @@
     "created": "Started",
     "clock": "Clock",
     "status": {
-      "CREATED":  "Ready",
-      "RUNNING":  "In Progress",
-      "PAUSED":   "Paused",
-      "ENDED":    "Ended",
+      "CREATED": "Ready",
+      "RUNNING": "In Progress",
+      "PAUSED": "Paused",
+      "ENDED": "Ended",
       "GAMEOVER": "Game Over"
     }
   },
@@ -145,7 +145,15 @@
     "execute": "Execute",
     "endGame": "End Game",
     "endGameTitle": "Adventure Complete",
-    "endGameClose": "Close"
+    "endGameClose": "Close",
+    "turn": {
+      "title": "Turn order",
+      "status": "Status",
+      "empty": "The match has not started yet.",
+      "start": "Start match",
+      "pass": "Pass turn",
+      "passCount": "Times passed"
+    }
   },
   "footer": {
     "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",

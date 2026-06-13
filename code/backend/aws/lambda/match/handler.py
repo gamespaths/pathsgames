@@ -694,6 +694,164 @@ def _delete_match(match_uuid):
     return _ok({'status': 'DELETED', 'uuid': match_uuid})
 
 
+# ─── Step 24 — single-player turn cycle engine ───────────────────────────────
+
+# Turn statuses (explicit lifecycle, source of truth for the queue).
+TURN_WAITING = 'WAITING'
+TURN_ACTIVE = 'ACTIVE'
+TURN_COMPLETED = 'COMPLETED'
+
+
+def _turn_priority(dexterity, intelligence, constitution, life, id_character):
+    """priority = (DEX*3 + INT*2 + COS*1) * 1000 + LIFE*10 + idCharacter (higher acts first)."""
+    stats = _nz(dexterity) * 3 + _nz(intelligence) * 2 + _nz(constitution)
+    return stats * 1000 + _nz(life) * 10 + _nz(id_character)
+
+
+def _turn_items(match_uuid):
+    """Return the TURN# queue items stored under the match partition."""
+    items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
+    return [i for i in items if str(i.get('SK', '')).startswith('TURN#')]
+
+
+def _turn_entry(item):
+    return {
+        "characterUuid": item.get('characterUuid'),
+        "idCharacter": _nz(item.get('idCharacter')),
+        "name": item.get('name'),
+        "priority": _nz(item.get('priority')),
+        "clock": _nz(item.get('clock')),
+        "status": item.get('status'),
+        "passCounter": _nz(item.get('passCounter')),
+        "timestampStart": item.get('timestampStart'),
+        "timestampEnd": item.get('timestampEnd'),
+    }
+
+
+def _sequence_response(match, rows):
+    rows_sorted = sorted(rows, key=lambda r: _nz(r.get('priority')), reverse=True)
+    return {
+        "matchUuid": match.get('uuid'),
+        "currentClock": _nz(match.get('currentClock')),
+        "status": match.get('status'),
+        "activeCharacterUuid": match.get('activeCharacterUuid'),
+        "queue": [_turn_entry(r) for r in rows_sorted],
+    }
+
+
+def _require_owned_match(user, match_uuid):
+    """Return ``(match_item, None)`` when the user owns the match, else
+    ``(None, error_response)``. Ownership errors are reported as 404."""
+    if not match_uuid:
+        return None, _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None or item.get('userCreatorUuid') != user.get('uuid'):
+        return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return item, None
+
+
+def _start_match(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    if match.get('status') != 'CREATED':
+        return _err(409, 'MATCH_NOT_STARTABLE', 'Match is not in CREATED state')
+
+    characters = _match_characters(match_uuid)
+    if not characters:
+        return _err(409, 'NO_CHARACTERS_JOINED', 'No character has joined the match')
+
+    clock = _nz(match.get('currentClock'))
+    rows = []
+    for c in characters:
+        priority = _turn_priority(c.get('dexterity'), c.get('intelligence'),
+                                  c.get('constitution'), c.get('life'), c.get('id'))
+        rows.append({
+            "idCharacter": _nz(c.get('id')),
+            "characterUuid": c.get('uuid'),
+            "priority": priority,
+            "clock": clock,
+            "status": TURN_WAITING,
+            "passCounter": 0,
+        })
+    rows.sort(key=lambda r: r['priority'], reverse=True)
+    rows[0]['status'] = TURN_ACTIVE
+    top = rows[0]
+
+    for r in rows:
+        db_utils.put_item({
+            "PK": f'MATCH#{match_uuid}',
+            "SK": f'TURN#{r["characterUuid"]}',
+            **r,
+        })
+
+    match['status'] = 'RUNNING'
+    match['activeCharacterUuid'] = top['characterUuid']
+    db_utils.put_item(match)
+
+    return _ok(_sequence_response(match, rows))
+
+
+def _pass_turn(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+
+    characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
+    rows = sorted(_turn_items(match_uuid), key=lambda r: _nz(r.get('priority')), reverse=True)
+    if not rows:
+        return _err(409, 'MATCH_NOT_RUNNING', 'No active turn to pass')
+
+    active = next((r for r in rows if r.get('status') == TURN_ACTIVE), None)
+    if active is None and match.get('activeCharacterUuid'):
+        active = next((r for r in rows
+                       if r.get('characterUuid') == match.get('activeCharacterUuid')), None)
+    if active is None:
+        return _err(409, 'MATCH_NOT_RUNNING', 'No active turn to pass')
+
+    active_char = characters.get(active.get('characterUuid'))
+    if active_char is None or active_char.get('userUuid') != user.get('uuid'):
+        return _err(409, 'NOT_YOUR_TURN', 'It is not your character\'s turn')
+
+    # Complete the current turn.
+    active['status'] = TURN_COMPLETED
+    active['passCounter'] = _nz(active.get('passCounter')) + 1
+    db_utils.put_item(active)
+
+    # Find the next WAITING character; if none, start a new round (reset all to WAITING).
+    waiting = [r for r in rows if r.get('status') == TURN_WAITING]
+    if not waiting:
+        for r in rows:
+            r['status'] = TURN_WAITING
+            db_utils.put_item(r)
+        waiting = list(rows)
+    waiting.sort(key=lambda r: _nz(r.get('priority')), reverse=True)
+    nxt = waiting[0]
+
+    nxt['status'] = TURN_ACTIVE
+    db_utils.put_item(nxt)
+
+    match['activeCharacterUuid'] = nxt.get('characterUuid')
+    db_utils.put_item(match)
+
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "passedCharacterUuid": active.get('characterUuid'),
+        "nextActiveCharacterUuid": nxt.get('characterUuid'),
+        "status": 'RUNNING',
+    })
+
+
+def _get_turn_sequence(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    rows = _turn_items(match_uuid)
+    return _ok(_sequence_response(match, rows))
+
+
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -818,5 +976,30 @@ def lambda_handler(event, context):
                 match_uuid = match_uuid or segments[3]
                 char_uuid = char_uuid or segments[5]
         return _get_character(user, match_uuid, char_uuid)
+
+    # ── Step 24 — single-player turn cycle ──
+    if (path.startswith('/api/matches/') and path.endswith('/start') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/matches/{uuidMatch}/start
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _start_match(user, match_uuid)
+
+    if (path.startswith('/api/gameplay/') and path.endswith('/action/pass') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/pass
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        return _pass_turn(user, match_uuid)
+
+    if (path.startswith('/api/match/') and path.endswith('/turn-sequence') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/turn-sequence
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _get_turn_sequence(user, match_uuid)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

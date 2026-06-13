@@ -36,6 +36,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
 | 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
+| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 
 
 | Steps | Phase |
@@ -68,16 +69,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
-
-
-24. Turn cycle engine for single-player
-    - Implement turn priority calculation: (DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + CHARACTER_ID (backend)
-    - Initialize gaming_turn_queue on match start with calculated priorities and timestamps (backend)
-    - Implement POST /matches/{uuid_match}/start endpoint to transition match from CREATED to RUNNING (backend)
-    - Implement turn state machine: WAITING → ACTIVE → COMPLETED, tracking current turn in gaming_match (backend)
-    - Implement POST /gameplay/{uuid_match}/action/pass endpoint for voluntary turn pass without energy cost (backend)
-    - Implement GET /match/{uuid_match}/turn-sequence endpoint returning turn queue with all details and status (backend)
-    - Write backend unit tests for priority calculation, turn queue initialization, state transitions, and pass logic (backend tests)
 26. Time advancement system — sleep, recovery, new time
     - Implement time advancement trigger: advance when character has zero energy or voluntarily sleeps (backend)
     - Implement POST /gameplay/{uuid_match}/action/sleep endpoint for voluntary sleep action (backend)
@@ -732,9 +723,13 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
     | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
     | 0.23.1 | added new frontend `python-flask-game` (Flask + Jinja2 SSR alternative to react-game, port 5099, mock + live backend mode, 35 pytest tests) | June 11, 2026 |
-    | 0.23.2 | Node.js backend reaches full API parity (stages 0–5): Prisma schema reworked with StoryText/StoryClass/Trait/CharacterTemplate/CharacterInstance; StoryImportService full graph persistence; content detail APIs (suite 16); story validation engine (suite 22); character join + stats initialization (suite 21/23); trait cost-budget enforcement; tsc 0 errors, 20/20 jest tests | June 11, 2026 |
-    | 0.23.3 | Fix run_robot_with_local_node.sh: added `docker-compose build --no-cache app` before `docker-compose up -d` to prevent stale image reuse after schema/seed changes (silent seed failure was causing 186/288 Robot failures) | June 12, 2026 |
-    | 0.23.4 | Node.js backend migrated from cuid-based schema to the documented relational `list_*` model (same as Java/Python): 32 Prisma models with `@@map` snake_case table names, composite PK `@@id([id, idStory])`, integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`; `prisma db push --accept-data-loss` + seed on container startup; 288/288 Robot tests pass | June 12, 2026 |
+    | 0.23.1 | Node.js backend reaches full API parity (stages 0–5): Prisma schema reworked with StoryText/StoryClass/Trait/CharacterTemplate/CharacterInstance; StoryImportService full graph persistence; content detail APIs (suite 16); story validation engine (suite 22); character join + stats initialization (suite 21/23); trait cost-budget enforcement; tsc 0 errors, 20/20 jest tests | June 11, 2026 |
+    | 0.23.1 | Fix run_robot_with_local_node.sh: added `docker-compose build --no-cache app` before `docker-compose up -d` to prevent stale image reuse after schema/seed changes (silent seed failure was causing 186/288 Robot failures) | June 12, 2026 |
+    | 0.23.1 | Node.js backend migrated from cuid-based schema to the documented relational `list_*` model (same as Java/Python): 32 Prisma models with `@@map` snake_case table names, composite PK `@@id([id, idStory])`, integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`; `prisma db push --accept-data-loss` + seed on container startup; 288/288 Robot tests pass | June 12, 2026 |
+    | 0.23.1 | Removed php and node backend projects and removed flask frontend projects | June 12, 2026 |
+    | 0.24.0 | Added Step 24 planning document (Turn Cycle Engine): priority formula, match start endpoint, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 12, 2026 |
+    | 0.24.0 | Implemented Step 24 Turn Cycle Engine across all backends: `POST /api/matches/{uuid}/start`, `POST /api/gameplay/{uuid}/action/pass`, `GET /api/match/{uuid}/turn-sequence`. Adopted an explicit `status` column on `gaming_turn_queue` (WAITING/ACTIVE/COMPLETED, migration V0.24.0 postgres+sqlite) as lifecycle source of truth; turn timestamps left null. Java (13 unit tests) + Python (17) + AWS Lambda single-table queue (12) green; React-Game TurnPanel + turn-cycle API; React-Admin projected turn-order panel. New Robot suite `24_turn_cycle` (12 tests): Java 300/300 and Python 300/300, no regressions | June 12, 2026 |
+    
 - **Last Updated**: June 12, 2026
 - **Status**: In progress
 
