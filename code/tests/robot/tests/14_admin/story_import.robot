@@ -484,6 +484,98 @@ Import Three Stories With Text Ids And Multi-Lang Returns 201
     Delete Admin Story    72222222-2222-4222-8222-222222222222
     Delete Admin Story    73333333-3333-4333-8333-333333333333
 
+# ---- regression: import data that previously crashed the import (500) -------
+# These two cases reproduce real failures seen importing the Paths Alpha tutorial
+# story against the PostgreSQL backend. They must return 201 on every backend
+# (Java is the reference; Python/AWS track it).
+
+Import Texts Reusing Same Surrogate Id Across Languages Returns 201
+    [Documentation]    Language variants of the same logical text reuse the same surrogate
+    ...                "id" in the import JSON (id_text + lang is the real identity). The PK
+    ...                is (id, id_story), so the backend must de-collide the reused id instead
+    ...                of failing with a duplicate-key violation. Regression guard.
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    7a111111-1111-4111-8111-aaaaaaaaaaaa
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-dup-textid","texts":[
+    ...    {"id":25,"idText":25,"lang":"en","shortText":"DUPTEXTMARKEREN"},
+    ...    {"id":25,"idText":25,"lang":"it","shortText":"DUPTEXTMARKERIT"},
+    ...    {"id":26,"idText":26,"lang":"en","shortText":"OTHERTEXTMARKER"}]}
+    ${resp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp.status_code}    201
+
+    # All three rows persisted; both language variants of id 25 survived de-collision.
+    ${t_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/texts    headers=${headers}
+    Should Be Equal As Integers    ${t_resp.status_code}    200
+    Length Should Be    ${t_resp.json()}    3
+    Should Contain    ${t_resp.text}    DUPTEXTMARKEREN
+    Should Contain    ${t_resp.text}    DUPTEXTMARKERIT
+
+    Delete Admin Story    ${uuid}
+
+Import Card With Long Base64 Image And Link Returns 201
+    [Documentation]    Cards may carry a base64 SVG data URI in urlImage (and a long
+    ...                linkCopyright) far exceeding 500 chars. These columns are TEXT, so the
+    ...                import must not fail with a string-truncation error. The full values
+    ...                must round-trip un-truncated. Regression guard.
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    7b222222-2222-4222-8222-bbbbbbbbbbbb
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    # ~2400-char data URI and a ~1200-char copyright link (both > varchar(500)).
+    ${image}=    Evaluate    "data:image/svg+xml;base64,IMGMARKER" + ("PHN2Zz48L3N2Zz4=" * 150)
+    ${link}=     Evaluate    "https://example.com/credit?LINKMARKER=" + ("abcdef0123456789" * 75)
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-long-img","cards":[
+    ...    {"id":1,"urlImage":"${image}","linkCopyright":"${link}"}]}
+    ${resp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp.status_code}    201
+
+    # Card persisted and the long values were stored without truncation.
+    ${c_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/cards    headers=${headers}
+    Should Be Equal As Integers    ${c_resp.status_code}    200
+    Length Should Be    ${c_resp.json()}    1
+    Should Contain    ${c_resp.text}    ${image}
+    Should Contain    ${c_resp.text}    ${link}
+
+    Delete Admin Story    ${uuid}
+
+Import Traits With Empty String In Numeric Fields Returns 201
+    [Documentation]    The import JSON carries "" in numeric fields (weight, costPositive,
+    ...                idClassPermitted). PostgreSQL rejects '' for integer columns, so the
+    ...                backend must coerce empty/non-numeric strings to NULL (like Java's
+    ...                getInteger) instead of crashing. Regression guard.
+    [Tags]    admin    step14
+    ${uuid}=    Set Variable    7c333333-3333-4333-8333-cccccccccccc
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    DELETE On Session    admin_session    /api/admin/stories/${uuid}    headers=${headers}    expected_status=any
+
+    # No idCard here on purpose: list_traits.id_card has a composite FK to
+    # list_cards on PostgreSQL, and this test is about empty-string numeric
+    # coercion, not FK resolution. Empty strings must be coerced to NULL.
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"${uuid}","author":"robot-empty-num","traits":[
+    ...    {"id":1,"weight":"","costPositive":0,"dexterity":1},
+    ...    {"id":3,"costPositive":"","idClassPermitted":"","energy":1}]}
+    ${resp}=    Post Story Import Payload    ${payload}
+    Should Be Equal As Integers    ${resp.status_code}    201
+
+    ${t_resp}=    GET On Session    admin_session    /api/admin/stories/${uuid}/traits    headers=${headers}
+    Should Be Equal As Integers    ${t_resp.status_code}    200
+    Length Should Be    ${t_resp.json()}    2
+
+    Delete Admin Story    ${uuid}
+
 # ---- admin list tests -------------------------------------------------------
 
 Admin Stories List Returns 200

@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import Integer, Numeric
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
 from app.adapters.persistence.story.models import (
     StoryEntity, TextEntity, StoryDifficultyEntity, 
@@ -28,6 +29,52 @@ def _get_long(data, *keys):
             except (ValueError, TypeError):
                 continue
     return None
+
+
+def _coerce_value(col_type, value):
+    """Coerce a JSON value to match the SQLAlchemy column type.
+
+    The import JSON sometimes carries empty strings ("") or other non-numeric
+    text in numeric fields. PostgreSQL rejects '' for integer/numeric columns
+    (SQLite silently accepts it). This mirrors the Java importer's getInteger,
+    which maps empty/non-numeric strings to NULL.
+    """
+    if value is None:
+        return None
+    if isinstance(col_type, Integer):
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            s = value.strip()
+            if s == "":
+                return None
+            try:
+                return int(s)
+            except ValueError:
+                try:
+                    return int(float(s))
+                except ValueError:
+                    return None
+        return value
+    if isinstance(col_type, Numeric):  # covers Float and Numeric
+        if isinstance(value, bool):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            s = value.strip()
+            if s == "":
+                return None
+            try:
+                return float(s)
+            except ValueError:
+                return None
+        return value
+    return value
 
 class StoryPersistenceAdapter(StoryPersistencePort):
 
@@ -109,10 +156,44 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             return s_ent.id
 
     def save_texts(self, story_id: int, items: List[Dict[str, Any]]) -> None:
-        self._insert_batch(TextEntity, story_id, items, {
-            "id_text": "idText", "lang": "lang", 
-            "short_text": "shortText", "long_text": "longText"
-        })
+        # Texts are language-scoped: the same logical text (id_text) appears once per
+        # language, so the import JSON commonly reuses the same surrogate "id" across
+        # language variants. The PK is (id, id_story), so every row still needs a UNIQUE
+        # id. Nothing references the surrogate id (all FKs target id_text), so a reused
+        # id is safely re-allocated above the highest id present. The real per-story
+        # identity (id_text, lang) is preserved. Mirrors the Java StoryImportService.
+        from sqlalchemy import text as sa_text
+        field_map = {
+            "uuid": "uuid", "id_card": "idCard",
+            "id_text_name": "idTextName", "id_text_description": "idTextDescription",
+            "id_text": "idText", "lang": "lang",
+            "short_text": "shortText", "long_text": "longText",
+            "id_text_copyright": "idTextCopyright", "link_copyright": "linkCopyright",
+            "id_creator": "idCreator",
+        }
+        with self.session_factory() as session:
+            max_id = session.execute(
+                sa_text("SELECT COALESCE(MAX(id), 0) FROM list_texts WHERE id_story = :sid"),
+                {"sid": story_id}
+            ).scalar() or 0
+            resolved = [_get_long(item, "id") for item in items]
+            for rid in resolved:
+                if rid is not None:
+                    max_id = max(max_id, rid)
+            used_ids = set()
+            for item, rid in zip(items, resolved):
+                if rid is None or rid in used_ids:
+                    max_id += 1
+                    rid = max_id
+                used_ids.add(rid)
+                kwargs = {"id_story": story_id, "id": rid}
+                for db_col, json_key in field_map.items():
+                    if json_key in item:
+                        kwargs[db_col] = item[json_key]
+                if kwargs.get("lang") is None:
+                    kwargs["lang"] = "en"
+                session.add(TextEntity(**kwargs))
+            session.commit()
 
     def save_difficulties(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(StoryDifficultyEntity, story_id, items, {
@@ -148,7 +229,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_loc_id()
-                loc = LocationEntity(**kwargs)
+                loc = LocationEntity(**self._coerce_kwargs(LocationEntity, kwargs))
                 session.add(loc)
                 session.flush()
 
@@ -188,7 +269,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
-                ev = EventEntity(**kwargs)
+                ev = EventEntity(**self._coerce_kwargs(EventEntity, kwargs))
                 session.add(ev)
                 session.flush()
 
@@ -220,7 +301,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_it_id()
-                it = ItemEntity(**kwargs)
+                it = ItemEntity(**self._coerce_kwargs(ItemEntity, kwargs))
                 session.add(it)
                 session.flush()
                 
@@ -253,7 +334,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_cls_id()
-                cls = ClassEntity(**kwargs)
+                cls = ClassEntity(**self._coerce_kwargs(ClassEntity, kwargs))
                 session.add(cls)
                 session.flush()
 
@@ -287,7 +368,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ch_id()
-                ch = ChoiceEntity(**kwargs)
+                ch = ChoiceEntity(**self._coerce_kwargs(ChoiceEntity, kwargs))
                 session.add(ch)
                 session.flush()
 
@@ -387,7 +468,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_m_id()
-                m = MissionEntity(**kwargs)
+                m = MissionEntity(**self._coerce_kwargs(MissionEntity, kwargs))
                 session.add(m)
                 session.flush()
 
@@ -427,6 +508,16 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             return state[0]
         return next_id
 
+    @staticmethod
+    def _coerce_kwargs(entity_class, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """Coerce kwargs in place to match the entity's column types (e.g. ''→None
+        for integer columns). Returns the same dict for convenient chaining."""
+        columns = entity_class.__table__.columns
+        for col_name, value in list(kwargs.items()):
+            if col_name in columns:
+                kwargs[col_name] = _coerce_value(columns[col_name].type, value)
+        return kwargs
+
     def _insert_batch(self, entity_class, story_id: int, items: List[Dict[str, Any]], field_map: Dict[str, str]) -> None:
         id_col = "id_tipo" if entity_class == CharacterTemplateEntity else "id"
         table_name = entity_class.__tablename__
@@ -439,7 +530,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 for db_col, json_key in field_map.items():
                     if json_key in item:
                         kwargs[db_col] = item[json_key]
-                session.add(entity_class(**kwargs))
+                session.add(entity_class(**self._coerce_kwargs(entity_class, kwargs)))
             session.commit()
 
     # Step 17: Generic entity CRUD

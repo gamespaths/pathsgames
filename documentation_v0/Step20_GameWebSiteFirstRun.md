@@ -1174,6 +1174,124 @@ curl http://localhost:8044/api/admin/matches
 ```
 
 
+# EC2 Docker Deploy (Python / server3)
+
+## Goal
+
+Provide a reproducible, scriptable way to run the **Python** backend on a test EC2 instance
+using a pre-built Docker image pulled from Docker Hub — the Python twin of the Java/server2
+deploy described above.
+
+## Server naming convention
+
+| Server | Backend | Instance name | DNS | Image tag | Scripts folder |
+|--------|---------|---------------|-----|-----------|----------------|
+| server2 | Java | `api-test-server2` | `api-test-server2.paths.games` | `:test` | `aws_ec2_with_java_docker/` |
+| server3 | Python | `api-test-server3` | `api-test-server3.paths.games` | `:test-python` | `aws_ec2_with_python_docker/` |
+
+## How the Python image differs from the Java image
+
+The Python backend launcher starts **two uvicorn servers in a single process**
+(`asyncio.gather`) — one on port 8042 (public API) and one on 8044 (admin API) — so
+both ports come from a single `CMD ["python", "-m", "app.launcher"]`. The Dockerfile
+sets `ENV HOST=0.0.0.0` so the containers publish both ports.
+
+The `HOST` setting is new: `app/config.py` added a `host: str = "127.0.0.1"` field
+(override via env var `HOST`). The default loopback is safe for local dev; Docker always
+overrides it to `0.0.0.0`.
+
+## Scripts
+
+All scripts live under `code/scripts/test/` (build) and
+`code/scripts/test/aws_ec2_with_python_docker/` (lifecycle).
+
+| Script | Purpose |
+|--------|---------|
+| `code/scripts/test/build_docker_python_test_and_push.sh` | Build the Python image locally for `linux/amd64` and push to Docker Hub with tag `:test-python` |
+| `aws_ec2_with_python_docker/start.sh` | Create SG + launch EC2 instance (server3); user-data pulls the image and starts two containers |
+| `aws_ec2_with_python_docker/redeploy.sh` | On a running instance: update env-file, `docker pull`, restart only the backend container |
+| `aws_ec2_with_python_docker/stop.sh` | Terminate instance, delete SG, delete Route53 record (and CloudFront distribution if present) |
+
+## Configuration
+
+New root `.env` variables (suffixed `_PY`) for the Python deployment:
+
+| Variable | Description |
+|----------|-------------|
+| `DOCKERHUB_IMAGE_TAG_PYTHON_TEST` | Image tag (default: `test-python`) |
+| `INSTANCE_NAME_TEST_EC2_PY` | EC2 instance name tag (default: `api-test-server3`) |
+| `ROUTE53_RECORD_NAME_TEST_EC2_PY` | DNS record (default: `api-test-server3.paths.games`) |
+| `ENABLE_CLOUDFRONT_TEST_EC2_PY` | `true` to front the public API with CloudFront (default: `false`) |
+| `SEED_ON_START_PY` | `true` to auto-seed Tutorial + Demo stories after boot (default: `true`) |
+
+Shared variables reused from other scripts (no `_PY` suffix): `DOCKERHUB_USERNAME_TEST`,
+`DOCKERHUB_IMAGE_TEST`, `DOCKERHUB_TOKEN_TEST`, `AWS_REGION_TEST`, `EC2_KEY_NAME_TEST_EC2`,
+`EC2_INSTANCE_TYPE_TEST_EC2`, `DB_*_TEST_EC2`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`,
+`AWS_DOMAIN_HOSTED_ZONE_TEST`.
+
+## Python env-file keys vs Java
+
+The `/opt/pathsgames/backend.env` written on the EC2 instance uses Python env keys,
+which differ from Spring's:
+
+| Setting | Python key | Java key |
+|---------|-----------|----------|
+| DB username | `DB_USER` | `DB_USERNAME` |
+| Active environment | `ENV` (any value != `development` → PostgreSQL) | `SPRING_PROFILES_ACTIVE` |
+| Bind host | `HOST=0.0.0.0` | (Spring uses `server.address`) |
+| Public port | `PORT=8042` | (Spring: `server.port`) |
+| Admin port | `ADMIN_PORT=8044` | `ADMIN_PORT` |
+| Dev endpoints | `DEV_TEST_ENDPOINTS_ENABLED` | (Java profile controls this) |
+
+## Optional story seed
+
+When `SEED_ON_START_PY=true` (default), `start.sh` waits for the backend to be ready
+then runs:
+
+```bash
+docker exec pathsgames-backend python scripts/seed_stories.py
+```
+
+This seeds the Tutorial and Demo stories into the fresh PostgreSQL instance, giving the
+server immediately testable content without a manual import step.
+
+## Build and push
+
+```bash
+# From the repo root
+code/scripts/test/build_docker_python_test_and_push.sh
+
+# Preview only (no push)
+code/scripts/test/build_docker_python_test_and_push.sh --dry-run
+```
+
+## Lifecycle
+
+```bash
+cd code/scripts/test/aws_ec2_with_python_docker
+
+./start.sh           # launch server3 (no-op if already running)
+./start.sh --dry-run # print user-data only
+
+./redeploy.sh        # roll new image onto running server3
+./redeploy.sh --force  # skip confirmation prompt
+
+./stop.sh            # terminate instance, delete SG and DNS record
+```
+
+## Verification
+
+```bash
+# After start.sh (give ~30s for uvicorn startup):
+curl http://<EC2-IP>:8042/api/echo/status | python3 -m json.tool
+# Expected: {"status":"UP","properties":{"env":"test",...}}
+
+# Admin endpoint (from owner IP or SSH tunnel):
+curl http://<EC2-IP>:8044/api/admin/matches
+# Expected: 401 (admin up, requires admin token)
+```
+
+
 
 
 
@@ -1211,7 +1329,7 @@ curl http://localhost:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.20.7
+- **Document Version**: 0.24.1
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1224,9 +1342,10 @@ curl http://localhost:8044/api/admin/matches
     | 0.20.4 | Turnstile antibot on 3 surfaces (HomePage, ConfigView & GuestUserModal) | May 28, 2026 |
     | 0.20.5 | Admin APIs with network limitations rules on AWS backend | May 29, 2026 |
     | 0.20.6 | Advanced start-match interface | June 03, 2026 |
-    | 0.20.7 | Ec2 Docker deploy and first java-postgres tests | June 05, 2026 |
+    | 0.20.7 | EC2 Docker deploy — Java backend on server2 (`aws_ec2_with_java_docker/`, tag `:test`) | June 05, 2026 |
+    | 0.24.2 | EC2 Docker deploy — Python backend on server3 (`aws_ec2_with_python_docker/`, tag `:test-python`); server naming convention table; Dockerfile dual-port (8042+8044); HOST env var; optional story seed via `scripts/seed_stories.py` | June 14, 2026 |
 
-- **Last Updated**: June 05, 2026
+- **Last Updated**: June 14, 2026
 - **Status**: Complete
 
 # < Paths Games />

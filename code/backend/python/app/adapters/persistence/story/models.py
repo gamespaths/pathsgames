@@ -22,7 +22,7 @@ class StoryEntity(Base):
     version_max = Column(String(20))
     id_text_clock_singular = Column(Integer)
     id_text_clock_plural = Column(Integer)
-    link_copyright = Column(String(500))
+    link_copyright = Column(Text)
     id_card = Column(Integer)
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
@@ -77,7 +77,7 @@ class TextEntity(Base):
     short_text = Column(String(1000))
     long_text = Column(Text)
     id_text_copyright = Column(Integer)
-    link_copyright = Column(String(500))
+    link_copyright = Column(Text)
     id_creator = Column(Integer)
 
 
@@ -368,7 +368,7 @@ class CreatorEntity(Base):
     creator_role = Column(String(100))
     link = Column(String(500))
     url = Column(String(500))
-    url_image = Column(String(500))
+    url_image = Column(Text)
     url_emote = Column(String(500))
     url_instagram = Column(String(500))
 
@@ -385,7 +385,7 @@ class CardEntity(Base):
     id_text_title = Column(Integer)
     id_text_description = Column(Integer)
     id_text_copyright = Column(Integer)
-    url_image = Column(String(500))
+    url_image = Column(Text)
     alternative_image = Column(Text)
     awesome_icon = Column(String(100))
     style_main = Column(String(100))
@@ -393,6 +393,6 @@ class CardEntity(Base):
     style_image_little = Column(String(100))
     style_image_medium = Column(String(100))
     style_image_large = Column(String(100))
-    link_copyright = Column(String(500))
+    link_copyright = Column(Text)
     id_creator = Column(Integer)
     id_reference = Column(Integer)

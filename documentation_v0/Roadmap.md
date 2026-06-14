@@ -729,8 +729,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.23.1 | Removed php and node backend projects and removed flask frontend projects | June 12, 2026 |
     | 0.24.0 | Added Step 24 planning document (Turn Cycle Engine): priority formula, match start endpoint, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 12, 2026 |
     | 0.24.0 | Implemented Step 24 Turn Cycle Engine across all backends: `POST /api/matches/{uuid}/start`, `POST /api/gameplay/{uuid}/action/pass`, `GET /api/match/{uuid}/turn-sequence`. Adopted an explicit `status` column on `gaming_turn_queue` (WAITING/ACTIVE/COMPLETED, migration V0.24.0 postgres+sqlite) as lifecycle source of truth; turn timestamps left null. Java (13 unit tests) + Python (17) + AWS Lambda single-table queue (12) green; React-Game TurnPanel + turn-cycle API; React-Admin projected turn-order panel. New Robot suite `24_turn_cycle` (12 tests): Java 300/300 and Python 300/300, no regressions | June 12, 2026 |
+    | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
     
-- **Last Updated**: June 12, 2026
+- **Last Updated**: June 14, 2026
 - **Status**: In progress
 
 

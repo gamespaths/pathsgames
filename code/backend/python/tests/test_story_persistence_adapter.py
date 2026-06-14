@@ -1,7 +1,8 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.adapters.persistence.story.models import Base, StoryEntity, TextEntity
+from sqlalchemy import Text
+from app.adapters.persistence.story.models import Base, StoryEntity, TextEntity, CardEntity, CreatorEntity
 from app.adapters.persistence.story.story_persistence_adapter import StoryPersistenceAdapter
 
 @pytest.fixture
@@ -40,6 +41,62 @@ def test_save_texts(adapter, session_factory):
         text_ent = session.query(TextEntity).filter_by(id_story=story_id).first()
         assert text_ent is not None
         assert text_ent.short_text == "Short"
+
+def test_save_texts_reused_id_across_languages(adapter, session_factory):
+    # The import JSON reuses the same surrogate "id" across language variants
+    # (id_text + lang is the real identity). All rows must persist without a
+    # PK collision on (id, id_story).
+    story_id = adapter.save_story({"uuid": "test-uuid-texts-langs"})
+    texts = [
+        {"id": 25, "idText": 25, "lang": "en", "shortText": "Cas Holmes"},
+        {"id": 25, "idText": 25, "lang": "it", "shortText": "Cas Holmes"},
+        {"id": 26, "idText": 26, "lang": "en", "shortText": "Other"},
+    ]
+    adapter.save_texts(story_id, texts)
+
+    with session_factory() as session:
+        rows = session.query(TextEntity).filter_by(id_story=story_id).all()
+        assert len(rows) == 3
+        ids = [r.id for r in rows]
+        assert len(set(ids)) == 3  # surrogate ids are unique
+        langs = {(r.id_text, r.lang) for r in rows}
+        assert (25, "en") in langs and (25, "it") in langs
+
+
+def test_save_traits_with_empty_string_in_integer_fields(adapter, session_factory):
+    # The import JSON carries "" in numeric fields (e.g. weight, costPositive,
+    # idClassPermitted). PostgreSQL rejects '' for integer columns; the adapter
+    # must coerce empty/non-numeric strings to None (mirrors Java getInteger).
+    from app.adapters.persistence.story.models import TraitEntity
+    story_id = adapter.save_story({"uuid": "test-uuid-traits-empty"})
+    traits = [
+        {"id": 1, "idCard": 37, "weight": "", "costPositive": 0, "dexterity": 1},
+        {"id": 3, "idCard": 39, "costPositive": "", "idClassPermitted": "", "energy": 1},
+    ]
+    adapter.save_traits(story_id, traits)
+
+    with session_factory() as session:
+        rows = session.query(TraitEntity).filter_by(id_story=story_id).order_by(TraitEntity.id).all()
+        assert len(rows) == 2
+        # "" is coerced to None, never stored as the string ""; columns with a
+        # default fall back to it (weight/cost_positive default=0), columns
+        # without a default stay None (id_class_permitted).
+        assert rows[0].weight == 0
+        assert rows[1].cost_positive == 0
+        assert rows[1].id_class_permitted is None
+        assert rows[1].energy == 1
+
+
+def test_unbounded_text_columns_match_java_schema():
+    # url_image (base64 SVG data URIs) and link_copyright can far exceed 500 chars.
+    # Java declares these as TEXT; the Python model must too, or PostgreSQL raises
+    # StringDataRightTruncation on import (SQLite silently ignores VARCHAR length).
+    assert isinstance(CardEntity.__table__.c.url_image.type, Text)
+    assert isinstance(CardEntity.__table__.c.link_copyright.type, Text)
+    assert isinstance(CreatorEntity.__table__.c.url_image.type, Text)
+    assert isinstance(TextEntity.__table__.c.link_copyright.type, Text)
+    assert isinstance(StoryEntity.__table__.c.link_copyright.type, Text)
+
 
 def test_delete_story_by_id(adapter, session_factory):
     story_id = adapter.save_story({"uuid": "test-uuid-3"})

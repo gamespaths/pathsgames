@@ -185,17 +185,19 @@ public_paths = [
 
 
 def _cors_params():
-    params = {
+    if settings.cors_allowed_origins == "*":
+        return {
+            "allow_origin_regex": r".*",
+            "allow_credentials": True,
+            "allow_methods": ["*"],
+            "allow_headers": ["*"],
+        }
+    return {
+        "allow_origins": settings.cors_origins_list,
         "allow_credentials": True,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
     }
-    if settings.cors_allowed_origins == "*":
-        # Use regex to allow all origins while supporting allow_credentials=True
-        params["allow_origin_regex"] = r"https?://.*"
-    else:
-        params["allow_origins"] = settings.cors_origins_list
-    return params
 
 
 def _build_app(routers) -> FastAPI:
@@ -245,8 +247,8 @@ if __name__ == "__main__":
     import uvicorn
 
     async def _serve():
-        public = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=settings.port))
-        admin = uvicorn.Server(uvicorn.Config(app_admin, host="127.0.0.1", port=settings.admin_port))
+        public = uvicorn.Server(uvicorn.Config(app, host=settings.host, port=settings.port))
+        admin = uvicorn.Server(uvicorn.Config(app_admin, host=settings.host, port=settings.admin_port))
         await asyncio.gather(public.serve(), admin.serve())
 
     asyncio.run(_serve())
