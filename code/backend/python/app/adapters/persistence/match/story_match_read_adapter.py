@@ -6,6 +6,7 @@ from app.adapters.persistence.story.models import (
     ClassBonusEntity,
     ClassEntity,
     EventEntity,
+    ItemEntity,
     KeyEntity,
     LocationEntity,
     StoryDifficultyEntity,
@@ -163,6 +164,15 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 for r in rows
             ]
 
+    def find_items_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = (
+                session.query(ItemEntity)
+                .filter(ItemEntity.id_story == story_id)
+                .all()
+            )
+            return [{"id": r.id, "uuid": r.uuid, "weight": r.weight} for r in rows]
+
     @staticmethod
     def _template_to_dict(entity: CharacterTemplateEntity) -> Dict[str, Any]:
         return {
@@ -189,6 +199,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "dexterity": entity.dexterity,
             "intelligence": entity.intelligence,
             "constitution": entity.constitution,
+            "weight": entity.weight,
             # Step 23 — costs and class restrictions for trait validation
             "cost_positive": entity.cost_positive,
             "cost_negative": entity.cost_negative,
@@ -226,4 +237,5 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             "dexterity": entity.dexterity,
             "intelligence": entity.intelligence,
             "constitution": entity.constitution,
+            "weight": entity.weight,
         }

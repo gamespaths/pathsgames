@@ -3,9 +3,11 @@ package games.paths.core.persistence.match;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
+import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
+import games.paths.core.repository.match.GamingInventoryItemsRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ class CharacterPersistenceAdapterTest {
     private GamingCharacterInstanceRepository characterRepository;
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingCharacterTraitsRepository traitsRepository;
+    private GamingInventoryItemsRepository inventoryRepository;
     private CharacterPersistenceAdapter adapter;
     private CharacterReadAdapter readAdapter;
 
@@ -30,8 +33,9 @@ class CharacterPersistenceAdapterTest {
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         traitsRepository = mock(GamingCharacterTraitsRepository.class);
+        inventoryRepository = mock(GamingInventoryItemsRepository.class);
         adapter = new CharacterPersistenceAdapter(characterRepository, backpackRepository, traitsRepository);
-        readAdapter = new CharacterReadAdapter(characterRepository, backpackRepository, traitsRepository);
+        readAdapter = new CharacterReadAdapter(characterRepository, backpackRepository, traitsRepository, inventoryRepository);
     }
 
     // ─── write adapter ──────────────────────────────────────────────────────
@@ -146,5 +150,18 @@ class CharacterPersistenceAdapterTest {
         when(traitsRepository.findByIdMatchAndIdCharacterMatch(1L, 2L))
                 .thenReturn(List.of(new GamingCharacterTraitsEntity()));
         assertEquals(1, readAdapter.findTraits(1L, 2L).size());
+    }
+
+    @Test
+    void read_findInventory_nullEmpty() {
+        assertTrue(readAdapter.findInventory(null, 1L).isEmpty());
+        assertTrue(readAdapter.findInventory(1L, null).isEmpty());
+    }
+
+    @Test
+    void read_findInventory_delegates() {
+        when(inventoryRepository.findByIdMatchAndIdCharacterMatch(1L, 2L))
+                .thenReturn(List.of(new GamingInventoryItemsEntity()));
+        assertEquals(1, readAdapter.findInventory(1L, 2L).size());
     }
 }

@@ -46,6 +46,18 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
     @Column(nullable = false)
     private Integer sad;
 
+    @Column(name = "life_max", nullable = false)
+    private Integer lifeMax;
+
+    @Column(name = "energy_max", nullable = false)
+    private Integer energyMax;
+
+    @Column(name = "sad_max", nullable = false)
+    private Integer sadMax;
+
+    @Column(name = "weight_max", nullable = false)
+    private Integer weightMax;
+
     @Column(name = "id_location")
     private Long idLocation;
 
@@ -73,6 +85,10 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
         if (energy == null) energy = 0;
         if (life == null) life = 1;
         if (sad == null) sad = 0;
+        if (lifeMax == null) lifeMax = 0;
+        if (energyMax == null) energyMax = 0;
+        if (sadMax == null) sadMax = 0;
+        if (weightMax == null) weightMax = 0;
         if (isSleeping == null) isSleeping = false;
         if (isComa == null) isComa = false;
         if (clockInComa == null) clockInComa = 0;
@@ -107,6 +123,18 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
 
     public Integer getSad() { return sad; }
     public void setSad(Integer sad) { this.sad = sad; }
+
+    public Integer getLifeMax() { return lifeMax; }
+    public void setLifeMax(Integer lifeMax) { this.lifeMax = lifeMax; }
+
+    public Integer getEnergyMax() { return energyMax; }
+    public void setEnergyMax(Integer energyMax) { this.energyMax = energyMax; }
+
+    public Integer getSadMax() { return sadMax; }
+    public void setSadMax(Integer sadMax) { this.sadMax = sadMax; }
+
+    public Integer getWeightMax() { return weightMax; }
+    public void setWeightMax(Integer weightMax) { this.weightMax = weightMax; }
 
     public Long getIdLocation() { return idLocation; }
     public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }

@@ -624,7 +624,7 @@ match / join flow established in suites 19 and 21.
     | 0.24.0 | Planning document for Turn Cycle Engine: priority formula, queue initialisation on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 13, 2026 |
 
 - **Last Updated**: June 13, 2026
-- **Status**: Planning
+- **Status**: Complete
 
 
 

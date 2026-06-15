@@ -38,6 +38,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
 | 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
+| 26 | [Time advancement frontend](./Step26_TimeAdvancementFrontend.md) | ✅ | Clock widget + sleep button in react-game; clock status panel in react-admin; admin GET /api/admin/matches/{uuid}/clock |
+| 27 | [Character max stats, weight & items](./Step27_CharacterMaxStatsWeightItems.md) | ✅ | lifeMax/energyMax/sadMax/weightMax persisted at join; weight = Σ item×amount; items[] on all match-info endpoints |
 
 | Steps | Phase |
 | -- | -- |
@@ -78,13 +80,13 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Emit a TimeAdvanced domain event now (even though WebSocket broadcast is deferred to Step 64) so later steps just subscribe instead of being retrofitted (backend)
     - Backend unit tests: trigger logic (all-sleeping / all-zero-energy), sleep endpoint, clock increment + log, queue recalculation, clock endpoint, clock widget rendering (tests)
 
-26. Time advancement & clock cycle only frontends 
-    - Frontend: clock/time widget in react-game (day↔night indicator, current time unit) styled with the "book" theme + a "Sleep" action button with confirm dialog wired to the sleep endpoint; react-admin shows current_clock in the match detail panel (frontend)
-        - into GameCard component add the "PlayerStats" parameter
-            into little GameCard show stats with PlayerStats in overlay into image (img)
-            into large/big GameCard show 
-        - into ActionRow on GamePage.jsx add a card to describe the 
-    - Frontend unit tests: trigger logic (all-sleeping / all-zero-energy), sleep endpoint, clock increment + log, queue recalculation, clock endpoint, clock widget rendering (tests)
+26. ✅ Time advancement & clock cycle frontends — DONE (v0.26.0)
+    - ClockWidget.jsx in react-game: shows current clock number + story clock label (singular/plural fallback); anyCharacterSleeping badge (frontend)
+    - SleepButton.jsx in react-game: medieval-themed confirm modal; POSTs /api/gameplay/{uuid}/action/sleep; surfaces 409 errors; calls onSlept to refresh clock (frontend)
+    - Wired into GameBook.jsx and GameBookMobile.jsx; clock fetched on mount and after sleep (frontend)
+    - Admin backend: GET /api/admin/matches/{uuid}/clock (new, port 8044); clockForAdmin in TimeAdvancementPort + TimeAdvancementService; MatchAdminController injects TimeAdvancementPort (backend)
+    - react-admin MatchDetailPage: read-only "Clock status" pg-card; per-character energy/sleeping state; gracefully hidden if endpoint unavailable (frontend)
+    - Unit tests: ClockWidget.test.jsx, SleepButton.test.jsx, updated GameBook.test.jsx, updated MatchDetailPage.test.jsx; all pass (tests)
 
 
 26. Time-start recovery, class bonuses & location counters
@@ -752,8 +754,11 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.24.0 | Added Step 24 planning document (Turn Cycle Engine): priority formula, match start endpoint, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 12, 2026 |
     | 0.24.0 | Implemented Step 24 Turn Cycle Engine across all backends: `POST /api/matches/{uuid}/start`, `POST /api/gameplay/{uuid}/action/pass`, `GET /api/match/{uuid}/turn-sequence`. Adopted an explicit `status` column on `gaming_turn_queue` (WAITING/ACTIVE/COMPLETED, migration V0.24.0 postgres+sqlite) as lifecycle source of truth; turn timestamps left null. Java (13 unit tests) + Python (17) + AWS Lambda single-table queue (12) green; React-Game TurnPanel + turn-cycle API; React-Admin projected turn-order panel. New Robot suite `24_turn_cycle` (12 tests): Java 300/300 and Python 300/300, no regressions | June 12, 2026 |
     | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
-    
-- **Last Updated**: June 14, 2026
+    | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
+    | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
+    | 0.27.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.27.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInventoryItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.27.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columns; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+
+- **Last Updated**: June 15, 2026
 - **Status**: In progress
 
 

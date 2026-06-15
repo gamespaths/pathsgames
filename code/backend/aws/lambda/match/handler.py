@@ -244,6 +244,14 @@ def _character_summary(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
+        # Step 27 — max statistics, carried weight and items list. The DynamoDB
+        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        "lifeMax": int(item.get("lifeMax", 0)),
+        "energyMax": int(item.get("energyMax", 0)),
+        "sadMax": int(item.get("sadMax", 0)),
+        "weightMax": int(item.get("weightMax", 0)),
+        "weight": 0,
+        "items": [],
         "idLocation": item.get("idLocation"),
         "locationName": item.get("locationName"),
         "isSleeping": int(item.get("isSleeping", 0)),
@@ -267,6 +275,14 @@ def _character_full(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
+        # Step 27 — max statistics, carried weight and items list. The DynamoDB
+        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        "lifeMax": int(item.get("lifeMax", 0)),
+        "energyMax": int(item.get("energyMax", 0)),
+        "sadMax": int(item.get("sadMax", 0)),
+        "weightMax": int(item.get("weightMax", 0)),
+        "weight": 0,
+        "items": [],
         "idLocation": item.get("idLocation"),
         "locationUuid": item.get("locationUuid"),
         "locationName": item.get("locationName"),
@@ -593,6 +609,12 @@ def _join_match(user, match_uuid, body):
                 + _sum_trait(traits, 'life') + _sum_bonus(bonuses, 'life'))
     energy_max = (_nz(template.get('energyMax')) + _nz(df.get('energy'))
                   + _sum_trait(traits, 'energy') + _sum_bonus(bonuses, 'energy'))
+    sad_max = (_nz(template.get('sadMax')) + _nz(df.get('sad'))
+               + _sum_trait(traits, 'sad') + _sum_bonus(bonuses, 'sad'))
+    # weight_max has no character-template contribution: the carry-capacity base
+    # lives on the class, with difficulty/trait/bonus deltas on top.
+    weight_max = (_nz(cb.get('weightMax')) + _nz(df.get('weight'))
+                  + _sum_trait(traits, 'weight') + _sum_bonus(bonuses, 'weight'))
 
     char_uuid = str(uuid_lib.uuid4())
     char = {
@@ -611,6 +633,10 @@ def _join_match(user, match_uuid, body):
         "energy": energy_max,   # start full
         "life": life_max,       # start full
         "sad": 0,
+        "lifeMax": life_max,
+        "energyMax": energy_max,
+        "sadMax": sad_max,
+        "weightMax": weight_max,
         "idLocation": match.get('currentLocationId'),
         "locationUuid": match.get('currentLocationUuid'),
         "locationName": match.get('currentLocationName'),

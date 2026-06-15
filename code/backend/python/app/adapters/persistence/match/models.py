@@ -84,6 +84,11 @@ class GamingCharacterInstanceEntity(Base):
     energy = Column(Integer, default=0, nullable=False)
     life = Column(Integer, default=1, nullable=False)
     sad = Column(Integer, default=0, nullable=False)
+    # Step 27 — max statistics computed at join and persisted on the instance.
+    life_max = Column(Integer, default=0, nullable=False)
+    energy_max = Column(Integer, default=0, nullable=False)
+    sad_max = Column(Integer, default=0, nullable=False)
+    weight_max = Column(Integer, default=0, nullable=False)
     id_location = Column(Integer)
     is_sleeping = Column(Integer, default=0, nullable=False)
     is_coma = Column(Integer, default=0, nullable=False)
@@ -106,6 +111,22 @@ class GamingBackpackResourcesEntity(Base):
     food = Column(Integer, default=0, nullable=False)
     magic = Column(Integer, default=0, nullable=False)
     coin = Column(Integer, default=0, nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingInventoryItemsEntity(Base):
+    """Step 27 — the items a character carries inside a match."""
+
+    __tablename__ = "gaming_inventory_items"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_item = Column(Integer, nullable=False)
+    amount = Column(Integer, default=1, nullable=False)
+    state = Column(String(20), default="ACTIVE")
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

@@ -165,6 +165,14 @@ class CharacterCommandService(CharacterCommandPort):
         energy_max = (_nz(template.get("energy_max"))
                       + _nz(difficulty.get("energy") if difficulty else 0)
                       + _sum_trait(traits, "energy") + _sum_bonus(class_bonuses, "energy"))
+        sad_max = (_nz(template.get("sad_max"))
+                   + _nz(difficulty.get("sad") if difficulty else 0)
+                   + _sum_trait(traits, "sad") + _sum_bonus(class_bonuses, "sad"))
+        # weight_max has no character-template contribution: the carry-capacity
+        # base lives on the class, with difficulty/trait/bonus deltas on top.
+        weight_max = (_nz(clazz.get("weight_max") if clazz else 0)
+                      + _nz(difficulty.get("weight") if difficulty else 0)
+                      + _sum_trait(traits, "weight") + _sum_bonus(class_bonuses, "weight"))
         return {
             "id": next_id,
             "id_match": match["id"],
@@ -176,6 +184,10 @@ class CharacterCommandService(CharacterCommandPort):
             "life": life_max,      # start full
             "energy": energy_max,  # start full
             "sad": 0,
+            "life_max": life_max,
+            "energy_max": energy_max,
+            "sad_max": sad_max,
+            "weight_max": weight_max,
             "id_location": story.get("id_location_start"),
             "is_sleeping": 0,
             "is_coma": 0,
@@ -203,12 +215,18 @@ class CharacterCommandService(CharacterCommandPort):
             energy=saved["energy"],
             life=saved["life"],
             sad=saved["sad"],
+            life_max=saved.get("life_max", 0),
+            energy_max=saved.get("energy_max", 0),
+            sad_max=saved.get("sad_max", 0),
+            weight_max=saved.get("weight_max", 0),
+            weight=0,  # fresh character carries no items
             id_location=loc_id,
             location_uuid=location_uuid,
             location_name=location_name,
             is_sleeping=saved["is_sleeping"],
             is_coma=saved["is_coma"],
             trait_uuids=list(trait_uuids),
+            items=[],
             food=0,
             magic=0,
             coin=0,
@@ -225,6 +243,8 @@ _TRAIT_STAT_KEYS = {
     "constitution": "constitution",
     "life": "life",
     "energy": "energy",
+    "sad": "sad",
+    "weight": "weight",
 }
 
 

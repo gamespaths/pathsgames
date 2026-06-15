@@ -7,7 +7,11 @@ vi.mock('../i18n/context', () => ({
 vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: { accessToken: 'tok' } }),
 }))
-vi.mock('../api/matches', () => ({ endMatch: vi.fn() }))
+vi.mock('../api/matches', () => ({
+  endMatch: vi.fn(),
+  getMatchClock: vi.fn(() => Promise.resolve(null)),
+  sleepCharacter: vi.fn(),
+}))
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, onClose }) => <div data-testid="book">{left}{right}</div>,
 }))
@@ -19,6 +23,8 @@ vi.mock('../components/book/BookPageContent', () => ({
 vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div data-testid="game-card">{card?.title}</div> }))
 vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
 vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
+vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
+vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
 vi.mock('../features/gameplay/ActionRow', () => ({
   default: ({ options, onEndGame }) => (
     <div data-testid="selection-view">

@@ -52,6 +52,15 @@ Join Match Creates Character With Computed Stats
     Should Be True    ${char}[dexterity] > 0
     Dictionary Should Contain Key    ${char}    food
     Dictionary Should Contain Key    ${char}    matchUuid
+    # Step 27 — max statistics, carried weight and items list
+    Should Be True    ${char}[lifeMax] > 0
+    Should Be True    ${char}[energyMax] > 0
+    Dictionary Should Contain Key    ${char}    sadMax
+    Dictionary Should Contain Key    ${char}    weightMax
+    Should Be Equal As Integers    ${char}[lifeMax]    ${char}[life]
+    Should Be Equal As Integers    ${char}[energyMax]    ${char}[energy]
+    Should Be Equal As Numbers    ${char}[weight]    0
+    Should Be Empty    ${char}[items]
 
 Get Match Players Lists The Joined Character
     [Documentation]    GET /api/match/{uuid}/players returns the single joined character.
@@ -62,6 +71,11 @@ Get Match Players Lists The Joined Character
     Length Should Be    ${players}    1
     Should Be Equal As Strings    ${players}[0][uuid]    ${CHAR_UUID}
     Should Be True    ${players}[0][life] > 0
+    # Step 27 — the players list carries the extended stat block
+    Should Be True    ${players}[0][lifeMax] > 0
+    Should Be True    ${players}[0][weightMax] >= 0
+    Dictionary Should Contain Key    ${players}[0]    weight
+    Dictionary Should Contain Key    ${players}[0]    items
 
 Get Character Detail Returns Full Stats
     [Documentation]    GET /api/match/{uuid}/characters/{uuidCharacter} returns the full detail.
@@ -72,6 +86,11 @@ Get Character Detail Returns Full Stats
     Should Be Equal As Strings    ${char}[uuid]    ${CHAR_UUID}
     Should Be True    ${char}[life] > 0
     Dictionary Should Contain Key    ${char}    traitUuids
+    # Step 27 — full detail carries max stats, weight and items
+    Should Be True    ${char}[lifeMax] > 0
+    Dictionary Should Contain Key    ${char}    weightMax
+    Dictionary Should Contain Key    ${char}    weight
+    Dictionary Should Contain Key    ${char}    items
 
 Join Match Twice Returns 409
     [Documentation]    A second join by the same user in the same match → 409 ALREADY_JOINED.
@@ -110,6 +129,14 @@ Match Info Exposes Players Array
     Should Not Be Empty    ${body}[players]
     ${uuids}=    Evaluate    [p.get('uuid') for p in $body['players']]
     Should Contain    ${uuids}    ${CHAR_UUID}
+    # Step 27 — each player carries the max stat block, weight and items
+    ${player}=    Set Variable    ${body}[players][0]
+    Dictionary Should Contain Key    ${player}    lifeMax
+    Dictionary Should Contain Key    ${player}    energyMax
+    Dictionary Should Contain Key    ${player}    sadMax
+    Dictionary Should Contain Key    ${player}    weightMax
+    Dictionary Should Contain Key    ${player}    weight
+    Dictionary Should Contain Key    ${player}    items
 
 Join With Unknown Template Returns 404
     [Documentation]    Joining with an unresolvable characterTemplateUuid → 404 TEMPLATE_NOT_FOUND.

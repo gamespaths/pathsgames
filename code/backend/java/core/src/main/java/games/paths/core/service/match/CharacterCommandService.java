@@ -233,6 +233,16 @@ public class CharacterCommandService implements CharacterCommandPort {
                 + stat(difficulty != null ? difficulty.getEnergy() : null)
                 + sumTrait(traits, "energy")
                 + sumBonus(classBonuses, "energy");
+        int sadMax = template.getSadMax()
+                + stat(difficulty != null ? difficulty.getSad() : null)
+                + sumTrait(traits, "sad")
+                + sumBonus(classBonuses, "sad");
+        // weightMax has no character-template contribution: the carry-capacity
+        // base lives on the class, with difficulty/trait/bonus deltas on top.
+        int weightMax = base(clazz != null ? clazz.getWeightMax() : null)
+                + stat(difficulty != null ? difficulty.getWeight() : null)
+                + sumTrait(traits, "weight")
+                + sumBonus(classBonuses, "weight");
 
         GamingCharacterInstanceEntity instance = new GamingCharacterInstanceEntity();
         instance.setId(nextId);
@@ -245,6 +255,10 @@ public class CharacterCommandService implements CharacterCommandPort {
         instance.setLife(lifeMax);     // start full
         instance.setEnergy(energyMax); // start full
         instance.setSad(0);
+        instance.setLifeMax(lifeMax);
+        instance.setEnergyMax(energyMax);
+        instance.setSadMax(sadMax);
+        instance.setWeightMax(weightMax);
         instance.setIdLocation(story.getIdLocationStart() != null
                 ? story.getIdLocationStart().longValue() : null);
         instance.setIsSleeping(false);
@@ -268,6 +282,12 @@ public class CharacterCommandService implements CharacterCommandPort {
         info.setEnergy(saved.getEnergy());
         info.setLife(saved.getLife());
         info.setSad(saved.getSad());
+        info.setLifeMax(saved.getLifeMax());
+        info.setEnergyMax(saved.getEnergyMax());
+        info.setSadMax(saved.getSadMax());
+        info.setWeightMax(saved.getWeightMax());
+        info.setWeight(0); // fresh character starts with no items
+        info.setItems(new ArrayList<>());
         info.setIdLocation(saved.getIdLocation());
         info.setIsSleeping(saved.getIsSleeping());
         info.setIsComa(saved.getIsComa());
@@ -306,6 +326,8 @@ public class CharacterCommandService implements CharacterCommandPort {
             case "con" -> nz(t.getConstitution());
             case "life" -> nz(t.getLife());
             case "energy" -> nz(t.getEnergy());
+            case "sad" -> nz(t.getSad());
+            case "weight" -> nz(t.getWeight());
             default -> 0;
         };
     }

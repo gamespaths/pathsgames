@@ -224,6 +224,33 @@ class TimeAdvancementServiceTest {
                     new MatchView(MATCH_ID, MATCH, MatchStatuses.RUNNING, 0, 999L, CHAR_ID)));
             assertCode(TurnCycleException.Code.MATCH_NOT_FOUND, () -> service.clock(MATCH, USER));
         }
+
+        @Test
+        @DisplayName("clockForAdmin returns the same payload without an owning user")
+        void clockForAdminPayload() {
+            // No userAccessPort.findByUuid stubbing and a non-matching creator: the
+            // admin read skips the participation check entirely.
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(
+                    new MatchView(MATCH_ID, MATCH, MatchStatuses.RUNNING, 5, 999L, CHAR_ID)));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(
+                    character(CHAR_ID, CHAR_UUID, 40, true)));
+            when(store.findStoryClockLabels(MATCH_ID, "en")).thenReturn(new ClockLabels("hour", "hours"));
+
+            TimeAdvancementPort.ClockResult r = service.clockForAdmin(MATCH);
+
+            assertEquals(5, r.currentClock());
+            assertEquals("hour", r.clockLabelSingular());
+            assertTrue(r.anyCharacterSleeping());
+            assertEquals(1, r.characters().size());
+            assertEquals(40, r.characters().get(0).energy());
+        }
+
+        @Test
+        @DisplayName("clockForAdmin throws MATCH_NOT_FOUND for an unknown match")
+        void clockForAdminNotFound() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.empty());
+            assertCode(TurnCycleException.Code.MATCH_NOT_FOUND, () -> service.clockForAdmin(MATCH));
+        }
     }
 
     private static void assertCode(TurnCycleException.Code expected, Runnable action) {

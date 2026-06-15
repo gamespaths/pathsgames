@@ -24,6 +24,7 @@ def _character():
     return {"id": 1, "uuid": "char-uuid", "id_match": MATCH_ID, "id_user": USER_ID,
             "id_character_template": 90001, "dexterity": 19, "intelligence": 18,
             "constitution": 19, "energy": 127, "life": 137, "sad": 0,
+            "life_max": 137, "energy_max": 127, "sad_max": 8, "weight_max": 24,
             "id_location": 90001, "is_sleeping": 0, "is_coma": 0}
 
 
@@ -41,8 +42,13 @@ def _wire_lookups(char_r, story):
     story.find_character_templates_by_story_id.return_value = [{"id_tipo": 90001, "uuid": "tpl-uuid"}]
     story.find_traits_by_story_id.return_value = [{"id": 90001, "uuid": "trait-1"}]
     story.find_locations_by_story_id.return_value = [{"id": 90001, "uuid": "loc-uuid"}]
+    # Step 27 — one story item (weight 2) carried in the inventory (amount 3) -> weight 6
+    story.find_items_by_story_id.return_value = [{"id": 40001, "uuid": "item-uuid", "weight": 2}]
     char_r.find_backpack.return_value = {"food": 1, "magic": 2, "coin": 3}
     char_r.find_traits.return_value = [{"id_traits": 90001}]
+    char_r.find_inventory.return_value = [
+        {"uuid": "inv-uuid", "id_item": 40001, "amount": 3, "state": "ACTIVE"}
+    ]
 
 
 # ─── list_players ─────────────────────────────────────────────────────────────
@@ -91,6 +97,16 @@ def test_list_players_creator(env):
     assert p.trait_uuids == ["trait-1"]
     assert p.location_uuid == "loc-uuid"
     assert p.food == 1
+    # Step 27 — persisted max values + inventory read path
+    assert p.life_max == 137
+    assert p.energy_max == 127
+    assert p.sad_max == 8
+    assert p.weight_max == 24
+    assert len(p.items) == 1
+    assert p.items[0].item_uuid == "item-uuid"
+    assert p.items[0].weight == 2
+    assert p.items[0].amount == 3
+    assert p.weight == 6
 
 
 def test_list_players_participant(env):

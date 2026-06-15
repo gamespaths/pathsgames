@@ -3,8 +3,10 @@ package games.paths.core.service.match;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
+import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.model.match.CharacterInstanceInfo;
@@ -69,6 +71,10 @@ class CharacterQueryServiceTest {
         c.setEnergy(127);
         c.setLife(137);
         c.setSad(0);
+        c.setLifeMax(137);
+        c.setEnergyMax(127);
+        c.setSadMax(8);
+        c.setWeightMax(24);
         c.setIdLocation(90001L);
         c.setIsSleeping(false);
         c.setIsComa(false);
@@ -98,6 +104,19 @@ class CharacterQueryServiceTest {
         GamingCharacterTraitsEntity tr = new GamingCharacterTraitsEntity();
         tr.setIdTraits(90001L);
         when(characterReadPort.findTraits(MATCH_ID, 1L)).thenReturn(List.of(tr));
+        // one story item (weight 2) carried in the inventory (amount 3) -> weight 6
+        ItemEntity item = new ItemEntity();
+        item.setId(40001L);
+        item.setIdStory(STORY_ID);
+        item.setUuid("item-uuid");
+        item.setWeight(2);
+        when(storyReadPort.findItemsByStoryId(STORY_ID)).thenReturn(List.of(item));
+        GamingInventoryItemsEntity inv = new GamingInventoryItemsEntity();
+        inv.setUuid("inv-uuid");
+        inv.setIdItem(40001L);
+        inv.setAmount(3);
+        inv.setState("ACTIVE");
+        when(characterReadPort.findInventory(MATCH_ID, 1L)).thenReturn(List.of(inv));
     }
 
     // ─── listPlayers ─────────────────────────────────────────────────────────
@@ -147,6 +166,17 @@ class CharacterQueryServiceTest {
         assertEquals(List.of("trait-1"), p.getTraitUuids());
         assertEquals("loc-uuid", p.getLocationUuid());
         assertEquals(1, p.getFood());
+        // Step 27: persisted max values are surfaced on the read path
+        assertEquals(137, p.getLifeMax());
+        assertEquals(127, p.getEnergyMax());
+        assertEquals(8, p.getSadMax());
+        assertEquals(24, p.getWeightMax());
+        // items list resolved + weight = 2 (unit) × 3 (amount) = 6
+        assertEquals(1, p.getItems().size());
+        assertEquals("item-uuid", p.getItems().get(0).getItemUuid());
+        assertEquals(2, p.getItems().get(0).getWeight());
+        assertEquals(3, p.getItems().get(0).getAmount());
+        assertEquals(6, p.getWeight());
     }
 
     @Test

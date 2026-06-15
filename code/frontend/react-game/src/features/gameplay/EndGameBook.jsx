@@ -9,7 +9,7 @@ import BookPageContent from '../../components/book/BookPageContent'
  * and the backend has acknowledged with `status: ENDED`.
  *
  * Layout (desktop & tablet): two-page book — story card on the left,
- * end-game card (from gameData.json) on the right. A footer "Close" button
+ * end-game card (gameData.endGameCard, derived from the story) on the right. A footer "Close" button
  * navigates back to the home page so the player can pick a new adventure.
  *
  * Mobile view stacks the same two cards vertically.

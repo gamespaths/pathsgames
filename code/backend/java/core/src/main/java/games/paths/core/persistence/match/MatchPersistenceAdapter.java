@@ -7,6 +7,7 @@ import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
+import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
@@ -35,24 +36,28 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final GamingCharacterInstanceRepository characterRepository;
     private final GamingBackpackResourcesRepository backpackRepository;
     private final GamingCharacterTraitsRepository characterTraitsRepository;
+    private final GamingInventoryItemsRepository inventoryRepository;
 
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
                                    GamingStateLocationsRepository locationsRepository,
                                    GamingStateRegistryRepository registryRepository,
                                    GamingCharacterInstanceRepository characterRepository,
                                    GamingBackpackResourcesRepository backpackRepository,
-                                   GamingCharacterTraitsRepository characterTraitsRepository) {
+                                   GamingCharacterTraitsRepository characterTraitsRepository,
+                                   GamingInventoryItemsRepository inventoryRepository) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
         this.registryRepository = registryRepository;
         this.characterRepository = characterRepository;
         this.backpackRepository = backpackRepository;
         this.characterTraitsRepository = characterTraitsRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
-    /** Removes the per-match character rows (traits, backpack, instance) for the given match ids. */
+    /** Removes the per-match character rows (traits, inventory, backpack, instance) for the given match ids. */
     private void deleteCharacterState(List<Long> matchIds) {
         characterTraitsRepository.deleteByMatchIdIn(matchIds);
+        inventoryRepository.deleteByMatchIdIn(matchIds);
         backpackRepository.deleteByMatchIdIn(matchIds);
         characterRepository.deleteByMatchIdIn(matchIds);
     }

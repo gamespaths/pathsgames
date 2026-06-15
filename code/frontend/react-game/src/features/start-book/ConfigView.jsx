@@ -1,30 +1,17 @@
 import { useTranslation } from '../../i18n/context'
 import ConfigCard from './ConfigCard'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
-import { aggregateBonusTotals } from '../../utils/bonusStats'
+import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusStats'
 import { buildStatisticsCard } from '@/utils/loadoutCards'
 
 export default function ConfigView({ config, story, onChangeClick, onPreview, onProceed }) {
   const { t } = useTranslation()
 
-  // Step 23 — every selected trait contributes to the totals.
   const selectedTraits = Array.isArray(config.traits) ? config.traits : []
-  const totals = aggregateBonusTotals([
-    { entity: config.character,  type: 'character' },
-    { entity: config.class,      type: 'class' },
-    ...selectedTraits.map(tr => ({ entity: tr, type: 'trait' })),
-    { entity: config.difficulty, type: 'difficulty' },
-  ])
-  //console.log("ConfigView totals",totals)
-  const statistics = totals.map(({ category, value }) => ({
-    key: category,
-    label: t(`book.stats.totals.${category}`),
-    value, 
-  }))
-
+  const statistics = buildConfigStatistics(config, t);
+  const statisticsCard = buildStatisticsCard(t, statistics , story);
   //const gameTypeValue = buildGameTypeCard(t)
   //const loginValue    = buildLoginCard(t)
-  const statisticsCard = buildStatisticsCard(t, totals , story);
 
   return (
     <div className="config-view-wrap config-view--config">

@@ -105,6 +105,13 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     assert b['constitution'] == 19
     assert b['life'] == 137
     assert b['energy'] == 127
+    # Step 27 — max statistics, carried weight and items list
+    assert b['lifeMax'] == 137
+    assert b['energyMax'] == 127
+    assert b['sadMax'] == 8       # 8(tpl)+0+0+0
+    assert b['weightMax'] == 12   # 12(class)+0+0+0
+    assert b['weight'] == 0
+    assert b['items'] == []
     assert b['idLocation'] == 1
     assert b['traitUuids'] == ['trait-1', 'trait-2']
     assert b['food'] == 0
@@ -112,6 +119,11 @@ def test_join_success(mock_jwt, mock_get, mock_query, mock_put):
     saved = mock_put.call_args[0][0]
     assert saved['SK'].startswith('CHARACTER#')
     assert saved['userUuid'] == 'player-uuid-001'
+    # max values are persisted on the DynamoDB character item
+    assert saved['lifeMax'] == 137
+    assert saved['energyMax'] == 127
+    assert saved['sadMax'] == 8
+    assert saved['weightMax'] == 12
 
 
 @patch('match.handler.db_utils.query_by_pk')

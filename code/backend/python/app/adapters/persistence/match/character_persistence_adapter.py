@@ -11,6 +11,7 @@ from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
     GamingCharacterTraitsEntity,
+    GamingInventoryItemsEntity,
 )
 from app.core.ports.match.match_ports import CharacterPersistencePort, CharacterReadPort
 
@@ -44,6 +45,10 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
                 energy=row.get("energy", 0),
                 life=row.get("life", 1),
                 sad=row.get("sad", 0),
+                life_max=row.get("life_max", 0),
+                energy_max=row.get("energy_max", 0),
+                sad_max=row.get("sad_max", 0),
+                weight_max=row.get("weight_max", 0),
                 id_location=row.get("id_location"),
                 is_sleeping=row.get("is_sleeping", 0),
                 is_coma=row.get("is_coma", 0),
@@ -165,6 +170,21 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
             )
             return [{"id_traits": r.id_traits} for r in rows]
 
+    def find_inventory(self, match_id: int, character_id: int) -> List[Dict[str, Any]]:
+        if match_id is None or character_id is None:
+            return []
+        with self.session_factory() as session:
+            rows = (
+                session.query(GamingInventoryItemsEntity)
+                .filter(GamingInventoryItemsEntity.id_match == match_id)
+                .filter(GamingInventoryItemsEntity.id_character_match == character_id)
+                .all()
+            )
+            return [
+                {"uuid": r.uuid, "id_item": r.id_item, "amount": r.amount, "state": r.state}
+                for r in rows
+            ]
+
     @staticmethod
     def _character_to_dict(entity: GamingCharacterInstanceEntity) -> Dict[str, Any]:
         return {
@@ -179,6 +199,10 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
             "energy": entity.energy,
             "life": entity.life,
             "sad": entity.sad,
+            "life_max": entity.life_max,
+            "energy_max": entity.energy_max,
+            "sad_max": entity.sad_max,
+            "weight_max": entity.weight_max,
             "id_location": entity.id_location,
             "is_sleeping": entity.is_sleeping,
             "is_coma": entity.is_coma,

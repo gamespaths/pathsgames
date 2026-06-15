@@ -3,6 +3,7 @@ package games.paths.core.port.match;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
+import games.paths.core.entity.match.GamingInventoryItemsEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,4 +22,7 @@ public interface CharacterReadPort {
     Optional<GamingBackpackResourcesEntity> findBackpack(Long matchId, Long characterId);
 
     List<GamingCharacterTraitsEntity> findTraits(Long matchId, Long characterId);
+
+    /** Step 27 — the items carried by a character inside a match. */
+    List<GamingInventoryItemsEntity> findInventory(Long matchId, Long characterId);
 }

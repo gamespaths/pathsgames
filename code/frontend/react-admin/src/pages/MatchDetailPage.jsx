@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getMatchInfo, stopMatch, pauseMatch, resumeMatch, deleteMatch } from '../api/matchApi'
+import { getMatchInfo, getMatchClock, stopMatch, pauseMatch, resumeMatch, deleteMatch } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -90,6 +90,7 @@ export default function MatchDetailPage() {
   const [error, setError]             = useState('')
   const [info, setInfo]               = useState(null)
   const [storyCtx, setStoryCtx]       = useState(null)
+  const [clock, setClock]             = useState(null)
 
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError]     = useState('')
@@ -106,6 +107,11 @@ export default function MatchDetailPage() {
       })
       .catch(e => setError(e.response?.data?.message || e.message || 'Failed to load match'))
       .finally(() => setLoading(false))
+    // Clock state is non-critical chrome and lives behind a newer admin endpoint;
+    // tolerate its absence (older backends) by hiding the panel rather than erroring.
+    getMatchClock(uuid)
+      .then(setClock)
+      .catch(() => setClock(null))
   }, [uuid])
 
   useEffect(() => { loadInfo() }, [loadInfo])
@@ -124,6 +130,14 @@ export default function MatchDetailPage() {
   const className      = u => resolveName(storyCtx?.classes,      u) || (u ? shortUuid(u) : '—')
   const difficultyName = u => resolveName(storyCtx?.difficulties, u) || (u ? shortUuid(u) : '—')
   const traitName      = u => resolveName(storyCtx?.traits,       u) || (u ? shortUuid(u) : u)
+
+  // Resolve a clock character (instance uuid) to its template name via the players list.
+  const clockCharName = (characterUuid) => {
+    const player = players.find(p => p.uuid === characterUuid)
+    return player ? templateName(player.characterTemplateUuid) : shortUuid(characterUuid)
+  }
+  // Story clock label: singular at clock 1, plural otherwise (no label → blank).
+  const clockLabel = (c) => (c.currentClock === 1 ? c.clockLabelSingular : c.clockLabelPlural) || ''
 
   async function runAction(fn, navigateAfter) {
     setActionLoading(true)
@@ -301,6 +315,41 @@ export default function MatchDetailPage() {
             </table>
           </div>
 
+          {/* Clock status (Step 26) — read-only clock cycle + sleeping characters */}
+          {clock && (
+            <div className="pg-card mb-4">
+              <p className="pg-card-title mb-2"><i className="fas fa-hourglass-half me-1" />Clock status</p>
+              <table className="pg-table" style={{ fontSize: '0.82rem' }}>
+                <tbody>
+                  <tr>
+                    <th scope="row">Current clock</th>
+                    <td>{clock.currentClock}{clockLabel(clock) ? ` (${clockLabel(clock)})` : ''}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Anyone sleeping</th>
+                    <td>{clock.anyCharacterSleeping ? 'Yes' : 'No'}</td>
+                  </tr>
+                </tbody>
+              </table>
+              {clock.characters?.length > 0 && (
+                <table className="pg-table" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                  <thead>
+                    <tr><th>Character</th><th>Energy</th><th>State</th></tr>
+                  </thead>
+                  <tbody>
+                    {clock.characters.map(c => (
+                      <tr key={c.characterUuid}>
+                        <td>{clockCharName(c.characterUuid)}</td>
+                        <td>{c.energy}</td>
+                        <td>{c.isSleeping ? 'Sleeping' : 'Awake'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+
           {/* Players & characters */}
           <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
             <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
@@ -313,13 +362,14 @@ export default function MatchDetailPage() {
                     <th>Character</th><th>User</th>
                     <th>Class</th><th>Traits</th>
                     <th>DEX</th><th>INT</th><th>CON</th>
-                    <th>Energy</th><th>Life</th><th>Sad</th>
+                    <th>Energy</th><th>Life</th><th>Sad</th><th>Weight</th>
+                    <th>Items</th>
                     <th>Position</th><th>State</th>
                   </tr>
                 </thead>
                 <tbody>
                   {players.length === 0 && (
-                    <tr><td colSpan={12} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
+                    <tr><td colSpan={14} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
                       No characters have joined this match yet.
                     </td></tr>
                   )}
@@ -356,9 +406,23 @@ export default function MatchDetailPage() {
                       <td>{p.dexterity}</td>
                       <td>{p.intelligence}</td>
                       <td>{p.constitution}</td>
-                      <td>{p.energy}</td>
-                      <td>{p.life}</td>
-                      <td>{p.sad}</td>
+                      <td>{p.energyMax != null ? `${p.energy}/${p.energyMax}` : p.energy}</td>
+                      <td>{p.lifeMax != null ? `${p.life}/${p.lifeMax}` : p.life}</td>
+                      <td>{p.sadMax != null ? `${p.sad}/${p.sadMax}` : p.sad}</td>
+                      <td>{p.weightMax != null ? `${p.weight ?? 0}/${p.weightMax}` : (p.weight ?? '—')}</td>
+                      <td>
+                        {(p.items?.length > 0)
+                          ? (
+                            <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                              {p.items.map(it => (
+                                <li key={it.uuid} style={{ whiteSpace: 'nowrap' }}>
+                                  {(it.name || shortUuid(it.itemUuid))} ×{it.amount ?? 1}
+                                </li>
+                              ))}
+                            </ul>
+                          )
+                          : '—'}
+                      </td>
                       <td>{p.locationName || (p.idLocation != null ? `#${p.idLocation}` : '—')}</td>
                       <td><StateBadges player={p} /></td>
                     </tr>

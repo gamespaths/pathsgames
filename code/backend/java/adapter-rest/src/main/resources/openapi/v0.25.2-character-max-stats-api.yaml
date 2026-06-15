@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Character Max Stats, Weight & Items API
+  description: |
+    OpenAPI specification for the per-player max-statistics, carried-weight and
+    items projection added in version 0.27.0 (Step 27).
+
+    Every player object returned by the match endpoints (`GET /api/match/{uuid}/info`
+    players list, `GET /api/match/{uuid}/players`,
+    `GET /api/match/{uuid}/characters/{uuidCharacter}`, the `POST
+    /api/matches/{uuid}/join` response and the admin
+    `GET /api/admin/matches/{uuid}/info` players) is additively extended with:
+
+    * `lifeMax`, `energyMax`, `sadMax`, `weightMax` — the **maximum** statistics,
+      computed once at join time by the same start-game procedure used for the
+      current stats and **persisted** on the character instance (the class id is
+      not stored on the instance, so the values cannot be recomputed on read):
+
+      ```
+      lifeMax   = template.lifeMax   + difficulty.life   + Σ trait.life   + Σ classBonus(life)
+      energyMax = template.energyMax + difficulty.energy + Σ trait.energy + Σ classBonus(energy)
+      sadMax    = template.sadMax    + difficulty.sad    + Σ trait.sad    + Σ classBonus(sad)
+      weightMax = class.weightMax    + difficulty.weight + Σ trait.weight + Σ classBonus(weight)
+      ```
+      (`weightMax` has no character-template contribution: the carry-capacity base
+      lives on the class; `0` when no class is selected.)
+
+    * `weight` — the current carried load, `Σ (item.weight × amount)` over the
+      character's `gaming_inventory_items` rows (`0` when the character carries no
+      items).
+
+    * `items[]` — the list of items the character carries, each resolved against
+      its story `list_items` definition (`uuid`, `itemUuid`, `name`, `weight`,
+      `amount`, `state`).
+
+    The extended player schemas (`CharacterSummary`, `CharacterInstance`) and the
+    new `ItemInstance` schema are defined in
+    `v0.21.0-character-selection-api.yaml`.
+
+    All backend implementations (Java, Python, AWS Lambda) honour this contract.
+    The Java backend is the reference. The AWS DynamoDB schema has no inventory
+    table yet, so AWS returns `weight: 0` and `items: []` for contract parity.
+  version: 0.27.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server (public/player API)
+  - url: http://localhost:8044
+    description: Local development server (admin API)
+
+tags:
+  - name: Matches
+    description: Match runtime state endpoints
+
+paths:
+  /api/match/{uuidMatch}/info:
+    get:
+      tags: [Matches]
+      summary: Match runtime state with extended player stats (Step 27)
+      description: |
+        Same contract as version 0.19.0/0.21.0; each entry of `players[]` now
+        also carries `lifeMax`, `energyMax`, `sadMax`, `weightMax`, the current
+        `weight` and the `items[]` list. See `CharacterSummary` in
+        `v0.21.0-character-selection-api.yaml`.
+      operationId: getMatchInfoV27
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          description: The match uuid
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match runtime state (players carry the extended stat block)
+        '404':
+          description: '`MATCH_NOT_FOUND`'

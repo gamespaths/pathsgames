@@ -2002,6 +2002,40 @@ html, body {
   cursor: pointer;
 }
 
+/* Clock cycle widget (Step 26) */
+.clock-widget {
+  margin-bottom: 0px;
+}
+
+/* Sleep action button + confirm modal (Step 26) */
+.sleep-action-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+.sleep-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sleep-confirm-btn {
+  background: linear-gradient(180deg, #8a7bff, #5b4bd6);
+  color: var(--color-parchment);
+}
+.sleep-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 4, 1, 0.7);
+  padding: 16px;
+}
+.sleep-modal-content {
+  max-width: 420px;
+  width: 100%;
+}
+
 .card-detail-img { width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 12px; }
 .card-detail-title { font-family: var(--font-heading); color: var(--color-gold-light); font-size: 1.1rem; margin-bottom: 8px; }
 .card-detail-desc { font-size: 0.88rem; color: var(--color-parchment-dark); line-height: 1.6; font-style: italic; margin-bottom: 16px; }

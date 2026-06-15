@@ -2,8 +2,10 @@ import { useTranslation } from '../../i18n/context'
 import BookPageContent from '../../components/book/BookPageContent'
 import PlayerStats from './PlayerStats'
 import ActionRow from './ActionRow'
+import ClockWidget from './ClockWidget'
+import SleepButton from './SleepButton'
 
-export default function GameBookMobile({ gameData, story, onEndGame, endError }) {
+export default function GameBookMobile({ gameData, story, onEndGame, endError, clock, matchUuid, accessToken, onSlept }) {
   const { t } = useTranslation()
 
   const { startLocation, playerStats, locations, actions } = gameData ?? {}
@@ -42,12 +44,29 @@ export default function GameBookMobile({ gameData, story, onEndGame, endError })
         </div>
       )}
 
+      {/* Clock cycle */}
+      {clock && (
+        <div style={{ background: 'var(--card-body-background)', border: '2px solid var(--color-brown-mid)', borderRadius: 8, padding: 12 }}>
+          <ClockWidget clock={clock} />
+        </div>
+      )}
+
       {/* Player stats */}
       <div style={{ background: 'var(--card-body-background)', border: '2px solid var(--color-brown-mid)', borderRadius: 8, padding: 12 }}>
         <div className="game-section-label" style={{ marginTop: 0 }}>
           <i className="fas fa-user me-2" />{t('game.explore')}
         </div>
         <PlayerStats stats={playerStats} />
+        {matchUuid && (
+          <div className="sleep-action-row">
+            <SleepButton
+              matchUuid={matchUuid}
+              accessToken={accessToken}
+              disabled={clock?.anyCharacterSleeping ?? false}
+              onSlept={onSlept}
+            />
+          </div>
+        )}
       </div>
 
       {/* Neighbors */}

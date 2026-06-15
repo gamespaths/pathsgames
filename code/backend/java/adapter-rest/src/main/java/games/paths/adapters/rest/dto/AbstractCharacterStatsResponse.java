@@ -28,11 +28,17 @@ public abstract class AbstractCharacterStatsResponse {
     private Integer energy;
     private Integer life;
     private Integer sad;
+    private Integer lifeMax;
+    private Integer energyMax;
+    private Integer sadMax;
+    private Integer weightMax;
+    private Integer weight;
     private Long idLocation;
     private String locationName;
     private Boolean isSleeping;
     private Boolean isComa;
     private List<String> traitUuids = new ArrayList<>();
+    private List<ItemInstanceResponse> items = new ArrayList<>();
 
     protected AbstractCharacterStatsResponse() {
     }
@@ -49,11 +55,22 @@ public abstract class AbstractCharacterStatsResponse {
         this.energy = m.getEnergy();
         this.life = m.getLife();
         this.sad = m.getSad();
+        this.lifeMax = m.getLifeMax();
+        this.energyMax = m.getEnergyMax();
+        this.sadMax = m.getSadMax();
+        this.weightMax = m.getWeightMax();
+        this.weight = m.getWeight();
         this.idLocation = m.getIdLocation();
         this.locationName = m.getLocationName();
         this.isSleeping = m.getIsSleeping();
         this.isComa = m.getIsComa();
         this.traitUuids = m.getTraitUuids() != null ? new ArrayList<>(m.getTraitUuids()) : new ArrayList<>();
+        this.items = new ArrayList<>();
+        if (m.getItems() != null) {
+            for (games.paths.core.model.match.ItemInstanceInfo it : m.getItems()) {
+                this.items.add(ItemInstanceResponse.fromModel(it));
+            }
+        }
     }
 
     public String getUuid() { return uuid; }
@@ -76,6 +93,16 @@ public abstract class AbstractCharacterStatsResponse {
     public void setLife(Integer life) { this.life = life; }
     public Integer getSad() { return sad; }
     public void setSad(Integer sad) { this.sad = sad; }
+    public Integer getLifeMax() { return lifeMax; }
+    public void setLifeMax(Integer lifeMax) { this.lifeMax = lifeMax; }
+    public Integer getEnergyMax() { return energyMax; }
+    public void setEnergyMax(Integer energyMax) { this.energyMax = energyMax; }
+    public Integer getSadMax() { return sadMax; }
+    public void setSadMax(Integer sadMax) { this.sadMax = sadMax; }
+    public Integer getWeightMax() { return weightMax; }
+    public void setWeightMax(Integer weightMax) { this.weightMax = weightMax; }
+    public Integer getWeight() { return weight; }
+    public void setWeight(Integer weight) { this.weight = weight; }
     public Long getIdLocation() { return idLocation; }
     public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
     public String getLocationName() { return locationName; }
@@ -86,4 +113,6 @@ public abstract class AbstractCharacterStatsResponse {
     public void setIsComa(Boolean isComa) { this.isComa = isComa; }
     public List<String> getTraitUuids() { return traitUuids; }
     public void setTraitUuids(List<String> traitUuids) { this.traitUuids = traitUuids != null ? traitUuids : new ArrayList<>(); }
+    public List<ItemInstanceResponse> getItems() { return items; }
+    public void setItems(List<ItemInstanceResponse> items) { this.items = items != null ? items : new ArrayList<>(); }
 }

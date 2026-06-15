@@ -8,20 +8,6 @@ or out of energy), advances the `current_clock` counter, logs the transition, re
 the turn queue for the new clock, and emits a `TimeAdvanced` domain event for later
 subscribers.
 
-The relationship between adjacent steps:
-
-- **Step 24** built the turn queue and the WAITING → ACTIVE → COMPLETED state machine.
-  Step 25 consumes that queue and rebuilds it at each clock boundary, reusing
-  `TurnPriorityCalculator` directly.
-- **Step 25** introduces the sleep action, time-end trigger, `log_clock_history` record
-  insertion, queue recalculation, the `/clock` endpoint, and the `TimeAdvanced` domain
-  event. It is backends only; no frontend changes ship in this step.
-- **Step 26** (frontend: clock widget, sleep button) and **Steps 27+** (per-character
-  recovery math, class bonuses, location counter decrement, weather selection) hook into
-  the time-start moment and the `TimeAdvanced` event introduced here.
-
----
-
 ## 1. Scope
 
 Step 25 covers the following items from the Roadmap:
@@ -605,41 +591,694 @@ not changed.
    allow the react-admin console to read the current clock without cross-port calls.
    Decide at Step 26 implementation time.
 
----
 
-## 11. Cross-Step Relationship
 
-```
-Step 23  ──►  Step 24  ──►  Step 25  ──►  Step 26  ──►  Step 27
-             (queue +         (sleep,         (frontend     (weather
-              turn state)      time-end,        clock        selection,
-                               clock log,       widget)      recovery)
-                               queue rebuild,
-                               TimeAdvanced)
-```
+# Paths Games V0 - Step 25: Time Advancement & Clock Cycle (Frontend)
 
-- **Step 24** is a hard prerequisite: the turn queue (`gaming_turn_queue`), the
-  WAITING/ACTIVE/COMPLETED state machine, and `TurnPriorityCalculator` must all be
-  in place before Step 25 can rebuild the queue at clock boundaries.
-- **Step 25** introduces `TimeAdvanced` as a domain event so Steps 26, 27, and later
-  attach recovery/weather/counter logic by subscription rather than by modifying the
-  `TimeAdvancementService` directly.
-- **Steps 26 and 27** consume the `TimeAdvanced` event and extend the time-start
-  moment with per-character stat recovery and weather selection. Neither is implemented
-  in this step.
+This document describes the frontend implementation for **Step 25** as described in the Roadmap.
+Step 25 delivered the backends (sleep action, time-end trigger, clock endpoint). Step 26 delivers:
+
+- A **ClockWidget** and **SleepButton** in `react-game`, wired into the `GameBook` and `GameBookMobile` views.
+- A read-only **Clock status panel** in `react-admin`'s `MatchDetailPage`.
+- A new **admin backend endpoint** `GET /api/admin/matches/{uuidMatch}/clock` (port 8044) that the admin panel consumes without an ownership check.
 
 ---
+
+## 1. Scope
+
+| Item | Delivered in |
+|------|-------------|
+| `ClockWidget.jsx` — read-only clock number + story label + sleeping badge | react-game |
+| `SleepButton.jsx` — sleep action with confirm modal; surfaces 409 errors | react-game |
+| `getMatchClock` + `sleepCharacter` in `api/matches.js` | react-game |
+| `GameBook.jsx` / `GameBookMobile.jsx` integration | react-game |
+| `game.clock.*` / `game.sleep.*` i18n keys (en.json + it.json) | react-game |
+| `.clock-widget` / `.sleep-*` CSS in `main.css` | react-game |
+| `ClockWidget.test.jsx` + `SleepButton.test.jsx` + updated `GameBook.test.jsx` | react-game |
+| `getMatchClock(uuid)` → `GET /api/admin/matches/{uuid}/clock` in `api/matchApi.js` | react-admin |
+| Clock status pg-card in `MatchDetailPage.jsx` | react-admin |
+| Updated `MatchDetailPage.test.jsx` (mock + graceful failure) | react-admin |
+| `GET /api/admin/matches/{uuidMatch}/clock` endpoint | Java backend (adapter-admin) |
+| `TimeAdvancementPort.clockForAdmin(String matchUuid)` + shared `buildClock(...)` | Java backend (core) |
+
+**Out of scope** (Steps 27+): per-character stat recovery on wake, class bonuses at time-start,
+location counter decrements, weather selection, "new time" recap panel.
+
+---
+
+## 2. New Admin Backend Endpoint
+
+### `GET /api/admin/matches/{uuidMatch}/clock`
+
+- **Port**: 8044 (admin port only)
+- **Auth**: admin token (same as all other `adapter-admin` endpoints)
+- **Controller**: `MatchAdminController` — injects `TimeAdvancementPort`
+- **Port method**: `TimeAdvancementPort.clockForAdmin(String matchUuid)`
+  - No participant ownership check (admin may read any match's clock)
+  - Throws only `MATCH_NOT_FOUND`
+  - Reuses the private `buildClock(...)` helper shared with `clock(matchUuid, userUuid)`
+
+| HTTP status | Condition |
+|-------------|-----------|
+| `200` | `ClockResponse` body |
+| `400` | Blank / null `uuidMatch` |
+| `401` | Missing or invalid admin token |
+| `404` | `MATCH_NOT_FOUND` |
+
+---
+
+## 3. Shipped DTO Field Names
+
+The canonical field names as deployed (some differ from the Step 25 planning doc §3):
+
+### `ClockResponse`
+
+```json
+{
+  "matchUuid": "match-uuid-v4",
+  "currentClock": 2,
+  "clockLabelSingular": "Dawn",
+  "clockLabelPlural": "Dawns",
+  "anyCharacterSleeping": false,
+  "characters": [
+    { "characterUuid": "char-uuid-v4", "isSleeping": false, "energy": 42 }
+  ]
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `clockLabelSingular` | From `list_stories.id_text_clock_singular`; null if no text record |
+| `clockLabelPlural` | From `list_stories.id_text_clock_plural`; null if no text record |
+| `anyCharacterSleeping` | Convenience aggregate; no per-character `name` in this payload |
+
+The frontend resolves character names by cross-referencing the `players` list returned by the match detail endpoint.
+
+### `SleepActionResponse`
+
+```json
+{
+  "matchUuid": "match-uuid-v4",
+  "characterUuid": "char-uuid-v4",
+  "isSleeping": true,
+  "timeEndTriggered": true,
+  "currentClock": 2
+}
+```
+
+Fields **not** present (removed from plan): `previousClock`, `activeCharacterUuid`, `dayPhase`, per-character `name`.
+
+---
+
+## 4. React-Game Components
+
+### 4.1 `ClockWidget.jsx` (`src/features/gameplay/ClockWidget.jsx`)
+
+Read-only presentational component. Receives a `clock` prop (the `ClockResponse` object).
+
+- Renders the clock number and story label: singular form at `currentClock === 1`, plural otherwise.
+- Falls back to `t('game.clock.fallback')` (e.g. "Clock 2") when the story has no clock label text.
+- Shows an `anyCharacterSleeping` badge when at least one character is sleeping.
+- No day/night indicator (no `dayPhase` in the backend response; deferred to a future step).
+- CSS class: `.clock-widget`.
+
+### 4.2 `SleepButton.jsx` (`src/features/gameplay/SleepButton.jsx`)
+
+Action button + confirm modal component.
+
+Props:
+
+| Prop | Type | Purpose |
+|------|------|---------|
+| `matchUuid` | string | Passed to the sleep API call |
+| `accessToken` | string | Guest JWT for the API call |
+| `disabled` | boolean | Set when character is already sleeping (avoids the 409 round-trip) |
+| `onSlept` | function | Called with the `SleepActionResponse` after a successful sleep |
+
+Behaviour:
+
+1. Clicking the button opens a medieval-themed confirm modal (controlled by React state, reuses `.modal-content` look).
+2. On confirm, calls `sleepCharacter(matchUuid, accessToken)` → `POST /api/gameplay/{uuid}/action/sleep`.
+3. On success, closes the modal and calls `onSlept(result)`.
+4. On 409 error (`ALREADY_SLEEPING` / `NOT_YOUR_TURN` / `MATCH_NOT_RUNNING`), surfaces the error inline inside the modal.
+
+### 4.3 `api/matches.js` additions
+
+```js
+getMatchClock(uuid, token)  // GET /api/match/{uuid}/clock
+sleepCharacter(uuid, token) // POST /api/gameplay/{uuid}/action/sleep
+```
+
+Both include mock fallbacks for offline/dev mode.
+
+### 4.4 `GameBook.jsx` integration
+
+- `clock` state, fetched on mount and after every successful `onSlept` callback.
+- `<ClockWidget clock={clock} />` rendered in the book view.
+- `<SleepButton matchUuid={...} accessToken={...} disabled={anyCharacterSleeping} onSlept={refreshClock} />` in the action row.
+- Same wiring applied to `GameBookMobile.jsx`.
+
+### 4.5 i18n keys added
+
+In `src/i18n/en.json` and `src/i18n/it.json`:
+
+```
+game.clock.title       — section header ("Clock")
+game.clock.fallback    — fallback label ("Clock {n}")
+game.sleep.action      — button label ("Sleep")
+game.sleep.sleeping    — sleeping badge label ("Sleeping")
+game.sleep.confirmTitle — modal title
+game.sleep.confirmBody  — modal body text
+game.sleep.confirm     — confirm button
+game.sleep.cancel      — cancel button
+```
+
+---
+
+## 5. React-Admin Changes
+
+### 5.1 `api/matchApi.js`
+
+```js
+export const getMatchClock = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/clock`).then(r => r.data)
+```
+
+### 5.2 `MatchDetailPage.jsx` — Clock status panel
+
+A new read-only `pg-card` section titled "Clock status" is shown below the existing match configuration card when the clock data is available:
+
+- **Current clock** row: `currentClock` plus the resolved story label (singular at 1, plural otherwise; blank when story has no label text).
+- **Any sleeping** row: "Yes" / "No".
+- **Per-character table**: `characterUuid` resolved to a player name via the `players` list already loaded on the page; columns for energy and sleeping state.
+
+The panel is **silently hidden** if `getMatchClock` fails (e.g. older backends without the endpoint). This ensures backward compatibility.
+
+---
+
+## 6. Tests
+
+| File | Scope |
+|------|-------|
+| `src/test/ClockWidget.test.jsx` | Renders clock number; singular/plural label; fallback; sleeping badge; null clock returns null |
+| `src/test/SleepButton.test.jsx` | Button renders; confirm modal opens/closes; calls sleepCharacter on confirm; surfaces 409 error; disabled prop respected |
+| `src/test/GameBook.test.jsx` | Updated mocks for `getMatchClock` and `sleepCharacter`; ClockWidget and SleepButton present |
+| `react-admin/src/tests/pages/MatchDetailPage.test.jsx` | Mocks `getMatchClock`; asserts "Clock status" panel renders; asserts graceful absence when endpoint fails |
+
+All 283 react-admin suite tests pass. react-game targeted tests pass.
+
+---
+
+## 7. API Changes Summary
+
+| Endpoint | Status |
+|----------|--------|
+| `GET /api/admin/matches/{uuidMatch}/clock` | NEW (v0.26.0) — admin port 8044 |
+| `GET /api/match/{uuidMatch}/clock` | Unchanged (v0.25.0) — public port 8042 |
+| `POST /api/gameplay/{uuidMatch}/action/sleep` | Unchanged (v0.25.0) — public port 8042 |
+
+---
+
+## 8. Cross-Step Relationship
+
+```
+Step 25  ──►  Step 26  ──►  Step 27
+(sleep,        (clock         (weather
+ time-end,      widget,        selection,
+ /clock,        sleep btn,     per-char
+ TimeAdvanced)  admin panel)   recovery)
+```
+
+
+# Paths Games V0 - Step 25: Character Max Stats, Carried Weight & Items on Match Info
+
+This document describes the implementation of **Step 25** as requested in the Roadmap.
+
+Step 25 enriches every player/character object returned by the match-info family of
+endpoints with three categories of data that were previously absent:
+
+- **Maximum statistics** (`lifeMax`, `energyMax`, `sadMax`, `weightMax`) — computed once
+  at join time using the same additive formula as the starting values and persisted on the
+  `gaming_character_instance` row, because the class id is not retained there and cannot
+  be re-derived on read.
+- **Current carried weight** (`weight`) — the sum of `item.weight × amount` over all rows
+  in `gaming_inventory_items` for the character (0 when the inventory is empty).
+- **Item list** (`items[]`) — a list of carried-item objects with enough detail for the
+  game frontend to display the backpack.
+
+---
+
+## 1. Scope
+
+Step covers:
+
+- New Flyway migrations (`V0.25.2`) adding four columns to `gaming_character_instance`
+  in both the SQLite and PostgreSQL adapters.
+- A new `gaming_inventory_items` entity and repository (Java / Python) for reading the
+  character's current inventory.
+- `CharacterCommandService` extended to compute and persist the four max-stat values
+  immediately after the existing stat initialisation at join time.
+- `CharacterReadPort` / `CharacterQueryService` extended to load inventory rows and
+  derive `weight` and `items[]` on read.
+- New DTOs: `AbstractCharacterStatsResponse` (shared base) and `ItemInstanceResponse`.
+- Extended OpenAPI schemas (`CharacterSummary`, `CharacterInstance`, new `ItemInstance`).
+- New OpenAPI spec file `v0.25.2-character-max-stats-api.yaml`.
+- All four backends (Java, Python, AWS, Node.js) and both React frontends updated to
+  expose or consume the new fields.
+- Robot E2E assertions added to suite `21_character_selection` for all new fields.
+
+**Out of scope (future steps):** movement validation against `weightMax`, item
+acquisition/use endpoints (Step 33), trade (Step 71).
+
+---
+
+## 2. Endpoint Changes
+
+No new endpoints are introduced. The following existing endpoints are extended to carry
+the new fields on every player/character object in their response.
+
+| Endpoint | Port | Change |
+|----------|------|--------|
+| `GET /api/match/{uuid}/info` | 8042 | `players[]` objects gain `lifeMax`, `energyMax`, `sadMax`, `weightMax`, `weight`, `items[]` |
+| `GET /api/match/{uuid}/players` | 8042 | Same enrichment on every player object |
+| `GET /api/match/{uuid}/characters/{uuidCharacter}` | 8042 | Character detail object gains all six fields |
+| `POST /api/matches/{uuid}/join` | 8042 | Join response body gains all six fields |
+| `GET /api/admin/matches/{uuid}/info` | 8044 | Admin info endpoint gains same fields on player objects |
+
+HTTP status codes, authentication requirements, and error codes for all five endpoints
+are unchanged.
+
+---
+
+## 3. New Fields — Contract
+
+The following fields are added to every player/character DTO:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `lifeMax` | integer | Maximum life — persisted at join |
+| `energyMax` | integer | Maximum energy — persisted at join |
+| `sadMax` | integer | Maximum sadness — persisted at join |
+| `weightMax` | integer | Maximum carry weight — persisted at join |
+| `weight` | integer | Current total weight of carried items; 0 when inventory is empty |
+| `items` | array of `ItemInstance` | Each element: `{ uuid, itemUuid, name, weight, amount, state }` |
+
+### 3.1 `ItemInstance` object
+
+```json
+{
+  "uuid":     "inv-row-uuid-v4",
+  "itemUuid": "item-uuid-v4",
+  "name":     "Rusty Sword",
+  "weight":   3,
+  "amount":   1,
+  "state":    "ACTIVE"
+}
+```
+
+| Field | Type | Source |
+|-------|------|--------|
+| `uuid` | string | `gaming_inventory_items.uuid` — the inventory row UUID |
+| `itemUuid` | string | `gaming_inventory_items.id_item` resolved to `list_items.uuid` |
+| `name` | string | `list_items.name` (default locale) |
+| `weight` | integer | `list_items.weight` |
+| `amount` | integer | `gaming_inventory_items.amount` |
+| `state` | string | `gaming_inventory_items.state` (e.g. `"ACTIVE"`) |
+
+---
+
+## 4. Max-Stat Formulas
+
+All four max-stat values are computed once at `POST /api/matches/{uuid}/join` using the
+same additive formula applied to current stats during Step 23 character initialisation.
+The class is available in the join request context but is not stored on the instance,
+which makes recalculation on read impossible — persistence is therefore mandatory.
+
+```
+lifeMax   = characterTemplate.lifeMax
+            + difficulty.life
+            + Σ trait.life          (over all selected traits)
+            + Σ classBonus.life     (over all bonuses for the character's class)
+
+energyMax = characterTemplate.energyMax
+            + difficulty.energy
+            + Σ trait.energy
+            + Σ classBonus.energy
+
+sadMax    = characterTemplate.sadMax
+            + difficulty.sad
+            + Σ trait.sad
+            + Σ classBonus.sad
+
+weightMax = class.weightMax
+            + difficulty.weight
+            + Σ trait.weight
+            + Σ classBonus.weight
+            (no characterTemplate contribution; 0 if the character has no class)
+```
+
+`difficulty.*` refers to the per-stat columns on the `list_difficulties` row selected
+for the match. `classBonus.*` refers to rows in `list_classes_bonus` for the class.
+The formulas are **identical** across Java, Python, and AWS Lambda.
+
+---
+
+## 5. Database Schema Changes
+
+### 5.1 Flyway migrations — V0.27.0
+
+Two new migration files are required (one per adapter):
+
+- `adapter-sqlite/src/main/resources/db/migration/v0/V0.25.0__add_character_max_stats.sql`
+- `adapter-postgres/src/main/resources/db/migration/v0/V0.25.0__add_character_max_stats.sql`
+
+Both add the same four columns to `gaming_character_instance`:
+
+```sql
+ALTER TABLE gaming_character_instance ADD COLUMN life_max   INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE gaming_character_instance ADD COLUMN energy_max INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE gaming_character_instance ADD COLUMN sad_max    INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE gaming_character_instance ADD COLUMN weight_max INTEGER NOT NULL DEFAULT 0;
+```
+
+Existing rows are left at the default `0`; they are populated at the next join operation.
+
+### 5.2 `gaming_character_instance` — updated column list (relevant subset)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `life` | INTEGER | Current life value (existing) |
+| `energy` | INTEGER | Current energy value (existing) |
+| `sad` | INTEGER | Current sadness value (existing) |
+| `life_max` | INTEGER | NEW — maximum life (v0.25.0) |
+| `energy_max` | INTEGER | NEW — maximum energy (v0.25.0) |
+| `sad_max` | INTEGER | NEW — maximum sadness (v0.25.0) |
+| `weight_max` | INTEGER | NEW — maximum carry weight (v0.25.0) |
+
+### 5.3 `gaming_inventory_items` (read-only in this step)
+
+This table already exists in the schema (added in Step 10). Step 25 introduces the
+first read path through Java's `GamingInventoryItemsEntity` + `GamingInventoryItemsRepository`
+and the Python `GamingInventoryItemsEntity` (SQLAlchemy model, no new `create_all`
+migration needed beyond the existing schema).
+
+| Column | Role |
+|--------|------|
+| `id` | PK |
+| `uuid` | Public identifier → `ItemInstance.uuid` |
+| `id_character_instance` | FK to `gaming_character_instance.id` |
+| `id_item` | FK to `list_items.id` |
+| `amount` | Quantity → `ItemInstance.amount` |
+| `state` | Item state string → `ItemInstance.state` |
+
+---
+
+## 6. Business Logic
+
+### 6.1 Max-stat computation at join time
+
+`CharacterCommandService.join(...)` is extended to:
+
+1. Resolve the `list_difficulties` row for the match.
+2. Resolve the `list_classes_bonus` rows for the chosen class (empty list if no class).
+3. Resolve the selected traits.
+4. Apply the four formulas from §4.
+5. Persist the four values via a new `CharacterReadPort.persistMaxStats(...)` call
+   before returning the join response.
+
+The computation reuses the stat-initialisation helpers already present from Step 23
+(`TraitStatCalculator`, `ClassBonusCalculator`, etc.) so no new formula logic is needed.
+
+### 6.2 Weight and items on read
+
+`CharacterMapper` (Java) / the character query service (Python) now:
+
+1. Calls `CharacterReadPort.findInventory(characterInstanceId)` which executes a single
+   JOIN query: `gaming_inventory_items` joined with `list_items` for name and weight.
+2. Maps each row to an `ItemInstanceResponse` / `ItemInstance` dict.
+3. Computes `weight = Σ (item.weight × row.amount)` in application code.
+4. Returns `weight = 0` and `items = []` when the inventory is empty (guaranteed for
+   any character that has never received an item, which is all characters in the current
+   test story).
+
+### 6.3 AWS Lambda — contract parity without inventory table
+
+The DynamoDB single-table design does not yet have an inventory partition. The AWS
+handler computes and persists the four max-stat values on the `CHARACTER#{uuid}` item at
+join time (same formulas) and returns `weight = 0` / `items = []` on all read endpoints
+for contract parity. Inventory items will be added when Step 33 is implemented.
+
+---
+
+## 7. DTOs and Domain Models
+
+### 7.1 Java
+
+| Class | Module | Purpose |
+|-------|--------|---------|
+| `AbstractCharacterStatsResponse` | `adapter-rest/dto/match/` | Shared base carrying `lifeMax`, `energyMax`, `sadMax`, `weightMax`, `weight`, `items` |
+| `ItemInstanceResponse` | `adapter-rest/dto/match/` | Single item in the `items[]` array |
+| `CharacterSummary` | `adapter-rest/dto/match/` | Extended to extend `AbstractCharacterStatsResponse` |
+| `CharacterInstance` (OpenAPI) | `openapi/v0.25.2-character-max-stats-api.yaml` | Extended schema |
+| `GamingInventoryItemsEntity` | `adapter-sqlite` / `adapter-postgres` | JPA entity mapping `gaming_inventory_items` |
+| `GamingInventoryItemsRepository` | `adapter-sqlite` / `adapter-postgres` | Spring Data repository with JOIN fetch |
+
+### 7.2 Python
+
+| Item | Path | Purpose |
+|------|------|---------|
+| `GamingInventoryItemsEntity` | `app/adapters/persistence/match/models.py` | SQLAlchemy model; `Table.create_all` already handles the existing table |
+| `character_command_service.py` | `app/core/services/match/` | Computes and persists max stats at join |
+| `character_query_service.py` | `app/core/services/match/` | Loads inventory, computes weight |
+| `match_controller.py` | `app/adapters/rest/match/` | camelCase mappers emit all six new fields |
+
+### 7.3 OpenAPI
+
+New spec file:
+`code/backend/java/adapter-rest/src/main/resources/openapi/v0.25.2-character-max-stats-api.yaml`
+
+Schemas extended: `CharacterSummary`, `CharacterInstance`. New schema: `ItemInstance`.
+
+---
+
+## 8. Per-Backend Implementation Notes
+
+### 8.1 Java (reference implementation)
+
+- New Flyway `V0.25.0` in both adapters.
+- `GamingInventoryItemsEntity` + `GamingInventoryItemsRepository` (JOIN fetch with `list_items`).
+- `CharacterReadPort` gains `findInventory(long characterInstanceId)` returning `List<InventoryItemView>`.
+- `CharacterCommandService.join(...)` calls new `persistMaxStats(...)` after the existing `initStats(...)`.
+- `CharacterMapper` builds `weight` sum and maps `items[]` via `ItemInstanceResponse`.
+- `AbstractCharacterStatsResponse` base DTO so all six fields are declared once.
+- All `mvn clean test` pass (Java full suite green).
+
+### 8.2 Python
+
+- SQLAlchemy `GamingInventoryItemsEntity` added to the persistence models.
+- `character_command_service.py` computes and persists max stats on join.
+- `character_query_service.py` fetches inventory and builds weight/items.
+- `match_controller.py` camelCase mappers extended.
+- 539 pytest tests pass.
+
+### 8.3 AWS Lambda
+
+- `CHARACTER#{uuid}` DynamoDB item gains `life_max`, `energy_max`, `sad_max`, `weight_max` attributes written at join.
+- All read handlers (`get_match_info`, `get_players`, `get_character`, `admin_match_info`) emit the four maxes plus `weight = 0` and `items = []`.
+- 280 AWS Lambda tests pass.
+
+---
+
+## 9. Frontend Changes
+
+### 9.1 react-game
+
+| File | Change |
+|------|--------|
+| `src/api/matchInfoAdapter.js` | NEW — thin adapter translating raw `/info` payload to a normalised player object including the six new fields |
+| `src/api/matches.js` | Updated to pipe through `matchInfoAdapter` |
+| `src/api/game.js` | References `matchInfoAdapter` for the game state |
+| `src/features/gameplay/GameBook.jsx` | `PlayerStats` component receives `lifeMax`, `energyMax`, `sadMax`; current/max gauges rendered |
+| `src/features/gameplay/GameBookMobile.jsx` | Same changes as `GameBook.jsx` |
+| `src/features/start-book/ConfigView.jsx` | Weight limit shown from `weightMax` |
+| `src/features/start-match/StartMatchFlow.jsx` | Join response normalised through adapter |
+| `src/features/gameplay/EndGameBook.jsx` | End-screen stats use max values |
+| `src/pages/GamePage.jsx` | State wired through adapter |
+| `src/utils/bonusStats.js` | Utility for computing display ratios (current/max) |
+| `src/i18n/en.json` / `it.json` | New key `game.items.label` ("Items" / "Oggetti") |
+| `src/styles/main.css` | Gauge bar styles for current/max stat display |
+| `src/mock/matchInfo.json` | NEW — replaces deleted `gameData.json`; includes `lifeMax`, `energyMax`, `sadMax`, `weightMax`, `weight`, `items[]` |
+| `src/mock/gameData.json` | DELETED — superseded by `matchInfo.json` |
+
+#### Stat gauges
+
+Each stat (life, energy, sadness) is displayed as a gauge showing `current / max` (e.g.
+`42 / 100`). The gauge bar fill percentage = `current / max * 100`. When `max = 0` the
+bar renders at 0% to avoid division-by-zero.
+
+#### Items list
+
+When `items[]` is non-empty, a collapsible items panel is rendered below the stat gauges
+showing item name, weight, amount, and state per row. An empty items array renders
+nothing (no panel).
+
+### 9.2 react-admin
+
+| File | Change |
+|------|--------|
+| `src/api/matchApi.js` | Updated to forward new fields on player objects |
+| `src/pages/MatchDetailPage.jsx` | Players table gains "Weight" column and "Items" count column; stat cells now show `current / max` gauges |
+
+---
+
+## 10. Tests
+
+### 10.1 Java unit tests
+
+`mvn clean test` passes the full suite. Key new/updated test classes:
+
+| Test class | New assertions |
+|------------|----------------|
+| `CharacterCommandServiceTest` | Max stats computed correctly for all four formulas; persisted via store port |
+| `CharacterMapperTest` | `weight` summed from inventory rows; `items[]` mapped correctly; empty inventory → `weight=0`, `items=[]` |
+| `MatchAdminControllerTest` | Admin info response includes max stats and items (updated) |
+
+### 10.2 Python unit tests
+
+539 tests pass. New/updated test modules:
+
+- `test_character_command_service.py` — max-stat formula assertions for all four values.
+- `test_character_query_service.py` — inventory load, weight sum, items list.
+- `test_match_controller.py` — camelCase field names verified in HTTP responses.
+
+### 10.3 AWS Lambda tests
+
+280 tests pass. New assertions:
+- Join handler stores four `*_max` attributes on the `CHARACTER#` item.
+- All read handlers return `weight=0`, `items=[]` with correct types.
+
+### 10.4 React-game tests
+
+| Test file | Scope |
+|-----------|-------|
+| `src/test/GameBook.test.jsx` | Updated mocks include max-stat fields; gauge components render |
+| `src/test/GamePage.test.jsx` | End-to-end page render with new adapter |
+| `src/test/ClockWidget.test.jsx` | No change (clock feature; stat fields not relevant) |
+| `src/test/SleepButton.test.jsx` | No change |
+
+### 10.5 React-admin tests
+
+`MatchDetailPage.test.jsx` updated: mock player objects include all six new fields;
+"Weight" and "Items" columns asserted present. 283 tests pass.
+
+### 10.6 Robot Framework E2E
+
+Suite: `code/tests/robot/tests/21_character_selection/character_selection.robot`
+
+New assertions added (no new suite file; the character selection flow already creates a
+joined character with stats):
+
+| Assertion | Endpoint under test |
+|-----------|---------------------|
+| `lifeMax`, `energyMax`, `sadMax`, `weightMax` all present and `> 0` | POST join response |
+| `weight == 0` (empty inventory at join) | POST join response |
+| `items` is empty list | POST join response |
+| Same six fields present on `GET /api/match/{uuid}/info` players[] | GET match info |
+| Same six fields present on `GET /api/match/{uuid}/players` | GET players |
+| Same six fields present on `GET /api/match/{uuid}/characters/{uuidCharacter}` | GET character detail |
+
+Full Java/SQLite Robot suite: **357 tests pass**, no regressions.
+
+---
+
+## 11. API Changes Summary
+
+| Endpoint | Status | Change |
+|----------|--------|--------|
+| `GET /api/match/{uuid}/info` | MODIFIED (v0.25.0) | Players gain `lifeMax`, `energyMax`, `sadMax`, `weightMax`, `weight`, `items[]` |
+| `GET /api/match/{uuid}/players` | MODIFIED (v0.25.0) | Same enrichment |
+| `GET /api/match/{uuid}/characters/{uuidCharacter}` | MODIFIED (v0.25.0) | Same enrichment |
+| `POST /api/matches/{uuid}/join` | MODIFIED (v0.25.0) | Join response body gains all six fields |
+| `GET /api/admin/matches/{uuid}/info` | MODIFIED (v0.25.0) | Admin player objects gain all six fields |
+
+No endpoints are added or removed. The changes are additive; existing consumers that
+ignore unknown fields are unaffected.
+
+---
+
+## 12. Cross-Step Relationships
+
+```
+Step 23  ──►  Step 25  ──►  Step 28
+(trait            (max stats,    (movement —
+ selection,        weight,        weight vs
+ stat init)        items[])       weightMax
+                                  check)
+```
+
+Step 33 (inventory management — use item, drop item) will write to `gaming_inventory_items`
+and will rely on the `weight` / `weightMax` values established here. Step 28 (movement)
+will enforce `weight ≤ weightMax` using the persisted `weight_max` column.
+
+---
+
+## 13. Notes
+
+1. **Class id not stored on instance.** The `gaming_character_instance` table has no
+   `id_class` column. The four max stats must therefore be computed at join time (when
+   the class is known from the request) and persisted. Re-deriving them on read is not
+   possible without a schema change.
+
+2. **Default 0 for existing rows.** The migration adds columns with `DEFAULT 0`. Rows
+   created before v0.25.0 (dev data) will show `0` for all four max stats until the
+   character re-joins. This is acceptable for development environments; production has no
+   live matches with this history.
+
+3. **`weightMax = 0` when no class.** If a character joins without selecting a class
+   (`class.weightMax = 0` and no `classBonus.weight`), `weightMax` is the sum of
+   `difficulty.weight + Σ trait.weight`, which may also be 0. Movement validation (Step
+   28) must handle this as "no weight limit enforced" or "cannot carry anything" — the
+   design decision is deferred to Step 28.
+
+4. **AWS inventory items deferred.** The DynamoDB backend returns `weight = 0` and
+   `items = []` for all characters as a placeholder. When Step 33 implements inventory
+   management, the AWS handler must also write `INVENTORY#{itemUuid}` items and update
+   the read paths accordingly.
+
+5. **Node.js backend.** The Node.js backend is not updated in this step. It will be
+   aligned when a future step targets Node.js API parity.
+
+
+
 
 # Version Control
+- Versions created with AI prompt:
+  ```
+  ciao read step 25 on roadmap file (documentation_v0/Roadmap.md) and write a plan to realize all components. 
+  projects are backend/java, robot test, aws lambda and and python project. 
+    --> in this plan i don't wanna change nothing into frontend project. 
+    --> in this plan i wanna change react-game, react-admin projects too!
+  at the end use paths-games-doc to write Step24_xxx.md file with specific documentation agent
+  let's go to develop all components
 
-- **Document Version**: 0.25.0
+  read documentation_v0/Step25_TimeAdvancementClockCycle.md and roadmap, write a plan to develop frontend react-game 
+  e react-admin components, let's go
+
+  Ciao, i wanna new edit: on api api/match/{uuid}/info on response, on player object add fields energyMax, lifeMax, sadMax, weightMax (for ever player sum class, charater, traits and difficulty values like start game procedure). Add weight like sum of Items weight and add Items list. Remember to edit all backend (java, aws, python) and frontends (react-game and react-admin). edit robot test to test new fields. use paths-games-doc to update all documentation files into documentation_v0. let's go
+
+  ```
+
+- **Document Version**: 0.25.2
 
     | Version | Description | Date |
     |---------|-------------|------|
     | 0.25.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 15, 2026 |
+    | 0.25.1 | Addendum: shipped DTO field names corrected (no previousClock / activeCharacterUuid / clockLabel / dayPhase / per-character name); admin endpoint GET /api/admin/matches/{uuidMatch}/clock added (clockForAdmin port method + MatchAdminController) | June 15, 2026 |
+    | 0.25.2 | Per-player max stats (lifeMax/energyMax/sadMax/weightMax), current carried weight and items list added to all match-info endpoints; Flyway V0.25.2 migrations (sqlite + postgres); GamingInventoryItemsEntity + repository; CharacterCommandService persists maxes at join; CharacterMapper resolves weight + items; ItemInstanceResponse DTO; OpenAPI v0.25.2-character-max-stats-api.yaml; Python 539 tests pass, AWS 280, react-admin 283; Robot suite 21 assertions added, 357 tests pass | June 15, 2026 |
+
 
 - **Last Updated**: June 15, 2026
-- **Status**: PLANNED
+- **Status**: Complete
 
 
 

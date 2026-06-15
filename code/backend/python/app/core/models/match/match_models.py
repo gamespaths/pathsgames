@@ -61,6 +61,18 @@ class MatchEventOption:
 
 
 @dataclass
+class ItemInstanceInfo:
+    """Step 27 — a single item carried by a character inside a match."""
+
+    uuid: str
+    item_uuid: Optional[str] = None
+    name: Optional[str] = None
+    weight: int = 0
+    amount: int = 1
+    state: Optional[str] = None
+
+
+@dataclass
 class CharacterInstanceInfo:
     """Step 21 — a character materialised in a match (stats + location + backpack)."""
 
@@ -75,12 +87,19 @@ class CharacterInstanceInfo:
     energy: int = 0
     life: int = 0
     sad: int = 0
+    # Step 27 — max statistics computed at join and persisted on the instance.
+    life_max: int = 0
+    energy_max: int = 0
+    sad_max: int = 0
+    weight_max: int = 0
+    weight: int = 0
     id_location: Optional[int] = None
     location_uuid: Optional[str] = None
     location_name: Optional[str] = None
     is_sleeping: int = 0
     is_coma: int = 0
     trait_uuids: List[str] = field(default_factory=list)
+    items: List[ItemInstanceInfo] = field(default_factory=list)
     food: int = 0
     magic: int = 0
     coin: int = 0

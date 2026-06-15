@@ -182,6 +182,12 @@ class StoryMatchReadPort(ABC):
         """Return all class-bonus rows of a story ({id_class, statistic, value})."""
         ...
 
+    @abstractmethod
+    def find_items_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Step 27 — return all items of a story ({id, uuid, weight}); used to
+        resolve a character's inventory items and carried weight."""
+        ...
+
 
 class CharacterCommandPort(ABC):
     @abstractmethod
@@ -238,6 +244,12 @@ class CharacterReadPort(ABC):
 
     @abstractmethod
     def find_traits(self, match_id: int, character_id: int) -> List[Dict[str, Any]]:
+        ...
+
+    @abstractmethod
+    def find_inventory(self, match_id: int, character_id: int) -> List[Dict[str, Any]]:
+        """Step 27 — the items a character carries inside a match
+        ({uuid, id_item, amount, state})."""
         ...
 
 

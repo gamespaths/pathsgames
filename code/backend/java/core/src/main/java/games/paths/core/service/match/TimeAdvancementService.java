@@ -79,7 +79,17 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     public ClockResult clock(String matchUuid, String userUuid) {
         long userId = requireUser(userUuid);
         MatchView match = requireOwnedMatch(matchUuid, userId);
+        return buildClock(matchUuid, match);
+    }
 
+    @Override
+    public ClockResult clockForAdmin(String matchUuid) {
+        MatchView match = requireMatch(matchUuid);
+        return buildClock(matchUuid, match);
+    }
+
+    /** Build the clock payload (labels + per-character sleeping/energy) for a match. */
+    private ClockResult buildClock(String matchUuid, MatchView match) {
         List<CharacterTurnView> characters = store.findCharactersByMatchId(match.id());
         ClockLabels labels = store.findStoryClockLabels(match.id(), DEFAULT_LANG);
 

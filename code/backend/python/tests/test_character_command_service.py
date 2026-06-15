@@ -249,6 +249,13 @@ def test_computes_final_stats(env):
     assert info.life == 137          # 12+120+2+3(bonus)
     assert info.energy == 127        # 12+110+2+3(bonus)
     assert info.sad == 0
+    # Step 27 — persisted max values exposed on the join response
+    assert info.life_max == 137
+    assert info.energy_max == 127
+    assert info.sad_max == 8          # 8(tpl)+0+0+0
+    assert info.weight_max == 12      # 12(class)+0+0+0
+    assert info.weight == 0
+    assert info.items == []
     assert info.id_location == 90001
     assert info.location_uuid == "loc-start"
     assert info.user_uuid == "user-uuid"
@@ -268,6 +275,11 @@ def test_persists_instance_backpack_traits(env):
     assert saved["id"] == 1
     assert saved["id_user"] == USER_ID
     assert saved["id_character_template"] == 90001
+    # Step 27 — max values persisted on the instance row
+    assert saved["life_max"] == 137
+    assert saved["energy_max"] == 127
+    assert saved["sad_max"] == 8
+    assert saved["weight_max"] == 12
     backpack = char_p.save_backpack.call_args[0][0]
     assert backpack["food"] == 0 and backpack["id_character_match"] == 1
     trait_rows = char_p.save_traits.call_args[0][0]

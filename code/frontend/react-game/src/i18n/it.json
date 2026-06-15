@@ -138,7 +138,8 @@
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
-      "weight": "Trasporto"
+      "weight": "Trasporto",
+      "items": "Oggetti"
     },
     "move": "Vai Qui",
     "execute": "Esegui",
@@ -152,6 +153,18 @@
       "start": "Avvia partita",
       "pass": "Passa il turno",
       "passCount": "Passaggi"
+    },
+    "clock": {
+      "title": "Tempo",
+      "fallback": "Tempo {n}"
+    },
+    "sleep": {
+      "action": "Dormi",
+      "confirmTitle": "Vuoi dormire?",
+      "confirmBody": "Il tuo personaggio si addormenterà. Quando tutti dormono o sono senza energia, il tempo avanza al prossimo ciclo.",
+      "confirm": "Dormi",
+      "cancel": "Annulla",
+      "sleeping": "Sta dormendo"
     }
   },
   "footer": {

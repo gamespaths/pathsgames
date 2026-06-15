@@ -12,7 +12,7 @@ import { buildGameTypeCard, buildLoginCard, buildStatisticsCard, buildTermsCard 
 import { createMatch, joinMatch } from '@/api/matches'
 import ConfirmStep from './ConfirmStep'
 import MatchStatus from './MatchStatus'
-import { aggregateBonusTotals } from '@/utils/bonusStats'
+import { buildConfigStatistics } from '@/utils/bonusStats'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
@@ -119,21 +119,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
     if (el && Modal) Modal.getOrCreateInstance(el).show()
   }
 
-  //statistics 
-  
-  const statisticsA = aggregateBonusTotals([
-    { entity: config.character,  type: 'character' },
-    { entity: config.class,      type: 'class' },
-    ...config.traits.map(tr => ({ entity: tr, type: 'trait' })),
-    { entity: config.difficulty, type: 'difficulty' },
-  ]) 
-  //console.log("statistics",statistics);
-  const statisticsCard = buildStatisticsCard(t, statisticsA, story);
-  const statistics = statisticsA.map(({ category, value }) => ({
-    key: category,
-    label: t(`book.stats.totals.${category}`),
-    value, 
-  }))  
+  //statistics
+  const statistics = buildConfigStatistics(config, t);
+  const statisticsCard= buildStatisticsCard(t, statistics , story);
 
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start button).

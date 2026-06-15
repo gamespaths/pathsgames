@@ -71,7 +71,7 @@
       "statisticsDesc": "These are the bonuses that your current selection of class, character and traits will give you at the start of the adventure. They will affect your stats and abilities in the game. <br > <br > <p align='center'>Change your selection to see different bonuses.</p>",
       "lifeMax": "Life",
       "energyMax": "Energy",
-      "sadMax": "Happiness",
+      "sadMax": "Sadness",
       "dexterityStart": "Speed",
       "intelligenceStart": "Smart",
       "constitutionStart": "Physique",
@@ -90,7 +90,7 @@
       "totals": {
         "life": "Life",
         "energy": "Energy",
-        "sad": "Happiness",
+        "sad": "Sadness",
         "dexterity": "Speed",
         "intelligence": "Smart",
         "constitution": "Physique",
@@ -137,12 +137,16 @@
     "stats": {
       "life": "Life",
       "energy": "Energy",
-      "sadness": "Happiness",
+      "sadness": "Sadness",
       "experience": "XP",
       "food": "Food",
       "magic": "Magic",
       "coins": "Coins",
-      "weight": "Carry"
+      "weight": "Carry",
+      "items": "Items",
+      "dexterity": "Speed",
+      "intelligence": "Smart",
+      "constitution": "Physique"
     },
     "move": "Move Here",
     "execute": "Execute",
@@ -156,6 +160,18 @@
       "start": "Start match",
       "pass": "Pass turn",
       "passCount": "Times passed"
+    },
+    "clock": {
+      "title": "Time",
+      "fallback": "Clock"
+    },
+    "sleep": {
+      "action": "Sleep",
+      "confirmTitle": "Go to sleep?",
+      "confirmBody": "Your character will fall asleep. When everyone is asleep or out of energy, time advances to the next clock.",
+      "confirm": "Sleep",
+      "cancel": "Cancel",
+      "sleeping": "Sleeping"
     }
   },
   "footer": {

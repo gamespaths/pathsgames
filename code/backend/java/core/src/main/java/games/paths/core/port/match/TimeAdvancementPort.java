@@ -26,6 +26,13 @@ public interface TimeAdvancementPort {
     /** Read the current clock, labels and per-character sleeping/energy state. */
     ClockResult clock(String matchUuid, String userUuid);
 
+    /**
+     * Admin-scoped clock read: same payload as {@link #clock(String, String)} but
+     * without the per-user participation check, for the admin console (port 8044).
+     * Only throws {@code MATCH_NOT_FOUND}.
+     */
+    ClockResult clockForAdmin(String matchUuid);
+
     record SleepResult(String matchUuid,
                        String characterUuid,
                        boolean isSleeping,

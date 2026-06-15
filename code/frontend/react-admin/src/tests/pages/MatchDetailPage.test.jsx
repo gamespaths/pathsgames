@@ -4,11 +4,12 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import MatchDetailPage from '../../pages/MatchDetailPage'
 
 vi.mock('../../api/matchApi', () => ({
-  getMatchInfo: vi.fn(),
-  stopMatch:    vi.fn(),
-  pauseMatch:   vi.fn(),
-  resumeMatch:  vi.fn(),
-  deleteMatch:  vi.fn(),
+  getMatchInfo:  vi.fn(),
+  getMatchClock: vi.fn(),
+  stopMatch:     vi.fn(),
+  pauseMatch:    vi.fn(),
+  resumeMatch:   vi.fn(),
+  deleteMatch:   vi.fn(),
 }))
 vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
 
@@ -19,6 +20,9 @@ const PLAYER = {
   uuid: 'c1', userUuid: 'player-uuid-001', characterTemplateUuid: 'ct-w',
   classUuid: 'cls-1', traitUuids: ['tr-1', 'tr-2'],
   dexterity: 19, intelligence: 18, constitution: 19, energy: 127, life: 137, sad: 0,
+  // Step 27 — max statistics, carried weight and items
+  lifeMax: 137, energyMax: 127, sadMax: 8, weightMax: 24, weight: 4,
+  items: [{ uuid: 'inv-1', itemUuid: 'item-1', name: 'Training Potion', weight: 2, amount: 2, state: 'ACTIVE' }],
   idLocation: 90001, locationName: 'location-90001', isSleeping: false, isComa: false,
 }
 
@@ -56,6 +60,11 @@ describe('MatchDetailPage', () => {
       writable: true, configurable: true,
     })
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING'))
+    matchApi.getMatchClock.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, clockLabelSingular: 'hour', clockLabelPlural: 'hours',
+      anyCharacterSleeping: true,
+      characters: [{ characterUuid: 'c1', isSleeping: true, energy: 88 }],
+    })
     matchApi.stopMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.pauseMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.resumeMatch.mockResolvedValue({ status: 'UPDATED' })
@@ -89,8 +98,12 @@ describe('MatchDetailPage', () => {
     // "Warrior" now appears both in the players table and the Step 24 projected
     // turn-order panel, so there are two occurrences.
     expect((await screen.findAllByText('Warrior')).length).toBeGreaterThan(0)
-    expect(screen.getByText('137')).toBeInTheDocument()
-    expect(screen.getByText('127')).toBeInTheDocument()
+    // Step 27 — stats render as current/max gauges
+    expect(screen.getByText('137/137')).toBeInTheDocument()  // life
+    expect(screen.getByText('127/127')).toBeInTheDocument()  // energy
+    expect(screen.getByText('0/8')).toBeInTheDocument()      // sad
+    expect(screen.getByText('4/24')).toBeInTheDocument()     // weight
+    expect(screen.getByText(/Training Potion ×2/)).toBeInTheDocument()
     expect(screen.getAllByText('location-90001').length).toBeGreaterThan(0)
     expect(screen.getByText('active')).toBeInTheDocument()
     expect(matchApi.getMatchInfo).toHaveBeenCalledWith('m1')
@@ -121,6 +134,28 @@ describe('MatchDetailPage', () => {
     matchApi.getMatchInfo.mockRejectedValue(new Error('boom'))
     renderPage()
     expect(await screen.findByText('boom')).toBeInTheDocument()
+  })
+
+  // ── clock status panel (Step 26) ──────────────────────────────────────────
+
+  it('renders the Clock status panel with label and sleeping character', async () => {
+    renderPage()
+    expect(await screen.findByText('Clock status')).toBeInTheDocument()
+    // current clock 4 → plural label "hours"
+    expect(screen.getByText('4 (hours)')).toBeInTheDocument()
+    expect(screen.getByText('Anyone sleeping')).toBeInTheDocument()
+    // per-character row: resolved name + Sleeping state
+    expect(screen.getByText('Sleeping')).toBeInTheDocument()
+    expect(matchApi.getMatchClock).toHaveBeenCalledWith('m1')
+  })
+
+  it('hides the Clock status panel when the clock endpoint fails', async () => {
+    matchApi.getMatchClock.mockRejectedValue(new Error('no clock endpoint'))
+    renderPage()
+    // the rest of the page still renders…
+    expect(await screen.findByText('Saturday run')).toBeInTheDocument()
+    // …but the clock panel is absent
+    expect(screen.queryByText('Clock status')).not.toBeInTheDocument()
   })
 
   // ── status panel & buttons ────────────────────────────────────────────────

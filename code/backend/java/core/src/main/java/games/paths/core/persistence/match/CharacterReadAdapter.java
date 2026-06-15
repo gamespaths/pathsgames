@@ -3,10 +3,12 @@ package games.paths.core.persistence.match;
 import games.paths.core.entity.match.GamingBackpackResourcesEntity;
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
+import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.repository.match.GamingBackpackResourcesRepository;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingCharacterTraitsRepository;
+import games.paths.core.repository.match.GamingInventoryItemsRepository;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +27,16 @@ public class CharacterReadAdapter implements CharacterReadPort {
     private final GamingCharacterInstanceRepository characterRepository;
     private final GamingBackpackResourcesRepository backpackRepository;
     private final GamingCharacterTraitsRepository traitsRepository;
+    private final GamingInventoryItemsRepository inventoryRepository;
 
     public CharacterReadAdapter(GamingCharacterInstanceRepository characterRepository,
                                 GamingBackpackResourcesRepository backpackRepository,
-                                GamingCharacterTraitsRepository traitsRepository) {
+                                GamingCharacterTraitsRepository traitsRepository,
+                                GamingInventoryItemsRepository inventoryRepository) {
         this.characterRepository = characterRepository;
         this.backpackRepository = backpackRepository;
         this.traitsRepository = traitsRepository;
+        this.inventoryRepository = inventoryRepository;
     }
 
     @Override
@@ -64,5 +69,13 @@ public class CharacterReadAdapter implements CharacterReadPort {
             return List.of();
         }
         return traitsRepository.findByIdMatchAndIdCharacterMatch(matchId, characterId);
+    }
+
+    @Override
+    public List<GamingInventoryItemsEntity> findInventory(Long matchId, Long characterId) {
+        if (matchId == null || characterId == null) {
+            return List.of();
+        }
+        return inventoryRepository.findByIdMatchAndIdCharacterMatch(matchId, characterId);
     }
 }

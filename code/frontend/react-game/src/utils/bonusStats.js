@@ -122,6 +122,23 @@ export function aggregateBonusTotals(pairs) {
     .map(category => ({ category, value: totals[category] ?? 0 }))
     .filter(item => item.value !== 0)
 }
+export function buildConfigStatistics(config, t = (k) => k) {
+  // Step 23 — every selected trait contributes to the totals.
+  const selectedTraits = Array.isArray(config.traits) ? config.traits : []
+  const totals = aggregateBonusTotals([
+    { entity: config.character,  type: 'character' },
+    { entity: config.class,      type: 'class' },
+    ...selectedTraits.map(tr => ({ entity: tr, type: 'trait' })),
+    { entity: config.difficulty, type: 'difficulty' },
+  ])
+  //console.log("ConfigView totals",totals)
+  const statistics = totals.map(({ category, value }) => ({
+    key: category,
+    label: t(`book.stats.totals.${category}`),
+    value,
+  }))
+  return statistics;
+}
 
 /**
  * Build a lookup map of classes keyed by their numeric `id`. Class objects

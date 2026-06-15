@@ -207,3 +207,58 @@ export async function getTurnSequence(uuidMatch, accessToken) {
   )
   return res.data
 }
+
+/* ── Step 25/26 — time advancement & clock cycle ──────────────────────────── */
+
+/** Synthesize a ClockResponse mirroring what the backend would return (mock). */
+function mockClock(uuidMatch) {
+  return {
+    matchUuid: uuidMatch ?? null,
+    currentClock: 0,
+    clockLabelSingular: null,
+    clockLabelPlural: null,
+    anyCharacterSleeping: false,
+    characters: [],
+  }
+}
+
+/**
+ * Read the current clock, story labels and per-character sleeping/energy state.
+ * Any participant in the match may call this. Throws on a backend error
+ * (404 MATCH_NOT_FOUND); mock mode returns an empty clock at 0.
+ */
+export async function getMatchClock(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return mockClock(uuidMatch)
+  const res = await client.get(
+    `/api/match/${uuidMatch}/clock`,
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
+ * Set the caller's character to sleep, then evaluate the time-end trigger; when
+ * every character is sleeping or out of energy the backend advances the clock
+ * (`timeEndTriggered = true`). Throws on a backend error (409 ALREADY_SLEEPING /
+ * NOT_YOUR_TURN / MATCH_NOT_RUNNING, 404 MATCH_NOT_FOUND); mock mode synthesizes
+ * a success response.
+ */
+export async function sleepCharacter(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) {
+    return {
+      matchUuid: uuidMatch ?? null,
+      characterUuid: null,
+      isSleeping: true,
+      timeEndTriggered: false,
+      currentClock: 0,
+    }
+  }
+  const res = await client.post(
+    `/api/gameplay/${uuidMatch}/action/sleep`,
+    null,
+    authConfig(accessToken),
+  )
+  return res.data
+}

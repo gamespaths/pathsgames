@@ -31,8 +31,9 @@ def _info():
         uuid="char-uuid", match_uuid="match-uuid", user_uuid="user-uuid",
         character_template_uuid="tpl", class_uuid="cls",
         dexterity=19, intelligence=18, constitution=19, energy=127, life=137, sad=0,
+        life_max=137, energy_max=127, sad_max=8, weight_max=24, weight=0,
         id_location=90001, location_uuid="loc", location_name="location-90001",
-        is_sleeping=0, is_coma=0, trait_uuids=["t1"], food=0, magic=0, coin=0,
+        is_sleeping=0, is_coma=0, trait_uuids=["t1"], items=[], food=0, magic=0, coin=0,
     )
 
 
@@ -52,8 +53,16 @@ def test_join_success(env):
     r = client.post("/api/matches/m1/join", headers=AUTH,
                     json={"characterTemplateUuid": "t", "classUuid": "c", "traitUuids": ["x"]})
     assert r.status_code == 201
-    assert r.json()["uuid"] == "char-uuid"
-    assert r.json()["life"] == 137
+    body = r.json()
+    assert body["uuid"] == "char-uuid"
+    assert body["life"] == 137
+    # Step 27 — max stats, carried weight and items projected on the response
+    assert body["lifeMax"] == 137
+    assert body["energyMax"] == 127
+    assert body["sadMax"] == 8
+    assert body["weightMax"] == 24
+    assert body["weight"] == 0
+    assert body["items"] == []
 
 
 def test_join_empty_body(env):
@@ -91,7 +100,15 @@ def test_players_ok(env):
     query_port.list_players.return_value = [_info()]
     r = client.get("/api/match/m1/players", headers=AUTH)
     assert r.status_code == 200
-    assert r.json()[0]["uuid"] == "char-uuid"
+    p = r.json()[0]
+    assert p["uuid"] == "char-uuid"
+    # Step 27 — players list carries the extended stat block
+    assert p["lifeMax"] == 137
+    assert p["energyMax"] == 127
+    assert p["sadMax"] == 8
+    assert p["weightMax"] == 24
+    assert p["weight"] == 0
+    assert p["items"] == []
 
 
 def test_players_not_found(env):

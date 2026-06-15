@@ -67,6 +67,18 @@ def _summary_to_camel(summary):
     }
 
 
+def _item_to_camel(it):
+    """Step 27 — a single inventory item carried by a character."""
+    return {
+        "uuid": it.uuid,
+        "itemUuid": it.item_uuid,
+        "name": it.name,
+        "weight": it.weight,
+        "amount": it.amount,
+        "state": it.state,
+    }
+
+
 def _character_summary_to_camel(p):
     """Step 21 — lightweight character row (players list / MatchInfo.players)."""
     return {
@@ -79,6 +91,13 @@ def _character_summary_to_camel(p):
         "energy": p.energy,
         "life": p.life,
         "sad": p.sad,
+        # Step 27 — max statistics, carried weight and items list.
+        "lifeMax": p.life_max,
+        "energyMax": p.energy_max,
+        "sadMax": p.sad_max,
+        "weightMax": p.weight_max,
+        "weight": p.weight,
+        "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
         "locationName": p.location_name,
         "isSleeping": p.is_sleeping,
@@ -100,6 +119,13 @@ def _character_full_to_camel(p):
         "energy": p.energy,
         "life": p.life,
         "sad": p.sad,
+        # Step 27 — max statistics, carried weight and items list.
+        "lifeMax": p.life_max,
+        "energyMax": p.energy_max,
+        "sadMax": p.sad_max,
+        "weightMax": p.weight_max,
+        "weight": p.weight,
+        "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
         "locationUuid": p.location_uuid,
         "locationName": p.location_name,

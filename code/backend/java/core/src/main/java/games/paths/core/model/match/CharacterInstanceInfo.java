@@ -27,6 +27,12 @@ public class CharacterInstanceInfo {
     private Integer life;
     private Integer sad;
 
+    private Integer lifeMax;
+    private Integer energyMax;
+    private Integer sadMax;
+    private Integer weightMax;
+    private Integer weight;
+
     private Long idLocation;
     private String locationUuid;
     private String locationName;
@@ -35,6 +41,8 @@ public class CharacterInstanceInfo {
     private Boolean isComa;
 
     private List<String> traitUuids = new ArrayList<>();
+
+    private List<ItemInstanceInfo> items = new ArrayList<>();
 
     private Integer food;
     private Integer magic;
@@ -76,6 +84,21 @@ public class CharacterInstanceInfo {
     public Integer getSad() { return sad; }
     public void setSad(Integer sad) { this.sad = sad; }
 
+    public Integer getLifeMax() { return lifeMax; }
+    public void setLifeMax(Integer lifeMax) { this.lifeMax = lifeMax; }
+
+    public Integer getEnergyMax() { return energyMax; }
+    public void setEnergyMax(Integer energyMax) { this.energyMax = energyMax; }
+
+    public Integer getSadMax() { return sadMax; }
+    public void setSadMax(Integer sadMax) { this.sadMax = sadMax; }
+
+    public Integer getWeightMax() { return weightMax; }
+    public void setWeightMax(Integer weightMax) { this.weightMax = weightMax; }
+
+    public Integer getWeight() { return weight; }
+    public void setWeight(Integer weight) { this.weight = weight; }
+
     public Long getIdLocation() { return idLocation; }
     public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
 
@@ -94,6 +117,11 @@ public class CharacterInstanceInfo {
     public List<String> getTraitUuids() { return traitUuids; }
     public void setTraitUuids(List<String> traitUuids) {
         this.traitUuids = traitUuids != null ? traitUuids : new ArrayList<>();
+    }
+
+    public List<ItemInstanceInfo> getItems() { return items; }
+    public void setItems(List<ItemInstanceInfo> items) {
+        this.items = items != null ? items : new ArrayList<>();
     }
 
     public Integer getFood() { return food; }

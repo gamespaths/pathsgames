@@ -185,6 +185,26 @@ components:
           type: integer
         sad:
           type: integer
+        lifeMax:
+          type: integer
+          description: Max life computed at join (Step 27)
+        energyMax:
+          type: integer
+          description: Max energy computed at join (Step 27)
+        sadMax:
+          type: integer
+          description: Max sadness computed at join (Step 27)
+        weightMax:
+          type: integer
+          description: Max carry weight computed at join (Step 27)
+        weight:
+          type: integer
+          description: Current carried weight = Σ (item.weight × amount)
+        items:
+          type: array
+          description: Items carried by the character (Step 27)
+          items:
+            $ref: '#/components/schemas/ItemInstance'
         idLocation:
           type: integer
           format: int64
@@ -228,6 +248,26 @@ components:
           description: Starts at the computed maximum
         sad:
           type: integer
+        lifeMax:
+          type: integer
+          description: Max life computed at join (Step 27)
+        energyMax:
+          type: integer
+          description: Max energy computed at join (Step 27)
+        sadMax:
+          type: integer
+          description: Max sadness computed at join (Step 27)
+        weightMax:
+          type: integer
+          description: Max carry weight computed at join (Step 27)
+        weight:
+          type: integer
+          description: Current carried weight = Σ (item.weight × amount)
+        items:
+          type: array
+          description: Items carried by the character (Step 27)
+          items:
+            $ref: '#/components/schemas/ItemInstance'
         idLocation:
           type: integer
           format: int64
@@ -252,3 +292,24 @@ components:
           type: integer
         coin:
           type: integer
+    ItemInstance:
+      type: object
+      description: A single item carried by a character inside a match (Step 27)
+      properties:
+        uuid:
+          type: string
+          description: Inventory-row uuid
+        itemUuid:
+          type: string
+          description: Story item uuid
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        weight:
+          type: integer
+        amount:
+          type: integer
+        state:
+          type: string
+          nullable: true

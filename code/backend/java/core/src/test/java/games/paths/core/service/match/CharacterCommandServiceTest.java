@@ -359,6 +359,16 @@ class CharacterCommandServiceTest {
             // energy = 12+110+2(traits)+3(bonus energy) = 127 ; starts full
             assertEquals(127, info.getEnergy());
             assertEquals(0, info.getSad());
+            // lifeMax/energyMax persisted and exposed (same as starting full values)
+            assertEquals(137, info.getLifeMax());
+            assertEquals(127, info.getEnergyMax());
+            // sadMax = 8(tpl)+0(diff)+0(traits)+0(bonus) = 8
+            assertEquals(8, info.getSadMax());
+            // weightMax = 12(class)+12(diff weight)+0(traits)+0(bonus) = 24
+            assertEquals(24, info.getWeightMax());
+            // fresh character carries no items
+            assertEquals(0, info.getWeight());
+            assertTrue(info.getItems().isEmpty());
             assertFalse(info.getIsSleeping());
             assertFalse(info.getIsComa());
             assertEquals(90001L, info.getIdLocation());
@@ -386,6 +396,11 @@ class CharacterCommandServiceTest {
             assertEquals(MATCH_ID, saved.getIdMatch());
             assertEquals(USER_ID, saved.getIdUser());
             assertEquals(90001L, saved.getIdCharacterTemplate());
+            // max values are persisted on the instance (Step 27)
+            assertEquals(137, saved.getLifeMax());
+            assertEquals(127, saved.getEnergyMax());
+            assertEquals(8, saved.getSadMax());
+            assertEquals(24, saved.getWeightMax());
 
             ArgumentCaptor<GamingBackpackResourcesEntity> backCap =
                     ArgumentCaptor.forClass(GamingBackpackResourcesEntity.class);

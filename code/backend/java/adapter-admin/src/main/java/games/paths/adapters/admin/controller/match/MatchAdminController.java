@@ -1,5 +1,6 @@
 package games.paths.adapters.admin.controller.match;
 
+import games.paths.adapters.rest.dto.ClockResponse;
 import games.paths.adapters.rest.dto.MatchInfoResponse;
 import games.paths.adapters.rest.dto.MatchSummaryResponse;
 import games.paths.adapters.rest.dto.MatchUpdateRequest;
@@ -8,6 +9,8 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.port.match.TimeAdvancementPort;
+import games.paths.core.port.match.TurnCyclePort;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,10 +39,14 @@ public class MatchAdminController {
 
     private final MatchCommandPort matchCommandPort;
     private final MatchQueryPort matchQueryPort;
+    private final TimeAdvancementPort timeAdvancementPort;
 
-    public MatchAdminController(MatchCommandPort matchCommandPort, MatchQueryPort matchQueryPort) {
+    public MatchAdminController(MatchCommandPort matchCommandPort,
+                                MatchQueryPort matchQueryPort,
+                                TimeAdvancementPort timeAdvancementPort) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
+        this.timeAdvancementPort = timeAdvancementPort;
     }
 
     /** GET /api/admin/matches — lists every match in the platform (admin view). */
@@ -84,6 +91,25 @@ public class MatchAdminController {
             return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
         }
         return ResponseEntity.ok(MatchInfoResponse.fromModel(detail));
+    }
+
+    /**
+     * GET /api/admin/matches/{uuidMatch}/clock — admin-scoped read of the clock
+     * cycle (Step 26): current clock, story labels and per-character sleeping/energy
+     * state. Mirrors the player endpoint GET /api/match/{uuidMatch}/clock but skips
+     * the participant ownership check so the admin console can inspect any match.
+     */
+    @GetMapping("/{uuidMatch}/clock")
+    public ResponseEntity<Object> getAdminMatchClock(@PathVariable String uuidMatch) {
+        if (isBlank(uuidMatch)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
+        }
+        try {
+            return ResponseEntity.ok(ClockResponse.fromModel(
+                    timeAdvancementPort.clockForAdmin(uuidMatch)));
+        } catch (TurnCyclePort.TurnCycleException ex) {
+            return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
+        }
     }
 
     /**

@@ -45,4 +45,17 @@ describe('PlayerStats', () => {
     render(<PlayerStats />)
     expect(screen.queryByText('life:0')).toBeInTheDocument()
   })
+
+  it('renders current/max gauges when max values are present (Step 27)', () => {
+    render(<PlayerStats stats={{ life: 10, lifeMax: 12, energy: 8, energyMax: 11, weight: 4, weightMax: 24 }} />)
+    expect(screen.getByText('life:10/12')).toBeInTheDocument()
+    expect(screen.getByText('energy:8/11')).toBeInTheDocument()
+    expect(screen.getByText('weight:4/24')).toBeInTheDocument()
+  })
+
+  it('renders the carried items list (Step 27)', () => {
+    render(<PlayerStats stats={{ items: [{ uuid: 'inv-1', name: 'Potion', amount: 2 }] }} />)
+    expect(screen.getByText('Potion')).toBeInTheDocument()
+    expect(screen.getByText('×2')).toBeInTheDocument()
+  })
 })

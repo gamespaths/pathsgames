@@ -4,6 +4,8 @@ import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.port.match.TimeAdvancementPort;
+import games.paths.core.port.match.TurnCyclePort;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,12 +30,15 @@ class MatchAdminControllerTest {
     private MockMvc mockMvc;
     private MatchCommandPort commandPort;
     private MatchQueryPort queryPort;
+    private TimeAdvancementPort timeAdvancementPort;
 
     @BeforeEach
     void setUp() {
         commandPort = mock(MatchCommandPort.class);
         queryPort = mock(MatchQueryPort.class);
-        mockMvc = MockMvcBuilders.standaloneSetup(new MatchAdminController(commandPort, queryPort)).build();
+        timeAdvancementPort = mock(TimeAdvancementPort.class);
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                new MatchAdminController(commandPort, queryPort, timeAdvancementPort)).build();
     }
 
     private MatchSummary summary() {
@@ -78,6 +83,32 @@ class MatchAdminControllerTest {
                 .andExpect(jsonPath("$[0].terminal").value(false))
                 .andExpect(jsonPath("$[3].value").value("ENDED"))
                 .andExpect(jsonPath("$[3].terminal").value(true));
+    }
+
+    @Test
+    void getAdminMatchClock_returns200WithClockPayload() throws Exception {
+        when(timeAdvancementPort.clockForAdmin("m1")).thenReturn(
+                new TimeAdvancementPort.ClockResult("m1", 3, "hour", "hours", true,
+                        List.of(new TimeAdvancementPort.ClockCharacter("char-a", true, 40))));
+        mockMvc.perform(get("/api/admin/matches/m1/clock"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchUuid").value("m1"))
+                .andExpect(jsonPath("$.currentClock").value(3))
+                .andExpect(jsonPath("$.clockLabelSingular").value("hour"))
+                .andExpect(jsonPath("$.anyCharacterSleeping").value(true))
+                .andExpect(jsonPath("$.characters[0].characterUuid").value("char-a"))
+                .andExpect(jsonPath("$.characters[0].isSleeping").value(true))
+                .andExpect(jsonPath("$.characters[0].energy").value(40));
+    }
+
+    @Test
+    void getAdminMatchClock_returns404WhenNotFound() throws Exception {
+        when(timeAdvancementPort.clockForAdmin("m1")).thenThrow(
+                new TurnCyclePort.TurnCycleException(
+                        TurnCyclePort.TurnCycleException.Code.MATCH_NOT_FOUND, "Match not found"));
+        mockMvc.perform(get("/api/admin/matches/m1/clock"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
     }
 
     @Test
