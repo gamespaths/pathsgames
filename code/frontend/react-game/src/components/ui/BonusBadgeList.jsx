@@ -60,7 +60,7 @@ const STAT_VISUAL = {
 
 const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
-export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null }) {
+export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false }) {
   if (!items || items.length === 0) return null
 
   const visibleItems = showZeros
@@ -81,9 +81,10 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
       {visibleItems.map(item => {
         const visual = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
         return (
-          <span key={item.key} className="stat-badge bonus-badge">
+          <span key={item.key} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
             <i className={visual.icon} style={{ color: visual.color }} />
-            {item.label}: <strong>{item.value}</strong>
+            {!littleVersion && <span>{item.label}:</span>} 
+            <strong>{item.value}</strong>
           </span>
         )
       })}

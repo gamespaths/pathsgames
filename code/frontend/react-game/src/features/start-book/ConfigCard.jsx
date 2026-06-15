@@ -1,13 +1,17 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
+import { Children } from 'react'
 
 export default function ConfigCard({
-    type, value, locked, lockedIcon,lockInfo,
+    type, value, locked, lockedIcon,lockInfo, flagInformationCard,
     selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview, selectLabel,
-    selectedCount }) {
+    selectedCount , children , statistics}) {
   const { t } = useTranslation()
   const singleOption = count === 1
-  const previewHandler = singleOption ? () => onPagePreview(value, type) : onPreview ? () => onPreview(value, type) : undefined
+  const lockReason = null;
+  const previewHandler = singleOption 
+    ? () => onPagePreview(value, type , lockReason, statistics) 
+    : onPreview ? () => onPreview(value, type, lockReason, statistics) : undefined;
 
   // Step 23 — the trait card shows how many traits are selected (multi-select)
   const label = t(`book.${type}`) + (selectedCount > 1 ? ` (${selectedCount})` : '')
@@ -31,7 +35,9 @@ export default function ConfigCard({
       actionLabel={t('book.change')}
       actionIcon="fa-sync-alt"
       selectLabel={selectLabel ?? t('book.select')}
-      
-    />
+      childrenIntoImage={children} 
+      statistics={statistics} flagShowFullStatistics={true} 
+      flagInformationCard={flagInformationCard}
+    ></GameCard>
   )
 }

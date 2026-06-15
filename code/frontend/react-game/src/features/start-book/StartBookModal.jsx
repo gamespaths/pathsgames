@@ -104,8 +104,9 @@ export default function StartBookModal({ story, onClose }) {
 
   // From OptionPicker / ConfigView: clicking the magnifying glass on an option
   // swaps the left-page preview without leaving the selection list.
-  function handleSelectionPreview(entity, type , lockedReason) {
-    setPreview(entity ? { entity, type, lockedReason } : null)
+  function handleSelectionPreview(entity, type , lockedReason , statItemsToPageContent) {
+    //console.log("entity", entity, "type", type, "lockedReason", lockedReason, "statItemsToPageContent", statItemsToPageContent);
+    setPreview(entity ? { entity, type, lockedReason, statItemsToPageContent } : null)
   }
 
   // Mobile has no left page, so the (i) lens opens the big card in a modal.
@@ -142,17 +143,19 @@ export default function StartBookModal({ story, onClose }) {
     )
   }
   
-  const leftContent = preview ? ( //console.log("preview",preview);
-    <CardPreviewOverlay
+  //console.log("preview",preview);
+  const leftContent = preview ? ( 
+     <CardPreviewOverlay
       card={preview.entity?.card}
       entity={preview.entity}
       entityType={preview.type}
       story={activeStory}
       onClose={handleBackOrClose}
       lockedReason={preview.lockedReason}
+      statItemsToPageContent={preview.statItemsToPageContent}
     />
   ) : (
-    <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
+    <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory}/>
   )
 
   let rightContent
@@ -207,7 +210,7 @@ export default function StartBookModal({ story, onClose }) {
   )
 }
 
-export function CardPreviewOverlay({ card, entity, entityType, story, onClose, lockedReason }) {
+export function CardPreviewOverlay({ card, entity, entityType, story, onClose, lockedReason , statItemsToPageContent}) {
   console.log(card.entity);
   return (
     <div className="card-preview-overlay">
@@ -219,6 +222,7 @@ export function CardPreviewOverlay({ card, entity, entityType, story, onClose, l
         story={story}
         onClose={onClose}
         lockedReason={lockedReason}
+        statItemsToPageContent={statItemsToPageContent}
       />
     </div>
   )

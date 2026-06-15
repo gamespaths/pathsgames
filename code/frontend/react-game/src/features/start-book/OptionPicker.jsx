@@ -1,6 +1,6 @@
 import { useTranslation } from '../../i18n/context'
 import GameCard from '../../components/layout/GameCard'
-import { buildClassesById, getOptionLockInfo } from '../../utils/bonusStats'
+import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, isTraitSelected, remainingTraitBudget } from '../../utils/traitBudget'
 
 export default function OptionPicker({ type, options, selected, story, config, onSelect, onBack, onPreview }) {
@@ -59,6 +59,10 @@ export default function OptionPicker({ type, options, selected, story, config, o
             const isLocked = !!lockInfo
             const lockedReason = lockMessage(lockInfo)
             const previewHandler = onPreview ? () => onPreview(opt, type , lockedReason) : undefined
+
+            
+
+console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type)  );
             return (
             <GameCard story={story}
               key={opt.uuid ?? opt.name ?? i}
@@ -75,6 +79,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
               onSelect={isLocked ? undefined : () => onSelect(opt)}
               onPreview={previewHandler}
               selectLabel={isTraitPicker && optSelected ? t('book.remove') : t('book.select')}
+              statistics={getNonZeroStats(opt, type)}
             />
           )})}
         </div>

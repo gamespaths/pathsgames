@@ -1,5 +1,6 @@
 import GameCardCreditsBar from './GameCardCreditsBar'
 import { useTranslation } from '../../i18n/context'
+import BonusBadgeList from '../ui/BonusBadgeList'
 
 /**
  * GameCard — unified card component.
@@ -44,7 +45,11 @@ export default function GameCard({
   onPreview, hidePreview = false,
 
   /* extra overlay content */
-  children,
+  childrenIntoImage,
+  children, 
+
+  statistics, flagShowFullStatistics=false,
+  flagInformationCard,
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
@@ -125,6 +130,17 @@ export default function GameCard({
         <span className="gc-footer__btn-label">{actionLabel}</span>
       </button>
     )
+  } else if (flagInformationCard){
+    actionBtn = (
+      <button
+        className="gc-footer__btn "
+        onClick={(e) => { e.stopPropagation(); onPreview() }}
+        aria-label={t('card.info')}
+      >
+        <i className="fas fa-info  my-1" />
+        <span className="gc-footer__btn-label">{t('card.info')}</span>
+      </button>
+    )
   } else if (onPreview) {
     actionBtn = (
       <button
@@ -164,20 +180,34 @@ export default function GameCard({
 
       {/* ── title bar ── */}
       <div className="gc-title">
-        <span className="gc-title__text">{name}</span>
+        <div className="gc-title__text">{name}</div>
         { /* titleMagnifier */}
+        {!flagShowFullStatistics && statistics && statistics.length > 0 &&  
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={true} />
+        }
       </div>
+      
+        {/* ── image or icon placeholder ── */}
+        { (childrenIntoImage || (statistics!=null && statistics.length > 0) )&& (
+          <div  className="gc-img-content">
+            {childrenIntoImage && <div className="gc-img__overlay">
+              {childrenIntoImage}
+            </div>}
+            {flagShowFullStatistics && statistics && statistics.length > 0 &&  
+              <BonusBadgeList className="gc-img__overlay config-total-bonus" items={statistics} littleVersion={false} />
+            }
+          </div>
+        )}
+        {urlImage ? (
+          <img
+            src={urlImage}
+            alt={imageAlt || name}
+            className={['gc-img', imageClassName].filter(Boolean).join(' ')}
+          />
+        ) : (
+          <div className="gc-placeholder"><i className={icon} /></div>
+        )}
 
-      {/* ── image or icon placeholder ── */}
-      {urlImage ? (
-        <img
-          src={urlImage}
-          alt={imageAlt || name}
-          className={['gc-img', imageClassName].filter(Boolean).join(' ')}
-        />
-      ) : (
-        <div className="gc-placeholder"><i className={icon} /></div>
-      )}
 
       {/* ── footer: info (i) + action button ── */}
       <div className="gc-footer">

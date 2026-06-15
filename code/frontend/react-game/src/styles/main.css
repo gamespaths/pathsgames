@@ -780,6 +780,11 @@ html, body {
   background: var(--color-gold);
   color: var(--color-brown-deep);
 }
+.bonus-badge-little-version{
+  font-size: 0.725rem !important;
+  padding: 1px 5px !important;
+}
+
 .bonus-badge__label { 
   line-height: 1; 
   color: var(--color-gold-deep);
@@ -1394,6 +1399,7 @@ html, body {
 
 .gc-title__text {
   flex: 1;
+  white-space: nowrap;
   font-family: var(--font-heading);
   font-size: clamp(0.65rem, 1.5vw, 0.9rem);
   color: var(--color-gold-light);
@@ -1429,6 +1435,18 @@ html, body {
   object-fit: cover;
   display: block;
   border-radius: 0;
+}
+.gc-img-content {
+  min-height: 0;
+  object-fit: cover;
+    position: relative;
+    width: 100%; /* Opzionale, ma consigliato per adattarsi alla card */
+}
+.gc-img__overlay{
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent, rgba(10,4,0,0.88) 65%);
+  z-index: 2;
 }
 
 .gc-placeholder {
@@ -2123,7 +2141,7 @@ html, body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px 14px 16px;
+  padding: 4px 2px; /* padding: 10px 14px 16px; */  
 }
 .start-match-footer { flex-shrink: 0; }
 

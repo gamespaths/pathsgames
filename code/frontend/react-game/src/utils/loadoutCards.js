@@ -68,3 +68,21 @@ export function buildFreeToPlay(t) {
     description: t('book.freeToPlayDesc'),
   }
 }
+
+export function buildStatisticsCard(t, totals , story) {
+  const personCard=metaCard('person');
+  personCard.statItemsToPageContent = totals.map(({ category, value }) => ({
+    key: category,
+    label: t(`book.stats.totals.${category}`),
+    value,
+  }))
+  //personCard.urlImage=story?.card?.urlImage ?? null; // use the story image if available, otherwise fallback to the default person image 
+  personCard.urlImage=null;
+  return {
+    name: t('book.stats.title'),
+    //icon: 'fas fa-chart-bar',
+    card: personCard,//card: metaCard('statistics'),
+    description: t('book.stats.statisticsDesc'),
+    totals,
+  }
+}

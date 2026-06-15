@@ -8,10 +8,11 @@ import ConfigCard from '@/features/start-book/ConfigCard'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
-import { buildGameTypeCard, buildLoginCard, buildTermsCard } from '@/utils/loadoutCards'
+import { buildGameTypeCard, buildLoginCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
 import { createMatch, joinMatch } from '@/api/matches'
 import ConfirmStep from './ConfirmStep'
 import MatchStatus from './MatchStatus'
+import { aggregateBonusTotals } from '@/utils/bonusStats'
 
 /**
  * StartMatchFlow — the single match-setup surface, reached from the start book's
@@ -48,6 +49,11 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const [countdown, setCountdown] = useState(delaySeconds())
   const [match, setMatch] = useState(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const [preview,setPreview] = useState(false)
+
+  function handleSelectionPreview(entity, entityType , lockedReason , statItemsToPageContent) {
+    setPreview(entity ? { entity, entityType, lockedReason, statItemsToPageContent } : null)
+  }
 
   const goHome = useCallback(() => navigate('/'), [navigate])
 
@@ -113,12 +119,33 @@ export default function StartMatchFlow({ story, config, storyId }) {
     if (el && Modal) Modal.getOrCreateInstance(el).show()
   }
 
+  //statistics 
+  
+  const statisticsA = aggregateBonusTotals([
+    { entity: config.character,  type: 'character' },
+    { entity: config.class,      type: 'class' },
+    ...config.traits.map(tr => ({ entity: tr, type: 'trait' })),
+    { entity: config.difficulty, type: 'difficulty' },
+  ]) 
+  //console.log("statistics",statistics);
+  const statisticsCard = buildStatisticsCard(t, statisticsA, story);
+  const statistics = statisticsA.map(({ category, value }) => ({
+    key: category,
+    label: t(`book.stats.totals.${category}`),
+    value, 
+  }))  
+
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start button).
   const cardsBlock = (
     <div className="selection-list">
-      <ConfigCard type="gameType" value={buildGameTypeCard(t)} story={story} locked />
-      <ConfigCard type="login"    value={buildLoginCard(t)}    story={story} locked />
+      <ConfigCard type="story" value={{ card: story.card }} story={story} flagInformationCard={true}  onPreview={handleSelectionPreview} />
+        <ConfigCard type="statistics"   value={statisticsCard} flagInformationCard={true} onPreview={handleSelectionPreview}
+          statistics={statistics.filter(cat => ['dexterity', 'intelligence' , 'constitution' ].includes(cat.key))} />
+        <ConfigCard type="statistics"   value={statisticsCard} flagInformationCard={true}   onPreview={handleSelectionPreview}
+          statistics={statistics.filter(cat => ['life', 'energy' , 'sad', 'weight'].includes(cat.key))} />
+      <ConfigCard type="gameType" value={buildGameTypeCard(t)} story={story} locked onPreview={handleSelectionPreview} />
+      <ConfigCard type="login"    value={buildLoginCard(t)}    story={story} locked onPreview={handleSelectionPreview} />
       <ConfigCard
         type="terms"
         value={buildTermsCard(t)}
@@ -168,7 +195,15 @@ export default function StartMatchFlow({ story, config, storyId }) {
           <div className="start-match-footer">{bottom}</div>
         </div>
       }
-      left={<BookPageContent card={story.card} story={story} loading={false} />}
+      left={ preview 
+        ? <BookPageContent loading={false}
+                card={preview.entity?.card}
+                entity={preview.entity}
+                entityType={preview.entityType}
+                story={story}
+                statItemsToPageContent={preview.statItemsToPageContent}
+              />
+        : <BookPageContent card={story.card} story={story} loading={false} />}
       right={
         <div className="start-match-right">
           <div className="start-match-cards">{cardsBlock}</div>
