@@ -69,17 +69,38 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
-26. Time advancement system — sleep, recovery, new time
-    - Implement time advancement trigger: advance when character has zero energy or voluntarily sleeps (backend)
-    - Implement POST /gameplay/{uuid_match}/action/sleep endpoint for voluntary sleep action (backend)
-    - Apply time-start recovery: safe location gives DES+P energy, COS+P life, minus INT+P sadness; unsafe gives DES energy only (backend)
-    - Apply class bonuses at time start from list_classes_bonus for each character (backend)
-    - Decrement location time counters and trigger id_event_if_counter_zero when counter reaches zero (backend)
-    - Update gaming_match.current_clock, create log_clock_history record, recalculate turn queue (backend)
-    - Write backend unit tests for time advancement covering safe/unsafe recovery, class bonuses, counter events, and clock update (backend tests)
+25. Time advancement & clock cycle only backends
+    - Implement time-advancement trigger service, multi-character-ready: fires when ALL active characters have zero energy or are sleeping (in single-player the list is size 1) (backend)
+    - Implement POST /api/gameplay/{uuid_match}/action/sleep for voluntary sleep: set is_sleeping, then evaluate whether this triggers time-end (backend)
+    - On time-end: advance gaming_match.current_clock to the next time unit and create a log_clock_history record (backend)
+    - Recalculate gaming_turn_queue for all characters at new time start — reuse Step 24 TurnPriorityCalculator, reset rows to WAITING, activate the highest priority (backend)
+    - Implement GET /api/match/{uuid_match}/clock returning current clock, time unit, day/phase, and whether characters are sleeping (backend)
+    - Emit a TimeAdvanced domain event now (even though WebSocket broadcast is deferred to Step 64) so later steps just subscribe instead of being retrofitted (backend)
+    - Backend unit tests: trigger logic (all-sleeping / all-zero-energy), sleep endpoint, clock increment + log, queue recalculation, clock endpoint, clock widget rendering (tests)
+
+26. Time advancement & clock cycle only frontends 
+    - Frontend: clock/time widget in react-game (day↔night indicator, current time unit) styled with the "book" theme + a "Sleep" action button with confirm dialog wired to the sleep endpoint; react-admin shows current_clock in the match detail panel (frontend)
+        - into GameCard component add the "PlayerStats" parameter
+            into little GameCard show stats with PlayerStats in overlay into image (img)
+            into large/big GameCard show 
+        - into ActionRow on GamePage.jsx add a card to describe the 
+    - Frontend unit tests: trigger logic (all-sleeping / all-zero-energy), sleep endpoint, clock increment + log, queue recalculation, clock endpoint, clock widget rendering (tests)
+
+
+26. Time-start recovery, class bonuses & location counters
+    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
+    - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: energy≤energy_max, life≤life_max, sadness≤sad_max, life≥0 (backend)
+    - Decrement location time counters at time start; when a counter reaches zero, log it and flag id_event_if_counter_zero for execution — actual event execution is wired in Step 29 (stub now) (backend)
+    - Create log records for recovery and counter changes; extend the clock/turn-sequence response with a per-character recovery summary (energy/life/sadness delta) (backend)
+    - Frontend: "new time" recap panel in react-game showing per-character recovery deltas and any counter-triggered notices; refresh energy/life/sadness bars after time start (frontend)
+    - Backend + frontend unit tests: safe/unsafe recovery math, stat caps, class-bonus application, counter decrement + zero handling (stub), recovery recap rendering (tests)
+
+
+
 27. Weather system — random selection and effects
+    - 4. Determinismo per i test. Weather (27) e global random events (65) usano probabilità. Inietta un RNG seedabile fin da subito, altrimenti le suite Robot su meteo/eventi saranno flaky.
     - Implement weather selection algorithm using probability weights, registry conditions, and time range filters (backend)
-    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend)
+    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend): maybe already developed! 
     - Apply weather energy delta to characters at time start (delta_energy field) (backend)
     - Trigger weather-linked events when weather has id_event configured (backend)
     - Store weather in gaming_match.id_current_weather and create log_weather history record (backend)
@@ -99,6 +120,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement AUTOMATIC_FIRST_IN_LOCATION trigger when character enters empty location (no other characters present) (backend)
     - Execute event effects: modify stats, add/remove items, update registry, change character location (backend)
     - Handle event chaining via id_event_next with interrupt flag to stop subsequent events (backend)
+    - Implements/execute events runned from zero-counter developed on 26 step and execute event. 
     - Update gaming_state_locations to mark location as visited and log event execution in log_events (backend)
     - Write backend unit tests for all automatic trigger types, event effects, chaining, interrupts, and state updates (backend tests)
 30. Optional events — player-triggered actions

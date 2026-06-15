@@ -48,7 +48,7 @@ class TurnCycleServiceTest {
     }
 
     private CharacterTurnView character(long id, String uuid, int dex, int intel, int cos, int life) {
-        return new CharacterTurnView(id, uuid, USER_ID, dex, intel, cos, life);
+        return new CharacterTurnView(id, uuid, USER_ID, dex, intel, cos, life, 10, false);
     }
 
     @Nested
@@ -152,7 +152,7 @@ class TurnCycleServiceTest {
         @DisplayName("NOT_YOUR_TURN when the active character belongs to another user")
         void notYourTurn() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 10L)));
-            CharacterTurnView other = new CharacterTurnView(10L, "char-a", 999L, 5, 5, 5, 10);
+            CharacterTurnView other = new CharacterTurnView(10L, "char-a", 999L, 5, 5, 5, 10, 10, false);
             when(store.findCharactersByMatchId(1L)).thenReturn(List.of(other));
             when(store.findQueueByMatchId(1L)).thenReturn(List.of(
                     new QueueRow(10L, "q-a", 0, 30201L, TurnStatuses.ACTIVE, 0, null, null)));

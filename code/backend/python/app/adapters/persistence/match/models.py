@@ -142,3 +142,24 @@ class GamingTurnQueueEntity(Base):
     status = Column(String(20), default="WAITING", nullable=False)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class LogClockHistoryEntity(Base):
+    """Step 25 — append-only log of clock advances. One row per time-end.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it
+    is assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_clock_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer, nullable=False)
+    weather = Column(String(100))
+    timestamp_start = Column(String(50))
+    timestamp_end = Column(String(50))
+    id_event_start = Column(Integer)
+    id_event_end = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

@@ -56,6 +56,8 @@ class TurnCycleStoreAdapter(TurnCycleStorePort):
                     "intelligence": c.intelligence,
                     "constitution": c.constitution,
                     "life": c.life,
+                    "energy": c.energy,
+                    "is_sleeping": bool(c.is_sleeping),
                 }
                 for c in rows
             ]

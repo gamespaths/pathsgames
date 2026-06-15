@@ -1,12 +1,19 @@
 package games.paths.core.persistence.match;
 
 import games.paths.core.entity.match.GamingCharacterInstanceEntity;
+import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingTurnQueueEntity;
+import games.paths.core.entity.match.LogClockHistoryEntity;
+import games.paths.core.entity.story.StoryEntity;
+import games.paths.core.entity.story.TextEntity;
 import games.paths.core.port.match.TurnCycleStorePort;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingTurnQueueRepository;
+import games.paths.core.repository.match.LogClockHistoryRepository;
+import games.paths.core.repository.story.StoryRepository;
+import games.paths.core.repository.story.TextRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +32,22 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     private final GamingMatchRepository matchRepository;
     private final GamingCharacterInstanceRepository characterRepository;
     private final GamingTurnQueueRepository turnQueueRepository;
+    private final LogClockHistoryRepository logClockHistoryRepository;
+    private final StoryRepository storyRepository;
+    private final TextRepository textRepository;
 
     public TurnCycleStoreAdapter(GamingMatchRepository matchRepository,
                                  GamingCharacterInstanceRepository characterRepository,
-                                 GamingTurnQueueRepository turnQueueRepository) {
+                                 GamingTurnQueueRepository turnQueueRepository,
+                                 LogClockHistoryRepository logClockHistoryRepository,
+                                 StoryRepository storyRepository,
+                                 TextRepository textRepository) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.turnQueueRepository = turnQueueRepository;
+        this.logClockHistoryRepository = logClockHistoryRepository;
+        this.storyRepository = storyRepository;
+        this.textRepository = textRepository;
     }
 
     @Override
@@ -48,12 +64,17 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     public List<CharacterTurnView> findCharactersByMatchId(long idMatch) {
         List<CharacterTurnView> out = new ArrayList<>();
         for (GamingCharacterInstanceEntity c : characterRepository.findByIdMatch(idMatch)) {
-            out.add(new CharacterTurnView(
-                    c.getId(), c.getUuid(), c.getIdUser(),
-                    nz(c.getDexterity()), nz(c.getIntelligence()),
-                    nz(c.getConstitution()), nz(c.getLife())));
+            out.add(toView(c));
         }
         return out;
+    }
+
+    private static CharacterTurnView toView(GamingCharacterInstanceEntity c) {
+        return new CharacterTurnView(
+                c.getId(), c.getUuid(), c.getIdUser(),
+                nz(c.getDexterity()), nz(c.getIntelligence()),
+                nz(c.getConstitution()), nz(c.getLife()),
+                nz(c.getEnergy()), Boolean.TRUE.equals(c.getIsSleeping()));
     }
 
     @Override
@@ -109,6 +130,87 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
         if (status != null) m.setStatus(status);
         m.setIdCharacterCurrentTurn(idCharacterCurrentTurn);
         matchRepository.save(m);
+    }
+
+    // ── Step 25: time advancement & clock cycle ─────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CharacterTurnView> findCharacterByMatchAndUser(long idMatch, long idUser) {
+        return characterRepository.findByIdMatchAndIdUser(idMatch, idUser)
+                .map(TurnCycleStoreAdapter::toView);
+    }
+
+    @Override
+    public void setCharacterSleeping(long idMatch, long idCharacter, boolean sleeping) {
+        characterRepository.findById(new GamingCharacterInstanceEntityId(idCharacter, idMatch))
+                .ifPresent(c -> {
+                    c.setIsSleeping(sleeping);
+                    characterRepository.save(c);
+                });
+    }
+
+    @Override
+    public void wakeAllCharacters(long idMatch) {
+        List<GamingCharacterInstanceEntity> characters = characterRepository.findByIdMatch(idMatch);
+        for (GamingCharacterInstanceEntity c : characters) {
+            if (Boolean.TRUE.equals(c.getIsSleeping())) {
+                c.setIsSleeping(false);
+            }
+        }
+        characterRepository.saveAll(characters);
+    }
+
+    @Override
+    public int incrementMatchClock(long idMatch) {
+        GamingMatchEntity m = matchRepository.findById(idMatch).orElse(null);
+        if (m == null) return 0;
+        int newClock = nz(m.getCurrentClock()) + 1;
+        m.setCurrentClock(newClock);
+        matchRepository.save(m);
+        return newClock;
+    }
+
+    @Override
+    public void insertClockHistory(long idMatch, int clock) {
+        LogClockHistoryEntity e = new LogClockHistoryEntity();
+        e.setId(logClockHistoryRepository.findMaxId() + 1);
+        e.setIdMatch(idMatch);
+        e.setClock(clock);
+        String now = java.time.Instant.now().toString();
+        e.setTimestampStart(now);
+        logClockHistoryRepository.save(e);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClockLabels findStoryClockLabels(long idMatch, String lang) {
+        GamingMatchEntity m = matchRepository.findById(idMatch).orElse(null);
+        if (m == null || m.getIdStory() == null) {
+            return new ClockLabels(null, null);
+        }
+        StoryEntity story = storyRepository.findById(m.getIdStory()).orElse(null);
+        if (story == null) {
+            return new ClockLabels(null, null);
+        }
+        String singular = resolveText(story.getId(), story.getIdTextClockSingular(), lang);
+        String plural = resolveText(story.getId(), story.getIdTextClockPlural(), lang);
+        return new ClockLabels(singular, plural);
+    }
+
+    private String resolveText(Long idStory, Integer idText, String lang) {
+        if (idStory == null || idText == null) return null;
+        String effectiveLang = (lang != null && !lang.isBlank()) ? lang : "en";
+        String text = firstShortText(idStory, idText, effectiveLang);
+        if (text == null && !"en".equals(effectiveLang)) {
+            text = firstShortText(idStory, idText, "en");
+        }
+        return text;
+    }
+
+    private String firstShortText(Long idStory, Integer idText, String lang) {
+        List<TextEntity> texts = textRepository.findByIdStoryAndIdTextAndLang(idStory, idText, lang);
+        return texts.isEmpty() ? null : texts.get(0).getShortText();
     }
 
     private static int nz(Integer v) {

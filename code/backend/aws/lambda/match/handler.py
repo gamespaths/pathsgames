@@ -852,6 +852,130 @@ def _get_turn_sequence(user, match_uuid):
     return _ok(_sequence_response(match, rows))
 
 
+# ─── Step 25 — time advancement & clock cycle ────────────────────────────────
+
+def _all_characters_done(characters):
+    """Time-end trigger: every character is sleeping OR out of energy.
+    In single-player the list is size 1. An empty list never triggers."""
+    if not characters:
+        return False
+    for c in characters:
+        done = _nz(c.get('isSleeping')) == 1 or _nz(c.get('energy')) <= 0
+        if not done:
+            return False
+    return True
+
+
+def _advance_time(match, match_uuid):
+    """Advance the clock: log the advance, wake characters, rebuild the queue."""
+    new_clock = _nz(match.get('currentClock')) + 1
+    match['currentClock'] = new_clock
+
+    # Append a clock-history item under the match partition.
+    db_utils.put_item({
+        "PK": f'MATCH#{match_uuid}',
+        "SK": f'CLOCK#{new_clock}',
+        "clock": new_clock,
+        "timestampStart": _ts_ms(),
+    })
+
+    # Wake every character.
+    for c in _match_characters(match_uuid):
+        if _nz(c.get('isSleeping')) == 1:
+            c['isSleeping'] = 0
+            db_utils.put_item(c)
+
+    # Rebuild the turn queue for the new clock (all WAITING, highest priority ACTIVE).
+    characters = _match_characters(match_uuid)
+    rows = []
+    for c in characters:
+        priority = _turn_priority(c.get('dexterity'), c.get('intelligence'),
+                                  c.get('constitution'), c.get('life'), c.get('id'))
+        rows.append({
+            "idCharacter": _nz(c.get('id')),
+            "characterUuid": c.get('uuid'),
+            "priority": priority,
+            "clock": new_clock,
+            "status": TURN_WAITING,
+            "passCounter": 0,
+        })
+    rows.sort(key=lambda r: r['priority'], reverse=True)
+    if rows:
+        rows[0]['status'] = TURN_ACTIVE
+        match['activeCharacterUuid'] = rows[0]['characterUuid']
+    for r in rows:
+        db_utils.put_item({
+            "PK": f'MATCH#{match_uuid}',
+            "SK": f'TURN#{r["characterUuid"]}',
+            **r,
+        })
+
+    db_utils.put_item(match)
+    # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
+    return new_clock
+
+
+def _sleep(user, match_uuid):
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    # The caller must own a character in this match (mask as not-found otherwise).
+    caller = next((c for c in _match_characters(match_uuid)
+                   if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+
+    # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
+    caller['isSleeping'] = 1
+    db_utils.put_item(caller)
+
+    # Re-read so the trigger sees the just-applied sleep flag.
+    characters = _match_characters(match_uuid)
+    triggered = _all_characters_done(characters)
+
+    current_clock = _nz(match.get('currentClock'))
+    if triggered:
+        current_clock = _advance_time(match, match_uuid)
+
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "characterUuid": caller.get('uuid'),
+        "isSleeping": not triggered,  # woke up at time start when triggered
+        "timeEndTriggered": triggered,
+        "currentClock": current_clock,
+    })
+
+
+def _get_clock(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    characters = _match_characters(match_uuid)
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    any_sleeping = any(_nz(c.get('isSleeping')) == 1 for c in characters)
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "currentClock": _nz(match.get('currentClock')),
+        "clockLabelSingular": story.get('clockSingularDescription'),
+        "clockLabelPlural": story.get('clockPluralDescription'),
+        "anyCharacterSleeping": any_sleeping,
+        "characters": [
+            {
+                "characterUuid": c.get('uuid'),
+                "isSleeping": _nz(c.get('isSleeping')) == 1,
+                "energy": _nz(c.get('energy')),
+            }
+            for c in characters
+        ],
+    })
+
+
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -1001,5 +1125,22 @@ def lambda_handler(event, context):
             segments = path.split('/')  # /api/match/{uuidMatch}/turn-sequence
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _get_turn_sequence(user, match_uuid)
+
+    # ── Step 25 — time advancement & clock cycle ──
+    if (path.startswith('/api/gameplay/') and path.endswith('/action/sleep') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/sleep
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        return _sleep(user, match_uuid)
+
+    if (path.startswith('/api/match/') and path.endswith('/clock') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/clock
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _get_clock(user, match_uuid)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

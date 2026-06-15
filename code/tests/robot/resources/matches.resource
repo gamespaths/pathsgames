@@ -310,3 +310,19 @@ Get Turn Sequence
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/turn-sequence
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}
+
+Sleep Action
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/sleep — voluntary sleep (Step 25).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/sleep
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Clock
+    [Documentation]    GET /api/match/{uuidMatch}/clock — current clock & sleeping state (Step 25).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/clock
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}

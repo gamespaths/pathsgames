@@ -186,6 +186,22 @@ public class CoreConfig {
         return new games.paths.core.service.match.TurnCycleService(turnCycleStorePort, userAccessPort);
     }
 
+    // ───── Step 25: Time advancement & clock cycle (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.event.DomainEventPublisher domainEventPublisher() {
+        return new games.paths.core.service.event.InProcessDomainEventPublisher();
+    }
+
+    @Bean
+    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+            games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
+            UserAccessPort userAccessPort,
+            games.paths.core.port.event.DomainEventPublisher domainEventPublisher) {
+        return new games.paths.core.service.match.TimeAdvancementService(
+                turnCycleStorePort, userAccessPort, domainEventPublisher);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean

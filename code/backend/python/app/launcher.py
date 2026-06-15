@@ -45,6 +45,10 @@ from app.adapters.rest.match.character_controller import CharacterController
 from app.adapters.persistence.match.turn_cycle_store_adapter import TurnCycleStoreAdapter
 from app.core.services.match.turn_cycle_service import TurnCycleService
 from app.adapters.rest.match.turn_cycle_controller import TurnCycleController
+from app.adapters.persistence.match.time_store_adapter import TimeStoreAdapter
+from app.core.services.match.time_advancement_service import TimeAdvancementService
+from app.core.services.event.in_process_event_publisher import InProcessDomainEventPublisher
+from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
@@ -141,6 +145,12 @@ character_controller = CharacterController(character_command_service, character_
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
+
+# Step 25 — time advancement & clock cycle.
+time_store_adapter = TimeStoreAdapter(SessionLocal)
+domain_event_publisher = InProcessDomainEventPublisher()
+time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher)
+time_clock_controller = TimeClockController(time_advancement_service)
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
@@ -227,6 +237,7 @@ app = _build_app([
     match_controller.router,
     character_controller.router,
     turn_cycle_controller.router,
+    time_clock_controller.router,
 ])
 
 # Admin app — served ONLY on settings.admin_port. Hosts every /api/admin/** endpoint,

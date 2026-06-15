@@ -27,6 +27,29 @@ public interface TurnCycleStorePort {
     /** Update gaming_match.status and gaming_match.id_character_current_turn. */
     void updateMatchStatusAndTurn(long idMatch, String status, Long idCharacterCurrentTurn);
 
+    // ── Step 25: time advancement & clock cycle ─────────────────────────────
+
+    /** The character instance owned by {@code idUser} in {@code idMatch}, if any. */
+    Optional<CharacterTurnView> findCharacterByMatchAndUser(long idMatch, long idUser);
+
+    /** Set/clear {@code is_sleeping} on a single character of the match. */
+    void setCharacterSleeping(long idMatch, long idCharacter, boolean sleeping);
+
+    /** Clear {@code is_sleeping} on every character of the match (wake at time start). */
+    void wakeAllCharacters(long idMatch);
+
+    /** Advance {@code gaming_match.current_clock} by one and return the new value. */
+    int incrementMatchClock(long idMatch);
+
+    /** Insert a {@code log_clock_history} row for the given (new) clock. */
+    void insertClockHistory(long idMatch, int clock);
+
+    /** Resolve the story's singular/plural clock labels for the match's story. */
+    ClockLabels findStoryClockLabels(long idMatch, String lang);
+
+    record ClockLabels(String singular, String plural) {
+    }
+
     record MatchView(long id,
                      String uuid,
                      String status,
@@ -41,7 +64,9 @@ public interface TurnCycleStorePort {
                              int dexterity,
                              int intelligence,
                              int constitution,
-                             int life) {
+                             int life,
+                             int energy,
+                             boolean isSleeping) {
     }
 
     record QueueRow(long idCharacterMatch,
