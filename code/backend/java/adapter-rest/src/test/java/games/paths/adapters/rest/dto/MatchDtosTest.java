@@ -160,7 +160,7 @@ class MatchDtosTest {
                 null, null, null, null, null, "Stranger", "appears", null, null, null);
 
         LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard);
-        EventInfo ev = new EventInfo("evt-1", "NORMAL", evCard);
+        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
         LocationInfo li = new LocationInfo(1L, "loc-1", locCard, List.of(nb), List.of(ev));
 
         MatchDetail d = new MatchDetail();
@@ -185,6 +185,7 @@ class MatchDtosTest {
         MatchInfoResponse.EventInfoDto evDto = dto.getEvents().get(0);
         assertEquals("evt-1", evDto.getUuid());
         assertEquals("NORMAL", evDto.getType());
+        assertTrue(evDto.isEndGame());
         assertEquals("Stranger", evDto.getCard().getTitle());
     }
 

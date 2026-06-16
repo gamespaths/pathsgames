@@ -14,7 +14,8 @@ import { isValidElement } from 'react'
  * absolute-positioned above the image, top-right. Zero/missing values are hidden.
  */
 export default function BookPageContent({ 
-    card, story, loading, onClose, entity, entityType , extraContent=null, lockedReason , statItemsToPageContent=null, descriptionTag=false}) {
+    card, story, loading, onClose, entity, entityType , extraContent=null, extraContentClassName=null,
+    lockedReason , statItemsToPageContent=null, descriptionTag=false}) {
   const { t } = useTranslation()
 
   const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType).map(s => ({
@@ -58,8 +59,8 @@ export default function BookPageContent({
             : <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(description)) }} />}
         </div>
       )}
-      
-      {extraContent && <div className="book-page-extra">{extraContent}</div>}
+      { console.log("extraContent",extraContent)}
+      {extraContent && <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>}
 
       {card?.linkCopyright && (
         <GameCardCreditsBar card={card} story={story} />

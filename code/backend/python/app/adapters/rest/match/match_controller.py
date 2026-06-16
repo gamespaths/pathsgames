@@ -156,7 +156,7 @@ def _location_info_to_camel(l):
             for n in l.neighbors
         ],
         "events": [
-            {"uuid": e.uuid, "type": e.type, "card": e.card}
+            {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card}
             for e in l.events
         ],
     }

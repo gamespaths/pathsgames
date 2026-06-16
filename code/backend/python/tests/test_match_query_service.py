@@ -245,7 +245,7 @@ def _build_enriched(player_loc=10):
     user_access.find_by_uuid.return_value = _user()
     persistence.find_match_by_uuid.return_value = _match()
     story_read.find_story_by_id.return_value = {
-        "id": 2, "uuid": "story-uuid", "id_location_start": 11,
+        "id": 2, "uuid": "story-uuid", "id_location_start": 11, "id_event_end_game": 1,
     }
     story_read.find_difficulty_by_id.return_value = {"id": 3, "uuid": "diff-uuid"}
     locations = [
@@ -315,6 +315,7 @@ def test_locations_active_carries_card_neighbors_events():
     # event filtered to location 10 only
     assert len(active.events) == 1
     assert active.events[0].uuid == "evt-1"
+    assert active.events[0].end_game is True  # evt-1 (id 1) == story id_event_end_game
     assert active.events[0].card["title"] == "Stranger"
 
 

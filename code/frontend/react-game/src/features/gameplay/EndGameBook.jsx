@@ -31,9 +31,20 @@ export default function EndGameBook({ story, endGameCard , onClose}) {
       </button>
     </div>
   )
+  function goToHome(){
+    // For now we just reload to home, but we could also navigate with state to show a "Game ended" message or similar
+    window.location.href = '/'
+  }
 
   const leftPage = <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
-  const rightPage = <BookPageContent card={endGameCard} loading={endGameCard===undefined} story={story} />
+  const rightPage = <BookPageContent card={endGameCard} loading={endGameCard===undefined} story={story} 
+  
+          extraContentClassName="book-page-extra-align-right" extraContent={
+          <button className="gc-footer__btn m-2 p-2" onClick={() => goToHome()}>
+            <i className={`fas fa-home `} />
+            <span className="gc-footer__btn-label">{t('game.endGameClose')}</span>
+          </button>}
+  />
 
 
   const mobileStack = (

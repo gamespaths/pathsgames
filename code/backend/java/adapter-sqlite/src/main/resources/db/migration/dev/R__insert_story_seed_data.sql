@@ -642,6 +642,15 @@ INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_t
 (91002, 9002, NULL, 'fas fa-scroll',        'evidence', 941, 941, 942),
 (91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943);
 
+-- ── Step 27.x / 0.25.4 — match-info locationsActive wiring ──────
+-- Set the start location (so a joined character has idLocation), mark the
+-- end-game event and pin it to a location, so GET /api/match/{uuid}/info
+-- returns a populated locationsActive with an event flagged endGame=true.
+UPDATE list_stories SET id_location_start = 90001, id_event_end_game = 90005 WHERE id = 9001;
+UPDATE list_stories SET id_location_start = 91001, id_event_end_game = 91005 WHERE id = 9002;
+UPDATE list_events  SET id_specific_location = 90001 WHERE id = 90005 AND id_story = 9001;
+UPDATE list_events  SET id_specific_location = 91001 WHERE id = 91005 AND id_story = 9002;
+
 -- =============================================
 -- END OF STORY SEED DATA
 -- =============================================

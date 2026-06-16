@@ -30,6 +30,13 @@ export function buildGameTypeCard(t) {
   }
 }
 
+export function buildEndGameCard(t) {
+  const endGameMetaCard = metaCard('endgame');
+  endGameMetaCard.name = t('game.endGameCard.title');
+  endGameMetaCard.description = t('game.endGameCard.description');  
+  return endGameMetaCard;
+}
+
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
   return {

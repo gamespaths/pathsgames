@@ -406,3 +406,12 @@ SELECT setval('list_missions_id_seq',           (SELECT MAX(id) FROM list_missio
 SELECT setval('list_missions_steps_id_seq',     (SELECT MAX(id) FROM list_missions_steps));
 SELECT setval('list_creator_id_seq',            (SELECT MAX(id) FROM list_creator));
 SELECT setval('list_cards_id_seq',              (SELECT MAX(id) FROM list_cards));
+
+-- ── Step 27.x / 0.25.4 — match-info locationsActive wiring ──────
+-- Set the start location (so a joined character has idLocation), mark the
+-- end-game event and pin it to a location, so GET /api/match/{uuid}/info
+-- returns a populated locationsActive with an event flagged endGame=true.
+UPDATE list_stories SET id_location_start = 90001, id_event_end_game = 90005 WHERE id = 9001;
+UPDATE list_stories SET id_location_start = 91001, id_event_end_game = 91005 WHERE id = 9002;
+UPDATE list_events  SET id_specific_location = 90001 WHERE id = 90005 AND id_story = 9001;
+UPDATE list_events  SET id_specific_location = 91001 WHERE id = 91005 AND id_story = 9002;

@@ -94,6 +94,23 @@ Locations Active Is Empty Without A Joined Character
     Should Not Be Equal    ${body}[currentLocationId]    ${None}
     ...    msg=currentLocationId must fall back to the story start location
 
+Event Cards Expose The End Game Flag
+    [Documentation]    Step 0.25.4 — every event under an active location carries a boolean
+    ...                `endGame` flag (true only for the story's end-game event). Backend-
+    ...                agnostic: asserts the key/type on whatever events the seed wires to the
+    ...                player's location; when the story's end-game event is present at that
+    ...                location it must be flagged true.
+    [Tags]    locations-active    match-info    step27    end-game
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    ${response}=    Get Match Info    ${TOKEN}    ${match}    200
+    ${active}=    Set Variable    ${response.json()}[locationsActive][0]
+    FOR    ${event}    IN    @{active}[events]
+        Dictionary Should Contain Key    ${event}    endGame
+        ${is_bool}=    Evaluate    isinstance($event['endGame'], bool)
+        Should Be True    ${is_bool}    msg=endGame must be a boolean
+    END
+
 Neighbor And Event Cards Match The Active Location Schema
     [Documentation]    When the seed wires neighbors/events to the player's location, each
     ...                neighbor exposes idLocation/direction/energyCost and each event

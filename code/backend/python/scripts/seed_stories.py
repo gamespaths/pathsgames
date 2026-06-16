@@ -35,6 +35,10 @@ def seed():
         "idTextClockSingular": 10,
         "idTextClockPlural": 11,
         "idCard": 1,
+        # Step 27.x / 0.25.4 — start location + end-game event so GET
+        # /api/match/{uuid}/info exposes a populated locationsActive (with endGame).
+        "idLocationStart": 1,
+        "idEventEndGame": 1,
         "texts": [
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL"},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL"},
@@ -70,10 +74,11 @@ def seed():
              "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
         "locations": [
-            {"idTextName": 100, "idTextDescription": 100, "isSafe": 1}
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1}
         ],
         "events": [
-            {"idTextName": 500, "idTextDescription": 500, "type": "FIRST"}
+            {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
+             "idSpecificLocation": 1}
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}

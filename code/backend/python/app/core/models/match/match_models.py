@@ -123,6 +123,7 @@ class EventInfo:
 
     uuid: str
     type: Optional[str] = None
+    end_game: bool = False
     card: Optional[Dict[str, Any]] = None
 
 

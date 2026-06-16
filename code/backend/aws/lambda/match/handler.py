@@ -264,6 +264,7 @@ def _build_locations_active(story, active_loc_ids):
     locations = story.get("locations") or []
     neighbors = story.get("neighbors") or []
     events = story.get("events") or []
+    end_event_id = story.get("idEventEndGame")
     loc_by_id = {l.get("id"): l for l in locations}
 
     result = []
@@ -291,7 +292,9 @@ def _build_locations_active(story, active_loc_ids):
             })
 
         event_infos = [
-            {"uuid": e.get("uuid"), "type": e.get("type"), "card": e.get("card")}
+            {"uuid": e.get("uuid"), "type": e.get("type"),
+             "endGame": end_event_id is not None and e.get("id") == end_event_id,
+             "card": e.get("card")}
             for e in events if e.get("idLocation") == loc_id
         ]
 

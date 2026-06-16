@@ -475,6 +475,9 @@ components:
         type:
           type: string
           nullable: true
+        endGame:
+          description: True when this event is the story's end-game event.
+          type: boolean
         card:
           $ref: '#/components/schemas/CardInfo'
 

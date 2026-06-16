@@ -13,6 +13,7 @@ export default function GamePage() {
   const matchUuid = state?.matchUuid ?? null
   const { user } = useGuestUser() ?? {}
   const { lang } = useTranslation()
+  const { t } = useTranslation()
 
   const [gameData, setGameData] = useState(null)
   const [story, setStory] = useState(null)
@@ -28,7 +29,7 @@ export default function GamePage() {
     Promise.all([getGameData(matchUuid, user?.accessToken), getStory(storyId)]).then(([info, st]) => {
       if (cancelled) return
       setStory(st)
-      setGameData(matchInfoToGameData(info, st))
+      setGameData(matchInfoToGameData(info, st , t ))
       setLoading(false)
     })
     return () => { cancelled = true }
@@ -56,7 +57,8 @@ export default function GamePage() {
           <i className="fas fa-spinner fa-spin me-4" />Loading…
         </div>
       ) : (
-        <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail} onClose={() => gotoHomePage(null)} />
+        <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail} 
+          onClose={() => gotoHomePage(null)} />
       )}
     </div>
   )

@@ -101,6 +101,7 @@
         {
           "uuid": "evt-tavern-1",
           "type": "NORMAL",
+          "endGame": false,
           "card": {
             "title": "A Hooded Stranger",
             "description": "Someone in the corner watches you intently.",

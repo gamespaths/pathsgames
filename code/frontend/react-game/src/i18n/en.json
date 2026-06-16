@@ -153,6 +153,10 @@
     "endGame": "End Game",
     "endGameTitle": "Adventure Complete",
     "endGameClose": "Close",
+    "endGameCard": {
+      "title": "Adventure Complete",
+      "description": "Your adventure has come to an end. Thank you for playing! We hope you enjoyed the story and the journey. Stay tuned for more adventures and features coming soon!"
+    },
     "turn": {
       "title": "Turn order",
       "status": "Status",

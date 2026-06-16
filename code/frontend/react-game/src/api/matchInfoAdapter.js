@@ -23,10 +23,12 @@
  *     locationsActive: [{
  *       idLocation, uuid, card,
  *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card }],
- *       events:    [{ uuid, type, card }],
+ *       events:    [{ uuid, type, endGame, card }],
  *     }]
  *   }
  */
+
+import { buildEndGameCard } from "@/utils/loadoutCards"
 
 const EMPTY_STATS = {
   life: 0, energy: 0, sadness: 0, experience: 0, food: 0, magic: 0, coins: 0, weight: 0,
@@ -71,7 +73,7 @@ function toPlayerStats(player) {
  * @param {object|null} story - story summary (provides cards for enrichment)
  * @returns {{ startLocation, playerStats, locations, actions, endGameCard, match }}
  */
-export function matchInfoToGameData(info, story = null) {
+export function matchInfoToGameData(info, story = null,t) {
   if (!info) {
     return { actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
   }
@@ -114,6 +116,7 @@ export function matchInfoToGameData(info, story = null) {
     awesomeIcon: n.card?.awesomeIcon ?? 'fas fa-location-arrow',
     direction: n.direction ?? null,
     energyCost: n.energyCost ?? null,
+    card: n.card ?? null,
   }))
 
   // Lean events + choices still drive the END_GAME flow (uuidEvent is what
@@ -126,6 +129,7 @@ export function matchInfoToGameData(info, story = null) {
     type: e.type ?? null,
     awesomeIcon: 'fas fa-bolt',
     endGame: e.type === 'END_GAME',
+    card: e.card ?? null, 
   }))
   const eventActions = (active?.events ?? []).map(e => ({
     uuid: e.uuid,
@@ -134,11 +138,13 @@ export function matchInfoToGameData(info, story = null) {
     description: e.card?.description ?? '',
     type: e.type ?? null,
     awesomeIcon: e.card?.awesomeIcon ?? 'fas fa-bolt',
-    endGame: e.type === 'END_GAME',
+    // Step 0.25.4 — the backend now flags the story's end-game event explicitly.
+    endGame: e.endGame === true,
+    card: e.card ?? null,
   }))
   const actions = [...leanActions, ...eventActions]
 
-  const endGameCard = story?.endGameCard ?? story?.card ?? null
+  const endGameCard = buildEndGameCard(t);// story?.endGameCard ?? story?.card ?? null
 
   return { actualLocationCard, playerStats, locations, actions, endGameCard, match: info.match ?? null }
 }

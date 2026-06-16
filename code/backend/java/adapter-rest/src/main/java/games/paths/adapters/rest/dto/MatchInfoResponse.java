@@ -230,12 +230,14 @@ public class MatchInfoResponse {
     public static class EventInfoDto {
         private String uuid;
         private String type;
+        private boolean endGame;
         private CardInfoResponse card;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
             d.uuid = m.getUuid();
             d.type = m.getType();
+            d.endGame = m.isEndGame();
             d.card = CardInfoResponse.fromModel(m.getCard());
             return d;
         }
@@ -244,6 +246,8 @@ public class MatchInfoResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public String getType() { return type; }
         public void setType(String type) { this.type = type; }
+        public boolean isEndGame() { return endGame; }
+        public void setEndGame(boolean endGame) { this.endGame = endGame; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
     }

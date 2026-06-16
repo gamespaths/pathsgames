@@ -151,8 +151,9 @@ class MatchQueryService(MatchQueryPort):
         current_loc = loc_by_id.get(current_loc_id) if current_loc_id else None
 
         story_id = story.get("id") if story else None
+        end_event_id = story.get("id_event_end_game") if story else None
         locations_active = self._build_locations_active(
-            story_id, active_loc_ids, loc_by_id
+            story_id, end_event_id, active_loc_ids, loc_by_id
         )
 
         return MatchDetail(
@@ -168,7 +169,7 @@ class MatchQueryService(MatchQueryPort):
             locations_active=locations_active,
         )
 
-    def _build_locations_active(self, story_id, active_loc_ids, loc_by_id) -> List[LocationInfo]:
+    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id) -> List[LocationInfo]:
         """Build the enriched ``locations_active`` list: each player-occupied
         location with its card, the neighbor links touching it (both directions)
         and the events specific to it — each with a resolved card."""
@@ -208,6 +209,7 @@ class MatchQueryService(MatchQueryPort):
                     event_infos.append(EventInfo(
                         uuid=e.get("uuid"),
                         type=e.get("type"),
+                        end_game=(end_event_id is not None and e.get("id") == end_event_id),
                         card=self._resolve_card(story_id, e.get("id_card")),
                     ))
 

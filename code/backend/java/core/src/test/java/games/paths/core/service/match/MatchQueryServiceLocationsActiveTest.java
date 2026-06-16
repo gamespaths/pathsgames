@@ -85,8 +85,9 @@ class MatchQueryServiceLocationsActiveTest {
         return n;
     }
 
-    private EventEntity event(String uuid, Integer idLocation, Integer idCard) {
+    private EventEntity event(Long id, String uuid, Integer idLocation, Integer idCard) {
         EventEntity e = new EventEntity();
+        e.setId(id);
         e.setUuid(uuid);
         e.setType("NORMAL");
         e.setIdSpecificLocation(idLocation);
@@ -114,6 +115,7 @@ class MatchQueryServiceLocationsActiveTest {
         StoryEntity story = new StoryEntity();
         story.setId(STORY_ID);
         story.setIdLocationStart(11); // start differs from the player's location
+        story.setIdEventEndGame(1);   // evt-1 (id 1) is the end-game event
 
         when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(match()));
         when(storyReadPort.findAllStories()).thenReturn(List.of(story));
@@ -138,7 +140,7 @@ class MatchQueryServiceLocationsActiveTest {
         when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
                 .thenReturn(List.of(neighbor(10, 12, "N", 200), neighbor(11, 10, "S", 210)));
         when(storyReadPort.findEventsByStoryId(STORY_ID))
-                .thenReturn(List.of(event("evt-1", 10, 300), event("evt-other", 11, 310)));
+                .thenReturn(List.of(event(1L, "evt-1", 10, 300), event(2L, "evt-other", 11, 310)));
 
         when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(100), eq("en")))
                 .thenReturn(card("loc10"));
@@ -178,6 +180,7 @@ class MatchQueryServiceLocationsActiveTest {
         // events: only the one specific to location 10
         assertEquals(1, active.getEvents().size());
         assertEquals("evt-1", active.getEvents().get(0).getUuid());
+        assertTrue(active.getEvents().get(0).isEndGame());
         assertEquals("evt1", active.getEvents().get(0).getCard().title());
     }
 

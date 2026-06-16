@@ -88,7 +88,6 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
       setEndError(apiError || e?.message || 'end-game-failed')
     } finally {
       setEnding(false)
-            
     }
   }
 
@@ -108,22 +107,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
         onClose={handleBackOrClose}
         lockedReason={preview.lockedReason}
         statItemsToPageContent={preview.statItemsToPageContent}
+        extraContentClassName="book-page-extra-align-right" extraContent={
+          !ending && preview.entity.endGame ? 
+            <button className="gc-footer__btn m-2 p-2" onClick={() => handleEndGame(preview.entity)}>
+              <i className={`fas fa-flag-checkered `} />
+              <span className="gc-footer__btn-label">{t('game.endGame')}</span>
+            </button>
+          : null}
       />
     ) :
     actualLocationCard ? <LocationCard location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
-
-  const oldStoryCard =<div className="game-location-card-wrap">
-      <GameCard
-        variant="big"
-        card={storyCard}
-        icon={storyCard.awesomeIcon ?? 'fas fa-book-open'}
-        imageAlt={story?.title ?? ''}
-      />
-      {/*(story?.description ?? storyCard.description) && (
-        <p className="game-loc-desc">{story?.description ?? storyCard.description}</p>
-      )*/}
-    </div>
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)
   const cardCharacteristicsRight = buildCardCharacteristicsLeft(story, playerStats, clock, {
@@ -137,23 +131,24 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
   //console.log("gameData",gameData)
   //console.log("story",story);
   //console.log("storyFull",storyFull);
+  console.log("locations",locations , "actions", actions);
+  
 
   const statistics = buildConfigStatistics(gameData?.playerStats ?? {}, t);
 
-  const rightContent = ending ? <BookPageContent card={endGameCard} loading={storyCard===undefined} story={story} /> 
-    : statisticsCards ? <div className="config-view-wrap config-view--config">
-
-      <div className="config-cards-area selection-list">
-        <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
-        <ConfigCard type="class"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'class')} />
-        <ConfigCard type="character"  value={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')}  flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'character')} />
-        <ConfigCard type="trait"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'trait')} selectedCount={selectedTraitCount(playerStats)} />
-        <ConfigCard type="difficulty" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'difficulty')} />
-        {/* 
-          TODO add others card 
-        */}
+  const rightContent = 
+    statisticsCards ? <div className="config-view-wrap config-view--config">
+        <div className="config-cards-area selection-list">
+          <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
+          <ConfigCard type="class"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'class')} />
+          <ConfigCard type="character"  value={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')}  flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'character')} />
+          <ConfigCard type="trait"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'trait')} selectedCount={selectedTraitCount(playerStats)} />
+          <ConfigCard type="difficulty" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'difficulty')} />
+          {/* 
+            TODO add others card 
+          */}
+        </div>
       </div>
-    </div>
     : <>
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
@@ -161,16 +156,22 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />} 
             onPreview={() => { handleSelectionPreview ({ card: cardCharacteristicsRight }, 'story'); setStatisticsCards(true)} }
           />
-          { /* TODO wheater here */}
+          { /* TODO wheater here 
           <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
-          { /* TODO special card here */}
+          { /* TODO special card here }
           <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
           { /* TODO for every neighbor-location */  }
-          { /* TODO for every action in location */  }
 
-          { /* TODO remove ActionRow and PlayerStats */}
+          { /* for every action in location — end-game events expose an "end game" button */  }
+          { (actions ?? []).map( action => (
+            <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
+              flagInformationCard={true}
+              onPreview={() => handleSelectionPreview(action, 'action')} count={0} />
+          ))}
+
+          { /* TODO remove ActionRow and PlayerStats }   DEPRECATED
           <ActionRow type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
-            handleSelectionPreview={handleSelectionPreview} />
+            handleSelectionPreview={handleSelectionPreview} /> /**/}
           <div className="sleep-action-row">
           </div>
         </div>

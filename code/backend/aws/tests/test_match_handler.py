@@ -548,6 +548,7 @@ def test_get_match_info_locations_active(mock_jwt):
     }
     story_item = {
         'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'idEventEndGame': 1,
         'locations': [
             {'id': 1, 'uuid': 'loc-1', 'name': 'Hall',
              'card': {'title': 'Hall', 'awesomeIcon': 'fa-x'}},
@@ -596,8 +597,9 @@ def test_get_match_info_locations_active(mock_jwt):
     assert la[0]['card']['title'] == 'Hall'
     assert la[0]['neighbors'][0]['idLocation'] == 2
     assert la[0]['neighbors'][0]['card']['title'] == 'To Yard'
-    # only the event specific to location 1
+    # only the event specific to location 1, flagged as the end-game event
     assert [e['uuid'] for e in la[0]['events']] == ['evt-1']
+    assert la[0]['events'][0]['endGame'] is True
 
 
 @patch('match.handler.db_utils.get_item')

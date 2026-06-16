@@ -256,8 +256,9 @@ public class MatchQueryService implements MatchQueryPort {
 
         // Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
+        Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
         detail.setLocationsActive(
-                buildLocationsActive(storyId, activeLocIds, locationsById));
+                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById));
 
         return detail;
     }
@@ -268,6 +269,7 @@ public class MatchQueryService implements MatchQueryPort {
      * (both directions) and the events specific to it — each with its own card.
      */
     private List<LocationInfo> buildLocationsActive(Long storyId,
+                                                    Integer endEventId,
                                                     Set<Long> activeLocIds,
                                                     Map<Long, LocationEntity> locationsById) {
         List<LocationInfo> result = new ArrayList<>();
@@ -308,8 +310,10 @@ public class MatchQueryService implements MatchQueryPort {
             for (EventEntity e : events) {
                 if (e.getIdSpecificLocation() != null
                         && locId.equals(e.getIdSpecificLocation().longValue())) {
+                    boolean endGame = endEventId != null && e.getId() != null
+                            && endEventId.longValue() == e.getId();
                     eventInfos.add(new EventInfo(
-                            e.getUuid(), e.getType(), resolveCard(storyId, e.getIdCard())));
+                            e.getUuid(), e.getType(), endGame, resolveCard(storyId, e.getIdCard())));
                 }
             }
 

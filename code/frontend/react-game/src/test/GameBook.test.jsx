@@ -18,13 +18,20 @@ vi.mock('../components/book/Book', () => ({
 vi.mock('../components/book/BookPageLeft', () => ({ default: ({ children }) => <div>{children}</div> }))
 vi.mock('../components/book/BookPageRight', () => ({ default: ({ children }) => <div>{children}</div> }))
 vi.mock('../components/book/BookPageContent', () => ({
-  default: ({ card }) => <div data-testid="book-page-content">{card?.title}</div>,
+  default: ({ card, extraContent }) => (
+    <div data-testid="book-page-content">{card?.title}{extraContent}</div>
+  ),
 }))
 vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div data-testid="game-card">{card?.title}</div> }))
 vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
 vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/start-book/ConfigCard', () => ({
-  default: ({ childrenIntoImage }) => <div data-testid="config-card">{childrenIntoImage}</div>,
+  default: ({ childrenIntoImage, onPreview, value }) => (
+    <div data-testid="config-card">
+      {childrenIntoImage}
+      {onPreview && <button onClick={onPreview}>preview:{value?.card?.title || ''}</button>}
+    </div>
+  ),
 }))
 vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
@@ -45,10 +52,11 @@ import GameBook from '../features/gameplay/GameBook'
 import { endMatch } from '../api/matches'
 
 const GAME_DATA = {
-  startLocation: { name: 'Entrance', title: 'Entrance' },
+  actualLocationCard: { name: 'Entrance', title: 'Entrance' },
   playerStats: { life: 10 },
   locations: [{ uuid: 'l1', name: 'Cave' }],
-  actions: [{ uuid: 'a1', name: 'Flee', uuidEvent: 'e1' }],
+  // The end-game event action exposes an "end game" button via ConfigCard onAction.
+  actions: [{ uuid: 'a1', name: 'Flee', uuidEvent: 'e1', endGame: true, card: { title: 'Flee' } }],
   endGameCard: { title: 'You Won!' },
 }
 
@@ -64,23 +72,27 @@ describe('GameBook', () => {
     expect(screen.getByTestId('book')).toBeInTheDocument()
   })
 
-  it('renders PlayerStats and SelectionView', () => {
+  it('renders PlayerStats and action ConfigCards', () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()
-    expect(screen.getByTestId('selection-view')).toBeInTheDocument()
+    expect(screen.getAllByTestId('config-card').length).toBeGreaterThan(0)
   })
 
-  it('renders EndGameBook after successful endMatch', async () => {
+  // The end-game event card opens in the left preview, which exposes an
+  // "end game" button (BookPageContent extraContent) wired to handleEndGame.
+  it('renders EndGameBook after the end-game button triggers endMatch', async () => {
     endMatch.mockResolvedValue({})
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('end:Flee'))
+    fireEvent.click(screen.getByText('preview:Flee'))      // open the action preview
+    fireEvent.click(screen.getByText('game.endGame'))      // click the end-game button
     expect(await screen.findByTestId('end-game-book')).toBeInTheDocument()
   })
 
   it('shows end-game error when endMatch fails', async () => {
     endMatch.mockRejectedValue({ message: 'NETWORK_ERROR' })
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('end:Flee'))
+    fireEvent.click(screen.getByText('preview:Flee'))
+    fireEvent.click(screen.getByText('game.endGame'))
     await waitFor(() => {
       expect(screen.getByText('NETWORK_ERROR')).toBeInTheDocument()
     })

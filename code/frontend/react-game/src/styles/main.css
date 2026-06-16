@@ -604,6 +604,16 @@ html, body {
   background: var(--book-page-background-right);
 }
 
+.book-page-extra{
+  margin-top: auto;
+  padding: 10px;
+  border-top: 1px solid var(--color-brown-dark);
+}
+.book-page-extra-align-right{
+  display: flex;
+  justify-content: flex-end;
+}
+
 .page-inner {
   position: relative;
   z-index: 1;

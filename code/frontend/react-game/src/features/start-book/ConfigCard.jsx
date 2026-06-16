@@ -5,7 +5,8 @@ import { Children } from 'react'
 export default function ConfigCard({
     type, value, locked, lockedIcon,lockInfo, flagInformationCard,
     selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview, selectLabel,
-    selectedCount , childrenIntoImage , statistics}) {
+    selectedCount , childrenIntoImage , statistics,
+    onAction, actionLabel, actionIcon}) {
   const { t } = useTranslation()
   const singleOption = count === 1
   const lockReason = null;
@@ -30,10 +31,10 @@ export default function ConfigCard({
       singleOption={singleOption}
       selected={selected}
       onSelect={!singleOption ?  onSelect : undefined}
-      onAction={!singleOption ?  onChangeClick : undefined }
+      onAction={onAction ?? (!singleOption ?  onChangeClick : undefined) }
       onPreview={previewHandler}
-      actionLabel={t('book.change')}
-      actionIcon="fa-sync-alt"
+      actionLabel={actionLabel ?? t('book.change')}
+      actionIcon={actionIcon ?? 'fa-sync-alt'}
       selectLabel={selectLabel ?? t('book.select')}
       childrenIntoImage={childrenIntoImage} 
       statistics={statistics} flagShowFullStatistics={true} 

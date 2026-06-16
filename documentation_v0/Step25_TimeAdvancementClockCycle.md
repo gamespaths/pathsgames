@@ -1445,6 +1445,28 @@ parameter (consistent with §10.2 for clock labels).
 Movement and location-entry-event **execution** (Roadmap Step 28 / 29). This
 addendum only *exposes* the neighbors and events; it does not act on them.
 
+### 14.9 End-game flag on events (v0.25.4)
+
+Each entry of `locationsActive[].events` now carries a boolean **`endGame`**:
+`true` only when the event is the story's end-game event
+(`event.id == story.idEventEndGame`), `false` otherwise. This lets the frontend
+render an explicit "end game" affordance without re-deriving it from the event
+`type`.
+
+- Java: `EventInfo.endGame` (computed in `MatchQueryService.buildLocationsActive`
+  from `StoryEntity.getIdEventEndGame()`), `EventInfoDto.endGame`, OpenAPI
+  `EventInfo.endGame`.
+- Python: `EventInfo.end_game`; controller serialises `endGame`.
+- AWS: `_build_locations_active` flags `endGame` from the STORY item's
+  `idEventEndGame`.
+- react-game: the adapter maps `event.endGame` onto the action; `GameBook`
+  renders the action `ConfigCard` with an **end-game button** wired via
+  `ConfigCard` `onAction` / `actionLabel` (`game.endGame`) / `actionIcon`
+  (`fa-flag-checkered`) — `ConfigCard` now accepts these overrides (defaulting to
+  the existing "change" action).
+- Robot: `match_locations_active.robot` asserts every active event exposes a
+  boolean `endGame` key.
+
 
 
 
@@ -1465,9 +1487,11 @@ addendum only *exposes* the neighbors and events; it does not act on them.
 
   I wanna GameBook component loads actual location (filed idLocation on player object) on leftContent- LocationCard. With api/match/[uuid]/info api load allo location* and locationsNeighbor* and all events*, every elementi with cards informations. Important: load location only if there are one or more player, load locationsNeighbor only if there are one or more player on location (to and from), load all events if there are one or more players on event locationId
 
+  into locationsActive into events add endGame flag, true if event is "end game event id" from story, else false. add robot test, if necessary use "0.25.4" version, edit all backends and react-game to show "end game" button to ConfigCard using onAction,actionLabel e actionIcon. Let's go
+
   ```
 
-- **Document Version**: 0.25.3
+- **Document Version**: 0.25.4
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1476,7 +1500,8 @@ addendum only *exposes* the neighbors and events; it does not act on them.
     | 0.25.2 | Per-player max stats (lifeMax/energyMax/sadMax/weightMax), current carried weight and items list added to all match-info endpoints; Flyway V0.25.2 migrations (sqlite + postgres); GamingInventoryItemsEntity + repository; CharacterCommandService persists maxes at join; CharacterMapper resolves weight + items; ItemInstanceResponse DTO; OpenAPI v0.25.2-character-max-stats-api.yaml; Python 539 tests pass, AWS 280, react-admin 283; Robot suite 21 assertions added, 357 tests pass | June 15, 2026 |
     | 0.25.2 | Clock label fix: ClockResponse uses clockLabelSingular/clockLabelPlural (split from single clockLabel); AWS bug fixed — _story_clock_label() helper with fallback from texts map; story import now persists resolved descriptions; ClockWidget uses clockLabelSingular as badge tooltip; 2 new AWS pytest tests (71 total); Robot test "Clock Labels Are Saved And Retrieved From Story" added; Note §10.2 added: labels not localised per user (always "en") | June 16, 2026 |
     | 0.25.3 | Enriched match info: new `locationsActive[]` block on GET /api/match/{uuid}/info (player-occupied locations, each with card + neighbors[] + events[], all carrying cards); currentLocation* now derived from players[].idLocation (fallback story start); Java reference (LocationInfo/LocationNeighborInfo/EventInfo, ContentQueryPort.getCardByStoryIdAndCardId, MatchQueryService 5-arg + CoreConfig, MatchInfoResponse DTOs, OpenAPI schemas) + Python + AWS (seed neighbors/event-location/cards + handler) + react-game adapter/GameBook; backend tests green (Java core/adapter-rest/ms-launcher, Python 597, AWS 320, react-game 367); Robot suite match_locations_active.robot added (§14) | June 16, 2026 |
-
+    | 0.25.4 | End-game flag on events: locationsActive[].events now carries a boolean `endGame` (true when event.id == story.idEventEndGame) across Java/Python/AWS (+ EventInfoDto.endGame, OpenAPI); react-game adapter maps it and GameBook renders an "end game" button via ConfigCard onAction/actionLabel/actionIcon (ConfigCard made override-friendly); Robot test "Event Cards Expose The End Game Flag" added; tests green: Java core 910 + adapter-rest 188, Python 597, AWS 320, react-game 367 (§14.9) | June 16, 2026 |
+    | 0.25.4 | Events cards into GameBook and end match flag to complete a match | June 16, 2026 |
 
 - **Last Updated**: June 16, 2026
 - **Status**: Complete

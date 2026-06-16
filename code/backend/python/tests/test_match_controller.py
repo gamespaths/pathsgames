@@ -228,7 +228,7 @@ def test_get_match_info_serializes_locations_active(env):
                 id_location=12, uuid="loc-12", direction="N",
                 flag_back=0, energy_cost=2,
                 card={"title": "Cave"})],
-            events=[EventInfo(uuid="evt-1", type="NORMAL", card={"title": "Stranger"})],
+            events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
         )
     ]
     query_port.get_match_info.return_value = detail
@@ -243,6 +243,7 @@ def test_get_match_info_serializes_locations_active(env):
     assert la[0]["neighbors"][0]["energyCost"] == 2
     assert la[0]["neighbors"][0]["card"]["title"] == "Cave"
     assert la[0]["events"][0]["uuid"] == "evt-1"
+    assert la[0]["events"][0]["endGame"] is True
     assert la[0]["events"][0]["card"]["title"] == "Stranger"
 
 
