@@ -127,3 +127,46 @@ def test_unknown_entity_type_is_valid():
 def test_summary_compact():
     errs = sv.validate_story_dict({"idLocationStart": 5, "events": [], "locations": []})
     assert "non-existent" in sv.summary(errs)
+
+
+# ── extra coverage: helpers, collectors and entity-local rules ─────────────────
+
+def test_helpers_field_asint_truthy_summary():
+    assert sv._field("not-a-dict", "id") is None
+    # snake_case fallback when camelCase key is absent
+    assert sv._field({"id_event_next": 5}, "idEventNext") == 5
+    assert sv._as_int(True) == 1 and sv._as_int(2.9) == 2
+    assert sv._as_int("7") == 7 and sv._as_int("x") is None and sv._as_int([1]) is None
+    assert sv._truthy("true") is True and sv._truthy("no") is False
+    assert sv.summary([]) == "story is valid"
+    many = [{"message": f"m{i}"} for i in range(7)]
+    assert "(+2 more)" in sv.summary(many)
+
+
+def test_all_collectors_flag_broken_references():
+    s = valid_story()
+    s.update({
+        "choiceConditions": [{"id": 1, "idChoices": 999, "key": "K"}],
+        "eventEffects": [{"id": 1, "idEvent": 999, "idItemTarget": 999, "targetClass": 999}],
+        "itemEffects": [{"id": 1, "idItem": 999}],
+        "classBonuses": [{"id": 1, "idClass": 999}],
+        "missions": [{"id": 1}],
+        "missionSteps": [{"id": 1, "idMission": 999}],
+        "weatherRules": [{"id": 1, "idEvent": 999}],
+        "globalRandomEvents": [{"id": 1, "idEvent": 999}],
+        "items": [{"id": 1, "idClassPermitted": 1, "idClassProhibited": 1}],
+        "traits": [{"id": 1, "idClassPermitted": 999}],
+        "characterTemplates": [{"idTipo": 1, "lifeMax": 5, "idClassPermitted": 999}],
+    })
+    errors = sv.validate_story_dict(s)
+    assert len(errors) >= 5  # several dangling references reported
+
+
+def test_validate_entity_local_rules():
+    # negative/zero stats on a character template are flagged
+    bad = sv.validate_entity("character-templates",
+                             {"id": 1, "lifeMax": 0, "dexterityStart": -1})
+    assert any(e["rule"] == "R6_STAT_RANGE" for e in bad)
+    # empty inputs are lenient
+    assert sv.validate_entity("", {}) == []
+    assert sv.validate_entity("items", None) == []

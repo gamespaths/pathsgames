@@ -42,6 +42,14 @@ function toPlayerStats(player) {
     weightMax: player.weightMax ?? 0,
     weight: player.weight ?? 0,
     items: Array.isArray(player.items) ? player.items : [],
+    // Selection uuids — used by utils/gamebook to resolve the matching story
+    // entity (class/character/trait/difficulty) and its card. /info currently
+    // projects characterTemplateUuid; the others are passed through when present
+    // (null/empty otherwise) so the cards degrade gracefully.
+    characterTemplateUuid: player.characterTemplateUuid ?? null,
+    classUuid: player.classUuid ?? null,
+    traitUuids: Array.isArray(player.traitUuids) ? player.traitUuids : [],
+    difficultyUuid: player.difficultyUuid ?? null,
     // Not yet projected by /info — defaulted until a richer endpoint exists.
     experience: 0,
     food: 0,

@@ -43,6 +43,23 @@ Clock Endpoint Returns Current State
     Dictionary Should Contain Key    ${entry}    isSleeping
     Dictionary Should Contain Key    ${entry}    energy
 
+Clock Labels Are Saved And Retrieved From Story
+    [Documentation]    The story clock labels (id_text_clock_singular / id_text_clock_plural)
+    ...                are persisted and returned non-empty by GET /clock. Guards the AWS
+    ...                regression where imported stories returned null clock labels.
+    [Tags]    time-clock    step25
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    ${response}=    Get Clock    ${TOKEN}    ${match}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    ${singular}=    Set Variable    ${body}[clockLabelSingular]
+    ${plural}=    Set Variable    ${body}[clockLabelPlural]
+    Should Not Be Equal    ${singular}    ${None}    msg=clockLabelSingular must not be null
+    Should Not Be Equal    ${plural}    ${None}    msg=clockLabelPlural must not be null
+    Should Not Be Empty    ${singular}
+    Should Not Be Empty    ${plural}
+
 Sleep Triggers Time End And Advances Clock
     [Documentation]    In single-player a sleep makes every character "done", so the clock
     ...                advances by one and timeEndTriggered is true.

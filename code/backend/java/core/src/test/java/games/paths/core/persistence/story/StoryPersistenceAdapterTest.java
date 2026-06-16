@@ -502,4 +502,91 @@ class StoryPersistenceAdapterTest {
             adapter.deleteMissionStepByUuid("u"); verify(missionStepRepository).deleteByUuid("u");
         }
     }
+
+    @Nested
+    @DisplayName("Existence checks, id generation and cascade delete")
+    class ExistenceAndIds {
+
+        @Test
+        @DisplayName("deleteStoryData clears FK references then deletes children")
+        void deleteStoryData() {
+            StoryEntity story = new StoryEntity();
+            story.setId(1L);
+            when(storyRepository.findById(1L)).thenReturn(Optional.of(story));
+            adapter.deleteStoryData(1L);
+            verify(gamingMatchRepository).deleteByIdStory(1L);
+            verify(storyRepository).saveAndFlush(story);
+            assertNull(story.getIdEventEndGame());
+            assertNull(story.getIdLocationStart());
+        }
+
+        @Test
+        @DisplayName("existsStoryId delegates to repository.existsById")
+        void existsStoryId() {
+            when(storyRepository.existsById(5L)).thenReturn(true);
+            assertTrue(adapter.existsStoryId(5L));
+            assertFalse(adapter.existsStoryId(null));
+        }
+
+        @Test
+        @DisplayName("story-scoped existence checks query via jdbcTemplate")
+        void existsByStoryScope() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(1L), eq(2L)))
+                    .thenReturn(1);
+            assertTrue(adapter.existsTextId(1L, 2L));
+            assertTrue(adapter.existsDifficultyId(1L, 2L));
+            assertTrue(adapter.existsCreatorId(1L, 2L));
+            assertTrue(adapter.existsCardId(1L, 2L));
+            assertTrue(adapter.existsKeyId(1L, 2L));
+            assertTrue(adapter.existsClassId(1L, 2L));
+            assertTrue(adapter.existsTraitId(1L, 2L));
+            assertTrue(adapter.existsCharacterTemplateId(1L, 2L));
+            assertTrue(adapter.existsLocationId(1L, 2L));
+            assertTrue(adapter.existsEventId(1L, 2L));
+            assertTrue(adapter.existsItemId(1L, 2L));
+            assertTrue(adapter.existsChoiceId(1L, 2L));
+            assertTrue(adapter.existsWeatherRuleId(1L, 2L));
+            assertTrue(adapter.existsGlobalRandomEventId(1L, 2L));
+            assertTrue(adapter.existsMissionId(1L, 2L));
+            assertTrue(adapter.existsLocationNeighborId(1L, 2L));
+            assertTrue(adapter.existsEventEffectId(1L, 2L));
+            assertTrue(adapter.existsItemEffectId(1L, 2L));
+            assertTrue(adapter.existsChoiceConditionId(1L, 2L));
+            assertTrue(adapter.existsChoiceEffectId(1L, 2L));
+            assertTrue(adapter.existsClassBonusId(1L, 2L));
+            assertTrue(adapter.existsMissionStepId(1L, 2L));
+        }
+
+        @Test
+        @DisplayName("story-scoped existence returns false when ids are null")
+        void existsByStoryScopeNullGuards() {
+            assertFalse(adapter.existsTextId(null, 2L));
+            assertFalse(adapter.existsTextId(1L, null));
+        }
+
+        @Test
+        @DisplayName("nextStoryScopedId returns the next id or null on missing args")
+        void nextStoryScopedId() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), eq(2L))).thenReturn(7L);
+            assertEquals(7L, adapter.nextStoryScopedId("list_texts", "id", 2L));
+            assertNull(adapter.nextStoryScopedId(null, "id", 2L));
+            assertNull(adapter.nextStoryScopedId("list_texts", null, 2L));
+            assertNull(adapter.nextStoryScopedId("list_texts", "id", null));
+        }
+
+        @Test
+        @DisplayName("nextGlobalId returns the next global id")
+        void nextGlobalId() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class))).thenReturn(42L);
+            assertEquals(42L, adapter.nextGlobalId("list_stories", "id"));
+        }
+
+        @Test
+        @DisplayName("syncStorySequences swallows non-PostgreSQL errors")
+        void syncStorySequences() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Long.class)))
+                    .thenThrow(new RuntimeException("not postgres"));
+            assertDoesNotThrow(() -> adapter.syncStorySequences());
+        }
+    }
 }

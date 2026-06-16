@@ -59,4 +59,27 @@ describe('SleepButton', () => {
     await waitFor(() => expect(screen.getByText('ALREADY_SLEEPING')).toBeInTheDocument())
     expect(onSlept).not.toHaveBeenCalled()
   })
+
+  it('falls back to e.message when the error has no backend code', async () => {
+    sleepCharacter.mockRejectedValue({ message: 'NETWORK' })
+    render(<SleepButton matchUuid="m1" accessToken="tok" />)
+    fireEvent.click(screen.getByText('game.sleep.action'))
+    fireEvent.click(screen.getByText('game.sleep.confirm'))
+    await waitFor(() => expect(screen.getByText('NETWORK')).toBeInTheDocument())
+  })
+
+  it('closes the dialog with the cancel button', () => {
+    render(<SleepButton matchUuid="m1" accessToken="tok" />)
+    fireEvent.click(screen.getByText('game.sleep.action'))
+    expect(screen.getByText('game.sleep.confirmBody')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('game.sleep.cancel'))
+    expect(screen.queryByText('game.sleep.confirmBody')).not.toBeInTheDocument()
+  })
+
+  it('closes the dialog with the (x) close button', () => {
+    render(<SleepButton matchUuid="m1" accessToken="tok" />)
+    fireEvent.click(screen.getByText('game.sleep.action'))
+    fireEvent.click(screen.getByLabelText('close'))
+    expect(screen.queryByText('game.sleep.confirmBody')).not.toBeInTheDocument()
+  })
 })

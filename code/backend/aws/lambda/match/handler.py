@@ -978,6 +978,22 @@ def _sleep(user, match_uuid):
     })
 
 
+def _story_clock_label(story, direct_key, text_field, lang='en'):
+    """Resolve a clock label from the STORY item.
+
+    Prefers the pre-resolved description persisted on the item (seed / import),
+    falling back to resolving it from the item's multi-lang ``texts`` map
+    (``texts[lang][text_field]`` with English fallback). This keeps the clock
+    labels populated regardless of which write path created the story.
+    """
+    direct = story.get(direct_key)
+    if direct:
+        return direct
+    texts = story.get('texts') or {}
+    lang_texts = texts.get(lang) or texts.get('en') or {}
+    return lang_texts.get(text_field)
+
+
 def _get_clock(user, match_uuid):
     match, err = _require_owned_match(user, match_uuid)
     if err:
@@ -988,8 +1004,8 @@ def _get_clock(user, match_uuid):
     return _ok({
         "matchUuid": match.get('uuid'),
         "currentClock": _nz(match.get('currentClock')),
-        "clockLabelSingular": story.get('clockSingularDescription'),
-        "clockLabelPlural": story.get('clockPluralDescription'),
+        "clockLabelSingular": _story_clock_label(story, 'clockSingularDescription', 'clockSingular'),
+        "clockLabelPlural": _story_clock_label(story, 'clockPluralDescription', 'clockPlural'),
         "anyCharacterSleeping": any_sleeping,
         "characters": [
             {

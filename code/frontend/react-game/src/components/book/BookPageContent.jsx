@@ -3,6 +3,7 @@ import { useTranslation } from '../../i18n/context'
 import { getNonZeroStats, STAT_CATEGORY_ORDER } from '../../utils/bonusStats'
 import { sanitizeHtml } from '../../utils/sanitizeHtml'
 import GameCardCreditsBar from '../layout/GameCardCreditsBar'
+import { isValidElement } from 'react'
 
 /**
  * BookPageContent — content of the book page.
@@ -40,18 +41,21 @@ export default function BookPageContent({
         {onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
           <i className="fas fa-arrow-left me-1" />{ /*t('book.back')*/ }
         </button>}
-        {title}
+        {isValidElement(title)
+          ? title
+          : <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(title)) }} />}
       </h2>
 
         {card?.urlImage && (
           <img src={card.urlImage} alt={title} className={"book-page-img " + (card?.styleImageLarge ?? '')} />
         )}
       
-      {description && (
+      {(description || statItemsReal) && (
         <div className="book-page-desc">
           <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} />
-          {descriptionTag ? <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }} /> : description}
-          
+          {isValidElement(description)
+            ? description                                    // arriva come JSX/tag → renderizzo diretto
+            : <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(description)) }} />}
         </div>
       )}
       

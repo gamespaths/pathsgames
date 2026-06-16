@@ -132,20 +132,27 @@ day/phase string, and a list of characters with their `isSleeping` and `energy` 
 {
   "matchUuid": "match-uuid-v4",
   "currentClock": 1,
-  "clockLabel": "Dawn",
-  "dayPhase": "DAY_1",
+  "clockLabelSingular": "Dawn",
+  "clockLabelPlural": "Dawns",
+  "anyCharacterSleeping": false,
   "characters": [
-    { "characterUuid": "...", "name": "Aelar", "energy": 42, "isSleeping": false }
+    { "characterUuid": "...", "energy": 42, "isSleeping": false }
   ]
 }
 ```
+
+> **Note:** the original plan used `clockLabel` (single field) and `dayPhase`. The shipped
+> implementation splits the label into `clockLabelSingular` / `clockLabelPlural` and
+> removes `dayPhase` entirely (deferred — see §10). Per-character `name` is also absent
+> from this payload; the frontend resolves names from the match detail endpoint.
 
 | Field | Type | Notes |
 |-------|------|-------|
 | `matchUuid` | string | Public UUID of the match |
 | `currentClock` | integer | `gaming_match.current_clock` |
-| `clockLabel` | string | Derived from `list_stories.id_text_clock_singular` / `_plural`; falls back to `"Clock N"` if no text record exists |
-| `dayPhase` | string | Trivial derivation from `currentClock` (see §6.4 and open-design note in §10) |
+| `clockLabelSingular` | string | Human label for a single clock unit; resolved from `list_stories.id_text_clock_singular` → `list_texts`; `null` if no text record |
+| `clockLabelPlural` | string | Human label for multiple clock units; resolved from `list_stories.id_text_clock_plural` → `list_texts`; `null` if no text record |
+| `anyCharacterSleeping` | boolean | Convenience aggregate over the `characters` array |
 | `characters` | array | One `ClockCharacterView` per `gaming_character_instance` in the match |
 
 ### 3.4 Java REST DTOs
@@ -338,19 +345,35 @@ pass action might trigger in future steps.
    e. Update `gaming_match.id_character_current_turn` to that character's `id`.
 8. Publish `TimeAdvanced` domain event with `matchUuid`, `previousClock`, `newClock`.
 
-### 6.4 Clock label and day/phase derivation (`GET .../clock`)
+### 6.4 Clock label resolution (`GET .../clock`)
 
 1. Validate match and caller participation (→ `404`).
-2. Load `gaming_match.current_clock` and the story's `id_text_clock_singular` /
-   `id_text_clock_plural` text ids. Resolve to the locale string (or fall back to
-   `"Clock N"` if no record).
-3. Derive `dayPhase` as a trivial function of `current_clock`:
-   - This is a **provisional** derivation; the schema does not yet have a
-     `clocks_per_day` configuration field on `list_stories`. See §10 for the open
-     design decision. For now, return `"DAY_1"` (or a similar constant) unless the
-     implementation team chooses a specific integer-division rule.
+2. Load `gaming_match.current_clock`.
+3. Resolve the story's clock labels — **language is always fixed to `"en"`** (no per-user
+   locale at this endpoint):
+   - `list_stories.id_text_clock_singular` → look up `list_texts` row for `lang = "en"`;
+     expose as `clockLabelSingular`. Return `null` if the text row does not exist.
+   - `list_stories.id_text_clock_plural` → same lookup; expose as `clockLabelPlural`.
+   - Java: `TurnCycleStoreAdapter.findStoryClockLabels(idMatch, lang)` (constant
+     `DEFAULT_LANG = "en"`). Python: `time_store_adapter.find_story_clock_labels(...)`,
+     same constant. AWS: see §6.4.1 below.
 4. Load all `gaming_character_instance` rows for the match.
-5. Build `ClockResponse` with the character array.
+5. Build `ClockResponse` (no `dayPhase` field — deferred; see §10 note 1).
+
+#### 6.4.1 AWS clock label resolution
+
+The AWS Lambda backend uses a different lookup path because DynamoDB does not have a
+relational JOIN:
+
+- **Preferred path**: read `clockSingularDescription` / `clockPluralDescription`
+  attributes directly off the persisted `STORY#` item (`SK = METADATA`). These are
+  written at story import time (see §7.3 fix below).
+- **Fallback path**: if either attribute is absent or null on the STORY item (legacy
+  items created before the fix), resolve at runtime from the story's `texts` map:
+  `texts["en"][clockSingular|clockPlural]`.
+- **Helper**: `_story_clock_label(story, direct_key, text_field, lang='en')` in
+  `code/backend/aws/lambda/match/handler.py` encapsulates this two-step lookup.
+- The language used by this path is always `"en"`, consistent with Java and Python.
 
 ### 6.5 `TimeAdvanced` domain event — in-process dispatch
 
@@ -449,26 +472,47 @@ Mirror the Java structure:
 
 ### 7.3 AWS Lambda (`code/backend/aws/`)
 
-- [ ] `lambda/match/handler.py` — add two handler functions:
+- [x] `lambda/match/handler.py` — two handler functions implemented:
   - `sleep_action(event, context)` — sets `is_sleeping` on the character item; evaluates
     trigger; calls `time_advancement(match_uuid)` if triggered
-  - `get_clock(event, context)` — queries match item + character items for sleeping state
+  - `get_clock(event, context)` — queries match item + character items for sleeping state;
+    uses `_story_clock_label(...)` helper for clock label resolution (see §6.4.1)
   - `time_advancement(match_uuid)` — shared helper: increments clock, inserts
     `CLOCK#{n}` item, wakes characters, rebuilds turn queue (reusing the existing
     `build_turn_queue` helper from the Step 24 handler), publishes `TimeAdvanced`
     in-process record (Lambda-local dict/list; no SNS/EventBridge yet)
-- [ ] DynamoDB item additions:
+- [x] DynamoDB item additions:
   - `CLOCK#{clockNumber}` item per `MATCH#{uuid}` partition (schema in §3.7)
-  - `is_sleeping` attribute on each `CHARACTER#{uuid}` item (already in design;
-    confirm attribute name matches the character join handler from Step 21)
-- [ ] `template/match.yaml` — add two SAM routes:
+  - `is_sleeping` attribute on each `CHARACTER#{uuid}` item
+- [x] `template/match.yaml` — two SAM routes added:
   - `POST /api/gameplay/{uuidMatch}/action/sleep` → `SleepActionFunction`
   - `GET /api/match/{uuidMatch}/clock` → `GetClockFunction`
-  (follow the naming pattern of `StartMatchRoute`, `PassTurnRoute`,
-  `GetTurnSequenceRoute` from the Step 24 template additions)
-- [ ] `tests/match/test_time_clock_handler.py` — pytest with `moto` mocking:
-  trigger condition scenarios; clock item created; character `is_sleeping` reset;
-  `current_clock` incremented on match item; turn queue rebuilt
+
+**Clock label bug fix (applied post-v0.25.0):**
+
+A bug existed for imported (non-seed) stories. `_get_clock` read
+`clockSingularDescription` / `clockPluralDescription` from the persisted STORY item, but
+the story import handler only stored `idTextClockSingular` / `idTextClockPlural` and the
+raw `texts` map — not the resolved descriptions. As a result, imported stories returned
+`null` clock labels while the seed story (which explicitly wrote the descriptions) worked
+correctly.
+
+Two fixes were applied:
+
+1. **`lambda/match/handler.py`**: `_get_clock` now calls the helper
+   `_story_clock_label(story, direct_key, text_field, lang='en')` which:
+   - First returns the already-persisted description if present (covers the seed and
+     post-fix imports).
+   - Otherwise falls back to `story["texts"][lang][text_field]` at runtime (covers
+     legacy items that lack the description attribute).
+
+2. **`lambda/story/handler.py`**: the story import handler now writes
+   `clockSingularDescription` and `clockPluralDescription` (resolved for `lang="en"`) on
+   the STORY item at import time, matching the seed behaviour and ensuring that any newly
+   imported story will use the preferred path.
+
+These fixes ensure full parity between the seed and import paths, and between the AWS
+backend and the Java/Python implementations.
 
 ---
 
@@ -481,7 +525,16 @@ Mirror the Java structure:
 | Java | `TimeAdvancementServiceTest` | All-sleeping trigger; all-zero-energy trigger; mixed; one awake suppresses; coma counts; `ALREADY_SLEEPING`; clock increment; log insert; wake all; queue rebuild (WAITING then top ACTIVE); event emitted once |
 | Python | `test_time_advancement_service.py` | Same scenarios with mock port |
 | Python | `test_time_clock_controller.py` | 200/401/404/409 HTTP codes via FastAPI TestClient |
-| AWS | `test_time_clock_handler.py` | DynamoDB state before/after with `moto`; `CLOCK#{n}` item created; character `is_sleeping` reset; turn queue rebuilt |
+| AWS | `test_time_advancement_handler.py` | DynamoDB state before/after with `moto`; `CLOCK#{n}` item created; character `is_sleeping` reset; turn queue rebuilt; clock label resolution scenarios (see below) |
+
+**AWS clock label test cases** (in `code/backend/aws/tests/test_time_advancement_handler.py`):
+
+| Test | Assertion |
+|------|-----------|
+| `test_clock_resolves_labels_from_texts_when_descriptions_absent` | When a STORY item has no `clockSingularDescription` / `clockPluralDescription` attributes but has a populated `texts["en"]` map, `_story_clock_label(...)` resolves the correct label from the texts map |
+| `test_clock_labels_null_when_story_has_no_clock_data` | When neither direct attributes nor texts entries exist, the helper returns `null` without raising an exception |
+
+Total AWS pytest suite after these additions: **71 tests pass**.
 
 Run commands:
 
@@ -520,6 +573,7 @@ New keywords (in `code/tests/robot/resources/matches.resource` or a new
 | 409 NOT_YOUR_TURN on wrong player | Sleep by user who is not the active character returns `409 NOT_YOUR_TURN` |
 | 409 MATCH_NOT_RUNNING on sleep before start | Sleep on a CREATED match returns `409 MATCH_NOT_RUNNING` |
 | 404 for non-participant | GET /clock for unknown uuid returns `404` |
+| Clock Labels Are Saved And Retrieved From Story | `GET /clock` returns `clockLabelSingular` and `clockLabelPlural` that are both non-null and non-empty; backend-agnostic (runs against any backend) |
 
 **Seed prerequisites per backend:**
 
@@ -562,31 +616,38 @@ not changed.
    is deferred to a future step. Document the choice in code comments and in the OpenAPI
    spec deprecation note.
 
-2. **`log_clock_history.timestamp_start` source.** The `timestamp_start` column on a
+2. **Clock labels are not localised per user.** All three backends (Java, Python, AWS)
+   resolve clock labels in English only (`DEFAULT_LANG = "en"`). The `GET /clock`
+   endpoint does not accept a `lang` query parameter, and `getMatchClock` in the
+   frontend does not pass one. If per-locale labels are needed in a future step, the
+   `TurnCycleStorePort` / `time_store_adapter` lookup and the DynamoDB texts map
+   resolution would each need a language parameter.
+
+3. **`log_clock_history.timestamp_start` source.** The `timestamp_start` column on a
    new clock-history row should ideally be the moment the previous clock began (i.e.,
    `timestamp_end` of the preceding row, or `gaming_match.timestamp_start` for the
    first clock). If no prior row exists, fall back to `gaming_match.timestamp_start`.
    Implementors should confirm this is accessible via the store port without an extra
    round-trip.
 
-3. **Coma characters and the trigger.** A character in coma (`is_coma = true`) should
+4. **Coma characters and the trigger.** A character in coma (`is_coma = true`) should
    be counted as inactive for the trigger condition — the time-end must not be blocked
    by a character who is physically unable to act. Confirm coma handling in
    `gaming_character_instance` semantics with the Step 21/23 design before
    implementation.
 
-4. **Energy drain and auto-trigger.** Future steps (e.g., action endpoints that consume
+5. **Energy drain and auto-trigger.** Future steps (e.g., action endpoints that consume
    energy) should call into `TimeAdvancementService.evaluateTimeEnd(matchUuid)` after
    any energy modification. Step 25 only wires this call from the sleep action; other
    callers are deferred.
 
-5. **`TimeAdvanced` event consumers in future steps.** Steps 26 (recovery math), 27
+6. **`TimeAdvanced` event consumers in future steps.** Steps 26 (recovery math), 27
    (weather selection), and others will register listeners on `DomainEventPublisher`.
    The port's `register` or `subscribe` method signature should be established now to
    avoid retrofits. Suggested Java signature:
    `void subscribe(Class<T> eventType, Consumer<T> listener)`.
 
-6. **Admin-port exposure of `/clock`.** The GET /api/match/{uuidMatch}/clock endpoint
+7. **Admin-port exposure of `/clock`.** The GET /api/match/{uuidMatch}/clock endpoint
    may optionally be mirrored on port 8044 as `/api/admin/matches/{uuid}/clock` to
    allow the react-admin console to read the current clock without cross-port calls.
    Decide at Step 26 implementation time.
@@ -696,8 +757,13 @@ Fields **not** present (removed from plan): `previousClock`, `activeCharacterUui
 
 Read-only presentational component. Receives a `clock` prop (the `ClockResponse` object).
 
-- Renders the clock number and story label: singular form at `currentClock === 1`, plural otherwise.
-- Falls back to `t('game.clock.fallback')` (e.g. "Clock 2") when the story has no clock label text.
+- Renders the clock number and story label: uses `clock.clockLabelSingular` when
+  `currentClock === 1`, `clock.clockLabelPlural` otherwise.
+- Falls back to `t('game.clock.fallback')` (e.g. "Clock 2") when both label fields are
+  null or absent (story has no text record for the clock).
+- The sleeping badge is rendered with `title={clock?.clockLabelSingular ?? t('game.clock.title')}`
+  as a tooltip, providing the singular clock label as hover text (falls back to the
+  generic i18n key when the label is absent).
 - Shows an `anyCharacterSleeping` badge when at least one character is sleeping.
 - No day/night indicator (no `dayPhase` in the backend response; deferred to a future step).
 - CSS class: `.clock-widget`.
@@ -1275,9 +1341,10 @@ will enforce `weight ≤ weightMax` using the persisted `weight_max` column.
     | 0.25.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 15, 2026 |
     | 0.25.1 | Addendum: shipped DTO field names corrected (no previousClock / activeCharacterUuid / clockLabel / dayPhase / per-character name); admin endpoint GET /api/admin/matches/{uuidMatch}/clock added (clockForAdmin port method + MatchAdminController) | June 15, 2026 |
     | 0.25.2 | Per-player max stats (lifeMax/energyMax/sadMax/weightMax), current carried weight and items list added to all match-info endpoints; Flyway V0.25.2 migrations (sqlite + postgres); GamingInventoryItemsEntity + repository; CharacterCommandService persists maxes at join; CharacterMapper resolves weight + items; ItemInstanceResponse DTO; OpenAPI v0.25.2-character-max-stats-api.yaml; Python 539 tests pass, AWS 280, react-admin 283; Robot suite 21 assertions added, 357 tests pass | June 15, 2026 |
+    | 0.25.3 | Clock label fix: ClockResponse uses clockLabelSingular/clockLabelPlural (split from single clockLabel); AWS bug fixed — _story_clock_label() helper with fallback from texts map; story import now persists resolved descriptions; ClockWidget uses clockLabelSingular as badge tooltip; 2 new AWS pytest tests (71 total); Robot test "Clock Labels Are Saved And Retrieved From Story" added; Note §10.2 added: labels not localised per user (always "en") | June 16, 2026 |
 
 
-- **Last Updated**: June 15, 2026
+- **Last Updated**: June 16, 2026
 - **Status**: Complete
 
 

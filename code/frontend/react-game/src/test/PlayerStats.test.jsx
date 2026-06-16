@@ -18,7 +18,7 @@ const FLAT_KEYS = ['life','energy','sadness','experience','food','magic','coins'
 
 describe('PlayerStats', () => {
   it('renders all stat keys', () => {
-    render(<PlayerStats stats={{ life: 10, energy: 5, coins: 3 }} />)
+    render(<PlayerStats stats={{ life: 10, energy: 5, coins: 3 }} plainFlag />)
     for (const k of FLAT_KEYS) {
       expect(screen.getByText(new RegExp(`^${k}:`))).toBeInTheDocument()
     }
@@ -30,13 +30,13 @@ describe('PlayerStats', () => {
   })
 
   it('defaults to 0 for missing stat keys', () => {
-    render(<PlayerStats stats={{}} />)
+    render(<PlayerStats stats={{}} plainFlag />)
     expect(screen.getByText('life:0')).toBeInTheDocument()
     expect(screen.getByText('coins:0')).toBeInTheDocument()
   })
 
   it('forwards stat values correctly', () => {
-    render(<PlayerStats stats={{ life: 42, magic: 7 }} />)
+    render(<PlayerStats stats={{ life: 42, magic: 7 }} plainFlag />)
     expect(screen.getByText('life:42')).toBeInTheDocument()
     expect(screen.getByText('magic:7')).toBeInTheDocument()
   })

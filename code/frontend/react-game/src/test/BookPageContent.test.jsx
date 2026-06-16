@@ -49,4 +49,16 @@ describe('BookPageContent', () => {
     wrap(<BookPageContent card={null} entity={{ name: 'EntName', description: 'desc' }} entityType="character" />)
     expect(screen.getByText('EntName')).toBeInTheDocument()
   })
+
+  it('renders title and description when they are React elements, not HTML strings', () => {
+    const card = {
+      title: <span data-testid="title-el">ClockEl</span>,
+      description: <span data-testid="desc-el">StatsEl</span>,
+    }
+    wrap(<BookPageContent card={card} story={{ card }} />)
+    expect(screen.getByTestId('title-el')).toBeInTheDocument()
+    expect(screen.getByTestId('desc-el')).toBeInTheDocument()
+    // the element must be rendered as a node, not stringified to [object Object]
+    expect(screen.queryByText('[object Object]')).toBeNull()
+  })
 })

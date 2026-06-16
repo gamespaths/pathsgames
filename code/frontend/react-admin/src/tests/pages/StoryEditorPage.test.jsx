@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import StoryEditorPage from '../../pages/story/StoryEditorPage'
@@ -329,5 +329,113 @@ describe('StoryEditorPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Validate story/i }))
     expect(await screen.findByText(/1 integrity issue found/i)).toBeInTheDocument()
     expect(screen.getByTestId('validation-error')).toHaveTextContent('references a non-existent event')
+  })
+
+  // ── fast-card / fast-text handler branches ───────────────────────────────────
+
+  it('shows an error when creating a fast card without any text id', async () => {
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(screen.getByRole('button', { name: /Add Location/i }))
+    expect(screen.getByText('Create Entity')).toBeInTheDocument()
+
+    const fastCardBtn = await screen.findByRole('button', { name: /New Fast Card/i })
+    await userEvent.click(fastCardBtn)
+    expect(await screen.findByText(/A text id is required/i)).toBeInTheDocument()
+  })
+
+  it('opens the card form when an idCard cell is clicked in the entity table', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idCard: 5 }])
+      if (type === 'cards') return Promise.resolve([{ idCard: 5, idTextTitle: 101, uuid: 'card-5' }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    const cardLink = await screen.findByText('#5')
+    await userEvent.click(cardLink)
+    expect(await screen.findByText(/Edit Entity|Create Entity/i)).toBeInTheDocument()
+    expect(listEntities).toHaveBeenCalledWith('story-123', 'cards')
+  })
+
+  it('reports when a clicked idCard is not found in the cards list', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101, idCard: 77 }])
+      if (type === 'cards') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    await userEvent.click(await screen.findByText('#77'))
+    expect(await screen.findByText(/Card #77 not found/i)).toBeInTheDocument()
+  })
+
+  it('saves a brand new fast text through the input-generator', async () => {
+    createEntity.mockResolvedValue({ status: 'CREATED' })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByTitle(/Select Title Text ID/i))
+    await screen.findByText(/Fast Text Selector/i)
+    await userEvent.click(screen.getByText('New'))
+    const genInput = screen.getByPlaceholderText(/Insert text value/i)
+    await userEvent.type(genInput, 'Generated Title')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(createEntity).toHaveBeenCalledWith(
+      'story-123', 'texts', expect.objectContaining({ shortText: 'Generated Title' }),
+    ))
+  })
+
+  it('updates an existing fast text (update branch) via the pen editor', async () => {
+    updateEntity.mockResolvedValue({ status: 'UPDATED' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve([
+        { uuid: 'txt-101-en', idText: 101, lang: 'en', shortText: 'Location Name' },
+        { uuid: 'txt-101-it', idText: 101, lang: 'it', shortText: 'Nome' },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByTitle(/Select Title Text ID/i))
+    await screen.findByText(/Fast Text Selector/i)
+    // open the editor (pen) for the first existing text row
+    const pen = document.querySelector('.pg-fast-selector-list .fa-pen')
+    await userEvent.click(pen.closest('button'))
+    // FastTextCreatorModal opens in edit mode with the existing id pre-filled
+    await userEvent.click(await screen.findByText('Save Text'))
+    await waitFor(() => expect(updateEntity).toHaveBeenCalledWith(
+      'story-123', 'texts', expect.anything(), expect.objectContaining({ lang: 'en' }),
+    ))
+  })
+
+  it('selects the coma/end-game location and event references from their selectors', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ idLocation: 1, idTextName: 101, uuid: 'loc-1' }])
+      if (type === 'events') return Promise.resolve([{ idEvent: 2, idTextName: 101, uuid: 'ev-2' }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    // All-Player Coma Location
+    await userEvent.click(screen.getByTitle(/Select All-Player Coma Location ID/i))
+    expect(await screen.findByText('Select All-Player Coma Location')).toBeInTheDocument()
+    await userEvent.click(within(screen.getByText('Select All-Player Coma Location').closest('.pg-modal')).getByText('Select'))
+
+    // All-Player Coma Event
+    await userEvent.click(screen.getByTitle(/Select All-Player Coma Event ID/i))
+    expect(await screen.findByText('Select All-Player Coma Event')).toBeInTheDocument()
+    await userEvent.click(within(screen.getByText('Select All-Player Coma Event').closest('.pg-modal')).getByText('Select'))
+
+    // End Game Event
+    await userEvent.click(screen.getByTitle(/Select End Game Event ID/i))
+    expect(await screen.findByText('Select End Game Event')).toBeInTheDocument()
+    await userEvent.click(within(screen.getByText('Select End Game Event').closest('.pg-modal')).getByText('Select'))
   })
 })

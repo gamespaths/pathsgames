@@ -155,6 +155,40 @@ def test_clock_returns_labels_and_character_state():
     assert body['characters'][0]['isSleeping'] is True
 
 
+def _story_imported(uuid='s1', singular='turn', plural='turns', lang='en'):
+    """STORY item as written by the import path: no pre-resolved descriptions,
+    only the multi-lang ``texts`` map + the id_text_clock_* references."""
+    return {
+        'PK': f'STORY#{uuid}', 'SK': 'METADATA', 'uuid': uuid,
+        'idTextClockSingular': 10, 'idTextClockPlural': 11,
+        'texts': {lang: {'clockSingular': singular, 'clockPlural': plural}},
+    }
+
+
+def test_clock_resolves_labels_from_texts_when_descriptions_absent():
+    # Guards the regression: imported stories carry only `texts`, so the clock
+    # endpoint must resolve the labels from there (not return null).
+    items = [PLAYER, _story_imported(), _match(clock=2), _char('m1', 1, 'c1')]
+    with _env(items):
+        result = h.lambda_handler(_event('GET', '/api/match/m1/clock'), None)
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['clockLabelSingular'] == 'turn'
+    assert body['clockLabelPlural'] == 'turns'
+
+
+def test_clock_labels_null_when_story_has_no_clock_data():
+    # No descriptions and no texts -> labels are null (not a crash).
+    story = {'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1'}
+    items = [PLAYER, story, _match(), _char('m1', 1, 'c1')]
+    with _env(items):
+        result = h.lambda_handler(_event('GET', '/api/match/m1/clock'), None)
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['clockLabelSingular'] is None
+    assert body['clockLabelPlural'] is None
+
+
 def test_clock_not_owner_returns_404():
     items = [PLAYER, _story(), _match(owner='other-uuid-002'), _char('m1', 1, 'c1')]
     with _env(items):

@@ -50,10 +50,23 @@ describe('ConfigView', () => {
     expect(onPreview).toHaveBeenCalled()
   })
 
-  it('wires the locked cards (gameType/login) to onPreview', () => {
+  it('wires the information (bonuses) cards to onPreview', () => {
     const { onPreview } = setup()
-    fireEvent.click(screen.getByTestId('cc-gameType'))
-    fireEvent.click(screen.getByTestId('cc-login'))
+    fireEvent.click(screen.getAllByTestId('cc-bonuses')[0])
     expect(onPreview).toHaveBeenCalled()
+  })
+
+  it('wires the character and trait cards to onChangeClick', () => {
+    const { onChangeClick } = setup()
+    fireEvent.click(screen.getByTestId('cc-character'))
+    fireEvent.click(screen.getByTestId('cc-trait'))
+    expect(onChangeClick).toHaveBeenCalledWith('character')
+    expect(onChangeClick).toHaveBeenCalledWith('trait')
+  })
+
+  it('renders without crashing when story content lists are missing', () => {
+    const { onProceed } = setup({ story: {}, config: { character: null, class: null, traits: undefined, difficulty: null } })
+    fireEvent.click(screen.getByText('book.startGame'))
+    expect(onProceed).toHaveBeenCalled()
   })
 })

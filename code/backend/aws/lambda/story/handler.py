@@ -873,6 +873,10 @@ def import_story(event):
         'idCreator':               _safe_int(data.get('idCreator')),
         'idTextClockSingular':    _safe_int(data.get('idTextClockSingular')),
         'idTextClockPlural':      _safe_int(data.get('idTextClockPlural')),
+        # Pre-resolved clock labels (en) so GET /clock can read them directly,
+        # mirroring the seed item; runtime resolution from `texts` is the fallback.
+        'clockSingularDescription': _resolve_text(texts_dict, 'en', 'clockSingular'),
+        'clockPluralDescription':   _resolve_text(texts_dict, 'en', 'clockPlural'),
         'linkCopyright':          data.get('linkCopyright'),
         'texts':                  texts_dict,
         'difficulties':           difficulties,

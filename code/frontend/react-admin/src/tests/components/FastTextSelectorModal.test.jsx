@@ -119,4 +119,77 @@ describe('FastTextSelectorModal', () => {
       expect(onClose).toHaveBeenCalled()
     })
   })
+
+  it('saves the generated text when Enter is pressed', async () => {
+    onSaveFastText.mockResolvedValue({ idText: 9 })
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        onSaveFastText={onSaveFastText} storyUuid="story-1" />
+    )
+    fireEvent.click(screen.getByText('New'))
+    const input = screen.getByPlaceholderText('Insert text value')
+    fireEvent.change(input, { target: { value: 'Via Enter' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(onSaveFastText).toHaveBeenCalled())
+  })
+
+  it('shows an error when the generated text cannot be saved', async () => {
+    onSaveFastText.mockRejectedValue(new Error('save boom'))
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        onSaveFastText={onSaveFastText} storyUuid="story-1" />
+    )
+    fireEvent.click(screen.getByText('New'))
+    fireEvent.change(screen.getByPlaceholderText('Insert text value'), { target: { value: 'X' } })
+    fireEvent.click(screen.getByText('Save'))
+    expect(await screen.findByText(/save boom/i)).toBeInTheDocument()
+  })
+
+  it('returns to the list from the generator cancel button', () => {
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        onSaveFastText={onSaveFastText} storyUuid="story-1" />
+    )
+    fireEvent.click(screen.getByText('New'))
+    // the ghost cancel button (the first <button> in the generator footer with the times icon)
+    const cancelBtn = document.querySelector('.pg-btn-ghost')
+    fireEvent.click(cancelBtn)
+    expect(screen.getByPlaceholderText(/Search by text id/i)).toBeInTheDocument()
+  })
+
+  it('opens the creator modal in edit mode from the pen button', () => {
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        onSaveFastText={onSaveFastText} storyUuid="story-1" />
+    )
+    const penButtons = document.querySelectorAll('.fa-pen')
+    fireEvent.click(penButtons[0].closest('button'))
+    // FastTextCreatorModal is now open in edit mode
+    expect(screen.getByText('Save Text')).toBeInTheDocument()
+    expect(document.querySelector('.fa-edit')).toBeTruthy()
+  })
+
+  it('starts directly in input-generator mode when startMode is input-generator', () => {
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        onSaveFastText={onSaveFastText} storyUuid="story-1" startMode="input-generator" />
+    )
+    expect(screen.getByText(/New text generator/i)).toBeInTheDocument()
+  })
+
+  it('marks the currently selected id with the Selected label', () => {
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect}
+        selectedId={1} />
+    )
+    expect(screen.getByText('Selected')).toBeInTheDocument()
+  })
+
+  it('shows the empty state when no text matches the search', () => {
+    render(
+      <FastTextSelectorModal open onClose={onClose} texts={MOCK_TEXTS} onSelect={onSelect} />
+    )
+    fireEvent.change(screen.getByPlaceholderText(/Search by text id/i), { target: { value: 'zzz' } })
+    expect(screen.getByText('No text found')).toBeInTheDocument()
+  })
 })

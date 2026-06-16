@@ -22,15 +22,15 @@ const clock = (over = {}) => ({
 })
 
 describe('ClockWidget', () => {
-  it('renders nothing without a clock', () => {
+  it('renders no clock bar without a clock', () => {
     const { container } = render(<ClockWidget clock={null} />)
-    expect(container.firstChild).toBeNull()
+    expect(container.querySelector('.player-stats-bar')).toBeNull()
   })
 
-  it('renders the clock value and plural label when clock > 1', () => {
+  it('renders the clock value and the story label when clock > 1', () => {
     render(<ClockWidget clock={clock({ currentClock: 2 })} />)
     expect(screen.getByText('2')).toBeInTheDocument()
-    expect(screen.getByText('hours')).toBeInTheDocument()
+    expect(screen.getByText('hour')).toBeInTheDocument()
   })
 
   it('uses the singular label when the clock is 1', () => {
@@ -41,6 +41,16 @@ describe('ClockWidget', () => {
   it('falls back to "Clock N" when the story has no clock labels', () => {
     render(<ClockWidget clock={clock({ currentClock: 5, clockLabelSingular: null, clockLabelPlural: null })} />)
     expect(screen.getByText('Clock 5')).toBeInTheDocument()
+  })
+
+  it('uses the story singular clock label as the badge tooltip (any clock value)', () => {
+    const { container } = render(<ClockWidget clock={clock({ currentClock: 5, clockLabelSingular: 'hour' })} />)
+    expect(container.querySelector('.stat-badge').getAttribute('title')).toBe('hour')
+  })
+
+  it('falls back to game.clock.title for the tooltip when the story has no singular label', () => {
+    const { container } = render(<ClockWidget clock={clock({ clockLabelSingular: null })} />)
+    expect(container.querySelector('.stat-badge').getAttribute('title')).toBe('game.clock.title')
   })
 
   it('shows a sleeping badge when any character is sleeping', () => {

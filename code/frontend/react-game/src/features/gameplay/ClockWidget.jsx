@@ -10,32 +10,31 @@ import { useTranslation } from '../../i18n/context'
  * story's singular/plural label only (see Step 25 doc §10 note 1). When the story
  * has no clock-label text we fall back to "Clock N".
  */
-export default function ClockWidget({ clock , className , title}) {
+export default function ClockWidget({ clock , className , title , badgeClassName="stat-badge bonus-badge" }) {
   const { t } = useTranslation()
-  if (!clock) return null
 
-  const value = clock.currentClock ?? 0
-  const storyLabel = value === 1 ? clock.clockLabelSingular : clock.clockLabelPlural
+  const value = clock?.currentClock ?? 0
+  const storyLabel = clock?.clockLabelSingular; //ex value === 1 ? clock?.clockLabelSingular : clock?.clockLabelPlural
   const label = storyLabel || t('game.clock.fallback').replace('{n}', value)
-
+  //console.log(clock);
   return (
     <div className={`clock-widget mb-0 ${className}`}>
       {title && <span className="clock-widget-title">{title}</span>}
-      <div className={`player-stats-bar bonus-badge-list mb-0 ${className}`}>
-        <span className="stat-badge bonus-badge" title={t('game.clock.title')}>
+      {clock && <div className={`player-stats-bar bonus-badge-list mb-0 ${className}`}>
+        <span className={`${badgeClassName}`} title={clock?.clockLabelSingular || t('game.clock.title')}>
           
           <i className="fas fa-hourglass-half me-2" />
-          <span>{label}</span>
+          <span>{label}</span>&nbsp;
           <strong>{value}</strong>
           { /* <i className="fas fa-clock" style={{ color: 'var(--color-gold-light)' }} /> */ }
         </span>
         {clock.anyCharacterSleeping && (
-          <span className="stat-badge bonus-badge" title={t('game.sleep.sleeping')}>
+          <span className={`${badgeClassName}`} title={t('game.sleep.sleeping')}>
             <i className="fas fa-bed" style={{ color: '#9b8cff' }} />
             <span>{t('game.sleep.sleeping')}</span>
           </span>
         )}
-      </div>
+      </div>}
     </div>
   )
 }
