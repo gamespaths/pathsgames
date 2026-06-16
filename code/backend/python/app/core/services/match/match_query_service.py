@@ -2,6 +2,9 @@
 from typing import List, Optional
 
 from app.core.models.match.match_models import (
+    EventInfo,
+    LocationInfo,
+    LocationNeighborInfo,
     MatchDetail,
     MatchLocationState,
     MatchRegistryEntry,
@@ -116,9 +119,6 @@ class MatchQueryService(MatchQueryPort):
             for r in registry_rows
         ]
 
-        current_loc_id = story.get("id_location_start") if story else None
-        current_loc = loc_by_id.get(current_loc_id) if current_loc_id else None
-
         summary = self._to_summary(
             match,
             user_creator_uuid,
@@ -137,6 +137,24 @@ class MatchQueryService(MatchQueryPort):
                 user_creator_uuid, requester_id,
             )
 
+        # Locations currently occupied by one or more players (insertion-ordered).
+        active_loc_ids = []
+        for p in players:
+            if p.id_location is not None and p.id_location not in active_loc_ids:
+                active_loc_ids.append(p.id_location)
+
+        # Current location now reflects where the player actually is; fall back to
+        # the story start location when no player/idLocation is available.
+        current_loc_id = active_loc_ids[0] if active_loc_ids else (
+            story.get("id_location_start") if story else None
+        )
+        current_loc = loc_by_id.get(current_loc_id) if current_loc_id else None
+
+        story_id = story.get("id") if story else None
+        locations_active = self._build_locations_active(
+            story_id, active_loc_ids, loc_by_id
+        )
+
         return MatchDetail(
             match=summary,
             current_location_id=current_loc_id,
@@ -147,7 +165,112 @@ class MatchQueryService(MatchQueryPort):
             events=[],
             choices=[],
             players=players,
+            locations_active=locations_active,
         )
+
+    def _build_locations_active(self, story_id, active_loc_ids, loc_by_id) -> List[LocationInfo]:
+        """Build the enriched ``locations_active`` list: each player-occupied
+        location with its card, the neighbor links touching it (both directions)
+        and the events specific to it — each with a resolved card."""
+        result: List[LocationInfo] = []
+        if not story_id or not active_loc_ids:
+            return result
+
+        neighbors = self.story_read_port.find_location_neighbors_by_story_id(story_id)
+        events = self.story_read_port.find_events_by_story_id(story_id)
+
+        for loc_id in active_loc_ids:
+            loc = loc_by_id.get(loc_id)
+            if loc is None:
+                continue
+
+            neighbor_infos: List[LocationNeighborInfo] = []
+            for n in neighbors:
+                other_id = self._neighbor_other_endpoint(n, loc_id)
+                if other_id is None:
+                    continue
+                other = loc_by_id.get(other_id)
+                neighbor_card_id = n.get("id_card")
+                if neighbor_card_id is None and other is not None:
+                    neighbor_card_id = other.get("id_card")
+                neighbor_infos.append(LocationNeighborInfo(
+                    id_location=other_id,
+                    uuid=other["uuid"] if other else None,
+                    direction=n.get("direction"),
+                    flag_back=n.get("flag_back"),
+                    energy_cost=n.get("energy_cost"),
+                    card=self._resolve_card(story_id, neighbor_card_id),
+                ))
+
+            event_infos: List[EventInfo] = []
+            for e in events:
+                if e.get("id_location") == loc_id:
+                    event_infos.append(EventInfo(
+                        uuid=e.get("uuid"),
+                        type=e.get("type"),
+                        card=self._resolve_card(story_id, e.get("id_card")),
+                    ))
+
+            result.append(LocationInfo(
+                id_location=loc_id,
+                uuid=loc.get("uuid"),
+                card=self._resolve_card(story_id, loc.get("id_card")),
+                neighbors=neighbor_infos,
+                events=event_infos,
+            ))
+        return result
+
+    @staticmethod
+    def _neighbor_other_endpoint(neighbor, loc_id):
+        """Return the endpoint of a neighbor link that is NOT ``loc_id``, or None
+        when the link does not touch ``loc_id``."""
+        frm = neighbor.get("id_location_from")
+        to = neighbor.get("id_location_to")
+        if frm == loc_id:
+            return to
+        if to == loc_id:
+            return frm
+        return None
+
+    def _resolve_card(self, story_id, id_card, lang="en"):
+        """Resolve an ``id_card`` reference to a camelCase card dict mirroring
+        CardInfoResponse, or None. Card text falls back to English."""
+        if id_card is None:
+            return None
+        card = self.story_read_port.find_card_by_story_id_and_card_id(story_id, id_card)
+        if card is None:
+            return None
+        title_id = card.get("id_text_title") or card.get("id_text_name")
+        return {
+            "uuid": card.get("uuid"),
+            "cardType": card.get("card_type"),
+            "urlImage": card.get("url_image"),
+            "alternativeImage": card.get("alternative_image"),
+            "awesomeIcon": card.get("awesome_icon"),
+            "styleMain": card.get("style_main"),
+            "styleDetail": card.get("style_detail"),
+            "styleImageLittle": card.get("style_image_little"),
+            "styleImageMedium": card.get("style_image_medium"),
+            "styleImageLarge": card.get("style_image_large"),
+            "title": self._resolve_card_text(story_id, title_id, lang),
+            "description": self._resolve_card_text(story_id, card.get("id_text_description"), lang),
+            "copyrightText": self._resolve_card_text(story_id, card.get("id_text_copyright"), lang),
+            "linkCopyright": card.get("link_copyright"),
+        }
+
+    def _resolve_card_text(self, story_id, id_text, lang):
+        """Resolve a localized text by id_text, falling back to English."""
+        if id_text is None:
+            return None
+        effective = lang if lang and lang.strip() else "en"
+        text = self.story_read_port.find_text_by_story_id_text_and_lang(story_id, id_text, effective)
+        if text:
+            return text.get("short_text")
+        if effective != "en":
+            fallback = self.story_read_port.find_text_by_story_id_text_and_lang(story_id, id_text, "en")
+            if fallback:
+                return fallback.get("short_text")
+        return None
 
     @staticmethod
     def _to_summary(row, user_uuid, story_uuid, difficulty_uuid):

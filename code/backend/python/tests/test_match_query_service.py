@@ -224,3 +224,104 @@ def test_get_match_info_for_admin_returns_detail_of_any_owner():
     assert detail.match.uuid == "match-uuid"
     assert detail.match.story_uuid == "story-uuid"
     assert len(detail.registry) == 1
+
+
+# ── Step 27.x — locations_active enrichment ───────────────────────────────────
+
+def _character(loc=10):
+    return {
+        "id": 1, "uuid": "char-uuid", "id_user": 7, "id_character_template": 90001,
+        "dexterity": 5, "intelligence": 4, "constitution": 3, "energy": 9,
+        "life": 8, "sad": 0, "is_sleeping": 0, "is_coma": 0, "id_location": loc,
+    }
+
+
+def _build_enriched(player_loc=10):
+    persistence = MagicMock()
+    story_read = MagicMock()
+    user_access = MagicMock()
+    character_read = MagicMock()
+
+    user_access.find_by_uuid.return_value = _user()
+    persistence.find_match_by_uuid.return_value = _match()
+    story_read.find_story_by_id.return_value = {
+        "id": 2, "uuid": "story-uuid", "id_location_start": 11,
+    }
+    story_read.find_difficulty_by_id.return_value = {"id": 3, "uuid": "diff-uuid"}
+    locations = [
+        {"id": 10, "uuid": "loc-10", "id_card": 100},
+        {"id": 11, "uuid": "loc-11", "id_card": 110},
+        {"id": 12, "uuid": "loc-12", "id_card": 120},
+    ]
+    story_read.find_locations_by_story_id.return_value = locations
+    persistence.find_locations_by_match_id.return_value = []
+    persistence.find_registry_by_match_id.return_value = []
+    # build_character_infos lookups
+    story_read.find_character_templates_by_story_id.return_value = [
+        {"id_tipo": 90001, "uuid": "tpl-uuid"}
+    ]
+    story_read.find_traits_by_story_id.return_value = []
+    story_read.find_items_by_story_id.return_value = []
+    character_read.find_characters_by_match_id.return_value = [_character(player_loc)]
+    character_read.find_backpack.return_value = None
+    character_read.find_traits.return_value = []
+    character_read.find_inventory.return_value = []
+    # enrichment lookups
+    story_read.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "energy_cost": 2, "id_card": 200},
+        {"id_location_from": 11, "id_location_to": 10, "direction": "S",
+         "energy_cost": 1, "id_card": 210},
+    ]
+    story_read.find_events_by_story_id.return_value = [
+        {"id": 1, "uuid": "evt-1", "type": "NORMAL", "id_location": 10, "id_card": 300},
+        {"id": 2, "uuid": "evt-other", "type": "NORMAL", "id_location": 11, "id_card": 310},
+    ]
+    cards = {
+        100: {"uuid": "c100", "card_type": "location", "url_image": "u",
+              "awesome_icon": "fa-x", "id_text_title": 1000},
+        200: {"uuid": "c200", "card_type": "location", "id_text_title": 2000},
+        300: {"uuid": "c300", "card_type": "event", "id_text_title": 3000},
+    }
+    story_read.find_card_by_story_id_and_card_id.side_effect = (
+        lambda sid, cid: cards.get(cid)
+    )
+    texts = {1000: "Tavern", 2000: "Cave", 3000: "Stranger"}
+    story_read.find_text_by_story_id_text_and_lang.side_effect = (
+        lambda sid, tid, lang: {"short_text": texts.get(tid)} if tid in texts else None
+    )
+
+    service = MatchQueryService(persistence, story_read, user_access, character_read)
+    return service
+
+
+def test_locations_active_current_location_from_player():
+    service = _build_enriched(player_loc=10)
+    detail = service.get_match_info("m", "u")
+    assert detail.current_location_id == 10
+    assert detail.current_location_uuid == "loc-10"
+
+
+def test_locations_active_carries_card_neighbors_events():
+    service = _build_enriched(player_loc=10)
+    detail = service.get_match_info("m", "u")
+
+    assert len(detail.locations_active) == 1
+    active = detail.locations_active[0]
+    assert active.id_location == 10
+    assert active.card["title"] == "Tavern"
+    # neighbors: both links touch location 10 → others are 12 and 11
+    assert {n.id_location for n in active.neighbors} == {12, 11}
+    # event filtered to location 10 only
+    assert len(active.events) == 1
+    assert active.events[0].uuid == "evt-1"
+    assert active.events[0].card["title"] == "Stranger"
+
+
+def test_locations_active_empty_without_players_falls_back_to_start():
+    service = _build_enriched(player_loc=10)
+    # no character joined → no active locations, current location = story start
+    service.character_read_port.find_characters_by_match_id.return_value = []
+    detail = service.get_match_info("m", "u")
+    assert detail.locations_active == []
+    assert detail.current_location_id == 11  # story start fallback

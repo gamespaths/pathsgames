@@ -7,6 +7,9 @@ from fastapi.testclient import TestClient
 
 from app.adapters.rest.match.match_controller import MatchController
 from app.core.models.match.match_models import (
+    EventInfo,
+    LocationInfo,
+    LocationNeighborInfo,
     MatchCreationError,
     MatchDetail,
     MatchEventOption,
@@ -210,6 +213,37 @@ def test_get_match_info_success(env):
     assert body["registry"][0]["key"] == "k"
     assert body["events"][0]["uuid"] == "e"
     assert body["choices"][0]["uuid"] == "c"
+
+
+def test_get_match_info_serializes_locations_active(env):
+    client, _, query_port = env
+    detail = _detail()
+    card = {"title": "Tavern", "description": "warm", "urlImage": "u", "awesomeIcon": "fa-x"}
+    detail.locations_active = [
+        LocationInfo(
+            id_location=10,
+            uuid="loc-10",
+            card=card,
+            neighbors=[LocationNeighborInfo(
+                id_location=12, uuid="loc-12", direction="N",
+                flag_back=0, energy_cost=2,
+                card={"title": "Cave"})],
+            events=[EventInfo(uuid="evt-1", type="NORMAL", card={"title": "Stranger"})],
+        )
+    ]
+    query_port.get_match_info.return_value = detail
+    response = client.get("/api/match/abc/info", headers={"x-user": "u"})
+    assert response.status_code == 200
+    body = response.json()
+    la = body["locationsActive"]
+    assert len(la) == 1
+    assert la[0]["idLocation"] == 10
+    assert la[0]["card"]["title"] == "Tavern"
+    assert la[0]["neighbors"][0]["idLocation"] == 12
+    assert la[0]["neighbors"][0]["energyCost"] == 2
+    assert la[0]["neighbors"][0]["card"]["title"] == "Cave"
+    assert la[0]["events"][0]["uuid"] == "evt-1"
+    assert la[0]["events"][0]["card"]["title"] == "Stranger"
 
 
 def test_get_match_info_blank_uuid_directly():

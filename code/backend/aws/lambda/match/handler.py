@@ -216,18 +216,93 @@ def _summary_from_item(item):
 
 
 def _detail_from_item(item, players=None):
+    players = players or []
+    # Locations currently occupied by one or more players (insertion-ordered).
+    active_loc_ids = []
+    for c in players:
+        loc = c.get("idLocation")
+        if loc is not None and loc not in active_loc_ids:
+            active_loc_ids.append(loc)
+
+    # The STORY item carries the enriched locations/neighbors/events (with cards).
+    story = db_utils.get_item(f'STORY#{item.get("storyUuid")}') or {}
+
+    # Current location reflects where the player actually is; fall back to the
+    # value stored on the match (the story start location set at creation).
+    current_id = active_loc_ids[0] if active_loc_ids else item.get("currentLocationId")
+    current_uuid = item.get("currentLocationUuid")
+    current_name = item.get("currentLocationName")
+    if active_loc_ids:
+        loc = next((l for l in (story.get("locations") or [])
+                    if l.get("id") == current_id), None)
+        if loc:
+            current_uuid = loc.get("uuid")
+            current_name = loc.get("name")
+
     return {
         "match": _summary_from_item(item),
-        "currentLocationId": item.get("currentLocationId"),
-        "currentLocationUuid": item.get("currentLocationUuid"),
-        "currentLocationName": item.get("currentLocationName"),
+        "currentLocationId": current_id,
+        "currentLocationUuid": current_uuid,
+        "currentLocationName": current_name,
         "locations": item.get("locations", []),
         "registry": item.get("registry", []),
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
-        "players": [_character_summary(c) for c in (players or [])],
+        "players": [_character_summary(c) for c in players],
+        # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
+        "locationsActive": _build_locations_active(story, active_loc_ids),
     }
+
+
+def _build_locations_active(story, active_loc_ids):
+    """Build the enriched ``locationsActive`` list from the STORY item: each
+    player-occupied location with its card, the neighbor links touching it (both
+    directions) and the events specific to it. Cards are embedded in the seed."""
+    if not active_loc_ids:
+        return []
+    locations = story.get("locations") or []
+    neighbors = story.get("neighbors") or []
+    events = story.get("events") or []
+    loc_by_id = {l.get("id"): l for l in locations}
+
+    result = []
+    for loc_id in active_loc_ids:
+        loc = loc_by_id.get(loc_id)
+        if loc is None:
+            continue
+
+        neighbor_infos = []
+        for n in neighbors:
+            if n.get("idLocationFrom") == loc_id:
+                other_id = n.get("idLocationTo")
+            elif n.get("idLocationTo") == loc_id:
+                other_id = n.get("idLocationFrom")
+            else:
+                continue
+            other = loc_by_id.get(other_id)
+            neighbor_infos.append({
+                "idLocation": other_id,
+                "uuid": other.get("uuid") if other else None,
+                "direction": n.get("direction"),
+                "flagBack": n.get("flagBack"),
+                "energyCost": n.get("energyCost"),
+                "card": n.get("card") or (other.get("card") if other else None),
+            })
+
+        event_infos = [
+            {"uuid": e.get("uuid"), "type": e.get("type"), "card": e.get("card")}
+            for e in events if e.get("idLocation") == loc_id
+        ]
+
+        result.append({
+            "idLocation": loc_id,
+            "uuid": loc.get("uuid"),
+            "card": loc.get("card"),
+            "neighbors": neighbor_infos,
+            "events": event_infos,
+        })
+    return result
 
 
 # ─── Step 21 — character presenters & helpers ────────────────────────────────

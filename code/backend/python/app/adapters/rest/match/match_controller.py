@@ -138,6 +138,30 @@ def _character_full_to_camel(p):
     }
 
 
+def _location_info_to_camel(l):
+    """Step 27.x — a player-occupied location with its card, neighbors and events."""
+    return {
+        "idLocation": l.id_location,
+        "uuid": l.uuid,
+        "card": l.card,
+        "neighbors": [
+            {
+                "idLocation": n.id_location,
+                "uuid": n.uuid,
+                "direction": n.direction,
+                "flagBack": n.flag_back,
+                "energyCost": n.energy_cost,
+                "card": n.card,
+            }
+            for n in l.neighbors
+        ],
+        "events": [
+            {"uuid": e.uuid, "type": e.type, "card": e.card}
+            for e in l.events
+        ],
+    }
+
+
 def _detail_to_camel(detail):
     return {
         "match": _summary_to_camel(detail.match),
@@ -166,6 +190,7 @@ def _detail_to_camel(detail):
         "events": [asdict(e) for e in detail.events],
         "choices": [asdict(c) for c in detail.choices],
         "players": [_character_summary_to_camel(p) for p in detail.players],
+        "locationsActive": [_location_info_to_camel(l) for l in detail.locations_active],
     }
 
 

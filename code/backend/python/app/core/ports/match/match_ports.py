@@ -149,6 +149,32 @@ class StoryMatchReadPort(ABC):
         the given uuid in the given story, or ``None`` when no such event exists."""
         ...
 
+    @abstractmethod
+    def find_location_neighbors_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Step 27.x — all neighbor links of a story
+        ({id_location_from, id_location_to, direction, energy_cost, id_card})."""
+        ...
+
+    @abstractmethod
+    def find_events_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Step 27.x — all events of a story
+        ({id, uuid, type, id_location, id_card})."""
+        ...
+
+    @abstractmethod
+    def find_card_by_story_id_and_card_id(self, story_id: int, card_id: int) -> Optional[Dict[str, Any]]:
+        """Step 27.x — the card row referenced by an ``id_card`` integer, or
+        None when missing."""
+        ...
+
+    @abstractmethod
+    def find_text_by_story_id_text_and_lang(
+        self, story_id: int, id_text: int, lang: str
+    ) -> Optional[Dict[str, Any]]:
+        """Step 27.x — a single text row by story, id_text and language
+        ({short_text, long_text}), or None."""
+        ...
+
     # === Step 21 — character template / class / trait lookups ===
 
     @abstractmethod

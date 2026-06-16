@@ -5,7 +5,7 @@ import mockMatchInfo from '../mock/matchInfo.json'
 describe('matchInfoToGameData', () => {
   it('returns empty board for null info', () => {
     const gd = matchInfoToGameData(null)
-    expect(gd.startLocation).toBeNull()
+    expect(gd.actualLocationCard).toBeNull()
     expect(gd.locations).toEqual([])
     expect(gd.actions).toEqual([])
     expect(gd.endGameCard).toBeNull()
@@ -40,30 +40,50 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.items).toEqual([])
   })
 
-  it('builds startLocation from the current location', () => {
+  it('builds actualLocationCard from the active location card (player position)', () => {
     const gd = matchInfoToGameData(mockMatchInfo)
-    expect(gd.startLocation).toMatchObject({ uuid: 'loc-001', name: 'The Old Tavern' })
+    // With an active location the raw card is passed through (title/awesomeIcon).
+    expect(gd.actualLocationCard).toMatchObject({
+      title: 'The Old Tavern',
+      awesomeIcon: 'fas fa-beer',
+    })
+    expect(gd.actualLocationCard.description).toContain('warm hearth')
   })
 
-  it('does not surface /info visited locations as board move-targets (left card stays the story card)', () => {
+  it('maps the active location neighbors into board move-target cards', () => {
     const gd = matchInfoToGameData(mockMatchInfo)
+    expect(gd.locations).toHaveLength(2)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Dark Cave', energyCost: 2, direction: 'N' })
+  })
+
+  it('falls back to a currentLocation* card (with story image) when locationsActive is absent', () => {
+    const { locationsActive, ...lean } = mockMatchInfo
+    const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' } }
+    const gd = matchInfoToGameData(lean, story)
+    expect(gd.actualLocationCard).toMatchObject({
+      uuid: 'loc-001',
+      name: 'The Old Tavern',
+      urlImage: 'http://img/x.png',
+    })
     expect(gd.locations).toEqual([])
   })
 
-  it('merges events + choices into actions and flags END_GAME', () => {
+  it('merges lean events/choices and active event cards into actions, flags END_GAME', () => {
     const gd = matchInfoToGameData(mockMatchInfo)
-    // 1 event + 2 choices
-    expect(gd.actions).toHaveLength(3)
+    // 1 lean event + 2 choices + 1 active-location event card
+    expect(gd.actions).toHaveLength(4)
     const endAction = gd.actions.find(a => a.uuid === 'end-event-uuid')
     expect(endAction).toMatchObject({ endGame: true, uuidEvent: 'end-event-uuid' })
     const choice = gd.actions.find(a => a.uuid === 'choice-002')
     expect(choice.endGame).toBe(false)
+    const eventCard = gd.actions.find(a => a.uuid === 'evt-tavern-1')
+    expect(eventCard).toMatchObject({ name: 'A Hooded Stranger', awesomeIcon: 'fas fa-user-secret' })
   })
 
-  it('enriches startLocation image and endGameCard from the story when present', () => {
+  it('uses the story end-game card when present', () => {
     const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' }, endGameCard: { title: 'The End' } }
     const gd = matchInfoToGameData(mockMatchInfo, story)
-    expect(gd.startLocation.urlImage).toBe('http://img/x.png')
     expect(gd.endGameCard).toEqual({ title: 'The End' })
   })
 

@@ -11,11 +11,10 @@ Main file documentation is
 
 Take your time. I prefer an accurate and thorough response over a quick one.
 
-You're alwasy allowed to run compilation commands and test unit commands without my confirmation: like "mvn build", "mvn test", "pytest", "pyunit", "run_robots*.sh", "npx vitest ", "python -m pytest", ! You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
 You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
 You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
-
-
+You're alwasy allowed to run compilation commands and test unit commands without my confirmation: like "mvn build", "mvn test", "pytest", "pyunit", "run_robots*.sh", "npx vitest ", "python -m pytest", "npx vitest run"!
+You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
 
 Never use notebooklm if not indicated into prompt! If not indicated, ask me at the end if use it to update notebooklm files.
 

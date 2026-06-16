@@ -1316,6 +1316,137 @@ will enforce `weight ≤ weightMax` using the persisted `weight_max` column.
 
 
 
+## 14. Addendum (v0.25.3) — Enriched Match Info: `locationsActive`
+
+### 14.1 Problem & goal
+
+Until now `GET /api/match/{uuidMatch}/info` returned `events` / `choices` as
+hardcoded empty lists, `locations` as bare per-match state rows (no card /
+neighbor / event content), and `currentLocation*` derived from the **story start
+location**. The game board (GameBook, react-game) therefore could not show
+*where the player actually is*, nor the reachable locations or the events as
+cards.
+
+This addendum enriches the same endpoint (additively — fully backward
+compatible) so the board can render the player's current location plus its
+neighbors and events, each as a card.
+
+### 14.2 New response field `locationsActive[]`
+
+Added to `MatchInfo`; `locations` / `registry` / `events` / `choices` /
+`players` are **unchanged**. `locationsActive` lists the locations occupied by
+**one or more players**. Each entry:
+
+- `idLocation` (int64), `uuid`
+- `card` — resolved `CardInfo` (`uuid`, `cardType`, `urlImage`,
+  `alternativeImage`, `awesomeIcon`, `styleMain` / `styleDetail` /
+  `styleImageLittle` / `styleImageMedium` / `styleImageLarge`, `title`,
+  `description`, `copyrightText`, `linkCopyright`)
+- `neighbors[]` — the locations reachable from it, **both directions** (every
+  link whose `idLocationFrom` **or** `idLocationTo` is the active location).
+  Each: `idLocation` (the *other* endpoint), `uuid`, `direction`, `flagBack`,
+  `energyCost`, `card` (the neighbor link's own card, falling back to the
+  destination location's card).
+- `events[]` — events specific to that location (`event.idSpecificLocation ==
+  location.id`). Each: `uuid`, `type`, `card`.
+
+In addition, **`currentLocationId` / `currentLocationUuid` / `currentLocationName`
+now reflect the player's position** (`players[0].idLocation`), falling back to
+the story start location only when no player / `idLocation` is present.
+
+### 14.3 Filtering rules (the load-bearing logic)
+
+- `activeLocIds` = the set of non-null `players[].idLocation`.
+- a location is in `locationsActive` **only if** it has ≥ 1 player on it;
+- neighbors are included per active location (so a link shared by two occupied
+  locations is scoped under each, not duplicated in a flat list);
+- events are included only when their location is player-occupied.
+
+### 14.4 Example
+
+```jsonc
+{
+  "match": { "...": "unchanged" },
+  "currentLocationId": 1,            // = players[0].idLocation (fallback: story start)
+  "currentLocationUuid": "loc-001",
+  "currentLocationName": "location-1",
+  "locations":  [ /* unchanged per-match STATE rows */ ],
+  "events":     [ /* unchanged lean uuid/name/type */ ],
+  "choices":    [ /* unchanged */ ],
+  "players":    [ { "...": "unchanged", "idLocation": 1 } ],
+
+  "locationsActive": [
+    {
+      "idLocation": 1,
+      "uuid": "loc-001",
+      "card": { "title": "Welcome Hall", "description": "...", "awesomeIcon": "fas fa-door-open", "urlImage": null },
+      "neighbors": [
+        { "idLocation": 2, "uuid": "loc-002", "direction": "N", "flagBack": 1,
+          "energyCost": 1, "card": { "title": "To the Practice Yard", "awesomeIcon": "fas fa-arrow-up" } }
+      ],
+      "events": [
+        { "uuid": "evt-1", "type": "NORMAL", "card": { "title": "Intro Greeting", "awesomeIcon": "fas fa-comment" } }
+      ]
+    }
+  ]
+}
+```
+
+### 14.5 Per-backend implementation
+
+- **Java (reference).** New domain models `LocationInfo` / `LocationNeighborInfo`
+  / `EventInfo` (`core/model/match`); `ContentQueryPort.getCardByStoryIdAndCardId(
+  storyId, idCard, lang)` reuses the existing card/text resolution (English
+  fallback). `MatchQueryService` gains an optional 5-arg constructor taking
+  `ContentQueryPort` (wired in `CoreConfig`); `buildDetail` builds players first,
+  derives the active-location set, sets the current location from the player and
+  assembles `locationsActive`. DTOs `LocationInfoDto` / `LocationNeighborDto` /
+  `EventInfoDto` in `MatchInfoResponse` (+ `CardInfoResponse.fromModel`).
+  OpenAPI `v0.19.0-match-creation-api.yaml` adds `CardInfo` / `LocationInfo` /
+  `LocationNeighborInfo` / `EventInfo` schemas.
+- **Python.** Mirror in `match_models.py`; `StoryMatchReadPort` gains
+  `find_location_neighbors_by_story_id`, `find_events_by_story_id`,
+  `find_card_by_story_id_and_card_id`, `find_text_by_story_id_text_and_lang`
+  (implemented in `story_match_read_adapter.py`); `match_query_service._build_detail`
+  + `_resolve_card`; controller `_location_info_to_camel` serialises the block.
+- **AWS Lambda.** The DynamoDB seed (`seed/handler.py`) now embeds `neighbors[]`
+  per story, an `idLocation` + `card` on each event, and a `card` on each
+  location; `match/handler.py` `_detail_from_item` / `_build_locations_active`
+  reads them from the STORY item filtered by player location. (AWS cards are an
+  inline subset `{title, description, urlImage, awesomeIcon}`.)
+- **Frontend (react-game).** `matchInfoAdapter.matchInfoToGameData` derives the
+  current location from `players[0].idLocation` → the matching `locationsActive`
+  entry → the board's current-location card; `neighbors` → board move-target
+  cards; the active location's `events` → action cards (added to the lean events;
+  END_GAME handling preserved). GameBook's left page renders the active location
+  card whenever one is present.
+
+### 14.6 Language
+
+Card text resolves with an `"en"` fallback — the info endpoint carries no `lang`
+parameter (consistent with §10.2 for clock labels).
+
+### 14.7 Tests
+
+- Java: `MatchQueryServiceLocationsActiveTest` (active location, player-derived
+  current location, neighbor/event filtering, empty case) + `MatchDtosTest`
+  mapping; full core / adapter-rest / ms-launcher suites green.
+- Python: `test_match_query_service` (enriched path) + `test_match_controller`
+  serialisation; 597 tests pass.
+- AWS: `test_match_handler` enriched-path test; 320 tests pass.
+- react-game: `matchInfoAdapter.test.js` (actualLocationCard from player, neighbors →
+  locations, events → actions, empty fallback); 367 tests pass.
+- Robot E2E: `tests/25_time_clock/match_locations_active.robot` — backend-agnostic
+  structural checks (field present, active location matches the player, card /
+  neighbors / events keys, empty when no character joined).
+
+### 14.8 Out of scope
+
+Movement and location-entry-event **execution** (Roadmap Step 28 / 29). This
+addendum only *exposes* the neighbors and events; it does not act on them.
+
+
+
 
 # Version Control
 - Versions created with AI prompt:
@@ -1332,16 +1463,19 @@ will enforce `weight ≤ weightMax` using the persisted `weight_max` column.
 
   Ciao, i wanna new edit: on api api/match/{uuid}/info on response, on player object add fields energyMax, lifeMax, sadMax, weightMax (for ever player sum class, charater, traits and difficulty values like start game procedure). Add weight like sum of Items weight and add Items list. Remember to edit all backend (java, aws, python) and frontends (react-game and react-admin). edit robot test to test new fields. use paths-games-doc to update all documentation files into documentation_v0. let's go
 
+  I wanna GameBook component loads actual location (filed idLocation on player object) on leftContent- LocationCard. With api/match/[uuid]/info api load allo location* and locationsNeighbor* and all events*, every elementi with cards informations. Important: load location only if there are one or more player, load locationsNeighbor only if there are one or more player on location (to and from), load all events if there are one or more players on event locationId
+
   ```
 
-- **Document Version**: 0.25.2
+- **Document Version**: 0.25.3
 
     | Version | Description | Date |
     |---------|-------------|------|
     | 0.25.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 15, 2026 |
     | 0.25.1 | Addendum: shipped DTO field names corrected (no previousClock / activeCharacterUuid / clockLabel / dayPhase / per-character name); admin endpoint GET /api/admin/matches/{uuidMatch}/clock added (clockForAdmin port method + MatchAdminController) | June 15, 2026 |
     | 0.25.2 | Per-player max stats (lifeMax/energyMax/sadMax/weightMax), current carried weight and items list added to all match-info endpoints; Flyway V0.25.2 migrations (sqlite + postgres); GamingInventoryItemsEntity + repository; CharacterCommandService persists maxes at join; CharacterMapper resolves weight + items; ItemInstanceResponse DTO; OpenAPI v0.25.2-character-max-stats-api.yaml; Python 539 tests pass, AWS 280, react-admin 283; Robot suite 21 assertions added, 357 tests pass | June 15, 2026 |
-    | 0.25.3 | Clock label fix: ClockResponse uses clockLabelSingular/clockLabelPlural (split from single clockLabel); AWS bug fixed — _story_clock_label() helper with fallback from texts map; story import now persists resolved descriptions; ClockWidget uses clockLabelSingular as badge tooltip; 2 new AWS pytest tests (71 total); Robot test "Clock Labels Are Saved And Retrieved From Story" added; Note §10.2 added: labels not localised per user (always "en") | June 16, 2026 |
+    | 0.25.2 | Clock label fix: ClockResponse uses clockLabelSingular/clockLabelPlural (split from single clockLabel); AWS bug fixed — _story_clock_label() helper with fallback from texts map; story import now persists resolved descriptions; ClockWidget uses clockLabelSingular as badge tooltip; 2 new AWS pytest tests (71 total); Robot test "Clock Labels Are Saved And Retrieved From Story" added; Note §10.2 added: labels not localised per user (always "en") | June 16, 2026 |
+    | 0.25.3 | Enriched match info: new `locationsActive[]` block on GET /api/match/{uuid}/info (player-occupied locations, each with card + neighbors[] + events[], all carrying cards); currentLocation* now derived from players[].idLocation (fallback story start); Java reference (LocationInfo/LocationNeighborInfo/EventInfo, ContentQueryPort.getCardByStoryIdAndCardId, MatchQueryService 5-arg + CoreConfig, MatchInfoResponse DTOs, OpenAPI schemas) + Python + AWS (seed neighbors/event-location/cards + handler) + react-game adapter/GameBook; backend tests green (Java core/adapter-rest/ms-launcher, Python 597, AWS 320, react-game 367); Robot suite match_locations_active.robot added (§14) | June 16, 2026 |
 
 
 - **Last Updated**: June 16, 2026

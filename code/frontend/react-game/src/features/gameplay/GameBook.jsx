@@ -9,7 +9,6 @@ import ActionRow from './ActionRow'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
 import { endMatch, getMatchClock } from '../../api/matches'
-import { getStoryDetail } from '../../api/stories'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import BookPageContent from '../../components/book/BookPageContent'
 import Book from '../../components/book/Book'
@@ -25,12 +24,11 @@ import {
   selectedTraitCount,
 } from '@/utils/gamebook'
 
-export default function GameBook({ gameData, matchUuid, story , onClose }) {
-  const { t, lang } = useTranslation()
+export default function GameBook({ gameData, matchUuid, story, storyDetail, onClose }) {//info=
+  const { t } = useTranslation()
   const { user } = useGuestUser()
 
-  const { startLocation, playerStats, locations, actions, endGameCard } = gameData ?? {}
-  const hasLocations = Array.isArray(locations) && locations.length > 0
+  const { actualLocationCard, playerStats, locations, actions, endGameCard } = gameData ?? {}
   const storyCard = story?.card ?? null
 
   const [gameEnded, setGameEnded] = useState(false)
@@ -40,10 +38,8 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
   const [preview, setPreview] = useState(null) // { entity, type } or null
   const [clock, setClock] = useState(null)
   // The `story` prop is the lean summary (no classes/characters/traits/difficulties).
-  // Load the full detail on mount so the characteristics ConfigCards can resolve
-  // the player's selections against the story content lists. We don't replace the
-  // prop: `storyFull` falls back to the summary until the detail arrives.
-  const [storyDetail, setStoryDetail] = useState(null)
+  // The full detail (with content lists) arrives via the `storyDetail` prop, loaded
+  // by GamePage; `storyFull` falls back to the summary until the detail arrives.
 
   // Load the clock cycle state once the match is known, and after each sleep.
   async function refreshClock() {
@@ -62,16 +58,6 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
       .catch(() => {})
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
-
-  // Fetch the full story detail (with content lists) once the story uuid is known.
-  useEffect(() => {
-    let cancelled = false
-    if (!story?.uuid) return undefined
-    getStoryDetail(story.uuid, lang)
-      .then(d => { if (!cancelled) setStoryDetail(d) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [story?.uuid, lang])
 
   function handleSlept() {
     refreshClock()
@@ -110,6 +96,7 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
     return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
   }
   //console.log("QUI",storyCard, story);
+  console.log("actualLocationCard", actualLocationCard);
 
   const leftContent = preview ? (
       <BookPageContent
@@ -122,8 +109,8 @@ export default function GameBook({ gameData, matchUuid, story , onClose }) {
         lockedReason={preview.lockedReason}
         statItemsToPageContent={preview.statItemsToPageContent}
       />
-    ) : 
-    hasLocations ? <LocationCard location={startLocation} />
+    ) :
+    actualLocationCard ? <LocationCard location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
 
   const oldStoryCard =<div className="game-location-card-wrap">

@@ -5,11 +5,11 @@
  * the board shape consumed by GameBook: { startLocation, playerStats, locations,
  * actions, endGameCard }.
  *
- * The /info API is lean (uuid/name/type for events & choices; location states with
- * a name; character stats on players[]). It does NOT carry per-entity cards
- * (images/descriptions) — those live in the story content, so `story` is passed in
- * to enrich the start location and end-game card where possible. Richer per-event
- * cards await a dedicated content endpoint; until then names/icons are derived.
+ * Step 27.x — /info now carries `locationsActive`: the locations occupied by one
+ * or more players, each with a resolved `card` plus its `neighbors[]` (with cards)
+ * and `events[]` (with cards). The board's current location, move-targets and
+ * action cards are derived from the active location matching `players[0].idLocation`.
+ * `story` is still passed in for end-game card and graceful fallbacks.
  *
  * API shape (consumed):
  *   {
@@ -19,7 +19,12 @@
  *     registry:  [{ uuid, key, stringValue, intValue }],
  *     events:    [{ uuid, name, type }],
  *     choices:   [{ uuid, name, type }],
- *     players:   [{ uuid, energy, life, sad, isSleeping, isComa, ... }]
+ *     players:   [{ uuid, idLocation, energy, life, sad, ... }],
+ *     locationsActive: [{
+ *       idLocation, uuid, card,
+ *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card }],
+ *       events:    [{ uuid, type, card }],
+ *     }]
  *   }
  */
 
@@ -68,31 +73,53 @@ function toPlayerStats(player) {
  */
 export function matchInfoToGameData(info, story = null) {
   if (!info) {
-    return { startLocation: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
+    return { actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
   }
 
   const playerStats = toPlayerStats(info.players?.[0])
 
-  const startLocation = (info.currentLocationUuid || info.currentLocationName)
-    ? {
-      uuid: info.currentLocationUuid ?? null,
-      name: info.currentLocationName ?? '',
-      description: '',
-      urlImage: story?.card?.urlImage ?? null,
-      awesomeIcon: story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
-    }
-    : null
+  // The active location is the one the player currently stands on. Prefer the
+  // entry matching players[0].idLocation, falling back to the first active one.
+  const playerLoc = info.players?.[0]?.idLocation ?? null
+  const activeList = Array.isArray(info.locationsActive) ? info.locationsActive : []
+  const active = activeList.find(l => l.idLocation === playerLoc) ?? activeList[0] ?? null
+  console.log("active location", active,playerLoc, activeList);
+  const activeCard = active?.card ?? null
 
-  // The board's left card shows the story card when there are no move-target
-  // locations (GameBook keys the left page off `gameData.locations`). /info.locations
-  // is *visited* location state, not neighbor move-targets, so it is intentionally
-  // NOT surfaced as board locations — this keeps the left card on the story card,
-  // as before. Mapping real neighbours awaits a dedicated content endpoint.
-  const locations = []
+  const actualLocationCard = activeCard
+    ? activeCard /*{
+      uuid: active.uuid ?? info.currentLocationUuid ?? null,
+      name: activeCard.title ?? info.currentLocationName ?? '',
+      description: activeCard.description ?? '',
+      urlImage: activeCard.urlImage ?? story?.card?.urlImage ?? null,
+      awesomeIcon: activeCard.awesomeIcon ?? story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
+    }*/
+    : (info.currentLocationUuid || info.currentLocationName)
+      ? {
+        uuid: info.currentLocationUuid ?? null,
+        name: info.currentLocationName ?? '',
+        description: '',
+        urlImage: story?.card?.urlImage ?? null,
+        awesomeIcon: story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
+      }
+      : null
 
-  // Events + choices become the action cards. An event flagged END_GAME drives the
-  // GameBook end-game flow (uuidEvent is what endMatch expects).
-  const actions = [...(info.events ?? []), ...(info.choices ?? [])].map(e => ({
+  // Neighbor locations of the active location become the board's move-target cards.
+  const locations = (active?.neighbors ?? []).map(n => ({
+    uuid: n.uuid ?? null,
+    idLocation: n.idLocation ?? null,
+    name: n.card?.title ?? '',
+    description: n.card?.description ?? '',
+    urlImage: n.card?.urlImage ?? null,
+    awesomeIcon: n.card?.awesomeIcon ?? 'fas fa-location-arrow',
+    direction: n.direction ?? null,
+    energyCost: n.energyCost ?? null,
+  }))
+
+  // Lean events + choices still drive the END_GAME flow (uuidEvent is what
+  // endMatch expects). Step 27.x — ADD the active location's enriched event cards
+  // for display; the lean list is empty today so there is no duplication.
+  const leanActions = [...(info.events ?? []), ...(info.choices ?? [])].map(e => ({
     uuid: e.uuid,
     uuidEvent: e.uuid,
     name: e.name,
@@ -100,10 +127,20 @@ export function matchInfoToGameData(info, story = null) {
     awesomeIcon: 'fas fa-bolt',
     endGame: e.type === 'END_GAME',
   }))
+  const eventActions = (active?.events ?? []).map(e => ({
+    uuid: e.uuid,
+    uuidEvent: e.uuid,
+    name: e.card?.title ?? '',
+    description: e.card?.description ?? '',
+    type: e.type ?? null,
+    awesomeIcon: e.card?.awesomeIcon ?? 'fas fa-bolt',
+    endGame: e.type === 'END_GAME',
+  }))
+  const actions = [...leanActions, ...eventActions]
 
   const endGameCard = story?.endGameCard ?? story?.card ?? null
 
-  return { startLocation, playerStats, locations, actions, endGameCard, match: info.match ?? null }
+  return { actualLocationCard, playerStats, locations, actions, endGameCard, match: info.match ?? null }
 }
 
 export default matchInfoToGameData

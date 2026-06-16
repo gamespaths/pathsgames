@@ -28,6 +28,22 @@ public class CardInfoResponse extends AbstractCopyrightCreatorDto {
 
     public CardInfoResponse() {}
 
+    /**
+     * Maps a domain {@link games.paths.core.model.story.CardInfo} to its REST DTO,
+     * or returns null when the card is null. Creator is not expanded here.
+     */
+    public static CardInfoResponse fromModel(games.paths.core.model.story.CardInfo ci) {
+        if (ci == null) {
+            return null;
+        }
+        return new CardInfoResponse(
+                ci.uuid(), ci.cardType(), ci.urlImage(), ci.alternativeImage(),
+                ci.awesomeIcon(), ci.styleMain(), ci.styleDetail(),
+                ci.styleImageLittle(), ci.styleImageMedium(), ci.styleImageLarge(),
+                ci.title(), ci.description(),
+                ci.copyrightText(), ci.linkCopyright(), null);
+    }
+
     public CardInfoResponse(String uuid, String cardType, String urlImage, String alternativeImage,
                             String awesomeIcon, String styleMain, String styleDetail,
                             String styleImageLittle, String styleImageMedium, String styleImageLarge,

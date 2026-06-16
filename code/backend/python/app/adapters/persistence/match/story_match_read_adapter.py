@@ -2,6 +2,7 @@
 from typing import Any, Dict, List, Optional
 
 from app.adapters.persistence.story.models import (
+    CardEntity,
     CharacterTemplateEntity,
     ClassBonusEntity,
     ClassEntity,
@@ -9,8 +10,10 @@ from app.adapters.persistence.story.models import (
     ItemEntity,
     KeyEntity,
     LocationEntity,
+    LocationNeighborEntity,
     StoryDifficultyEntity,
     StoryEntity,
+    TextEntity,
     TraitEntity,
 )
 from app.core.ports.match.match_ports import StoryMatchReadPort
@@ -92,6 +95,87 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 .first()
             )
             return {"id": entity.id, "uuid": entity.uuid} if entity else None
+
+    # === Step 27.x — match-info location/neighbor/event enrichment ===
+
+    def find_location_neighbors_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = (
+                session.query(LocationNeighborEntity)
+                .filter(LocationNeighborEntity.id_story == story_id)
+                .all()
+            )
+            return [
+                {
+                    "id_location_from": r.id_location_from,
+                    "id_location_to": r.id_location_to,
+                    "direction": r.direction,
+                    "energy_cost": r.energy_cost,
+                    "id_card": r.id_card,
+                }
+                for r in rows
+            ]
+
+    def find_events_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = (
+                session.query(EventEntity)
+                .filter(EventEntity.id_story == story_id)
+                .all()
+            )
+            return [
+                {
+                    "id": r.id,
+                    "uuid": r.uuid,
+                    "type": r.event_type,
+                    "id_location": r.id_location,
+                    "id_card": r.id_card,
+                }
+                for r in rows
+            ]
+
+    def find_card_by_story_id_and_card_id(self, story_id: int, card_id: int) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            card = (
+                session.query(CardEntity)
+                .filter(CardEntity.id_story == story_id)
+                .filter(CardEntity.id == card_id)
+                .first()
+            )
+            if card is None:
+                return None
+            return {
+                "uuid": card.uuid,
+                "card_type": card.card_type,
+                "url_image": card.url_image,
+                "alternative_image": card.alternative_image,
+                "awesome_icon": card.awesome_icon,
+                "style_main": card.style_main,
+                "style_detail": card.style_detail,
+                "style_image_little": card.style_image_little,
+                "style_image_medium": card.style_image_medium,
+                "style_image_large": card.style_image_large,
+                "id_text_title": card.id_text_title,
+                "id_text_name": card.id_text_name,
+                "id_text_description": card.id_text_description,
+                "id_text_copyright": card.id_text_copyright,
+                "link_copyright": card.link_copyright,
+            }
+
+    def find_text_by_story_id_text_and_lang(
+        self, story_id: int, id_text: int, lang: str
+    ) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            text = (
+                session.query(TextEntity)
+                .filter(TextEntity.id_story == story_id)
+                .filter(TextEntity.id_text == id_text)
+                .filter(TextEntity.lang == lang)
+                .first()
+            )
+            if text is None:
+                return None
+            return {"short_text": text.short_text, "long_text": text.long_text}
 
     # === Step 21 — character template / class / trait lookups ===
 

@@ -173,8 +173,10 @@ public class CoreConfig {
     public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
                                          StoryReadPort storyReadPort,
                                          UserAccessPort userAccessPort,
-                                         CharacterReadPort characterReadPort) {
-        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort, characterReadPort);
+                                         CharacterReadPort characterReadPort,
+                                         ContentQueryPort contentQueryPort) {
+        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
+                characterReadPort, contentQueryPort);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────

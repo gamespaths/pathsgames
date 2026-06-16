@@ -1,3 +1,4 @@
+import BookPageContent from '@/components/book/BookPageContent'
 import GameCard from '../../components/layout/GameCard'
 
 /**
@@ -10,15 +11,17 @@ import GameCard from '../../components/layout/GameCard'
  * Renders nothing when no location is available — the parent (GameBook) is
  * responsible for falling back to the story big card in that case.
  */
-export default function LocationCard({ location }) {
+export default function LocationCard({ location , card , story }) {
   if (!location) return null
+  console.log("location",location);
 
   return (
     <div className="game-location-card-wrap">
-      <GameCard
-        variant="big"
-        card={location}
-        icon={location.awesomeIcon ?? 'fas fa-map-marker-alt'}
+      <BookPageContent
+        entity="location"
+        card={card}
+        icon={card.awesomeIcon ?? 'fas fa-map-marker-alt'}
+        story={story}
         imageAlt={location.name}
       />
       {location.description && (

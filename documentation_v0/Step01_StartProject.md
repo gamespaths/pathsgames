@@ -276,21 +276,21 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET  `/matches/list/{uuid_user}/{status}`: Matches list filtered by status and by user
 		- POST `/matches/{uuid_match}/leave`: Leave a matches if not started
 		- POST `/matches`: To create a new match (and creator character select)
-		- POST `/matches/{uuid_match}/join`: To join into a new match (and select the character)
-		- POST `/matches/{uuid_match}/start`: Creator wanna to start a match until max capacity.
-	- Matches added by AI
+		- ✅ POST `/matches/{uuid_match}/join`: To join into a new match (and select the character)
+		- ✅ POST `/matches/{uuid_match}/start`: Creator wanna to start a match until max capacity.
+	- Matches added by AI (maybe to not develop!)
 		- GET `/matches/{uuid}/characters/templates`
 		- GET `/matches/{uuid}/characters/classes`
 		- GET `/matches/{uuid}/characters/traits`
 		- GET `/matches/{uuid}/weather`
 		- GET `/matches/{uuid}/characters/{uuid}/resources `
+		- ?? GET `/match/{uuid_match}/locations`: Location list (only already visited)		
 	- Match
-		- GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
+		- ✅ GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
 			- Note: The method *info* returns so many informations (location, events, choices, registry), in future if the frontend is making too many REST calls to compose a single view, you could consider GraphQL for future versions. 
 			- Note: the method *info* is similar to `STATE_SYNC` into WebSocket topic
 		- GET `/match/{uuid_match}/players`: Players/characters list (avatar, state, classes, used "WaitingRoomPage")
 		- GET `/match/{uuid_match}/characters/{uuid_character}`: Character details with all statistics
-		- GET `/match/{uuid_match}/locations`: Location list (only already visited)		
 		- GET `/match/{uuid_match}/missions/active`: Active mission list (only active or completed)
 		- GET `/match/{uuid_match}/missions/{uuid_mission}/progress`: Mission details with all steps details
 		- GET `/match/{uuid_match}/turn-sequence`: Get the turn sequence with all detail (turn_queue) and status.

@@ -58,5 +58,57 @@
         { "uuid": "inv-1", "itemUuid": "item-1", "name": "Training Potion", "weight": 2, "amount": 2, "state": "ACTIVE" }
       ]
     }
+  ],
+  "locationsActive": [
+    {
+      "idLocation": 1001,
+      "uuid": "loc-001",
+      "card": {
+        "title": "The Old Tavern",
+        "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+        "urlImage": null,
+        "awesomeIcon": "fas fa-beer"
+      },
+      "neighbors": [
+        {
+          "idLocation": 1002,
+          "uuid": "loc-002",
+          "direction": "N",
+          "flagBack": 1,
+          "energyCost": 2,
+          "card": {
+            "title": "Dark Cave",
+            "description": "A cold draught seeps from the cave mouth.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-mountain"
+          }
+        },
+        {
+          "idLocation": 1003,
+          "uuid": "loc-003",
+          "direction": "E",
+          "flagBack": 1,
+          "energyCost": 1,
+          "card": {
+            "title": "Ancient Forest",
+            "description": "Towering trees swallow the light.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-tree"
+          }
+        }
+      ],
+      "events": [
+        {
+          "uuid": "evt-tavern-1",
+          "type": "NORMAL",
+          "card": {
+            "title": "A Hooded Stranger",
+            "description": "Someone in the corner watches you intently.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-user-secret"
+          }
+        }
+      ]
+    }
   ]
 }

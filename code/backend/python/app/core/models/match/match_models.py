@@ -1,6 +1,6 @@
 """Step 19 — domain models for the single-player match flow."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -117,6 +117,41 @@ class JoinMatchCommand:
 
 
 @dataclass
+class EventInfo:
+    """Step 27.x — an event available at a player-occupied location, with its
+    resolved visual card (a camelCase dict mirroring CardInfoResponse)."""
+
+    uuid: str
+    type: Optional[str] = None
+    card: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class LocationNeighborInfo:
+    """Step 27.x — a location reachable from a player-occupied location. The
+    id/uuid identify the *other* endpoint of the neighbor link."""
+
+    id_location: int
+    uuid: Optional[str] = None
+    direction: Optional[str] = None
+    flag_back: Optional[int] = None
+    energy_cost: Optional[int] = None
+    card: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class LocationInfo:
+    """Step 27.x — a location occupied by one or more players, enriched with its
+    card, the neighbor locations reachable from it and the events specific to it."""
+
+    id_location: int
+    uuid: Optional[str] = None
+    card: Optional[Dict[str, Any]] = None
+    neighbors: List[LocationNeighborInfo] = field(default_factory=list)
+    events: List[EventInfo] = field(default_factory=list)
+
+
+@dataclass
 class MatchDetail:
     match: MatchSummary
     current_location_id: Optional[int] = None
@@ -127,6 +162,7 @@ class MatchDetail:
     events: List[MatchEventOption] = field(default_factory=list)
     choices: List[MatchEventOption] = field(default_factory=list)
     players: List[CharacterInstanceInfo] = field(default_factory=list)
+    locations_active: List[LocationInfo] = field(default_factory=list)
 
 
 class CharacterJoinError(Exception):

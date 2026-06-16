@@ -142,18 +142,35 @@ SEED_STORIES = [
         # Step 19 — runtime seed data: locations and registry keys
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0},
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0},
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Welcome Hall", "description": "A bright entrance hall.",
+                      "urlImage": None, "awesomeIcon": "fas fa-door-open"}},
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Practice Yard", "description": "Where recruits train.",
+                      "urlImage": None, "awesomeIcon": "fas fa-dumbbell"}},
+        ],
+        # Step 27.x — neighbor links between locations (bidirectional 1<->2)
+        "neighbors": [
+            {"id": 1, "uuid": "nb-tutorial-1", "idLocationFrom": 1, "idLocationTo": 2,
+             "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             "card": {"title": "To the Practice Yard", "description": "A short walk north.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],
         "keys": [
             {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done", "keyValue": "0"},
             {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed", "keyValue": "no"},
         ],
-        # Step 20.1 — events for end-game trigger
+        # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    99,
         "events": [
-            {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete"},
-            {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting"},
+            {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete",
+             "idLocation": None, "type": "END_GAME", "idCard": None},
+            {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting",
+             "idLocation": 1, "type": "NORMAL", "idCard": None,
+             "card": {"title": "Intro Greeting", "description": "A guard greets you.",
+                      "urlImage": None, "awesomeIcon": "fas fa-comment"}},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -350,20 +367,44 @@ SEED_STORIES = [
         # Step 19 — runtime seed data
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0},
-            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5},
-            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10},
+            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Crossroads", "description": "Three paths meet here.",
+                      "urlImage": None, "awesomeIcon": "fas fa-signs-post"}},
+            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5,
+             "idCard": None,
+             "card": {"title": "Northern Path", "description": "A road heading north.",
+                      "urlImage": None, "awesomeIcon": "fas fa-road"}},
+            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10,
+             "idCard": None,
+             "card": {"title": "Southern Cave", "description": "A dark cavern mouth.",
+                      "urlImage": None, "awesomeIcon": "fas fa-mountain"}},
+        ],
+        # Step 27.x — neighbor links: Crossroads connects to both paths
+        "neighbors": [
+            {"id": 1, "uuid": "nb-demo1-1", "idLocationFrom": 1, "idLocationTo": 2,
+             "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             "card": {"title": "Go North", "description": "Take the northern road.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
+            {"id": 2, "uuid": "nb-demo1-2", "idLocationFrom": 1, "idLocationTo": 3,
+             "direction": "S", "flagBack": 1, "energyCost": 2, "idCard": None,
+             "card": {"title": "Go South", "description": "Descend toward the cave.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-down"}},
         ],
         "keys": [
             {"id": 1, "uuid": "key-demo1-1", "keyName": "main_quest_started", "keyValue": "0"},
             {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure", "keyValue": "no"},
             {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count", "keyValue": "0"},
         ],
-        # Step 20.1 — events for end-game trigger
+        # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    77,
         "events": [
-            {"id": 77, "uuid": "evt-valvassore-end", "name": "Final Confrontation"},
-            {"id": 1,  "uuid": "evt-valvassore-1",   "name": "Lord's Summons"},
+            {"id": 77, "uuid": "evt-valvassore-end", "name": "Final Confrontation",
+             "idLocation": None, "type": "END_GAME", "idCard": None},
+            {"id": 1,  "uuid": "evt-valvassore-1",   "name": "Lord's Summons",
+             "idLocation": 1, "type": "NORMAL", "idCard": None,
+             "card": {"title": "Lord's Summons", "description": "A messenger calls for you.",
+                      "urlImage": None, "awesomeIcon": "fas fa-scroll"}},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -456,6 +497,8 @@ def _seed_stories():
             # Step 19 — runtime data used by POST /api/matches
             "idLocationStart":          s.get("idLocationStart"),
             "locations":                s.get("locations", []),
+            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info
+            "neighbors":                s.get("neighbors", []),
             "keys":                     s.get("keys", []),
             # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
             "idEventEndGame":           s.get("idEventEndGame"),

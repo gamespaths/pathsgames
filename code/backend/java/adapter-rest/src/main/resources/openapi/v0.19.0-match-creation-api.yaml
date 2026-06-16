@@ -384,6 +384,120 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/EventOption'
+        locationsActive:
+          description: >
+            Locations currently occupied by one or more players, each enriched
+            with its visual card, the neighbor locations reachable from it (both
+            directions) and the events specific to it. Only locations carrying at
+            least one player are present.
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationInfo'
+
+    CardInfo:
+      type: object
+      nullable: true
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        cardType:
+          type: string
+          nullable: true
+        urlImage:
+          type: string
+          nullable: true
+        alternativeImage:
+          type: string
+          nullable: true
+        awesomeIcon:
+          type: string
+          nullable: true
+        styleMain:
+          type: string
+          nullable: true
+        styleDetail:
+          type: string
+          nullable: true
+        styleImageLittle:
+          type: string
+          nullable: true
+        styleImageMedium:
+          type: string
+          nullable: true
+        styleImageLarge:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        copyrightText:
+          type: string
+          nullable: true
+        linkCopyright:
+          type: string
+          nullable: true
+
+    LocationNeighborInfo:
+      type: object
+      properties:
+        idLocation:
+          description: The other endpoint of the neighbor link (the destination).
+          type: integer
+          format: int64
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        direction:
+          type: string
+          nullable: true
+        flagBack:
+          type: integer
+          format: int32
+          nullable: true
+        energyCost:
+          type: integer
+          format: int32
+          nullable: true
+        card:
+          $ref: '#/components/schemas/CardInfo'
+
+    EventInfo:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        type:
+          type: string
+          nullable: true
+        card:
+          $ref: '#/components/schemas/CardInfo'
+
+    LocationInfo:
+      type: object
+      properties:
+        idLocation:
+          type: integer
+          format: int64
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        card:
+          $ref: '#/components/schemas/CardInfo'
+        neighbors:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationNeighborInfo'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventInfo'
 
     Error:
       type: object
