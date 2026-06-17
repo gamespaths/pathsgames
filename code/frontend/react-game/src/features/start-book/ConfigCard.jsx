@@ -6,15 +6,18 @@ export default function ConfigCard({
     type, value, locked, lockedIcon,lockInfo, flagInformationCard,
     selected, story, onChangeClick, onSelect, onPreview, count , onPagePreview, selectLabel,
     selectedCount , childrenIntoImage , statistics,
-    onAction, actionLabel, actionIcon, actionOnlyIfPreview=false, actionWithInfo=false}) {
+    onAction, actionLabel, actionIcon, actionOnlyIfPreview=false, actionWithInfo=false,
+    previewInModal=true}) {
   const { t } = useTranslation()
   const singleOption = count === 1
   const lockReason = null;
   // No real handler ⇒ leave previewHandler undefined so the card exposes no
   // preview affordance (rather than a noop), keeping `haspreview` accurate.
+  // `previewInModal` is forwarded so the caller can choose, on mobile, whether
+  // the (i) opens the big-card modal (true) or loads it in the left page (false).
   const previewHandler = singleOption
-    ? () => onPagePreview(value, type, lockReason, statistics)
-    : onPreview ? () => onPreview(value, type, lockReason, statistics) : undefined
+    ? () => onPagePreview(value, type, lockReason, statistics, previewInModal)
+    : onPreview ? () => onPreview(value, type, lockReason, statistics, previewInModal) : undefined
 
   // Step 23 — the trait card shows how many traits are selected (multi-select)
   const label = t(`book.${type}`) + (selectedCount > 1 ? ` (${selectedCount})` : '')

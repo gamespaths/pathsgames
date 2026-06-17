@@ -101,6 +101,9 @@
   },
   "startMatch": {
     "starting": "Starting match…",
+    "creating": "Creating the match…",
+    "joining": "Joining your character…",
+    "running": "Bringing the match to life…",
     "created": "Match created, the story book is loading…",
     "error": "The match could not be created.",
     "retry": "Try again",

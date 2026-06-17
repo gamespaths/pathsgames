@@ -29,10 +29,10 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
     user: { userUuid: 'u1', username: 'guest_u1', accessToken: 'tok-1' },
   }),
 }))
-vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn() }))
+vi.mock('@/api/matches', () => ({ createMatch: vi.fn(), joinMatch: vi.fn(), startMatch: vi.fn() }))
 
 import StartMatchPage from '../pages/StartMatchPage'
-import { createMatch, joinMatch } from '@/api/matches'
+import { createMatch, joinMatch, startMatch } from '@/api/matches'
 
 const STORY = {
   uuid: 's1',
@@ -68,6 +68,7 @@ describe('StartMatchPage', () => {
     vi.clearAllMocks()
     ts.behavior = 'success'
     joinMatch.mockResolvedValue({ uuid: 'c1' }) // Step 21 auto-join succeeds by default
+    startMatch.mockResolvedValue({ status: 'RUNNING' }) // CREATED → RUNNING succeeds by default
     vi.stubEnv('VITE_MATCH_START_DELAY', '3') // 3s waits keep the test fast
     vi.useFakeTimers()
   })
@@ -103,7 +104,8 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
     clickStart()
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+    // starting(3) → create → creating(3) → join → joining(3) → start → running(3) → created
+    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
 
     expect(createMatch).toHaveBeenCalledTimes(1)
     const [payload, token] = createMatch.mock.calls[0]
@@ -122,6 +124,9 @@ describe('StartMatchPage', () => {
     const [joinUuid, loadout] = joinMatch.mock.calls[0]
     expect(joinUuid).toBe('m1')
     expect(loadout).toMatchObject({ characterTemplateUuid: 'ch1', classUuid: 'cl1', traitUuids: ['tr1'] })
+    // After join the match is started (CREATED → RUNNING) so gameplay is accepted.
+    expect(startMatch).toHaveBeenCalledTimes(1)
+    expect(startMatch).toHaveBeenCalledWith('m1', 'tok-1')
     expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)
   })
 
@@ -131,7 +136,8 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
     clickStart()
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+    // starting(3) → create → creating(3) → join (rejects)
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000) })
 
     expect(joinMatch).toHaveBeenCalledTimes(1)
     expect(screen.getAllByText(/startMatch\.error/).length).toBeGreaterThan(0)
@@ -143,7 +149,8 @@ describe('StartMatchPage', () => {
     renderPage({ story: STORY, config: CONFIG })
     clickStart()
 
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000) }) // starting → create
+    // starting → create → creating → join → joining → start → running → created
+    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
     await act(async () => { await vi.advanceTimersByTimeAsync(3000) }) // created → game
 
     expect(screen.getByText('game-page')).toBeInTheDocument()
@@ -160,7 +167,8 @@ describe('StartMatchPage', () => {
 
     createMatch.mockResolvedValueOnce({ uuid: 'm2', status: 'CREATED' })
     await act(async () => { fireEvent.click(screen.getAllByText(/startMatch\.retry/)[0]) })
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+    // starting → create → creating → join → joining → start → running → created
+    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
 
     expect(createMatch).toHaveBeenCalledTimes(2)
     expect(screen.getAllByText(/startMatch\.created/).length).toBeGreaterThan(0)

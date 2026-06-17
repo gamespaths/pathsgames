@@ -26,7 +26,7 @@ export default function BookPageContent({
     value: s.value,
   }))
   //console.log("BookPageContent",card, statItemsReal , statItemsToPageContent);
-
+  
   const title = card?.title ?? entity?.name ?? card?.name ?? null
   const description = card?.description ?? entity?.description ?? null
 

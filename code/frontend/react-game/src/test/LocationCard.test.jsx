@@ -8,6 +8,7 @@ vi.mock('@/components/book/BookPageContent', () => ({
   default: ({ card, icon, imageAlt }) => (
     <div data-testid="page-content" data-icon={icon} data-alt={imageAlt}>
       {card?.title}
+      {card?.description}
     </div>
   ),
 }))
@@ -28,8 +29,10 @@ describe('LocationCard', () => {
     expect(screen.getByText('Forest')).toBeInTheDocument()
   })
 
-  it('shows description when present', () => {
-    render(<LocationCard location={{ name: 'Cave', description: 'A dark cave.' }} card={{}} />)
+  it('shows the card description when present', () => {
+    // The description now lives on the card (rendered by BookPageContent),
+    // not on the location object.
+    render(<LocationCard location={{ name: 'Cave' }} card={{ description: 'A dark cave.' }} />)
     expect(screen.getByText('A dark cave.')).toBeInTheDocument()
   })
 

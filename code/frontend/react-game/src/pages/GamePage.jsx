@@ -35,6 +35,14 @@ export default function GamePage() {
     return () => { cancelled = true }
   }, [storyId, matchUuid, user?.accessToken])
 
+  // Re-fetch only the match board (stats, energy, location, actions). Called
+  // after actions that mutate match state (e.g. sleep / time advance) so the
+  // player stats and location cards reflect the new clock.
+  async function reloadGameData() {
+    const info = await getGameData(matchUuid, user?.accessToken)
+    setGameData(matchInfoToGameData(info, story, t))
+  }
+
   // Fetch the full story detail (with content lists) once the story uuid is known.
   useEffect(() => {
     let cancelled = false
@@ -57,8 +65,8 @@ export default function GamePage() {
           <i className="fas fa-spinner fa-spin me-4" />Loading…
         </div>
       ) : (
-        <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail} 
-          onClose={() => gotoHomePage(null)} />
+        <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
+          onReload={reloadGameData} onClose={() => gotoHomePage(null)} />
       )}
     </div>
   )

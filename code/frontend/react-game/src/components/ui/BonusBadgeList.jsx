@@ -74,7 +74,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
             return (Number.isFinite(v1) && v1 !== 0) && (Number.isFinite(v2) && v2 !== 0)
           }
         } catch (e) { // Ignore errors and treat as zero
-          console.warn("BonusBadgeList: error parsing value", item?.value, e);
+          //console.warn("BonusBadgeList: error parsing value", item?.value, e);
         }
         const v = Number(item?.value)
         return Number.isFinite(v) && v !== 0

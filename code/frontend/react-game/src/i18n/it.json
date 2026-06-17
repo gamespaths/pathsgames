@@ -97,6 +97,9 @@
   },
   "startMatch": {
     "starting": "Avvio della partita…",
+    "creating": "Creazione della partita…",
+    "joining": "Ingresso del personaggio…",
+    "running": "Avvio della partita in corso…",
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
     "retry": "Riprova",

@@ -26,11 +26,11 @@ vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div da
 vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
 vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/start-book/ConfigCard', () => ({
-  default: ({ childrenIntoImage, onPreview, onAction, actionLabel, value }) => (
+  default: ({ childrenIntoImage, onPreview, onAction, actionLabel, value, type }) => (
     <div data-testid="config-card">
       {childrenIntoImage}
-      {onPreview && <button onClick={onPreview}>preview:{value?.card?.title || ''}</button>}
-      {onAction && <button onClick={onAction}>{actionLabel}</button>}
+      {onPreview && <button data-testid={`preview-${type}`} onClick={onPreview}>preview:{value?.card?.title || ''}</button>}
+      {onAction && <button data-testid={`action-${type}`} onClick={onAction}>{actionLabel}</button>}
     </div>
   ),
 }))
@@ -50,7 +50,7 @@ vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data
 vi.mock('../features/start-book/StartBookModal', () => ({ CardPreviewOverlay: () => <div data-testid="preview-overlay" /> }))
 
 import GameBook from '../features/gameplay/GameBook'
-import { endMatch } from '../api/matches'
+import { endMatch, sleepCharacter } from '../api/matches'
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },
@@ -95,6 +95,38 @@ describe('GameBook', () => {
     await waitFor(() => {
       expect(screen.getByText('NETWORK_ERROR')).toBeInTheDocument()
     })
+  })
+
+  // The sleep card lives in the statistics view (opened from the characteristics
+  // card preview). Its onAction calls sleepCharacter, then onSlept refreshes the
+  // clock and reloads the board (onReload).
+  it('sleep action calls sleepCharacter and reloads the board', async () => {
+    sleepCharacter.mockResolvedValue({ isSleeping: true, timeEndTriggered: true })
+    const onReload = vi.fn()
+    render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onReload={onReload} onClose={vi.fn()} />)
+    // Enter the statistics view via the characteristics card preview.
+    fireEvent.click(screen.getAllByTestId('preview-story')[0])
+    fireEvent.click(await screen.findByTestId('action-sleep'))
+    await waitFor(() => {
+      expect(sleepCharacter).toHaveBeenCalledWith('m1', 'tok')
+      expect(onReload).toHaveBeenCalled()
+    })
+  })
+
+  it('opens the card preview modal on mobile when a preview opens', async () => {
+    // On mobile the (i) lens opens the big card in the Bootstrap modal.
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    const show = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
+    render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    // An action card previews with showModal=true (the characteristics card uses false).
+    fireEvent.click(screen.getAllByTestId('preview-action')[0])
+    await waitFor(() => {
+      expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)')
+      expect(show).toHaveBeenCalled()
+    })
+    delete window.bootstrap
+    delete window.matchMedia
   })
 
   it('renders gracefully when gameData is null', () => {

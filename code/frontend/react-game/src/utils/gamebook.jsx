@@ -49,12 +49,6 @@ export function buildCardCharacteristicsRight(story, playerStats, clock, { match
   card.description = (
     <>
       <PlayerStats stats={stats} plainFlag={true} />
-      <SleepButton
-        matchUuid={matchUuid}
-        accessToken={accessToken}
-        disabled={clock?.anyCharacterSleeping ?? false}
-        onSlept={onSlept}
-      />
     </>
   )
   card.descriptionTag = true

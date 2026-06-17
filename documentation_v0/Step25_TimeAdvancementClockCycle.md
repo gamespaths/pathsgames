@@ -1489,6 +1489,10 @@ render an explicit "end game" affordance without re-deriving it from the event
 
   into locationsActive into events add endGame flag, true if event is "end game event id" from story, else false. add robot test, if necessary use "0.25.4" version, edit all backends and react-game to show "end game" button to ConfigCard using onAction,actionLabel e actionIcon. Let's go
 
+  ciao, on card GoToSleepCard i wanna call API to sleep onAction method , undestand what sleed means and if there are others API to call and conmponents to reload. 
+
+  on runCreateMatch i wanna this change: between createMatch, joinMatch and startMatch you have to wait delaySeconds() and show messages with states and countdown. let's go
+
   ```
 
 - **Document Version**: 0.25.4
@@ -1502,6 +1506,7 @@ render an explicit "end game" affordance without re-deriving it from the event
     | 0.25.3 | Enriched match info: new `locationsActive[]` block on GET /api/match/{uuid}/info (player-occupied locations, each with card + neighbors[] + events[], all carrying cards); currentLocation* now derived from players[].idLocation (fallback story start); Java reference (LocationInfo/LocationNeighborInfo/EventInfo, ContentQueryPort.getCardByStoryIdAndCardId, MatchQueryService 5-arg + CoreConfig, MatchInfoResponse DTOs, OpenAPI schemas) + Python + AWS (seed neighbors/event-location/cards + handler) + react-game adapter/GameBook; backend tests green (Java core/adapter-rest/ms-launcher, Python 597, AWS 320, react-game 367); Robot suite match_locations_active.robot added (§14) | June 16, 2026 |
     | 0.25.4 | End-game flag on events: locationsActive[].events now carries a boolean `endGame` (true when event.id == story.idEventEndGame) across Java/Python/AWS (+ EventInfoDto.endGame, OpenAPI); react-game adapter maps it and GameBook renders an "end game" button via ConfigCard onAction/actionLabel/actionIcon (ConfigCard made override-friendly); Robot test "Event Cards Expose The End Game Flag" added; tests green: Java core 910 + adapter-rest 188, Python 597, AWS 320, react-game 367 (§14.9) | June 16, 2026 |
     | 0.25.4 | Events cards into GameBook and end match flag to complete a match | June 16, 2026 |
+    | 0.25.4 | EndGame and sleep card on GameBook, sleep action to call APIs | June 16, 2026 |
 
 - **Last Updated**: June 16, 2026
 - **Status**: Complete

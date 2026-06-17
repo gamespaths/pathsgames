@@ -62,7 +62,7 @@ describe('ConfigCard', () => {
     expect(gc.dataset.haspreview).toBe('y')
     // single-option previews through onPagePreview, not onPreview.
     fireEvent.click(screen.getByTestId('preview-btn'))
-    expect(onPagePreview).toHaveBeenCalledWith(value, 'class', null, { x: 1 })
+    expect(onPagePreview).toHaveBeenCalledWith(value, 'class', null, { x: 1 }, true)
     expect(onPreview).not.toHaveBeenCalled()
   })
 

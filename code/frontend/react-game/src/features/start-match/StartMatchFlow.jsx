@@ -9,7 +9,8 @@ import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
 import { buildGameTypeCard, buildLoginCard, buildStatisticsCard, buildTermsCard } from '@/utils/loadoutCards'
-import { createMatch, joinMatch } from '@/api/matches'
+import { createMatch, joinMatch, startMatch } from '@/api/matches'
+import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import ConfirmStep from './ConfirmStep'
 import MatchStatus from './MatchStatus'
 import { buildConfigStatistics } from '@/utils/bonusStats'
@@ -53,9 +54,32 @@ export default function StartMatchFlow({ story, config, storyId }) {
 
   function handleSelectionPreview(entity, entityType , lockedReason , statItemsToPageContent) {
     setPreview(entity ? { entity, entityType, lockedReason, statItemsToPageContent } : null)
+    // Mobile has no left page → the (i) lens opens the big card in a modal.
+    if (entity && typeof window !== 'undefined'
+        && window.matchMedia?.('(max-width: 767px)').matches) {
+      const el = document.getElementById('cardPreviewModal')
+      const Modal = window.bootstrap?.Modal
+      if (el && Modal) Modal.getOrCreateInstance(el).show()
+    }
   }
 
   const goHome = useCallback(() => navigate('/'), [navigate])
+
+  // Drive a visible countdown for `seconds`, resolving when it reaches 0. Used
+  // to pace the creating → joining → running steps so each phase message is
+  // shown with its own countdown.
+  const waitWithCountdown = useCallback((seconds) => new Promise(resolve => {
+    let remaining = seconds
+    setCountdown(remaining)
+    const id = setInterval(() => {
+      remaining -= 1
+      setCountdown(remaining > 0 ? remaining : 0)
+      if (remaining <= 0) {
+        clearInterval(id)
+        resolve()
+      }
+    }, 1000)
+  }), [])
 
   const runCreateMatch = useCallback(async () => {
     setPhase('creating')
@@ -82,17 +106,24 @@ export default function StartMatchFlow({ story, config, storyId }) {
       }
       const created = await createMatch(payload, user?.accessToken)
       setMatch(created)
+      await waitWithCountdown(delaySeconds())
       // Step 21 — auto-join: materialise the character in the freshly created
       // match before entering the game.
       setPhase('joining')
       await joinMatch(created.uuid, loadout, user?.accessToken)
+      await waitWithCountdown(delaySeconds())
+      // Step — transition the match CREATED → RUNNING so gameplay actions
+      // (sleep / pass-turn) are accepted; without this they 409 MATCH_NOT_RUNNING.
+      setPhase('running')
+      await startMatch(created.uuid, user?.accessToken)
+      await waitWithCountdown(delaySeconds())
       setPhase('created')
     } catch (e) {
       const apiError = e?.response?.data?.error
       setErrorMsg(apiError || e?.message || '')
       setPhase('error')
     }
-  }, [story, config, user, gate.token])
+  }, [story, config, user, gate.token, waitWithCountdown])
 
   // Timed phases: 'starting' counts down then creates the match; 'created'
   // counts down then enters the game. Both reuse the same configured delay.
@@ -173,6 +204,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
   }
 
   return (
+    <>
     <Book
       overlayClass="book-overlay start-match-overlay "
       wrapperClass="book-wrapper start-match-wrapper"
@@ -199,6 +231,9 @@ export default function StartMatchFlow({ story, config, storyId }) {
         </div>
       }
     />
+    {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
+    <CardPreviewModal preview={preview ? { entity: preview.entity, type: preview.entityType } : null} story={story} />
+    </>
   )
 }
 

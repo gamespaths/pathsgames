@@ -57,7 +57,7 @@ export default function GameCard({
   const { t } = useTranslation()
   const [previewOpened, setPreviewOpened] = useState(false);
   function onPreviewClick(e) {
-    console.log("GameCard onPreviewClick", onPreview, "previewOpened", previewOpened);  
+    //console.log("GameCard onPreviewClick", onPreview, "previewOpened", previewOpened);  
     e.stopPropagation();
     if (onPreview) {
       setPreviewOpened(true);

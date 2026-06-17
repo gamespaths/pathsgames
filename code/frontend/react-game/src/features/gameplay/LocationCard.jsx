@@ -24,9 +24,9 @@ export default function LocationCard({ location , card , story }) {
         story={story}
         imageAlt={location.name}
       />
-      {location.description && (
+      {/*location.description && (
         <p className="game-loc-desc">{location.description}</p>
-      )}
+      )*/}
     </div>
   )
 }

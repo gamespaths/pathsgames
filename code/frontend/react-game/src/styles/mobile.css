@@ -87,6 +87,12 @@
   grid-template-columns: repeat(2, 1fr);
   overflow: visible;
 }
+/* Enlarge the small (little) card titles on mobile for readability; allow them
+   to wrap rather than truncate at the bigger size. */
+.book-mobile-layout .selection-list .gc-title__text {
+  font-size: clamp(1.20rem, 3.2vw, 1.20rem);
+  white-space: normal;
+}
 /* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
    footer button would be a duplicate — hide it (StartGameView keeps its
    footer, which carries the antibot check + final Start). */
@@ -120,10 +126,21 @@
      whole thing top-to-bottom reliably. */
   .book-overlay.book-overlay {
     display: block;
+    overflow-x: hidden;            /* never let content widen past the viewport */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 56px 0 32px;
   }
+
+  /* Keep the single-column game layout within the device width: cap the layout
+     and its left/right wrappers, and stop flex/grid children from forcing a
+     wider track (min-width:auto default overflows on long words / wide cards). */
+  .game-page-wrap { overflow-x: hidden; }
+  .book-mobile-layout,
+  .book-mobile-left,
+  .book-mobile-right { max-width: 100%; min-width: 0; }
+  .book-mobile-layout * { min-width: 0; max-width: 100%; }
+  .book-mobile-layout img { height: auto; }
 
   /* Game page: stack pages vertically */
   .game-book-wrapper {

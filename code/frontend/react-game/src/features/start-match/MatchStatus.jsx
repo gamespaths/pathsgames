@@ -25,7 +25,15 @@ export default function MatchStatus({ phase, countdown, errorMsg, onRetry, onHom
   }
 
   const created = phase === 'created'
-  const label = created ? t('startMatch.created') : t('startMatch.starting')
+  // Per-phase status message; unknown phases fall back to the generic "starting".
+  const PHASE_LABELS = {
+    starting: 'startMatch.starting',
+    creating: 'startMatch.creating',
+    joining: 'startMatch.joining',
+    running: 'startMatch.running',
+    created: 'startMatch.created',
+  }
+  const label = t(PHASE_LABELS[phase] ?? 'startMatch.starting')
   const icon = created ? 'fas fa-check-circle' : 'fas fa-spinner fa-spin'
 
   return (

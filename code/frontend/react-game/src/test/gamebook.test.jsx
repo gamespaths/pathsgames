@@ -76,6 +76,5 @@ describe('utils/gamebook — card builders', () => {
     expect(card.urlImage).toBeNull()
     render(<div>{card.title}{card.description}</div>)
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()
-    expect(screen.getByTestId('sleep-button')).toBeInTheDocument()
   })
 })
