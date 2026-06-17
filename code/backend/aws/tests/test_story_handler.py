@@ -372,6 +372,49 @@ def test_import_story_persists_character_template_class_fields():
     assert templates[0]['idClassPermitted'] == 5
     assert templates[0]['idClassProhibited'] == 1
 
+def test_import_story_resolves_inline_cards_for_gameplay():
+    # Step 27.x regression: imported locations/neighbors/events must carry a
+    # pre-resolved `card` (and gameplay-friendly keys) so the match handler can
+    # render the active location card — exactly like the seed item.
+    payload = {
+        'uuid': 'imp-cards-1',
+        'texts': [
+            {'idText': 50, 'lang': 'en', 'shortText': 'Hall'},
+            {'idText': 51, 'lang': 'en', 'shortText': 'A bright hall.'},
+        ],
+        'cards': [{'id': 44, 'idTextName': 50, 'idTextDescription': 51,
+                   'urlImage': 'hall.png', 'awesomeIcon': 'fas fa-map'}],
+        'locations': [{'id': 1, 'idCard': 44}, {'id': 2, 'idCard': 44}],
+        'locationNeighbors': [{'id': 1, 'idLocationFrom': 1, 'idLocationTo': 2,
+                               'direction': 'EAST', 'idCard': None}],
+        'events': [{'id': 1, 'idCard': 44, 'idSpecificLocation': 1, 'type': 'NORMAL'}],
+    }
+    captured = {}
+
+    def _capture(item):
+        captured['item'] = item
+        return True
+
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=_capture):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body=payload)
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    item = captured['item']
+    # Location card resolved inline
+    assert item['locations'][0]['card'] is not None
+    assert item['locations'][0]['card']['title'] == 'Hall'
+    assert item['locations'][0]['card']['urlImage'] == 'hall.png'
+    # Neighbors stored under the key the match handler reads
+    assert 'neighbors' in item
+    assert item['neighbors'][0]['idLocationTo'] == 2
+    # Events get the gameplay `idLocation` alias + resolved card
+    assert item['events'][0]['idLocation'] == 1
+    assert item['events'][0]['card']['title'] == 'Hall'
+
+
 def test_import_story_replaces_existing():
     with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, STORY_ITEM]), \
          patch('story.handler.db_utils.query_gsi', return_value=[]), \

@@ -4,6 +4,7 @@ import {
   createMatch, listMatches, getMatchInfo, endMatch,
   joinMatch, getMatchPlayers, getCharacter,
   startMatch, passTurn, getTurnSequence,
+  getMatchClock, sleepCharacter,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -79,6 +80,21 @@ describe('matches api', () => {
       const seq = await getTurnSequence('m1')
       expect(seq.matchUuid).toBe('m1')
       expect(seq.queue).toEqual([])
+    })
+
+    it('getMatchClock synthesizes an empty clock at 0 carrying the match uuid', async () => {
+      const clock = await getMatchClock('m1')
+      expect(clock.matchUuid).toBe('m1')
+      expect(clock.currentClock).toBe(0)
+      expect(clock.anyCharacterSleeping).toBe(false)
+      expect(clock.characters).toEqual([])
+    })
+
+    it('sleepCharacter synthesizes a sleeping success without ending time', async () => {
+      const res = await sleepCharacter('m1')
+      expect(res.matchUuid).toBe('m1')
+      expect(res.isSleeping).toBe(true)
+      expect(res.timeEndTriggered).toBe(false)
     })
   })
 
@@ -208,6 +224,27 @@ describe('matches api', () => {
       const res = await getTurnSequence('m1', 'tok')
       expect(get).toHaveBeenCalledWith('/api/match/m1/turn-sequence', expect.any(Object))
       expect(res.queue).toEqual([{ characterUuid: 'c1' }])
+    })
+
+    it('getMatchClock gets /api/match/{uuid}/clock with the auth header', async () => {
+      get.mockResolvedValue({ data: { matchUuid: 'm1', currentClock: 3 } })
+      const res = await getMatchClock('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/clock', expect.any(Object))
+      expect(res.currentClock).toBe(3)
+    })
+
+    it('sleepCharacter posts to /api/gameplay/{uuid}/action/sleep', async () => {
+      post.mockResolvedValue({ data: { isSleeping: true, timeEndTriggered: true } })
+      const res = await sleepCharacter('m1', 'tok')
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/sleep', null, expect.any(Object),
+      )
+      expect(res.timeEndTriggered).toBe(true)
+    })
+
+    it('sleepCharacter propagates a 409 ALREADY_SLEEPING error', async () => {
+      post.mockRejectedValue(new Error('ALREADY_SLEEPING'))
+      await expect(sleepCharacter('m1', 'tok')).rejects.toThrow('ALREADY_SLEEPING')
     })
   })
 })

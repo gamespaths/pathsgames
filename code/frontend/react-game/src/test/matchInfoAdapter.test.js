@@ -81,10 +81,14 @@ describe('matchInfoToGameData', () => {
     expect(eventCard).toMatchObject({ name: 'A Hooded Stranger', awesomeIcon: 'fas fa-user-secret' })
   })
 
-  it('uses the story end-game card when present', () => {
-    const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' }, endGameCard: { title: 'The End' } }
-    const gd = matchInfoToGameData(mockMatchInfo, story)
-    expect(gd.endGameCard).toEqual({ title: 'The End' })
+  it('builds the end-game card via the i18n translator', () => {
+    const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' } }
+    const t = (k) => `tr:${k}`
+    const gd = matchInfoToGameData(mockMatchInfo, story, t)
+    expect(gd.endGameCard).toMatchObject({
+      name: 'tr:game.endGameCard.title',
+      description: 'tr:game.endGameCard.description',
+    })
   })
 
   it('tolerates a minimal info object without players/events', () => {

@@ -13,7 +13,7 @@ import GameCard from '../../components/layout/GameCard'
  */
 export default function LocationCard({ location , card , story }) {
   if (!location) return null
-  console.log("location",location);
+  //console.log("location",location);
 
   return (
     <div className="game-location-card-wrap">

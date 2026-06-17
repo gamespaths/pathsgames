@@ -1,6 +1,7 @@
 import GameCardCreditsBar from './GameCardCreditsBar'
 import { useTranslation } from '../../i18n/context'
 import BonusBadgeList from '../ui/BonusBadgeList'
+import { useState } from 'react'
 
 /**
  * GameCard — unified card component.
@@ -42,6 +43,7 @@ export default function GameCard({
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
+  actionOnlyIfPreview = false, actionWithInfo=false,
   onPreview, hidePreview = false,
 
   /* extra overlay content */
@@ -53,6 +55,15 @@ export default function GameCard({
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
+  const [previewOpened, setPreviewOpened] = useState(false);
+  function onPreviewClick(e) {
+    console.log("GameCard onPreviewClick", onPreview, "previewOpened", previewOpened);  
+    e.stopPropagation();
+    if (onPreview) {
+      setPreviewOpened(true);
+      onPreview();
+    }
+  }
 
   const urlImage      = urlImageProp ?? card?.urlImage ?? card?.alternativeImage ?? null
   const icon          = iconProp     ?? card?.awesomeIcon ?? 'fas fa-question'
@@ -84,17 +95,23 @@ export default function GameCard({
   ) : null */
 
   /* ── action button ── */
+  function getPreviewButton( flagShowLabel = false , iconClassName = "" , alone=false, buttonClassName = "mr-0" ,  ) {
+    return <button
+          className={`gc-footer__btn ${alone ? 'gc-footer__btn--icon' : ' '} ${buttonClassName} `}
+          onClick={onPreviewClick}
+          aria-label={t('card.info')}
+        >
+          <i className={`fas fa-info ${iconClassName}`} />
+          {flagShowLabel && <span className="gc-footer__btn-label">{t('card.info')}</span>}
+          {!flagShowLabel && !alone && <span className="gc-footer__btn-label">&nbsp;</span>}
+        </button>
+  }
+
   let actionBtn = null
+  
   if (locked) {
     actionBtn = ( <>
-      {onPreview && !hidePreview && <button
-        className="gc-footer__btn gc-footer__btn--icon"
-        onClick={(e) => { e.stopPropagation(); onPreview && onPreview() }}
-        aria-label={t('card.info')}
-      >
-        <i className="fas fa-info" />
-        <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
-      </button>}
+      {onPreview && !hidePreview && getPreviewButton(false,"mr-1",true)}
       <span
         className="gc-footer__coming-soon"
         title={lockedReason || undefined}
@@ -105,16 +122,7 @@ export default function GameCard({
     </>)
   } else if (onSelect) {
     actionBtn = (<>
-      {onPreview && !hidePreview && (
-        <button
-          className="gc-footer__btn gc-footer__btn--icon"
-          onClick={(e) => { e.stopPropagation(); onPreview() }}
-          aria-label={t('card.info')}
-        >
-          <i className="fas fa-info" />
-          
-        </button>
-      )}
+      {onPreview && !hidePreview && getPreviewButton(false,"mr-1",true)}
       <button
         className={`gc-footer__btn${selected ? ' gc-footer__btn--selected' : ''}`}
         onClick={onSelect}
@@ -123,35 +131,19 @@ export default function GameCard({
         <span className="gc-footer__btn-label">{selectLabel}</span>
       </button>
     </>)
-  } else if (onAction) {
-    actionBtn = (
-      <button className="gc-footer__btn" onClick={onAction}>
+  } else if (onAction && (!actionOnlyIfPreview || previewOpened)) {
+    actionBtn = <> {
+      flagInformationCard && !previewOpened && getPreviewButton(!previewOpened, " me-1",previewOpened) }
+      {(!actionOnlyIfPreview || previewOpened) && 
+      <button className="gc-footer__btn" onClick={onAction}> 
         <i className={`fas ${actionIcon} me-1`} />
         <span className="gc-footer__btn-label">{actionLabel}</span>
-      </button>
-    )
+      </button>}
+      </>
   } else if (flagInformationCard){
-    actionBtn = (
-      <button
-        className="gc-footer__btn "
-        onClick={(e) => { e.stopPropagation(); onPreview() }}
-        aria-label={t('card.info')}
-      >
-        <i className="fas fa-info  my-1" />
-        <span className="gc-footer__btn-label">{t('card.info')}</span>
-      </button>
-    )
+    actionBtn=getPreviewButton(true, "my-1" , false)
   } else if (onPreview) {
-    actionBtn = (
-      <button
-        className="gc-footer__btn gc-footer__btn--icon"
-        onClick={(e) => { e.stopPropagation(); onPreview() }}
-        aria-label={t('card.info')}
-      >
-        <i className="fas fa-info  my-1" />
-        <span className="gc-footer__btn-label">{/*t('card.info')*/}</span>
-      </button>
-    )
+    actionBtn=getPreviewButton(true, "my-1" , true)
   }
 
   /* ── copyright view link ── */

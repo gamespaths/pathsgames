@@ -14,11 +14,11 @@ import BookPageContent from '../../components/book/BookPageContent'
 import Book from '../../components/book/Book'
 import { CardPreviewOverlay } from '@/features/start-book/StartBookModal'
 import ConfigCard from '../start-book/ConfigCard'
-import { buildStatisticsCard } from '@/utils/loadoutCards'
+import { buildCardToSleep, buildStatisticsCard } from '@/utils/loadoutCards'
 import { aggregateBonusTotals, buildConfigStatistics } from '@/utils/bonusStats'
 import {
   buildCardCharacteristics,
-  buildCardCharacteristicsLeft,
+  buildCardCharacteristicsRight,
   resolveSelectionEntity,
   storySelectionCount,
   selectedTraitCount,
@@ -65,9 +65,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
   function handleSelectionPreview(entity, type) {
     setPreview(entity ? { entity, type } : null)
   }
-  function handleSelectionPreviewFull(entity, type, lockReason, statistics) {
-    console.log("handleSelectionPreviewFull", { entity, type, lockReason, statistics })
-    setPreview(entity ? { entity, type, lockReason, statistics } : null)
+  function handleSelectionPreviewFull(entity, type, lockReason, statistics ) {
+    //console.log("handleSelectionPreviewFull", { entity, type, lockReason, statistics })
+    setPreview(entity ? { entity, type, lockReason, statistics , statItemsToPageContent:statistics } : null)
   }
   function handleBackOrClose() {
     setPreview(null);
@@ -95,7 +95,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
     return <EndGameBook story={story} endGameCard={endGameCard} onClose={onClose} />
   }
   //console.log("QUI",storyCard, story);
-  console.log("actualLocationCard", actualLocationCard);
+  //console.log("actualLocationCard", actualLocationCard);
 
   const leftContent = preview ? (
       <BookPageContent
@@ -107,42 +107,42 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
         onClose={handleBackOrClose}
         lockedReason={preview.lockedReason}
         statItemsToPageContent={preview.statItemsToPageContent}
-        extraContentClassName="book-page-extra-align-right" extraContent={
-          !ending && preview.entity.endGame ? 
-            <button className="gc-footer__btn m-2 p-2" onClick={() => handleEndGame(preview.entity)}>
-              <i className={`fas fa-flag-checkered `} />
-              <span className="gc-footer__btn-label">{t('game.endGame')}</span>
-            </button>
-          : null}
+//        extraContentClassName="book-page-extra-align-right" 
+//        extraContent={ 
+//          !ending && preview.entity.endGame ? <EndGameButton preview={preview} handleEndGame={handleEndGame} />: null
+//        }
       />
     ) :
     actualLocationCard ? <LocationCard location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)
-  const cardCharacteristicsRight = buildCardCharacteristicsLeft(story, playerStats, clock, {
+  const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, {
     matchUuid,
     accessToken: user?.accessToken,
     onSlept: handleSlept,
   })
   // The loaded detail (with content lists) when available, otherwise the summary prop.
   const storyFull = storyDetail ?? story
+  //const statistics = buildConfigStatistics(gameData?.playerStats ?? {}, t);
 
   //console.log("gameData",gameData)
   //console.log("story",story);
   //console.log("storyFull",storyFull);
-  console.log("locations",locations , "actions", actions);
+  //console.log("locations",locations , "actions", actions);
+  console.log("playerStats",playerStats);
   
-
-  const statistics = buildConfigStatistics(gameData?.playerStats ?? {}, t);
 
   const rightContent = 
     statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
+          <GoToSleepCard story={story} playerStats={playerStats}  onPreview={handleSelectionPreviewFull} />
           <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
           <ConfigCard type="class"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'class')} />
           <ConfigCard type="character"  value={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')}  flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'character')} />
-          <ConfigCard type="trait"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'trait')} selectedCount={selectedTraitCount(playerStats)} />
+          {playerStats?.traitUuids?.map((trait, index) => (
+            <ConfigCard key={trait.uuid} type="trait" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'trait')} selectedCount={selectedTraitCount(playerStats)} />
+          ))}
           <ConfigCard type="difficulty" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'difficulty')} />
           {/* 
             TODO add others card 
@@ -153,7 +153,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
           <ConfigCard type="story" value={{ card:cardCharacteristics }} story={story} flagInformationCard={true} 
-            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />} 
+            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} 
+            className="m-1 display-inline-grid flex-direction-column" />} 
             onPreview={() => { handleSelectionPreview ({ card: cardCharacteristicsRight }, 'story'); setStatisticsCards(true)} }
           />
           { /* TODO wheater here 
@@ -163,11 +164,23 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
           { /* TODO for every neighbor-location */  }
 
           { /* for every action in location — end-game events expose an "end game" button */  }
-          { (actions ?? []).map( action => (
-            <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
-              flagInformationCard={true}
-              onPreview={() => handleSelectionPreview(action, 'action')} count={0} />
-          ))}
+          { (actions ?? []).map( action => {
+            if (action.endGame) {
+              return <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
+                flagInformationCard={true}
+                onPreview={() => handleSelectionPreview(action, 'action')} count={0} 
+                onAction={() => handleEndGame(action)}
+                actionLabel={t('game.endGame')}
+                actionIcon={'fa-flag-checkered'}
+                actionOnlyIfPreview={true} 
+                actionWithInfo={true}
+              />
+            } else {
+              return <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
+                flagInformationCard={true}
+                onPreview={() => handleSelectionPreview(action, 'action')} count={0} />
+            }
+          }) }
 
           { /* TODO remove ActionRow and PlayerStats }   DEPRECATED
           <ActionRow type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
@@ -196,4 +209,41 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onCl
     />
 
   )
+}
+
+function EndGameButton({ preview, handleEndGame }) {
+  const { t } = useTranslation()
+  return <button className="gc-footer__btn m-2 p-2" onClick={() => handleEndGame(preview.entity)}>
+              <i className={`fas fa-flag-checkered `} />
+              <span className="gc-footer__btn-label">{t('game.endGame')}</span>
+            </button>
+}
+
+function GoToSleepCard({ story, playerStats, onPreview  }) {
+
+  //console.log("GoToSleepCard", playerStats , story , onPreview, playerStats.energy, playerStats.energyMax);
+  const { t } = useTranslation()
+  //const card=buildStatisticsCard(t('game.sleep'), aggregateBonusTotals(playerStats), 'fa-bed');
+  const cardRight=buildCardToSleep(story, playerStats, t);
+  const cardLeft={...cardRight};
+  const energyObject={energy: playerStats.energy, energyMax: playerStats.energyMax};
+  //cardLeft.title=energyBadge ;
+  //cardRight.title=<><span className="clock-widget-title">{cardRight.title}</span>{energyBadge}</>
+  return <ConfigCard 
+    type="sleep"  
+    story={story} value={{card:cardLeft}}
+    flagInformationCard={true} 
+    onAction={() => { console.log("GoToSleepCard onAction")}}
+    actionLabel={t('game.sleep.action')}
+    actionIcon={'fa-bed'}
+    actionOnlyIfPreview={true}
+    actionWithInfo={true}
+    childrenIntoImage={<PlayerStats stats={energyObject} plainFlag={false} showZeros={false} className="m-1 pl-2 display-inline-grid flex-direction-column" />}
+
+    onPreview={() => { 
+      onPreview ({ card: cardRight }, 'sleep' , null, 
+      [{key:'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax , label: t(`book.stats.totals.energy`)}]); 
+    }}
+    />
+
 }

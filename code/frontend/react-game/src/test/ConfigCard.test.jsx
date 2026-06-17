@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
@@ -16,7 +16,11 @@ vi.mock('../components/layout/GameCard', () => ({
       data-hasaction={props.onAction ? 'y' : 'n'}
       data-hasselect={props.onSelect ? 'y' : 'n'}
       data-haspreview={props.onPreview ? 'y' : 'n'}
-    />
+    >
+      {props.onPreview && (
+        <button data-testid="preview-btn" onClick={props.onPreview}>preview</button>
+      )}
+    </div>
   ),
 }))
 
@@ -38,13 +42,17 @@ describe('ConfigCard', () => {
     expect(gc.dataset.hasselect).toBe('y')
     expect(gc.dataset.haspreview).toBe('y')
     expect(gc.dataset.name).toBe('Knight')
+    // multi-option previews through onPreview with (value, type, lockReason, stats).
+    fireEvent.click(screen.getByTestId('preview-btn'))
   })
 
   it('single-option card drops action/select and previews via onPagePreview', () => {
+    const onPagePreview = vi.fn()
+    const onPreview = vi.fn()
     render(
       <ConfigCard
-        type="class" value={value} count={1}
-        onChangeClick={vi.fn()} onSelect={vi.fn()} onPreview={vi.fn()} onPagePreview={vi.fn()}
+        type="class" value={value} count={1} statistics={{ x: 1 }}
+        onChangeClick={vi.fn()} onSelect={vi.fn()} onPreview={onPreview} onPagePreview={onPagePreview}
       />
     )
     const gc = screen.getByTestId('gamecard')
@@ -52,6 +60,10 @@ describe('ConfigCard', () => {
     expect(gc.dataset.hasaction).toBe('n')
     expect(gc.dataset.hasselect).toBe('n')
     expect(gc.dataset.haspreview).toBe('y')
+    // single-option previews through onPagePreview, not onPreview.
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPagePreview).toHaveBeenCalledWith(value, 'class', null, { x: 1 })
+    expect(onPreview).not.toHaveBeenCalled()
   })
 
   it('locked card is disabled', () => {

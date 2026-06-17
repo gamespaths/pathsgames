@@ -66,6 +66,16 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
   const visibleItems = showZeros
     ? items
     : items.filter(item => {
+        try{
+          if (item?.value.includes("/")){
+            const parts=item.value.split("/")
+            const v1 = Number(parts[0])
+            const v2 = Number(parts[1])
+            return (Number.isFinite(v1) && v1 !== 0) && (Number.isFinite(v2) && v2 !== 0)
+          }
+        } catch (e) { // Ignore errors and treat as zero
+          console.warn("BonusBadgeList: error parsing value", item?.value, e);
+        }
         const v = Number(item?.value)
         return Number.isFinite(v) && v !== 0
       })

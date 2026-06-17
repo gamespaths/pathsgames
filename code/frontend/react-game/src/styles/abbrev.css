@@ -1,5 +1,5 @@
 .display-inline-grid{ display: inline-grid !important; }
-.display-grid{ display: grid !important; }
+.display-grid{ display: grid !important; } /*justify-content: center;*/
 .display-inline{ display: inline !important; }
 .display-inline-flex{ display: inline-flex !important; }
 

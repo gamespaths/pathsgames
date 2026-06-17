@@ -6,6 +6,8 @@ import {
   buildAntibotCard,
   buildFreeToPlay,
   buildStatisticsCard,
+  buildCardToSleep,
+  buildEndGameCard,
 } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
@@ -43,6 +45,18 @@ describe('utils/loadoutCards', () => {
     const c = buildFreeToPlay(t)
     expect(c.name).toBe('book.freeToPlay')
     expect(c.icon).toBe('fas fa-gift')
+  })
+
+  it('buildCardToSleep maps the sleep confirm i18n keys', () => {
+    const c = buildCardToSleep({ card: {} }, { energy: 5, energyMax: 10 }, t)
+    expect(c.title).toBe('game.sleep.confirmTitle')
+    expect(c.description).toContain('game.sleep.confirmBody')
+  })
+
+  it('buildEndGameCard maps the end-game card i18n keys', () => {
+    const c = buildEndGameCard(t)
+    expect(c.name).toBe('game.endGameCard.title')
+    expect(c.description).toBe('game.endGameCard.description')
   })
 
   it('buildStatisticsCard projects totals onto statItemsToPageContent and nulls the image', () => {

@@ -32,14 +32,23 @@ export function buildCardCharacteristics(story, playerStats, clock) {
  * body with the full PlayerStats plus the SleepButton. `descriptionTag` marks
  * the description as a React element so BookPageContent renders it directly.
  */
-export function buildCardCharacteristicsLeft(story, playerStats, clock, { matchUuid, accessToken, onSlept } = {}) {
+export function buildCardCharacteristicsRight(story, playerStats, clock, { matchUuid, accessToken, onSlept } = {}) {
   const card = { ...story?.card }
   card.urlImage = null
   card.awesomeIcon = null
-  card.title = <ClockWidget clock={clock} className="display-inline-flex ml-2" title={story?.title} />
+  //TODO card.title= weathere
+  //EX card.title = <ClockWidget clock={clock} className="display-inline-flex ml-2" title={story?.title} />
+  // Derive a stats copy (never mutate the caller's object; it may be undefined
+  // when no match data is loaded yet).
+  const stats = {
+    ...(playerStats ?? {}),
+    clock: clock?.currentClock,
+    clockLabelSingular: clock?.clockLabelSingular,
+  }
+
   card.description = (
     <>
-      <PlayerStats stats={playerStats} plainFlag={true} />
+      <PlayerStats stats={stats} plainFlag={true} />
       <SleepButton
         matchUuid={matchUuid}
         accessToken={accessToken}
@@ -74,19 +83,19 @@ export function storySelectionCount(story, type) {
  * currently has selected for `type`, by reading the uuid stored on
  * `playerStats` and matching it against the story content list.
  *
- * For multi-select types (traits) the first selected uuid is used.
+ * For multi-select types (traits) the selected uuid at the given index is used.
  * Returns `null` when nothing matches.
  */
-export function resolveSelectionEntity(story, playerStats, gameData, type) {
+export function resolveSelectionEntity(story, playerStats, gameData, type, index=0) {
   const cfg = SELECTION_CONFIG?.[type]
   if (!cfg) {console.log("type not found", type , story);return null;}
   const list = story?.[cfg.storyList]
   if (!Array.isArray(list)) {console.log("list not found for type", type, story);return null;}
   const raw = playerStats?.[cfg.uuidField]
-  let uuid = Array.isArray(raw) ? raw[0] : raw
+  let uuid = Array.isArray(raw) ? raw[index] : raw
   if (!uuid) { 
     const raw = gameData?.match?.[cfg.uuidField]
-    uuid = Array.isArray(raw) ? raw[0] : raw
+    uuid = Array.isArray(raw) ? raw[index] : raw
   }
   if (!uuid) {console.log("uuid not found for type", uuid, type, playerStats);return null;}
   return list.find(e => e.uuid === uuid) ?? null

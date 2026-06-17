@@ -85,7 +85,7 @@ export function matchInfoToGameData(info, story = null,t) {
   const playerLoc = info.players?.[0]?.idLocation ?? null
   const activeList = Array.isArray(info.locationsActive) ? info.locationsActive : []
   const active = activeList.find(l => l.idLocation === playerLoc) ?? activeList[0] ?? null
-  console.log("active location", active,playerLoc, activeList);
+  //console.log("active location", active,playerLoc, activeList);
   const activeCard = active?.card ?? null
 
   const actualLocationCard = activeCard
@@ -144,7 +144,10 @@ export function matchInfoToGameData(info, story = null,t) {
   }))
   const actions = [...leanActions, ...eventActions]
 
-  const endGameCard = buildEndGameCard(t);// story?.endGameCard ?? story?.card ?? null
+  // `t` is the i18n translate fn (passed by GamePage). Guard against callers /
+  // tests that omit it so the adapter never throws on a missing translator.
+  const tr = typeof t === 'function' ? t : (k) => k
+  const endGameCard = buildEndGameCard(tr);// story?.endGameCard ?? story?.card ?? null
 
   return { actualLocationCard, playerStats, locations, actions, endGameCard, match: info.match ?? null }
 }

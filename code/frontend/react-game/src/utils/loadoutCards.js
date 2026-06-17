@@ -18,6 +18,7 @@ function metaCard(imgId) {
     copyrightText: img.copyrightText,
     linkCopyright: img.linkCopyright,
     styleImageLarge: img.styleImageLarge,
+    styleImageLittle: img.styleImageLittle,
   }
 }
 
@@ -28,6 +29,14 @@ export function buildGameTypeCard(t) {
     card: metaCard('person'),
     description: t('book.singleDesc'),
   }
+}
+
+export function buildCardToSleep(story, playerStats, t) {
+  //console.log("buildCardToSleep", story, playerStats, t);
+  const card = metaCard('sleep');
+  card.title = "" + t('game.sleep.confirmTitle') //t('game.sleep.action') 
+  card.description = "" /*+ t('game.sleep.confirmTitle')*/ + " " + t('game.sleep.confirmBody') /*+ ` (${playerStats.energy ?? 0}/${playerStats.energyMax ?? 0} ${t('game.stats.energy')})`*/
+  return card
 }
 
 export function buildEndGameCard(t) {

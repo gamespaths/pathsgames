@@ -26,10 +26,11 @@ vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div da
 vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
 vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 vi.mock('../features/start-book/ConfigCard', () => ({
-  default: ({ childrenIntoImage, onPreview, value }) => (
+  default: ({ childrenIntoImage, onPreview, onAction, actionLabel, value }) => (
     <div data-testid="config-card">
       {childrenIntoImage}
       {onPreview && <button onClick={onPreview}>preview:{value?.card?.title || ''}</button>}
+      {onAction && <button onClick={onAction}>{actionLabel}</button>}
     </div>
   ),
 }))
@@ -78,20 +79,18 @@ describe('GameBook', () => {
     expect(screen.getAllByTestId('config-card').length).toBeGreaterThan(0)
   })
 
-  // The end-game event card opens in the left preview, which exposes an
-  // "end game" button (BookPageContent extraContent) wired to handleEndGame.
+  // An end-game action renders a ConfigCard with an onAction button (label
+  // game.endGame) wired to handleEndGame.
   it('renders EndGameBook after the end-game button triggers endMatch', async () => {
     endMatch.mockResolvedValue({})
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('preview:Flee'))      // open the action preview
-    fireEvent.click(screen.getByText('game.endGame'))      // click the end-game button
+    fireEvent.click(screen.getByText('game.endGame'))      // click the end-game action button
     expect(await screen.findByTestId('end-game-book')).toBeInTheDocument()
   })
 
   it('shows end-game error when endMatch fails', async () => {
     endMatch.mockRejectedValue({ message: 'NETWORK_ERROR' })
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('preview:Flee'))
     fireEvent.click(screen.getByText('game.endGame'))
     await waitFor(() => {
       expect(screen.getByText('NETWORK_ERROR')).toBeInTheDocument()

@@ -848,6 +848,38 @@ def import_story(event):
 
     priority = int(data.get('priority') or 0)
 
+    # Step 27.x — pre-resolve the cards embedded in locations / neighbors / events
+    # so the match handler (_build_locations_active) can read `loc.card`,
+    # `neighbor.card` and `event.card` directly, exactly like the seed item does.
+    # Without this, an imported story has only `idCard` on these sub-entities and
+    # the game frontend cannot render the active location card.
+    def _resolve_inline_card(id_card):
+        return _find_card_from_raw(stored_cards, raw_texts, id_card, 'en')
+
+    locations_enriched = []
+    for loc in _assign_uuids(_assign_ids(data.get('locations', []), 'id')):
+        loc = dict(loc)
+        loc['card'] = _resolve_inline_card(loc.get('idCard'))
+        locations_enriched.append(loc)
+
+    # The match handler reads `story.get("neighbors")`; the import payload uses the
+    # `locationNeighbors` key. Store under both so content queries and gameplay work.
+    neighbors_enriched = []
+    for n in _assign_ids(data.get('locationNeighbors', []), 'id'):
+        n = dict(n)
+        n['card'] = _resolve_inline_card(n.get('idCard'))
+        neighbors_enriched.append(n)
+
+    # Events expose their owning location as `idSpecificLocation` in the import
+    # payload; the match handler filters on `idLocation`. Alias it and resolve cards.
+    events_enriched = []
+    for e in _assign_uuids(_assign_ids(data.get('events', []), 'id')):
+        e = dict(e)
+        e['card'] = _resolve_inline_card(e.get('idCard'))
+        if e.get('idLocation') is None:
+            e['idLocation'] = e.get('idSpecificLocation')
+        events_enriched.append(e)
+
     story_item = {
         'PK':                     f'STORY#{story_uuid}',
         'SK':                     'METADATA',
@@ -892,9 +924,11 @@ def import_story(event):
         'class_count':            len(classes),
         'template_count':         len(character_templates),
         'trait_count':            len(traits),
-        # Step 17: actually store sub-entities
-        'locations':              _assign_uuids(_assign_ids(data.get('locations', []), 'id')),
-        'events':                 _assign_uuids(_assign_ids(data.get('events', []), 'id')),
+        # Step 17: actually store sub-entities (with pre-resolved inline cards)
+        'locations':              locations_enriched,
+        # Step 27.x — gameplay reads `neighbors`; keep `locationNeighbors` for content queries.
+        'neighbors':              neighbors_enriched,
+        'events':                 events_enriched,
         'items':                  _assign_uuids(_assign_ids(data.get('items', []), 'id')),
         # Step 16: raw data for content detail queries
         'raw_texts':              _assign_ids(data.get('texts', []), 'id'),

@@ -761,7 +761,7 @@ html, body {
   line-height: 1.25;
   font-style: italic;
   margin: 0;
-  padding: 10px 12px 12px;
+  padding: 10px;
   overflow-y: auto;
   min-height: 0;
   background: var(--color-parchment-light);
@@ -1034,7 +1034,9 @@ html, body {
    CONFIG VIEW — right book page
    ═══════════════════════════════════════════ */
 .config-view-wrap {
-  display: flex;
+  display: flow; /*ex flex*/
+  overflow-y: scroll;
+  overflow-x: hidden;
   flex-direction: column;
   height: 100%;
   gap: 0;
@@ -1819,6 +1821,7 @@ html, body {
 
 /* Player stats */
 .player-stats-bar {
+  justify-content: center;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;

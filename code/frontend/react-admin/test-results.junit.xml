@@ -1,98 +1,98 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="306" failures="0" errors="0" time="31.803287213">
-    <testsuite name="src/tests/App.test.jsx" timestamp="2026-06-16T17:53:09.195Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.242452983">
-        <testcase classname="src/tests/App.test.jsx" name="App &gt; redirects to login when not logged in" time="0.055919477">
+<testsuites name="vitest tests" tests="306" failures="0" errors="0" time="30.165953924">
+    <testsuite name="src/tests/App.test.jsx" timestamp="2026-06-17T18:47:19.222Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.229034251">
+        <testcase classname="src/tests/App.test.jsx" name="App &gt; redirects to login when not logged in" time="0.091104209">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/App.test.jsx" name="App &gt; renders dashboard when logged in" time="0.175738083">
+        <testcase classname="src/tests/App.test.jsx" name="App &gt; renders dashboard when logged in" time="0.131460652">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/api/client.test.js" timestamp="2026-06-16T17:53:09.197Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.014414121">
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; uses default server when nothing in localStorage" time="0.004009858">
+    <testsuite name="src/tests/api/client.test.js" timestamp="2026-06-17T18:47:19.226Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.016073204">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; uses default server when nothing in localStorage" time="0.004198576">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; uses server from localStorage" time="0.001022556">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; uses server from localStorage" time="0.001266059">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; falls back to default if server in localStorage is invalid" time="0.000629855">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; falls back to default if server in localStorage is invalid" time="0.000718728">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; falls back to default if server in localStorage uses unsupported protocol" time="0.000559521">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; falls back to default if server in localStorage uses unsupported protocol" time="0.000665465">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets Authorization header when token is present" time="0.000587984">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets Authorization header when token is present" time="0.000679595">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; omits Authorization header when no token" time="0.000442528">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; omits Authorization header when no token" time="0.000487334">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets Content-Type to application/json" time="0.00047217">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets Content-Type to application/json" time="0.000540201">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets withCredentials true" time="0.000395311">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; sets withCredentials true" time="0.000489845">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; has 15s timeout" time="0.000986084">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; has 15s timeout" time="0.001082553">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; interceptor handles error with message from response" time="0.002369301">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; interceptor handles error with message from response" time="0.002824867">
         </testcase>
-        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; interceptor handles error with fallback to err.message" time="0.000766657">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/tests/api/echoApi.test.js" timestamp="2026-06-16T17:53:09.199Z" hostname="cirilla" tests="1" failures="0" errors="0" skipped="0" time="0.004803867">
-        <testcase classname="src/tests/api/echoApi.test.js" name="echoApi &gt; getServerStatus calls correct endpoint" time="0.003216981">
+        <testcase classname="src/tests/api/client.test.js" name="apiClient &gt; interceptor handles error with fallback to err.message" time="0.000770948">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/api/guestApi.test.js" timestamp="2026-06-16T17:53:09.199Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.005692883">
-        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; listGuests calls correct endpoint" time="0.002652973">
-        </testcase>
-        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; getGuestStats calls correct endpoint" time="0.000433906">
-        </testcase>
-        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; getGuest calls correct endpoint" time="0.000298609">
-        </testcase>
-        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; deleteGuest calls correct endpoint" time="0.000397245">
-        </testcase>
-        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; deleteExpiredGuests calls correct endpoint" time="0.000484193">
+    <testsuite name="src/tests/api/echoApi.test.js" timestamp="2026-06-17T18:47:19.228Z" hostname="cirilla" tests="1" failures="0" errors="0" skipped="0" time="0.003833424">
+        <testcase classname="src/tests/api/echoApi.test.js" name="echoApi &gt; getServerStatus calls correct endpoint" time="0.002620025">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/api/matchApi.test.js" timestamp="2026-06-16T17:53:09.200Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.014438053">
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatches calls the admin endpoint" time="0.00416941">
+    <testsuite name="src/tests/api/guestApi.test.js" timestamp="2026-06-17T18:47:19.228Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.007713057">
+        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; listGuests calls correct endpoint" time="0.002978061">
         </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatches returns response data" time="0.001658535">
+        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; getGuestStats calls correct endpoint" time="0.000750523">
         </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; getMatchInfo calls the admin detail endpoint" time="0.00064506">
+        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; getGuest calls correct endpoint" time="0.000504028">
         </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; getMatchInfo returns response data" time="0.000643322">
+        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; deleteGuest calls correct endpoint" time="0.00077498">
         </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatchStatuses calls the statuses endpoint" time="0.001000421">
-        </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; updateMatch sends a PUT with the body" time="0.001174058">
-        </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; stopMatch posts to the stop action" time="0.000579745">
-        </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; pauseMatch posts to the pause action" time="0.000370888">
-        </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; resumeMatch posts to the resume action" time="0.000755443">
-        </testcase>
-        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; deleteMatch sends a DELETE" time="0.000527661">
+        <testcase classname="src/tests/api/guestApi.test.js" name="guestApi &gt; deleteExpiredGuests calls correct endpoint" time="0.000905981">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/api/storyApi.test.js" timestamp="2026-06-16T17:53:09.202Z" hostname="cirilla" tests="12" failures="0" errors="0" skipped="0" time="0.013761877">
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listAllStories calls correct endpoint" time="0.004159615">
+    <testsuite name="src/tests/api/matchApi.test.js" timestamp="2026-06-17T18:47:19.230Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.010259278">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatches calls the admin endpoint" time="0.003754813">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; createStory calls correct endpoint" time="0.000677207">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatches returns response data" time="0.000751426">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; updateStory calls correct endpoint" time="0.000593959">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; getMatchInfo calls the admin detail endpoint" time="0.000421857">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; getStory calls correct endpoint" time="0.000395534">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; getMatchInfo returns response data" time="0.000522844">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; importStory calls correct endpoint" time="0.000741596">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; listMatchStatuses calls the statuses endpoint" time="0.000773054">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; deleteStory calls correct endpoint" time="0.000443912">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; updateMatch sends a PUT with the body" time="0.000788963">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listEntities calls correct endpoint" time="0.000481036">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; stopMatch posts to the stop action" time="0.000388845">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; createEntity calls correct endpoint" time="0.000444462">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; pauseMatch posts to the pause action" time="0.000256953">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; getEntity calls correct endpoint" time="0.001378336">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; resumeMatch posts to the resume action" time="0.000525824">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; updateEntity calls correct endpoint" time="0.001948774">
+        <testcase classname="src/tests/api/matchApi.test.js" name="matchApi &gt; deleteMatch sends a DELETE" time="0.000382102">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/api/storyApi.test.js" timestamp="2026-06-17T18:47:19.231Z" hostname="cirilla" tests="12" failures="0" errors="0" skipped="0" time="0.012310557">
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listAllStories calls correct endpoint" time="0.003421766">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; createStory calls correct endpoint" time="0.000771531">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; updateStory calls correct endpoint" time="0.000889778">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; getStory calls correct endpoint" time="0.000694717">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; importStory calls correct endpoint" time="0.000722333">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; deleteStory calls correct endpoint" time="0.000516259">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listEntities calls correct endpoint" time="0.000386568">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; createEntity calls correct endpoint" time="0.000315963">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; getEntity calls correct endpoint" time="0.000641229">
+        </testcase>
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; updateEntity calls correct endpoint" time="0.001411607">
             <system-out>
 Updating entity {
   uuidStory: [32m&apos;s1&apos;[39m,
@@ -103,306 +103,306 @@ Updating entity {
 
             </system-out>
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; deleteEntity calls correct endpoint" time="0.00038123">
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; deleteEntity calls correct endpoint" time="0.000342016">
         </testcase>
-        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listPublicStories calls correct endpoint" time="0.000360618">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/tests/components/EntityForm.test.jsx" timestamp="2026-06-16T17:53:09.203Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="1.16397741">
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; renders correctly for creation" time="0.139670049">
-        </testcase>
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; renders correctly for editing" time="0.026046357">
-        </testcase>
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; updates state on input change" time="0.519186835">
-        </testcase>
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; handles checkbox and select" time="0.284008785">
-        </testcase>
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; calls onCancel when backdrop or cancel button is clicked" time="0.055318604">
-        </testcase>
-        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; opens FastTextSelectorModal when PathsSelector is used" time="0.135836441">
+        <testcase classname="src/tests/api/storyApi.test.js" name="storyApi &gt; listPublicStories calls correct endpoint" time="0.000326975">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/EntityTable.test.jsx" timestamp="2026-06-16T17:53:09.204Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.613505533">
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders table headers and data" time="0.083671992">
+    <testsuite name="src/tests/components/EntityForm.test.jsx" timestamp="2026-06-17T18:47:19.233Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="1.024712142">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; renders correctly for creation" time="0.117222423">
         </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; filters rows based on search input" time="0.19502877">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; renders correctly for editing" time="0.022919382">
         </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; resolves idTextName correctly" time="0.010383601">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; updates state on input change" time="0.514739898">
         </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; calls onEdit and onDelete callbacks" time="0.145920258">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; handles checkbox and select" time="0.218007643">
         </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; shows the empty-state row when there are no entities" time="0.00986671">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; calls onCancel when backdrop or cancel button is clicked" time="0.048210495">
         </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders the special column types" time="0.016806072">
-        </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders boolean columns as Yes/No" time="0.010661138">
-        </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; uses a custom render function when provided" time="0.00718044">
-        </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; shows the idCard column and fires onOpenIdCardForm" time="0.098442392">
-        </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; resolves a relation label from relationOptionsByField" time="0.017713804">
-        </testcase>
-        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders a dash for an empty idTextName cell" time="0.011234792">
+        <testcase classname="src/tests/components/EntityForm.test.jsx" name="EntityForm &gt; opens FastTextSelectorModal when PathsSelector is used" time="0.100112368">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/FastTextCreatorModal.test.jsx" timestamp="2026-06-16T17:53:09.205Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="1.150596965">
-        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; renders nothing when closed" time="0.022089943">
+    <testsuite name="src/tests/components/EntityTable.test.jsx" timestamp="2026-06-17T18:47:19.233Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.843373653">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders table headers and data" time="0.09739621">
         </testcase>
-        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; renders correctly when open" time="0.154269784">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; filters rows based on search input" time="0.352795941">
         </testcase>
-        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; handles input changes and submission" time="0.878440195">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; resolves idTextName correctly" time="0.014014576">
         </testcase>
-        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; shows error when submission fails" time="0.058277285">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; calls onEdit and onDelete callbacks" time="0.207840827">
         </testcase>
-        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; calls onClose(null) on cancel" time="0.033169874">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; shows the empty-state row when there are no entities" time="0.011858973">
         </testcase>
-    </testsuite>
-    <testsuite name="src/tests/components/FastTextSelectorModal.test.jsx" timestamp="2026-06-16T17:53:09.206Z" hostname="cirilla" tests="13" failures="0" errors="0" skipped="0" time="0.477220757">
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; renders nothing when open is false" time="0.035982723">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders the special column types" time="0.015738471">
         </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; renders list of texts when open is true" time="0.047441441">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders boolean columns as Yes/No" time="0.01208499">
         </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; filters texts based on search input" time="0.027081232">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; uses a custom render function when provided" time="0.008309458">
         </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; calls onSelect and onClose when a text is selected" time="0.027401779">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; shows the idCard column and fires onOpenIdCardForm" time="0.091924996">
         </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; switches to input-generator mode when New is clicked" time="0.046346613">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; resolves a relation label from relationOptionsByField" time="0.011205701">
         </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; saves generated text and calls onSelect" time="0.071892298">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; saves the generated text when Enter is pressed" time="0.041044681">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; shows an error when the generated text cannot be saved" time="0.049552036">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; returns to the list from the generator cancel button" time="0.039959854">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; opens the creator modal in edit mode from the pen button" time="0.035311737">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; starts directly in input-generator mode when startMode is input-generator" time="0.02707952">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; marks the currently selected id with the Selected label" time="0.012003294">
-        </testcase>
-        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; shows the empty state when no text matches the search" time="0.011575269">
+        <testcase classname="src/tests/components/EntityTable.test.jsx" name="EntityTable &gt; renders a dash for an empty idTextName cell" time="0.011538792">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/MatchDetailModal.test.jsx" timestamp="2026-06-16T17:53:09.208Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.341423424">
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; fmtDate handles empty, invalid and valid ISO dates" time="0.028133313">
+    <testsuite name="src/tests/components/FastTextCreatorModal.test.jsx" timestamp="2026-06-17T18:47:19.234Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.860797956">
+        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; renders nothing when closed" time="0.013203801">
         </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; shortUuid truncates and handles missing values" time="0.000666768">
+        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; renders correctly when open" time="0.056142681">
         </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; StatusBadge maps known statuses and falls back" time="0.057157218">
+        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; handles input changes and submission" time="0.695548934">
         </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; returns null without a story uuid" time="0.000886294">
+        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; shows error when submission fails" time="0.03819795">
         </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; aggregates the story context from the API" time="0.002090981">
-        </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; returns null when the API rejects" time="0.000775714">
-        </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; renders the full match detail with resolved entity names" time="0.135582232">
-        </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; shows the loading spinner while loading" time="0.011069252">
-        </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; renders empty-state rows when there are no locations or registry" time="0.05575272">
-        </testcase>
-        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; fires onClose from the backdrop and the close button" time="0.040788403">
+        <testcase classname="src/tests/components/FastTextCreatorModal.test.jsx" name="FastTextCreatorModal &gt; calls onClose(null) on cancel" time="0.054578696">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/TurnOrderPanel.test.jsx" timestamp="2026-06-16T17:53:09.210Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.088238597">
-        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; renders one row per player" time="0.04858526">
+    <testsuite name="src/tests/components/FastTextSelectorModal.test.jsx" timestamp="2026-06-17T18:47:19.236Z" hostname="cirilla" tests="13" failures="0" errors="0" skipped="0" time="0.362899815">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; renders nothing when open is false" time="0.039079976">
         </testcase>
-        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; orders rows highest priority first (#1 is the highest-dexterity character)" time="0.00781643">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; renders list of texts when open is true" time="0.047635665">
         </testcase>
-        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; uses nameOf to resolve the character display name" time="0.016301679">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; filters texts based on search input" time="0.032246767">
         </testcase>
-        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; shows the empty state when there are no players" time="0.006454452">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; calls onSelect and onClose when a text is selected" time="0.028778901">
         </testcase>
-        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; renders safely when players is undefined" time="0.004990152">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; switches to input-generator mode when New is clicked" time="0.020893161">
         </testcase>
-    </testsuite>
-    <testsuite name="src/tests/components/common.test.jsx" timestamp="2026-06-16T17:53:09.210Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.440206311">
-        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; renders nothing when message is empty" time="0.029593365">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; saves generated text and calls onSelect" time="0.038867329">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; renders the error message" time="0.042092026">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; saves the generated text when Enter is pressed" time="0.018499621">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; calls onClose when close button is clicked" time="0.241595535">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; shows an error when the generated text cannot be saved" time="0.044218376">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; does not render close button when onClose is undefined" time="0.004080756">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; returns to the list from the generator cancel button" time="0.022052383">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="LoadingSpinner &gt; shows default text" time="0.006606722">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; opens the creator modal in edit mode from the pen button" time="0.029407445">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="LoadingSpinner &gt; shows custom text" time="0.003848673">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; starts directly in input-generator mode when startMode is input-generator" time="0.014345722">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; renders title and message" time="0.009162075">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; marks the currently selected id with the Selected label" time="0.012940768">
         </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onConfirm when Confirm is clicked" time="0.036898236">
-        </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onCancel when Cancel is clicked" time="0.027090078">
-        </testcase>
-        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onCancel when backdrop is clicked" time="0.034393559">
+        <testcase classname="src/tests/components/FastTextSelectorModal.test.jsx" name="FastTextSelectorModal &gt; shows the empty state when no text matches the search" time="0.009271983">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/context/AuthContext.test.jsx" timestamp="2026-06-16T17:53:09.212Z" hostname="cirilla" tests="12" failures="0" errors="0" skipped="0" time="0.87478548">
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; starts with empty token and isLoggedIn=false" time="0.053537718">
+    <testsuite name="src/tests/components/MatchDetailModal.test.jsx" timestamp="2026-06-17T18:47:19.237Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.225567708">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; fmtDate handles empty, invalid and valid ISO dates" time="0.033698076">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() sets token and isLoggedIn=true" time="0.399095385">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; shortUuid truncates and handles missing values" time="0.000475299">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() trims surrounding whitespace before storing" time="0.07896549">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal helpers &gt; StatusBadge maps known statuses and falls back" time="0.043606509">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() rejects a malformed token (storage poisoning guard)" time="0.047987426">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; returns null without a story uuid" time="0.000937544">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; logout() clears token" time="0.075767017">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; aggregates the story context from the API" time="0.002044111">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; persists token from localStorage on mount" time="0.004245425">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="fetchStoryCtx &gt; returns null when the API rejects" time="0.000510822">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() updates server state and localStorage" time="0.061359509">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; renders the full match detail with resolved entity names" time="0.074446867">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() ignores invalid URLs" time="0.039784813">
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; shows the loading spinner while loading" time="0.005720015">
+        </testcase>
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; renders empty-state rows when there are no locations or registry" time="0.031623753">
+        </testcase>
+        <testcase classname="src/tests/components/MatchDetailModal.test.jsx" name="MatchDetailModal render &gt; fires onClose from the backdrop and the close button" time="0.027754873">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/components/TurnOrderPanel.test.jsx" timestamp="2026-06-17T18:47:19.238Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.10494352">
+        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; renders one row per player" time="0.063389147">
+        </testcase>
+        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; orders rows highest priority first (#1 is the highest-dexterity character)" time="0.008485698">
+        </testcase>
+        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; uses nameOf to resolve the character display name" time="0.019127405">
+        </testcase>
+        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; shows the empty state when there are no players" time="0.004108898">
+        </testcase>
+        <testcase classname="src/tests/components/TurnOrderPanel.test.jsx" name="TurnOrderPanel &gt; renders safely when players is undefined" time="0.005614012">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/components/common.test.jsx" timestamp="2026-06-17T18:47:19.239Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.552057253">
+        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; renders nothing when message is empty" time="0.031393477">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; renders the error message" time="0.034594278">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; calls onClose when close button is clicked" time="0.304246804">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ErrorAlert &gt; does not render close button when onClose is undefined" time="0.004066784">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="LoadingSpinner &gt; shows default text" time="0.006930313">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="LoadingSpinner &gt; shows custom text" time="0.004575839">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; renders title and message" time="0.008120477">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onConfirm when Confirm is clicked" time="0.057559245">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onCancel when Cancel is clicked" time="0.053045647">
+        </testcase>
+        <testcase classname="src/tests/components/common.test.jsx" name="ConfirmModal &gt; calls onCancel when backdrop is clicked" time="0.042977031">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/context/AuthContext.test.jsx" timestamp="2026-06-17T18:47:19.240Z" hostname="cirilla" tests="12" failures="0" errors="0" skipped="0" time="0.474066543">
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; starts with empty token and isLoggedIn=false" time="0.032223882">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() sets token and isLoggedIn=true" time="0.19135304">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() trims surrounding whitespace before storing" time="0.03690812">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; login() rejects a malformed token (storage poisoning guard)" time="0.031343166">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; logout() clears token" time="0.057728567">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; persists token from localStorage on mount" time="0.00300985">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() updates server state and localStorage" time="0.035111829">
+        </testcase>
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() ignores invalid URLs" time="0.025434475">
             <system-err>
 Blocked attempt to set insecure server URL: javascript:alert(1)
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; defaults server to first preset" time="0.006885804">
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; defaults server to first preset" time="0.005485251">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; handles invalid VITE_DEFAULT_SERVERS gracefully" time="0.001573838">
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; handles invalid VITE_DEFAULT_SERVERS gracefully" time="0.001749166">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() warns on insecure protocol" time="0.048059035">
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() warns on insecure protocol" time="0.030838418">
         </testcase>
-        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() warns on invalid URL" time="0.046209448">
+        <testcase classname="src/tests/context/AuthContext.test.jsx" name="AuthContext &gt; changeServer() warns on invalid URL" time="0.018390066">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/DashboardPage.test.jsx" timestamp="2026-06-16T17:53:09.213Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.255314662">
-        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; shows loading spinner initially" time="0.073258766">
+    <testsuite name="src/tests/pages/DashboardPage.test.jsx" timestamp="2026-06-17T18:47:19.241Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.303237515">
+        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; shows loading spinner initially" time="0.069190121">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders all stats after load" time="0.125844992">
+        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders all stats after load" time="0.181567505">
         </testcase>
-        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders server as Offline if API fails" time="0.021584465">
+        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders server as Offline if API fails" time="0.019851232">
         </testcase>
-        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders quick action links" time="0.027351614">
+        <testcase classname="src/tests/pages/DashboardPage.test.jsx" name="DashboardPage &gt; renders quick action links" time="0.027565423">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/EchoPage.test.jsx" timestamp="2026-06-16T17:53:09.214Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.336216479">
-        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; shows loading spinner initially" time="0.07361222">
+    <testsuite name="src/tests/pages/EchoPage.test.jsx" timestamp="2026-06-17T18:47:19.242Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.368686437">
+        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; shows loading spinner initially" time="0.077478478">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; renders status info after load" time="0.128259958">
+        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; renders status info after load" time="0.141585333">
         </testcase>
-        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; shows error message on failure" time="0.018307018">
+        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; shows error message on failure" time="0.016656409">
         </testcase>
-        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; reloads data when Refresh button is clicked" time="0.082678422">
+        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; reloads data when Refresh button is clicked" time="0.093198526">
         </testcase>
-        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; renders raw JSON response" time="0.028308439">
+        <testcase classname="src/tests/pages/EchoPage.test.jsx" name="EchoPage &gt; renders raw JSON response" time="0.033626916">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/GuestsPage.test.jsx" timestamp="2026-06-16T17:53:09.215Z" hostname="cirilla" tests="19" failures="0" errors="0" skipped="0" time="2.541225132">
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows loading spinner initially" time="0.073157097">
+    <testsuite name="src/tests/pages/GuestsPage.test.jsx" timestamp="2026-06-17T18:47:19.242Z" hostname="cirilla" tests="19" failures="0" errors="0" skipped="0" time="2.362914875">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows loading spinner initially" time="0.074374191">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; renders stats cards after load" time="0.154331778">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; renders stats cards after load" time="0.074407721">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; renders guest rows" time="0.033789642">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; renders guest rows" time="0.028885475">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows Active/Expired badges correctly" time="0.057929348">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows Active/Expired badges correctly" time="0.045798281">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; filters by username" time="0.287318869">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; filters by username" time="0.361414447">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens confirm modal on delete click" time="0.172237887">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens confirm modal on delete click" time="0.115284969">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; does not call deleteGuest when modal is cancelled" time="0.197693035">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; does not call deleteGuest when modal is cancelled" time="0.145696601">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; calls deleteGuest on confirm" time="0.121054616">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; calls deleteGuest on confirm" time="0.229060953">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens guest detail modal and loads user matches" time="0.124438806">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens guest detail modal and loads user matches" time="0.128584193">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows no-matches message when user has no matches" time="0.096024915">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows no-matches message when user has no matches" time="0.091797731">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens stacked match detail on eye button click" time="0.214379097">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; opens stacked match detail on eye button click" time="0.203982403">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows stop button for active match and calls stopMatch" time="0.133412334">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows stop button for active match and calls stopMatch" time="0.104848195">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows pause button for RUNNING match" time="0.117438443">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows pause button for RUNNING match" time="0.094386072">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows resume button for PAUSED match" time="0.118790889">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows resume button for PAUSED match" time="0.111816506">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows error alert when listGuests fails" time="0.035287914">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; shows error alert when listGuests fails" time="0.016644947">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; calls deleteExpiredGuests on cleanup confirm" time="0.139927227">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; calls deleteExpiredGuests on cleanup confirm" time="0.100616949">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; cancels cleanup modal" time="0.142911003">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; cancels cleanup modal" time="0.101941235">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; closes success alert" time="0.171220561">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; closes success alert" time="0.189944132">
         </testcase>
-        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; closes guest detail modal with Close button" time="0.143667372">
+        <testcase classname="src/tests/pages/GuestsPage.test.jsx" name="GuestsPage &gt; closes guest detail modal with Close button" time="0.138654259">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/LoginPage.test.jsx" timestamp="2026-06-16T17:53:09.219Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="1.064666899">
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders brand and title" time="0.098501137">
+    <testsuite name="src/tests/pages/LoginPage.test.jsx" timestamp="2026-06-17T18:47:19.245Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="1.078571557">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders brand and title" time="0.10418432">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders the textarea for JWT input" time="0.013211122">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders the textarea for JWT input" time="0.015166541">
         </testcase>
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; shows error when submitting empty token" time="0.28098476">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; shows error when submitting empty token" time="0.280909812">
         </testcase>
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; shows error when token does not start with eyJ" time="0.287564049">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; shows error when token does not start with eyJ" time="0.264170434">
         </testcase>
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; saves token to localStorage on valid JWT" time="0.369952086">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; saves token to localStorage on valid JWT" time="0.388474747">
         </testcase>
-        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders the server selector with default option" time="0.009595748">
+        <testcase classname="src/tests/pages/LoginPage.test.jsx" name="LoginPage &gt; renders the server selector with default option" time="0.019667815">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/MatchDetailPage.test.jsx" timestamp="2026-06-16T17:53:09.220Z" hostname="cirilla" tests="15" failures="0" errors="0" skipped="0" time="2.824869835">
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; loads the match and renders players with stats and resolved template name" time="0.387899161">
+    <testsuite name="src/tests/pages/MatchDetailPage.test.jsx" timestamp="2026-06-17T18:47:19.246Z" hostname="cirilla" tests="15" failures="0" errors="0" skipped="0" time="2.519006271">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; loads the match and renders players with stats and resolved template name" time="0.330259349">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders difficulty, class and trait names" time="0.10417968">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders difficulty, class and trait names" time="0.100173369">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders locations and registry sections" time="0.091425377">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders locations and registry sections" time="0.089159861">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows empty-state when no players" time="0.060492836">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows empty-state when no players" time="0.041546031">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; surfaces an error" time="0.012308607">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; surfaces an error" time="0.010992084">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders the Clock status panel with label and sleeping character" time="0.045514589">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; renders the Clock status panel with label and sleeping character" time="0.090036977">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; hides the Clock status panel when the clock endpoint fails" time="0.04455343">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; hides the Clock status panel when the clock endpoint fails" time="0.043523946">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows RUNNING status and Stop + Pause buttons" time="0.401262884">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows RUNNING status and Stop + Pause buttons" time="0.345000685">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows PAUSED status and Stop + Resume buttons (no Pause)" time="0.270741202">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows PAUSED status and Stop + Resume buttons (no Pause)" time="0.161985198">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows ENDED status with Delete button only" time="0.164162102">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; shows ENDED status with Delete button only" time="0.160964159">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; pause calls pauseMatch and reloads info without confirm" time="0.190186306">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; pause calls pauseMatch and reloads info without confirm" time="0.279968471">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; stop shows confirm modal, confirming calls stopMatch" time="0.385700317">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; stop shows confirm modal, confirming calls stopMatch" time="0.299241613">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; delete shows confirm modal and navigates to matches list" time="0.28840935">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; delete shows confirm modal and navigates to matches list" time="0.259377671">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; cancelling the confirm modal does not call the action" time="0.324880766">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; cancelling the confirm modal does not call the action" time="0.271450381">
         </testcase>
-        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; copies UUID to clipboard when a UuidCopy chip is clicked" time="0.046357052">
+        <testcase classname="src/tests/pages/MatchDetailPage.test.jsx" name="MatchDetailPage &gt; copies UUID to clipboard when a UuidCopy chip is clicked" time="0.030898243">
             <system-err>
 Warning: An update to UuidCopy inside a test was not wrapped in act(...).
 
@@ -431,8 +431,8 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/MatchesPage.test.jsx" timestamp="2026-06-16T17:53:09.223Z" hostname="cirilla" tests="13" failures="0" errors="0" skipped="0" time="2.065303384">
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows loading spinner initially" time="0.086814096">
+    <testsuite name="src/tests/pages/MatchesPage.test.jsx" timestamp="2026-06-17T18:47:19.248Z" hostname="cirilla" tests="13" failures="0" errors="0" skipped="0" time="1.507299006">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows loading spinner initially" time="0.076401616">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
@@ -452,111 +452,111 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; renders match rows after load" time="0.098454707">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; renders match rows after load" time="0.083323573">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; renders stats cards" time="0.065664038">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; renders stats cards" time="0.058345586">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; filters by name" time="0.449612045">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; filters by name" time="0.283822798">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; filters by status" time="0.150226448">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; filters by status" time="0.095912306">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; opens the detail modal and loads match info" time="0.240841547">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; opens the detail modal and loads match info" time="0.169343363">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows an error alert when listMatches fails" time="0.040384815">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows an error alert when listMatches fails" time="0.035610608">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; closes the detail modal" time="0.283718194">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; closes the detail modal" time="0.189636482">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows empty state when there are no matches" time="0.055730676">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; shows empty state when there are no matches" time="0.029371423">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; edits a match status and name" time="0.252242437">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; edits a match status and name" time="0.233458503">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; stops a match after confirmation" time="0.138326228">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; stops a match after confirmation" time="0.147513117">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; disables delete for a non-terminal match" time="0.036058477">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; disables delete for a non-terminal match" time="0.018615146">
         </testcase>
-        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; deletes a stopped match after confirmation" time="0.161311934">
+        <testcase classname="src/tests/pages/MatchesPage.test.jsx" name="MatchesPage &gt; deletes a stopped match after confirmation" time="0.081836576">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/StoriesPage.test.jsx" timestamp="2026-06-16T17:53:09.226Z" hostname="cirilla" tests="20" failures="0" errors="0" skipped="0" time="2.88042456">
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows loading spinner initially" time="0.084088543">
+    <testsuite name="src/tests/pages/StoriesPage.test.jsx" timestamp="2026-06-17T18:47:19.250Z" hostname="cirilla" tests="20" failures="0" errors="0" skipped="0" time="2.547642235">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows loading spinner initially" time="0.071000611">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders story rows after load" time="0.06671461">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders story rows after load" time="0.059481663">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders visibility badges" time="0.052281947">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders visibility badges" time="0.068000371">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; filters stories by title text" time="0.451368922">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; filters stories by title text" time="0.406112707">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows empty row message when filter matches nothing" time="0.158051702">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows empty row message when filter matches nothing" time="0.163910796">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows error alert when API fails" time="0.02317797">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows error alert when API fails" time="0.079556508">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens confirm modal on delete click" time="0.086435708">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens confirm modal on delete click" time="0.095260537">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; cancels delete modal without calling API" time="0.224839411">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; cancels delete modal without calling API" time="0.142103707">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; calls deleteStory and reloads after confirm" time="0.224401597">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; calls deleteStory and reloads after confirm" time="0.146973336">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens detail modal on eye click" time="0.145886151">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens detail modal on eye click" time="0.088380555">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; calls listAllStories with selected lang" time="0.202280997">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; calls listAllStories with selected lang" time="0.103504665">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders card awesomeIcon when story has card" time="0.065930845">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; renders card awesomeIcon when story has card" time="0.049698842">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; exports story and shows success message" time="0.190595161">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; exports story and shows success message" time="0.126246707">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; exports JSON with alphabetically sorted keys, including nested nodes" time="0.153164715">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; exports JSON with alphabetically sorted keys, including nested nodes" time="0.107490919">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; keeps uuid on list elements but strips technical fields" time="0.112064845">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; keeps uuid on list elements but strips technical fields" time="0.162807828">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows export error when getStory fails" time="0.097260085">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; shows export error when getStory fails" time="0.157536922">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes success alert when X is clicked" time="0.10726889">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes success alert when X is clicked" time="0.212911918">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens detail modal and can export from it" time="0.208905485">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; opens detail modal and can export from it" time="0.16521127">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes detail modal when backdrop clicked" time="0.118351864">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes detail modal when backdrop clicked" time="0.09789551">
         </testcase>
-        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes error alert when X is clicked" time="0.082380444">
+        <testcase classname="src/tests/pages/StoriesPage.test.jsx" name="StoriesPage &gt; closes error alert when X is clicked" time="0.039552452">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/StoryEditorPage.test.jsx" timestamp="2026-06-16T17:53:09.230Z" hostname="cirilla" tests="25" failures="0" errors="0" skipped="0" time="8.681209834">
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; renders story info by default" time="0.94599629">
+    <testsuite name="src/tests/pages/StoryEditorPage.test.jsx" timestamp="2026-06-17T18:47:19.252Z" hostname="cirilla" tests="25" failures="0" errors="0" skipped="0" time="8.520783829">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; renders story info by default" time="0.995872807">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; updates story metadata" time="0.508503276">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; updates story metadata" time="0.470778509">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; switches tabs and loads entities" time="0.586596539">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; switches tabs and loads entities" time="0.540803869">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; deletes an entity after confirmation" time="0.614660607">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; deletes an entity after confirmation" time="0.647277517">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; creates a new entity" time="0.861429634">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; creates a new entity" time="0.66951366">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; opens selectors in metadata form" time="0.304569033">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; opens selectors in metadata form" time="0.338163902">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; exports story and cleans up data" time="0.460010385">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; exports story and cleans up data" time="0.48503787">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; handles fast text saving" time="0.658568243">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; handles fast text saving" time="0.757388069">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; handles selector onSelect for various fields" time="0.247813903">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; handles selector onSelect for various fields" time="0.181749247">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; edits an existing entity" time="0.518333253">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; edits an existing entity" time="0.431614884">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when the story fails to load" time="0.024171505">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when the story fails to load" time="0.023929321">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when entities fail to load" time="0.20315419">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when entities fail to load" time="0.223333738">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; surfaces an error when saving the story metadata fails" time="0.054511747">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; surfaces an error when saving the story metadata fails" time="0.045782136">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; renders every entity tab without crashing" time="0.754921663">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; renders every entity tab without crashing" time="0.76022615">
             <system-err>
 Warning: Each child in a list should have a unique &quot;key&quot; prop.
 
@@ -573,168 +573,168 @@ Check the render method of `EntityTable`. See https://reactjs.org/link/warning-k
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; closes the create modal on cancel" time="0.199154313">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; closes the create modal on cancel" time="0.188832376">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; creates a difficulty entity" time="0.195318384">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; creates a difficulty entity" time="0.204049673">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; deletes a text entity and refreshes texts" time="0.181189729">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; deletes a text entity and refreshes texts" time="0.181645381">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows a success report when the story is valid" time="0.13497206">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows a success report when the story is valid" time="0.133606122">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; lists integrity errors when the story is invalid" time="0.13470587">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; lists integrity errors when the story is invalid" time="0.139701282">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when creating a fast card without any text id" time="0.324651203">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; shows an error when creating a fast card without any text id" time="0.325242804">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; opens the card form when an idCard cell is clicked in the entity table" time="0.161261031">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; opens the card form when an idCard cell is clicked in the entity table" time="0.164146754">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; reports when a clicked idCard is not found in the cards list" time="0.150753223">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; reports when a clicked idCard is not found in the cards list" time="0.156418996">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; saves a brand new fast text through the input-generator" time="0.215550647">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; saves a brand new fast text through the input-generator" time="0.219084245">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; updates an existing fast text (update branch) via the pen editor" time="0.087932646">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; updates an existing fast text (update branch) via the pen editor" time="0.090432365">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; selects the coma/end-game location and event references from their selectors" time="0.141333476">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/tests/pages/StoryEditorPageHelpers.test.jsx" timestamp="2026-06-16T17:53:09.234Z" hostname="cirilla" tests="31" failures="0" errors="0" skipped="0" time="0.014828895">
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; REFERENCE_REFRESH_TABS &gt; contains the cross-reference entity tabs" time="0.002720904">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; extractNumericId &gt; returns the first finite numeric value found" time="0.00036484">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; extractNumericId &gt; returns null when nothing matches" time="0.000409719">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getEnShortText &gt; resolves the English shortText of the first text id" time="0.000287719">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getEnShortText &gt; returns empty string when no id or no match" time="0.000306387">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; builds value/label pairs with resolved labels" time="0.001007647">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; drops entities without a numeric id" time="0.000220335">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; handles a missing entities list" time="0.000163041">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; builds labelled options for locations" time="0.000583195">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; uses a placeholder when no name text exists" time="0.00019538">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; filters out non-numeric ids" time="0.000192345">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildKeysOptions &gt; builds name = value labels" time="0.000206634">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildKeysOptions &gt; drops keys without a name" time="0.000137482">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; returns the matching label" time="0.000448895">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; falls back to #value when not matched" time="0.000095063">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; returns empty string for empty value" time="0.000109826">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; returns #id + shortText for a known text" time="0.000168664">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; shows (empty) when the text has no shortText" time="0.000088325">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; reports a not-found text" time="0.000085018">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; returns empty string for an empty id" time="0.00008124">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; normalises a numeric idCard onto both keys" time="0.000174942">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; empties both keys when idCard is blank" time="0.000120911">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; returns a copy unchanged when no card key is present" time="0.000366824">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; coerces idCard to a number" time="0.000236099">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; uses empty/null when idCard is not finite" time="0.000174769">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; passes through entities without a card key" time="0.000146298">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; returns the value as-is when falsy" time="0.000124722">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getNewEntityDefaults &gt; provides defaults for location-neighbors" time="0.000968159">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getNewEntityDefaults &gt; returns null for other tabs" time="0.000149344">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; mapEntityList &gt; projects entities onto the declared field set and keeps id" time="0.001398067">
-        </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; mapEntityList &gt; returns an empty array for an unknown type or null list" time="0.000348556">
+        <testcase classname="src/tests/pages/StoryEditorPage.test.jsx" name="StoryEditorPage &gt; selects the coma/end-game location and event references from their selectors" time="0.141270398">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/StoryEditorPageSidebar.test.jsx" timestamp="2026-06-16T17:53:09.240Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.446057535">
-        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; renders one button per tab" time="0.065186621">
+    <testsuite name="src/tests/pages/StoryEditorPageHelpers.test.jsx" timestamp="2026-06-17T18:47:19.255Z" hostname="cirilla" tests="31" failures="0" errors="0" skipped="0" time="0.018569894">
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; REFERENCE_REFRESH_TABS &gt; contains the cross-reference entity tabs" time="0.003578916">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; highlights the active tab" time="0.029616034">
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; extractNumericId &gt; returns the first finite numeric value found" time="0.000595889">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; calls onSelectTab with the tab id on click" time="0.337356074">
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; extractNumericId &gt; returns null when nothing matches" time="0.000587841">
         </testcase>
-        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; renders the icon for each tab" time="0.008670179">
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getEnShortText &gt; resolves the English shortText of the first text id" time="0.000366385">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getEnShortText &gt; returns empty string when no id or no match" time="0.000369855">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; builds value/label pairs with resolved labels" time="0.00115436">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; drops entities without a numeric id" time="0.000349715">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; makeReferenceOptions &gt; handles a missing entities list" time="0.00026407">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; builds labelled options for locations" time="0.000947601">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; uses a placeholder when no name text exists" time="0.00036862">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildLocationOptions &gt; filters out non-numeric ids" time="0.000314333">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildKeysOptions &gt; builds name = value labels" time="0.000320107">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; buildKeysOptions &gt; drops keys without a name" time="0.000215277">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; returns the matching label" time="0.000263353">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; falls back to #value when not matched" time="0.00013874">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getOptionDisplay &gt; returns empty string for empty value" time="0.000161492">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; returns #id + shortText for a known text" time="0.000212282">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; shows (empty) when the text has no shortText" time="0.000139066">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; reports a not-found text" time="0.000143843">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getTextDisplay &gt; returns empty string for an empty id" time="0.000135043">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; normalises a numeric idCard onto both keys" time="0.000283262">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; empties both keys when idCard is blank" time="0.000200041">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeIdCardPayload &gt; returns a copy unchanged when no card key is present" time="0.000379014">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; coerces idCard to a number" time="0.000247145">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; uses empty/null when idCard is not finite" time="0.000204352">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; passes through entities without a card key" time="0.000158819">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; normalizeEntityForForm &gt; returns the value as-is when falsy" time="0.000130784">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getNewEntityDefaults &gt; provides defaults for location-neighbors" time="0.001055618">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; getNewEntityDefaults &gt; returns null for other tabs" time="0.000165255">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; mapEntityList &gt; projects entities onto the declared field set and keeps id" time="0.00110172">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageHelpers.test.jsx" name="StoryEditorPageHelpers &gt; mapEntityList &gt; returns an empty array for an unknown type or null list" time="0.000281794">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/pages/StoryImportPage.test.jsx" timestamp="2026-06-16T17:53:09.240Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.688922101">
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; renders page title" time="0.296537772">
+    <testsuite name="src/tests/pages/StoryEditorPageSidebar.test.jsx" timestamp="2026-06-17T18:47:19.258Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.316052396">
+        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; renders one button per tab" time="0.064276984">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; highlights the active tab" time="0.008561466">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; calls onSelectTab with the tab id on click" time="0.231919374">
+        </testcase>
+        <testcase classname="src/tests/pages/StoryEditorPageSidebar.test.jsx" name="StoryEditorPageSidebar &gt; renders the icon for each tab" time="0.006987102">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/pages/StoryImportPage.test.jsx" timestamp="2026-06-17T18:47:19.258Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.88473776">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; renders page title" time="0.395522846">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; Import button is disabled when textarea is empty" time="0.013396572">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; Import button is disabled when textarea is empty" time="0.015177534">
         </testcase>
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; shows JSON error on invalid JSON input" time="0.088090902">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; shows JSON error on invalid JSON input" time="0.087265589">
         </testcase>
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; loads example JSON on button click" time="0.042785842">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; loads example JSON on button click" time="0.08286838">
         </testcase>
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; calls importStory with parsed object on valid JSON" time="0.123663025">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; calls importStory with parsed object on valid JSON" time="0.131540086">
         </testcase>
-        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; shows error alert when importStory fails" time="0.120299049">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/tests/utils/turnPriority.test.js" timestamp="2026-06-16T17:53:09.242Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.031128359">
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; applies the (DEX*3 + INT*2 + COS) * 1000 + LIFE*10 formula" time="0.002126413">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; dexterity dominates" time="0.000372078">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; treats missing / non-numeric stats as zero" time="0.000439925">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; sorts by priority descending" time="0.008075227">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; tie-breaks deterministically by uuid" time="0.016824215">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; returns an empty array for non-array input" time="0.000536309">
-        </testcase>
-        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; does not mutate the input rows" time="0.00033535">
+        <testcase classname="src/tests/pages/StoryImportPage.test.jsx" name="StoryImportPage &gt; shows error alert when importStory fails" time="0.168145007">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/layout/Layout.test.jsx" timestamp="2026-06-16T17:53:09.244Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="1.10610307">
-        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; renders navbar and children" time="0.534007553">
+    <testsuite name="src/tests/utils/turnPriority.test.js" timestamp="2026-06-17T18:47:19.259Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.048283677">
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; applies the (DEX*3 + INT*2 + COS) * 1000 + LIFE*10 formula" time="0.007834638">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; dexterity dominates" time="0.000417004">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; computeTurnPriority &gt; treats missing / non-numeric stats as zero" time="0.000450043">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; sorts by priority descending" time="0.00116262">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; tie-breaks deterministically by uuid" time="0.030664361">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; returns an empty array for non-array input" time="0.004585814">
+        </testcase>
+        <testcase classname="src/tests/utils/turnPriority.test.js" name="turnPriority &gt; buildTurnOrder &gt; does not mutate the input rows" time="0.000361467">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/tests/components/layout/Layout.test.jsx" timestamp="2026-06-17T18:47:19.260Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="1.313939591">
+        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; renders navbar and children" time="0.629811573">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; toggles sidebar when not on dashboard" time="0.270596729">
+        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; toggles sidebar when not on dashboard" time="0.28281453">
         </testcase>
-        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; always shows sidebar on dashboard and disables toggle" time="0.027429435">
+        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; always shows sidebar on dashboard and disables toggle" time="0.032228898">
         </testcase>
-        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; hides the sidebar when navigating to a non-dashboard route" time="0.058490101">
+        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; hides the sidebar when navigating to a non-dashboard route" time="0.099622559">
         </testcase>
-        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; re-shows the sidebar when navigating back to the dashboard" time="0.210967319">
+        <testcase classname="src/tests/components/layout/Layout.test.jsx" name="Layout &gt; re-shows the sidebar when navigating back to the dashboard" time="0.265319268">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/layout/Navbar.test.jsx" timestamp="2026-06-16T17:53:09.245Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.618369089">
-        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; renders brand and server info" time="0.259383135">
+    <testsuite name="src/tests/components/layout/Navbar.test.jsx" timestamp="2026-06-17T18:47:19.261Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.605250539">
+        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; renders brand and server info" time="0.291705892">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; shows online status after successful ping" time="0.046061401">
+        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; shows online status after successful ping" time="0.026157923">
         </testcase>
-        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; shows offline status if ping fails" time="0.039594899">
+        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; shows offline status if ping fails" time="0.038007762">
         </testcase>
-        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; contains server selector" time="0.268930084">
+        <testcase classname="src/tests/components/layout/Navbar.test.jsx" name="Navbar &gt; contains server selector" time="0.245291402">
             <system-err>
 Warning: An update to Navbar inside a test was not wrapped in act(...).
 
@@ -768,73 +768,73 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/layout/Sidebar.test.jsx" timestamp="2026-06-16T17:53:09.245Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.122215632">
-        <testcase classname="src/tests/components/layout/Sidebar.test.jsx" name="Sidebar &gt; renders all menu links" time="0.093211809">
+    <testsuite name="src/tests/components/layout/Sidebar.test.jsx" timestamp="2026-06-17T18:47:19.262Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.13961176">
+        <testcase classname="src/tests/components/layout/Sidebar.test.jsx" name="Sidebar &gt; renders all menu links" time="0.105714501">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/tests/components/layout/Sidebar.test.jsx" name="Sidebar &gt; calls onNavigate callback when link is clicked" time="0.025022146">
+        <testcase classname="src/tests/components/layout/Sidebar.test.jsx" name="Sidebar &gt; calls onNavigate callback when link is clicked" time="0.024390379">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/common/story/EntityForm.test.jsx" timestamp="2026-06-16T17:53:09.246Z" hostname="cirilla" tests="22" failures="0" errors="0" skipped="0" time="2.126897923">
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders all field types" time="0.267306628">
+    <testsuite name="src/tests/components/common/story/EntityForm.test.jsx" timestamp="2026-06-17T18:47:19.263Z" hostname="cirilla" tests="22" failures="0" errors="0" skipped="0" time="2.1875978">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders all field types" time="0.3552243">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; updates state on input change" time="0.246288021">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; updates state on input change" time="0.177457305">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles checkbox change" time="0.112424078">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles checkbox change" time="0.099787428">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles number input correctly" time="0.132270302">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles number input correctly" time="0.132080466">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing a number field stores an empty string" time="0.056985298">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing a number field stores an empty string" time="0.069257038">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; updates select and textarea values" time="0.172837218">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; updates select and textarea values" time="0.173418836">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles cancel click" time="0.052079978">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles cancel click" time="0.078873269">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles backdrop click to cancel" time="0.025282165">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; handles backdrop click to cancel" time="0.043851326">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; shows Edit title in edit mode and Create otherwise" time="0.046269167">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; shows Edit title in edit mode and Create otherwise" time="0.062035204">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; falls back to initialData when no entity is given" time="0.070949562">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; falls back to initialData when no entity is given" time="0.060596044">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders a PathsSelector for text fields when storyUuid + onSaveFastText set" time="0.015538405">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders a PathsSelector for text fields when storyUuid + onSaveFastText set" time="0.025290935">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening a text selector with no value shows the FastTextSelectorModal" time="0.071715773">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening a text selector with no value shows the FastTextSelectorModal" time="0.061904085">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening a text selector with an existing value shows the FastTextCreatorModal" time="0.065274799">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening a text selector with an existing value shows the FastTextCreatorModal" time="0.049065056">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting a text syncs idTextName into idTextDescription" time="0.173476928">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting a text syncs idTextName into idTextDescription" time="0.109494723">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing a text selector empties the field" time="0.069279352">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing a text selector empties the field" time="0.090860228">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; text creator modal save applies the chosen idText" time="0.117648965">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; text creator modal save applies the chosen idText" time="0.126131862">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening the text creator path via the creator button" time="0.051877733">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; opening the text creator path via the creator button" time="0.046342843">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders a PathsSelector for option fields and shows the matching label" time="0.004634643">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; renders a PathsSelector for option fields and shows the matching label" time="0.012851183">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting an option value stores the normalized number" time="0.122878306">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting an option value stores the normalized number" time="0.097022133">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting a string-typed option keeps the raw value" time="0.10582308">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; selecting a string-typed option keeps the raw value" time="0.156852277">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing an option field empties it" time="0.059134482">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; clearing an option field empties it" time="0.082465984">
         </testcase>
-        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; fast-card creation applies the returned idCard" time="0.08242905">
+        <testcase classname="src/tests/components/common/story/EntityForm.test.jsx" name="EntityForm &gt; fast-card creation applies the returned idCard" time="0.071782373">
         </testcase>
     </testsuite>
-    <testsuite name="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" timestamp="2026-06-16T17:53:09.251Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.554015563">
-        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; renders options when open" time="0.074186896">
+    <testsuite name="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" timestamp="2026-06-17T18:47:19.265Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.716126421">
+        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; renders options when open" time="0.077776021">
         </testcase>
-        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; filters options by search" time="0.23688618">
+        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; filters options by search" time="0.41707823">
         </testcase>
-        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; calls onSelect when an option is clicked" time="0.170874718">
+        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; calls onSelect when an option is clicked" time="0.1318448">
         </testcase>
-        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; handles sorting" time="0.05675066">
+        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; handles sorting" time="0.074804488">
         </testcase>
-        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; closes on backdrop click" time="0.010117475">
+        <testcase classname="src/tests/components/common/story/PathsOptionsSelectorModal.test.jsx" name="PathsOptionsSelectorModal &gt; closes on backdrop click" time="0.010412165">
         </testcase>
     </testsuite>
 </testsuites>

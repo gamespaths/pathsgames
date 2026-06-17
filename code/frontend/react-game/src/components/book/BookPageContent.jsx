@@ -15,7 +15,7 @@ import { isValidElement } from 'react'
  */
 export default function BookPageContent({ 
     card, story, loading, onClose, entity, entityType , extraContent=null, extraContentClassName=null,
-    lockedReason , statItemsToPageContent=null, descriptionTag=false}) {
+    lockedReason , statItemsToPageContent=null, descriptionTag=false}  ) {
   const { t } = useTranslation()
 
   const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType).map(s => ({
@@ -25,7 +25,7 @@ export default function BookPageContent({
       : t(`book.stats.${s.key}`),
     value: s.value,
   }))
-  //console.log("statItemsReal",statItemsReal , statItemsToPageContent);
+  //console.log("BookPageContent",card, statItemsReal , statItemsToPageContent);
 
   const title = card?.title ?? entity?.name ?? card?.name ?? null
   const description = card?.description ?? entity?.description ?? null
@@ -59,7 +59,7 @@ export default function BookPageContent({
             : <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(String(description)) }} />}
         </div>
       )}
-      { console.log("extraContent",extraContent)}
+      { /*console.log("extraContent",extraContent) */}
       {extraContent && <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>}
 
       {card?.linkCopyright && (

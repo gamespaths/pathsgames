@@ -7,7 +7,7 @@ vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-te
 
 import {
   buildCardCharacteristics,
-  buildCardCharacteristicsLeft,
+  buildCardCharacteristicsRight,
   resolveSelectionEntity,
   storySelectionCount,
   selectedTraitCount,
@@ -70,12 +70,11 @@ describe('utils/gamebook — card builders', () => {
     expect(screen.getByTestId('clock-widget')).toBeInTheDocument()
   })
 
-  it('buildCardCharacteristicsLeft produces a JSX description flagged with descriptionTag', () => {
-    const card = buildCardCharacteristicsLeft(STORY, PLAYER, null, { matchUuid: 'm1' })
+  it('buildCardCharacteristicsRight produces a JSX description flagged with descriptionTag', () => {
+    const card = buildCardCharacteristicsRight(STORY, PLAYER, null, { matchUuid: 'm1' })
     expect(card.descriptionTag).toBe(true)
     expect(card.urlImage).toBeNull()
     render(<div>{card.title}{card.description}</div>)
-    expect(screen.getByTestId('clock-widget')).toBeInTheDocument()
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()
     expect(screen.getByTestId('sleep-button')).toBeInTheDocument()
   })

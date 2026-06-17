@@ -12,10 +12,12 @@ const GAUGE_KEYS = [
 // Plain single-value stats (no max projected by /info yet).
 const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
 
-export default function PlayerStats({ stats , className , plainFlag=false})  {
+export default function PlayerStats({ stats , className , plainFlag=false , showZeros=true , specificKeys=null }) {
+
   const { t } = useTranslation()
 
-  const gauge = GAUGE_KEYS.map(([key, maxKey]) => {
+  const keysList = specificKeys ?? GAUGE_KEYS; 
+  const gauge = keysList.map(([key, maxKey]) => {
     const value = stats?.[key] ?? 0
     const max = stats?.[maxKey] ?? 0
     return {
@@ -34,9 +36,12 @@ export default function PlayerStats({ stats , className , plainFlag=false})  {
 
   const items = Array.isArray(stats?.items) ? stats.items : []
 
+  let clockStat=[]
+  if (plainFlag && stats.clock!=null){ clockStat.push({ key: 'clock', label: stats.clockLabelSingular ?? "Time", value: stats.clock }) }
+
   return (
     <>
-      <BonusBadgeList className={className} items={[...gauge  , ...(plainFlag ? plain : []) ] } showZeros />
+      <BonusBadgeList className={className} items={[...clockStat,  ...gauge  , ...(plainFlag ? plain : []) ] } showZeros={showZeros} />
       {items.length > 0 && (
         <div className={`player-items-list `} aria-label={t('game.stats.items')}>
           {items.map(it => (
