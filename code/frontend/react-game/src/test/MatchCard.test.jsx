@@ -61,4 +61,20 @@ describe('MatchCard', () => {
     wrap(<MatchCard match={{ uuid: 'm1', status: 'RUNNING' }} story={null} onResume={vi.fn()} />)
     expect(screen.getByText('matches.unknownStory')).toBeInTheDocument()
   })
+
+  it('calls onPreviewCard with the match info when the (i) button is clicked', () => {
+    const onPreviewCard = vi.fn()
+    wrap(
+      <MatchCard
+        match={{ uuid: 'm1', status: 'RUNNING' }}
+        story={STORY}
+        onResume={vi.fn()}
+        onPreviewCard={onPreviewCard}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('card.info'))
+    expect(onPreviewCard).toHaveBeenCalledWith(
+      expect.objectContaining({ story: STORY, statusLabel: 'matches.status.RUNNING' }),
+    )
+  })
 })

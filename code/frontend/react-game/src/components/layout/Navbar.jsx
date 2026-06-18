@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
-import { useGuestUser } from '../../context/GuestUserContext'
+import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 
 export default function Navbar() {
   const { lang, setLang, t } = useTranslation()

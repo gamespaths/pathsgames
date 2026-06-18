@@ -262,7 +262,7 @@ Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanil
 
 
 
-## Version Control
+# Version Control
 - First version created with AI prompts:
     > read all documentation md files inside documentation_v0 folder, i wanna to run step 12: write backennd code into code/backend project and create a simple web example inside new code/website/concepts_v0/v0.12.0/ folder  
 
@@ -277,7 +277,7 @@ Cookie consent is managed in-project since v0.20.3 using the self-hosted **vanil
     | --- | --- | --- |
     | 0.12.0 | Step 12: Implement guest login method | March 27, 2026 |
     | 0.12.3 | Create backend python code | March 31, 2026 |
-    | 0.12.4 | Create backend php code | April 1, 2026 |
+    | 0.12.4 | Create backend php code - Abandoned | April 1, 2026 |
     | 0.13.0 | Write OpenAPI file | April 2, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 09, 2026 |
     | 0.19.8 | React-game client-side guest flow: GuestUserProvider, resume-on-load, mock synthesis, GuestUserModal, Navbar modal trigger | May 19, 2026 |

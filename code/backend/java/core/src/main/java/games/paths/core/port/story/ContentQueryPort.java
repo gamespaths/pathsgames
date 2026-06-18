@@ -25,6 +25,18 @@ public interface ContentQueryPort {
     CardInfo getCardByStoryAndCardUuid(String storyUuid, String cardUuid, String lang);
 
     /**
+     * Resolves a card by story <em>id</em> and card primary-key id (the
+     * {@code id_card} reference carried by locations, events, neighbors, …),
+     * with multi-language text resolution and fallback to English.
+     *
+     * @param storyId the story primary key
+     * @param idCard  the card primary-key reference ({@code id_card}); may be null
+     * @param lang    the language code for text resolution
+     * @return the resolved card, or null when {@code idCard} is null or unknown
+     */
+    CardInfo getCardByStoryIdAndCardId(Long storyId, Integer idCard, String lang);
+
+    /**
      * Retrieves a resolved text entry within a story,
      * with language fallback to English if the requested language is not available.
      *

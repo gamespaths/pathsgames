@@ -7,7 +7,6 @@ from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.core.models.match import match_statuses
 from app.core.models.match.match_models import (
     MatchCreateCommand,
     MatchCreationError,
@@ -24,6 +23,11 @@ _STATUS_BY_CODE = {
     MatchCreationError.USER_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     MatchCreationError.USER_BANNED: status.HTTP_403_FORBIDDEN,
     MatchCreationError.MAINTENANCE_MODE: status.HTTP_503_SERVICE_UNAVAILABLE,
+    # Step 23 — trait selection validation on the creator loadout
+    MatchCreationError.TRAIT_NOT_FOUND: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TRAIT_NOT_COMPATIBLE: status.HTTP_400_BAD_REQUEST,
+    MatchCreationError.TRAIT_COST_EXCEEDED: status.HTTP_400_BAD_REQUEST,
 }
 
 
@@ -36,12 +40,6 @@ class MatchCreateRequestBody(BaseModel):
     traitUuids: Optional[List[str]] = None
     singlePlayer: Optional[int] = None
     turnstileToken: Optional[str] = None
-
-
-class MatchUpdateRequestBody(BaseModel):
-    """Body for PUT /api/admin/matches/{uuid}. Both fields optional."""
-    status: Optional[str] = None
-    name: Optional[str] = None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -66,6 +64,101 @@ def _summary_to_camel(summary):
         "characterTemplateUuid": summary.character_template_uuid,
         "classUuid": summary.class_uuid,
         "traitUuids": summary.trait_uuids,
+    }
+
+
+def _item_to_camel(it):
+    """Step 27 — a single inventory item carried by a character."""
+    return {
+        "uuid": it.uuid,
+        "itemUuid": it.item_uuid,
+        "name": it.name,
+        "weight": it.weight,
+        "amount": it.amount,
+        "state": it.state,
+    }
+
+
+def _character_summary_to_camel(p):
+    """Step 21 — lightweight character row (players list / MatchInfo.players)."""
+    return {
+        "uuid": p.uuid,
+        "userUuid": p.user_uuid,
+        "characterTemplateUuid": p.character_template_uuid,
+        "dexterity": p.dexterity,
+        "intelligence": p.intelligence,
+        "constitution": p.constitution,
+        "energy": p.energy,
+        "life": p.life,
+        "sad": p.sad,
+        # Step 27 — max statistics, carried weight and items list.
+        "lifeMax": p.life_max,
+        "energyMax": p.energy_max,
+        "sadMax": p.sad_max,
+        "weightMax": p.weight_max,
+        "weight": p.weight,
+        "items": [_item_to_camel(it) for it in p.items],
+        "idLocation": p.id_location,
+        "locationName": p.location_name,
+        "isSleeping": p.is_sleeping,
+        "isComa": p.is_coma,
+    }
+
+
+def _character_full_to_camel(p):
+    """Step 21 — full character detail (join / character endpoint)."""
+    return {
+        "uuid": p.uuid,
+        "matchUuid": p.match_uuid,
+        "userUuid": p.user_uuid,
+        "characterTemplateUuid": p.character_template_uuid,
+        "classUuid": p.class_uuid,
+        "dexterity": p.dexterity,
+        "intelligence": p.intelligence,
+        "constitution": p.constitution,
+        "energy": p.energy,
+        "life": p.life,
+        "sad": p.sad,
+        # Step 27 — max statistics, carried weight and items list.
+        "lifeMax": p.life_max,
+        "energyMax": p.energy_max,
+        "sadMax": p.sad_max,
+        "weightMax": p.weight_max,
+        "weight": p.weight,
+        "items": [_item_to_camel(it) for it in p.items],
+        "idLocation": p.id_location,
+        "locationUuid": p.location_uuid,
+        "locationName": p.location_name,
+        "isSleeping": p.is_sleeping,
+        "isComa": p.is_coma,
+        "traitUuids": list(p.trait_uuids),
+        "food": p.food,
+        "magic": p.magic,
+        "coin": p.coin,
+    }
+
+
+def _location_info_to_camel(l):
+    """Step 27.x — a player-occupied location with its card, neighbors and events."""
+    return {
+        "idLocation": l.id_location,
+        "uuid": l.uuid,
+        "card": l.card,
+        "neighbors": [
+            {
+                "idLocation": n.id_location,
+                "uuid": n.uuid,
+                "direction": n.direction,
+                "flagBack": n.flag_back,
+                "energyCost": n.energy_cost,
+                "card": n.card,
+            }
+            for n in l.neighbors
+        ],
+        "events": [
+            {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card}
+            for e in l.events
+        ],
     }
 
 
@@ -96,6 +189,8 @@ def _detail_to_camel(detail):
         ],
         "events": [asdict(e) for e in detail.events],
         "choices": [asdict(c) for c in detail.choices],
+        "players": [_character_summary_to_camel(p) for p in detail.players],
+        "locationsActive": [_location_info_to_camel(l) for l in detail.locations_active],
     }
 
 
@@ -109,30 +204,6 @@ class MatchController:
         )
         self.router.add_api_route(
             "/api/matches", self.list_matches, methods=["GET"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches", self.list_all_matches, methods=["GET"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/statuses", self.list_match_statuses, methods=["GET"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}/info", self.get_admin_match_info, methods=["GET"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}", self.update_match, methods=["PUT"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}/stop", self.stop_match, methods=["POST"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}/pause", self.pause_match, methods=["POST"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}/resume", self.resume_match, methods=["POST"]
-        )
-        self.router.add_api_route(
-            "/api/admin/matches/{uuid_match}", self.delete_match, methods=["DELETE"]
         )
         self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
@@ -173,63 +244,6 @@ class MatchController:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
         results = self.query_port.list_user_matches(user_uuid)
         return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
-
-    def list_all_matches(self):
-        """GET /api/admin/matches — every match in the platform (admin view).
-        The admin role is enforced by the JWT middleware for /api/admin/ paths."""
-        results = self.query_port.list_all_matches()
-        return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
-
-    def list_match_statuses(self):
-        """GET /api/admin/matches/statuses — valid statuses, each flagged
-        ``terminal`` when a match in that status is stopped (deletable)."""
-        return JSONResponse(status_code=200, content=[
-            {"value": s, "terminal": match_statuses.is_terminal(s)}
-            for s in match_statuses.ALL
-        ])
-
-    def update_match(self, uuid_match: str, body: Optional[MatchUpdateRequestBody] = None):
-        """PUT /api/admin/matches/{uuid} — update a match's status and/or name."""
-        status_val = body.status if body else None
-        name_val = body.name if body else None
-        if status_val is None and name_val is None:
-            return _error("INVALID_INPUT", "At least one of status or name must be provided", 400)
-        return self._apply_update(uuid_match, status_val, name_val)
-
-    def stop_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.ENDED, None)
-
-    def pause_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.PAUSED, None)
-
-    def resume_match(self, uuid_match: str):
-        return self._apply_update(uuid_match, match_statuses.RUNNING, None)
-
-    def delete_match(self, uuid_match: str):
-        """DELETE /api/admin/matches/{uuid} — delete a stopped match."""
-        outcome = self.command_port.delete_match(uuid_match)
-        if outcome == "DELETED":
-            return JSONResponse(status_code=200, content={"status": "DELETED", "uuid": uuid_match})
-        if outcome == "NOT_STOPPED":
-            return _error("MATCH_NOT_STOPPED",
-                          "Only stopped matches (ENDED or GAMEOVER) can be deleted", 409)
-        return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
-
-    def get_admin_match_info(self, uuid_match: str):
-        """GET /api/admin/matches/{uuid}/info — full match detail for the admin
-        console, without the per-user ownership check."""
-        detail = self.query_port.get_match_info_for_admin(uuid_match)
-        if detail is None:
-            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
-        return JSONResponse(status_code=200, content=_detail_to_camel(detail))
-
-    def _apply_update(self, uuid_match: str, status_val, name_val):
-        outcome = self.command_port.update_match(uuid_match, status_val, name_val)
-        if outcome == "UPDATED":
-            return JSONResponse(status_code=200, content={"status": "UPDATED", "uuid": uuid_match})
-        if outcome == "INVALID_STATUS":
-            return _error("INVALID_STATUS", f"status must be one of {match_statuses.ALL}", 400)
-        return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
 
     def get_match_info(self, uuid_match: str, request: Request):
         user_uuid = getattr(request.state, "user_uuid", None)

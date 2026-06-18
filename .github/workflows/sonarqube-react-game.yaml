@@ -52,6 +52,7 @@ jobs:
             -Dsonar.sources=src 
             -Dsonar.tests=src/test
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**,src/test/**
+            -Dsonar.coverage.exclusions=src/main.jsx,src/mock/**,src/i18n/*.json
             -Dsonar.test.inclusions=src/test/**/*.test.jsx,src/test/**/*.test.js
             -Dsonar.branch.name=develop  
             -Dsonar.qualitygate.wait=false

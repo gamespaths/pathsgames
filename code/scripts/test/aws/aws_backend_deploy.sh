@@ -71,6 +71,32 @@ else
     _TURNSTILE_BYPASS="${TURNSTILE_BYPASS_TOKEN_TEST:-}"
 fi
 
+# Admin IP whitelist: combine ADMIN_IP_WHITELIST from .env with the current
+# machine's public IP (so the deployer always has access after deploy).
+echo "Detecting current public IP for admin whitelist…"
+_CURRENT_IP="$(curl -sf https://checkip.amazonaws.com || curl -sf https://api.ipify.org || echo '')"
+if [ -n "$_CURRENT_IP" ]; then
+    echo "  Current public IP: $_CURRENT_IP"
+else
+    echo "  WARNING: could not detect public IP — admin IP whitelist will only use ADMIN_IP_WHITELIST from .env"
+fi
+# Merge: env list (may be empty) + current IP, deduplicated, comma-separated
+_BASE_WHITELIST="${ADMIN_IP_WHITELIST:-}"
+if [ -n "$_BASE_WHITELIST" ] && [ -n "$_CURRENT_IP" ]; then
+    _ADMIN_IP_WHITELIST="$_BASE_WHITELIST,$_CURRENT_IP"
+elif [ -n "$_CURRENT_IP" ]; then
+    _ADMIN_IP_WHITELIST="$_CURRENT_IP"
+else
+    _ADMIN_IP_WHITELIST="$_BASE_WHITELIST"
+fi
+# Remove duplicate IPs (preserving order)
+if [ -n "$_ADMIN_IP_WHITELIST" ]; then
+    _ADMIN_IP_WHITELIST="$(echo "$_ADMIN_IP_WHITELIST" | tr ',' '\n' | awk '!seen[$0]++' | tr '\n' ',' | sed 's/,$//')"
+    echo "  Admin IP whitelist: $_ADMIN_IP_WHITELIST"
+else
+    echo "  WARNING: ADMIN_IP_WHITELIST is empty — admin endpoints will be accessible from ANY IP!"
+fi
+
 # deploy with SAM; if it fails (for example due to an empty image_repository in samconfig.toml)
 sam deploy \
     --stack-name "${AWS_STACK_NAME_TEST:-pathsgames-dev}" \
@@ -85,6 +111,7 @@ sam deploy \
         CorsAllowOrigins="${AWS_CORS_ORIGINS_TEST:-http://localhost:1234}" \
         TurnstileSecretKey="${_TURNSTILE_SAM_KEY}" \
         TurnstileBypassToken="${_TURNSTILE_BYPASS}" \
+        AdminIpWhitelist="${_ADMIN_IP_WHITELIST}" \
     $CONFIRM \
     --no-fail-on-empty-changeset 2>&1
 

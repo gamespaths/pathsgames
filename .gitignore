@@ -1,7 +1,8 @@
 # AI
-*.agents*
+.agents/logs
+.agents/rules/_cavemem.mda
 .github/copilot-instructions.md
-CLAUDE.md
+#CLAUDE.md
 
 # Temp developer files
 #tutorial_story.json
@@ -120,3 +121,23 @@ code/frontend/react-game/jest-test-results.json
 # TMP files!
 code/backend/php/debug_sql.php
 code/backend/php/converted.sql
+code/scripts/test/aws_ec2_with_java_postgres_docker_compose/.state
+code/scripts/test/aws_ec2_with_java_docker/.state
+# test units
+code/frontend/react-admin/test-results.junit.xml
+code/backend/aws/.unit-junit.xml
+code/frontend/react-game/test-results.junit.xml
+
+#node backend
+code/tests/robot/reports-local-node
+code/backend/node/.env
+code/backend/node/dist/
+code/backend/node/node_modules/
+code/backend/node/.vscode/
+
+#python-flask-
+code/frontend/python-flask-admin/.venv
+code/frontend/python-flask-game/.venv
+code/frontend/python-flask-admin/.pytest_cache
+code/frontend/python-flask-game/.pytest_cache
+

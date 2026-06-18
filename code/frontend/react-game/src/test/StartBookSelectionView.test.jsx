@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../components/layout/GameCard', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ name, locked, onSelect, onPreview, lockedReason }) => (
     <div data-testid="game-card" data-locked={String(!!locked)} data-locked-reason={lockedReason ?? ''}>
       <span>{name}</span>
@@ -14,7 +14,7 @@ vi.mock('../components/layout/GameCard', () => ({
   ),
 }))
 
-import StartBookSelectionView from '../features/startBook/SelectionView'
+import StartBookSelectionView from '../features/start-book/OptionPicker'
 
 const OPTIONS = [
   { uuid: 'o1', name: 'Warrior', card: { title: 'Warrior' } },
@@ -25,7 +25,7 @@ const STORY = {
   classes: [{ uuid: 'c1', name: 'Fighter', card: { title: 'Fighter' } }],
 }
 
-const CONFIG = { class: { uuid: 'c1' }, character: null, trait: null, difficulty: null }
+const CONFIG = { class: { uuid: 'c1' }, character: null, traits: [], difficulty: null }
 
 describe('StartBook SelectionView', () => {
   it('renders all options', () => {

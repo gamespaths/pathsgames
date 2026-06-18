@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Time Advancement & Clock Cycle API
+  description: |
+    Step 25 — time advancement & clock cycle (single-player). Adds a voluntary
+    sleep action and a clock query. When every active character is "done"
+    (sleeping or out of energy — in single-player the list is size 1) the match
+    clock advances by one time unit: the advance is logged in `log_clock_history`,
+    characters wake, and the turn queue is rebuilt with the Step 24 priority
+    formula. A `TimeAdvanced` domain event is published in-process (WebSocket
+    broadcast is deferred to Step 64).
+  version: 0.25.0
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+tags:
+  - name: time-clock
+    description: Single-player time advancement & clock cycle
+security:
+  - bearerAuth: []
+paths:
+  /api/gameplay/{uuidMatch}/action/sleep:
+    post:
+      tags: [time-clock]
+      summary: Voluntarily set the caller's character to sleep, then evaluate time-end
+      description: |
+        The caller must own a character in the RUNNING match (it does not need to
+        be the caller's active turn). Setting an already-sleeping character is an
+        idempotent no-op. After the flag is applied the time-end trigger is
+        evaluated; if every character is sleeping or out of energy the clock
+        advances and `timeEndTriggered` is true.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Sleep applied; time-end evaluated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SleepActionResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND — unknown match or caller owns no character in it }
+        '409': { description: MATCH_NOT_RUNNING — match is not RUNNING }
+  /api/match/{uuidMatch}/clock:
+    get:
+      tags: [time-clock]
+      summary: Read the current clock, labels and per-character sleeping/energy state
+      description: |
+        Owner-only (the match creator). Returns the integer `currentClock`, the
+        story's singular/plural clock labels, whether any character is sleeping,
+        and the per-character sleeping/energy state. No day/phase model exists yet.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current clock state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClockResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND — unknown match or caller is not the creator }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SleepActionResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        characterUuid: { type: string }
+        isSleeping: { type: boolean }
+        timeEndTriggered: { type: boolean }
+        currentClock: { type: integer }
+    ClockCharacterResponse:
+      type: object
+      properties:
+        characterUuid: { type: string }
+        isSleeping: { type: boolean }
+        energy: { type: integer }
+    ClockResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        currentClock: { type: integer }
+        clockLabelSingular: { type: string, nullable: true }
+        clockLabelPlural: { type: string, nullable: true }
+        anyCharacterSleeping: { type: boolean }
+        characters:
+          type: array
+          items: { $ref: '#/components/schemas/ClockCharacterResponse' }

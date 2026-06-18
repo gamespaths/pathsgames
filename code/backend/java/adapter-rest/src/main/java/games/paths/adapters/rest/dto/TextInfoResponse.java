@@ -4,17 +4,18 @@ package games.paths.adapters.rest.dto;
  * TextInfoResponse - REST response DTO for a resolved text entry.
  *
  * <p>Added in Step 16.</p>
+ *
+ * <p>v0.20.8 — copyright/creator fields moved to
+ * {@link AbstractCopyrightCreatorDto} to drop duplicated lines flagged by
+ * SonarQube.</p>
  */
-public class TextInfoResponse {
+public class TextInfoResponse extends AbstractCopyrightCreatorDto {
 
     private int idText;
     private String lang;
     private String resolvedLang;
     private String shortText;
     private String longText;
-    private String copyrightText;
-    private String linkCopyright;
-    private CreatorInfoResponse creator;
 
     public TextInfoResponse() {}
 
@@ -22,14 +23,12 @@ public class TextInfoResponse {
                             String shortText, String longText,
                             String copyrightText, String linkCopyright,
                             CreatorInfoResponse creator) {
+        super(copyrightText, linkCopyright, creator);
         this.idText = idText;
         this.lang = lang;
         this.resolvedLang = resolvedLang;
         this.shortText = shortText;
         this.longText = longText;
-        this.copyrightText = copyrightText;
-        this.linkCopyright = linkCopyright;
-        this.creator = creator;
     }
 
     public int getIdText() { return idText; }
@@ -46,13 +45,4 @@ public class TextInfoResponse {
 
     public String getLongText() { return longText; }
     public void setLongText(String longText) { this.longText = longText; }
-
-    public String getCopyrightText() { return copyrightText; }
-    public void setCopyrightText(String copyrightText) { this.copyrightText = copyrightText; }
-
-    public String getLinkCopyright() { return linkCopyright; }
-    public void setLinkCopyright(String linkCopyright) { this.linkCopyright = linkCopyright; }
-
-    public CreatorInfoResponse getCreator() { return creator; }
-    public void setCreator(CreatorInfoResponse creator) { this.creator = creator; }
 }

@@ -172,7 +172,8 @@ def test_logout_without_token_returns_401():
     assert result['statusCode'] == 401
 
 def test_logout_clears_cookies():
-    with patch('auth.handler.db_utils.get_item', return_value=PLAYER_USER):
+    with patch('auth.handler.db_utils.get_item', return_value=dict(PLAYER_USER)), \
+         patch('auth.handler.db_utils.put_item', return_value=True):
         from auth.handler import lambda_handler
         event = make_event('POST', '/api/auth/logout',
                            headers={'Authorization': 'Bearer MOCK_ACCESS_player-uuid-002'})
@@ -192,13 +193,66 @@ def test_refresh_token_invalid_returns_401():
     assert result['statusCode'] == 401
 
 def test_refresh_token_valid_returns_200():
-    with patch('auth.handler.db_utils.get_item', return_value=PLAYER_USER):
+    with patch('auth.handler.db_utils.get_item', return_value=dict(PLAYER_USER)), \
+         patch('auth.handler.db_utils.put_item', return_value=True):
         from auth.handler import lambda_handler
         event = make_event('POST', '/api/auth/refresh',
                            cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002'])
         result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     assert _body(result)['accessToken'].startswith('MOCK_ACCESS_')
+
+
+def test_refresh_token_stale_version_revoked_returns_401():
+    # The user's current token_version (5) differs from the token's (0) → revoked.
+    user = dict(PLAYER_USER, token_version=5)
+    with patch('auth.handler.db_utils.get_item', return_value=user), \
+         patch('auth.handler.db_utils.put_item', return_value=True):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/refresh',
+                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.0'])
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 401
+
+
+def test_refresh_token_matching_version_returns_200():
+    user = dict(PLAYER_USER, token_version=3)
+    with patch('auth.handler.db_utils.get_item', return_value=user), \
+         patch('auth.handler.db_utils.put_item', return_value=True):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/refresh',
+                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.3'])
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+
+
+def test_refresh_rotation_bumps_token_version():
+    user = dict(PLAYER_USER, token_version=0)
+    captured = {}
+    def _capture(item):
+        captured.update(item)
+        return True
+    with patch('auth.handler.db_utils.get_item', return_value=user), \
+         patch('auth.handler.db_utils.put_item', side_effect=_capture):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/refresh',
+                           cookies=['pathsgames.refreshToken=MOCK_REFRESH_player-uuid-002.0'])
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert captured.get('token_version') == 1
+
+
+def test_logout_bumps_token_version():
+    user = dict(PLAYER_USER, token_version=2)
+    captured = {}
+    with patch('auth.handler.db_utils.get_item', return_value=user), \
+         patch('auth.handler.db_utils.put_item', side_effect=lambda i: captured.update(i) or True):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/logout',
+                           headers={'Authorization': 'Bearer MOCK_ACCESS_player-uuid-002'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    assert captured.get('token_version') == 3
 
 
 # ── admin: list_guests ────────────────────────────────────────────────────────
@@ -260,3 +314,37 @@ def test_guest_stats_returns_counts():
     body = _body(result)
     assert 'totalGuests' in body
     assert body['totalGuests'] == 2
+
+
+# ── ALLOW_MOCK_ACCESS=false: real JWTs emitted ────────────────────────────────
+
+def test_create_guest_real_jwt_when_mock_disabled():
+    from common import jwt_utils as ju
+    with patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch.object(ju, 'ALLOW_MOCK_ACCESS', False):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/guest')
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    body = _body(result)
+    token = body['accessToken']
+    assert not token.startswith('MOCK_ACCESS_')
+    assert len(token.split('.')) == 3   # valid JWT format
+    claims = ju.verify_access_token(token)
+    assert claims is not None
+    assert claims['source'] == 'jwt'
+
+def test_refresh_token_real_jwt_when_mock_disabled():
+    from common import jwt_utils as ju
+    refresh_tok = ju.generate_refresh_token('player-uuid-002')
+    with patch('auth.handler.db_utils.get_item', return_value=dict(PLAYER_USER)), \
+         patch('auth.handler.db_utils.put_item', return_value=True), \
+         patch.object(ju, 'ALLOW_MOCK_ACCESS', False):
+        from auth.handler import lambda_handler
+        event = make_event('POST', '/api/auth/refresh',
+                           cookies=[f'pathsgames.refreshToken={refresh_tok}'])
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    token = _body(result)['accessToken']
+    assert not token.startswith('MOCK_ACCESS_')
+    assert ju.verify_access_token(token) is not None

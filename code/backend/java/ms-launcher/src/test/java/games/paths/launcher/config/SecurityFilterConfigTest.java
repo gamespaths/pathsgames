@@ -2,6 +2,7 @@ package games.paths.launcher.config;
 
 import games.paths.adapters.rest.filter.JwtAuthenticationFilter;
 import games.paths.core.port.auth.SessionPort;
+import games.paths.launcher.filter.AdminPortFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,5 +43,24 @@ class SecurityFilterConfigTest {
         assertTrue(bean.getFilter() instanceof JwtAuthenticationFilter);
         assertEquals(1, bean.getOrder());
         assertTrue(bean.getUrlPatterns().contains("/api/*"));
+    }
+
+    @Test
+    @DisplayName("Should register AdminPortFilter at order 0 for all paths")
+    void adminPortFilterRegistration_createsBean() throws Exception {
+        SecurityFilterConfig config = new SecurityFilterConfig();
+        Field adminPrefix = SecurityFilterConfig.class.getDeclaredField("adminPathPrefix");
+        adminPrefix.setAccessible(true);
+        adminPrefix.set(config, "/api/admin/");
+        Field adminPort = SecurityFilterConfig.class.getDeclaredField("adminPort");
+        adminPort.setAccessible(true);
+        adminPort.setInt(config, 8044);
+
+        FilterRegistrationBean<AdminPortFilter> bean = config.adminPortFilterRegistration();
+
+        assertNotNull(bean);
+        assertTrue(bean.getFilter() instanceof AdminPortFilter);
+        assertEquals(0, bean.getOrder());
+        assertTrue(bean.getUrlPatterns().contains("/*"));
     }
 }

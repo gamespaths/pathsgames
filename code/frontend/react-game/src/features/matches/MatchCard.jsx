@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n/context'
-import GameCard from '../../components/layout/GameCard'
+import Card from '../../components/layout/Card'
 
 const RESUMABLE = new Set(['CREATED', 'RUNNING'])
 
@@ -34,7 +34,7 @@ export default function MatchCard({ match, story, onResume, onPreviewCard }) {
 
   return (
     <div className="match-card-wrap">
-      <GameCard
+      <Card
         variant="little"
         card={card}
         name={name}
@@ -44,7 +44,7 @@ export default function MatchCard({ match, story, onResume, onPreviewCard }) {
         onPreview={handlePreview}
         locked={!resumable}
         lockedIcon="fas fa-check-circle"
-        label={resumable ? null : statusLabel}
+        lockInfo={resumable ? undefined : statusLabel}
       >
         {/* status badge on non-resumable cards */}
         {/*!resumable && (
@@ -52,7 +52,7 @@ export default function MatchCard({ match, story, onResume, onPreviewCard }) {
             <span className="match-status-label">{statusLabel}</span>
           </div>
         )*/}
-      </GameCard>
+      </Card>
     </div>
   )
 }

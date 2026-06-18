@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 from app.core.models.story.story_import_result import StoryImportResult
 from app.core.ports.story.story_import_port import StoryImportPort
 from app.core.ports.story.story_persistence_port import StoryPersistencePort
+from app.core.ports.story.story_validator_port import StoryValidationException
 
 
 def _get_long(data, *keys):
@@ -34,8 +35,9 @@ _SCOPED_TABLES = {
 
 
 class StoryImportService(StoryImportPort):
-    def __init__(self, persistence_port: StoryPersistencePort):
+    def __init__(self, persistence_port: StoryPersistencePort, validator_port=None):
         self.persistence_port = persistence_port
+        self.validator_port = validator_port
         self._id_cache: Dict[str, int] = {}
 
     def delete_story(self, story_uuid: str) -> bool:
@@ -52,6 +54,12 @@ class StoryImportService(StoryImportPort):
     def import_story(self, data: Dict[str, Any]) -> StoryImportResult:
         if not data:
             raise ValueError("Empty import data")
+
+        # Step 22: validate referential integrity before persisting anything (hard-fail).
+        if self.validator_port is not None:
+            report = self.validator_port.validate_import_data(data)
+            if not report.is_valid():
+                raise StoryValidationException(report)
 
         self._id_cache.clear()
         try:
@@ -76,6 +84,9 @@ class StoryImportService(StoryImportPort):
             # 5. Insert sub-entities with explicit-id support
             texts = data.get("texts", [])
             if texts:
+                for t in texts:
+                    if not t.get("uuid"):
+                        t["uuid"] = str(uuid.uuid4())
                 self._save_with_ids(story_id, texts, "list_texts", "id",
                                     self.persistence_port.save_texts)
 
@@ -88,7 +99,7 @@ class StoryImportService(StoryImportPort):
                 self._save_with_ids(story_id, diffs, "list_stories_difficulty", "id",
                                     self.persistence_port.save_difficulties)
 
-            # All other sub-entities
+            # All other sub-entities (with UUID auto-generation)
             entity_mapping = [
                 ("locations", "list_locations", "id", self.persistence_port.save_locations),
                 ("events", "list_events", "id", self.persistence_port.save_events),
@@ -111,6 +122,10 @@ class StoryImportService(StoryImportPort):
             for json_key, table_name, id_col, save_fn in entity_mapping:
                 arr = data.get(json_key, [])
                 if arr:
+                    # Ensure UUID exists for each item
+                    for item in arr:
+                        if not item.get("uuid"):
+                            item["uuid"] = str(uuid.uuid4())
                     self._save_with_ids(story_id, arr, table_name, id_col, save_fn)
 
             # 6. Sync PostgreSQL sequences

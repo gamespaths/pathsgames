@@ -32,10 +32,20 @@ def seed():
         "versionMin": "0.14.0",
         "idTextTitle": 1,
         "idTextDescription": 2,
+        "idTextClockSingular": 10,
+        "idTextClockPlural": 11,
         "idCard": 1,
+        # Step 27.x / 0.25.4 — start location + end-game event so GET
+        # /api/match/{uuid}/info exposes a populated locationsActive (with endGame).
+        "idLocationStart": 1,
+        "idEventEndGame": 1,
         "texts": [
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL"},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL"},
+            {"idText": 10, "lang": "en", "shortText": "turn"},
+            {"idText": 10, "lang": "it", "shortText": "turno"},
+            {"idText": 11, "lang": "en", "shortText": "turns"},
+            {"idText": 11, "lang": "it", "shortText": "turni"},
             {"idText": 2, "lang": "en", "shortText": "A short training adventure."},
             {"idText": 2, "lang": "it", "shortText": "Una breve avventura di addestramento."},
             {"idText": 100, "lang": "en", "shortText": "Welcome Hall"},
@@ -59,13 +69,16 @@ def seed():
         ],
         "difficulties": [
             {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20,
-             "life": 120, "energy": 110, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12}
+             "life": 120, "energy": 110, "sad": 0, "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12,
+             # Step 23 — trait cost budgets (None/missing = no limit)
+             "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
         "locations": [
-            {"idTextName": 100, "idTextDescription": 100, "isSafe": 1}
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1}
         ],
         "events": [
-            {"idTextName": 500, "idTextDescription": 500, "type": "FIRST"}
+            {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
+             "idSpecificLocation": 1}
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}
@@ -80,9 +93,13 @@ def seed():
             }
         ],
         "traits": [
-            {"idTextName": 700, "idTextDescription": 700, "cost": 1,
+            {"idTextName": 700, "idTextDescription": 700, "costPositive": 1, "costNegative": 0,
              "life": 2, "energy": 0, "sad": 0, "dexterity": 0,
-             "intelligence": 0, "constitution": 1, "weight": 0}
+             "intelligence": 0, "constitution": 1, "weight": 0},
+            # Step 23 — negative-cost trait
+            {"idTextName": 700, "idTextDescription": 700, "costPositive": 0, "costNegative": 2,
+             "life": -2, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 0, "constitution": 0, "weight": 0}
         ],
         "characterTemplates": [
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,
@@ -114,11 +131,17 @@ def seed():
         "versionMin": "0.14.0",
         "idTextTitle": 1,
         "idTextDescription": 2,
+        "idTextClockSingular": 10,
+        "idTextClockPlural": 11,
         "texts": [
             {"idText": 1, "lang": "en", "shortText": "The Valvassor of the March"},
             {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca"},
             {"idText": 2, "lang": "en", "shortText": "Travel across medieval Veneto."},
             {"idText": 2, "lang": "it", "shortText": "Viaggia attraverso il Veneto medievale."},
+            {"idText": 10, "lang": "en", "shortText": "hour"},
+            {"idText": 10, "lang": "it", "shortText": "ora"},
+            {"idText": 11, "lang": "en", "shortText": "hours"},
+            {"idText": 11, "lang": "it", "shortText": "ore"},
             {"idText": 300, "lang": "en", "shortText": "Merciful Judge"},
             {"idText": 301, "lang": "en", "shortText": "Just Trial"},
             {"idText": 302, "lang": "en", "shortText": "Iron Inquisition"}

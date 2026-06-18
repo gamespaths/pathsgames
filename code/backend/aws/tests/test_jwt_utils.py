@@ -6,6 +6,10 @@ import hmac
 import hashlib
 import json
 import time
+import os
+
+import pytest
+from unittest.mock import patch
 
 from common import jwt_utils
 
@@ -22,7 +26,7 @@ def _make_token(payload, secret=SECRET):
     return f'{header}.{body}.{sig_b64}'
 
 
-# ── MOCK tokens ────────────────────────────────────────────────────────────────
+# ── MOCK tokens (ALLOW_MOCK_ACCESS=true, default) ──────────────────────────────
 
 def test_mock_token_returns_uuid():
     result = jwt_utils.verify_access_token('MOCK_ACCESS_some-uuid-here')
@@ -35,8 +39,51 @@ def test_mock_token_role_is_none():
     assert result['role'] is None
     assert result['username'] is None
 
+def test_mock_token_rejected_when_disabled():
+    with patch.object(jwt_utils, 'ALLOW_MOCK_ACCESS', False):
+        result = jwt_utils.verify_access_token('MOCK_ACCESS_some-uuid-here')
+    assert result is None
 
-# ── valid HS256 JWT ────────────────────────────────────────────────────────────
+
+# ── generate + verify round-trips ─────────────────────────────────────────────
+
+def test_generate_access_token_is_valid():
+    token = jwt_utils.generate_access_token('user-001', 'alice', 'PLAYER')
+    result = jwt_utils.verify_access_token(token)
+    assert result is not None
+    assert result['uuid'] == 'user-001'
+    assert result['username'] == 'alice'
+    assert result['role'] == 'PLAYER'
+    assert result['source'] == 'jwt'
+
+def test_generate_access_token_admin():
+    token = jwt_utils.generate_access_token('admin-001', 'admin', 'ADMIN')
+    result = jwt_utils.verify_access_token(token)
+    assert result['role'] == 'ADMIN'
+
+def test_generate_refresh_token_roundtrip():
+    token = jwt_utils.generate_refresh_token('user-002')
+    uuid_out = jwt_utils.verify_refresh_token(token)
+    assert uuid_out == 'user-002'
+
+def test_verify_refresh_token_expired():
+    token = jwt_utils.generate_refresh_token('user-003', exp_seconds=-1)
+    assert jwt_utils.verify_refresh_token(token) is None
+
+def test_verify_refresh_token_wrong_type():
+    token = jwt_utils.generate_access_token('user-004', 'bob', 'PLAYER')
+    assert jwt_utils.verify_refresh_token(token) is None
+
+def test_verify_refresh_token_invalid():
+    assert jwt_utils.verify_refresh_token('not.a.token') is None
+    assert jwt_utils.verify_refresh_token(None) is None
+
+def test_generate_access_token_rejected_as_refresh():
+    token = jwt_utils.generate_access_token('user-005', 'charlie', 'PLAYER')
+    assert jwt_utils.verify_refresh_token(token) is None
+
+
+# ── valid HS256 JWT (externally generated) ────────────────────────────────────
 
 def test_valid_jwt_returns_claims():
     payload = {

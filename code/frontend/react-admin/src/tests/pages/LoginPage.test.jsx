@@ -57,6 +57,6 @@ describe('LoginPage', () => {
 
   it('renders the server selector with default option', () => {
     renderLogin()
-    expect(screen.getByText(/Local \(8042\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Local Admin \(8044\)/)).toBeInTheDocument()
   })
 })

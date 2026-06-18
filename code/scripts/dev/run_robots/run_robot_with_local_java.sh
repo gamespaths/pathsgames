@@ -24,8 +24,9 @@ if [ -z "${ROBOT_VAR_ADMIN_TOKEN:-}" ]; then
 	exit 1
 fi
 
-echo "Kill all process using 8042 port"
+echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 SQLITE_DB_PATH="${HOME}/.paths.games/database.sqlite"
 echo "Removing local SQLite database to force fresh Flyway migrations: ${SQLITE_DB_PATH}"
@@ -50,7 +51,11 @@ cleanup() {
 trap cleanup EXIT
 
 sleep 30 # wait for the server to start
-curl -s http://localhost:8042/api/echo/status > /dev/null || { echo "Server not started correctly"; kill $SERVER_PID; exit 1; }
+curl -s http://localhost:8042/api/echo/status > /dev/null || { echo "Public server (8042) not started correctly"; kill $SERVER_PID; exit 1; }
+# The same JVM serves the admin API on 8044 (second Tomcat connector), including the
+# /api/echo/status health check (same EchoService) — a 200 confirms it is up.
+ADMIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8044/api/echo/status || echo 000)
+[ "$ADMIN_CODE" = "200" ] || { echo "Admin connector (8044) not started correctly (got $ADMIN_CODE)"; kill $SERVER_PID; exit 1; }
 
 # run Robot tests. If ROBOT_VAR_ADMIN_TOKEN is set in .env, it will be exported by the sourced file.
 cd "$PROJECT_ROOT/code/tests/robot" && pip install -r requirements.txt
@@ -60,13 +65,14 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" robot --variablefile variable
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.
 echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
-curl -s -X POST http://localhost:8042/api/dev/cleanup || echo "  cleanup request failed"
+curl -s -X POST http://localhost:8044/api/dev/cleanup || echo "  cleanup request failed"
 echo
 
 # stop local server
 kill $SERVER_PID || true
-echo "Kill all process using 8042 port"
+echo "Kill all process using 8042 and 8044 ports"
 fuser -k 8042/tcp || true
+fuser -k 8044/tcp || true
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-local-java/"
 exit $ROBOT_EXIT

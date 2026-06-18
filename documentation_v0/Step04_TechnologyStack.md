@@ -19,13 +19,22 @@ This document defines the **Technology Stack** definition to build a **Paths Gam
 
 
 ### 1. Backend Language
-- Java 21 (latest LTS version) 
+- Java 21 (latest LTS version) — primary reference implementation
 - Fully compatible with Docker and Kubernetes, script to build image and deploy on docker registry
 - Fully compatible with AWS (Ec2, EKS and Elastic Beanstalk) and Azure and private cloud system with kubernetes system
 - Unit tests and sonar coverage/analytics
 - With Docker and Kubernetes project could be deployed on AWS Cloud, Azure Cloud and private cloud systems
 - Script to deploy/test/manage system could be in Bash-SH, Python or NodeJS
 - Expected scale-system to update infrastructure when scale up is needed for increase game usage
+
+Additional backend implementations (alternative, full API parity with Java):
+- **Python** (FastAPI, hexagonal architecture) — `code/backend/python/`
+- **AWS Serverless** (Lambda + Python 3.13 + DynamoDB) — `code/backend/aws/`
+- Abandoned: **PHP** (plain PHP, hexagonal architecture) — `code/backend/php/`
+- Abandoned: **Node.js** (Fastify + TypeScript + Prisma, hexagonal architecture) — `code/backend/node/`
+
+
+All backends share the same REST API contract validated by the Robot Framework E2E suite (288 tests).
 
 
 ### 2. Backend Frameworks
@@ -93,13 +102,14 @@ This document defines the **Technology Stack** definition to build a **Paths Gam
     > read all documents and tell me, the number 1 is my defenitive edition so don't try to change roles, i need suggestion for file 2 e 3 e 4  
     
     > add flyway information in the document  
-- **Document Version**: 0.10.12
+- **Document Version**: 0.23.4
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.4 | first version of document with points list | February 10, 2026 |
     | 0.7 | configure `hub.docker.com/r/pathsgames/pathsgames` repository | February 27, 2026 |
     | 0.10.12 | added Flyway as database migration tool (section 4) | March 19, 2026 |
-- **Last Updated**: March 19, 2026
+    | 0.23.1 | added alternative backends to section 1 | June 12, 2026 |
+- **Last Updated**: June 12, 2026
 - **Status**: Complete ✅ , frozen until V0 completion
 
 

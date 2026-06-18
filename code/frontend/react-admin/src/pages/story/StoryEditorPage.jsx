@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity } from '../../api/storyApi'
+import { getStory, listEntities, updateStory, deleteEntity, createEntity, updateEntity, validateStory } from '../../api/storyApi'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import ErrorAlert from '../../components/common/ErrorAlert'
 import EntityTable from '../../components/common/story/EntityTable'
@@ -53,6 +53,8 @@ export default function StoryEditorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [validation, setValidation] = useState(null) // Step 22: { valid, count, errors } | null
+  const [validating, setValidating] = useState(false)
   const [modal, setModal] = useState(null) // { type, entity }
   const [storyTextSelector, setStoryTextSelector] = useState(null)
   const [storyCardSelectorOpen, setStoryCardSelectorOpen] = useState(false)
@@ -165,6 +167,20 @@ export default function StoryEditorPage() {
       setSuccess('Story metadata updated successfully')
       setTimeout(() => setSuccess(''), 3000)
     } catch (e) { setError(e.message) }
+  }
+
+  // Step 22: run the read-only integrity validator and show the report.
+  const handleValidateStory = async () => {
+    setValidating(true)
+    setValidation(null)
+    try {
+      const report = await validateStory(uuid)
+      setValidation(report)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setValidating(false)
+    }
   }
 
   const handleDeleteEntity = async () => {
@@ -841,6 +857,9 @@ export default function StoryEditorPage() {
           )}
           {activeTab === 'metadata' && (
             <div className="flex gap-2">
+              <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={handleValidateStory} disabled={validating}>
+                <i className="fas fa-shield-alt me-2" /> {validating ? 'Validating…' : 'Validate story'}
+              </button>
               <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm" onClick={handleExportStory}>
                 <i className="fas fa-download me-2" /> Export JSON
               </button>
@@ -851,6 +870,34 @@ export default function StoryEditorPage() {
           )}
           <ErrorAlert message={error} onClose={() => setError('')} />
         </div>
+
+        {validation && (
+          <div className="pg-card mb-4" data-testid="validation-report">
+            {validation.valid ? (
+              <div className="pg-alert pg-alert-success">
+                <i className="fas fa-check-circle me-2" /> Story is valid — no integrity issues found.
+              </div>
+            ) : (
+              <div>
+                <div className="pg-alert pg-alert-danger mb-2">
+                  <i className="fas fa-exclamation-triangle me-2" />
+                  {validation.count} integrity issue{validation.count === 1 ? '' : 's'} found.
+                </div>
+                <ul className="list-disc pl-5">
+                  {validation.errors.map((err, i) => (
+                    <li key={i} data-testid="validation-error">
+                      <strong>{err.entityType}{err.entityId ? ` #${err.entityId}` : ''}</strong>
+                      {err.field ? ` (${err.field})` : ''}: {err.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button type="button" className="pg-btn pg-btn-ghost pg-btn-sm mt-2" onClick={() => setValidation(null)}>
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {activeTab === 'metadata' ? (
           <form id="story-metadata-form" onSubmit={handleUpdateStory} className="pg-card flex flex-col gap-1">

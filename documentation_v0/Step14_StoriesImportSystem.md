@@ -15,7 +15,7 @@ This document describes the implementation of **Step 14: Story Import System and
 | **ID policy** | Explicit numeric `id` supported; duplicate ID per table raises 400 ERROR |
 | **Public API** | Story listing and detail retrieval (no auth required) |
 | **Admin API** | Story import, listing, and deletion (ADMIN role required) |
-| **Backends** | Java, Python, PHP, AWS Lambda (DynamoDB) |
+| **Backends** | Java, Python, AWS Lambda (DynamoDB) |
 
 ### Update (May 2026)
 
@@ -173,6 +173,12 @@ Returns the full detail of a single story by UUID.
 ```
 
 ### Admin Endpoints (ADMIN role required)
+
+> **Note (Step 20a — admin endpoint split):** every `/api/admin/**` endpoint below is now
+> served on the **dedicated admin endpoint**, not the public one — the admin port **8044**
+> (Java/Python) or the separate IP-restricted admin HTTP API (AWS). The ADMIN-role JWT
+> check is a second layer behind that network/IP boundary. See
+> [Step20_AdminEndpoint.md](Step20_AdminEndpoint.md).
 
 #### POST `/api/admin/stories/import` — Import Story
 
@@ -409,7 +415,7 @@ ms-launcher/src/main/java/games/paths/launcher/
 Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-api.yaml`
 
 
-## Version Control
+# Version Control
 - First version created with AI prompts:
     > about my project (documentation into documentation_v0 folder), i wanna start build a prototipe of game website, I wanna user React, Vite & Tailwind & bootstrap5 & font-awesome. start a big project. I've a home page with stories list, when user click on an active story, show a modal with story details and a button "start", the start is a locations list with a actions list. read my actual website "/pathsgames/code/website/html"  and use same color/style/actions. write all code into  new folder "pathsgames/code/website/concepts_v0/v0.14.0-prototype" and write me a complete README.md file with all tecnical details. never change file outside new folder  
 

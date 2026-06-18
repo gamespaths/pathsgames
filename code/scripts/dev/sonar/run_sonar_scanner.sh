@@ -32,26 +32,6 @@ run_java() {
     echo "Java Sonar Scanner completed."
 }
 
-run_php() {
-    echo "========================================"
-    echo "Running Sonar Scanner for PHP Backend..."
-    echo "========================================"
-    if [ -z "${SONAR_LOGIN_TOKEN:-}" ]; then
-        echo "Error: SONAR_LOGIN_TOKEN must be set in the environment or .env file."
-        return 1
-    fi
-    cd "$PROJECT_ROOT/code/backend/php"
-    mkdir -p build/logs
-    # Run tests to generate coverage reports. We set set +e temporarily in case tests fail,
-    # so we still run the sonar scanner to report those failures.
-    set +e
-    XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover build/logs/clover.xml --log-junit build/logs/junit.xml
-    set -e
-    rm -rf .scannerwork
-    npx -y sonarqube-scanner -Dsonar.token="$SONAR_LOGIN_TOKEN" -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.organization="$SONAR_ORGANIZATION"
-    echo "PHP Sonar Scanner completed."
-}
-
 run_python() {
     echo "==========================================="
     echo "Running Sonar Scanner for Python Backend..."
@@ -133,7 +113,7 @@ run_react_admin() {
 }
 
 usage() {
-    echo "Usage: $0 [all|java|php|python|react-admin]"
+    echo "Usage: $0 [all|java|python|react-admin]"
     echo "If no arguments are provided, all scanners will be run."
 }
 
@@ -142,15 +122,11 @@ TARGET="${1:-all}"
 case "$TARGET" in
     all)
         run_java
-        run_php
         run_python
         run_react_admin
         ;;
     java)
         run_java
-        ;;
-    php)
-        run_php
         ;;
     python)
         run_python

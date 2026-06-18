@@ -15,6 +15,7 @@ from app.core.ports.match.match_ports import (
     TurnstileVerificationPort,
     UserAccessPort,
 )
+from app.core.services.match import trait_selection_validator
 
 
 _BANNED_STATES = {3, 4}
@@ -91,6 +92,8 @@ class MatchCommandService(MatchCommandPort):
                 f"Difficulty not found: {command.difficulty_uuid}",
             )
 
+        self._validate_creator_trait_selection(story, difficulty, command)
+
         locations = self.story_read_port.find_locations_by_story_id(story["id"]) or []
         if not locations:
             raise MatchCreationError(
@@ -157,6 +160,19 @@ class MatchCommandService(MatchCommandPort):
             class_uuid=saved.get("class_uuid"),
             trait_uuids=saved.get("trait_uuids") or [],
         )
+
+    def _validate_creator_trait_selection(self, story, difficulty, command) -> None:
+        """Step 23 — validates the creator loadout traits against the selected
+        class and the difficulty cost budgets. The class is resolved leniently:
+        an unknown class uuid is treated as "no class"."""
+        clazz = None
+        if command.class_uuid:
+            clazz = self.story_read_port.find_class_by_uuid(story["id"], command.class_uuid)
+        try:
+            trait_selection_validator.resolve_and_validate(
+                self.story_read_port, story["id"], clazz, difficulty, command.trait_uuids)
+        except trait_selection_validator.TraitSelectionError as exc:
+            raise MatchCreationError(exc.code, exc.message) from exc
 
     def update_match(self, uuid_match: str, status: Optional[str], name: Optional[str]) -> str:
         if status is not None and not match_statuses.is_valid(status):

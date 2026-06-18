@@ -29,15 +29,39 @@ DynamoDB layout for stories
 """
 
 import json
+import os
 import uuid as uuid_lib
 import decimal
 
 from common import db_utils
 from common import jwt_utils
 
+try:
+    from story import story_validator
+except ImportError:  # when handler is imported as a top-level module in tests
+    import story_validator
+
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
 HEADERS = {"Content-Type": "application/json"}
+
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
+    return None
 
 class _DecimalEncoder(json.JSONEncoder):
     """Serialise DynamoDB Decimal values as int or float."""
@@ -56,6 +80,13 @@ def _err(status, code, message):
     return {"statusCode": status, "headers": HEADERS,
             "body": _dumps({"error": code, "message": message})}
 
+def _validation_400(errors):
+    """Step 22: 400 body for a failed story validation, carrying the errors[] array."""
+    return {"statusCode": 400, "headers": HEADERS,
+            "body": _dumps({"error": "INVALID_STORY",
+                            "message": story_validator.summary(errors),
+                            "errors": errors})}
+
 def _normalize_path(raw_path):
     if raw_path.startswith('/api/'):
         return raw_path
@@ -73,7 +104,11 @@ def _require_admin(event):
     """Return (user_dict, None) or (None, error_response).
 
     Accepts real HS256 JWT tokens and MOCK_ACCESS_ tokens.
+    IP is checked first against ADMIN_IP_WHITELIST env var (before JWT validation).
     """
+    ip_err = _check_admin_ip(event)
+    if ip_err:
+        return None, ip_err
     token = _bearer_token(event)
     claims = jwt_utils.verify_access_token(token)
     if not claims or not claims.get('uuid'):
@@ -239,6 +274,11 @@ def _story_detail(item, lang):
             'intelligence':          _safe_int(d.get('intelligence', 0)),
             'constitution':          _safe_int(d.get('constitution', 0)),
             'weight':                _safe_int(d.get('weight', 0)),
+            # Step 23 — trait cost budgets; None = no limit
+            'traitCostPositiveBudget': _safe_int(d.get('traitCostPositiveBudget'))
+                                       if d.get('traitCostPositiveBudget') is not None else None,
+            'traitCostNegativeBudget': _safe_int(d.get('traitCostNegativeBudget'))
+                                       if d.get('traitCostNegativeBudget') is not None else None,
             'idCard':                _safe_int(d_id_card) if d_id_card is not None else None,
             'card':                  _build_card(d_id_card, lang),
         })
@@ -297,28 +337,7 @@ def _story_detail(item, lang):
 
     # Step 15: Traits
     raw_traits = item.get('traits', [])
-    traits = []
-    for tr in raw_traits:
-        tr_id_card = tr.get('idCard')
-        traits.append({
-            'uuid':              tr.get('uuid'),
-            'id':                _safe_int(tr.get('id')),
-            'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
-            'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
-            'costPositive':      _safe_int(tr.get('costPositive')),
-            'costNegative':      _safe_int(tr.get('costNegative')),
-            'idClassPermitted':  tr.get('idClassPermitted'),
-            'idClassProhibited': tr.get('idClassProhibited'),
-            'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
-            'card':              _build_card(tr_id_card, lang),
-            'life':              _safe_int(tr.get('life')),
-            'energy':            _safe_int(tr.get('energy')),
-            'sad':               _safe_int(tr.get('sad')),
-            'dexterity':         _safe_int(tr.get('dexterity')),
-            'intelligence':      _safe_int(tr.get('intelligence')),
-            'constitution':      _safe_int(tr.get('constitution')),
-            'weight':            _safe_int(tr.get('weight')),
-        })
+    traits = [_trait_detail(item, tr, lang) for tr in raw_traits]
 
     # Step 15: story-level card
     idCard = item.get('idCard')
@@ -391,6 +410,13 @@ def lambda_handler(event, context):
     # public
     if path == '/api/stories' and method == 'GET':
         return list_stories(event)
+    # Step 23: /api/stories/{uuidStory}/classes/{uuidClass}/traits
+    parts = path.split('/')
+    if (method == 'GET' and path.startswith('/api/stories/') and len(parts) == 7
+            and parts[4] == 'classes' and parts[6] == 'traits'):
+        return list_traits_for_class(event,
+                                     params.get('uuidStory') or parts[3],
+                                     params.get('uuidClass') or parts[5])
     if path.startswith('/api/stories/') and method == 'GET' and len(path.split('/')) == 4:
         uid = params.get('uuid') or path.split('/')[-1]
         return get_story(event, uid)
@@ -398,6 +424,9 @@ def lambda_handler(event, context):
     # admin — static routes before parameterised
     if path == '/api/admin/stories/import' and method == 'POST':
         return import_story(event)
+    if method == 'GET' and path.endswith('/validate') and path.startswith('/api/admin/stories/'):
+        v_uuid = params.get('uuid') or path.split('/')[-2]
+        return validate_story(event, v_uuid)
     if path == '/api/admin/stories' and method == 'GET':
         return list_all_stories(event)
     if path == '/api/admin/stories' and method == 'POST':
@@ -450,6 +479,59 @@ def get_story(event, story_uuid):
         return _err(404, 'STORY_NOT_FOUND',
                     f'No story found with UUID: {story_uuid}')
     return _ok(_story_detail(item, lang))
+
+
+# ─── Step 23: trait listing filtered by class ─────────────────────────────────
+
+def _trait_detail(item, tr, lang):
+    tr_id_card = tr.get('idCard')
+    card = _find_card_from_raw(item.get('raw_cards', []), item.get('raw_texts', []),
+                               tr_id_card, lang)
+    return {
+        'uuid':              tr.get('uuid'),
+        'id':                _safe_int(tr.get('id')),
+        'name':              _resolve_text(tr.get('texts', {}), lang, 'name'),
+        'description':       _resolve_text(tr.get('texts', {}), lang, 'description'),
+        'costPositive':      _safe_int(tr.get('costPositive')),
+        'costNegative':      _safe_int(tr.get('costNegative')),
+        'idClassPermitted':  tr.get('idClassPermitted'),
+        'idClassProhibited': tr.get('idClassProhibited'),
+        'idCard':            _safe_int(tr_id_card) if tr_id_card is not None else None,
+        'card':              card,
+        'life':              _safe_int(tr.get('life')),
+        'energy':            _safe_int(tr.get('energy')),
+        'sad':               _safe_int(tr.get('sad')),
+        'dexterity':         _safe_int(tr.get('dexterity')),
+        'intelligence':      _safe_int(tr.get('intelligence')),
+        'constitution':      _safe_int(tr.get('constitution')),
+        'weight':            _safe_int(tr.get('weight')),
+    }
+
+
+def list_traits_for_class(event, story_uuid, class_uuid):
+    """GET /api/stories/{uuidStory}/classes/{uuidClass}/traits — Step 23.
+
+    A trait is selectable when idClassPermitted is null or equals the class
+    and idClassProhibited is null or differs from the class.
+    """
+    lang = _get_lang(event)
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND', f'No story found with UUID: {story_uuid}')
+    clazz = next((c for c in (item.get('classes') or []) if c.get('uuid') == class_uuid), None)
+    if clazz is None:
+        return _err(404, 'CLASS_NOT_FOUND', f'No class found with UUID: {class_uuid}')
+    class_id = _safe_int(clazz.get('id'))
+
+    def selectable(tr):
+        permitted = tr.get('idClassPermitted')
+        prohibited = tr.get('idClassProhibited')
+        permitted_ok = permitted is None or (class_id is not None and int(permitted) == class_id)
+        prohibited_ok = prohibited is None or class_id is None or int(prohibited) != class_id
+        return permitted_ok and prohibited_ok
+
+    traits = [_trait_detail(item, tr, lang) for tr in (item.get('traits') or []) if selectable(tr)]
+    return _ok(traits)
 
 
 # ─── Step 15: Category and Group endpoints ────────────────────────────────────
@@ -516,6 +598,11 @@ def import_story(event):
     if not data:
         return _err(400, 'EMPTY_IMPORT_DATA', 'storyData must not be null or empty')
 
+    # Step 22: validate referential integrity before persisting anything (hard-fail).
+    validation_errors = story_validator.validate_story_dict(data)
+    if validation_errors:
+        return _validation_400(validation_errors)
+
     story_uuid = data.get('uuid')
     if not story_uuid:
         story_uuid = str(uuid_lib.uuid4())
@@ -569,7 +656,7 @@ def import_story(event):
     raw_diffs = _assign_ids(data.get('difficulties', []), 'id')
     difficulties = []
     for d in raw_diffs:
-        diff_uuid = str(uuid_lib.uuid4())
+        diff_uuid = d.get('uuid') or str(uuid_lib.uuid4())
         # Map idTextDescription to a stub text dict for description
         id_diff_name = d.get('idTextName')
         id_diff_desc = d.get('idTextDescription')
@@ -605,7 +692,7 @@ def import_story(event):
     raw_char_templates = _assign_ids(data.get('characterTemplates', []), 'id_tipo')
     character_templates = []
     for ct in raw_char_templates:
-        ct_uuid = str(uuid_lib.uuid4())
+        ct_uuid = ct.get('uuid') or str(uuid_lib.uuid4())
         id_ct_name = ct.get('idTextName')
         id_ct_desc = ct.get('idTextDescription')
         ct_texts = _build_sub_entity_texts(raw_texts, id_ct_name, id_ct_desc)
@@ -630,7 +717,7 @@ def import_story(event):
     raw_classes = _assign_ids(data.get('classes', []), 'id')
     classes = []
     for cl in raw_classes:
-        cl_uuid = str(uuid_lib.uuid4())
+        cl_uuid = cl.get('uuid') or str(uuid_lib.uuid4())
         id_cl_name = cl.get('idTextName')
         id_cl_desc = cl.get('idTextDescription')
         cl_texts = _build_sub_entity_texts(raw_texts, id_cl_name, id_cl_desc)
@@ -651,7 +738,7 @@ def import_story(event):
     raw_traits = _assign_ids(data.get('traits', []), 'id')
     traits = []
     for tr in raw_traits:
-        tr_uuid = str(uuid_lib.uuid4())
+        tr_uuid = tr.get('uuid') or str(uuid_lib.uuid4())
         id_tr_name = tr.get('idTextName')
         id_tr_desc = tr.get('idTextDescription')
         tr_texts = _build_sub_entity_texts(raw_texts, id_tr_name, id_tr_desc)
@@ -682,7 +769,7 @@ def import_story(event):
     if id_card is not None and raw_cards:
         for c in raw_cards:
             if c.get('id') == id_card:
-                card_uuid = str(uuid_lib.uuid4())
+                card_uuid = c.get('uuid') or str(uuid_lib.uuid4())
                 id_card_name = c.get('idTextName') or c.get('idTextTitle')
                 id_card_desc = c.get('idTextDescription')
                 id_card_copyright = c.get('idTextCopyright')
@@ -723,7 +810,7 @@ def import_story(event):
     raw_creators_input = _assign_ids(data.get('creators', []), 'id')
     stored_creators = []
     for cr in raw_creators_input:
-        cr_uuid = str(uuid_lib.uuid4())
+        cr_uuid = cr.get('uuid') or str(uuid_lib.uuid4())
         stored_creators.append({
             'id':           _safe_int(cr.get('id')),
             'uuid':         cr_uuid,
@@ -739,7 +826,7 @@ def import_story(event):
     raw_cards_input = _assign_ids(data.get('cards', []), 'id')
     stored_cards = []
     for c in raw_cards_input:
-        c_uuid = str(uuid_lib.uuid4())
+        c_uuid = c.get('uuid') or str(uuid_lib.uuid4())
         stored_cards.append({
             'id':                _safe_int(c.get('id')),
             'uuid':              c_uuid,
@@ -760,6 +847,38 @@ def import_story(event):
         })
 
     priority = int(data.get('priority') or 0)
+
+    # Step 27.x — pre-resolve the cards embedded in locations / neighbors / events
+    # so the match handler (_build_locations_active) can read `loc.card`,
+    # `neighbor.card` and `event.card` directly, exactly like the seed item does.
+    # Without this, an imported story has only `idCard` on these sub-entities and
+    # the game frontend cannot render the active location card.
+    def _resolve_inline_card(id_card):
+        return _find_card_from_raw(stored_cards, raw_texts, id_card, 'en')
+
+    locations_enriched = []
+    for loc in _assign_uuids(_assign_ids(data.get('locations', []), 'id')):
+        loc = dict(loc)
+        loc['card'] = _resolve_inline_card(loc.get('idCard'))
+        locations_enriched.append(loc)
+
+    # The match handler reads `story.get("neighbors")`; the import payload uses the
+    # `locationNeighbors` key. Store under both so content queries and gameplay work.
+    neighbors_enriched = []
+    for n in _assign_ids(data.get('locationNeighbors', []), 'id'):
+        n = dict(n)
+        n['card'] = _resolve_inline_card(n.get('idCard'))
+        neighbors_enriched.append(n)
+
+    # Events expose their owning location as `idSpecificLocation` in the import
+    # payload; the match handler filters on `idLocation`. Alias it and resolve cards.
+    events_enriched = []
+    for e in _assign_uuids(_assign_ids(data.get('events', []), 'id')):
+        e = dict(e)
+        e['card'] = _resolve_inline_card(e.get('idCard'))
+        if e.get('idLocation') is None:
+            e['idLocation'] = e.get('idSpecificLocation')
+        events_enriched.append(e)
 
     story_item = {
         'PK':                     f'STORY#{story_uuid}',
@@ -786,6 +905,10 @@ def import_story(event):
         'idCreator':               _safe_int(data.get('idCreator')),
         'idTextClockSingular':    _safe_int(data.get('idTextClockSingular')),
         'idTextClockPlural':      _safe_int(data.get('idTextClockPlural')),
+        # Pre-resolved clock labels (en) so GET /clock can read them directly,
+        # mirroring the seed item; runtime resolution from `texts` is the fallback.
+        'clockSingularDescription': _resolve_text(texts_dict, 'en', 'clockSingular'),
+        'clockPluralDescription':   _resolve_text(texts_dict, 'en', 'clockPlural'),
         'linkCopyright':          data.get('linkCopyright'),
         'texts':                  texts_dict,
         'difficulties':           difficulties,
@@ -801,9 +924,11 @@ def import_story(event):
         'class_count':            len(classes),
         'template_count':         len(character_templates),
         'trait_count':            len(traits),
-        # Step 17: actually store sub-entities
-        'locations':              _assign_uuids(_assign_ids(data.get('locations', []), 'id')),
-        'events':                 _assign_uuids(_assign_ids(data.get('events', []), 'id')),
+        # Step 17: actually store sub-entities (with pre-resolved inline cards)
+        'locations':              locations_enriched,
+        # Step 27.x — gameplay reads `neighbors`; keep `locationNeighbors` for content queries.
+        'neighbors':              neighbors_enriched,
+        'events':                 events_enriched,
         'items':                  _assign_uuids(_assign_ids(data.get('items', []), 'id')),
         # Step 16: raw data for content detail queries
         'raw_texts':              _assign_ids(data.get('texts', []), 'id'),
@@ -928,6 +1053,19 @@ def get_admin_story(event, story_uuid):
     return _ok(_story_detail(item, lang))
 
 
+def validate_story(event, story_uuid):
+    # Step 22: read-only integrity report for a persisted story.
+    _, err = _require_admin(event)
+    if err:
+        return err
+    item = db_utils.get_item(f'STORY#{story_uuid}')
+    if not item:
+        return _err(404, 'STORY_NOT_FOUND',
+                    f'No story found with UUID: {story_uuid}')
+    errors = story_validator.validate_story_dict(item)
+    return _ok({"valid": len(errors) == 0, "count": len(errors), "errors": errors})
+
+
 def delete_story(event, story_uuid):
     _, err = _require_admin(event)
     if err:
@@ -1013,6 +1151,9 @@ def create_story(event):
         data = json.loads(event.get('body', '{}'))
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    if not data:
+        return _err(400, 'EMPTY_IMPORT_DATA', 'Request body must contain story data')
 
     story_uuid = str(uuid_lib.uuid4())
     story_item = {
@@ -1111,6 +1252,11 @@ def create_entity(event, story_uuid, entity_type):
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
 
+    # Step 22: entity-local (lenient) validation before persisting.
+    local_errors = story_validator.validate_entity(entity_type, data)
+    if local_errors:
+        return _validation_400(local_errors)
+
     ent_uuid = str(uuid_lib.uuid4())
     data['uuid'] = ent_uuid
     data['idStory'] = item.get('id', story_uuid)
@@ -1171,6 +1317,11 @@ def update_entity(event, story_uuid, entity_type, entity_uuid):
         data = json.loads(event.get('body', '{}'))
     except Exception:
         return _err(400, 'INVALID_JSON', 'Invalid JSON body')
+
+    # Step 22: entity-local (lenient) validation before persisting.
+    local_errors = story_validator.validate_entity(entity_type, data)
+    if local_errors:
+        return _validation_400(local_errors)
 
     # Update fields in place
     for k, v in data.items():

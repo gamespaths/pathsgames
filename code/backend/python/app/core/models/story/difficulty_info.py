@@ -22,3 +22,6 @@ class DifficultyInfo:
     intelligence: int = 10
     constitution: int = 10
     weight: int = 10
+    # Step 23 — trait cost budgets; None = no limit
+    traitCostPositiveBudget: int | None = None
+    traitCostNegativeBudget: int | None = None

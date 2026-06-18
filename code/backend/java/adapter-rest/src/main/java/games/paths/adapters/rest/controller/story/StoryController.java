@@ -141,6 +141,37 @@ public class StoryController {
         return ResponseEntity.ok(toDetailResponse(detail));
     }
 
+    /**
+     * GET /api/stories/{uuidStory}/classes/{uuidClass}/traits
+     * Step 23 — lists the story traits selectable with the given class
+     * (id_class_permitted / id_class_prohibited filter).
+     */
+    @GetMapping("/{uuidStory}/classes/{uuidClass}/traits")
+    public ResponseEntity<Object> listTraitsForClass(
+            @PathVariable String uuidStory,
+            @PathVariable String uuidClass,
+            @RequestParam(value = "lang", defaultValue = "en") String lang) {
+
+        StoryQueryPort.TraitsForClassResult result =
+                storyQueryPort.listTraitsForClass(uuidStory, uuidClass, lang);
+        if (result.status() == StoryQueryPort.TraitsForClassResult.Status.STORY_NOT_FOUND) {
+            Map<String, String> error = new LinkedHashMap<>();
+            error.put("error", "STORY_NOT_FOUND");
+            error.put("message", "No story found with UUID: " + uuidStory);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+        if (result.status() == StoryQueryPort.TraitsForClassResult.Status.CLASS_NOT_FOUND) {
+            Map<String, String> error = new LinkedHashMap<>();
+            error.put("error", "CLASS_NOT_FOUND");
+            error.put("message", "No class found with UUID: " + uuidClass);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+        List<TraitInfoResponse> response = result.traits().stream()
+                .map(this::toTraitInfoResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
     private StorySummaryResponse toSummaryResponse(StorySummary s) {
         CardInfoResponse cardResp = s.card() != null ? toCardInfoResponse(s.card()) : null;
         return new StorySummaryResponse(
@@ -205,6 +236,8 @@ public class StoryController {
         r.setWeight(di.getWeight());
         r.setIdCard(di.getIdCard());
         r.setCard(di.getCard() != null ? toCardInfoResponse(di.getCard()) : null);
+        r.setTraitCostPositiveBudget(di.getTraitCostPositiveBudget());
+        r.setTraitCostNegativeBudget(di.getTraitCostNegativeBudget());
         return r;
     }
 

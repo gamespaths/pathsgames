@@ -1,0 +1,50 @@
+# Production profile - PostgreSQL, optimized settings
+server:
+  port: ${SERVER_PORT:8042}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pathsgames}
+    username: ${DB_USERNAME:pathsgames}
+    password: ${DB_PASSWORD:pathsgames}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: "0"
+    validate-on-migrate: true
+    repair-on-migrate: false
+
+game:
+  server:
+    status: OK
+    # Deployment environment shown by /api/echo/status. Overridable via the
+    # ENVIRONMENT env var (mirrors the SAM `Environment` parameter); defaults to test.
+    env: ${ENVIRONMENT:test}
+  admin:
+    # Admin connector port in production. Keep it firewalled to the owner IP only.
+    port: ${ADMIN_PORT:8044}
+  auth:
+    cors:
+      allowed-origins: #https://test.paths.games,https://test2.paths.games
+        - "http://localhost:3000"
+        - "http://localhost:8042"
+        - "http://127.0.0.1:5500"
+        - "http://localhost:5500"
+        - "http://localhost:5172"
+        - "http://localhost:5173"
+        - "http://localhost:5174"
+        - "http://localhost:8080"
+        - "https://test.paths.games"
+        - "https://test2.paths.games"
+  dev:
+    # Dev-only endpoints (POST /api/dev/cleanup) and the X-Test-Marker header
+    # are disabled in production: the cleanup endpoint returns 403.
+    test-endpoints-enabled: false

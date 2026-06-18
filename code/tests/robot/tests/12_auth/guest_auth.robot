@@ -63,12 +63,14 @@ Guest Has PLAYER Role
     Should Be Equal As Strings    ${body}[role]    PLAYER
 
 Guest Cannot Access Admin Endpoint
-    [Documentation]    A PLAYER token returns 403 when calling /api/admin/stories.
+    [Documentation]    A PLAYER token returns 403 when calling the admin endpoint
+    ...                (/api/admin/stories on ADMIN_BASE_URL — the dedicated admin port/API).
     [Tags]    auth    step12
     ${token}=    Create Guest Session And Get Token
     ${headers}=    Get Auth Headers    ${token}
     ${params}=    Create Dictionary    lang=en
-    ${response}=    GET On Session    public_session    /api/admin/stories
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    headers=${headers}    params=${params}    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    403
 
@@ -109,3 +111,21 @@ Revoked Token Is Rejected By Me Endpoint
     ${logout_response}=    POST On Session    public_session    /api/auth/logout/all
     ...    headers=${headers}    expected_status=any
     Status Should Be    ${logout_response}    200
+
+Guest Resume With Cookie Returns Session
+    [Documentation]    POST /api/auth/guest/resume replaying the HttpOnly guest cookie returns
+    ...                a valid session for the same guest. The guest cookie is Secure
+    ...                (SameSite=None) so it is replayed as an explicit Cookie header rather
+    ...                than relying on the session jar over http.
+    [Tags]    auth    step12
+    Create Public Session
+    ${login}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${login}    201
+    ${cookie}=    Evaluate    next((f"{k}={v}" for k, v in $login.cookies.items() if 'guest' in k.lower()), '')
+    Should Not Be Empty    ${cookie}
+    ${headers}=    Create Dictionary    Cookie=${cookie}
+    ${resume}=    POST On Session    public_session    /api/auth/guest/resume
+    ...    headers=${headers}    expected_status=any
+    Should Be True    ${resume.status_code} == 200 or ${resume.status_code} == 201
+    Dictionary Should Contain Key    ${resume.json()}    accessToken
+    Should Not Be Empty    ${resume.json()}[accessToken]

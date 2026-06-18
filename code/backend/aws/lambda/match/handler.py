@@ -87,6 +87,26 @@ def _normalize_path(raw_path):
     return raw_path
 
 
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
+    return None
+
+
 def _bearer_token(event):
     headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
     auth = headers.get('authorization')
@@ -131,7 +151,7 @@ def _is_maintenance():
 
 
 def _apply_default(row, raw_value):
-    """Mirror of the Java/Python/PHP default-value parser."""
+    """Mirror of the Java/Python/AWS default-value parser."""
     if raw_value is None:
         return
     text = str(raw_value).strip()
@@ -195,17 +215,231 @@ def _summary_from_item(item):
     }
 
 
-def _detail_from_item(item):
+def _detail_from_item(item, players=None):
+    players = players or []
+    # Locations currently occupied by one or more players (insertion-ordered).
+    active_loc_ids = []
+    for c in players:
+        loc = c.get("idLocation")
+        if loc is not None and loc not in active_loc_ids:
+            active_loc_ids.append(loc)
+
+    # The STORY item carries the enriched locations/neighbors/events (with cards).
+    story = db_utils.get_item(f'STORY#{item.get("storyUuid")}') or {}
+
+    # Current location reflects where the player actually is; fall back to the
+    # value stored on the match (the story start location set at creation).
+    current_id = active_loc_ids[0] if active_loc_ids else item.get("currentLocationId")
+    current_uuid = item.get("currentLocationUuid")
+    current_name = item.get("currentLocationName")
+    if active_loc_ids:
+        loc = next((l for l in (story.get("locations") or [])
+                    if l.get("id") == current_id), None)
+        if loc:
+            current_uuid = loc.get("uuid")
+            current_name = loc.get("name")
+
     return {
         "match": _summary_from_item(item),
-        "currentLocationId": item.get("currentLocationId"),
-        "currentLocationUuid": item.get("currentLocationUuid"),
-        "currentLocationName": item.get("currentLocationName"),
+        "currentLocationId": current_id,
+        "currentLocationUuid": current_uuid,
+        "currentLocationName": current_name,
         "locations": item.get("locations", []),
         "registry": item.get("registry", []),
         "events": [],
         "choices": [],
+        # Step 21 — the players/characters of the match (summary rows).
+        "players": [_character_summary(c) for c in players],
+        # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
+        "locationsActive": _build_locations_active(story, active_loc_ids),
     }
+
+
+def _build_locations_active(story, active_loc_ids):
+    """Build the enriched ``locationsActive`` list from the STORY item: each
+    player-occupied location with its card, the neighbor links touching it (both
+    directions) and the events specific to it. Cards are embedded in the seed."""
+    if not active_loc_ids:
+        return []
+    locations = story.get("locations") or []
+    neighbors = story.get("neighbors") or []
+    events = story.get("events") or []
+    end_event_id = story.get("idEventEndGame")
+    loc_by_id = {l.get("id"): l for l in locations}
+
+    result = []
+    for loc_id in active_loc_ids:
+        loc = loc_by_id.get(loc_id)
+        if loc is None:
+            continue
+
+        neighbor_infos = []
+        for n in neighbors:
+            if n.get("idLocationFrom") == loc_id:
+                other_id = n.get("idLocationTo")
+            elif n.get("idLocationTo") == loc_id:
+                other_id = n.get("idLocationFrom")
+            else:
+                continue
+            other = loc_by_id.get(other_id)
+            neighbor_infos.append({
+                "idLocation": other_id,
+                "uuid": other.get("uuid") if other else None,
+                "direction": n.get("direction"),
+                "flagBack": n.get("flagBack"),
+                "energyCost": n.get("energyCost"),
+                "card": n.get("card") or (other.get("card") if other else None),
+            })
+
+        event_infos = [
+            {"uuid": e.get("uuid"), "type": e.get("type"),
+             "endGame": end_event_id is not None and e.get("id") == end_event_id,
+             "card": e.get("card")}
+            for e in events if e.get("idLocation") == loc_id
+        ]
+
+        result.append({
+            "idLocation": loc_id,
+            "uuid": loc.get("uuid"),
+            "card": loc.get("card"),
+            "neighbors": neighbor_infos,
+            "events": event_infos,
+        })
+    return result
+
+
+# ─── Step 21 — character presenters & helpers ────────────────────────────────
+
+def _character_summary(item):
+    """Lightweight character row (players list / MatchInfo.players)."""
+    return {
+        "uuid": item.get("uuid"),
+        "userUuid": item.get("userUuid"),
+        "characterTemplateUuid": item.get("characterTemplateUuid"),
+        "dexterity": int(item.get("dexterity", 0)),
+        "intelligence": int(item.get("intelligence", 0)),
+        "constitution": int(item.get("constitution", 0)),
+        "energy": int(item.get("energy", 0)),
+        "life": int(item.get("life", 0)),
+        "sad": int(item.get("sad", 0)),
+        # Step 27 — max statistics, carried weight and items list. The DynamoDB
+        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        "lifeMax": int(item.get("lifeMax", 0)),
+        "energyMax": int(item.get("energyMax", 0)),
+        "sadMax": int(item.get("sadMax", 0)),
+        "weightMax": int(item.get("weightMax", 0)),
+        "weight": 0,
+        "items": [],
+        "idLocation": item.get("idLocation"),
+        "locationName": item.get("locationName"),
+        "isSleeping": int(item.get("isSleeping", 0)),
+        "isComa": int(item.get("isComa", 0)),
+        "classUuid": item.get("classUuid"),
+        "traitUuids": item.get("traitUuids", []),
+    }
+
+
+def _character_full(item):
+    """Full character detail (join / character endpoint)."""
+    return {
+        "uuid": item.get("uuid"),
+        "matchUuid": item.get("matchUuid"),
+        "userUuid": item.get("userUuid"),
+        "characterTemplateUuid": item.get("characterTemplateUuid"),
+        "classUuid": item.get("classUuid"),
+        "dexterity": int(item.get("dexterity", 0)),
+        "intelligence": int(item.get("intelligence", 0)),
+        "constitution": int(item.get("constitution", 0)),
+        "energy": int(item.get("energy", 0)),
+        "life": int(item.get("life", 0)),
+        "sad": int(item.get("sad", 0)),
+        # Step 27 — max statistics, carried weight and items list. The DynamoDB
+        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        "lifeMax": int(item.get("lifeMax", 0)),
+        "energyMax": int(item.get("energyMax", 0)),
+        "sadMax": int(item.get("sadMax", 0)),
+        "weightMax": int(item.get("weightMax", 0)),
+        "weight": 0,
+        "items": [],
+        "idLocation": item.get("idLocation"),
+        "locationUuid": item.get("locationUuid"),
+        "locationName": item.get("locationName"),
+        "isSleeping": int(item.get("isSleeping", 0)),
+        "isComa": int(item.get("isComa", 0)),
+        "traitUuids": item.get("traitUuids") or [],
+        "food": int(item.get("food", 0)),
+        "magic": int(item.get("magic", 0)),
+        "coin": int(item.get("coin", 0)),
+    }
+
+
+def _match_characters(match_uuid):
+    """Return the CHARACTER# items stored under the match partition."""
+    items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
+    return [i for i in items if str(i.get('SK', '')).startswith('CHARACTER#')]
+
+
+def _nz(value):
+    try:
+        return int(value) if value is not None else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+_BONUS_KEYS = {"dex": "dex", "int": "int", "con": "con", "life": "life", "energy": "energy"}
+
+
+def _sum_trait(traits, key):
+    return sum(_nz(t.get(key)) for t in traits)
+
+
+def _sum_bonus(bonuses, stat):
+    return sum(_nz(b.get('value')) for b in bonuses
+              if str(b.get('statistic', '')).lower() == stat)
+
+
+def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
+    """Step 23 — strict trait selection validation shared by create and join.
+
+    Returns (traits, error_response): unknown uuids, duplicates, class
+    incompatibilities and difficulty cost-budget overruns are rejected.
+    A None/missing budget means "no limit"; blank uuids are ignored.
+    """
+    all_traits = story.get('traits') or []
+    class_id = clazz.get('id') if clazz else None
+    resolved = []
+    seen = set()
+    for uuid in (trait_uuids or []):
+        if not uuid or not str(uuid).strip():
+            continue
+        key = str(uuid).strip()
+        if key in seen:
+            return None, _err(400, 'TRAIT_DUPLICATED', f'Trait selected more than once: {key}')
+        seen.add(key)
+        trait = next((t for t in all_traits if t.get('uuid') == key), None)
+        if trait is None:
+            return None, _err(400, 'TRAIT_NOT_FOUND', f'Trait not found: {key}')
+        permitted = trait.get('idClassPermitted')
+        prohibited = trait.get('idClassProhibited')
+        if permitted is not None and (class_id is None or int(permitted) != int(class_id)):
+            return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
+                              f'Trait {key} is permitted only for another class')
+        if prohibited is not None and class_id is not None and int(prohibited) == int(class_id):
+            return None, _err(400, 'TRAIT_NOT_COMPATIBLE',
+                              f'Trait {key} is prohibited for the selected class')
+        resolved.append(trait)
+    if difficulty and resolved:
+        total_positive = sum(_nz(t.get('costPositive')) for t in resolved)
+        total_negative = sum(_nz(t.get('costNegative')) for t in resolved)
+        positive_budget = difficulty.get('traitCostPositiveBudget')
+        negative_budget = difficulty.get('traitCostNegativeBudget')
+        if positive_budget is not None and total_positive > int(positive_budget):
+            return None, _err(400, 'TRAIT_COST_EXCEEDED',
+                              f'Total positive trait cost {total_positive} exceeds the difficulty budget {positive_budget}')
+        if negative_budget is not None and total_negative > int(negative_budget):
+            return None, _err(400, 'TRAIT_COST_EXCEEDED',
+                              f'Total negative trait cost {total_negative} exceeds the difficulty budget {negative_budget}')
+    return resolved, None
 
 
 # ─── domain operations ───────────────────────────────────────────────────────
@@ -235,6 +469,15 @@ def _create_match(user, body):
     matched_diff = next((d for d in difficulties if d.get('uuid') == difficulty_uuid), None)
     if matched_diff is None:
         return _err(404, 'DIFFICULTY_NOT_FOUND', f'Difficulty not found: {difficulty_uuid}')
+
+    # Step 23 — validate the creator loadout traits; an unknown class uuid is
+    # treated as "no class" (permitted-restricted traits then fail).
+    loadout_class = next((c for c in (story.get('classes') or [])
+                          if c.get('uuid') == (body or {}).get('classUuid')), None)
+    _, trait_err = _resolve_and_validate_traits(
+        story, loadout_class, matched_diff, (body or {}).get('traitUuids'))
+    if trait_err:
+        return trait_err
 
     locations = story.get('locations') or []
     if not locations:
@@ -323,7 +566,7 @@ def _get_match_info(user, match_uuid):
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_detail_from_item(item))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid)))
 
 
 def _end_match(user, match_uuid, event_uuid):
@@ -359,6 +602,154 @@ def _end_match(user, match_uuid, event_uuid):
     return _ok({'status': 'ENDED', 'uuid': match_uuid})
 
 
+# ─── Step 21 — character join / players / detail ─────────────────────────────
+
+def _validate_class(template, clazz):
+    class_id = clazz.get('id')
+    permitted = template.get('idClassPermitted')
+    prohibited = template.get('idClassProhibited')
+    if permitted is not None and permitted != class_id:
+        return _err(409, 'CLASS_NOT_COMPATIBLE', 'Selected class is not permitted for this character template')
+    if prohibited is not None and prohibited == class_id:
+        return _err(409, 'CLASS_NOT_COMPATIBLE', 'Selected class is prohibited for this character template')
+    return None
+
+
+def _resolve_match_access(user, match_uuid):
+    """Return ``(match_item, None)`` when the user may view the match (creator or
+    participant), else ``(None, error_response)``."""
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None:
+        return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    if item.get('userCreatorUuid') == user['uuid']:
+        return item, None
+    if any(c.get('userUuid') == user['uuid'] for c in _match_characters(match_uuid)):
+        return item, None
+    return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+
+def _join_match(user, match_uuid, body):
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    if str(match.get('status')) in TERMINAL_STATUSES:
+        return _err(409, 'MATCH_NOT_JOINABLE', 'Match is in a terminal status and cannot be joined')
+    if user.get('state') in _BANNED_STATES:
+        return _err(403, 'USER_BANNED', 'User is not allowed to join matches')
+    existing = _match_characters(match_uuid)
+    if any(c.get('userUuid') == user['uuid'] for c in existing):
+        return _err(409, 'ALREADY_JOINED', 'User already has a character in this match')
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}')
+    if story is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match story not found')
+
+    body = body or {}
+    template_uuid = body.get('characterTemplateUuid') or match.get('characterTemplateUuid')
+    class_uuid = body.get('classUuid') or match.get('classUuid')
+    trait_uuids = body.get('traitUuids') or match.get('traitUuids') or []
+    if not template_uuid:
+        return _err(400, 'INVALID_INPUT',
+                    'characterTemplateUuid is required (none provided and none stored on the match)')
+
+    template = next((t for t in (story.get('characterTemplates') or []) if t.get('uuid') == template_uuid), None)
+    if template is None:
+        return _err(404, 'TEMPLATE_NOT_FOUND', f'Character template not found: {template_uuid}')
+
+    clazz = None
+    if class_uuid:
+        clazz = next((c for c in (story.get('classes') or []) if c.get('uuid') == class_uuid), None)
+        if clazz is None:
+            return _err(404, 'CLASS_NOT_FOUND', f'Class not found: {class_uuid}')
+        compat_err = _validate_class(template, clazz)
+        if compat_err:
+            return compat_err
+
+    difficulty = next((d for d in (story.get('difficulties') or [])
+                       if d.get('uuid') == match.get('difficultyUuid')), None)
+    traits, trait_err = _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids)
+    if trait_err:
+        return trait_err
+    bonuses = [b for b in (story.get('classBonuses') or [])
+               if clazz is not None and b.get('idClass') == clazz.get('id')]
+
+    cb = clazz or {}
+    df = difficulty or {}
+    dexterity = (_nz(template.get('dexterityStart')) + _nz(cb.get('dexterityBase'))
+                 + _nz(df.get('dexterity')) + _sum_trait(traits, 'dexterity') + _sum_bonus(bonuses, 'dex'))
+    intelligence = (_nz(template.get('intelligenceStart')) + _nz(cb.get('intelligenceBase'))
+                    + _nz(df.get('intelligence')) + _sum_trait(traits, 'intelligence') + _sum_bonus(bonuses, 'int'))
+    constitution = (_nz(template.get('constitutionStart')) + _nz(cb.get('constitutionBase'))
+                    + _nz(df.get('constitution')) + _sum_trait(traits, 'constitution') + _sum_bonus(bonuses, 'con'))
+    life_max = (_nz(template.get('lifeMax')) + _nz(df.get('life'))
+                + _sum_trait(traits, 'life') + _sum_bonus(bonuses, 'life'))
+    energy_max = (_nz(template.get('energyMax')) + _nz(df.get('energy'))
+                  + _sum_trait(traits, 'energy') + _sum_bonus(bonuses, 'energy'))
+    sad_max = (_nz(template.get('sadMax')) + _nz(df.get('sad'))
+               + _sum_trait(traits, 'sad') + _sum_bonus(bonuses, 'sad'))
+    # weight_max has no character-template contribution: the carry-capacity base
+    # lives on the class, with difficulty/trait/bonus deltas on top.
+    weight_max = (_nz(cb.get('weightMax')) + _nz(df.get('weight'))
+                  + _sum_trait(traits, 'weight') + _sum_bonus(bonuses, 'weight'))
+
+    char_uuid = str(uuid_lib.uuid4())
+    char = {
+        "PK": f'MATCH#{match_uuid}',
+        "SK": f'CHARACTER#{char_uuid}',
+        "id": len(existing) + 1,
+        "uuid": char_uuid,
+        "matchUuid": match_uuid,
+        "userUuid": user['uuid'],
+        "idCharacterTemplate": _nz(template.get('id_tipo')),
+        "characterTemplateUuid": template_uuid,
+        "classUuid": class_uuid,
+        "dexterity": dexterity,
+        "intelligence": intelligence,
+        "constitution": constitution,
+        "energy": energy_max,   # start full
+        "life": life_max,       # start full
+        "sad": 0,
+        "lifeMax": life_max,
+        "energyMax": energy_max,
+        "sadMax": sad_max,
+        "weightMax": weight_max,
+        "idLocation": match.get('currentLocationId'),
+        "locationUuid": match.get('currentLocationUuid'),
+        "locationName": match.get('currentLocationName'),
+        "isSleeping": 0,
+        "isComa": 0,
+        "traitUuids": [t.get('uuid') for t in traits],
+        "food": 0,
+        "magic": 0,
+        "coin": 0,
+    }
+    db_utils.put_item(char)
+    return _ok(_character_full(char), status=201)
+
+
+def _list_players(user, match_uuid):
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    _match, err = _resolve_match_access(user, match_uuid)
+    if err:
+        return err
+    return _ok([_character_summary(c) for c in _match_characters(match_uuid)])
+
+
+def _get_character(user, match_uuid, char_uuid):
+    if not match_uuid or not char_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid and character uuid are required')
+    _match, err = _resolve_match_access(user, match_uuid)
+    if err:
+        return err
+    item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{char_uuid}')
+    if item is None:
+        return _err(404, 'CHARACTER_NOT_FOUND', 'Character not found or not accessible')
+    return _ok(_character_full(item))
+
+
 # ─── admin match control ─────────────────────────────────────────────────────
 
 def _get_admin_match_info(match_uuid):
@@ -369,7 +760,7 @@ def _get_admin_match_info(match_uuid):
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_detail_from_item(item))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid)))
 
 
 def _list_match_statuses():
@@ -407,6 +798,304 @@ def _delete_match(match_uuid):
     return _ok({'status': 'DELETED', 'uuid': match_uuid})
 
 
+# ─── Step 24 — single-player turn cycle engine ───────────────────────────────
+
+# Turn statuses (explicit lifecycle, source of truth for the queue).
+TURN_WAITING = 'WAITING'
+TURN_ACTIVE = 'ACTIVE'
+TURN_COMPLETED = 'COMPLETED'
+
+
+def _turn_priority(dexterity, intelligence, constitution, life, id_character):
+    """priority = (DEX*3 + INT*2 + COS*1) * 1000 + LIFE*10 + idCharacter (higher acts first)."""
+    stats = _nz(dexterity) * 3 + _nz(intelligence) * 2 + _nz(constitution)
+    return stats * 1000 + _nz(life) * 10 + _nz(id_character)
+
+
+def _turn_items(match_uuid):
+    """Return the TURN# queue items stored under the match partition."""
+    items = db_utils.query_by_pk(f'MATCH#{match_uuid}') or []
+    return [i for i in items if str(i.get('SK', '')).startswith('TURN#')]
+
+
+def _turn_entry(item):
+    return {
+        "characterUuid": item.get('characterUuid'),
+        "idCharacter": _nz(item.get('idCharacter')),
+        "name": item.get('name'),
+        "priority": _nz(item.get('priority')),
+        "clock": _nz(item.get('clock')),
+        "status": item.get('status'),
+        "passCounter": _nz(item.get('passCounter')),
+        "timestampStart": item.get('timestampStart'),
+        "timestampEnd": item.get('timestampEnd'),
+    }
+
+
+def _sequence_response(match, rows):
+    rows_sorted = sorted(rows, key=lambda r: _nz(r.get('priority')), reverse=True)
+    return {
+        "matchUuid": match.get('uuid'),
+        "currentClock": _nz(match.get('currentClock')),
+        "status": match.get('status'),
+        "activeCharacterUuid": match.get('activeCharacterUuid'),
+        "queue": [_turn_entry(r) for r in rows_sorted],
+    }
+
+
+def _require_owned_match(user, match_uuid):
+    """Return ``(match_item, None)`` when the user owns the match, else
+    ``(None, error_response)``. Ownership errors are reported as 404."""
+    if not match_uuid:
+        return None, _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item = db_utils.get_item(f'MATCH#{match_uuid}')
+    if item is None or item.get('userCreatorUuid') != user.get('uuid'):
+        return None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return item, None
+
+
+def _start_match(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    if match.get('status') != 'CREATED':
+        return _err(409, 'MATCH_NOT_STARTABLE', 'Match is not in CREATED state')
+
+    characters = _match_characters(match_uuid)
+    if not characters:
+        return _err(409, 'NO_CHARACTERS_JOINED', 'No character has joined the match')
+
+    clock = _nz(match.get('currentClock'))
+    rows = []
+    for c in characters:
+        priority = _turn_priority(c.get('dexterity'), c.get('intelligence'),
+                                  c.get('constitution'), c.get('life'), c.get('id'))
+        rows.append({
+            "idCharacter": _nz(c.get('id')),
+            "characterUuid": c.get('uuid'),
+            "priority": priority,
+            "clock": clock,
+            "status": TURN_WAITING,
+            "passCounter": 0,
+        })
+    rows.sort(key=lambda r: r['priority'], reverse=True)
+    rows[0]['status'] = TURN_ACTIVE
+    top = rows[0]
+
+    for r in rows:
+        db_utils.put_item({
+            "PK": f'MATCH#{match_uuid}',
+            "SK": f'TURN#{r["characterUuid"]}',
+            **r,
+        })
+
+    match['status'] = 'RUNNING'
+    match['activeCharacterUuid'] = top['characterUuid']
+    db_utils.put_item(match)
+
+    return _ok(_sequence_response(match, rows))
+
+
+def _pass_turn(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+
+    characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
+    rows = sorted(_turn_items(match_uuid), key=lambda r: _nz(r.get('priority')), reverse=True)
+    if not rows:
+        return _err(409, 'MATCH_NOT_RUNNING', 'No active turn to pass')
+
+    active = next((r for r in rows if r.get('status') == TURN_ACTIVE), None)
+    if active is None and match.get('activeCharacterUuid'):
+        active = next((r for r in rows
+                       if r.get('characterUuid') == match.get('activeCharacterUuid')), None)
+    if active is None:
+        return _err(409, 'MATCH_NOT_RUNNING', 'No active turn to pass')
+
+    active_char = characters.get(active.get('characterUuid'))
+    if active_char is None or active_char.get('userUuid') != user.get('uuid'):
+        return _err(409, 'NOT_YOUR_TURN', 'It is not your character\'s turn')
+
+    # Complete the current turn.
+    active['status'] = TURN_COMPLETED
+    active['passCounter'] = _nz(active.get('passCounter')) + 1
+    db_utils.put_item(active)
+
+    # Find the next WAITING character; if none, start a new round (reset all to WAITING).
+    waiting = [r for r in rows if r.get('status') == TURN_WAITING]
+    if not waiting:
+        for r in rows:
+            r['status'] = TURN_WAITING
+            db_utils.put_item(r)
+        waiting = list(rows)
+    waiting.sort(key=lambda r: _nz(r.get('priority')), reverse=True)
+    nxt = waiting[0]
+
+    nxt['status'] = TURN_ACTIVE
+    db_utils.put_item(nxt)
+
+    match['activeCharacterUuid'] = nxt.get('characterUuid')
+    db_utils.put_item(match)
+
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "passedCharacterUuid": active.get('characterUuid'),
+        "nextActiveCharacterUuid": nxt.get('characterUuid'),
+        "status": 'RUNNING',
+    })
+
+
+def _get_turn_sequence(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    rows = _turn_items(match_uuid)
+    return _ok(_sequence_response(match, rows))
+
+
+# ─── Step 25 — time advancement & clock cycle ────────────────────────────────
+
+def _all_characters_done(characters):
+    """Time-end trigger: every character is sleeping OR out of energy.
+    In single-player the list is size 1. An empty list never triggers."""
+    if not characters:
+        return False
+    for c in characters:
+        done = _nz(c.get('isSleeping')) == 1 or _nz(c.get('energy')) <= 0
+        if not done:
+            return False
+    return True
+
+
+def _advance_time(match, match_uuid):
+    """Advance the clock: log the advance, wake characters, rebuild the queue."""
+    new_clock = _nz(match.get('currentClock')) + 1
+    match['currentClock'] = new_clock
+
+    # Append a clock-history item under the match partition.
+    db_utils.put_item({
+        "PK": f'MATCH#{match_uuid}',
+        "SK": f'CLOCK#{new_clock}',
+        "clock": new_clock,
+        "timestampStart": _ts_ms(),
+    })
+
+    # Wake every character.
+    for c in _match_characters(match_uuid):
+        if _nz(c.get('isSleeping')) == 1:
+            c['isSleeping'] = 0
+            db_utils.put_item(c)
+
+    # Rebuild the turn queue for the new clock (all WAITING, highest priority ACTIVE).
+    characters = _match_characters(match_uuid)
+    rows = []
+    for c in characters:
+        priority = _turn_priority(c.get('dexterity'), c.get('intelligence'),
+                                  c.get('constitution'), c.get('life'), c.get('id'))
+        rows.append({
+            "idCharacter": _nz(c.get('id')),
+            "characterUuid": c.get('uuid'),
+            "priority": priority,
+            "clock": new_clock,
+            "status": TURN_WAITING,
+            "passCounter": 0,
+        })
+    rows.sort(key=lambda r: r['priority'], reverse=True)
+    if rows:
+        rows[0]['status'] = TURN_ACTIVE
+        match['activeCharacterUuid'] = rows[0]['characterUuid']
+    for r in rows:
+        db_utils.put_item({
+            "PK": f'MATCH#{match_uuid}',
+            "SK": f'TURN#{r["characterUuid"]}',
+            **r,
+        })
+
+    db_utils.put_item(match)
+    # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
+    return new_clock
+
+
+def _sleep(user, match_uuid):
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    # The caller must own a character in this match (mask as not-found otherwise).
+    caller = next((c for c in _match_characters(match_uuid)
+                   if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+
+    # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
+    caller['isSleeping'] = 1
+    db_utils.put_item(caller)
+
+    # Re-read so the trigger sees the just-applied sleep flag.
+    characters = _match_characters(match_uuid)
+    triggered = _all_characters_done(characters)
+
+    current_clock = _nz(match.get('currentClock'))
+    if triggered:
+        current_clock = _advance_time(match, match_uuid)
+
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "characterUuid": caller.get('uuid'),
+        "isSleeping": not triggered,  # woke up at time start when triggered
+        "timeEndTriggered": triggered,
+        "currentClock": current_clock,
+    })
+
+
+def _story_clock_label(story, direct_key, text_field, lang='en'):
+    """Resolve a clock label from the STORY item.
+
+    Prefers the pre-resolved description persisted on the item (seed / import),
+    falling back to resolving it from the item's multi-lang ``texts`` map
+    (``texts[lang][text_field]`` with English fallback). This keeps the clock
+    labels populated regardless of which write path created the story.
+    """
+    direct = story.get(direct_key)
+    if direct:
+        return direct
+    texts = story.get('texts') or {}
+    lang_texts = texts.get(lang) or texts.get('en') or {}
+    return lang_texts.get(text_field)
+
+
+def _get_clock(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    characters = _match_characters(match_uuid)
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    any_sleeping = any(_nz(c.get('isSleeping')) == 1 for c in characters)
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "currentClock": _nz(match.get('currentClock')),
+        "clockLabelSingular": _story_clock_label(story, 'clockSingularDescription', 'clockSingular'),
+        "clockLabelPlural": _story_clock_label(story, 'clockPluralDescription', 'clockPlural'),
+        "anyCharacterSleeping": any_sleeping,
+        "characters": [
+            {
+                "characterUuid": c.get('uuid'),
+                "isSleeping": _nz(c.get('isSleeping')) == 1,
+                "energy": _nz(c.get('energy')),
+            }
+            for c in characters
+        ],
+    })
+
+
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -425,6 +1114,9 @@ def lambda_handler(event, context):
 
     # ── admin match routes (all require the ADMIN role) ──
     if path.startswith('/api/admin/matches'):
+        ip_err = _check_admin_ip(event)
+        if ip_err:
+            return ip_err
         if str(user.get('role', '')).upper() != 'ADMIN':
             return _err(403, 'FORBIDDEN', 'Admin access required')
 
@@ -496,5 +1188,79 @@ def lambda_handler(event, context):
                 match_uuid = match_uuid or segments[3]
                 event_uuid = event_uuid or segments[5]
         return _end_match(user, match_uuid, event_uuid)
+
+    # ── Step 21 — character template & class selection ──
+    if (path.startswith('/api/matches/') and path.endswith('/join') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/matches/{uuidMatch}/join
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        return _join_match(user, match_uuid, body)
+
+    if (path.startswith('/api/match/') and path.endswith('/players') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/players
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _list_players(user, match_uuid)
+
+    if (path.startswith('/api/match/') and '/characters/' in path and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        char_uuid = params.get('uuidCharacter') or ''
+        if not match_uuid or not char_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/characters/{uuidCharacter}
+            if len(segments) >= 6 and segments[4] == 'characters':
+                match_uuid = match_uuid or segments[3]
+                char_uuid = char_uuid or segments[5]
+        return _get_character(user, match_uuid, char_uuid)
+
+    # ── Step 24 — single-player turn cycle ──
+    if (path.startswith('/api/matches/') and path.endswith('/start') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/matches/{uuidMatch}/start
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _start_match(user, match_uuid)
+
+    if (path.startswith('/api/gameplay/') and path.endswith('/action/pass') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/pass
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        return _pass_turn(user, match_uuid)
+
+    if (path.startswith('/api/match/') and path.endswith('/turn-sequence') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/turn-sequence
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _get_turn_sequence(user, match_uuid)
+
+    # ── Step 25 — time advancement & clock cycle ──
+    if (path.startswith('/api/gameplay/') and path.endswith('/action/sleep') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/sleep
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        return _sleep(user, match_uuid)
+
+    if (path.startswith('/api/match/') and path.endswith('/clock') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/clock
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _get_clock(user, match_uuid)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

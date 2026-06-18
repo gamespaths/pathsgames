@@ -19,6 +19,12 @@ export const listMatches = () =>
 export const getMatchInfo = (uuid) =>
   apiClient().get(`/api/admin/matches/${uuid}/info`).then(r => r.data)
 
+// GET /api/admin/matches/:uuid/clock — clock cycle state (Step 26): current
+// clock, story labels and per-character sleeping/energy. Admin-scoped mirror of
+// the player endpoint GET /api/match/:uuid/clock, without the ownership check.
+export const getMatchClock = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/clock`).then(r => r.data)
+
 // GET /api/admin/matches/statuses — valid match statuses [{ value, terminal }]
 export const listMatchStatuses = () =>
   apiClient().get('/api/admin/matches/statuses').then(r => r.data)

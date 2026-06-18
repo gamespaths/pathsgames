@@ -8,6 +8,9 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  AllowMockAccess:
+    Type: String
+    Default: "true"
 
 Resources:
   ContentLogGroup:
@@ -39,6 +42,7 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName

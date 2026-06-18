@@ -14,7 +14,12 @@ import games.paths.core.port.story.StoryImportPort;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.port.story.StoryQueryPort;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.port.story.StoryValidatorPort;
 import games.paths.core.port.story.ContentQueryPort;
+import games.paths.core.port.match.CharacterCommandPort;
+import games.paths.core.port.match.CharacterPersistencePort;
+import games.paths.core.port.match.CharacterQueryPort;
+import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchPersistencePort;
 import games.paths.core.port.match.MatchQueryPort;
@@ -31,7 +36,10 @@ import games.paths.core.service.dev.TestDataCleanupService;
 import games.paths.core.service.story.StoryCrudService;
 import games.paths.core.service.story.StoryImportService;
 import games.paths.core.service.story.StoryQueryService;
+import games.paths.core.service.story.StoryValidatorService;
 import games.paths.core.service.story.ContentQueryService;
+import games.paths.core.service.match.CharacterCommandService;
+import games.paths.core.service.match.CharacterQueryService;
 import games.paths.core.service.match.MatchCommandService;
 import games.paths.core.service.match.MatchQueryService;
 import games.paths.core.service.match.PropertySystemModeService;
@@ -112,8 +120,14 @@ public class CoreConfig {
     }
 
     @Bean
-    public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort) {
-        return new StoryImportService(storyPersistencePort);
+    public StoryValidatorPort storyValidatorPort(StoryReadPort storyReadPort) {
+        return new StoryValidatorService(storyReadPort);
+    }
+
+    @Bean
+    public StoryImportPort storyImportPort(StoryPersistencePort storyPersistencePort,
+            StoryValidatorPort storyValidatorPort) {
+        return new StoryImportService(storyPersistencePort, storyValidatorPort);
     }
 
     @Bean
@@ -122,8 +136,9 @@ public class CoreConfig {
     }
 
     @Bean
-    public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort) {
-        return new StoryCrudService(storyReadPort, storyPersistencePort);
+    public StoryCrudPort storyCrudPort(StoryReadPort storyReadPort, StoryPersistencePort storyPersistencePort,
+            StoryValidatorPort storyValidatorPort) {
+        return new StoryCrudService(storyReadPort, storyPersistencePort, storyValidatorPort);
     }
 
     // ───── Step 19: Single-player match creation ─────
@@ -157,8 +172,56 @@ public class CoreConfig {
     @Bean
     public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
                                          StoryReadPort storyReadPort,
-                                         UserAccessPort userAccessPort) {
-        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort);
+                                         UserAccessPort userAccessPort,
+                                         CharacterReadPort characterReadPort,
+                                         ContentQueryPort contentQueryPort) {
+        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
+                characterReadPort, contentQueryPort);
+    }
+
+    // ───── Step 24: Turn cycle engine (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.match.TurnCyclePort turnCyclePort(
+            games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
+            UserAccessPort userAccessPort) {
+        return new games.paths.core.service.match.TurnCycleService(turnCycleStorePort, userAccessPort);
+    }
+
+    // ───── Step 25: Time advancement & clock cycle (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.event.DomainEventPublisher domainEventPublisher() {
+        return new games.paths.core.service.event.InProcessDomainEventPublisher();
+    }
+
+    @Bean
+    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+            games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
+            UserAccessPort userAccessPort,
+            games.paths.core.port.event.DomainEventPublisher domainEventPublisher) {
+        return new games.paths.core.service.match.TimeAdvancementService(
+                turnCycleStorePort, userAccessPort, domainEventPublisher);
+    }
+
+    // ───── Step 21: Character template & class selection ─────
+
+    @Bean
+    public CharacterCommandPort characterCommandPort(StoryReadPort storyReadPort,
+                                                     MatchReadPort matchReadPort,
+                                                     UserAccessPort userAccessPort,
+                                                     CharacterPersistencePort characterPersistencePort) {
+        return new CharacterCommandService(storyReadPort, matchReadPort,
+                userAccessPort, characterPersistencePort);
+    }
+
+    @Bean
+    public CharacterQueryPort characterQueryPort(MatchReadPort matchReadPort,
+                                                 CharacterReadPort characterReadPort,
+                                                 StoryReadPort storyReadPort,
+                                                 UserAccessPort userAccessPort) {
+        return new CharacterQueryService(matchReadPort, characterReadPort,
+                storyReadPort, userAccessPort);
     }
 
     // ───── Dev-only test-data cleanup ─────

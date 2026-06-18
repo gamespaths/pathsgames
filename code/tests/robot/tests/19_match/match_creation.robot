@@ -12,6 +12,7 @@
 # ---------------------------------------------------------------------------
 Library    RequestsLibrary
 Library    Collections
+Library    ../../resources/JwtHelper.py
 Resource   ../../resources/common.resource
 Resource   ../../resources/auth.resource
 Resource   ../../resources/matches.resource
@@ -57,6 +58,30 @@ Create Match With Unknown Difficulty Returns 404
     Status Should Be    ${response}    404
     Response Field Should Equal    ${response}    error    DIFFICULTY_NOT_FOUND
 
+Create Match For Story Without Locations Returns 400
+    [Documentation]    A story that has a difficulty but no locations cannot start a match:
+    ...                POST /api/matches → 400 STORY_HAS_NO_LOCATIONS. The fixture story is
+    ...                imported via the admin API and removed in teardown.
+    [Tags]    matches    step19
+    ${admin_token}=    Generate Admin Token
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
+    &{ah}=    Create Dictionary    Authorization=Bearer ${admin_token}    Content-Type=application/json
+    ${payload}=    Catenate    SEPARATOR=
+    ...    {"uuid":"f0000019-0000-4000-8000-000000000019","author":"robottest_nolocs",
+    ...    "difficulties":[{"id":1}]}
+    ${imp}=    POST On Session    admin_session    /api/admin/stories/import
+    ...    data=${payload}    headers=${ah}    expected_status=any
+    Status Should Be    ${imp}    201
+    ${diffs}=    GET On Session    admin_session
+    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019/difficulties    headers=${ah}
+    Status Should Be    ${diffs}    200
+    ${diff_uuid}=    Set Variable    ${diffs.json()}[0][uuid]
+    ${response}=    Create Match    ${TOKEN}    f0000019-0000-4000-8000-000000000019    ${diff_uuid}
+    Status Should Be    ${response}    400
+    Should Be Equal As Strings    ${response.json()}[error]    STORY_HAS_NO_LOCATIONS
+    [Teardown]    Run Keyword And Ignore Error    DELETE On Session    admin_session
+    ...    /api/admin/stories/f0000019-0000-4000-8000-000000000019    headers=${ah}
+
 Create Match Happy Path Returns 201
     [Documentation]    Valid story+difficulty creates a match (201) and surfaces a uuid.
     [Tags]    matches    step19
@@ -83,6 +108,28 @@ List Matches Returns Created Match
         END
     END
     Should Be True    ${found}
+
+List Matches Resolves Story And Difficulty Uuid
+    [Documentation]    GET /api/matches resolves each match's story, so the summary
+    ...                carries the storyUuid (and difficultyUuid) it was created from.
+    ...                Regression: the list endpoint used to return storyUuid=null because
+    ...                MatchQueryService.listUserMatches did not resolve the story entity.
+    [Tags]    matches    step19
+    ${response}=    List Matches    ${TOKEN}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Not Be Empty    ${body}
+    ${match}=    Set Variable    ${NONE}
+    FOR    ${m}    IN    @{body}
+        IF    "${m}[uuid]" == "${MATCH_UUID}"
+            ${match}=    Set Variable    ${m}
+            BREAK
+        END
+    END
+    Should Not Be Equal As Strings    ${match}    ${NONE}
+    ...    msg=Created match ${MATCH_UUID} not found in /api/matches
+    Should Be Equal As Strings    ${match}[storyUuid]    ${STORY_UUID}
+    Should Be Equal As Strings    ${match}[difficultyUuid]    ${DIFFICULTY_UUID}
 
 List All Matches As Admin Returns Created Match
     [Documentation]    GET /api/admin/matches with an ADMIN token lists every
@@ -140,32 +187,40 @@ Create Match With Loadout Persists Character Class Traits And Flag
     [Documentation]    POST /api/matches with characterTemplateUuid, classUuid,
     ...                traitUuids and singlePlayer returns 201; the loadout is
     ...                persisted and read back via GET /api/match/{uuid}/info.
+    ...                Step 23: the loadout traits are validated at creation, so a
+    ...                real loadout is resolved from the story detail (bogus trait
+    ...                uuids now fail with 400 TRAIT_NOT_FOUND — see suite 23).
     [Tags]    matches    step19
+    ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
     ${traits}=    Create List
-    ...    11111111-1111-1111-1111-111111111111
-    ...    22222222-2222-2222-2222-222222222222
-    ${response}=    Create Match With Loadout    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}
-    ...    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb    ${traits}    ${1}
+    IF    '${trait}' != ''
+        Append To List    ${traits}    ${trait}
+    END
+    ${expected_traits}=    Get Length    ${traits}
+    ${response}=    Create Match With Loadout    ${TOKEN}    ${story}    ${difficulty}
+    ...    ${character}    ${class}    ${traits}    ${1}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
     Should Be Equal As Integers    ${body}[singlePlayer]    1
-    Should Be Equal As Strings    ${body}[characterTemplateUuid]    aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
-    Should Be Equal As Strings    ${body}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
-    Length Should Be    ${body}[traitUuids]    2
+    Should Be Equal As Strings    ${body}[characterTemplateUuid]    ${character}
+    Should Be Equal As Strings    ${body}[classUuid]    ${class}
+    Length Should Be    ${body}[traitUuids]    ${expected_traits}
     ${info}=    Get Match Info    ${TOKEN}    ${body}[uuid]
     Status Should Be    ${info}    200
     ${match}=    Set Variable    ${info.json()}[match]
     Should Be Equal As Integers    ${match}[singlePlayer]    1
-    Should Be Equal As Strings    ${match}[classUuid]    bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
-    Length Should Be    ${match}[traitUuids]    2
+    Should Be Equal As Strings    ${match}[classUuid]    ${class}
+    Length Should Be    ${match}[traitUuids]    ${expected_traits}
 
 
 *** Keywords ***
 
 Suite Setup Match Creation
     [Documentation]    Logs in as guest, picks the first public story with at least
-    ...                one difficulty and stores them as suite variables.
+    ...                one difficulty and stores them as suite variables. Also opens an
+    ...                admin session against ADMIN_BASE_URL for the /api/admin/matches tests.
     Create Public Session
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${response}=    POST On Session    public_session    /api/auth/guest
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}

@@ -14,12 +14,12 @@ COPY adapter-kafka/pom.xml adapter-kafka/
 COPY ms-launcher/pom.xml ms-launcher/
 RUN mvn dependency:go-offline -B
 COPY . .
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B -P prod
 
 # Stage 2: Minimal runtime image
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=builder /app/ms-launcher/target/*.jar app.jar
-EXPOSE 8080
+EXPOSE 8042
 ENV SPRING_PROFILES_ACTIVE=prod
 ENTRYPOINT ["java", "-jar", "app.jar"]

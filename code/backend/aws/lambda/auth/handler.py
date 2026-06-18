@@ -84,6 +84,24 @@ def _normalize_path(raw_path):
     idx = raw_path.find('/api/')
     return raw_path[idx:] if idx >= 0 else raw_path
 
+def _get_source_ip(event):
+    """Extract caller source IP from HTTP API v2 event."""
+    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
+            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
+
+def _check_admin_ip(event):
+    """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
+    whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
+    if not whitelist_raw:
+        return None  # no restriction configured
+    allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
+    if not allowed:
+        return None
+    source_ip = _get_source_ip(event)
+    if source_ip not in allowed:
+        return _err(403, 'FORBIDDEN', f'Source IP not authorized for admin access')
+    return None
+
 def _get_cookie(event, name):
     for c in event.get('cookies', []):
         if c.startswith(f'{name}='):
@@ -131,6 +149,9 @@ def _require_auth(event):
 
 def _require_admin(event):
     """Return (user_item, None) or (None, error_response)."""
+    ip_err = _check_admin_ip(event)
+    if ip_err:
+        return None, ip_err
     user, err = _require_auth(event)
     if err:
         return None, err
@@ -158,7 +179,7 @@ def _guest_info(user):
         "expired":         expired
     }
 
-def _refresh_cookies(user_uuid, guest_token):
+def _refresh_cookies(user_uuid, guest_token, token_version=0):
     """Return two Set-Cookie strings (refresh + guest).
 
     Uses ``SameSite=None; Secure`` so the browser keeps the cookies on cross-
@@ -166,10 +187,18 @@ def _refresh_cookies(user_uuid, guest_token):
     Chrome rejects Lax cookies on cross-site fetch/XHR and would silently drop
     them, which would block ``POST /api/auth/guest/resume`` with 400
     MISSING_GUEST_COOKIE on every reload.
+
+    ``token_version`` is embedded in the refresh token so that logout and
+    refresh-rotation can revoke previously issued tokens (mock tokens carry it as
+    a ``.{ver}`` suffix; real JWTs in the ``ver`` claim).
     """
-    refresh_token = f'MOCK_REFRESH_{user_uuid}'
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        refresh_tok = f'MOCK_REFRESH_{user_uuid}.{token_version}'
+    else:
+        refresh_tok = jwt_utils.generate_refresh_token(
+            user_uuid, exp_seconds=COOKIE_MAX_REFRESH, token_version=token_version)
     return [
-        f'pathsgames.refreshToken={refresh_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
+        f'pathsgames.refreshToken={refresh_tok}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_REFRESH}',
         f'pathsgames.guestcookie={guest_token}; Path=/api/auth; HttpOnly; Secure; SameSite=None; Max-Age={COOKIE_MAX_GUEST}',
     ]
 
@@ -260,6 +289,7 @@ def create_guest(event):
         'guest_expires_at': now + COOKIE_MAX_GUEST * 1000,
         'ts_registration': now,
         'ts_last_access':  now,
+        'token_version':   0,
         # GSI for lookup by guest token
         'GSI1_PK':         f'GUEST_TOKEN#{guest_tok}',
         'GSI1_SK':         'METADATA',
@@ -268,10 +298,15 @@ def create_guest(event):
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
 
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, username, 'PLAYER', exp_seconds=COOKIE_MAX_ACCESS)
+
     body = {
         'userUuid':            user_uuid,
         'username':            username,
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }
@@ -297,48 +332,93 @@ def resume_guest(event):
 
     db_utils.update_ts_last_access(f'USER#{user_uuid}', now)
 
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), user.get('role', 'PLAYER'), exp_seconds=COOKIE_MAX_ACCESS)
+
     body = {
         'userUuid':            user_uuid,
         'username':            user.get('username'),
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }
-    return _ok(body, cookies=_refresh_cookies(user_uuid, user.get('guest_token', guest_tok)))
+    cur_ver = int(user.get('token_version', 0) or 0)
+    return _ok(body, cookies=_refresh_cookies(user_uuid, user.get('guest_token', guest_tok), cur_ver))
+
+
+def _invalid_refresh():
+    return _err(401, 'INVALID_REFRESH_TOKEN',
+                'Refresh token is invalid, expired, or revoked. Please login again.')
 
 
 def refresh_token(event):
     refresh_tok = _get_cookie(event, 'pathsgames.refreshToken')
-    if not refresh_tok or not refresh_tok.startswith('MOCK_REFRESH_'):
-        return _err(401, 'INVALID_REFRESH_TOKEN',
-                    'Refresh token is invalid, expired, or revoked. Please login again.')
 
-    user_uuid = refresh_tok[len('MOCK_REFRESH_'):]
-    user      = db_utils.get_item(f'USER#{user_uuid}')
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        if not refresh_tok or not refresh_tok.startswith('MOCK_REFRESH_'):
+            return _invalid_refresh()
+        rest = refresh_tok[len('MOCK_REFRESH_'):]
+        if '.' in rest:
+            user_uuid, ver_str = rest.rsplit('.', 1)
+        else:
+            user_uuid, ver_str = rest, '0'
+        try:
+            token_ver = int(ver_str)
+        except ValueError:
+            return _invalid_refresh()
+    else:
+        payload = jwt_utils.decode_refresh_token(refresh_tok)
+        if not payload or not payload.get('sub'):
+            return _invalid_refresh()
+        user_uuid = payload['sub']
+        token_ver = int(payload.get('ver', 0) or 0)
+
+    user = db_utils.get_item(f'USER#{user_uuid}')
     if not user:
-        return _err(401, 'INVALID_REFRESH_TOKEN',
-                    'Refresh token is invalid, expired, or revoked. Please login again.')
+        return _invalid_refresh()
+
+    # Token rotation / revocation: the token's version must match the user's
+    # current token_version. A successful refresh bumps it, so the just-used
+    # (and any earlier) refresh token is revoked.
+    cur_ver = int(user.get('token_version', 0) or 0)
+    if token_ver != cur_ver:
+        return _invalid_refresh()
+    new_ver = cur_ver + 1
+    user['token_version'] = new_ver
+    db_utils.put_item(user)
 
     now         = _now_ms()
     access_exp  = now + COOKIE_MAX_ACCESS  * 1000
     refresh_exp = now + COOKIE_MAX_REFRESH * 1000
     guest_tok   = user.get('guest_token', '')
+    role        = user.get('role', 'PLAYER')
+
+    if jwt_utils.ALLOW_MOCK_ACCESS:
+        access_token = f'MOCK_ACCESS_{user_uuid}'
+    else:
+        access_token = jwt_utils.generate_access_token(user_uuid, user.get('username'), role, exp_seconds=COOKIE_MAX_ACCESS)
 
     body = {
         'userUuid':            user_uuid,
         'username':            user.get('username'),
-        'role':                user.get('role', 'PLAYER'),
-        'accessToken':         f'MOCK_ACCESS_{user_uuid}',
+        'role':                role,
+        'accessToken':         access_token,
         'accessTokenExpiresAt':  access_exp,
         'refreshTokenExpiresAt': refresh_exp,
     }
-    return _ok(body, cookies=_refresh_cookies(user_uuid, guest_tok))
+    return _ok(body, cookies=_refresh_cookies(user_uuid, guest_tok, new_ver))
 
 
 def logout(event):
     user, err = _require_auth(event)
     if err:
         return err
+    # Revoke the user's refresh tokens by bumping the stored token_version, so a
+    # replayed refresh cookie no longer validates.
+    user['token_version'] = int(user.get('token_version', 0) or 0) + 1
+    db_utils.put_item(user)
     return _ok({'status': 'OK', 'message': 'Token revoked successfully', 'timestamp': _now_ms()},
                cookies=_clear_cookies())
 

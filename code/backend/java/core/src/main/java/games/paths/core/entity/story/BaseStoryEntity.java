@@ -54,13 +54,13 @@ public abstract class BaseStoryEntity {
 
     /**
      * Called by JPA before the entity is first persisted.
-     * Sets {@code uuid}, {@code tsInsert} and {@code tsUpdate} if still {@code null}.
+     * Sets {@code uuid}, {@code tsInsert} and {@code tsUpdate} if still {@code null} or blank.
      * Subclasses may define their own {@code @PrePersist} method for additional defaults.
      */
     @PrePersist
     protected void baseOnCreate() {
         String now = java.time.Instant.now().toString();
-        if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
+        if (uuid == null || uuid.isBlank()) uuid = java.util.UUID.randomUUID().toString();
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
     }

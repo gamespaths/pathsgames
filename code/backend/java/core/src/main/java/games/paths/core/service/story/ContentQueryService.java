@@ -47,11 +47,27 @@ public class ContentQueryService implements ContentQueryPort {
             return null;
         }
 
-        CardEntity card = cardOpt.get();
-        String title = resolveText(story.getId(), card.getIdTextTitle(), lang);
-        String description = resolveText(story.getId(), card.getIdTextDescription(), lang);
-        String copyrightText = resolveText(story.getId(), card.getIdTextCopyright(), lang);
-        CreatorInfo creator = resolveCreator(story.getId(), card.getIdCreator(), lang);
+        return toCardInfo(story.getId(), cardOpt.get(), lang);
+    }
+
+    @Override
+    public CardInfo getCardByStoryIdAndCardId(Long storyId, Integer idCard, String lang) {
+        if (storyId == null || idCard == null) {
+            return null;
+        }
+        Optional<CardEntity> cardOpt = readPort.findCardByStoryIdAndCardId(storyId, idCard.longValue());
+        if (cardOpt.isEmpty()) {
+            return null;
+        }
+        return toCardInfo(storyId, cardOpt.get(), lang);
+    }
+
+    /** Builds a {@link CardInfo} from a card entity, resolving its texts/creator. */
+    private CardInfo toCardInfo(Long storyId, CardEntity card, String lang) {
+        String title = resolveText(storyId, card.getIdTextTitle(), lang);
+        String description = resolveText(storyId, card.getIdTextDescription(), lang);
+        String copyrightText = resolveText(storyId, card.getIdTextCopyright(), lang);
+        CreatorInfo creator = resolveCreator(storyId, card.getIdCreator(), lang);
 
         return new CardInfo(
                 card.getUuid(),

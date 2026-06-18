@@ -9,11 +9,14 @@
     "heroSub": "Narrazioni ramificate. Scelte infinite.",
     "stories": "Storie",
     "loading": "Caricamento storie…",
-    "noStories": "Nessuna storia disponibile."
+    "noStories": "Nessuna storia disponibile.",
+    "badgeResume": "Riprendi",
+    "badgeCompleted": "Completata"
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
-    "verifying": "Verifica che tu sia umano…"
+    "verifying": "Verifica che tu sia umano…",
+    "error": "Verifica non riuscita — tocca per riprovare."
   },
   "book": {
     "configureAdventure": "Inizia la tua Avventura",
@@ -35,6 +38,10 @@
     "notAllowedRequires": "Non permesso: richiede la classe {class}",
     "notAllowedProhibited": "Non permesso: vietato dalla classe {class}",
     "notAllowedGeneric": "Non permesso dalla selezione corrente",
+    "traitBudgetPositive": "Budget positivo rimanente",
+    "traitBudgetNegative": "Budget negativo rimanente",
+    "traitBudgetExceeded": "Non permesso: budget dei costi dei tratti superato",
+    "remove": "Rimuovi",
     "change": "Cambia",
     "select": "Seleziona",
     "back": "Indietro",
@@ -43,7 +50,18 @@
       "stop": "Interrompi lettura"
     },
     "acceptTerms": "Accetto i Termini e Condizioni",
+    "accept": "Accetta",
+    "accepted": "Accettato",
     "startGame": "Inizia Gioco",
+    "terms": "Termini",
+    "termsTitle": "Termini e Condizioni",
+    "termsDesc": "Per giocare devi accettare i Termini e Condizioni. Usa la lente per leggerli e il pulsante per accettarli o rifiutarli.",
+    "story": "Storia",
+    "antibot": "Sicurezza",
+    "antibotOk": "Verifica superata",
+    "antibotDesc": "Controllo antibot completato con successo: sei pronto per iniziare l'avventura.",
+    "freeToPlay": "Gioca Gratis",
+    "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",
     "stats": {
       "title": "Bonus",
@@ -79,6 +97,9 @@
   },
   "startMatch": {
     "starting": "Avvio della partita…",
+    "creating": "Creazione della partita…",
+    "joining": "Ingresso del personaggio…",
+    "running": "Avvio della partita in corso…",
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
     "retry": "Riprova",
@@ -94,10 +115,10 @@
     "created": "Iniziata",
     "clock": "Orologio",
     "status": {
-      "CREATED":  "Pronta",
-      "RUNNING":  "In Corso",
-      "PAUSED":   "In Pausa",
-      "ENDED":    "Finita",
+      "CREATED": "Pronta",
+      "RUNNING": "In Corso",
+      "PAUSED": "In Pausa",
+      "ENDED": "Finita",
       "GAMEOVER": "Game Over"
     }
   },
@@ -120,13 +141,36 @@
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
-      "weight": "Trasporto"
+      "weight": "Trasporto",
+      "items": "Oggetti"
     },
     "move": "Vai Qui",
     "execute": "Esegui",
+    "closeBook": "Chiudi il libro della partita",
+    "closePrompt": "Hai chiuso il libro del gioco senza concluderla, puoi riprendere dal punto in cui ti sei fermato quando vuoi entrando nella lista delle tue partite cliccando nell'icona del tuo utente.",
     "endGame": "Termina Partita",
     "endGameTitle": "Avventura Conclusa",
-    "endGameClose": "Chiudi"
+    "endGameClose": "Chiudi",
+    "turn": {
+      "title": "Ordine dei turni",
+      "status": "Stato",
+      "empty": "La partita non è ancora iniziata.",
+      "start": "Avvia partita",
+      "pass": "Passa il turno",
+      "passCount": "Passaggi"
+    },
+    "clock": {
+      "title": "Tempo",
+      "fallback": "Tempo {n}"
+    },
+    "sleep": {
+      "action": "Dormi",
+      "confirmTitle": "Vuoi dormire?",
+      "confirmBody": "Il tuo personaggio si addormenterà. Quando tutti dormono o sono senza energia, il tempo avanza al prossimo ciclo.",
+      "confirm": "Dormi",
+      "cancel": "Annulla",
+      "sleeping": "Sta dormendo"
+    }
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
@@ -150,7 +194,7 @@
       "title": "Informativa sulla Privacy",
       "intro": "Questa Informativa sulla Privacy spiega come Paths Games ('noi') raccoglie e tratta i dati personali quando usi il gioco, e i diritti che hai ai sensi del Regolamento Generale UE sulla Protezione dei Dati (GDPR) e del California Consumer Privacy Act (CCPA/CPRA). Paths Games è progettato per richiedere il minor numero possibile di dati personali: giochi in forma anonima, senza registrazione, nome o email.",
       "controllerTitle": "1. Chi siamo",
-      "controllerBody": "Il titolare del trattamento è il Team di Paths Games. Cerchiamo di rispettare la normativa UE e USA applicabile in materia di protezione dei dati. Per qualsiasi richiesta o domanda sulla privacy, contattaci tramite il nostro repository GitHub (github.com/gamespaths/pathsgames).",
+      "controllerBody": "Il titolare del trattamento è Paths Games. Cerchiamo di rispettare la normativa UE e USA applicabile in materia di protezione dei dati. Per qualsiasi richiesta o domanda sulla privacy, contattaci a paths.games@proton.me.",
       "dataTitle": "2. Dati che raccogliamo",
       "dataBody": "Non chiediamo nome, email o dati di pagamento. Trattiamo un identificativo ospite anonimo (un UUID casuale e un nome utente generato automaticamente), token di sessione e di refresh che ti mantengono autenticato, i tuoi progressi di gioco collegati a tale identificativo anonimo e — solo con il tuo consenso — statistiche d'uso anonime tramite Google Analytics. I nostri fornitori di hosting e content delivery trattano inoltre dati tecnici come l'indirizzo IP e il tipo di dispositivo o browser, in modo transitorio, per erogare e proteggere il servizio.",
       "purposesTitle": "3. Perché trattiamo i dati e la base giuridica",
@@ -166,12 +210,12 @@
       "rightsTitle": "8. I tuoi diritti",
       "rightsBody": "Se ti trovi nell'UE/SEE puoi accedere, rettificare, cancellare, limitare o portare i tuoi dati, opporti al trattamento e revocare il consenso in qualsiasi momento, e puoi presentare reclamo all'autorità di controllo competente. Se sei residente in California hai il diritto di conoscere, cancellare e correggere i tuoi dati e di opporti alla vendita o condivisione (noi non vendiamo né condividiamo), senza discriminazioni per l'esercizio dei tuoi diritti. Poiché il gioco è anonimo, potremmo non essere in grado di identificare i tuoi dati senza ulteriori informazioni da parte tua.",
       "childrenTitle": "9. Minori",
-      "childrenBody": "Paths Games non è rivolto ai minori di 16 anni e non raccogliamo consapevolmente i loro dati personali. Se ritieni che un minore ci abbia fornito dati, contattaci tramite GitHub e provvederemo a cancellarli.",
+      "childrenBody": "Paths Games non è rivolto ai minori di 16 anni e non raccogliamo consapevolmente i loro dati personali. Se ritieni che un minore ci abbia fornito dati, contattaci a paths.games@proton.me e provvederemo a cancellarli.",
       "securityTitle": "10. Sicurezza",
       "securityBody": "Adottiamo misure come HTTPS/TLS, cookie di sessione HttpOnly e controlli di accesso per proteggere i dati. Nessun metodo di trasmissione o archiviazione è completamente sicuro e il gioco è attualmente in fase di sviluppo alpha.",
       "changesTitle": "11. Modifiche a questa informativa",
       "changesBody": "Potremmo aggiornare questa informativa con l'evoluzione del gioco; le modifiche rilevanti saranno indicate dalla data di 'ultimo aggiornamento' qui sotto e, ove richiesto, da una nuova richiesta di consenso.",
-      "updated": "Ultimo aggiornamento: Maggio 2026"
+      "updated": "Ultimo aggiornamento: Giugno 2026"
     },
     "terms": {
       "title": "Termini di Servizio",
@@ -200,7 +244,7 @@
       "lawBody": "Questi Termini sono regolati dalla normativa applicabile dell'Unione Europea e degli Stati Uniti. Se sei un consumatore, benefici inoltre delle tutele imperative previste dalla legge del tuo Paese o Stato di residenza, che questi Termini non derogano.",
       "changesTitle": "12. Modifiche a questi Termini",
       "changesBody": "Potremmo aggiornare questi Termini con l'evoluzione del gioco; la data di 'ultimo aggiornamento' qui sotto indica la versione più recente. L'uso continuato dopo le modifiche implica l'accettazione dei Termini aggiornati.",
-      "updated": "Ultimo aggiornamento: Maggio 2026"
+      "updated": "Ultimo aggiornamento: Giugno 2026"
     },
     "cookies": {
       "title": "Cookie Policy",
@@ -216,8 +260,8 @@
       "thirdPartyTitle": "5. Terze parti e trasferimenti dei dati",
       "thirdPartyBody": "I cookie analitici sono forniti da Google. Google potrebbe trattare i dati al di fuori dello Spazio Economico Europeo; tali trasferimenti sono coperti dalle Clausole Contrattuali Standard della Commissione Europea. Non vendiamo i tuoi dati personali.",
       "rightsTitle": "6. I tuoi diritti",
-      "rightsBody": "Ai sensi del GDPR puoi accedere, rettificare o cancellare i tuoi dati, opporti o limitarne il trattamento, richiederne la portabilità e revocare il consenso in qualsiasi momento. Puoi inoltre presentare reclamo all'autorità di controllo competente. Per richieste, contattaci tramite il nostro repository GitHub.",
-      "updated": "Ultimo aggiornamento: Maggio 2026",
+      "rightsBody": "Ai sensi del GDPR puoi accedere, rettificare o cancellare i tuoi dati, opporti o limitarne il trattamento, richiederne la portabilità e revocare il consenso in qualsiasi momento. Puoi inoltre presentare reclamo all'autorità di controllo competente. Per richieste, contattaci a paths.games@proton.me.",
+      "updated": "Ultimo aggiornamento: Giugno 2026",
       "manage": "Impostazioni cookie"
     },
     "credits": {

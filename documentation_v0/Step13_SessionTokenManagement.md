@@ -343,9 +343,9 @@ A standalone JavaScript frontend demo is available at: `code/website/concepts_v0
 Same HttpOnly cookie model; demonstrates 403 for non-ADMIN users on admin endpoints.
 
 
-## Version Control
+# Version Control
 - First version created with AI prompts:
-    > read all documentation md files inside documentation_v0 folder, i wanna to run step 13: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.13.0/ folder, write new md file inside documentation_v0 folder. don't look and don't change backend-python and backend-php. write or update openapi documentation. let's go  
+    > read all documentation md files inside documentation_v0 folder, i wanna to run step 13: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.13.0/ folder, write new md file inside documentation_v0 folder. don't look and don't change backend-python. write or update openapi documentation. let's go  
 
     > I wanna change project and use "cookie HttpOnly" configuration, change backend and concepts (v0.13.0 and v0.13.1), move refreshToken in cookie HttpOnly and leave only accessToken in memory to remove "XSS blast radius" problem, update README.md into concept/v0.13.0 where you describe what did you do". please update openapi yaml files and Step13_SessionTokenManagement.md
 

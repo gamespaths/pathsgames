@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   listMatches, getMatchInfo, listMatchStatuses,
   updateMatch, stopMatch, deleteMatch,
@@ -38,6 +39,7 @@ export default function MatchesPage() {
   const [editing,      setEditing]      = useState(null) // match being edited
   const [confirm,      setConfirm]      = useState(null) // { action, match }
 
+  const navigate = useNavigate()
   const terminalStatuses = new Set(statuses.filter(s => s.terminal).map(s => s.value))
   const isTerminal = (status) => terminalStatuses.has(status)
 
@@ -193,6 +195,13 @@ export default function MatchesPage() {
                         onClick={() => openDetail(m.uuid, m.storyUuid)}
                       >
                         <i className="fas fa-eye" />
+                      </button>
+                      <button
+                        className="pg-btn pg-btn-ghost pg-btn-sm"
+                        title="Open details page (players & characters)"
+                        onClick={() => navigate(`/matches/${m.uuid}`)}
+                      >
+                        <i className="fas fa-up-right-from-square" />
                       </button>
                       <button
                         className="pg-btn pg-btn-ghost pg-btn-sm"

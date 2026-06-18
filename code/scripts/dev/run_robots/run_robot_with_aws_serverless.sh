@@ -43,6 +43,20 @@ if [ -z "${API_URL:-}" ] || [ "$API_URL" = "None" ]; then
 fi
 echo "API URL: $API_URL"
 
+# Admin API URL — /api/admin/**, /api/dev/** and the admin /api/echo/status live on the
+# dedicated, IP-restricted admin HTTP API. Prefer the AWS_ADMIN_API_URL_TEST env var, else
+# read the stack's AdminApiUrl output. The caller's IP must be in AdminIpWhitelist.
+ADMIN_API_URL="${AWS_ADMIN_API_URL_TEST:-}"
+if [ -z "$ADMIN_API_URL" ]; then
+    ADMIN_API_URL=$(aws cloudformation describe-stacks --stack-name "$AWS_STACK_NAME_TEST" --region "$AWS_REGION_TEST" --query "Stacks[0].Outputs[?OutputKey=='AdminApiUrl'].OutputValue" --output text 2>/dev/null || echo "")
+fi
+ADMIN_API_URL="${ADMIN_API_URL%/}"
+if [ -z "$ADMIN_API_URL" ] || [ "$ADMIN_API_URL" = "None" ]; then
+    echo "Error: could not determine AdminApiUrl. Set AWS_ADMIN_API_URL_TEST or ensure the stack exposes an 'AdminApiUrl' output." >&2
+    exit 1
+fi
+echo "ADMIN API URL: $ADMIN_API_URL"
+
 # quick health check
 if ! curl -s --fail "$API_URL/api/echo/status" > /dev/null; then
     echo "Server $API_URL did not respond to /api/echo/status. Aborting tests." >&2
@@ -51,9 +65,10 @@ fi
 
 echo "Server $API_URL is up and running."
 
-# Seed dev data (test users + seed stories) — idempotent, safe to re-run
-echo "Seeding dev data (users + stories)..."
-SEED_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL/api/dev/seed")
+# Seed dev data (test users + seed stories) — idempotent, safe to re-run.
+# Dev endpoints are on the IP-restricted admin API now.
+echo "Seeding dev data (users + stories) via admin API..."
+SEED_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$ADMIN_API_URL/api/dev/seed")
 SEED_HTTP_CODE=$(echo "$SEED_RESPONSE" | tail -n1)
 SEED_BODY=$(echo "$SEED_RESPONSE" | sed '$d')
 if [ "$SEED_HTTP_CODE" != "200" ]; then
@@ -87,14 +102,15 @@ cd "$PROJECT_ROOT/code/tests/robot"
 ROBOT_EXIT=0
 robot --variablefile variables/aws.yaml \
     --variable BASE_URL:"$API_URL" \
+    --variable ADMIN_BASE_URL:"$ADMIN_API_URL" \
     --variable ADMIN_TOKEN:"$ADMIN_TOKEN_VALUE" \
     --exclude bypass \
     --outputdir reports-aws/ tests/ || ROBOT_EXIT=$?
 
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.
-echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
-curl -s -X POST "$API_URL/api/dev/cleanup" || echo "  cleanup request failed"
+echo "Cleaning up robot test data via POST /api/dev/cleanup (admin API) ..."
+curl -s -X POST "$ADMIN_API_URL/api/dev/cleanup" || echo "  cleanup request failed"
 echo
 
 echo "Test Robot completed. Report available in $PROJECT_ROOT/code/tests/robot/reports-aws/"

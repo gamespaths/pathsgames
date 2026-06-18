@@ -110,3 +110,15 @@ def test_delete_expired_guests(mock_persistence_port):
     assert service.delete_expired_guests() == 4
     mock_persistence_port.delete_expired_guests.assert_called_once()
 
+
+
+# --- _is_expired helper (extra coverage) ---
+
+def test_is_expired_helper():
+    from unittest.mock import MagicMock
+    service = GuestAdminService(MagicMock())
+    assert service._is_expired(None) is False
+    assert service._is_expired("") is False
+    assert service._is_expired("not-a-date") is False
+    assert service._is_expired("2000-01-01T00:00:00Z") is True
+    assert service._is_expired("2999-01-01T00:00:00+00:00") is False

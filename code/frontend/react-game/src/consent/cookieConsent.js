@@ -100,6 +100,16 @@ const TRANSLATIONS = {
   },
 }
 
+// GA sets cookies on the root registrable domain (e.g. .paths.games), even when
+// the page runs on a subdomain (e.g. test.paths.games). The library's autoClear
+// only tries the current hostname, so we compute the root domain and call
+// eraseCookies explicitly whenever analytics consent is revoked.
+function eraseGaCookies() {
+  const parts = window.location.hostname.split('.')
+  const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : window.location.hostname
+  CookieConsent.eraseCookies([/^_ga/, /^_gid/], '/', rootDomain)
+}
+
 // Bridge the user's choice to Google Consent Mode v2.
 function updateGtagConsent() {
   if (typeof window.gtag !== 'function') return
@@ -110,6 +120,14 @@ function updateGtagConsent() {
     ad_user_data: granted ? 'granted' : 'denied',
     ad_personalization: granted ? 'granted' : 'denied',
   })
+
+  // When analytics is rejected, explicitly erase GA cookies from the root domain.
+  if (!granted) eraseGaCookies()
+
+  // Trigger a GTM event so tags mapped to this can fire immediately after consent.
+  if (window.dataLayer) {
+    window.dataLayer.push({ event: 'consent_update' })
+  }
 }
 
 let started = false
@@ -127,7 +145,16 @@ export function initCookieConsent(lang = 'en') {
     },
     categories: {
       necessary: { enabled: true, readOnly: true },
-      analytics: {},
+      analytics: {
+        autoClear: {
+          // Covers cookies set directly on the current hostname.
+          // Cookies set by GA on the root domain are handled by eraseGaCookies().
+          cookies: [
+            { name: /^_ga/ },
+            { name: /^_gid/ },
+          ]
+        }
+      },
     },
     language: {
       default: lang in TRANSLATIONS ? lang : 'en',

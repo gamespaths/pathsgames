@@ -1,0 +1,262 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Character Stats Initialization API
+  description: |
+    OpenAPI specification for the **character stats initialization** features
+    introduced in version 0.23.0 (Step 23).
+
+    Step 23 hardens the trait selection performed at character creation
+    (`POST /api/matches` creator loadout and `POST /api/matches/{uuidMatch}/join`):
+
+    * every selected trait uuid must exist in the story (`TRAIT_NOT_FOUND`,
+      previously unknown uuids were silently ignored);
+    * a trait cannot be selected twice (`TRAIT_DUPLICATED`);
+    * a trait must be compatible with the selected class —
+      `id_class_permitted` null or equal to the class, `id_class_prohibited`
+      null or different from the class (`TRAIT_NOT_COMPATIBLE`); a
+      permitted-restricted trait is rejected when no class is selected;
+    * the sum of `costPositive` and the sum of `costNegative` over the selected
+      traits must each stay within the difficulty budgets
+      (`TRAIT_COST_EXCEEDED`); a null budget means "no limit".
+
+    All four violations are returned as **HTTP 400** with the error code in the
+    `error` field, on both endpoints.
+
+    The difficulty payload (story detail `difficulties[]`) is additively
+    extended with `traitCostPositiveBudget` and `traitCostNegativeBudget`
+    (nullable integers). A new public endpoint lists the traits of a story
+    selectable with a given class.
+
+    The final starting statistics are unchanged from Step 21:
+    `stat = template.start + class.base + difficulty.delta + Σ trait.delta +
+    Σ class_bonus`; life and energy start at their computed maximum and the
+    character is placed at the story start location.
+
+    All four backend implementations (Java, Python, AWS Lambda) honour this
+    contract. The Java backend is the reference.
+  version: 0.23.0
+  contact:
+    name: Paths Games
+    url: https://paths.games
+  license:
+    name: GPL v3
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development server (public/player API)
+
+tags:
+  - name: Stories
+    description: Public story content endpoints
+  - name: Player Characters
+    description: Player-facing character endpoints
+
+paths:
+  /api/stories/{uuidStory}/classes/{uuidClass}/traits:
+    get:
+      tags: [Stories]
+      summary: List the story traits selectable with a class
+      description: |
+        Returns the traits of the story that can be selected together with the
+        given class: a trait is included when `idClassPermitted` is null or
+        equals the class and `idClassProhibited` is null or differs from the
+        class. Public endpoint (no authentication), like the other story
+        content endpoints.
+      operationId: listTraitsForClass
+      parameters:
+        - name: uuidStory
+          in: path
+          required: true
+          description: The story uuid
+          schema:
+            type: string
+        - name: uuidClass
+          in: path
+          required: true
+          description: The class uuid
+          schema:
+            type: string
+        - name: lang
+          in: query
+          required: false
+          description: Language for text resolution (default `en`)
+          schema:
+            type: string
+            default: en
+      responses:
+        '200':
+          description: Array of selectable traits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TraitInfo'
+        '404':
+          description: '`STORY_NOT_FOUND` / `CLASS_NOT_FOUND`'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/matches/{uuidMatch}/join:
+    post:
+      tags: [Player Characters]
+      summary: Join a match and instantiate a character (Step 23 trait validation)
+      description: |
+        Same contract as version 0.21.0, extended with strict trait selection
+        validation. The trait uuids (from the body, or from the match loadout
+        when the body omits them) are validated before any row is persisted.
+      operationId: joinMatchV23
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          description: The match uuid
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinMatchRequest'
+      responses:
+        '201':
+          description: Character created (see v0.21.0 `CharacterInstance`)
+        '400':
+          description: >-
+            `INVALID_INPUT` / `TRAIT_NOT_FOUND` / `TRAIT_DUPLICATED` /
+            `TRAIT_NOT_COMPATIBLE` / `TRAIT_COST_EXCEEDED`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: '`USER_BANNED`'
+        '404':
+          description: '`MATCH_NOT_FOUND` / `TEMPLATE_NOT_FOUND` / `CLASS_NOT_FOUND` / `USER_NOT_FOUND`'
+        '409':
+          description: '`ALREADY_JOINED` / `CLASS_NOT_COMPATIBLE` / `MATCH_NOT_JOINABLE`'
+
+  /api/matches:
+    post:
+      tags: [Player Characters]
+      summary: Create a match (Step 23 trait validation on the creator loadout)
+      description: |
+        Same contract as version 0.19.0/0.21.0; the optional creator loadout
+        (`characterTemplateUuid`, `classUuid`, `traitUuids`) is now validated:
+        the trait rules described above run against the selected class and the
+        selected difficulty budgets before the match is persisted.
+      operationId: createMatchV23
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Match created (see v0.19.0 `MatchSummary`)
+        '400':
+          description: >-
+            `INVALID_INPUT` / `STORY_HAS_NO_LOCATIONS` /
+            `TURNSTILE_VALIDATION_FAILED` / `TRAIT_NOT_FOUND` /
+            `TRAIT_DUPLICATED` / `TRAIT_NOT_COMPATIBLE` / `TRAIT_COST_EXCEEDED`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid Bearer token
+        '403':
+          description: '`USER_BANNED`'
+        '404':
+          description: '`STORY_NOT_FOUND` / `DIFFICULTY_NOT_FOUND` / `USER_NOT_FOUND`'
+        '503':
+          description: '`MAINTENANCE_MODE`'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    JoinMatchRequest:
+      type: object
+      description: |
+        All fields optional. Omitted fields fall back to the loadout stored on
+        the match at creation time.
+      properties:
+        characterTemplateUuid:
+          type: string
+          nullable: true
+        classUuid:
+          type: string
+          nullable: true
+        traitUuids:
+          type: array
+          items:
+            type: string
+    TraitInfo:
+      type: object
+      description: Trait detail with costs, class restrictions and stat deltas
+      properties:
+        uuid:
+          type: string
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        costPositive:
+          type: integer
+          description: Counts toward the difficulty `traitCostPositiveBudget`
+        costNegative:
+          type: integer
+          description: Counts toward the difficulty `traitCostNegativeBudget`
+        idClassPermitted:
+          type: integer
+          nullable: true
+        idClassProhibited:
+          type: integer
+          nullable: true
+        life:
+          type: integer
+        energy:
+          type: integer
+        sad:
+          type: integer
+        dexterity:
+          type: integer
+        intelligence:
+          type: integer
+        constitution:
+          type: integer
+        weight:
+          type: integer
+    DifficultyBudgetExtension:
+      type: object
+      description: |
+        Additive extension of the story-detail difficulty payload (Step 23).
+      properties:
+        traitCostPositiveBudget:
+          type: integer
+          nullable: true
+          description: Max Σ costPositive over the selected traits; null = no limit
+        traitCostNegativeBudget:
+          type: integer
+          nullable: true
+          description: Max Σ costNegative over the selected traits; null = no limit
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable detail

@@ -19,6 +19,8 @@ public class MatchDetail {
     private List<MatchRegistryEntry> registry = new ArrayList<>();
     private List<MatchEventOption> events = new ArrayList<>();
     private List<MatchEventOption> choices = new ArrayList<>();
+    private List<CharacterInstanceInfo> players = new ArrayList<>();
+    private List<LocationInfo> locationsActive = new ArrayList<>();
 
     public MatchDetail() {
     }
@@ -53,5 +55,15 @@ public class MatchDetail {
     public List<MatchEventOption> getChoices() { return choices; }
     public void setChoices(List<MatchEventOption> choices) {
         this.choices = choices != null ? choices : new ArrayList<>();
+    }
+
+    public List<CharacterInstanceInfo> getPlayers() { return players; }
+    public void setPlayers(List<CharacterInstanceInfo> players) {
+        this.players = players != null ? players : new ArrayList<>();
+    }
+
+    public List<LocationInfo> getLocationsActive() { return locationsActive; }
+    public void setLocationsActive(List<LocationInfo> locationsActive) {
+        this.locationsActive = locationsActive != null ? locationsActive : new ArrayList<>();
     }
 }

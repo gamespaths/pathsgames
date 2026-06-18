@@ -28,7 +28,7 @@ vi.mock('../context/ServerContext', () => ({
 }))
 
 const mockOpenGuestModal = vi.fn()
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({
     user: { userUuid: 'mock-uuid-0001', username: 'guest_mock0001' },
     loading: false,

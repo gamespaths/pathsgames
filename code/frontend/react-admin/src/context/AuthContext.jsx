@@ -17,8 +17,8 @@ const getServers = () => {
     }
   }
   return [
-    { label: 'Local (8042)', url: 'http://localhost:8042' },
-    { label: 'Local (8080)', url: 'http://localhost:8080' },
+    { label: 'Local Admin (8044)', url: 'http://localhost:8044' },
+    { label: 'Local Player (8042)', url: 'http://localhost:8042' },
   ]
 }
 
@@ -28,16 +28,16 @@ export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(() => localStorage.getItem(STORAGE_KEY) || '')
   const [server, setServerState] = useState(() => normalizeUrl(localStorage.getItem(SERVER_KEY)) || DEFAULT_SERVERS[0].url)
 
-  const login = useCallback((jwt) => {
-    // Sanitize token: ensure it's a string and remove any characters that shouldn't be in a JWT/token
-    // to prevent browser storage poisoning.
-    if (typeof jwt === 'string') {
-      const sanitized = jwt.replace(/[^\w\.\-\_\/]/g, '').trim()
-      if (sanitized) {
-        setTokenState(sanitized)
-        localStorage.setItem(STORAGE_KEY, sanitized)
-      }
-    }
+  const login = useCallback((rawJwt) => {
+    // Validate the token as three base64url segments and rebuild it from the
+    // matched groups, so only sanitized data is written to browser storage —
+    // prevents storage poisoning (jssecurity:S8475), mirroring changeServer().
+    if (typeof rawJwt !== 'string') return
+    const match = rawJwt.trim().match(/^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/)
+    if (!match) return
+    const safeToken = `${match[1]}.${match[2]}.${match[3]}`
+    setTokenState(safeToken)
+    localStorage.setItem(STORAGE_KEY, safeToken)
   }, [])
 
   const logout = useCallback(() => {

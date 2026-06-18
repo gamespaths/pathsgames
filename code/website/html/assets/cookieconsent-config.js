@@ -3,6 +3,14 @@
  * Consent Mode v2: Google Tag Manager / Analytics tags stay denied (defaults set
  * inline in index.html, before GTM) until the analytics category is accepted. */
 (function () {
+  // GA sets cookies on the root registrable domain (.paths.games) even from subdomains.
+  // The library's autoClear only tries the current hostname, so compute root and erase explicitly.
+  function eraseGaCookies() {
+    var parts = window.location.hostname.split('.');
+    var rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : window.location.hostname;
+    window.CookieConsent.eraseCookies([/^_ga/, /^_gid/], '/', rootDomain);
+  }
+
   function updateGtagConsent() {
     if (typeof window.gtag !== 'function') return;
     var granted = window.CookieConsent.acceptedCategory('analytics');
@@ -12,6 +20,14 @@
       ad_user_data: granted ? 'granted' : 'denied',
       ad_personalization: granted ? 'granted' : 'denied'
     });
+
+    // When analytics is rejected, explicitly erase GA cookies from the root domain.
+    if (!granted) eraseGaCookies();
+
+    // Trigger a GTM event so tags can fire immediately after consent update.
+    if (window.dataLayer) {
+      window.dataLayer.push({ event: 'consent_update' });
+    }
   }
 
   // "Cookie settings" control in the policy modal reopens the preferences (no
@@ -33,7 +49,15 @@
     },
     categories: {
       necessary: { enabled: true, readOnly: true },
-      analytics: {}
+      analytics: {
+        autoClear: {
+          // Covers cookies on current hostname; root-domain GA cookies handled by eraseGaCookies().
+          cookies: [
+            { name: /^_ga/ },
+            { name: /^_gid/ }
+          ]
+        }
+      }
     },
     language: {
       default: 'en',

@@ -1,0 +1,213 @@
+"""Tests for StoryValidatorService (Step 22)."""
+from unittest.mock import MagicMock
+
+import pytest
+
+from app.core.services.story.story_validator_service import StoryValidatorService
+
+
+def validator():
+    return StoryValidatorService(MagicMock())
+
+
+def valid_story():
+    return {
+        "uuid": "story-valid",
+        "idLocationStart": 1,
+        "locations": [{"id": 1}, {"id": 2}],
+        "events": [{"id": 1}, {"id": 2, "idEventNext": 1}],
+        "items": [{"id": 1}],
+        "classes": [{"id": 1}],
+        "keys": [{"name": "CHAPTER", "value": "1"}],
+        "choices": [{"id": 1, "idEvent": 1, "otherwiseFlag": 1}],
+        "locationNeighbors": [{"id": 1, "idLocationFrom": 1, "idLocationTo": 2, "direction": "N"}],
+    }
+
+
+def rules(report):
+    return {e.rule for e in report.errors}
+
+
+def test_valid_story_passes():
+    assert validator().validate_import_data(valid_story()).is_valid()
+
+
+def test_empty_reported():
+    assert not validator().validate_import_data(None).is_valid()
+    assert not validator().validate_import_data({}).is_valid()
+
+
+def test_dangling_location_start():
+    s = valid_story()
+    s["idLocationStart"] = 99
+    assert not validator().validate_import_data(s).is_valid()
+
+
+def test_zero_reference_is_none():
+    s = valid_story()
+    s["idLocationAllPlayerComa"] = 0
+    s["idEventAllPlayerComa"] = -1
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_neighbor_missing_location():
+    s = valid_story()
+    s["locationNeighbors"] = [{"id": 1, "idLocationFrom": 1, "idLocationTo": 77, "direction": "N"}]
+    assert not validator().validate_import_data(s).is_valid()
+
+
+def test_neighbor_self_loop():
+    s = valid_story()
+    s["locationNeighbors"] = [{"id": 1, "idLocationFrom": 1, "idLocationTo": 1, "direction": "N"}]
+    assert "R2_NEIGHBOR_SELF" in rules(validator().validate_import_data(s))
+
+
+def test_neighbor_blank_direction():
+    s = valid_story()
+    s["locationNeighbors"] = [{"id": 1, "idLocationFrom": 1, "idLocationTo": 2, "direction": ""}]
+    assert "R2_NEIGHBOR_DIR" in rules(validator().validate_import_data(s))
+
+
+def test_neighbor_duplicate_direction():
+    s = valid_story()
+    s["locationNeighbors"] = [
+        {"id": 1, "idLocationFrom": 1, "idLocationTo": 2, "direction": "N"},
+        {"id": 2, "idLocationFrom": 1, "idLocationTo": 1, "direction": "N"},
+    ]
+    assert "R2_NEIGHBOR_DUP" in rules(validator().validate_import_data(s))
+
+
+def test_event_refers_missing_location():
+    s = valid_story()
+    s["events"] = [{"id": 1, "idSpecificLocation": 50}]
+    assert not validator().validate_import_data(s).is_valid()
+
+
+def test_event_chain_cycle():
+    s = valid_story()
+    s["events"] = [{"id": 1, "idEventNext": 2}, {"id": 2, "idEventNext": 1}]
+    assert "R3_EVENT_CYCLE" in rules(validator().validate_import_data(s))
+
+
+def test_event_self_cycle():
+    s = valid_story()
+    s["events"] = [{"id": 1, "idEventNext": 1}]
+    assert "R3_EVENT_CYCLE" in rules(validator().validate_import_data(s))
+
+
+def test_long_acyclic_chain_passes():
+    s = valid_story()
+    s["events"] = [{"id": 1, "idEventNext": 2}, {"id": 2, "idEventNext": 3}, {"id": 3}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_choice_without_option_or_otherwise():
+    s = valid_story()
+    s["choices"] = [{"id": 1, "idEvent": 1, "otherwiseFlag": 0}]
+    assert "R4_CHOICE_EMPTY" in rules(validator().validate_import_data(s))
+
+
+def test_choice_with_effect_passes():
+    s = valid_story()
+    s["choices"] = [{"id": 1, "idEvent": 1, "otherwiseFlag": 0}]
+    s["choiceEffects"] = [{"id": 1, "idChoices": 1}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_choice_refers_missing_event():
+    s = valid_story()
+    s["choices"] = [{"id": 1, "idEvent": 88, "otherwiseFlag": 1}]
+    assert not validator().validate_import_data(s).is_valid()
+
+
+def test_condition_unknown_key():
+    s = valid_story()
+    s["choiceConditions"] = [{"id": 1, "idChoices": 1, "type": "KEY", "key": "MISSING"}]
+    assert "R4_CONDITION_KEY" in rules(validator().validate_import_data(s))
+
+
+def test_condition_known_key_passes():
+    s = valid_story()
+    s["choiceConditions"] = [{"id": 1, "idChoices": 1, "type": "KEY", "key": "chapter"}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_item_refers_missing_class():
+    s = valid_story()
+    s["items"] = [{"id": 1, "idClassPermitted": 9}]
+    assert not validator().validate_import_data(s).is_valid()
+
+
+def test_template_negative_stat():
+    s = valid_story()
+    s["characterTemplates"] = [{"id": 1, "lifeMax": 10, "energyMax": 10, "dexterityStart": -3}]
+    assert "R6_STAT_RANGE" in rules(validator().validate_import_data(s))
+
+
+def test_template_permitted_equals_prohibited():
+    s = valid_story()
+    s["characterTemplates"] = [{"id": 1, "lifeMax": 10, "energyMax": 10,
+                                "idClassPermitted": 1, "idClassProhibited": 1}]
+    assert "R6_CLASS_CONFLICT" in rules(validator().validate_import_data(s))
+
+
+def test_mission_step_missing_mission():
+    s = valid_story()
+    s["missionSteps"] = [{"id": 1, "idMission": 5}]
+    assert not validator().validate_import_data(s).is_valid()
+
+
+# ----- entity-local (lenient CRUD) -----
+
+def test_forward_class_reference_allowed():
+    assert validator().validate_entity("items", {"id": 1, "idClassPermitted": 999}).is_valid()
+
+
+def test_bad_stat_range_rejected():
+    assert not validator().validate_entity("character-templates", {"id": 1, "lifeMax": -5, "energyMax": 10}).is_valid()
+
+
+def test_class_conflict_rejected():
+    assert not validator().validate_entity("traits", {"id": 1, "idClassPermitted": 3, "idClassProhibited": 3}).is_valid()
+
+
+def test_difficulty_range_rejected():
+    assert not validator().validate_entity("difficulties", {"id": 1, "minCharacter": 4, "maxCharacter": 2}).is_valid()
+
+
+def test_unknown_entity_type_is_valid():
+    assert validator().validate_entity("locations", {"id": 1}).is_valid()
+    assert validator().validate_entity(None, {"id": 1}).is_valid()
+
+
+# ----- validate_story via read port (snake_case rows) -----
+
+def test_validate_story_null_id():
+    assert not validator().validate_story(None).is_valid()
+
+
+def test_validate_story_broken_choice_event_from_db():
+    rp = MagicMock()
+    rp.find_locations_for_story.return_value = [{"id": 1}]
+    rp.find_events_for_story.return_value = [{"id": 1}]
+    rp.find_items_for_story.return_value = []
+    rp.find_classes_for_story.return_value = []
+    rp.find_class_bonuses_for_story.return_value = []
+    rp.find_traits_for_story.return_value = []
+    rp.find_character_templates_for_story.return_value = []
+
+    def entities(_sid, table):
+        if table == "list_choices":
+            return [{"id": 1, "id_event": 55, "otherwise_flag": 1}]  # snake_case + dangling event
+        return []
+
+    rp.find_entities_for_story.side_effect = entities
+    report = StoryValidatorService(rp).validate_story(7)
+    assert not report.is_valid()
+    assert any(e.field_name == "idEvent" for e in report.errors)
+
+
+def test_validate_story_by_uuid_not_found():
+    rp = MagicMock()
+    rp.find_story_by_uuid.return_value = None
+    assert StoryValidatorService(rp).validate_story_by_uuid("ghost") is None

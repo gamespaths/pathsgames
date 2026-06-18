@@ -1,6 +1,6 @@
 # Paths Games - AWS Serverless Backend
 
-Welcome to the **Serverless** version of the Paths Games backend! This project offers a high-performance, scalable, and extremely cost-effective alternative to traditional backends (Java/Python/PHP) based on relational databases.
+Welcome to the **Serverless** version of the Paths Games backend! This project offers a high-performance, scalable, and extremely cost-effective alternative to traditional backends (Java & Python) based on relational databases.
 
 ## 🚀 Architecture 
 
@@ -179,11 +179,11 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ### v0.19.4 — difficulties/classes/traits idTextName/idTextDescription cross-backend consistency
 
-- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `difficulties`, `classes`, and `traits` DynamoDB items. Previously these FK integers were discarded on import for all three entities, making the AWS backend inconsistent with Java (`list_stories_difficulty`, `list_classes`, `list_traits` all have `id_text_name`/`id_text_description` columns via `BaseStoryEntity`), Python, and PHP. The other inline-built entities (`characterTemplates`) were fixed in the same release (see below); pass-through entities built via `_assign_ids` already preserved all fields and did not need changes.
+- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `difficulties`, `classes`, and `traits` DynamoDB items. Previously these FK integers were discarded on import for all three entities, making the AWS backend inconsistent with Java (`list_stories_difficulty`, `list_classes`, `list_traits` all have `id_text_name`/`id_text_description` columns via `BaseStoryEntity`), Python. The other inline-built entities (`characterTemplates`) were fixed in the same release (see below); pass-through entities built via `_assign_ids` already preserved all fields and did not need changes.
 
 ### v0.19.4 — character_templates idTextName/idTextDescription cross-backend consistency
 
-- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `characterTemplates` DynamoDB item, alongside the existing `texts` dict. Previously these FK integers were discarded on import, making the AWS backend inconsistent with Java, Python, and PHP (all of which store `id_text_name`/`id_text_description` in `list_character_templates`).
+- **`lambda/story/handler.py`** (`_build_full_story`): `import_story` now persists `idTextName` and `idTextDescription` as raw integer fields on the `characterTemplates` DynamoDB item, alongside the existing `texts` dict. Previously these FK integers were discarded on import, making the AWS backend inconsistent with Java, Python, and AWS (all of which store `id_text_name`/`id_text_description` in `list_character_templates`).
 - **Robot**: `14_admin/story_import.robot` — "Import Explicit ID For list_character_templates Returns 201" extended to include `idCard`, `idTextName`, `idTextDescription` in the payload. New test "Import list_character_templates Round-Trips idTextName And idTextDescription" imports a story with a character template, reads it back via `GET /api/admin/stories/{uuid}/character-templates`, and asserts all three FK fields are present — validates consistency across all four backends.
 
 ### v0.19.4 — Bug fix: card urlImage/imageUrl key normalization
@@ -216,6 +216,10 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 - Story admin CRUD (create, update, delete) via `StoryFunction`.
 - Robot Framework suites `14_admin`, `15_story_content`, `16_content_detail`, `17_admin_crud` verified against AWS endpoint.
+
+
+
+
 
 # < Paths Games />
 

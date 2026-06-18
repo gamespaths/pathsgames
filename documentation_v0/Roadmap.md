@@ -32,12 +32,17 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 17 | [Story Admin Endpoints](./Step17_StoryAdminCRUD.md) | ✅ | Story admin CRUD endpoints, admin web interface |
 | 18 | [Stories catalog](./Step18_GameMainFrontend.md) | ✅ | Story catalog page displaying stories |
 | 19 | [Match creation](./Step19_SinglePlayerMatchCreation.md) | ✅ | Single player match creation & [Admin Match Utils](./Step19_SinglePlayerMatchUtils.md) |
-| 20 | [WebSite on Cloud](./Step20_GameWebSiteFirstRun.md) | ✅ | Website configuration on Cloud with cookies configuration (AWS-CloudFront & ClaudeFlare) |
+| 20 | [Game first run](./Step20_GameWebSiteFirstRun.md) | ✅ | Game web site first run |
+| 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
+| 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
+| 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
+| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
+| 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
 
 
 | Steps | Phase |
 | -- | -- |
-| 21-24 | Single-player match setup (create, character select, traits, frontend UI) |
+| 22-24 | Single-player match setup (story validation, traits, frontend UI) |
 | 25-27 | Core engine (turn cycle, time system, weather) |
 | 28-32 | Game mechanics — movement, events, choices |
 | 33-37 | Game mechanics — inventory, resources, registry, missions, experience |
@@ -65,57 +70,22 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
-21. Character template and class selection
-    - Implement GET /match/{uuid_match}/players endpoint listing players/characters with avatar, state, and classes (backend)
-    - Implement GET /match/{uuid_match}/characters/{uuid_character} endpoint returning character details with all statistics (backend)
-    - Validate character template belongs to the story and class is compatible with selected template (backend)
-    - Create gaming_character_instance record with base stats from template, apply class stat bonuses (backend)
-    - Initialize gaming_backpack_resources with default values from difficulty settings (backend)
-    - Implement POST /matches/{uuid_match}/join endpoint to join a match and select character (backend)
-    - Write backend unit tests for character selection covering template/class validation, stat calculations, and conflicts (backend tests)
-22. Story validation and integrity checking
-    - Implement story validator service checking referential integrity across all story entities (backend)
-    - Validate all location neighbors reference existing locations with consistent directions (backend)
-    - Validate all events reference valid locations, items, and choices; verify event chains have no cycles (backend)
-    - Validate all choices have at least one option or an otherwise fallback; verify conditions reference valid keys (backend)
-    - Validate character templates have valid stat ranges and classes have defined bonuses (backend)
-    - Integrate validation into story import and admin CRUD operations to prevent saving invalid story data (backend)
-    - Write backend unit tests for all validation rules covering valid stories, broken references, and edge cases (backend tests)
-23. Character traits and stats initialization
-    - Implement trait listing for selected class filtered by id_class_permitted and id_class_prohibited (backend)
-    - Assign traits during character creation (within POST /matches and POST /matches/{uuid_match}/join flow) (backend)
-    - Validate trait cost limits based on difficulty (positive/negative cost budget) and class restrictions (backend)
-    - Calculate final starting stats: base template + class bonuses + trait adjustments (backend)
-    - Persist gaming_character_traits records and finalize gaming_character_instance with computed stats (backend)
-    - Set character initial location to story start location and energy/life to maximum values (backend)
-    - Write backend unit tests for trait selection, cost validation, stat computation, and initialization edge cases (backend tests)
-24. Frontend: Match creation and character selection UI
-    - Build match creation page with story selector, difficulty picker, and "Create Match" button (frontend)
-    - Build character template selection screen displaying templates as collectible cards with stats preview (frontend)
-    - Build class selection screen showing class bonuses, stat modifiers, and available traits (frontend)
-    - Build trait selection screen with cost budget indicator, class compatibility filters, and stat preview (frontend)
-    - Build character summary/confirmation screen showing final stats, inventory, and starting location (frontend)
-    - Integrate match and character APIs with state management, handle loading and validation errors (frontend)
-    - Write frontend unit tests for all selection screens, stat calculations display, and API integration (frontend tests)
-25. Turn cycle engine for single-player
-    - Implement turn priority calculation: (DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + CHARACTER_ID (backend)
-    - Initialize gaming_turn_queue on match start with calculated priorities and timestamps (backend)
-    - Implement POST /matches/{uuid_match}/start endpoint to transition match from CREATED to RUNNING (backend)
-    - Implement turn state machine: WAITING → ACTIVE → COMPLETED, tracking current turn in gaming_match (backend)
-    - Implement POST /gameplay/{uuid_match}/action/pass endpoint for voluntary turn pass without energy cost (backend)
-    - Implement GET /match/{uuid_match}/turn-sequence endpoint returning turn queue with all details and status (backend)
-    - Write backend unit tests for priority calculation, turn queue initialization, state transitions, and pass logic (backend tests)
-26. Time advancement system — sleep, recovery, new time
-    - Implement time advancement trigger: advance when character has zero energy or voluntarily sleeps (backend)
-    - Implement POST /gameplay/{uuid_match}/action/sleep endpoint for voluntary sleep action (backend)
-    - Apply time-start recovery: safe location gives DES+P energy, COS+P life, minus INT+P sadness; unsafe gives DES energy only (backend)
-    - Apply class bonuses at time start from list_classes_bonus for each character (backend)
-    - Decrement location time counters and trigger id_event_if_counter_zero when counter reaches zero (backend)
-    - Update gaming_match.current_clock, create log_clock_history record, recalculate turn queue (backend)
-    - Write backend unit tests for time advancement covering safe/unsafe recovery, class bonuses, counter events, and clock update (backend tests)
+
+
+26. Time-start recovery, class bonuses & location counters
+    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. P is . Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
+    - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: energy≤energy_max, life≤life_max, sadness≤sad_max, life≥0 (backend)
+    - Decrement location time counters at time start; when a counter reaches zero, log it and flag id_event_if_counter_zero for execution — actual event execution is wired in Step 29 (stub now) (backend)
+    - Create log records for recovery and counter changes; extend the clock/turn-sequence response with a per-character recovery summary (energy/life/sadness delta) (backend)
+    - Frontend: "new time" recap panel in react-game showing per-character recovery deltas and any counter-triggered notices; refresh energy/life/sadness bars after time start (frontend)
+    - Backend + frontend unit tests: safe/unsafe recovery math, stat caps, class-bonus application, counter decrement + zero handling (stub), recovery recap rendering (tests)
+
+
+
 27. Weather system — random selection and effects
+    - 4. Determinismo per i test. Weather (27) e global random events (65) usano probabilità. Inietta un RNG seedabile fin da subito, altrimenti le suite Robot su meteo/eventi saranno flaky.
     - Implement weather selection algorithm using probability weights, registry conditions, and time range filters (backend)
-    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend)
+    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend): maybe already developed! 
     - Apply weather energy delta to characters at time start (delta_energy field) (backend)
     - Trigger weather-linked events when weather has id_event configured (backend)
     - Store weather in gaming_match.id_current_weather and create log_weather history record (backend)
@@ -135,6 +105,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement AUTOMATIC_FIRST_IN_LOCATION trigger when character enters empty location (no other characters present) (backend)
     - Execute event effects: modify stats, add/remove items, update registry, change character location (backend)
     - Handle event chaining via id_event_next with interrupt flag to stop subsequent events (backend)
+    - Implements/execute events runned from zero-counter developed on 26 step and execute event. 
     - Update gaming_state_locations to mark location as visited and log event execution in log_events (backend)
     - Write backend unit tests for all automatic trigger types, event effects, chaining, interrupts, and state updates (backend tests)
 30. Optional events — player-triggered actions
@@ -225,14 +196,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Validate snapshot integrity against current schema version before restoration (backend)
     - Build frontend admin snapshot viewer with list, details, and restore action (frontend)
     - Write backend unit tests for snapshot creation, serialization, restoration, integrity validation, and listing (backend tests)
-41. Frontend: Single-player game board and gameplay UI
-    - Build main game board layout: top (weather, clock, character card), center (location grid with actions), bottom (character book) (frontend)
-    - Build location card component showing name, description, image, available events, and neighbor directions (frontend)
-    - Build event/choice interaction modals displaying narrative text, options, and effect previews (frontend)
-    - Build character stats panel showing energy, life, sadness, DES/INT/COS, experience, and trait badges (frontend)
-    - Build inventory panel with item cards, resource counters, weight indicator, and use/discard actions (frontend)
-    - Build mission sidebar showing active missions as cards with step indicators and registry highlights (frontend)
-    - Write frontend unit tests for all game board components, interaction flows, stat displays, and state management (frontend tests)
+41. Security updates
+    - Rate Limiting: user and match creation limits, into API creation guest user and creation match , add limit 10 creation for source IP
+    - XSS risk: on react-game when used dangerouslySetInnerHTML, use DOMPurify to remove scripts from backend (avoid administrators/source add malevolous script from react-admin to game components)
+    - CSRF (Cross-Site Request Forgery) and SameSite, implement CSRF Token for creation match API (using X-CSRF-TOKEN)
 42. Launch beta version with guest and single-player game
     - Verify all single-player features: match creation, character setup, full turn cycle, events, choices, inventory, missions (all)
     - Run complete playthrough of test story from start to finish, document and fix all blocking bugs (all)
@@ -241,7 +208,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Configure beta environment DNS, HTTPS, and basic monitoring health checks (infra)
     - Run smoke tests on beta environment: guest login, story selection, match creation, gameplay cycle (all)
     - Write release notes documenting beta features, known limitations, and feedback collection process (docs)
-
+    
 
 
 ## PHASE 2 — Multiplayer Game with Credential Login (Steps 43-84)
@@ -391,6 +358,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
     - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
 61. Multiplayer turn cycle — turn order and active player
+    - Turn cycle engine for multi-player (see step 24)
     - Extend turn engine to manage multiple characters with priority-based ordering in gaming_turn_queue (backend)
     - Track current active character in gaming_match.id_character_current_turn and broadcast changes (backend)
     - Implement turn advancement: move to next character in queue when current turn completes (backend)
@@ -739,7 +707,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 - Second version created with AI prompt:
     > next step must be from 12 to 42, number 12 should be start develop login method to guess users, number 33 should be registrazion user, 34 single sign on with google, 42 is launch the game with v1 version. rewrite all point fron 12 to 42.
 - Steps are developed with prompt:
-    > read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). read code/website/html folder for last version of public website. don't look and don't change backend-python and backend-php. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
+    > read all documentation md files inside documentation_v0 folder, i wanna to run step XX: write all java backend code into code/backend project using JPA, complete all unit-test using mokito to cover 100% of branches-case, create a simple web example to use new interfaces inside new code/website/concepts_v0/v0.XX.0/ folder, write new md file inside documentation_v0 folder with all details, write a section with (endpoint apis, DTO, roles, tables, test cases and business logic). read code/website/html folder for last version of public website. don't look and don't change backend-python. write openapi documentation into /mnt/Dati4/Workspace/pathsgames/code/backend/adapter-rest/src/main/resources/openapi folder with new/changed api. let's go
 - Update steps list with prompt:
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
@@ -758,7 +726,22 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.11.1 | expanded roadmap from 30 to 42 steps, Version 1 launch at step number 42 | March 24, 2026 |
     | 0.14.1 | expanded roadmap from 42 to 101 steps with 3 phases: single-player beta (42), multiplayer (43-84), testing and V1 launch (85-101). All steps now have 7 subpoints covering backend, frontend, and unit tests | April 9, 2026 |
     | 0.19.2 | added step 19.1 (dev test-data cleanup) and step 19.2 (admin match control) to completed steps table | May 21, 2026 |
-- **Last Updated**: May 21, 2026
+    | 0.20.5 | added Step 20a (admin endpoint split / port 8044 / AWS admin API + IP authorizer) to completed steps table | June 4, 2026 |
+    | 0.20.9 | added Step 20 (EC2 Docker deploy via DockerHub, DNS/CloudFront, CORS fix, echo env, multi-lang import fix) | June 5, 2026 |
+    | 0.21.0 | added Step 21 character template & class selection (join/players/character endpoints across all backends + admin MatchDetailPage + react-game auto-join) | June 9, 2026 |
+    | 0.23.1 | added new frontend `python-flask-game` (Flask + Jinja2 SSR alternative to react-game, port 5099, mock + live backend mode, 35 pytest tests) | June 11, 2026 |
+    | 0.23.1 | Node.js backend reaches full API parity (stages 0–5): Prisma schema reworked with StoryText/StoryClass/Trait/CharacterTemplate/CharacterInstance; StoryImportService full graph persistence; content detail APIs (suite 16); story validation engine (suite 22); character join + stats initialization (suite 21/23); trait cost-budget enforcement; tsc 0 errors, 20/20 jest tests | June 11, 2026 |
+    | 0.23.1 | Fix run_robot_with_local_node.sh: added `docker-compose build --no-cache app` before `docker-compose up -d` to prevent stale image reuse after schema/seed changes (silent seed failure was causing 186/288 Robot failures) | June 12, 2026 |
+    | 0.23.1 | Node.js backend migrated from cuid-based schema to the documented relational `list_*` model (same as Java/Python): 32 Prisma models with `@@map` snake_case table names, composite PK `@@id([id, idStory])`, integer IDs, auth on `users`/`users_tokens`, gaming on `gaming_match`/`gaming_character_instance`; `prisma db push --accept-data-loss` + seed on container startup; 288/288 Robot tests pass | June 12, 2026 |
+    | 0.23.1 | Removed php and node backend projects and removed flask frontend projects | June 12, 2026 |
+    | 0.24.0 | Added Step 24 planning document (Turn Cycle Engine): priority formula, match start endpoint, pass action, turn-sequence query; full implementation plan for Java/Python/AWS/React-Game/React-Admin/Robot | June 12, 2026 |
+    | 0.24.0 | Implemented Step 24 Turn Cycle Engine across all backends: `POST /api/matches/{uuid}/start`, `POST /api/gameplay/{uuid}/action/pass`, `GET /api/match/{uuid}/turn-sequence`. Adopted an explicit `status` column on `gaming_turn_queue` (WAITING/ACTIVE/COMPLETED, migration V0.24.0 postgres+sqlite) as lifecycle source of truth; turn timestamps left null. Java (13 unit tests) + Python (17) + AWS Lambda single-table queue (12) green; React-Game TurnPanel + turn-cycle API; React-Admin projected turn-order panel. New Robot suite `24_turn_cycle` (12 tests): Java 300/300 and Python 300/300, no regressions | June 12, 2026 |
+    | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
+    | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
+    | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
+    | 0.27.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.27.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInventoryItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.27.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columns; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+
+- **Last Updated**: June 15, 2026
 - **Status**: In progress
 
 

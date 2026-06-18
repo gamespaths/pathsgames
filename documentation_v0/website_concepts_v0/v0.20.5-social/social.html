@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paths Games — Social Kit v0.20.5</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800&family=Cinzel+Decorative:wght@700&family=Crimson+Text:wght@400;600;700&display=swap');
+
+    :root {
+      --color-parchment: #e8d5b0;
+      --color-parchment-light: #f2e6c8;
+      --color-parchment-dark: #c9b48a;
+      --color-brown-deep: #1a0a02;
+      --color-brown-dark: #2e1508;
+      --color-brown-mid: #5c3317;
+      --color-brown-warm: #7a4520;
+      --color-gold: #c8960a;
+      --color-gold-light: #e8b830;
+      --color-gold-dark: #9a6f08;
+      --color-gold-shine: #ffd700;
+      --font-display: 'Cinzel Decorative', 'Trajan Pro', serif;
+      --font-heading: 'Cinzel', 'Palatino Linotype', serif;
+      --font-body: 'Crimson Text', 'Georgia', serif;
+      --navbar-bg: linear-gradient(120deg, var(--color-brown-deep), var(--color-brown-mid));
+      --story-width: 1080px;
+      --story-height: 1920px;
+      --post-size: 1080px;
+      --shadow-strong: 0 24px 48px rgba(0, 0, 0, 0.6);
+      --shadow-soft: 0 0 20px rgba(232, 184, 48, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(180deg, #120701 0%, #1a0a02 100%);
+      color: var(--color-parchment);
+      font-family: var(--font-body);
+    }
+
+    body {
+      padding: 40px 32px 80px;
+    }
+
+    .page-header {
+      max-width: 1400px;
+      margin: 0 auto 40px;
+      padding: 28px 32px;
+      background: linear-gradient(135deg, rgba(46, 21, 8, 0.96), rgba(26, 10, 2, 0.98));
+      border: 2px solid var(--color-gold-dark);
+      border-radius: 18px;
+      box-shadow: var(--shadow-strong);
+    }
+
+    .page-header h1 {
+      margin: 0 0 10px;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      color: var(--color-gold-light);
+      letter-spacing: 0.05em;
+    }
+
+    .page-header p {
+      margin: 0;
+      color: var(--color-parchment-dark);
+      font-size: 1.15rem;
+      line-height: 1.45;
+    }
+
+    .group {
+      max-width: 1400px;
+      margin: 0 auto 60px;
+    }
+
+    .group-title {
+      margin: 0 0 20px;
+      font-family: var(--font-heading);
+      font-size: 1.7rem;
+      color: var(--color-gold-light);
+      letter-spacing: 0.04em;
+    }
+
+    .group-subtitle {
+      margin: -6px 0 24px;
+      color: var(--color-parchment-dark);
+      font-size: 1rem;
+    }
+
+    .stack {
+      display: grid;
+      gap: 40px;
+    }
+
+    .slide-shell {
+      background: rgba(18, 7, 1, 0.72);
+      border: 1px solid rgba(154, 111, 8, 0.55);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      overflow-x: auto;
+    }
+
+    .slide-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 8px 14px;
+      border: 1px solid var(--color-gold-dark);
+      border-radius: 999px;
+      background: rgba(92, 51, 23, 0.5);
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      color: var(--color-gold-light);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-frame {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(180deg, #281207 0%, #1a0a02 100%);
+      border: 3px solid var(--color-gold-dark);
+      box-shadow: var(--shadow-strong), var(--shadow-soft);
+    }
+
+    .slide {
+      width: var(--story-width);
+      min-height: var(--story-height);
+      border-radius: 36px;
+    }
+
+    .post {
+      width: var(--post-size);
+      min-height: var(--post-size);
+      border-radius: 30px;
+    }
+
+    .social-nav {
+      flex: 0 0 20%;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 64px 38px;
+      background: var(--navbar-bg);
+      border-bottom: 2px solid var(--color-gold-dark);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .post .social-nav {
+      padding: 0 52px 28px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+      color: var(--color-gold-light);
+      text-shadow: 0 0 20px rgba(232, 184, 48, 0.5);
+    }
+
+    .nav-logo {
+      font-size: 4rem;
+      line-height: 1;
+    }
+
+    .post .nav-logo {
+      font-size: 3rem;
+    }
+
+    .nav-text {
+      font-family: var(--font-display);
+      font-size: 2.8rem;
+      line-height: 0.9;
+      letter-spacing: 0.05em;
+      text-transform: lowercase;
+    }
+
+    .post .nav-text {
+      font-size: 2.2rem;
+    }
+
+    .frame-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 56px;
+      padding: 72px 72px 88px;
+    }
+
+    .post .frame-body {
+      gap: 38px;
+      padding: 48px 50px 60px;
+    }
+
+    .title {
+      margin: 0;
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 5rem;
+      line-height: 1.02;
+      color: var(--color-gold);
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    .post .title {
+      font-size: 3.5rem;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      padding: 34px 30px;
+      border: 2px solid rgba(154, 111, 8, 0.75);
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(92, 51, 23, 0.88), rgba(26, 10, 2, 0.96));
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+      text-align: center;
+    }
+
+    .post .feature-card {
+      min-height: 220px;
+      padding: 28px 24px;
+    }
+
+    .feature-card h3 {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      color: var(--color-gold-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .post .feature-card h3 {
+      font-size: 1.55rem;
+    }
+
+    .feature-card p {
+      margin: 0;
+      font-size: 1.85rem;
+      line-height: 1.28;
+      color: var(--color-parchment-light);
+      text-align: center;
+    }
+
+    .post .feature-card p {
+      font-size: 1.35rem;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 78px;
+      min-width: 360px;
+      padding: 16px 36px;
+      border-radius: 12px;
+      border: 2px solid var(--color-gold-dark);
+      background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
+      color: var(--color-brown-deep);
+      font-family: var(--font-heading);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .post .cta {
+      min-height: 66px;
+      min-width: 300px;
+      font-size: 1.3rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <h1>Paths Games — Social Kit v0.20.5</h1>
+    <p>Updated layouts with a site-style navbar, centered titles, two centered feature cards, one centered domain button, and English-only copy.</p>
+  </header>
+
+  <section class="group">
+    <h2 class="group-title">Instagram Stories — 5 slides</h2>
+    <p class="group-subtitle">Vertical layouts for story capture. Each screen follows one consistent promo structure.</p>
+    <div class="stack">
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Story 01 · Hook</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Choose the path.<br>Change the story.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Interactive Chapters</h3><p>Every scene pushes you toward a real decision instead of passive reading.</p></div>
+              <div class="feature-card"><h3>Replay Value</h3><p>New choices unlock new routes, new tension, and new endings worth sharing.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Story 02 · Branching</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">One story world.<br>Many possible outcomes.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Clear Choices</h3><p>Each turn feels immediate, readable, and dramatic on mobile.</p></div>
+              <div class="feature-card"><h3>Visible Consequences</h3><p>Your route changes the rhythm, the danger, and the result of the run.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Story 03 · Shareability</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Perfect for sharing<br>with friends and followers.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Compare Endings</h3><p>Ask your audience what they picked and show how your route changed the finale.</p></div>
+              <div class="feature-card"><h3>Story-Ready Content</h3><p>Every play session becomes a natural post, reaction, poll, or follow-up story.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Story 04 · Worldbuilding</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Built for fantasy lovers<br>and story creators.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Strong Identity</h3><p>Ancient-book mood, dark tones, and gold accents make every screen memorable.</p></div>
+              <div class="feature-card"><h3>Creative Potential</h3><p>Ideal for serialized stories, community choices, and expanding narrative worlds.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Story 05 · Call to action</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Open the site.<br>Take the first step.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Quick to Enter</h3><p>Start fast, read fast, choose fast, and come back for another route.</p></div>
+              <div class="feature-card"><h3>Easy to Remember</h3><p>A simple idea with strong atmosphere: your choices shape the journey.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">TikTok Slides — 5 slides</h2>
+    <p class="group-subtitle">Same visual structure, faster hooks, stronger short-form phrasing.</p>
+    <div class="stack">
+      <article class="slide-shell">
+        <div class="slide-label">TikTok 01 · Fast hook</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">This is not a story<br>you only watch.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>You Decide</h3><p>Every chapter asks for a move that actually changes what happens next.</p></div>
+              <div class="feature-card"><h3>You React</h3><p>The result gives you instant content for clips, comments, and follow-up posts.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">TikTok 02 · Format</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Read it.<br>Choose it.<br>Replay it.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Mobile First</h3><p>Clean pacing and sharp contrast keep every screen easy to capture and post.</p></div>
+              <div class="feature-card"><h3>Short-Form Friendly</h3><p>Fast setup and instant tension make the format perfect for vertical promo.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">TikTok 03 · Comments bait</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Ask your audience:<br>what would you choose?</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Built for Debate</h3><p>Different choices naturally create different opinions, theories, and favorites.</p></div>
+              <div class="feature-card"><h3>Built for Return Visits</h3><p>People come back to test the option they did not take the first time.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">TikTok 04 · Visual identity</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Looks like a fantasy book.<br>Feels like a game.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Medieval Mood</h3><p>Warm parchment, deep brown, and gold highlights give the site instant character.</p></div>
+              <div class="feature-card"><h3>Modern Flow</h3><p>The interface stays fast, focused, and ready for short social attention spans.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">TikTok 05 · End screen</div>
+        <section class="card-frame slide">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">One click opens a world<br>of branching stories.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Playable Promo</h3><p>The site itself becomes the experience, not just the page behind the ad.</p></div>
+              <div class="feature-card"><h3>Strong Recall</h3><p>Simple promise, strong mood, and memorable format make the brand easy to keep in mind.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+    </div>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">Instagram Posts — 2 slides</h2>
+    <p class="group-subtitle">Square promo posts with the same structure for easy screenshot capture.</p>
+    <div class="stack">
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Post 01 · Overview</div>
+        <section class="card-frame post">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Interactive stories<br>made for replay.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Branching Adventures</h3><p>Each decision opens a new direction instead of repeating the same path.</p></div>
+              <div class="feature-card"><h3>Shareable Fantasy</h3><p>Strong visual identity and choice-driven moments make every run worth posting.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+
+      <article class="slide-shell">
+        <div class="slide-label">Instagram Post 02 · Manifest</div>
+        <section class="card-frame post">
+          <div class="social-nav"><div class="nav-brand"><div class="nav-logo">🎲</div><div class="nav-text">paths.game</div></div></div>
+          <div class="frame-body">
+            <h1 class="title">Do not follow the story.<br>Shape it.</h1>
+            <div class="feature-grid">
+              <div class="feature-card"><h3>Immediate Hook</h3><p>Players understand the promise fast: read, choose, and discover a new outcome.</p></div>
+              <div class="feature-card"><h3>Built to Return</h3><p>The second route is always waiting, which keeps the story alive after the first ending.</p></div>
+            </div>
+            <div class="button-row"><div class="cta">pathsgames.com</div></div>
+          </div>
+        </section>
+      </article>
+    </div>
+  </section>
+</body>
+</html>

@@ -22,12 +22,35 @@ Suite Setup    Create Admin Session
 
 
 *** Variables ***
-${DEMO_1_UUID}    a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+${DEMO_1_UUID}        a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d
+${NEW_STORY_UUID}     f0000017-0000-4000-8000-000000000017
 
 
 *** Test Cases ***
 
 # === Story-level CRUD ===
+
+Create Story Returns 201
+    [Documentation]    POST /api/admin/stories with a minimal body creates a story (201);
+    ...                the created story is removed in teardown.
+    [Tags]    admin    crud    step17
+    &{data}=    Create Dictionary    uuid=${NEW_STORY_UUID}    author=robottest_crud
+    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${data}    expected_status=any
+    Status Should Be    ${response}    201
+    Dictionary Should Contain Key    ${response.json()}    uuid
+    ${created}=    Set Variable    ${response.json()}[uuid]
+    Set Test Variable    ${CREATED_STORY_UUID}    ${created}
+    [Teardown]    Run Keyword And Ignore Error
+    ...    DELETE On Session    admin_session    /api/admin/stories/${CREATED_STORY_UUID}
+
+Create Story With Empty Body Returns 400
+    [Documentation]    POST /api/admin/stories with an empty JSON body → 400 EMPTY_IMPORT_DATA.
+    [Tags]    admin    crud    step17
+    &{empty}=    Create Dictionary
+    ${response}=    POST On Session    admin_session    /api/admin/stories    json=${empty}    expected_status=any
+    Status Should Be    ${response}    400
+    ${error}=    Set Variable    ${response.json()}[error]
+    Should Contain Any    ${error}    EMPTY_DATA    EMPTY_IMPORT_DATA
 
 Update Story Returns 200
     [Documentation]    PUT /api/admin/stories/{uuid} with valid data returns 200.

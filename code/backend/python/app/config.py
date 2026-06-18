@@ -9,8 +9,15 @@ _ROOT_ENV = Path(__file__).resolve().parent.parent.parent.parent.parent / ".env"
 class Settings(BaseSettings):
     app_name: str = "paths-game-backend-python"
     env: str = "development"
+    # Bind host for the uvicorn servers. Default loopback for safety in local dev;
+    # in Docker/containers set HOST=0.0.0.0 so the published ports are reachable.
+    host: str = "127.0.0.1"
     port: int = 8042
-    version: str = "0.20.4"
+    # Dedicated admin port. All /api/admin/** endpoints are served here (and ONLY here);
+    # the public app on `port` does not register the admin routers. Lock this port to the
+    # owner IP at the network layer (firewall / security group).
+    admin_port: int = 8044
+    version: str = "0.25.4"
 
 
     # >0.12.5 change version here

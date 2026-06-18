@@ -147,6 +147,23 @@ class MatchQueryServiceTest {
             assertEquals("class-uuid", result.get(0).getClassUuid());
             assertEquals(List.of("t1", "t2"), result.get(0).getTraitUuids());
         }
+
+        @Test
+        @DisplayName("populates storyUuid and difficultyUuid from the match's story")
+        void resolvesStoryAndDifficulty() {
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            when(matchReadPort.findMatchesByUserId(7L))
+                    .thenReturn(List.of(match(1L, "m1", 7L, 2L, 3L)));
+            when(storyReadPort.findAllStories()).thenReturn(List.of(story(2L, "story-uuid", 1)));
+            when(storyReadPort.findDifficultiesByStoryId(2L))
+                    .thenReturn(List.of(difficulty(3L, "diff-uuid")));
+
+            List<MatchSummary> result = service.listUserMatches("u");
+
+            assertEquals(1, result.size());
+            assertEquals("story-uuid", result.get(0).getStoryUuid());
+            assertEquals("diff-uuid", result.get(0).getDifficultyUuid());
+        }
     }
 
     @Nested

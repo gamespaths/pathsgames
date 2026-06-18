@@ -12,7 +12,7 @@
 # Note: the API never exposes the story's idEventEndGame value. The Robot suite
 # only validates the negative paths (401 / 404 / 406) which do not require
 # knowing the actual end-game event uuid; happy-path completion is covered by
-# the backend unit tests in each language (Java/Python/PHP/AWS).
+# the backend unit tests in each language (Java/Python/AWS lambda).
 #
 # Tags: matches, step20
 # ---------------------------------------------------------------------------

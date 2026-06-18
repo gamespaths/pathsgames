@@ -1,0 +1,107 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Turn Cycle Engine API
+  description: |
+    Step 24 — single-player turn cycle engine. Starts a match (CREATED → RUNNING),
+    builds the turn queue with the priority formula
+    `(DEX*3 + INT*2 + COS*1) * 1000 + LIFE*10 + idCharacter`, exposes the queue
+    and lets the active character voluntarily pass its turn.
+  version: 0.24.0
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+tags:
+  - name: turn-cycle
+    description: Single-player turn cycle
+security:
+  - bearerAuth: []
+paths:
+  /api/matches/{uuidMatch}/start:
+    post:
+      tags: [turn-cycle]
+      summary: Start a match (CREATED → RUNNING) and initialise the turn queue
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Match started; turn queue returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TurnSequenceResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND — unknown match or caller is not the creator }
+        '409': { description: MATCH_NOT_STARTABLE (not in CREATED) or NO_CHARACTERS_JOINED }
+  /api/gameplay/{uuidMatch}/action/pass:
+    post:
+      tags: [turn-cycle]
+      summary: Voluntarily pass the active character's turn (no energy cost)
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Turn passed; next active character returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PassTurnResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND }
+        '409': { description: MATCH_NOT_RUNNING or NOT_YOUR_TURN }
+  /api/match/{uuidMatch}/turn-sequence:
+    get:
+      tags: [turn-cycle]
+      summary: Read the turn queue with per-character status
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Turn queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TurnSequenceResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TurnQueueEntryResponse:
+      type: object
+      properties:
+        characterUuid: { type: string }
+        idCharacter: { type: integer, format: int64 }
+        name: { type: string, nullable: true }
+        priority: { type: integer, format: int64 }
+        clock: { type: integer }
+        status: { type: string, enum: [WAITING, ACTIVE, COMPLETED] }
+        passCounter: { type: integer }
+        timestampStart: { type: string, nullable: true }
+        timestampEnd: { type: string, nullable: true }
+    TurnSequenceResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        currentClock: { type: integer }
+        status: { type: string }
+        activeCharacterUuid: { type: string, nullable: true }
+        queue:
+          type: array
+          items: { $ref: '#/components/schemas/TurnQueueEntryResponse' }
+    PassTurnResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        passedCharacterUuid: { type: string }
+        nextActiveCharacterUuid: { type: string }
+        status: { type: string }

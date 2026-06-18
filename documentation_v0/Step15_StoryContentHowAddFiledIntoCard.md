@@ -27,7 +27,7 @@ Before changing any code answer:
 
 ---
 
-## 1. Database schema — Flyway (Java) + flat SQL (PHP)
+## 1. Database schema — Flyway (Java) 
 
 ### 1.1 Java — add a new Flyway migration
 
@@ -60,15 +60,6 @@ ALTER TABLE list_cards ADD COLUMN card_type VARCHAR(50);
 
 Flyway runs migrations automatically at boot, so once the file is on the
 classpath the new column will appear at the next launcher start.
-
-### 1.2 PHP — edit `database.sql`
-
-PHP uses a single non‑migrated schema file:
-
-`code/backend/php/database.sql`
-
-Add the column inline inside the `CREATE TABLE IF NOT EXISTS list_cards (...)`
-statement. Also include it in any seed inserts if you want non‑null demo data.
 
 ### 1.3 Python — SQLAlchemy model
 
@@ -117,16 +108,6 @@ be updated to pass the new positional argument.
 | `core/models/story/card_info.py` | Add field on the `@dataclass` |
 | `adapters/persistence/story/story_persistence_adapter.py` | Add an entry to the `save_cards` field map: `"card_type": "cardType"` |
 
-### 2.3 PHP
-
-| File | Change |
-|---|---|
-| `src/Core/Domain/Story/CardInfo.php` | Add public property in the constructor's promoted‑property list |
-| `src/Adapter/Persistence/Story/StoryMysqlPersistenceRepository.php` | Add column to the `saveCards()` INSERT, to the `:placeholder => $c['cardType']` array, and to the `'list_cards' => [...]` whitelist used by import |
-
-PHP `CardInfo` is constructed positionally in many tests — keep the order
-consistent and patch tests accordingly.
-
 ### 2.4 AWS Lambda
 
 There is no class hierarchy: every handler reads/writes Python dicts. The
@@ -162,14 +143,6 @@ This is the path that resolves a card and returns it in JSON.
 `StoryDetail` / `StorySummary` are dataclasses serialized via `asdict()` —
 they pick up new fields automatically once `CardInfo` has them.
 
-### 3.3 PHP services
-
-`src/Core/Service/Story/ContentQueryService.php` and
-`src/Core/Service/Story/StoryQueryService.php` build `CardInfo` from raw
-arrays — add `$rawCard['card_type'] ?? null` at the right positional slot.
-
-PHP serializes `CardInfo` with `json_encode($card)`, which uses **public
-property names** automatically. Nothing else to wire.
 
 ### 3.4 AWS Lambda
 
@@ -208,11 +181,7 @@ The Python crud service uses generic snake↔camel conversion (see
 `StoryCrudService._convert_to_camel_case`) — no per‑field change needed once
 the column is in the SQLAlchemy model and the persistence mapping.
 
-### 4.3 PHP
 
-The repository INSERT in §2.3 covers create / import. Admin update endpoints
-read the body as an associative array, so PHP also works without extra
-plumbing as long as the column exists.
 
 ### 4.4 AWS
 
@@ -248,7 +217,7 @@ Tests live in `code/tests/robot/tests/`. The card CRUD lives in:
 3. Add the same assertion against the GET response so we test round‑trip
 
 The same suite runs against every backend (Java/SQLite, Java/Postgres,
-Python, PHP, AWS) via the launcher scripts in
+Python, AWS lambda) via the launcher scripts in
 `code/scripts/dev/run_robots/`.
 
 ---
@@ -359,7 +328,6 @@ Use this when adding a new field to the card object:
 
 - [ ] Add column to SQLite Flyway migration
 - [ ] Add column to PostgreSQL Flyway migration (same version number)
-- [ ] Add column to `database.sql` (PHP)
 - [ ] Add column to `models.py` `CardEntity` (Python)
 - [ ] Update Java `CardEntity`, `CardInfo`, `CardInfoResponse`
 - [ ] Update Java `ContentController` + `StoryController` mapping
@@ -367,7 +335,6 @@ Use this when adding a new field to the card object:
 - [ ] Update Java `StoryImportService.importCards`
 - [ ] Update Java `StoryCrudService.toMap` + `applyCardFields`
 - [ ] Update Python `card_info.py`, query services, content controller, persistence map
-- [ ] Update PHP `CardInfo`, query services, persistence repo INSERT
 - [ ] Update AWS `story/handler.py`, `content/handler.py`, `seed/handler.py`
 - [ ] Update 3 OpenAPI yaml files
 - [ ] Update `admin_crud.robot` (round‑trip assertion)
@@ -376,5 +343,24 @@ Use this when adding a new field to the card object:
 - [ ] Update React Game `GameCard.jsx` (if visual / rendered)
 - [ ] Update `Step09` + `Step15` docs and per‑backend README changelogs
 - [ ] Patch the unit tests that use positional constructors
-      (Java `CardInfoResponseTest` / `StoryDetailResponseTest`,
-       PHP `StoryModelsTest` / `ContentControllerTest`)
+      (Java `CardInfoResponseTest` / `StoryDetailResponseTest`)
+
+
+
+## License
+Made with ❤️ by <a href="https://github.com/gamespaths/pathsgames">paths.games dev team</a>
+&bull; 
+Public projects 
+<a href="https://www.gnu.org/licenses/gpl-3.0"  valign="middle"> <img src="https://img.shields.io/badge/License-GPL%20v3-blue?style=plastic" alt="GPL v3" valign="middle" /></a>
+*Free Software!*
+
+
+The software is distributed under the terms of the GNU General Public License v3.0. Use, modification, and redistribution are permitted, provided that any copy or derivative work is released under the same license. The content is provided "as is", without any warranty, express or implied.
+
+
+Narrative Content & Assets: The story, dialogues, characters, sounds, musics, paint, all artist contents and world-building (located on /data folder) are NOT open source. They are licensed under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0).
+
+
+(ITA) Il software è distribuito secondo i termini della GNU General Public License v3.0. L'uso, la modifica e la ridistribuzione sono consentiti, a condizione che ogni copia o lavoro derivato sia rilasciato con la stessa licenza. Il contenuto è fornito "così com'è", senza alcuna garanzia, esplicita o implicita.
+
+

@@ -9,7 +9,7 @@ POST /api/dev/seed
 
 Returns 403 if ENV != 'dev' so this endpoint is harmless in production deployments.
 
-Fixed deterministic UUIDs — stable across re-runs so MOCK_ACCESS tokens don't change:
+Fixed deterministic UUIDs — stable across re-runs:
   test_admin   → 00000001-1111-0000-0000-000000000001  (ADMIN)
   test_player1 → 00000002-2222-0000-0000-000000000002  (PLAYER / Alice)
   test_player2 → 00000003-3333-0000-0000-000000000003  (PLAYER / Bob)
@@ -19,11 +19,13 @@ Seed stories:
   Tutorial          → a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d  (PUBLIC, tutorial)
   Valvassore Demo 1 → b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e  (PUBLIC, historical)
 
-Mock access tokens (use in Authorization: Bearer <token> header):
-  test_admin   → MOCK_ACCESS_00000001-1111-0000-0000-000000000001
-  test_player1 → MOCK_ACCESS_00000002-2222-0000-0000-000000000002
-  test_player2 → MOCK_ACCESS_00000003-3333-0000-0000-000000000003
-  test_player3 → MOCK_ACCESS_00000004-4444-0000-0000-000000000004
+Access tokens (use in Authorization: Bearer <token> header):
+  When ALLOW_MOCK_ACCESS=true (dev default):
+    test_admin   → MOCK_ACCESS_00000001-1111-0000-0000-000000000001
+    test_player1 → MOCK_ACCESS_00000002-2222-0000-0000-000000000002
+    test_player2 → MOCK_ACCESS_00000003-3333-0000-0000-000000000003
+    test_player3 → MOCK_ACCESS_00000004-4444-0000-0000-000000000004
+  When ALLOW_MOCK_ACCESS=false: real HS256 JWTs are returned in the response body.
 """
 
 import json
@@ -31,6 +33,7 @@ import os
 import time
 
 from common import db_utils
+from common import jwt_utils
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
@@ -128,6 +131,8 @@ SEED_STORIES = [
                 "numberMaxFreeAction": 3,
                 "life": 120, "energy": 110, "sad": 0,
                 "dexterity": 12, "intelligence": 12, "constitution": 12, "weight": 12,
+                # Step 23 — trait cost budgets (None = no limit)
+                "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3,
             },
         ],
         "difficulty_count": 1,
@@ -137,18 +142,35 @@ SEED_STORIES = [
         # Step 19 — runtime seed data: locations and registry keys
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0},
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0},
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Welcome Hall", "description": "A bright entrance hall.",
+                      "urlImage": None, "awesomeIcon": "fas fa-door-open"}},
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Practice Yard", "description": "Where recruits train.",
+                      "urlImage": None, "awesomeIcon": "fas fa-dumbbell"}},
+        ],
+        # Step 27.x — neighbor links between locations (bidirectional 1<->2)
+        "neighbors": [
+            {"id": 1, "uuid": "nb-tutorial-1", "idLocationFrom": 1, "idLocationTo": 2,
+             "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             "card": {"title": "To the Practice Yard", "description": "A short walk north.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],
         "keys": [
             {"id": 1, "uuid": "key-tutorial-1", "keyName": "tutorial_intro_done", "keyValue": "0"},
             {"id": 2, "uuid": "key-tutorial-2", "keyName": "training_completed", "keyValue": "no"},
         ],
-        # Step 20.1 — events for end-game trigger
+        # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    99,
         "events": [
-            {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete"},
-            {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting"},
+            {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete",
+             "idLocation": None, "type": "END_GAME", "idCard": None},
+            {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting",
+             "idLocation": 1, "type": "NORMAL", "idCard": None,
+             "card": {"title": "Intro Greeting", "description": "A guard greets you.",
+                      "urlImage": None, "awesomeIcon": "fas fa-comment"}},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -176,6 +198,9 @@ SEED_STORIES = [
             {"uuid": "cb-tut-3", "idClass": 2, "statistic": "int",    "value": 3},
             {"uuid": "cb-tut-4", "idClass": 3, "statistic": "dex",    "value": 3},
         ],
+        # Step 23 — tr-tut-quick permitted only for class 2, tr-tut-resilient
+        # prohibited for class 1, tr-tut-frail/tr-tut-weary are negative-cost;
+        # tr-tut-brave stays unrestricted (robot loadout default)
         "traits": [
             {"uuid": "tr-tut-brave",  "id": 1, "costPositive": 1, "costNegative": 0,
              "idClassPermitted": None, "idClassProhibited": None,
@@ -183,15 +208,30 @@ SEED_STORIES = [
              "intelligence": 0, "constitution": 1, "weight": 0,
              "idCard": None, "texts": {}},
             {"uuid": "tr-tut-quick",  "id": 2, "costPositive": 1, "costNegative": 0,
-             "idClassPermitted": None, "idClassProhibited": None,
+             "idClassPermitted": 2, "idClassProhibited": None,
              "life": 0, "energy": 2, "sad": 0, "dexterity": 1,
+             "intelligence": 0, "constitution": 0, "weight": 0,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-resilient", "id": 3, "costPositive": 1, "costNegative": 0,
+             "idClassPermitted": None, "idClassProhibited": 1,
+             "life": 0, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 2, "constitution": 0, "weight": 1,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-frail",  "id": 4, "costPositive": 0, "costNegative": 2,
+             "idClassPermitted": None, "idClassProhibited": None,
+             "life": -2, "energy": 0, "sad": 0, "dexterity": 0,
+             "intelligence": 0, "constitution": 0, "weight": 0,
+             "idCard": None, "texts": {}},
+            {"uuid": "tr-tut-weary",  "id": 5, "costPositive": 0, "costNegative": 2,
+             "idClassPermitted": None, "idClassProhibited": None,
+             "life": 0, "energy": -2, "sad": 0, "dexterity": 0,
              "intelligence": 0, "constitution": 0, "weight": 0,
              "idCard": None, "texts": {}},
         ],
         "card":               None,
         "class_count":        3,
         "template_count":     3,
-        "trait_count":        2,
+        "trait_count":        5,
         # idCard points to raw_cards[0].id
         "idCard":             1,
         # Step 16: raw content data for content detail endpoints
@@ -327,20 +367,44 @@ SEED_STORIES = [
         # Step 19 — runtime seed data
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0},
-            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5},
-            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10},
+            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0,
+             "idCard": None,
+             "card": {"title": "Crossroads", "description": "Three paths meet here.",
+                      "urlImage": None, "awesomeIcon": "fas fa-signs-post"}},
+            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5,
+             "idCard": None,
+             "card": {"title": "Northern Path", "description": "A road heading north.",
+                      "urlImage": None, "awesomeIcon": "fas fa-road"}},
+            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10,
+             "idCard": None,
+             "card": {"title": "Southern Cave", "description": "A dark cavern mouth.",
+                      "urlImage": None, "awesomeIcon": "fas fa-mountain"}},
+        ],
+        # Step 27.x — neighbor links: Crossroads connects to both paths
+        "neighbors": [
+            {"id": 1, "uuid": "nb-demo1-1", "idLocationFrom": 1, "idLocationTo": 2,
+             "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             "card": {"title": "Go North", "description": "Take the northern road.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
+            {"id": 2, "uuid": "nb-demo1-2", "idLocationFrom": 1, "idLocationTo": 3,
+             "direction": "S", "flagBack": 1, "energyCost": 2, "idCard": None,
+             "card": {"title": "Go South", "description": "Descend toward the cave.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-down"}},
         ],
         "keys": [
             {"id": 1, "uuid": "key-demo1-1", "keyName": "main_quest_started", "keyValue": "0"},
             {"id": 2, "uuid": "key-demo1-2", "keyName": "found_treasure", "keyValue": "no"},
             {"id": 3, "uuid": "key-demo1-3", "keyName": "ally_count", "keyValue": "0"},
         ],
-        # Step 20.1 — events for end-game trigger
+        # Step 20.1 — events for end-game trigger; Step 27.x — idLocation + card
         "idEventEndGame":    77,
         "events": [
-            {"id": 77, "uuid": "evt-valvassore-end", "name": "Final Confrontation"},
-            {"id": 1,  "uuid": "evt-valvassore-1",   "name": "Lord's Summons"},
+            {"id": 77, "uuid": "evt-valvassore-end", "name": "Final Confrontation",
+             "idLocation": None, "type": "END_GAME", "idCard": None},
+            {"id": 1,  "uuid": "evt-valvassore-1",   "name": "Lord's Summons",
+             "idLocation": 1, "type": "NORMAL", "idCard": None,
+             "card": {"title": "Lord's Summons", "description": "A messenger calls for you.",
+                      "urlImage": None, "awesomeIcon": "fas fa-scroll"}},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -433,6 +497,8 @@ def _seed_stories():
             # Step 19 — runtime data used by POST /api/matches
             "idLocationStart":          s.get("idLocationStart"),
             "locations":                s.get("locations", []),
+            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info
+            "neighbors":                s.get("neighbors", []),
             "keys":                     s.get("keys", []),
             # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
             "idEventEndGame":           s.get("idEventEndGame"),
@@ -462,9 +528,10 @@ def _seed_stories():
 # ─── test-data cleanup ───────────────────────────────────────────────────────
 
 def _handle_cleanup():
-    """POST /api/dev/cleanup — removes the rows created by automated (Robot
+    """POST /api/dev/cleanup — removes the data created by automated (Robot
     Framework) test runs: guests whose username starts with the ``robottest``
-    marker and matches whose name starts with it. Every other item is kept.
+    marker, matches whose name starts with it, and the seed stories inserted by
+    ``_seed_stories`` (the same SEED_STORIES list). Every other item is kept.
     """
     deleted_guests = 0
     for user in db_utils.scan_filter("is_guest", True):
@@ -478,12 +545,19 @@ def _handle_cleanup():
             db_utils.delete_item(match["PK"], match.get("SK", "METADATA"))
             deleted_matches += 1
 
+    # Remove the seed stories (cascading delete of every item under STORY#{uuid}).
+    deleted_stories = 0
+    for s in SEED_STORIES:
+        if db_utils.delete_all_by_pk(f"STORY#{s['uuid']}") > 0:
+            deleted_stories += 1
+
     return {
         "statusCode": 200,
         "headers": HEADERS,
         "body": json.dumps({
             "deletedGuests":  deleted_guests,
             "deletedMatches": deleted_matches,
+            "deletedStories": deleted_stories,
         })
     }
 
@@ -535,11 +609,16 @@ def lambda_handler(event, context):
             "ts_last_access":  now,
         }
         db_utils.put_item(item)
+        if jwt_utils.ALLOW_MOCK_ACCESS:
+            access_token = f"MOCK_ACCESS_{uid}"
+        else:
+            access_token = jwt_utils.generate_access_token(uid, u["username"], u["role"])
+
         inserted.append({
             "uuid":        uid,
             "username":    u["username"],
             "role":        u["role"],
-            "accessToken": f"MOCK_ACCESS_{uid}",
+            "accessToken": access_token,
         })
 
     # ── Seed stories ───

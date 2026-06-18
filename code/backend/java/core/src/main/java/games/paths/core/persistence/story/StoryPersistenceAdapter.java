@@ -3,6 +3,7 @@ package games.paths.core.persistence.story;
 import games.paths.core.entity.story.*;
 import games.paths.core.port.story.StoryPersistencePort;
 import games.paths.core.repository.story.*;
+import games.paths.core.repository.match.GamingMatchRepository;
 import jakarta.persistence.EntityManager;
 
 import org.springframework.stereotype.Repository;
@@ -46,6 +47,7 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
     private final GlobalRandomEventRepository globalRandomEventRepository;
     private final MissionRepository missionRepository;
     private final MissionStepRepository missionStepRepository;
+    private final GamingMatchRepository gamingMatchRepository;
     private final JdbcTemplate jdbcTemplate;
 
     public StoryPersistenceAdapter(
@@ -73,6 +75,7 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
             GlobalRandomEventRepository globalRandomEventRepository,
             MissionRepository missionRepository,
             MissionStepRepository missionStepRepository,
+            GamingMatchRepository gamingMatchRepository,
             JdbcTemplate jdbcTemplate) {
         this.entityManager = entityManager;
         this.storyRepository = storyRepository;
@@ -98,6 +101,7 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         this.globalRandomEventRepository = globalRandomEventRepository;
         this.missionRepository = missionRepository;
         this.missionStepRepository = missionStepRepository;
+        this.gamingMatchRepository = gamingMatchRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -116,6 +120,8 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
 
     @Override
     public void deleteStoryData(Long storyId) {
+        // Phase -1: delete all matches referencing this story (gaming_match → list_stories_difficulty FK)
+        gamingMatchRepository.deleteByIdStory(storyId);
         // Phase 0: clear FK references on list_stories to avoid constraint violations on PostgreSQL
         storyRepository.findById(storyId).ifPresent(s -> {
             s.setIdEventEndGame(null);
@@ -147,8 +153,11 @@ public class StoryPersistenceAdapter implements StoryPersistencePort {
         classRepository.deleteByIdStory(storyId);
         keyRepository.deleteByIdStory(storyId);
         cardRepository.deleteByIdStory(storyId);
-        creatorRepository.deleteByIdStory(storyId);
+        // list_texts.id_creator -> list_creator (and list_cards.id_creator -> list_creator):
+        // texts and cards MUST be deleted before creators, else the creator delete fails
+        // with "still referenced from table list_texts".
         textRepository.deleteByIdStory(storyId);
+        creatorRepository.deleteByIdStory(storyId);
         difficultyRepository.deleteByIdStory(storyId);
         storyRepository.deleteById(storyId);
     }

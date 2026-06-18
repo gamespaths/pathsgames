@@ -7,7 +7,7 @@ describe('apiClient', () => {
 
   it('uses default server when nothing in localStorage', () => {
     const client = apiClient()
-    expect(client.defaults.baseURL).toBe('http://localhost:8042')
+    expect(client.defaults.baseURL).toBe('http://localhost:8044')
   })
 
   it('uses server from localStorage', () => {
@@ -19,13 +19,13 @@ describe('apiClient', () => {
   it('falls back to default if server in localStorage is invalid', () => {
     localStorage.setItem('pg_admin_server', 'not-a-url')
     const client = apiClient()
-    expect(client.defaults.baseURL).toBe('http://localhost:8042')
+    expect(client.defaults.baseURL).toBe('http://localhost:8044')
   })
 
   it('falls back to default if server in localStorage uses unsupported protocol', () => {
     localStorage.setItem('pg_admin_server', 'ftp://malicious.com')
     const client = apiClient()
-    expect(client.defaults.baseURL).toBe('http://localhost:8042')
+    expect(client.defaults.baseURL).toBe('http://localhost:8044')
   })
 
   it('sets Authorization header when token is present', () => {

@@ -1,15 +1,15 @@
 import { useTranslation } from '../../i18n/context'
-import GameCard from '../layout/GameCard'
+import Card from '../layout/Card'
 import images from '../../mock/images.json'
 
 /**
  * CreditsModal — image-credits modal.
  *
- * Renders every entry from `src/mock/images.json` as a GameCard inside a
+ * Renders every entry from `src/mock/images.json` as a Card inside a
  * responsive grid (3 columns on desktop, 2 on tablet, 1 on phone).
  * `images.json` mixes two shapes — `{urlImage, copyrightText, linkCopyright,
  * description}` and `{url, author, authorLink}` — so each entry is normalised
- * into a single GameCard `card` payload.
+ * into a single Card `card` payload.
  *
  * Triggered from the footer "Credits / Crediti" link via
  * `data-bs-target="#creditsModal"`.
@@ -51,7 +51,7 @@ export default function CreditsModal() {
             </p>
             <div className="credits-grid">
               {images.map(img => (
-                <GameCard
+                <Card
                   key={img.id}
                   variant="little"
                   card={toCard(img)}

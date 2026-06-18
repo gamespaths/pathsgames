@@ -3,8 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 vi.mock('../api/game', () => ({ getGameData: vi.fn() }))
-vi.mock('../api/stories', () => ({ getStory: vi.fn(), getStories: vi.fn() }))
-vi.mock('../features/game/GameBook', () => ({
+vi.mock('../api/stories', () => ({ getStory: vi.fn(), getStories: vi.fn(), getStoryDetail: vi.fn() }))
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
+  useGuestUser: () => ({ user: { accessToken: 'tok' } }),
+}))
+vi.mock('../i18n/context', () => ({
+  useTranslation: () => ({ t: (k) => k, lang: 'en' }),
+}))
+vi.mock('../features/gameplay/GameBook', () => ({
   default: ({ gameData, matchUuid, story, onClose }) => (
     <div data-testid="game-book">
       <span data-testid="match-uuid">{matchUuid ?? 'none'}</span>
@@ -15,7 +21,7 @@ vi.mock('../features/game/GameBook', () => ({
 
 import GamePage from '../pages/GamePage'
 import { getGameData } from '../api/game'
-import { getStory } from '../api/stories'
+import { getStory, getStoryDetail } from '../api/stories'
 
 function wrap(storyId = 'abc', state = {}) {
   return render(
@@ -30,6 +36,7 @@ function wrap(storyId = 'abc', state = {}) {
 describe('GamePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    getStoryDetail.mockResolvedValue({ uuid: 'abc' })
   })
 
   it('shows loading spinner while data loads', () => {

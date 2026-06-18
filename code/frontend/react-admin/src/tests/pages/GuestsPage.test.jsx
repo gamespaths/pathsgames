@@ -250,4 +250,78 @@ describe('GuestsPage', () => {
     await userEvent.click(screen.getByText('Close'))
     expect(screen.queryByText('Close')).toBeNull()
   })
+
+  it('calls resumeMatch when resume button is clicked for PAUSED match', async () => {
+    listMatches.mockResolvedValue([
+      { ...MOCK_MATCHES[0], status: 'PAUSED' },
+    ])
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('Resume match'))
+    await waitFor(() => expect(resumeMatch).toHaveBeenCalledWith('m1-uuid-aaaa'))
+  })
+
+  it('shows matchError inline when a match action fails', async () => {
+    stopMatch.mockRejectedValue(new Error('action-failed'))
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('Stop match'))
+    expect(await screen.findByText(/action-failed/i)).toBeInTheDocument()
+  })
+
+  it('shows error in user-matches area when listMatches fails on openGuestDetail', async () => {
+    listMatches.mockRejectedValue(new Error('matches-boom'))
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    expect(await screen.findByText(/matches-boom/i)).toBeInTheDocument()
+  })
+
+  it('filters guests by userUuid substring', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.type(screen.getByPlaceholderText(/Filter by username/i), 'bbb-222')
+    expect(screen.queryByText('guest_aaa111aa')).toBeNull()
+    expect(screen.getByText('guest_bbb222bb')).toBeInTheDocument()
+  })
+
+  it('renders untitled match name in the guest detail modal', async () => {
+    listMatches.mockResolvedValue([
+      { ...MOCK_MATCHES[0], name: null },
+    ])
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    // wait for the modal to show the guest name twice (header + table)
+    await waitFor(() => expect(screen.getAllByText('guest_aaa111aa').length).toBeGreaterThanOrEqual(2))
+    // match with null name renders <em>untitled</em>
+    expect(await screen.findByText(/untitled/i)).toBeInTheDocument()
+  })
+
+  it('shows error in stacked match detail when getMatchInfo fails', async () => {
+    getMatchInfo.mockRejectedValue(new Error('detail-boom'))
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('View match detail'))
+    await waitFor(() => expect(getMatchInfo).toHaveBeenCalledWith('m1-uuid-aaaa'))
+    expect(await screen.findByText(/detail-boom/i)).toBeInTheDocument()
+  })
+
+  it('closes the stacked match detail modal', async () => {
+    renderPage()
+    await screen.findByText('guest_aaa111aa')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    await screen.findByText('Dragon Run')
+    await userEvent.click(screen.getByTitle('View match detail'))
+    await waitFor(() => expect(getMatchInfo).toHaveBeenCalledWith('m1-uuid-aaaa'))
+    const closeButtons = await screen.findAllByText('Close')
+    await userEvent.click(closeButtons[closeButtons.length - 1])
+    await waitFor(() => expect(screen.queryAllByText('Close').length).toBeLessThan(closeButtons.length))
+  })
 })

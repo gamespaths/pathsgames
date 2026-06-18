@@ -348,6 +348,7 @@ def test_import_story_persists_character_template_class_fields():
     payload = {
         'uuid': 'imp-ct-1',
         'texts': [],
+        'classes': [{'id': 1}, {'id': 5}],
         'characterTemplates': [
             {'idTextName': 1, 'id_tipo': 2,
              'idClassPermitted': 5, 'idClassProhibited': 1},
@@ -370,6 +371,49 @@ def test_import_story_persists_character_template_class_fields():
     assert len(templates) == 1
     assert templates[0]['idClassPermitted'] == 5
     assert templates[0]['idClassProhibited'] == 1
+
+def test_import_story_resolves_inline_cards_for_gameplay():
+    # Step 27.x regression: imported locations/neighbors/events must carry a
+    # pre-resolved `card` (and gameplay-friendly keys) so the match handler can
+    # render the active location card — exactly like the seed item.
+    payload = {
+        'uuid': 'imp-cards-1',
+        'texts': [
+            {'idText': 50, 'lang': 'en', 'shortText': 'Hall'},
+            {'idText': 51, 'lang': 'en', 'shortText': 'A bright hall.'},
+        ],
+        'cards': [{'id': 44, 'idTextName': 50, 'idTextDescription': 51,
+                   'urlImage': 'hall.png', 'awesomeIcon': 'fas fa-map'}],
+        'locations': [{'id': 1, 'idCard': 44}, {'id': 2, 'idCard': 44}],
+        'locationNeighbors': [{'id': 1, 'idLocationFrom': 1, 'idLocationTo': 2,
+                               'direction': 'EAST', 'idCard': None}],
+        'events': [{'id': 1, 'idCard': 44, 'idSpecificLocation': 1, 'type': 'NORMAL'}],
+    }
+    captured = {}
+
+    def _capture(item):
+        captured['item'] = item
+        return True
+
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', side_effect=_capture):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body=payload)
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    item = captured['item']
+    # Location card resolved inline
+    assert item['locations'][0]['card'] is not None
+    assert item['locations'][0]['card']['title'] == 'Hall'
+    assert item['locations'][0]['card']['urlImage'] == 'hall.png'
+    # Neighbors stored under the key the match handler reads
+    assert 'neighbors' in item
+    assert item['neighbors'][0]['idLocationTo'] == 2
+    # Events get the gameplay `idLocation` alias + resolved card
+    assert item['events'][0]['idLocation'] == 1
+    assert item['events'][0]['card']['title'] == 'Hall'
+
 
 def test_import_story_replaces_existing():
     with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, STORY_ITEM]), \
@@ -407,6 +451,14 @@ def test_create_story_success():
         result = lambda_handler(event, {})
     assert result['statusCode'] == 201
     assert 'uuid' in _body(result)
+
+def test_create_story_empty_body_returns_400():
+    with patch('story.handler.db_utils.get_item', return_value=ADMIN_USER):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories', body={})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'EMPTY_IMPORT_DATA'
 
 
 # ── update_story ──────────────────────────────────────────────────────────────
@@ -653,3 +705,108 @@ def test_get_story_with_enriched_entities():
     assert body['uuid'] == 'rich-1'
     assert len(body['difficulties']) == 1
     assert body['difficulties'][0]['life'] == 100
+
+
+# ─── Step 22: story validation ──────────────────────────────────────────────
+
+def test_import_story_invalid_reference_returns_400():
+    payload = {
+        'uuid': 'inv-1',
+        'events': [{'id': 1}],
+        'choices': [{'id': 1, 'idEvent': 99, 'otherwiseFlag': 1}],  # dangling event
+    }
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]), \
+         patch('story.handler.db_utils.query_gsi', return_value=[]), \
+         patch('story.handler.db_utils.put_item', return_value=True):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/import', body=payload)
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    body = _body(result)
+    assert body['error'] == 'INVALID_STORY'
+    assert any(e['field'] == 'idEvent' for e in body['errors'])
+
+
+def test_validate_story_endpoint_returns_report():
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, STORY_ITEM]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/story-uuid-1/validate')
+        event['pathParameters'] = {'uuid': 'story-uuid-1'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['valid'] is True
+    assert body['count'] == 0
+
+
+def test_validate_story_endpoint_not_found():
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, None]):
+        from story.handler import lambda_handler
+        event = admin_event('GET', '/api/admin/stories/ghost/validate')
+        event['pathParameters'] = {'uuid': 'ghost'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 404
+
+
+def test_create_entity_class_conflict_returns_400():
+    item = dict(STORY_ITEM)
+    item['id'] = 1
+    item['traits'] = []
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, item]):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/story-uuid-1/traits',
+                            body={'idClassPermitted': 3, 'idClassProhibited': 3})
+        event['pathParameters'] = {'uuidStory': 'story-uuid-1', 'entityType': 'traits'}
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 400
+    assert _body(result)['error'] == 'INVALID_STORY'
+
+
+# ── Step 23: trait listing filtered by class ──────────────────────────────────
+
+def _step23_story():
+    return {
+        'PK': 'STORY#s23', 'SK': 'METADATA', 'uuid': 's23', 'visibility': 'PUBLIC',
+        'classes': [{'uuid': 'cl-1', 'id': 30}],
+        'traits': [
+            {'uuid': 'tr-unrestricted', 'id': 1, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-permitted-match', 'id': 2, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': 30, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-permitted-other', 'id': 3, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': 99, 'idClassProhibited': None, 'texts': {}},
+            {'uuid': 'tr-prohibited-match', 'id': 4, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': 30, 'texts': {}},
+            {'uuid': 'tr-prohibited-other', 'id': 5, 'costPositive': 1, 'costNegative': 0,
+             'idClassPermitted': None, 'idClassProhibited': 99, 'texts': {}},
+        ],
+    }
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_filters(mock_get):
+    mock_get.return_value = _step23_story()
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/s23/classes/cl-1/traits'), {})
+    assert result['statusCode'] == 200
+    body = json.loads(result['body'])
+    assert [t['uuid'] for t in body] == ['tr-unrestricted', 'tr-permitted-match', 'tr-prohibited-other']
+    assert body[0]['costPositive'] == 1
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_story_not_found(mock_get):
+    mock_get.return_value = None
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/ghost/classes/cl-1/traits'), {})
+    assert result['statusCode'] == 404
+    assert json.loads(result['body'])['error'] == 'STORY_NOT_FOUND'
+
+
+@patch('story.handler.db_utils.get_item')
+def test_list_traits_for_class_class_not_found(mock_get):
+    mock_get.return_value = _step23_story()
+    from story.handler import lambda_handler
+    result = lambda_handler(make_event('GET', '/api/stories/s23/classes/ghost/traits'), {})
+    assert result['statusCode'] == 404
+    assert json.loads(result['body'])['error'] == 'CLASS_NOT_FOUND'

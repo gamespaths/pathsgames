@@ -41,6 +41,16 @@ code/backend/python/
 
 ## Run with Docker
 
+The Dockerfile builds a single image that serves **both** FastAPI apps in one process
+(`python -m app.launcher`):
+- **port 8042** — public API (`/api/auth`, `/api/stories`, `/api/matches`, …)
+- **port 8044** — admin API (`/api/admin/**`, `/api/dev/**`)
+
+The `HOST` environment variable controls the bind address for both uvicorn servers.
+Default in `app/config.py` is `127.0.0.1` (loopback, safe for local dev); the
+Dockerfile overrides it to `HOST=0.0.0.0` so published ports are reachable from
+outside the container.
+
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) installed.
 - A `.env` file created from `.env.example` (copy and edit it):
@@ -54,9 +64,9 @@ code/backend/python/
 # Build the image
 docker build -t pathsgames-backend-python .
 
-# Run with SQLite (default ENV=development)
+# Run with SQLite (default ENV=development), publish both ports
 docker run --rm \
-  -p 8042:8042 \
+  -p 8042:8042 -p 8044:8044 \
   -e ENV=development \
   -e JWT_SECRET=PathsGamesDevSecret2026_MustBeAtLeast32Chars! \
   -v "$(pwd)/database.sqlite:/app/database.sqlite" \
@@ -69,7 +79,7 @@ docker run --rm \
 
 ```bash
 docker run --rm \
-  -p 8042:8042 \
+  -p 8042:8042 -p 8044:8044 \
   -e ENV=production \
   -e JWT_SECRET=<your-strong-secret> \
   -e CORS_ALLOWED_ORIGINS=https://paths.games,https://www.paths.games \
@@ -81,11 +91,32 @@ docker run --rm \
   pathsgames-backend-python
 ```
 
+> `DB_USER` is the Python env key for the database username (the Java backend uses `DB_USERNAME` instead).
+
 ### Using an `.env` file
 
 ```bash
-docker run --rm -p 8042:8042 --env-file .env pathsgames-backend-python
+docker run --rm -p 8042:8042 -p 8044:8044 --env-file .env pathsgames-backend-python
 ```
+
+### Build and push for EC2 (test environment)
+
+A dedicated script builds the image for `linux/amd64` (required for EC2 `t3` instances)
+and pushes it to Docker Hub with tag `:test-python`:
+
+```bash
+# From the repo root
+code/scripts/test/build_docker_python_test_and_push.sh
+
+# Preview only (no push)
+code/scripts/test/build_docker_python_test_and_push.sh --dry-run
+```
+
+This is the Python counterpart of `build_docker_test_and_push.sh` (Java). After pushing,
+use `code/scripts/test/aws_ec2_with_python_docker/redeploy.sh` to roll the image onto a
+running EC2 instance (server3), or `start.sh` to launch a fresh one. See
+`documentation_v0/Step20_GameWebSiteFirstRun.md` — "EC2 Docker Deploy (Python / server3)"
+for full details.
 
 ### Useful Docker commands
 
@@ -186,7 +217,7 @@ PYTHONPATH=. pytest -v tests/
 
     > add into readme file a "test" section with all curl calls
 
-- **Document Version**: 0.19.10
+- **Document Version**: 0.24.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.3 | First version of this document | March 31, 2026 |
@@ -195,7 +226,8 @@ PYTHONPATH=. pytest -v tests/
     | 0.19.7 | list_stories_difficulty: added 7 stat columns (life, energy, sad, dexterity, intelligence, constitution, weight) to SQLAlchemy StoryDifficultyEntity; DifficultyInfo dataclass updated; story_query_service and persistence adapter save_difficulties updated; seed_dev_data and seed_stories include new fields; 48 unit tests pass | May 19, 2026 |
     | 0.19.9 | gaming_match: 4 loadout columns added (single_player, character_template_uuid, class_uuid, trait_uuids) via SQLAlchemy create_all (model updated); MatchCreateRequest and MatchSummary extended with classUuid, traitUuids, singlePlayer (characterTemplateUuid now persisted); trait list encoded as comma-separated string; 67 unit tests pass | May 20, 2026 |
     | 0.19.10 | GET /api/admin/matches: MatchController.list_all_matches, MatchQueryService.list_all_matches, MatchPersistenceAdapter.find_all_matches; 341 unit tests pass | May 20, 2026 |
-- **Last Updated**: May 20, 2026
+    | 0.24.1 | Dockerfile rewritten to expose both ports 8042+8044 and run a single `python -m app.launcher` process. `app/config.py` gains `host` setting (default `127.0.0.1`, overridden to `0.0.0.0` by `HOST` env var in Docker). `launcher.py` uses `settings.host` for both uvicorn servers. New `tests/test_config_host.py`. New `code/scripts/test/build_docker_python_test_and_push.sh` and EC2 lifecycle scripts under `aws_ec2_with_python_docker/` (server3, tag `:test-python`). 524 unit tests pass | June 14, 2026 |
+- **Last Updated**: June 14, 2026
 - **Status**: In progress
 
 

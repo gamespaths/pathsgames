@@ -1,10 +1,14 @@
 package games.paths.adapters.rest.dto;
 
+import games.paths.core.model.match.EventInfo;
+import games.paths.core.model.match.LocationInfo;
+import games.paths.core.model.match.LocationNeighborInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.story.CardInfo;
 
 import org.junit.jupiter.api.Test;
 
@@ -144,6 +148,45 @@ class MatchDtosTest {
         assertEquals("ev", ev.getUuid());
         assertEquals("n", ev.getName());
         assertEquals("EVENT", ev.getType());
+    }
+
+    @Test
+    void matchInfoResponseMapsLocationsActiveWithCards() {
+        CardInfo locCard = new CardInfo("c-loc", "location", "img", null, "fa-x",
+                null, null, null, null, null, "Tavern", "warm", null, null, null);
+        CardInfo nbCard = new CardInfo("c-nb", "location", null, null, "fa-y",
+                null, null, null, null, null, "Cave", "dark", null, null, null);
+        CardInfo evCard = new CardInfo("c-ev", "event", null, null, "fa-z",
+                null, null, null, null, null, "Stranger", "appears", null, null, null);
+
+        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard);
+        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
+        LocationInfo li = new LocationInfo(1L, "loc-1", locCard, List.of(nb), List.of(ev));
+
+        MatchDetail d = new MatchDetail();
+        d.setMatch(new MatchSummary());
+        d.setLocationsActive(List.of(li));
+
+        MatchInfoResponse r = MatchInfoResponse.fromModel(d);
+        assertEquals(1, r.getLocationsActive().size());
+        MatchInfoResponse.LocationInfoDto dto = r.getLocationsActive().get(0);
+        assertEquals(1L, dto.getIdLocation());
+        assertEquals("loc-1", dto.getUuid());
+        assertEquals("Tavern", dto.getCard().getTitle());
+
+        assertEquals(1, dto.getNeighbors().size());
+        MatchInfoResponse.LocationNeighborDto nbDto = dto.getNeighbors().get(0);
+        assertEquals(2L, nbDto.getIdLocation());
+        assertEquals("N", nbDto.getDirection());
+        assertEquals(3, nbDto.getEnergyCost());
+        assertEquals("Cave", nbDto.getCard().getTitle());
+
+        assertEquals(1, dto.getEvents().size());
+        MatchInfoResponse.EventInfoDto evDto = dto.getEvents().get(0);
+        assertEquals("evt-1", evDto.getUuid());
+        assertEquals("NORMAL", evDto.getType());
+        assertTrue(evDto.isEndGame());
+        assertEquals("Stranger", evDto.getCard().getTitle());
     }
 
     @Test

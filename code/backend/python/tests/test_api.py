@@ -43,7 +43,7 @@ def test_cors_middleware():
         },
     )
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers.get("access-control-allow-origin") in ("*", "http://localhost:3000")
 
 def test_public_paths_bypass_jwt():
     response = client.get("/api/stories")

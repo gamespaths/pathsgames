@@ -394,6 +394,80 @@ class StoryImportServiceTest {
 
             assertEquals(1, result.textsImported());
         }
+
+        @Test
+        @DisplayName("Should assign unique surrogate ids to same-id language variants of a text")
+        @SuppressWarnings("unchecked")
+        void importStory_textLanguageVariantsGetUniqueIds() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "test-uuid");
+            // Same logical text (id/idText = 1) in two languages — the JSON reuses the id.
+            Map<String, Object> en = new HashMap<>();
+            en.put("id", 1); en.put("idText", 1); en.put("lang", "en"); en.put("shortText", "Hello");
+            Map<String, Object> it = new HashMap<>();
+            it.put("id", 1); it.put("idText", 1); it.put("lang", "it"); it.put("shortText", "Ciao");
+            data.put("texts", List.of(en, it));
+
+            when(persistencePort.findStoryByUuid("test-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                e.setId(1L);
+                return e;
+            });
+            when(persistencePort.saveTexts(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            StoryImportResult result = storyImportService.importStory(data);
+
+            ArgumentCaptor<List<TextEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).saveTexts(captor.capture());
+            List<TextEntity> saved = captor.getValue();
+
+            assertEquals(2, result.textsImported());
+            assertEquals(2, saved.size());
+
+            // Distinct surrogate primary keys (otherwise Hibernate throws NonUniqueObjectException)...
+            Set<Long> ids = new HashSet<>();
+            Set<String> langs = new HashSet<>();
+            for (TextEntity t : saved) {
+                ids.add(t.getId());
+                langs.add(t.getLang());
+                assertEquals(Integer.valueOf(1), t.getIdText()); // ...while the logical id_text is preserved
+            }
+            assertEquals(2, ids.size(), "language variants must not share the same surrogate id");
+            assertEquals(Set.of("en", "it"), langs);
+        }
+
+        @Test
+        @DisplayName("Should NULL out story-level optional FKs set to 0 (avoids fk_stories_* violations)")
+        void importStory_zeroOptionalFksBecomeNull() {
+            Map<String, Object> data = new HashMap<>();
+            data.put("uuid", "test-uuid");
+            data.put("idEventAllPlayerComa", 0);          // sentinel "none" → must become NULL
+            data.put("idImage", 0);
+            data.put("idCard", 0);
+            data.put("idLocationStart", 0);
+            data.put("idEventEndGame", 5);                // a real reference must be preserved
+
+            when(persistencePort.findStoryByUuid("test-uuid")).thenReturn(Optional.empty());
+            when(persistencePort.saveStory(any(StoryEntity.class))).thenAnswer(inv -> {
+                StoryEntity e = inv.getArgument(0);
+                if (e.getId() == null) e.setId(101L);
+                return e;
+            });
+
+            storyImportService.importStory(data);
+
+            ArgumentCaptor<StoryEntity> captor = ArgumentCaptor.forClass(StoryEntity.class);
+            verify(persistencePort, atLeastOnce()).saveStory(captor.capture());
+            StoryEntity finalStory = captor.getValue(); // last save carries the FK refs
+
+            assertAll(
+                () -> assertNull(finalStory.getIdEventAllPlayerComa()),
+                () -> assertNull(finalStory.getIdImage()),
+                () -> assertNull(finalStory.getIdCard()),
+                () -> assertNull(finalStory.getIdLocationStart()),
+                () -> assertEquals(Integer.valueOf(5), finalStory.getIdEventEndGame()));
+        }
     }
 
     // === SECTION: DELETE STORY ===

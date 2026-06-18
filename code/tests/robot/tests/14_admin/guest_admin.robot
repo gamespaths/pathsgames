@@ -30,8 +30,11 @@ ${GUESTS_EXPIRED_PATH}  /api/admin/guests/expired
 *** Keywords ***
 
 Initialize Admin Suite
-    [Documentation]    Create public session and generate a dynamic admin JWT.
+    [Documentation]    Create the public session (for guest creation) and a bare admin
+    ...                session against ADMIN_BASE_URL (admin port 8044 / admin API), plus
+    ...                a dynamic admin JWT. Admin requests pass the token per-request.
     Create Public Session
+    Create Session    admin_session    ${ADMIN_BASE_URL}    verify=false
     ${token}=    Generate Admin Token
     Set Suite Variable    ${ADMIN_TOKEN}    ${token}
 
@@ -44,7 +47,7 @@ Admin GET
     [Documentation]    Convenience wrapper for an authenticated GET request.
     [Arguments]    ${path}
     ${headers}=    Get Admin Headers
-    ${response}=    GET On Session    public_session    ${path}
+    ${response}=    GET On Session    admin_session    ${path}
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -52,7 +55,7 @@ Admin DELETE
     [Documentation]    Convenience wrapper for an authenticated DELETE request.
     [Arguments]    ${path}
     ${headers}=    Get Admin Headers
-    ${response}=    DELETE On Session    public_session    ${path}
+    ${response}=    DELETE On Session    admin_session    ${path}
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -64,14 +67,14 @@ Admin DELETE
 Guest List Without Token Returns 401
     [Documentation]    GET /api/admin/guests without auth returns 401.
     [Tags]    admin    guests    step12
-    ${response}=    GET On Session    public_session    ${GUESTS_PATH}
+    ${response}=    GET On Session    admin_session    ${GUESTS_PATH}
     ...    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 
 Guest Stats Without Token Returns 401
     [Documentation]    GET /api/admin/guests/stats without auth returns 401.
     [Tags]    admin    guests    step12
-    ${response}=    GET On Session    public_session    ${GUESTS_STATS_PATH}
+    ${response}=    GET On Session    admin_session    ${GUESTS_STATS_PATH}
     ...    expected_status=any
     Should Be Equal As Integers    ${response.status_code}    401
 

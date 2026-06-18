@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Paths Games - Story Validation API
+  description: >
+    Step 22 - Story validation and integrity checking. Adds a read-only validation
+    report endpoint and documents the 400 INVALID_STORY error returned by story
+    import and admin CRUD when referential integrity or domain rules are violated.
+    All endpoints are served only on the admin port (8044) and require ADMIN role.
+  version: 0.22.0
+servers:
+  - url: http://localhost:8044
+    description: Admin connector (dev)
+
+paths:
+  /api/admin/stories/{uuid}/validate:
+    get:
+      tags: [Story Validation]
+      summary: Validate a persisted story's integrity
+      description: >
+        Runs the full referential-integrity and domain-rule validator against an
+        already-stored story and returns a report. Read-only: nothing is modified.
+      operationId: validateStory
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Validation report (valid may be true or false)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryValidationReport'
+        '401':
+          description: Missing / invalid admin token
+        '404':
+          description: Story not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+
+  /api/admin/stories/import:
+    post:
+      tags: [Story Validation]
+      summary: Import a story (now integrity-checked)
+      description: >
+        Unchanged contract from Step 14, with one addition - if the import map fails
+        validation the endpoint returns 400 INVALID_STORY with an errors[] array and
+        nothing is persisted.
+      operationId: importStoryValidated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '201':
+          description: Story imported
+        '400':
+          description: Empty body, malformed id, or failed integrity validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryValidationError400'
+
+components:
+  schemas:
+    StoryValidationReport:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: false
+        count:
+          type: integer
+          example: 2
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryValidationErrorItem'
+    StoryValidationErrorItem:
+      type: object
+      properties:
+        rule:
+          type: string
+          example: R_EVENT_REF
+        entityType:
+          type: string
+          example: choices
+        entityId:
+          type: string
+          nullable: true
+          example: "1"
+        field:
+          type: string
+          nullable: true
+          example: idEvent
+        message:
+          type: string
+          example: choices idEvent=99 references a non-existent event
+    StoryValidationError400:
+      type: object
+      properties:
+        error:
+          type: string
+          example: INVALID_STORY
+        message:
+          type: string
+          example: "choices idEvent=99 references a non-existent event"
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryValidationErrorItem'
+    AdminError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: STORY_NOT_FOUND
+        message:
+          type: string

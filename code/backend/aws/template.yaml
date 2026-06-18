@@ -22,6 +22,11 @@ Parameters:
     NoEcho: true
     Default: ""
     Description: "Optional Robot-test bypass token. When non-empty, an incoming turnstileToken equal to this value skips Cloudflare verification. Leave empty in prod."
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Enable MOCK_ACCESS_/MOCK_REFRESH_ tokens (dev convenience). Set to 'false' in production."
   SeedBcryptHash:
     Type: String
     NoEcho: true
@@ -43,6 +48,10 @@ Parameters:
     Type: CommaDelimitedList
     Default: "http://localhost,http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8042,http://localhost:8080,http://127.0.0.1,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8042,http://127.0.0.1:8080,http://127.0.0.1:5500,https://paths.games,https://www.paths.games,https://test.paths.games"
     Description: "Comma-separated list of CORS allowed origins (e.g. https://app.paths.games,http://localhost:5173,http://localhost:5174)"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated list of IPs allowed to call /api/admin/** endpoints. Empty = no IP restriction (insecure, dev only). Example: 1.2.3.4,5.6.7.8"
 
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -86,10 +95,11 @@ Resources:
           Projection:
             ProjectionType: ALL
 
-  # HTTP API (API Gateway v2)
+  # HTTP API (API Gateway v2) — public/player surface
   PathsGamesApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      Name: !Sub "pathsgames-${Environment}"
       StageName: !Ref Environment
       Tags:
         project: PathsGames
@@ -99,6 +109,69 @@ Resources:
         AllowOrigins: !Ref CorsAllowOrigins
         AllowHeaders: [Content-Type, Authorization, Cookie]
         AllowCredentials: true
+
+  # Dedicated ADMIN HTTP API — serves ONLY /api/admin/** routes and is gated by an
+  # IP-allow-list Lambda authorizer (the AWS-side equivalent of the 8044 admin port).
+  PathsGamesAdminApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: !Sub "pathsgames-${Environment}-admin"
+      StageName: !Ref Environment
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      CorsConfiguration:
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+        AllowOrigins: !Ref CorsAllowOrigins
+        AllowHeaders: [Content-Type, Authorization, Cookie]
+        AllowCredentials: true
+
+  AdminIpAuthorizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/pathsgames-${Environment}-AdminIpAuthorizer"
+      RetentionInDays: 14
+
+  AdminIpAuthorizerFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: AdminIpAuthorizerLogGroup
+    Properties:
+      FunctionName: !Sub "pathsgames-${Environment}-AdminIpAuthorizer"
+      Runtime: python3.13
+      Handler: authorizer.handler.lambda_handler
+      Timeout: 10
+      MemorySize: 128
+      CodeUri: lambda/
+      Tags:
+        project: PathsGames
+        env: !Ref Environment
+      Environment:
+        Variables:
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
+
+  # REQUEST authorizer (simple responses). No IdentitySource + TTL 0 → invoked on every
+  # request so a changed allow-list takes effect immediately and per-IP caching can't leak.
+  AdminIpAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref PathsGamesAdminApi
+      Name: AdminIpAuthorizer
+      AuthorizerType: REQUEST
+      AuthorizerPayloadFormatVersion: "2.0"
+      EnableSimpleResponses: true
+      AuthorizerResultTtlInSeconds: 0
+      # No IdentitySource → the authorizer runs on EVERY admin request (no caching),
+      # so the source IP is always checked and allow-list changes take effect at once.
+      AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AdminIpAuthorizerFunction.Arn}/invocations"
+
+  AdminIpAuthorizerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AdminIpAuthorizerFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PathsGamesAdminApi}/*"
 
   PathsGamesApiCustomDomain:
     Type: AWS::ApiGatewayV2::DomainName
@@ -136,48 +209,62 @@ Resources:
 
   EchoModule:
     Type: AWS::Serverless::Application
-    DependsOn: PathsGamesApi
+    DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/echo.yaml
       Parameters:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        AdminAuthorizerId: !Ref AdminIpAuthorizer
 
   AuthModule:
     Type: AWS::Serverless::Application
-    DependsOn: PathsGamesApi
+    DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/auth.yaml
       Parameters:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        AdminAuthorizerId: !Ref AdminIpAuthorizer
         JwtSecret: !Ref JwtSecret
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   StoryModule:
     Type: AWS::Serverless::Application
-    DependsOn: PathsGamesApi
+    DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/story.yaml
       Parameters:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        AdminAuthorizerId: !Ref AdminIpAuthorizer
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   # Step 19 — single-player match creation
   MatchModule:
     Type: AWS::Serverless::Application
-    DependsOn: PathsGamesApi
+    DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/match.yaml
       Parameters:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        AdminAuthorizerId: !Ref AdminIpAuthorizer
         JwtSecret: !Ref JwtSecret
         TurnstileSecretKey: !Ref TurnstileSecretKey
         TurnstileBypassToken: !Ref TurnstileBypassToken
+        AllowMockAccess: !Ref AllowMockAccess
+        AdminIpWhitelist: !Ref AdminIpWhitelist
 
   ContentModule:
     Type: AWS::Serverless::Application
@@ -188,25 +275,31 @@ Resources:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
         ApiId: !Ref PathsGamesApi
+        AllowMockAccess: !Ref AllowMockAccess
 
   SeedModule:
     Type: AWS::Serverless::Application
-    DependsOn: PathsGamesApi
+    DependsOn: [PathsGamesApi, PathsGamesAdminApi, AdminIpAuthorizer]
     Properties:
       Location: template/seed.yaml
       Parameters:
         Environment: !Ref Environment
         TableName: !Ref PathsGamesTable
-        ApiId: !Ref PathsGamesApi
+        AdminApiId: !Ref PathsGamesAdminApi
+        AdminAuthorizerId: !Ref AdminIpAuthorizer
         SeedBcryptHash: !Ref SeedBcryptHash
+        AllowMockAccess: !Ref AllowMockAccess
 
 Outputs:
   ApiUrl:
-    Description: "API Endpoint URL"
+    Description: "API Endpoint URL (public/player surface)"
     Value: !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
+  AdminApiUrl:
+    Description: "Admin API Endpoint URL (/api/admin/** only, IP-restricted via authorizer)"
+    Value: !Sub "https://${PathsGamesAdminApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/"
   TableName:
     Description: "DynamoDB Table Name"
     Value: !Ref PathsGamesTable
   SeedEndpoint:
-    Description: "Dev seed endpoint"
-    Value: !Sub "https://${PathsGamesApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"
+    Description: "Dev seed endpoint (on the IP-restricted admin API)"
+    Value: !Sub "https://${PathsGamesAdminApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/api/dev/seed"

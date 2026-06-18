@@ -8,7 +8,7 @@ vi.mock('../i18n/context', () => ({
 vi.mock('../api/matches', () => ({ listMatches: vi.fn() }))
 vi.mock('../api/stories',  () => ({ getStory: vi.fn() }))
 
-import UserMatchesList from '../components/modals/user/UserMatchesList'
+import UserMatchesList from '@/features/guest-user/UserMatchesList'
 import { listMatches } from '../api/matches'
 import { getStory }    from '../api/stories'
 
@@ -65,5 +65,11 @@ describe('UserMatchesList', () => {
   it('loads unique story UUIDs only once', async () => {
     wrap(<UserMatchesList accessToken="tok" />)
     await waitFor(() => expect(getStory).toHaveBeenCalledTimes(1)) // s1 appears twice but fetched once
+  })
+
+  it('uses preloadedMatches and does NOT call listMatches', async () => {
+    wrap(<UserMatchesList accessToken="tok" preloadedMatches={MATCHES} />)
+    expect(await screen.findAllByText('Dragon Keep')).toHaveLength(2)
+    expect(listMatches).not.toHaveBeenCalled()
   })
 })

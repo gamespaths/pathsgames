@@ -56,6 +56,8 @@ class StoryReadAdapter(StoryReadPort):
                     "cost_help_coma": d.cost_help_coma,
                     "cost_max_characteristics": d.cost_max_characteristics,
                     "number_max_free_action": d.number_max_free_action,
+                    "trait_cost_positive_budget": d.trait_cost_positive_budget,
+                    "trait_cost_negative_budget": d.trait_cost_negative_budget,
                     "life": d.life,
                     "energy": d.energy,
                     "sad": d.sad,

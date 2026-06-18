@@ -8,6 +8,19 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  AdminApiId:
+    Type: String
+    Description: "Id of the dedicated admin HTTP API that serves /api/admin/** routes."
+  AdminAuthorizerId:
+    Type: String
+    Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
   StoryLogGroup:
@@ -39,6 +52,8 @@ Resources:
         Variables:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -58,6 +73,23 @@ Resources:
       FunctionName: !Ref StoryFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+
+  # Admin API integration + invoke permission (same Lambda, second HTTP API).
+  StoryAdminIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref AdminApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt StoryFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  StoryAdminPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref StoryFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AdminApiId}/*"
 
   ListCategoriesRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -101,79 +133,117 @@ Resources:
       RouteKey: "GET /api/stories/{uuid}"
       Target: !Sub "integrations/${StoryIntegration}"
 
-  ImportStoryRoute:
+  # Step 23: trait listing filtered by class
+  ListTraitsForClassRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref ApiId
-      RouteKey: "POST /api/admin/stories/import"
+      RouteKey: "GET /api/stories/{uuidStory}/classes/{uuidClass}/traits"
       Target: !Sub "integrations/${StoryIntegration}"
+
+  # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
+  ImportStoryRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "POST /api/admin/stories/import"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   ListAllStoriesRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/stories"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   GetAdminStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/stories/{uuid}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   DeleteStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "DELETE /api/admin/stories/{uuid}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # Step 22: GET /api/admin/stories/{uuid}/validate is intentionally NOT declared as a
+  # separate route. HTTP API rejects a literal segment ("validate") that sits at the same
+  # position as the {entityType} path variable of the entity route below. The existing
+  # "GET /api/admin/stories/{uuidStory}/{entityType}" route delivers the request to the
+  # Story function, and handler.lambda_handler intercepts any path ending in "/validate"
+  # before the entity-listing dispatch.
 
   CreateStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/stories"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   UpdateStoryRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "PUT /api/admin/stories/{uuidStory}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   ListEntitiesRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/stories/{uuidStory}/{entityType}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   CreateEntityRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "POST /api/admin/stories/{uuidStory}/{entityType}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   GetEntityRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   UpdateEntityRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "PUT /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   DeleteEntityRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "DELETE /api/admin/stories/{uuidStory}/{entityType}/{entityUuid}"
-      Target: !Sub "integrations/${StoryIntegration}"
+      Target: !Sub "integrations/${StoryAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId

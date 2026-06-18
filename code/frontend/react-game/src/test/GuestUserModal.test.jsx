@@ -25,18 +25,18 @@ vi.mock('../i18n/context', () => ({
 }))
 
 const mockUser = { username: 'guest_u1', accessToken: 'tok' }
-vi.mock('../context/GuestUserContext', () => ({
+vi.mock('@/features/guest-user/GuestUserContext', () => ({
   useGuestUser: () => ({ user: mockUser, loading: false, guestModalOpen: true, closeGuestModal: vi.fn() }),
 }))
 
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right }) => <div>{left}{right}</div>,
 }))
-vi.mock('../components/book/BookPageContent', () => ({ default: () => <div data-testid="book-page" /> }))
-vi.mock('../components/modals/user/UserMatchesList', () => ({ default: () => <div data-testid="matches-list" /> }))
-vi.mock('../components/modals/user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
+vi.mock('../components/layout/Card', () => ({ default: () => <div data-testid="book-page" /> }))
+vi.mock('@/features/guest-user/UserMatchesList', () => ({ default: () => <div data-testid="matches-list" /> }))
+vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div data-testid="lang-sel" /> }))
 
-import GuestUserModal from '../components/modals/user/GuestUserModal'
+import GuestUserModal from '@/features/guest-user/GuestUserModal'
 
 describe('GuestUserModal — antibot after matches list', () => {
   beforeEach(() => {
@@ -64,10 +64,11 @@ describe('GuestUserModal — antibot after matches list', () => {
     expect(screen.queryByTestId('turnstile-mock')).not.toBeInTheDocument()
   })
 
-  it('shows the antibot message and hides the matches list for bots', async () => {
+  it('offers a retry (instead of blocking) and hides the matches list on widget error', async () => {
     ts.behavior = 'bot'
     render(<GuestUserModal />)
-    expect(await screen.findByText('antibot.blocked')).toBeInTheDocument()
+    expect(await screen.findByText('antibot.error')).toBeInTheDocument()
+    expect(screen.getByText('startMatch.retry')).toBeInTheDocument()
     expect(screen.queryByTestId('matches-list')).not.toBeInTheDocument()
   })
 })

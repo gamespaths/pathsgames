@@ -109,7 +109,7 @@ Import Story From File
     &{headers}=    Create Dictionary
     ...    Authorization=Bearer ${ADMIN_TOKEN}
     ...    Content-Type=application/json
-    ${response}=    POST On Session    public_session    /api/admin/stories/import
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
     ...    data=${body}    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -117,7 +117,7 @@ Delete Admin Story
     [Documentation]    Calls DELETE /api/admin/stories/{uuid}. Returns the response.
     [Arguments]    ${uuid}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    DELETE On Session    public_session    /api/admin/stories/${uuid}
+    ${response}=    DELETE On Session    admin_session    /api/admin/stories/${uuid}
     ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
@@ -126,7 +126,7 @@ Get Admin Stories
     [Arguments]    ${lang}=${DEFAULT_LANG}
     ${params}=    Create Dictionary    lang=${lang}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    GET On Session    public_session    /api/admin/stories
+    ${response}=    GET On Session    admin_session    /api/admin/stories
     ...    params=${params}    headers=${headers}
     RETURN    ${response}
 
@@ -135,8 +135,61 @@ Get Admin Story By UUID
     [Arguments]    ${uuid}    ${lang}=${DEFAULT_LANG}
     ${params}=    Create Dictionary    lang=${lang}
     &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
-    ${response}=    GET On Session    public_session    /api/admin/stories/${uuid}
+    ${response}=    GET On Session    admin_session    /api/admin/stories/${uuid}
     ...    params=${params}    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+# ── Step 22: Story Validation Keywords ────────────────────────────────
+
+Post Admin Story Import
+    [Documentation]    POST /api/admin/stories/import with a raw JSON payload string.
+    ...                Returns the response (any status).
+    [Arguments]    ${payload}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    POST On Session    admin_session    /api/admin/stories/import
+    ...    data=${payload}    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Import Payload Should Fail Validation
+    [Documentation]    Posts a payload, asserts 400 INVALID_STORY, and returns the body.
+    [Arguments]    ${payload}
+    ${response}=    Post Admin Story Import    ${payload}
+    Should Be Equal As Integers    ${response.status_code}    400
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Strings    ${body}[error]    INVALID_STORY
+    RETURN    ${body}
+
+Validate Admin Story
+    [Documentation]    Calls GET /api/admin/stories/{uuid}/validate. Returns the response.
+    [Arguments]    ${uuid}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    GET On Session    admin_session    /api/admin/stories/${uuid}/validate
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Create Admin Entity
+    [Documentation]    POST /api/admin/stories/{uuid}/{entityType} with a JSON body.
+    ...                Entity-local (lenient) validation: forward references are NOT
+    ...                checked, so a reference to a not-yet-existing entity still
+    ...                returns 201. Returns the response (any status).
+    [Arguments]    ${uuid}    ${entity_type}    ${json_body}
+    &{headers}=    Create Dictionary
+    ...    Authorization=Bearer ${ADMIN_TOKEN}
+    ...    Content-Type=application/json
+    ${response}=    POST On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}    json=${json_body}
+    ...    headers=${headers}    expected_status=any
+    RETURN    ${response}
+
+Delete Admin Entity
+    [Documentation]    DELETE /api/admin/stories/{uuid}/{entityType}/{entityUuid}.
+    [Arguments]    ${uuid}    ${entity_type}    ${entity_uuid}
+    &{headers}=    Create Dictionary    Authorization=Bearer ${ADMIN_TOKEN}
+    ${response}=    DELETE On Session    admin_session
+    ...    /api/admin/stories/${uuid}/${entity_type}/${entity_uuid}
+    ...    headers=${headers}    expected_status=any
     RETURN    ${response}
 
 # ── Step 16: Content Info Keywords ────────────────────────────────────

@@ -66,3 +66,121 @@ class GamingStateRegistryEntity(Base):
     id_mission_steps = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class GamingCharacterInstanceEntity(Base):
+    """Step 21 — a character materialised in a match (one per user per match)."""
+
+    __tablename__ = "gaming_character_instance"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id_character_template = Column(Integer, nullable=False)
+    dexterity = Column(Integer, default=1, nullable=False)
+    intelligence = Column(Integer, default=1, nullable=False)
+    constitution = Column(Integer, default=1, nullable=False)
+    energy = Column(Integer, default=0, nullable=False)
+    life = Column(Integer, default=1, nullable=False)
+    sad = Column(Integer, default=0, nullable=False)
+    # Step 27 — max statistics computed at join and persisted on the instance.
+    life_max = Column(Integer, default=0, nullable=False)
+    energy_max = Column(Integer, default=0, nullable=False)
+    sad_max = Column(Integer, default=0, nullable=False)
+    weight_max = Column(Integer, default=0, nullable=False)
+    id_location = Column(Integer)
+    is_sleeping = Column(Integer, default=0, nullable=False)
+    is_coma = Column(Integer, default=0, nullable=False)
+    clock_in_coma = Column(Integer, default=0)
+    timestamp_last_pass = Column(String(50))
+    counter_consecutive_pass = Column(Integer, default=0, nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingBackpackResourcesEntity(Base):
+    """Step 21 — backpack resources seeded for a character instance."""
+
+    __tablename__ = "gaming_backpack_resources"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    food = Column(Integer, default=0, nullable=False)
+    magic = Column(Integer, default=0, nullable=False)
+    coin = Column(Integer, default=0, nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingInventoryItemsEntity(Base):
+    """Step 27 — the items a character carries inside a match."""
+
+    __tablename__ = "gaming_inventory_items"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_item = Column(Integer, nullable=False)
+    amount = Column(Integer, default=1, nullable=False)
+    state = Column(String(20), default="ACTIVE")
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingCharacterTraitsEntity(Base):
+    """Step 21 — the traits selected for a character instance."""
+
+    __tablename__ = "gaming_character_traits"
+
+    id = Column(Integer, primary_key=True)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_traits = Column(Integer, nullable=False)
+    id_event = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingTurnQueueEntity(Base):
+    """Step 24 — single-player turn queue. One row per character of a match.
+    ``status`` carries the explicit turn lifecycle WAITING -> ACTIVE -> COMPLETED."""
+
+    __tablename__ = "gaming_turn_queue"
+
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    id_character_match = Column(Integer, primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer, nullable=False)
+    timestamp_start = Column(String(50))
+    timestamp_end = Column(String(50))
+    pass_counter = Column(Integer, default=0, nullable=False)
+    priority = Column(Integer, default=0, nullable=False)
+    status = Column(String(20), default="WAITING", nullable=False)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class LogClockHistoryEntity(Base):
+    """Step 25 — append-only log of clock advances. One row per time-end.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it
+    is assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_clock_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer, nullable=False)
+    weather = Column(String(100))
+    timestamp_start = Column(String(50))
+    timestamp_end = Column(String(50))
+    id_event_start = Column(Integer)
+    id_event_end = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

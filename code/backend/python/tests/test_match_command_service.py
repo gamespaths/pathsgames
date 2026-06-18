@@ -261,6 +261,14 @@ def test_happy_path_persists_creator_loadout():
         keys=[],
         saved_match=_saved(),
     )
+    # Step 23 — loadout traits are validated at creation
+    mocks["story_read"].find_class_by_uuid.return_value = {"id": 30, "uuid": "class-uuid"}
+    mocks["story_read"].find_trait_by_uuid.side_effect = lambda sid, u: {
+        "t1": {"id": 40, "uuid": "t1", "cost_positive": 1, "cost_negative": 0,
+               "id_class_permitted": None, "id_class_prohibited": None},
+        "t2": {"id": 41, "uuid": "t2", "cost_positive": 1, "cost_negative": 0,
+               "id_class_permitted": None, "id_class_prohibited": None},
+    }.get(u)
     cmd = MatchCreateCommand(
         "u", "s", "d", "n", "ct",
         class_uuid="class-uuid", trait_uuids=["t1", "t2"], single_player=0,
@@ -401,3 +409,71 @@ def test_end_match_completed_sets_status_ended():
     mocks["story_read"].find_event_by_story_id_and_uuid.return_value = {"id": 50, "uuid": "ev"}
     assert service.end_match("m1", "ev", "user-uuid") == "COMPLETED"
     mocks["persistence"].update_match_fields.assert_called_once_with("m1", "ENDED", None)
+
+
+# ─── Step 23: creator loadout trait validation ──────────────────────────────
+
+
+def _build_loadout_service(difficulty=None):
+    service, mocks = _build_service(
+        user=_user(),
+        story=_story(),
+        difficulty=difficulty or _difficulty(),
+        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        keys=[],
+        saved_match=_saved(),
+    )
+    mocks["story_read"].find_class_by_uuid.return_value = {"id": 30, "uuid": "class-uuid"}
+    return service, mocks
+
+
+def _loadout_cmd(traits):
+    return MatchCreateCommand("u", "s", "d", "n", "ct",
+                              class_uuid="class-uuid", trait_uuids=traits, single_player=1)
+
+
+def test_create_unknown_trait_not_found():
+    service, mocks = _build_loadout_service()
+    mocks["story_read"].find_trait_by_uuid.return_value = None
+
+    with pytest.raises(MatchCreationError) as exc:
+        service.create_match(_loadout_cmd(["ghost"]))
+    assert exc.value.code == MatchCreationError.TRAIT_NOT_FOUND
+    mocks["persistence"].save_match.assert_not_called()
+
+
+def test_create_duplicated_trait():
+    service, mocks = _build_loadout_service()
+    mocks["story_read"].find_trait_by_uuid.return_value = {
+        "id": 40, "uuid": "t1", "cost_positive": 1, "cost_negative": 0,
+        "id_class_permitted": None, "id_class_prohibited": None}
+
+    with pytest.raises(MatchCreationError) as exc:
+        service.create_match(_loadout_cmd(["t1", "t1"]))
+    assert exc.value.code == MatchCreationError.TRAIT_DUPLICATED
+
+
+def test_create_prohibited_trait():
+    service, mocks = _build_loadout_service()
+    mocks["story_read"].find_trait_by_uuid.return_value = {
+        "id": 40, "uuid": "t1", "cost_positive": 1, "cost_negative": 0,
+        "id_class_permitted": None, "id_class_prohibited": 30}
+
+    with pytest.raises(MatchCreationError) as exc:
+        service.create_match(_loadout_cmd(["t1"]))
+    assert exc.value.code == MatchCreationError.TRAIT_NOT_COMPATIBLE
+
+
+def test_create_positive_budget_exceeded():
+    difficulty = {**_difficulty(), "trait_cost_positive_budget": 1}
+    service, mocks = _build_loadout_service(difficulty=difficulty)
+    mocks["story_read"].find_trait_by_uuid.side_effect = lambda sid, u: {
+        "t1": {"id": 40, "uuid": "t1", "cost_positive": 1, "cost_negative": 0,
+               "id_class_permitted": None, "id_class_prohibited": None},
+        "t2": {"id": 41, "uuid": "t2", "cost_positive": 1, "cost_negative": 0,
+               "id_class_permitted": None, "id_class_prohibited": None},
+    }.get(u)
+
+    with pytest.raises(MatchCreationError) as exc:
+        service.create_match(_loadout_cmd(["t1", "t2"]))
+    assert exc.value.code == MatchCreationError.TRAIT_COST_EXCEEDED

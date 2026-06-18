@@ -8,6 +8,7 @@ import BookPageRight from './BookPageRight'
  *   left            ReactNode  content for the left page
  *   right           ReactNode  content for the right page
  *   onClose         fn|null    if provided, renders a fixed close button
+ *   closeLabel      string     optional text shown next to the close button
  *   overlayClass    string     class on the outer overlay div
  *   wrapperClass    string     class on the book-wrapper div
  *   mobile          ReactNode  optional extra element rendered below the book (mobile UI)
@@ -16,6 +17,7 @@ export default function Book({
   left,
   right,
   onClose,
+  closeLabel    = null,
   overlayClass  = 'book-overlay',
   wrapperClass  = 'book-wrapper',
   mobile        = null,
@@ -23,14 +25,16 @@ export default function Book({
   return (
     <div className={overlayClass}>
       {onClose && (
-        <button
-          className="book-close-btn"
-          style={{ position: 'fixed', top: 16, right: 16, zIndex: 1100 }}
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <i className="fas fa-times" />
-        </button>
+        <div className="book-close-bar">
+          {closeLabel && <span className="book-close-label">{closeLabel}</span>}
+          <button
+            className="book-close-btn"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <i className="fas fa-times" />
+          </button>
+        </div>
       )}
       <div className={wrapperClass}>
         <div className="book-spine" />

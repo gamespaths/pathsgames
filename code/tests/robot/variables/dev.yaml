@@ -9,6 +9,10 @@
 
 BASE_URL: "http://localhost:8042"
 
+# Admin endpoint — admin APIs are served on the dedicated admin port 8044
+# (Java/Python), separate from the public 8042 player API.
+ADMIN_BASE_URL: "http://localhost:8044"
+
 # Admin Bearer token — replace with a real token from the admin panel
 ADMIN_TOKEN: "ADMIN_TOKEN"
 

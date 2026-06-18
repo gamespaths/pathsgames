@@ -8,8 +8,21 @@ Parameters:
     Type: String
   ApiId:
     Type: String
+  AdminApiId:
+    Type: String
+    Description: "Id of the dedicated admin HTTP API that serves /api/admin/** routes."
+  AdminAuthorizerId:
+    Type: String
+    Description: "Id of the IP-allow-list Lambda authorizer on the admin HTTP API."
   JwtSecret:
     Type: String
+  AllowMockAccess:
+    Type: String
+    Default: "true"
+  AdminIpWhitelist:
+    Type: String
+    Default: ""
+    Description: "Comma-separated allowed IPs for /api/admin/**. Empty = no restriction."
 
 Resources:
   AuthLogGroup:
@@ -42,6 +55,8 @@ Resources:
           TABLE_NAME: !Ref TableName
           ENV: !Ref Environment
           JWT_SECRET: !Ref JwtSecret
+          ALLOW_MOCK_ACCESS: !Ref AllowMockAccess
+          ADMIN_IP_WHITELIST: !Ref AdminIpWhitelist
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TableName
@@ -61,6 +76,23 @@ Resources:
       FunctionName: !Ref AuthFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*"
+
+  # Admin API integration + invoke permission (same Lambda, second HTTP API).
+  AuthAdminIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref AdminApiId
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AuthFunction.Arn
+      PayloadFormatVersion: "2.0"
+
+  AuthAdminPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AdminApiId}/*"
 
   GuestLoginRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -104,37 +136,48 @@ Resources:
       RouteKey: "GET /api/auth/me"
       Target: !Sub "integrations/${AuthIntegration}"
 
+  # ── Admin routes — served on the admin HTTP API, gated by the IP authorizer ──
   ListGuestsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/guests"
-      Target: !Sub "integrations/${AuthIntegration}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   GuestStatsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/guests/stats"
-      Target: !Sub "integrations/${AuthIntegration}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   CleanupExpiredGuestsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "DELETE /api/admin/guests/expired"
-      Target: !Sub "integrations/${AuthIntegration}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   GetGuestByUuidRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/guests/{uuid}"
-      Target: !Sub "integrations/${AuthIntegration}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
 
   DeleteGuestRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
-      ApiId: !Ref ApiId
+      ApiId: !Ref AdminApiId
       RouteKey: "DELETE /api/admin/guests/{uuid}"
-      Target: !Sub "integrations/${AuthIntegration}"
+      Target: !Sub "integrations/${AuthAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId

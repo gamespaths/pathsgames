@@ -1,6 +1,6 @@
 # Production profile - PostgreSQL, optimized settings
 server:
-  port: 8042
+  port: ${SERVER_PORT:8042}
 
 spring:
   datasource:
@@ -25,10 +25,19 @@ spring:
 game:
   server:
     status: OK
-    env: production
+    # Deployment environment shown by /api/echo/status. Overridable via the
+    # ENVIRONMENT env var (mirrors the SAM `Environment` parameter); defaults to
+    # production when unset.
+    env: ${ENVIRONMENT:production}
+  admin:
+    # Admin connector port in production. Keep it firewalled to the owner IP only.
+    port: ${ADMIN_PORT:8044}
   auth:
     cors:
-      allowed-origins: https://paths.games,https://www.paths.games,https://pathsgames.com
+      allowed-origins: 
+        - "https://paths.games"
+        - "https://www.paths.games"
+        - "https://pathsgames.com"
   dev:
     # Dev-only endpoints (POST /api/dev/cleanup) and the X-Test-Marker header
     # are disabled in production: the cleanup endpoint returns 403.

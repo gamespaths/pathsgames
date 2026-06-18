@@ -1,78 +1,72 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-
-// Controllable Turnstile mock: fires onSuccess (human) by default, onError when
-// `ts.behavior` is 'bot'.
-const ts = vi.hoisted(() => ({ behavior: 'success' }))
-vi.mock('@marsidev/react-turnstile', async () => {
-  const { useEffect } = await import('react')
-  return {
-    Turnstile: ({ onSuccess, onError }) => {
-      useEffect(() => {
-        if (ts.behavior === 'bot') onError?.()
-        else onSuccess?.('test-token')
-      }, [])
-      return <div data-testid="turnstile-mock" />
-    },
-  }
-})
-
-vi.mock('../utils/turnstile', async (importOriginal) => {
-  const actual = await importOriginal()
-  return { ...actual, CF_KEY: 'test-site-key' }
-})
+import { render, screen, fireEvent } from '@testing-library/react'
 
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../features/startBook/ConfigCard', () => ({ default: () => <div /> }))
-vi.mock('../components/common/BonusBadgeList', () => ({ default: () => <div /> }))
+// Card is "dumb": ConfigView passes entityType + handlers directly. Mock Card so
+// `entityType` is the test id and onAction/onPreview stay wired.
+vi.mock('../components/layout/Card', () => ({
+  default: ({ entityType, onAction, onPreview }) => (
+    <button
+      data-testid={`cc-${entityType}`}
+      onClick={() => { onAction?.(); onPreview?.() }}
+    />
+  ),
+}))
+vi.mock('../components/ui/BonusBadgeList', () => ({ default: () => <div /> }))
 
-import ConfigView from '../features/startBook/ConfigView'
+import ConfigView from '../features/start-book/ConfigView'
 
-const config = { character: null, class: null, trait: null, difficulty: null }
+const config = { character: { card: {} }, class: { card: {} }, traits: [], difficulty: { card: {} } }
 
 function setup(props = {}) {
-  const onStartGame = vi.fn()
+  const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onPreview: vi.fn() }
   render(
     <ConfigView
       config={config}
-      story={{}}
-      onChangeClick={vi.fn()}
-      onPreview={vi.fn()}
-      termsAccepted={true}
-      onTermsChange={vi.fn()}
-      onStartGame={onStartGame}
+      story={{ classes: [{}, {}], characterTemplates: [{}], traits: [{}], difficulties: [{}] }}
+      {...handlers}
       {...props}
     />
   )
-  return { onStartGame }
+  return handlers
 }
 
-describe('ConfigView — start-game antibot flow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    ts.behavior = 'success'
-  })
+describe('ConfigView', () => {
+  beforeEach(() => vi.clearAllMocks())
 
-  it('shows the start button first, then runs Turnstile and calls onStartGame with the token', async () => {
-    const { onStartGame } = setup()
+  it('advances to the start-game confirmation when "Start Game" is clicked', () => {
+    const { onProceed } = setup()
     fireEvent.click(screen.getByText('book.startGame'))
-    await waitFor(() => expect(onStartGame).toHaveBeenCalledWith('test-token'))
-    // button + terms are hidden while checking
-    expect(screen.queryByText('book.startGame')).not.toBeInTheDocument()
+    expect(onProceed).toHaveBeenCalled()
   })
 
-  it('shows the antibot message and does not start the game when flagged as a bot', async () => {
-    ts.behavior = 'bot'
-    const { onStartGame } = setup()
+  it('wires selectable cards (action + lens) to onChangeClick', () => {
+    const { onChangeClick } = setup()
+    fireEvent.click(screen.getByTestId('cc-class'))
+    fireEvent.click(screen.getByTestId('cc-difficulty'))
+    expect(onChangeClick).toHaveBeenCalledWith('class')
+    expect(onChangeClick).toHaveBeenCalledWith('difficulty')
+  })
+
+  it('wires the information (bonuses) cards to onPreview', () => {
+    const { onPreview } = setup()
+    fireEvent.click(screen.getAllByTestId('cc-bonuses')[0])
+    expect(onPreview).toHaveBeenCalled()
+  })
+
+  it('wires the character and trait cards to onChangeClick', () => {
+    const { onChangeClick } = setup()
+    fireEvent.click(screen.getByTestId('cc-character'))
+    fireEvent.click(screen.getByTestId('cc-trait'))
+    expect(onChangeClick).toHaveBeenCalledWith('character')
+    expect(onChangeClick).toHaveBeenCalledWith('trait')
+  })
+
+  it('renders without crashing when story content lists are missing', () => {
+    const { onProceed } = setup({ story: {}, config: { character: { card: {} }, class: { card: {} }, traits: undefined, difficulty: { card: {} } } })
     fireEvent.click(screen.getByText('book.startGame'))
-    expect(await screen.findByText('antibot.blocked')).toBeInTheDocument()
-    expect(onStartGame).not.toHaveBeenCalled()
-  })
-
-  it('disables the start button until the terms are accepted', () => {
-    setup({ termsAccepted: false })
-    expect(screen.getByText('book.startGame').closest('button')).toBeDisabled()
+    expect(onProceed).toHaveBeenCalled()
   })
 })

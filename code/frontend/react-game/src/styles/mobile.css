@@ -3,6 +3,10 @@
    Modifica qui font, colori e dimensioni per il layout mobile.
    ═══════════════════════════════════════════════════════════ */
 
+.card-big .gc-title .gc-title__text {
+  font-size: 1.5rem !important;     /* titolo storia su mobile */
+}
+
 /* ── Mobile book modal layout (StartBook) ── */
 .book-mobile-layout {
   display: none;
@@ -14,7 +18,7 @@
   width: 100%;
 }
 
-/* Story card (image + title) */
+/* Story card (image + title) — still used by EndGameBook / GameBookMobile. */
 .book-mobile-story-card {
   border-radius: 12px;
   overflow: hidden;
@@ -47,50 +51,66 @@
   margin: 0;
 }
 
-/* Config card row (character, class, trait, difficulty…) */
-.book-mobile-config-card {
-  background: linear-gradient(145deg, var(--color-brown-warm), var(--color-brown-dark));
-  border: 2px solid var(--color-brown-mid);
-  border-radius: 10px;
-  padding: 12px 16px;     /* ← padding config card mobile */
-  display: flex;
-  align-items: center;
-  gap: 14px;
+/* Full-width hero card (story title + image + (i) + Start Game button).
+   Reuses Card but overrides the portrait grid sizing to a wide banner. */
+.book-mobile-hero-card .pg-card {
+  width: 100%;
+  flex: none;
+  aspect-ratio: auto;
+}
+.book-mobile-hero-card .gc-img {
+  flex: none;
+  height: 180px;          /* ← altezza immagine storia (hero) su mobile */
+}
+.book-mobile-hero-card .gc-title__text {
+  font-size: 1.05rem;     /* ← titolo storia su mobile */
+}
+/* Make the card's primary action read as the gold "Start Game" CTA. */
+.book-mobile-hero-card .gc-footer__btn:not(.gc-footer__btn--icon) {
+  background: linear-gradient(180deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
+  color: var(--color-brown-deep);
+  font-weight: 700;
 }
 
-.book-mobile-config-icon {
-  font-size: 1.6rem;      /* ← icona config card mobile */
-  color: var(--color-gold-light);
-  min-width: 28px;
-  text-align: center;
+/* ── Shared start-book views (ConfigView / StartGameView / SelectionView)
+   reused inside the mobile layout: let them flow naturally and lay the
+   GameCards out 2 per row. ── */
+.book-mobile-layout .config-view-wrap { height: auto; }
+.book-mobile-layout .config-cards-area,
+.book-mobile-layout .start-match-cards {
+  flex: none;
+  overflow: visible;
+  padding: 6px 0 0;
+}
+.book-mobile-layout .selection-scroll {
+  flex: none;
+  overflow: visible;
+  padding: 6px 0 10px;
+}
+.book-mobile-layout .selection-list {
+  grid-template-columns: repeat(2, 1fr);
+  overflow: visible;
+}
+/* Enlarge the small (little) card titles on mobile for readability; allow them
+   to wrap rather than truncate at the bigger size. */
+.book-mobile-layout .selection-list .gc-title__text {
+  font-size: clamp(1.20rem, 3.2vw, 1.20rem);
+  /* white-space: normal; */
+}
+/* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
+   footer button would be a duplicate — hide it (StartGameView keeps its
+   footer, which carries the antibot check + final Start). */
+.book-mobile-layout .config-view--config .page-footer {
+  display: none;
 }
 
-.book-mobile-config-info {
-  flex: 1;
-}
-
-.book-mobile-config-label {
-  font-size: 0.68rem;     /* ← etichetta tipo (CHARACTER, CLASS…) */
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--color-ash);
-  font-family: var(--font-heading);
-}
-
-.book-mobile-config-value {
-  font-size: 0.96rem;     /* ← valore selezionato (Fighter, Warrior…) */
-  color: var(--color-parchment);
-  font-family: var(--font-heading);
-  font-weight: 600;
-}
-
-/* Footer (terms + start game) */
-.book-mobile-footer {
-  background: linear-gradient(145deg, var(--color-brown-dark), var(--color-brown-deep));
-  border: 2px solid var(--color-gold-dark);
-  border-radius: 10px;
-  padding: 16px;
-}
+/* GuestUserModal reused on mobile: the big user/story card and the matches
+   list flow naturally (their desktop rules use height:100% + overflow:hidden,
+   which would collapse/clip inside the auto-height mobile column). */
+.book-mobile-layout .book-page-content { height: auto; overflow: visible; }
+.book-mobile-layout .book-page-desc    { overflow: visible; }
+.book-mobile-layout .book-page-img     { max-height: 240px; }
+.book-mobile-layout .matches-list-wrap { height: auto; overflow: visible; }
 
 /* ── Home hero on mobile ── */
 /* (overrides hero height defined in main.css) */
@@ -101,11 +121,37 @@
   .book-wrapper      { display: none !important; }
   .book-mobile-layout { display: flex !important; }
 
-  .book-overlay {
-    align-items: flex-start;
+  /* Kill any horizontal scroll/tap drift on the whole page on mobile: nothing
+     in the game/book modal should ever be wider than the device. */
+  html, body { overflow-x: hidden; max-width: 100%; }
+
+  /* No hover on touch: the close label never appears on mobile, only the (x). */
+  .book-close-label { display: none; }
+
+  /* NOTE: mobile.css is @import-ed at the TOP of main.css, so its plain
+     single-class rules lose to main.css's later base rules of equal
+     specificity. Double the class to win the cascade.
+     Use plain block flow (not flex) for the mobile overlay: a centered flex
+     overlay clips both the top (first card) AND the bottom (Start button)
+     when the content is taller than the viewport. Block flow scrolls the
+     whole thing top-to-bottom reliably. */
+  .book-overlay.book-overlay {
+    display: block;
+    overflow-x: hidden;            /* never let content widen past the viewport */
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 56px 0 32px;
   }
+
+  /* Keep the single-column game layout within the device width: cap the layout
+     and its left/right wrappers, and stop flex/grid children from forcing a
+     wider track (min-width:auto default overflows on long words / wide cards). */
+  .game-page-wrap { overflow-x: hidden; }
+  .book-mobile-layout,
+  .book-mobile-left,
+  .book-mobile-right { max-width: 100%; min-width: 0; }
+  .book-mobile-layout * { /* min-width: 0;*/ max-width: 100%; }
+  .book-mobile-layout img { height: auto; }
 
   /* Game page: stack pages vertically */
   .game-book-wrapper {
@@ -134,7 +180,7 @@
   .stories-section { padding: 12px 12px 0; }
 
   /* Navbar: hide brand text, show only icon */
-  .navbar-brand-text { display: none; }
+  /*.navbar-brand-text { display:none }*/
 
   /* Navbar home button: show only icon */
   .navbar-home-btn span { display: none; }
@@ -176,4 +222,33 @@
   .config-cover-name {
     text-align: right;
   }
+  .antibot-message {
+    color: var(--color-gold-light) !important;
+  }
+  .antibot-message-icon {
+    color: var(--color-gold-light) !important;
+  }
+  .turnstile-checking{
+    margin-top:2rem;
+    text-align: center;;
+    color: var(--color-gold-light) !important;
+  }
+  .selection-title{
+    color: var(--color-gold-light) !important;
+  }
+  .start-match-status{
+    color: var(--color-gold-light) !important;
+    font-size: 1.5rem;
+  }
+  .matches-list-title{
+    color: var(--color-gold-light) !important;
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .gc-footer__btn {
+    font-size: 1.125rem !important;
+  }
+
 }
+
