@@ -69,28 +69,31 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-
-
-
 26. Time-start recovery, class bonuses & location counters
-    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. P is . Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
-    - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: energy≤energy_max, life≤life_max, sadness≤sad_max, life≥0 (backend)
+    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. P is secure_param (from location) + "energy" field from StoryDifficulty table of story of match. Location is safe if secure_param>0. Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
+    - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: 0≤energy≤energy_max, 0≤life≤life_max, 0≤sadness≤sad_max, max_life≥life≥0 (backend)
+    - If there are player into location with counter_time>0 not present into gaming_state_locations table, insert into gaming_state_locations 
     - Decrement location time counters at time start; when a counter reaches zero, log it and flag id_event_if_counter_zero for execution — actual event execution is wired in Step 29 (stub now) (backend)
     - Create log records for recovery and counter changes; extend the clock/turn-sequence response with a per-character recovery summary (energy/life/sadness delta) (backend)
-    - Frontend: "new time" recap panel in react-game showing per-character recovery deltas and any counter-triggered notices; refresh energy/life/sadness bars after time start (frontend)
+    - Check if clockCounter field into locations object into match/uuid/info API is location time counters
+    - Create a robot test to test "character recovery" , apply bonuses, insert location into gaming_state_locations, Decrement location time counters
+    - Frontend React admin , on matches/uuid page section to see gaming_state_locations table content
+    - Frontend react game: on locationCard show clockCounter if >0 like statistics
+    - Frontend react game: when clock is updated, when statistic is updated, update values on pages components
     - Backend + frontend unit tests: safe/unsafe recovery math, stat caps, class-bonus application, counter decrement + zero handling (stub), recovery recap rendering (tests)
 
-
-
 27. Weather system — random selection and effects
-    - 4. Determinismo per i test. Weather (27) e global random events (65) usano probabilità. Inietta un RNG seedabile fin da subito, altrimenti le suite Robot su meteo/eventi saranno flaky.
+    - RNG: add rng_seed BIGINT to gaming_match table (default NULL); when match is created, generate a random seed and save it on rng_seed; use this seed to initialize a per-match Random instance for all probability rolls; in Robot tests, create match with rng_seed=42 for deterministic results (backend)
     - Implement weather selection algorithm using probability weights, registry conditions, and time range filters (backend)
-    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend): maybe already developed! 
+    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend): check if it's already developed! 
     - Apply weather energy delta to characters at time start (delta_energy field) (backend)
     - Trigger weather-linked events when weather has id_event configured (backend)
     - Store weather in gaming_match.id_current_weather and create log_weather history record (backend)
     - Implement GET /matches/{uuid}/weather endpoint returning current weather with movement cost modifiers (backend)
     - Write backend unit tests for weather selection, probability distribution, condition filtering, and energy delta application (backend tests)
+    - Write Robot test to cover all new implementation using RNG=42 always! 
+    - Frontend react-admin: on matches/uuid page section to see current weather and delta_energy and a section to check log_weather contents. Add rng_seed too. 
+    - Frontend react-game on gameBook after GoToSleepCard add weatcher card (in both points)
 28. Movement system — adjacency, energy cost, validation
     - Implement POST /gameplay/{uuid_match}/movements/start endpoint accepting target location for character movement (backend)
     - Implement GET /match/{uuid_match}/locations endpoint returning list of already visited locations (backend)
@@ -99,6 +102,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Calculate total energy cost: base cost + location entry cost + weather modifier (safe/unsafe different costs) (backend)
     - Deduct energy from character, update gaming_character_instance.id_location, check location capacity limits (backend)
     - Write backend unit tests for movement validation, energy calculation, registry conditions, capacity limits, and weight checks (backend tests)
+    - Frontend react-game on gameBook after GoToSleepCard add locations cards if neighbor (in both points) and action button to movements/start API calls
+    - Frontend react-admin: check if add section into matches/uuid page with this step feature!
+    - Capacity check is first-come-first-served; concurrent movement locking deferred to Step 67
+
 29. Location entry events — automatic triggers
     - Implement event trigger evaluation on location entry: AUTOMATIC_FIRST_ENTRY for first visit (backend)
     - Implement AUTOMATIC_SUBSEQUENT_ENTRY trigger for repeat visits using gaming_state_locations.flag_already_actived (backend)

@@ -1,0 +1,44 @@
+[
+  {
+    "icon": "fab fa-dice",
+    "label": "Play alpha version",
+    "url": "https://test.paths.games",
+    "comingSoon": false
+  },
+  {
+    "icon": "fas fa-book-open",
+    "label": "Game Rules",
+    "url": "https://github.com/gamespaths/pathsgames/blob/main/documentation_v0/Step01_StartProject.md",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-github",
+    "label": "GitHub",
+    "url": "https://github.com/gamespaths/pathsgames",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-youtube",
+    "label": "YouTube",
+    "url": "https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-instagram",
+    "label": "Instagram",
+    "url": "https://www.instagram.com/pathsgames/",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-x-twitter",
+    "label": "X",
+    "url": "https://x.com/PathsGames",
+    "comingSoon": false
+  },
+  {
+    "icon": "fas fa-coins",
+    "label": "Crowdfunding",
+    "url": null,
+    "comingSoon": true
+  }
+]

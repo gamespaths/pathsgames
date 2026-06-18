@@ -21,6 +21,7 @@ function metaCard(imgId , title=null, description=null) {
     styleImageLittle: img.styleImageLittle,
     title: title ?? null,
     description: description ?? null,
+    awesomeIcon: img.awesomeIcon ?? null,
   }
 }
 
@@ -58,6 +59,11 @@ export function buildAntibotCard(t) {
 /** "Free to play" card revealed once the Turnstile check succeeds. */
 export function buildFreeToPlay(t) {
   return metaCard('freeToPlay', t('book.freeToPlay'), t('book.freeToPlayDesc'));
+}
+
+/** "No traits selected" placeholder card shown in ConfigView when selectedTraits is empty. */
+export function buildNoTraitsCard(t) {
+  return metaCard('noTraits', t('book.noTraitsTitle'), t('book.noTraitsDesc'))
 }
 
 export function buildStatisticsCard(t, totals , story) {

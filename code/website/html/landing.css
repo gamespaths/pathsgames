@@ -69,6 +69,33 @@ body {
   100% { transform: rotate(360deg) translateY(0); }
 }
 
+/* ─── NAVBAR SOCIAL ICONS ─── */
+.pg-navbar-social {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.pg-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 2.5rem;
+  font-size: 2rem;
+  color: var(--color-brown-tan);
+  border-radius: 5px;
+  text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pg-social-link:hover {
+  color: var(--color-gold-light);
+  background: rgba(200, 150, 10, 0.12);
+  box-shadow: 0 0 8px rgba(200, 150, 10, 0.25);
+}
+
 /* ─── HERO ─── */
 .pg-hero {
   position: relative;
@@ -318,12 +345,12 @@ a.pg-card--dev:hover { border-color: var(--color-brown-super-tan); box-shadow: 0
   justify-content: center;
   gap: 0.5rem 1rem;
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 1.25rem;
 }
 
 .pg-footer-brand {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 1.50rem;
   color: var(--color-gold-dark);
   letter-spacing: 0.06em;
 }
@@ -406,6 +433,12 @@ a.pg-card--dev:hover { border-color: var(--color-brown-super-tan); box-shadow: 0
 @media (max-width: 767.98px) {
   .pg-navbar-brand {
     font-size: 1.45rem;
+  }
+
+  .pg-social-link {
+    width: 2.5rem;
+    height: 1.8rem;
+    font-size: 1rem;
   }
 
   .pg-hero {

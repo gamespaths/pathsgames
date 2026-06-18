@@ -61,6 +61,8 @@
     "antibot": "Security",
     "antibotOk": "Verification",
     "antibotDesc": "Antibot check completed successfully: you are ready to start the adventure.",
+    "noTraitsTitle": "No Traits",
+    "noTraitsDesc": "You have not selected any trait. You can proceed without traits or select one to customise your character.",
     "freeToPlay": "Free to Play",
     "freeToPlayDesc": "Paths Games is free: no cost, no account required. Start playing right away.",
     "selectTitle": "Select",

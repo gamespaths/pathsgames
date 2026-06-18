@@ -60,6 +60,8 @@
     "antibot": "Sicurezza",
     "antibotOk": "Verifica superata",
     "antibotDesc": "Controllo antibot completato con successo: sei pronto per iniziare l'avventura.",
+    "noTraitsTitle": "Nessun Tratto",
+    "noTraitsDesc": "Non hai selezionato nessun tratto. Puoi procedere senza tratti oppure selezionarne uno per personalizzare il tuo personaggio.",
     "freeToPlay": "Gioca Gratis",
     "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",

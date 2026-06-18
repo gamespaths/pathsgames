@@ -10,9 +10,9 @@ const TRANSLATIONS = {
     consentModal: {
       title: 'We value your privacy',
       description:
-        'We use cookies that are strictly necessary to keep your game session active, and — only with your consent — analytics cookies (Google Tag Manager) to understand how the game is used.',
+        'We use cookies that are strictly necessary to keep your game session active, and — only with your consent — analytics cookies to understand how the game is used.',
       acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
+      //acceptNecessaryBtn: 'Reject all',
       showPreferencesBtn: 'Manage preferences',
     },
     preferencesModal: {
@@ -56,7 +56,7 @@ const TRANSLATIONS = {
     consentModal: {
       title: 'Teniamo alla tua privacy',
       description:
-        'Usiamo cookie strettamente necessari per mantenere attiva la sessione di gioco e — solo con il tuo consenso — cookie analitici (Google Tag Manager) per capire come viene usato il gioco.',
+        'Usiamo cookie strettamente necessari per mantenere attiva la sessione di gioco e — solo con il tuo consenso — cookie analitici per capire come viene usato il gioco.',
       acceptAllBtn: 'Accetta tutti',
       acceptNecessaryBtn: 'Rifiuta tutti',
       showPreferencesBtn: 'Gestisci preferenze',
