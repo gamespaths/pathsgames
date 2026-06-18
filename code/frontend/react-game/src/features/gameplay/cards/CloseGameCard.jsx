@@ -9,8 +9,9 @@ import { useTranslation } from "@/i18n/context"
 function CloseGameCard({ story, onExit, onDismiss }) {
   const { t } = useTranslation()
   const card = story?.card
-  return <div className="close-prompt-overlay" onClick={onDismiss}>
-    <div className="close-prompt-modal" onClick={e => e.stopPropagation()}>
+  const handleOverlayKey = e => { if (e.key === 'Escape') onDismiss() }
+  return <div className="close-prompt-overlay" role="presentation" onClick={onDismiss} onKeyDown={handleOverlayKey}>
+    <div className="close-prompt-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
       <Card
         variant="big"
         card={card}

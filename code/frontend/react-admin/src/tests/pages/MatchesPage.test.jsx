@@ -178,4 +178,83 @@ describe('MatchesPage', () => {
     await userEvent.click(screen.getByText('Confirm'))
     await waitFor(() => expect(deleteMatch).toHaveBeenCalledWith('m1-uuid-aaaa'))
   })
+
+  it('cancels the edit modal without saving', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Edit match')[0])
+    expect(await screen.findByText('Edit match')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Cancel'))
+    expect(screen.queryByText('Edit match')).not.toBeInTheDocument()
+    expect(updateMatch).not.toHaveBeenCalled()
+  })
+
+  it('shows an error when edit save fails', async () => {
+    updateMatch.mockRejectedValue(new Error('save-error'))
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Edit match')[0])
+    await screen.findByText('Edit match')
+    await userEvent.click(screen.getByText('Save'))
+    expect(await screen.findByText(/save-error/i)).toBeInTheDocument()
+  })
+
+  it('edits the match name in the edit modal', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Edit match')[0])
+    await screen.findByText('Edit match')
+    const nameInput = screen.getByLabelText(/Name/i)
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Renamed Run')
+    await userEvent.click(screen.getByText('Save'))
+    await waitFor(() =>
+      expect(updateMatch).toHaveBeenCalledWith('m1-uuid-aaaa', { status: 'CREATED', name: 'Renamed Run' })
+    )
+  })
+
+  it('shows error when runConfirm (stop) fails', async () => {
+    stopMatch.mockRejectedValue(new Error('stop-action-fail'))
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('Stop match')[0])
+    await userEvent.click(screen.getByText('Confirm'))
+    expect(await screen.findByText(/stop-action-fail/i)).toBeInTheDocument()
+  })
+
+  it('renders untitled match with fallback label', async () => {
+    listMatches.mockResolvedValue([{ ...MOCK_MATCHES[0], name: null }])
+    renderPage()
+    expect(await screen.findByText('untitled')).toBeInTheDocument()
+  })
+
+  it('renders Multiplayer badge for singlePlayer=0 match', async () => {
+    listMatches.mockResolvedValue([{ ...MOCK_MATCHES[0], singlePlayer: 0 }])
+    renderPage()
+    expect(await screen.findByText('Multiplayer')).toBeInTheDocument()
+  })
+
+  it('shows error in detail modal when getMatchInfo fails', async () => {
+    getMatchInfo.mockRejectedValue(new Error('info-boom'))
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.click(screen.getAllByTitle('View detail')[0])
+    expect(await screen.findByText(/info-boom/i)).toBeInTheDocument()
+  })
+
+  it('falls back to default statuses when listMatchStatuses returns non-array', async () => {
+    listMatchStatuses.mockResolvedValue(null)
+    renderPage()
+    await screen.findByText('Saturday run')
+    // default statuses are still used — status filter options remain
+    const options = await screen.findAllByText('CREATED')
+    expect(options.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('navigate button is present for each match row', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    const expandBtns = screen.getAllByTitle('Open details page (players & characters)')
+    expect(expandBtns.length).toBe(2)
+  })
 })

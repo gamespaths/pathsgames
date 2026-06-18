@@ -240,4 +240,101 @@ describe('MatchDetailPage', () => {
     fireEvent.click(chip)
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ct-w')
   })
+
+  it('resume calls resumeMatch and reloads info', async () => {
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('PAUSED'))
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /Resume/i })))
+    expect(matchApi.resumeMatch).toHaveBeenCalledWith('m1')
+    await waitFor(() => expect(matchApi.getMatchInfo).toHaveBeenCalledTimes(2))
+  })
+
+  it('shows actionError when stop fails', async () => {
+    matchApi.stopMatch.mockRejectedValue(new Error('stop-fail'))
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    fireEvent.click(screen.getByRole('button', { name: /Stop match/i }))
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: /Confirm/i }))
+    )
+    expect(await screen.findByText(/stop-fail/i)).toBeInTheDocument()
+  })
+
+  it('shows GAMEOVER status with Delete button only', async () => {
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('GAMEOVER'))
+    renderPage()
+    const label = await screen.findByTestId('match-status-label')
+    expect(label).toHaveTextContent('GAMEOVER')
+    expect(screen.getByRole('button', { name: /Delete match/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Stop/i })).not.toBeInTheDocument()
+  })
+
+  it('shows coma badge for a player in coma', async () => {
+    const comaPlayer = { ...PLAYER, isSleeping: false, isComa: true }
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [comaPlayer] }))
+    renderPage()
+    expect(await screen.findByText('coma')).toBeInTheDocument()
+  })
+
+  it('shows sleeping badge for a sleeping player', async () => {
+    const sleepingPlayer = { ...PLAYER, isSleeping: true, isComa: false }
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [sleepingPlayer] }))
+    renderPage()
+    expect(await screen.findByText('sleeping')).toBeInTheDocument()
+  })
+
+  it('renders clock with singular label when currentClock is 1', async () => {
+    matchApi.getMatchClock.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 1, clockLabelSingular: 'hour', clockLabelPlural: 'hours',
+      anyCharacterSleeping: false,
+      characters: [],
+    })
+    renderPage()
+    expect(await screen.findByText('1 (hour)')).toBeInTheDocument()
+  })
+
+  it('renders clock characters with Awake state when not sleeping', async () => {
+    matchApi.getMatchClock.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 3, clockLabelSingular: 'hour', clockLabelPlural: 'hours',
+      anyCharacterSleeping: false,
+      characters: [{ characterUuid: 'c1', isSleeping: false, energy: 100 }],
+    })
+    renderPage()
+    expect(await screen.findByText('Awake')).toBeInTheDocument()
+    expect(screen.getByText('No')).toBeInTheDocument()
+  })
+
+  it('renders dash for player without classUuid', async () => {
+    const noClassPlayer = { ...PLAYER, classUuid: null, traitUuids: [], items: [] }
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [noClassPlayer] }))
+    renderPage()
+    await screen.findByText('Saturday run')
+    const dashes = await screen.findAllByText('—')
+    expect(dashes.length).toBeGreaterThan(0)
+  })
+
+  it('renders Multiplayer badge when singlePlayer is 0', async () => {
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', {
+      match: { uuid: 'm1', name: 'Saturday run', storyUuid: 'story-1', difficultyUuid: 'd1',
+               status: 'RUNNING', singlePlayer: 0, currentClock: 4, expCost: 5, tsInsert: '2026-05-20T10:00:00Z' },
+    }))
+    renderPage()
+    expect(await screen.findByText('Saturday run')).toBeInTheDocument()
+    expect(screen.getByText('Multiplayer')).toBeInTheDocument()
+  })
+
+  it('renders empty state for locations and registry when lists are empty', async () => {
+    matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { locations: [], registry: [] }))
+    renderPage()
+    expect(await screen.findByText('No locations.')).toBeInTheDocument()
+    expect(screen.getByText('No registry entries.')).toBeInTheDocument()
+  })
+
+  it('navigates back to matches list when back button is clicked', async () => {
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    fireEvent.click(screen.getByRole('button', { name: /Matches/i }))
+    expect(await screen.findByText('matches-list')).toBeInTheDocument()
+  })
 })
