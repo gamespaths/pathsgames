@@ -4,11 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../features/start-book/ConfigCard', () => ({
-  default: ({ type, onChangeClick, onPreview, onPagePreview }) => (
+// Card is "dumb": ConfigView passes entityType + handlers directly. Mock Card so
+// `entityType` is the test id and onAction/onPreview stay wired.
+vi.mock('../components/layout/Card', () => ({
+  default: ({ entityType, onAction, onPreview }) => (
     <button
-      data-testid={`cc-${type}`}
-      onClick={() => { onChangeClick?.(); onPreview?.(); onPagePreview?.('v', type) }}
+      data-testid={`cc-${entityType}`}
+      onClick={() => { onAction?.(); onPreview?.() }}
     />
   ),
 }))
@@ -16,7 +18,7 @@ vi.mock('../components/ui/BonusBadgeList', () => ({ default: () => <div /> }))
 
 import ConfigView from '../features/start-book/ConfigView'
 
-const config = { character: null, class: null, traits: [], difficulty: null }
+const config = { character: { card: {} }, class: { card: {} }, traits: [], difficulty: { card: {} } }
 
 function setup(props = {}) {
   const handlers = { onProceed: vi.fn(), onChangeClick: vi.fn(), onPreview: vi.fn() }
@@ -40,14 +42,12 @@ describe('ConfigView', () => {
     expect(onProceed).toHaveBeenCalled()
   })
 
-  it('wires selectable cards to onChangeClick and the page preview', () => {
-    const { onChangeClick, onPreview } = setup()
+  it('wires selectable cards (action + lens) to onChangeClick', () => {
+    const { onChangeClick } = setup()
     fireEvent.click(screen.getByTestId('cc-class'))
     fireEvent.click(screen.getByTestId('cc-difficulty'))
     expect(onChangeClick).toHaveBeenCalledWith('class')
     expect(onChangeClick).toHaveBeenCalledWith('difficulty')
-    // selectable cards route onPagePreview → ConfigView onPreview
-    expect(onPreview).toHaveBeenCalled()
   })
 
   it('wires the information (bonuses) cards to onPreview', () => {
@@ -65,7 +65,7 @@ describe('ConfigView', () => {
   })
 
   it('renders without crashing when story content lists are missing', () => {
-    const { onProceed } = setup({ story: {}, config: { character: null, class: null, traits: undefined, difficulty: null } })
+    const { onProceed } = setup({ story: {}, config: { character: { card: {} }, class: { card: {} }, traits: undefined, difficulty: { card: {} } } })
     fireEvent.click(screen.getByText('book.startGame'))
     expect(onProceed).toHaveBeenCalled()
   })

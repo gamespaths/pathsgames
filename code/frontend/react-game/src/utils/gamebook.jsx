@@ -1,6 +1,5 @@
 import ClockWidget from '@/features/gameplay/ClockWidget'
-import PlayerStats from '@/features/gameplay/PlayerStats'
-import SleepButton from '@/features/gameplay/SleepButton'
+import PlayerStats from '@/features/gameplay/cards/PlayerStats'
 
 /**
  * gamebook.js — builders for the in-game characteristics cards and the resolver
@@ -34,6 +33,7 @@ export function buildCardCharacteristics(story, playerStats, clock) {
  */
 export function buildCardCharacteristicsRight(story, playerStats, clock, { matchUuid, accessToken, onSlept } = {}) {
   const card = { ...story?.card }
+  
   card.urlImage = null
   card.awesomeIcon = null
   //TODO card.title= weathere

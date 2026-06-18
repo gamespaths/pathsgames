@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n/context'
-import GameCard from '../../components/layout/GameCard'
+import Card from '../../components/layout/Card'
 import { buildClassesById, getNonZeroStats, getOptionLockInfo } from '../../utils/bonusStats'
 import { canAddTrait, isTraitSelected, remainingTraitBudget } from '../../utils/traitBudget'
 
@@ -62,9 +62,9 @@ export default function OptionPicker({ type, options, selected, story, config, o
 
             
 
-console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type)  );
+//console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type)  );
             return (
-            <GameCard story={story}
+            <Card story={story}
               key={opt.uuid ?? opt.name ?? i}
               variant="little"
               card={opt.card}

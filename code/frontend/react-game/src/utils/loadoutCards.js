@@ -9,8 +9,8 @@ import images from '@/mock/images.json'
 
 const imgById = id => images.find(x => x.id === id)
 
-/** Map an entry of mock/images.json onto the `card` shape GameCard expects. */
-function metaCard(imgId) {
+/** Map an entry of mock/images.json onto the `card` shape Card expects. *//** Map an entry of mock/images.json onto the `card` shape GameCard expects. */
+function metaCard(imgId , title=null, description=null) {  
   const img = imgById(imgId)
   if (!img) return {}
   return {
@@ -19,70 +19,45 @@ function metaCard(imgId) {
     linkCopyright: img.linkCopyright,
     styleImageLarge: img.styleImageLarge,
     styleImageLittle: img.styleImageLittle,
+    title: title ?? null,
+    description: description ?? null,
   }
 }
 
 /** "Single" game-type card. `t` is the i18n translate function. */
 export function buildGameTypeCard(t) {
-  return {
-    name: t('book.single'),
-    card: metaCard('person'),
-    description: t('book.singleDesc'),
-  }
+  return metaCard('person', t('book.single'), t('book.singleDesc'))
 }
 
 export function buildCardToSleep(story, playerStats, t) {
   //console.log("buildCardToSleep", story, playerStats, t);
-  const card = metaCard('sleep');
-  card.title = "" + t('game.sleep.confirmTitle') //t('game.sleep.action') 
-  card.description = "" /*+ t('game.sleep.confirmTitle')*/ + " " + t('game.sleep.confirmBody') /*+ ` (${playerStats.energy ?? 0}/${playerStats.energyMax ?? 0} ${t('game.stats.energy')})`*/
+  const card = metaCard('sleep', t('game.sleep.confirmTitle'), t('game.sleep.confirmBody') );
+  //card.description = "" /*+ t('game.sleep.confirmTitle')*/ + " " + t('game.sleep.confirmBody') /*+ ` (${playerStats.energy ?? 0}/${playerStats.energyMax ?? 0} ${t('game.stats.energy')})`*/
   return card
 }
 
 export function buildEndGameCard(t) {
-  const endGameMetaCard = metaCard('endgame');
-  endGameMetaCard.name = t('game.endGameCard.title');
-  endGameMetaCard.description = t('game.endGameCard.description');  
-  return endGameMetaCard;
+  return metaCard('endgame', t('game.endGameCard.title'), t('game.endGameCard.description'));
 }
 
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
-  return {
-    name: t('book.guest'),
-    card: metaCard('gems'),
-    description: t('book.guestDesc'),
-  }
+  return metaCard('gems', t('book.guest'), t('book.guestDesc'));
 }
 
 /** Terms & conditions card shown first in the start-game confirmation. */
 export function buildTermsCard(t) {
-  return {
-    name: t('book.termsTitle'),
-    icon: 'fas fa-scroll',
-    card: metaCard('terms'),
-    description: t('book.termsDesc'),
-  }
+  return metaCard('terms', t('book.termsTitle'), t('book.termsDesc'));
 }
 
 /** "Antibot passed" card revealed once the Turnstile check succeeds. */
 export function buildAntibotCard(t) {
-  return {
-    name: t('book.antibotOk'),
-    icon: 'fas fa-shield-alt',
-    card: metaCard('antibot'),
-    description: t('book.antibotDesc'),
-  }
+  return metaCard('antibot', t('book.antibotOk'), t('book.antibotDesc'));
 }
 
 /** "Free to play" card revealed once the Turnstile check succeeds. */
 export function buildFreeToPlay(t) {
-  return {
-    name: t('book.freeToPlay'),
-    icon: 'fas fa-gift',
-    card: metaCard('freeToPlay'),
-    description: t('book.freeToPlayDesc'),
-  }
+  return metaCard('freeToPlay', t('book.freeToPlay'), t('book.freeToPlayDesc'));
 }
 
 export function buildStatisticsCard(t, totals , story) {

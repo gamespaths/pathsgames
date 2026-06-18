@@ -4,7 +4,7 @@ import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '@/components/book/Book'
 import BookPageContent from '@/components/book/BookPageContent'
-import ConfigCard from '@/features/start-book/ConfigCard'
+import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
 import { TURNSTILE_APPEARANCE } from '@/utils/turnstile'
@@ -52,10 +52,10 @@ export default function StartMatchFlow({ story, config, storyId }) {
   const [errorMsg, setErrorMsg] = useState('')
   const [preview,setPreview] = useState(false)
 
-  function handleSelectionPreview(entity, entityType , lockedReason , statItemsToPageContent) {
-    setPreview(entity ? { entity, entityType, lockedReason, statItemsToPageContent } : null)
+  function handleSelectionPreview(card, entityType , lockedReason , statItemsToPageContent) {
+    setPreview(card ? { card, entityType, lockedReason, statItemsToPageContent } : null)
     // Mobile has no left page → the (i) lens opens the big card in a modal.
-    if (entity && typeof window !== 'undefined'
+    if (card && typeof window !== 'undefined'
         && window.matchMedia?.('(max-width: 767px)').matches) {
       const el = document.getElementById('cardPreviewModal')
       const Modal = window.bootstrap?.Modal
@@ -153,26 +153,32 @@ export default function StartMatchFlow({ story, config, storyId }) {
   //statistics
   const statistics = buildConfigStatistics(config, t);
   const statisticsCard= buildStatisticsCard(t, statistics , story);
+  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution'].includes(cat.key)) ;
+  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad', 'weight'].includes(cat.key)) ;
+
 
   // Fixed cards shown in EVERY phase: game type, login mode and the terms
   // (the only interactive one — its toggle gates the Start button).
   const cardsBlock = (
     <div className="selection-list">
-      <ConfigCard type="story" value={{ card: story.card }} story={story} flagInformationCard={true}  onPreview={handleSelectionPreview} />
-        <ConfigCard type="statistics"   value={statisticsCard} flagInformationCard={true} onPreview={handleSelectionPreview}
-          statistics={statistics.filter(cat => ['dexterity', 'intelligence' , 'constitution' ].includes(cat.key))} />
-        <ConfigCard type="statistics"   value={statisticsCard} flagInformationCard={true}   onPreview={handleSelectionPreview}
-          statistics={statistics.filter(cat => ['life', 'energy' , 'sad', 'weight'].includes(cat.key))} />
-      <ConfigCard type="gameType" value={buildGameTypeCard(t)} story={story} locked onPreview={handleSelectionPreview} />
-      <ConfigCard type="login"    value={buildLoginCard(t)}    story={story} locked onPreview={handleSelectionPreview} />
-      <ConfigCard
-        type="terms"
-        value={buildTermsCard(t)}
+      <Card card={story.card} entityType="story" label={t('book.story')} story={story} flagInformationCard={true} 
+        onPreview={() => handleSelectionPreview(story.card,"story")} />
+      <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} 
+        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard1) }       
+        statistics={statisticCard1} flagShowFullStatistics={true}  />
+      <Card card={statisticsCard} entityType="bonuses" 
+        onPreview={() => handleSelectionPreview(statisticsCard,"bonuses", null ,statisticCard2)}  flagInformationCard={true} 
+        statistics={statisticCard2} flagShowFullStatistics={true} />
+      <Card card={buildGameTypeCard(t)} entityType="gameType" label={t('book.single')} 
+        onPreview={() => handleSelectionPreview(buildGameTypeCard(t),"gameType")} story={story} locked />
+      <Card card={buildLoginCard(t)} entityType="login" label={t('book.login')} 
+        onPreview={() => handleSelectionPreview(buildLoginCard(t),"login")} story={story} locked />
+      <Card card={buildTermsCard(t)} entityType="terms" label={t('book.terms')} 
+        onPreview={openTermsModal}
+        onSelect={() => setTermsAccepted(v => !v)}
+        selectLabel={termsAccepted ? t('book.accepted') : t('book.accept')}
         story={story}
         selected={termsAccepted}
-        onSelect={() => setTermsAccepted(v => !v)}
-        onPreview={openTermsModal}
-        selectLabel={termsAccepted ? t('book.accepted') : t('book.accept')}
       />
     </div>
   )
@@ -217,8 +223,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
       }
       left={ preview 
         ? <BookPageContent loading={false}
-                card={preview.entity?.card}
-                entity={preview.entity}
+                card={preview.card}
                 entityType={preview.entityType}
                 story={story}
                 statItemsToPageContent={preview.statItemsToPageContent}

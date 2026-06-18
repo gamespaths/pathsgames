@@ -13,7 +13,12 @@ vi.mock('../api/matches', () => ({
   sleepCharacter: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, onClose }) => <div data-testid="book">{left}{right}</div>,
+  default: ({ left, right, onClose }) => (
+    <div data-testid="book">
+      <button data-testid="book-close" onClick={onClose}>x</button>
+      {left}{right}
+    </div>
+  ),
 }))
 vi.mock('../components/book/BookPageLeft', () => ({ default: ({ children }) => <div>{children}</div> }))
 vi.mock('../components/book/BookPageRight', () => ({ default: ({ children }) => <div>{children}</div> }))
@@ -22,29 +27,21 @@ vi.mock('../components/book/BookPageContent', () => ({
     <div data-testid="book-page-content">{card?.title}{extraContent}</div>
   ),
 }))
-vi.mock('../components/layout/GameCard', () => ({ default: ({ card }) => <div data-testid="game-card">{card?.title}</div> }))
-vi.mock('../features/gameplay/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
-vi.mock('../features/gameplay/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
-vi.mock('../features/start-book/ConfigCard', () => ({
-  default: ({ childrenIntoImage, onPreview, onAction, actionLabel, value, type }) => (
-    <div data-testid="config-card">
-      {childrenIntoImage}
-      {onPreview && <button data-testid={`preview-${type}`} onClick={onPreview}>preview:{value?.card?.title || ''}</button>}
-      {onAction && <button data-testid={`action-${type}`} onClick={onAction}>{actionLabel}</button>}
+vi.mock('../features/gameplay/cards/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
+vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
+// Selection cards pass `entityType` (config-card + preview-/action-<entityType>);
+// direct Card usages (e.g. CloseGameCard) have no entityType → game-card.
+vi.mock('../components/layout/Card', () => ({
+  default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, actionLabel }) => (
+    <div data-testid={entityType ? 'config-card' : 'game-card'}>
+      {card?.title}{children}{childrenIntoImage}
+      {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
+      {onAction && <button data-testid={entityType ? `action-${entityType}` : 'game-card-action'} onClick={onAction}>{actionLabel}</button>}
     </div>
   ),
 }))
 vi.mock('../features/gameplay/ClockWidget', () => ({ default: () => <div data-testid="clock-widget" /> }))
 vi.mock('../features/gameplay/SleepButton', () => ({ default: () => <div data-testid="sleep-button" /> }))
-vi.mock('../features/gameplay/ActionRow', () => ({
-  default: ({ options, onEndGame }) => (
-    <div data-testid="selection-view">
-      {options?.map((o, i) => (
-        <button key={i} onClick={() => onEndGame(o)}>end:{o.name}</button>
-      ))}
-    </div>
-  ),
-}))
 vi.mock('../features/gameplay/EndGameBook', () => ({ default: () => <div data-testid="end-game-book" /> }))
 vi.mock('../features/gameplay/GameBookMobile', () => ({ default: () => <div data-testid="game-book-mobile" /> }))
 vi.mock('../features/start-book/StartBookModal', () => ({ CardPreviewOverlay: () => <div data-testid="preview-overlay" /> }))
@@ -127,6 +124,18 @@ describe('GameBook', () => {
     })
     delete window.bootstrap
     delete window.matchMedia
+  })
+
+  // Tapping the (x) does NOT close immediately: it shows the "paused match"
+  // confirmation card; only the home button there calls onClose.
+  it('shows the close confirmation prompt before exiting', () => {
+    const onClose = vi.fn()
+    render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={onClose} />)
+    fireEvent.click(screen.getByTestId('book-close'))
+    expect(screen.getByText('game.closePrompt')).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId('game-card-action'))
+    expect(onClose).toHaveBeenCalled()
   })
 
   it('renders gracefully when gameData is null', () => {

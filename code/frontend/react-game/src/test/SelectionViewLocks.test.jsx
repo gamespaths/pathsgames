@@ -6,7 +6,7 @@ vi.mock('../utils/bonusStats', async (orig) => {
   const actual = await orig()
   return { ...actual, getOptionLockInfo: vi.fn() }
 })
-vi.mock('../components/layout/GameCard', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: (p) => (
     <div
       data-testid="gc"

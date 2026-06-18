@@ -28,9 +28,9 @@ export default function CardPreviewModal({ preview, story }) {
           <div className="modal-body card-preview-modal-body">
             {preview && (
               <BookPageContent
-                card={preview.entity?.card}
-                entity={preview.entity}
-                entityType={preview.type}
+                card={preview?.card}
+                entity={preview?.entity}
+                entityType={preview?.type}
                 story={story}
                 loading={false}
               />

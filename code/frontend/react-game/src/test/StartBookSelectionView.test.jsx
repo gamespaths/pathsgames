@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../components/layout/GameCard', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ name, locked, onSelect, onPreview, lockedReason }) => (
     <div data-testid="game-card" data-locked={String(!!locked)} data-locked-reason={lockedReason ?? ''}>
       <span>{name}</span>

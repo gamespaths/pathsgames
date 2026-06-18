@@ -1493,6 +1493,8 @@ render an explicit "end game" affordance without re-deriving it from the event
 
   on runCreateMatch i wanna this change: between createMatch, joinMatch and startMatch you have to wait delaySeconds() and show messages with states and countdown. let's go
 
+  I wanna change, when user click on (x) icon on GameBook, show a modal with a message, show like card object (GameCard using title and image from story). Let's go.
+
   ```
 
 - **Document Version**: 0.25.4

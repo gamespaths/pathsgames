@@ -1,28 +1,28 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
-import GameCardCreditsBar from '../components/layout/GameCardCreditsBar'
+import CardCreditsBar from '../components/layout/CardCreditsBar'
 
-describe('GameCardCreditsBar', () => {
+describe('CardCreditsBar', () => {
   it('returns null when neither author nor image credit is provided', () => {
-    const { container } = render(<GameCardCreditsBar card={{}} story={{}} />)
+    const { container } = render(<CardCreditsBar card={{}} story={{}} />)
     expect(container.firstChild).toBeNull()
   })
 
   it('returns null when card and story are undefined', () => {
-    const { container } = render(<GameCardCreditsBar />)
+    const { container } = render(<CardCreditsBar />)
     expect(container.firstChild).toBeNull()
   })
 
   it('renders story author as plain text when no storyUrl', () => {
-    render(<GameCardCreditsBar card={{}} story={{ author: 'Alice', card: {} }} />)
+    render(<CardCreditsBar card={{}} story={{ author: 'Alice', card: {} }} />)
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Alice' })).toBeNull()
   })
 
   it('renders story author as link when storyUrl is provided', () => {
     render(
-      <GameCardCreditsBar
+      <CardCreditsBar
         card={{}}
         story={{ author: 'Alice', card: { linkCopyright: 'https://example.com' } }}
       />
@@ -32,14 +32,14 @@ describe('GameCardCreditsBar', () => {
   })
 
   it('renders image copyright as plain text when no imgUrl', () => {
-    render(<GameCardCreditsBar card={{ copyrightText: 'Bob Photos' }} story={{}} />)
+    render(<CardCreditsBar card={{ copyrightText: 'Bob Photos' }} story={{}} />)
     expect(screen.getByText('Bob Photos')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Bob Photos' })).toBeNull()
   })
 
   it('renders image copyright as link when imgUrl is provided', () => {
     render(
-      <GameCardCreditsBar
+      <CardCreditsBar
         card={{ copyrightText: 'Bob Photos', linkCopyright: 'https://photos.example.com' }}
         story={{}}
       />
@@ -50,7 +50,7 @@ describe('GameCardCreditsBar', () => {
 
   it('renders both story author and image credit together', () => {
     render(
-      <GameCardCreditsBar
+      <CardCreditsBar
         card={{ copyrightText: 'Unsplash', linkCopyright: 'https://unsplash.com' }}
         story={{ author: 'Tolkien', card: { linkCopyright: 'https://tolkien.com' } }}
       />

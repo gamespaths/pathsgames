@@ -16,35 +16,34 @@ const t = (k) => k
 describe('utils/loadoutCards', () => {
   it('buildGameTypeCard maps the single game-type labels and a person image', () => {
     const c = buildGameTypeCard(t)
-    expect(c.name).toBe('book.single')
+    expect(c.title).toBe('book.single')
     expect(c.description).toBe('book.singleDesc')
-    expect(c.card.urlImage).toBeTruthy()
+    expect(c.urlImage).toBeTruthy()
   })
 
   it('buildLoginCard maps the guest labels', () => {
     const c = buildLoginCard(t)
-    expect(c.name).toBe('book.guest')
+    expect(c.title).toBe('book.guest')
     expect(c.description).toBe('book.guestDesc')
-    expect(c.card).toBeTypeOf('object')
+    expect(c.urlImage).toBeTruthy()
   })
 
-  it('buildTermsCard carries the scroll icon and terms texts', () => {
+  it('buildTermsCard carries the terms texts', () => {
     const c = buildTermsCard(t)
-    expect(c.name).toBe('book.termsTitle')
-    expect(c.icon).toBe('fas fa-scroll')
+    expect(c.title).toBe('book.termsTitle')
     expect(c.description).toBe('book.termsDesc')
   })
 
-  it('buildAntibotCard carries the shield icon', () => {
+  it('buildAntibotCard maps the antibot-ok labels', () => {
     const c = buildAntibotCard(t)
-    expect(c.name).toBe('book.antibotOk')
-    expect(c.icon).toBe('fas fa-shield-alt')
+    expect(c.title).toBe('book.antibotOk')
+    expect(c.description).toBe('book.antibotDesc')
   })
 
-  it('buildFreeToPlay carries the gift icon', () => {
+  it('buildFreeToPlay maps the free-to-play labels', () => {
     const c = buildFreeToPlay(t)
-    expect(c.name).toBe('book.freeToPlay')
-    expect(c.icon).toBe('fas fa-gift')
+    expect(c.title).toBe('book.freeToPlay')
+    expect(c.description).toBe('book.freeToPlayDesc')
   })
 
   it('buildCardToSleep maps the sleep confirm i18n keys', () => {
@@ -55,7 +54,7 @@ describe('utils/loadoutCards', () => {
 
   it('buildEndGameCard maps the end-game card i18n keys', () => {
     const c = buildEndGameCard(t)
-    expect(c.name).toBe('game.endGameCard.title')
+    expect(c.title).toBe('game.endGameCard.title')
     expect(c.description).toBe('game.endGameCard.description')
   })
 

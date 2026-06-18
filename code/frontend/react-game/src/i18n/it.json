@@ -146,6 +146,8 @@
     },
     "move": "Vai Qui",
     "execute": "Esegui",
+    "closeBook": "Chiudi il libro della partita",
+    "closePrompt": "Hai chiuso il libro del gioco senza concluderla, puoi riprendere dal punto in cui ti sei fermato quando vuoi entrando nella lista delle tue partite cliccando nell'icona del tuo utente.",
     "endGame": "Termina Partita",
     "endGameTitle": "Avventura Conclusa",
     "endGameClose": "Chiudi",

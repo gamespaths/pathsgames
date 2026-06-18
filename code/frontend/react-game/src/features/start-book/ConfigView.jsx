@@ -1,5 +1,5 @@
 import { useTranslation } from '../../i18n/context'
-import ConfigCard from './ConfigCard'
+import Card from '../../components/layout/Card'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusStats'
 import { buildStatisticsCard } from '@/utils/loadoutCards'
@@ -10,6 +10,9 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, on
   const selectedTraits = Array.isArray(config.traits) ? config.traits : []
   const statistics = buildConfigStatistics(config, t);
   const statisticsCard = buildStatisticsCard(t, statistics , story);
+  const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution'].includes(cat.key)) ;
+  const statisticCard2 = statistics.filter(cat => ['life', 'energy', 'sad', 'weight'].includes(cat.key)) ;
+
   //const gameTypeValue = buildGameTypeCard(t)
   //const loginValue    = buildLoginCard(t)
 
@@ -19,17 +22,21 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, on
       <div className="config-cards-area selection-list">
         {/* Selectable cards: BOTH "Cambia" and the magnifying glass open the
             selection list + preview together (handled by onChangeClick). */}
-        <ConfigCard type="class"      value={config.class}      story={story} onChangeClick={() => onChangeClick('class')}      onPreview={() => onChangeClick('class')}      count={story?.classes?.length}            onPagePreview={onPreview} />
-        <ConfigCard type="character"  value={config.character}  story={story} onChangeClick={() => onChangeClick('character')}  onPreview={() => onChangeClick('character')}  count={story?.characterTemplates?.length} onPagePreview={onPreview} />
-        <ConfigCard type="bonuses"   value={statisticsCard} flagInformationCard={true} onPreview={onPreview} 
-          statistics={statistics.filter(cat => ['dexterity', 'intelligence' , 'constitution' ].includes(cat.key))} />
-        <ConfigCard type="trait"      value={selectedTraits[0] ?? null} selectedCount={selectedTraits.length} story={story} onChangeClick={() => onChangeClick('trait')} onPreview={() => onChangeClick('trait')} count={story?.traits?.length} onPagePreview={onPreview} />
-        <ConfigCard type="difficulty" value={config.difficulty} story={story} onChangeClick={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} count={story?.difficulties?.length}       onPagePreview={onPreview} />
-        <ConfigCard type="bonuses"   value={statisticsCard} flagInformationCard={true} onPreview={onPreview} 
-          statistics={statistics .filter(cat => ['life', 'energy' , 'sad', 'weight'].includes(cat.key))} />
-        {/* Locked cards: lens is preview-only (no selection list to open). */}
+        <Card card={config.class?.card} entityType="class" onAction={() => onChangeClick('class')} onPreview={() => onChangeClick('class')} story={story} />
+        <Card card={config.character?.card} entityType="character" onAction={() => onChangeClick('character')} onPreview={() => onChangeClick('character')} story={story} />
+        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
+          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } 
+          statistics={statisticCard1} flagShowFullStatistics={true} 
+        />
+        <Card card={selectedTraits[0]?.card ?? null} entityType="trait" onAction={() => onChangeClick('trait')} onPreview={() => onChangeClick('trait')} story={story} />
+        <Card card={config.difficulty?.card} entityType="difficulty" onAction={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} story={story} />
+        <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
+          onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) } 
+          statistics={statisticCard2} flagShowFullStatistics={true} 
+        />
 
-        { /* <ConfigCard type="login"      value={loginValue}    locked onPreview={onPreview} /> */ }
+
+        { /* <Card type="login"      value={loginValue}    locked onPreview={onPreview} /> */ }
       </div>
       {/* totalItems.length > 0 && (
         <BonusBadgeList className="config-total-bonus" items={totalItems} />

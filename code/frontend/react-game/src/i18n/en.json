@@ -153,6 +153,8 @@
     },
     "move": "Move Here",
     "execute": "Execute",
+    "closeBook": "Close the book of match",
+    "closePrompt": "You closed the game book without finishing it. You can resume from where you left off whenever you want by opening your matches list from your user icon.",
     "endGame": "End Game",
     "endGameComplete": "Complete",
     "endGameTitle": "Adventure Complete",

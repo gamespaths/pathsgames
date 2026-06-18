@@ -38,8 +38,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
 | 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
-| 26 | [Time advancement frontend](./Step26_TimeAdvancementFrontend.md) | ✅ | Clock widget + sleep button in react-game; clock status panel in react-admin; admin GET /api/admin/matches/{uuid}/clock |
-| 27 | [Character max stats, weight & items](./Step27_CharacterMaxStatsWeightItems.md) | ✅ | lifeMax/energyMax/sadMax/weightMax persisted at join; weight = Σ item×amount; items[] on all match-info endpoints |
+
 
 | Steps | Phase |
 | -- | -- |

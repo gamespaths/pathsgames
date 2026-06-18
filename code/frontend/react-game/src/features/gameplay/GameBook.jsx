@@ -1,22 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n/context'
-import BookPageLeft from '../../components/book/BookPageLeft'
-import BookPageRight from '../../components/book/BookPageRight'
-import GameCard from '../../components/layout/GameCard'
-import LocationCard from './LocationCard'
-import PlayerStats from './PlayerStats'
-import ActionRow from './ActionRow'
+import LocationCard from './cards/LocationCard'
+import PlayerStats from './cards/PlayerStats'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
-import { endMatch, getMatchClock, sleepCharacter } from '../../api/matches'
+import { endMatch, getMatchClock } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import BookPageContent from '../../components/book/BookPageContent'
 import Book from '../../components/book/Book'
-import { CardPreviewOverlay } from '@/features/start-book/StartBookModal'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
-import ConfigCard from '../start-book/ConfigCard'
-import { buildCardToSleep, buildStatisticsCard } from '@/utils/loadoutCards'
-import { aggregateBonusTotals, buildConfigStatistics } from '@/utils/bonusStats'
+import Card from '../../components/layout/Card'
 import {
   buildCardCharacteristics,
   buildCardCharacteristicsRight,
@@ -24,6 +17,9 @@ import {
   storySelectionCount,
   selectedTraitCount,
 } from '@/utils/gamebook'
+import CloseGameCard from './cards/CloseGameCard'
+import GoToSleepCard from './cards/GoToSleepCard'
+import EndGameCard from './cards/EndGameCard'
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose }) {//info=
   const { t } = useTranslation()
@@ -33,6 +29,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const storyCard = story?.card ?? null
 
   const [gameEnded, setGameEnded] = useState(false)
+  const [closePrompt, setClosePrompt] = useState(false)
   const [statisticsCards, setStatisticsCards] = useState(false)
   const [ending, setEnding] = useState(false)
   const [endError, setEndError] = useState(null)
@@ -69,15 +66,15 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     handleBackOrClose()
     //TODO new weather card!?!?!
   }
-  function handleSelectionPreview(entity, type) {
-    handleSelectionPreviewFull(entity, type, null, null , true);
+  function handleSelectionPreview(card, type) {
+    handleSelectionPreviewFull(card, type, null, null , true);
   }
-  function handleSelectionPreviewFull(entity, type, lockReason, statistics , showModal=true) {
+  function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true) {
     //console.log("handleSelectionPreviewFull", { entity, type, lockReason, statistics . showModal});
-    const previewData = entity ? { entity, type, lockedReason: lockReason, statItemsToPageContent: statistics } : null
+    const previewData = card ? { card, type, lockedReason: lockReason, statItemsToPageContent: statistics } : null
     // Mobile has no left page, so the (i) lens opens the big card in a modal
     // (same pattern as StartBookModal). Desktop keeps the left-page preview.
-    if (!entity){ 
+    if (!card){ 
       return; //ingore null preview, just close the modal if open
     }
     if (showModal && typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches) {
@@ -125,9 +122,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // The base (non-preview) left content: the current location, or the story
   // card as fallback. On mobile this is what the stacked left shows — the (i)
   // preview opens in a modal instead (see handleSelectionPreviewFull).
+  //console.log("preview", preview, "actualLocationCard", actualLocationCard, "storyCard", storyCard);
   const leftContent = preview ? (
       <BookPageContent
-        card={preview.entity && preview.entity.card ? preview.entity.card : null}
+        card={preview.card}
         entity={preview.entity}
         entityType={preview.type}
         loading={false}
@@ -161,53 +159,42 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         <div className="config-cards-area selection-list">
           <GoToSleepCard story={story} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept} />
-          <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
-          <ConfigCard type="class"      value={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')}      flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'class')} />
-          <ConfigCard type="character"  value={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')}  flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'character')} />
-          {playerStats?.traitUuids?.map((trait, index) => (
-            <ConfigCard key={trait.uuid} type="trait" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'trait')} selectedCount={selectedTraitCount(playerStats)} />
-          ))}
-          <ConfigCard type="difficulty" value={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')} flagInformationCard={true} story={storyFull} onPreview={handleSelectionPreviewFull} onPagePreview={handleSelectionPreviewFull} count={storySelectionCount(storyFull, 'difficulty')} />
           {/* 
-            TODO add others card 
-          */}
+            TODO add others card  objects and special actions!
+          */}          
+          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card} entityType="class" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card, 'class', null, null , true)} story={storyFull} flagInformationCard={true} />
+          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card} entityType="character" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card, 'character', null, null , true)} story={storyFull} flagInformationCard={true} />
+          {playerStats?.traitUuids?.map((trait, index) => (
+            <Card key={trait.uuid} card={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card} entityType="trait" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card, 'trait', null, null , true)} story={storyFull} flagInformationCard={true} />
+          ))}
+          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card} entityType="difficulty" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card, 'difficulty', null, null , true)} story={storyFull} flagInformationCard={true} />
+          <Card card={story.card} entityType="story" onPreview={() => handleSelectionPreviewFull(story.card, 'story', null, null , true)} story={story} flagInformationCard={true} />
         </div>
       </div>
     : <>
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
-          <ConfigCard type="story" value={{ card:cardCharacteristics }} story={story} flagInformationCard={true} 
-            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />} 
-            onPreview={() => { handleSelectionPreviewFull ({ card: cardCharacteristicsRight }, 'story' , null , [] , false); setStatisticsCards(true)} }
+          <Card card={cardCharacteristics} entityType="story"  story={story} flagInformationCard={true}
+            onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'story', null, [], false); setStatisticsCards(true) } }
+            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
           { /* TODO wheater here 
-          <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
+          <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
           { /* TODO special card here }
-          <ConfigCard type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
+          <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
           { /* TODO for every neighbor-location */  }
 
           { /* for every action in location — end-game events expose an "end game" button */  }
           { (actions ?? []).map( action => {
             if (action.endGame) {
-              return <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
-                flagInformationCard={true}
-                onPreview={() => handleSelectionPreview(action, 'action')} count={0} 
-                onAction={() => handleEndGame(action)}
-                actionLabel={t('game.endGame')}
-                actionIcon={'fa-flag-checkered'}
-                actionOnlyIfPreview={true} 
-                actionWithInfo={true}
-              />
-            } else {
-              return <ConfigCard key={action.uuid} type="action" value={{card:action.card}} story={story}
-                flagInformationCard={true}
-                onPreview={() => handleSelectionPreview(action, 'action')} count={0} />
+              return <EndGameCard key={action.uuid} story={story} action={action} 
+                handleSelectionPreview={handleSelectionPreviewFull} handleEndGame={handleEndGame} />
+            } else { /*TODO action card */
+              return <Card key={action.uuid} card={action.card} entityType="action" 
+                onPreview={() => handleSelectionPreview(action.card, 'action')}
+                story={story} flagInformationCard={true} />
             }
           }) }
-
-          { /* TODO remove ActionRow and PlayerStats }   DEPRECATED
-          <ActionRow type="action" options={[...(locations ?? []), ...(actions ?? [])]} onEndGame={handleEndGame}
-            handleSelectionPreview={handleSelectionPreview} /> /**/}
           <div className="sleep-action-row">
           </div>
         </div>
@@ -223,7 +210,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   return (
     <>
       <Book
-        onClose={onClose}
+        onClose={() => setClosePrompt(true)}
+        closeLabel={`${t('game.closeBook')}${story?.title ?? story?.card?.title ? ' ' + (story?.title ?? story?.card?.title) : ''}`}
         left={leftContent}
         right={rightContent}
         mobile={
@@ -231,63 +219,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         }
       />
       {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
-      <CardPreviewModal preview={ previewModal} story={story} 
+      <CardPreviewModal preview={ previewModal} story={story}
       />
+      {/* Close confirmation: the player paused (did not finish) the match. The
+          story card carries the message and a button back to the home page. */}
+      {closePrompt && (
+        <CloseGameCard story={story} onExit={onClose} onDismiss={() => setClosePrompt(false)} />
+      )}
     </>
   )
 }
 
-/*function EndGameButton({ preview, handleEndGame }) {
-  const { t } = useTranslation()
-  return <button className="gc-footer__btn m-2 p-2" onClick={() => handleEndGame(preview.entity)}>
-              <i className={`fas fa-flag-checkered `} />
-              <span className="gc-footer__btn-label">{t('game.endGame')}</span>
-            </button>
-}*/
-
-function GoToSleepCard({ story, playerStats, onPreview, matchUuid, accessToken, onSlept }) {
-
-  //console.log("GoToSleepCard", playerStats , story , onPreview, playerStats.energy, playerStats.energyMax);
-  const { t } = useTranslation()
-  const [sleeping, setSleeping] = useState(false)
-
-  // Sleep the caller's character; on success let the parent (GameBook) refresh
-  // the clock and reload the board. Backend 409s (ALREADY_SLEEPING /
-  // NOT_YOUR_TURN / MATCH_NOT_RUNNING) bubble up via the rejected promise.
-  async function handleSleep() {
-    if (sleeping || !matchUuid) return
-    setSleeping(true)
-    try {
-      const result = await sleepCharacter(matchUuid, accessToken)
-      onSlept?.(result)
-    } catch (e) {
-      console.error('sleep failed', e?.response?.data?.error || e?.message)
-    } finally {
-      setSleeping(false)
-    }
-  }
-  //const card=buildStatisticsCard(t('game.sleep'), aggregateBonusTotals(playerStats), 'fa-bed');
-  const cardRight=buildCardToSleep(story, playerStats, t);
-  const cardLeft={...cardRight};
-  const energyObject={energy: playerStats.energy, energyMax: playerStats.energyMax};
-  //cardLeft.title=energyBadge ;
-  //cardRight.title=<><span className="clock-widget-title">{cardRight.title}</span>{energyBadge}</>
-  return <ConfigCard 
-    type="sleep"  
-    story={story} value={{card:cardLeft}}
-    flagInformationCard={true} 
-    onAction={handleSleep}
-    actionLabel={t('game.sleep.action')}
-    actionIcon={'fa-bed'}
-    actionOnlyIfPreview={true}
-    actionWithInfo={true}
-    childrenIntoImage={<PlayerStats stats={energyObject} plainFlag={false} showZeros={false} className="m-1 pl-2 display-inline-grid flex-direction-column" />}
-
-    onPreview={() => { 
-      onPreview ({ card: cardRight }, 'sleep' , null, 
-      [{key:'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax , label: t(`book.stats.totals.energy`)}]
-      , true); 
-    }}
-    />
-
-}

@@ -1,5 +1,5 @@
-import { useTranslation } from '../../i18n/context'
-import BonusBadgeList from '../../components/ui/BonusBadgeList'
+import { useTranslation } from '../../../i18n/context'
+import BonusBadgeList from '../../../components/ui/BonusBadgeList'
 
 // Stats shown as a current/max gauge (Step 27) paired with their max key.
 const GAUGE_KEYS = [

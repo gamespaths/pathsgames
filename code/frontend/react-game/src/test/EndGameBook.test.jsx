@@ -13,7 +13,7 @@ vi.mock('../components/book/BookPageContent', () => ({
     <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title}</div>
   ),
 }))
-vi.mock('../components/layout/GameCard', () => ({ default: () => <div data-testid="game-card" /> }))
+vi.mock('../components/layout/Card', () => ({ default: () => <div data-testid="game-card" /> }))
 
 import EndGameBook from '../features/gameplay/EndGameBook'
 

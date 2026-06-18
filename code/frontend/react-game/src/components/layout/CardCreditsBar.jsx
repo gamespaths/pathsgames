@@ -1,9 +1,9 @@
 /**
- * GameCardCreditsBar — slim footer row, same style as gc-title.
+ * CardCreditsBar — slim footer row, same style as gc-title.
  * Shows "Credits: story by <author>, image by <copyright>" with links.
  * Returns null when neither story author nor card copyright is available.
  */
-export default function GameCardCreditsBar({ card, story }) {
+export default function CardCreditsBar({ card, story }) {
   const author   = story?.author ?? null
   const storyUrl = story?.card?.linkCopyright ?? null
   const imgName  = card?.copyrightText ?? null

@@ -13,7 +13,7 @@ vi.mock('@/components/book/BookPageContent', () => ({
   ),
 }))
 
-import LocationCard from '../features/gameplay/LocationCard'
+import LocationCard from '../features/gameplay/cards/LocationCard'
 
 describe('LocationCard', () => {
   it('returns null when no location is provided', () => {

@@ -7,20 +7,11 @@ vi.mock('../consent/cookieConsent', () => ({
   setConsentLanguage: vi.fn(),
 }))
 
-import AntibotMessage from '../components/ui/AntibotMessage'
 import UserLanguageSelector from '@/features/guest-user/UserLanguageSelector'
 import CookieConsentManager from '../components/CookieConsentManager'
 import { initCookieConsent, setConsentLanguage } from '../consent/cookieConsent'
 
 const wrap = (ui) => render(<LanguageProvider>{ui}</LanguageProvider>)
-
-describe('AntibotMessage', () => {
-  it('renders the antibot message block', () => {
-    const { container } = wrap(<AntibotMessage />)
-    expect(container.querySelector('.antibot-message')).toBeTruthy()
-    expect(container.querySelector('.antibot-message-icon')).toBeTruthy()
-  })
-})
 
 describe('UserLanguageSelector', () => {
   it('lists EN + IT and switches the active language on click', () => {

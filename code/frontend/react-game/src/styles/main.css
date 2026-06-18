@@ -642,6 +642,41 @@ html, body {
 /* ═══════════════════════════════════════════
    BOOK CLOSE BUTTON
    ═══════════════════════════════════════════ */
+/* Close bar: the (x) plus its label. Fixed to the top-right on desktop;
+   re-centered at the top on mobile (see mobile.css). */
+.book-close-bar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.book-close-label {
+  color: var(--color-gold-light);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  /* Hidden until the pointer hovers the close bar (desktop only — see mobile.css,
+     which removes the label entirely on touch layouts). */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.book-close-bar:hover .book-close-label {
+  opacity: 1;
+}
+/* Inside the bar the button flows in the flex row, not pinned to a page corner. */
+.book-close-bar .book-close-btn {
+  position: relative;
+  top: auto;
+  right: auto;
+  flex: none;
+}
+
 .book-close-btn {
   position: absolute;
   top: -16px;
@@ -661,6 +696,32 @@ html, body {
   transition: background 0.2s, color 0.2s;
 }
 .book-close-btn:hover { background: var(--color-ember); color: #fff; }
+
+/* ═══════════════════════════════════════════
+   CLOSE CONFIRMATION (paused match) — story card + message
+   Shown after the player taps the (x) without finishing the match.
+   ═══════════════════════════════════════════ */
+.close-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(10, 4, 0, 0.9);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+.close-prompt-modal {
+  width: min(92vw, 360px);
+  max-height: 100%;
+}
+/* Reuses the .book-page-desc parchment look; only the alignment is tweaked. */
+.close-prompt-text {
+  text-align: center;
+}
 
 /* ═══════════════════════════════════════════
    BOOK PAGE CONTENT — left page body
@@ -1394,7 +1455,7 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════
-   GameCard — gc-* layout (all variants)
+   Card — gc-* layout (all variants)
    title bar + image + footer with button
    ═══════════════════════════════════════════ */
 

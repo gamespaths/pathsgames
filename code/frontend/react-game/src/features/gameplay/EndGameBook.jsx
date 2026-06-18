@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
-import GameCard from '../../components/layout/GameCard'
+import Card from '../../components/layout/Card'
 import BookPageContent from '../../components/book/BookPageContent'
 
 /**

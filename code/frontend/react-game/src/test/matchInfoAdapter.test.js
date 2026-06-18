@@ -86,7 +86,7 @@ describe('matchInfoToGameData', () => {
     const t = (k) => `tr:${k}`
     const gd = matchInfoToGameData(mockMatchInfo, story, t)
     expect(gd.endGameCard).toMatchObject({
-      name: 'tr:game.endGameCard.title',
+      title: 'tr:game.endGameCard.title',
       description: 'tr:game.endGameCard.description',
     })
   })

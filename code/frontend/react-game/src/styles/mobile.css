@@ -3,6 +3,10 @@
    Modifica qui font, colori e dimensioni per il layout mobile.
    ═══════════════════════════════════════════════════════════ */
 
+.card-big .gc-title .gc-title__text {
+  font-size: 1.5rem !important;     /* titolo storia su mobile */
+}
+
 /* ── Mobile book modal layout (StartBook) ── */
 .book-mobile-layout {
   display: none;
@@ -48,7 +52,7 @@
 }
 
 /* Full-width hero card (story title + image + (i) + Start Game button).
-   Reuses GameCard but overrides the portrait grid sizing to a wide banner. */
+   Reuses Card but overrides the portrait grid sizing to a wide banner. */
 .book-mobile-hero-card .pg-card {
   width: 100%;
   flex: none;
@@ -116,6 +120,13 @@
   /* Show mobile layout, hide desktop book */
   .book-wrapper      { display: none !important; }
   .book-mobile-layout { display: flex !important; }
+
+  /* Kill any horizontal scroll/tap drift on the whole page on mobile: nothing
+     in the game/book modal should ever be wider than the device. */
+  html, body { overflow-x: hidden; max-width: 100%; }
+
+  /* No hover on touch: the close label never appears on mobile, only the (x). */
+  .book-close-label { display: none; }
 
   /* NOTE: mobile.css is @import-ed at the TOP of main.css, so its plain
      single-class rules lose to main.css's later base rules of equal

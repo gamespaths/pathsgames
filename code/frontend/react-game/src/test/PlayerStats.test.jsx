@@ -12,7 +12,7 @@ vi.mock('../components/ui/BonusBadgeList', () => ({
   ),
 }))
 
-import PlayerStats from '../features/gameplay/PlayerStats'
+import PlayerStats from '../features/gameplay/cards/PlayerStats'
 
 const FLAT_KEYS = ['life','energy','sadness','experience','food','magic','coins','weight']
 
