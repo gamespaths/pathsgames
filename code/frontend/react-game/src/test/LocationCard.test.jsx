@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react'
 // LocationCard delegates the layout to BookPageContent (card + icon + imageAlt)
 // and renders the description paragraph below it. Mock BookPageContent so the
 // test focuses on what LocationCard passes/renders.
-vi.mock('@/components/book/BookPageContent', () => ({
+vi.mock('@/components/layout/Card', () => ({
   default: ({ card, icon, imageAlt }) => (
     <div data-testid="page-content" data-icon={icon} data-alt={imageAlt}>
       {card?.title}

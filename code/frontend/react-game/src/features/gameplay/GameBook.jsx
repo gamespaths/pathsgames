@@ -6,7 +6,6 @@ import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
 import { endMatch, getMatchClock } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
-import BookPageContent from '../../components/book/BookPageContent'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
 import Card from '../../components/layout/Card'
@@ -58,6 +57,13 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
 
+  function refreshComponents(){
+    setPreview(null)
+    setPreviewModal(null)
+    const el = document.getElementById('cardPreviewModal')
+    const Modal = window.bootstrap?.Modal
+    if (el && Modal) Modal.getOrCreateInstance(el).hide()  
+  }
   function handleSlept() {
     // Sleep may advance the clock (when all characters are done): refresh the
     // clock chrome AND reload the board so stats/energy/location reflect it.
@@ -65,16 +71,19 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onReload?.()
     handleBackOrClose()
     //TODO new weather card!?!?!
+    refreshComponents();
   }
   function handleSelectionPreview(card, type) {
     handleSelectionPreviewFull(card, type, null, null , true);
   }
-  function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true) {
+  function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={}) {
     //console.log("handleSelectionPreviewFull", { entity, type, lockReason, statistics . showModal});
-    const previewData = card ? { card, type, lockedReason: lockReason, statItemsToPageContent: statistics } : null
+    const previewData = card ? { card, type, lockedReason: lockReason, statItemsToPageContent: statistics, additionalProps } : null
     // Mobile has no left page, so the (i) lens opens the big card in a modal
     // (same pattern as StartBookModal). Desktop keeps the left-page preview.
     if (!card){ 
+      setPreview(null)
+      setPreviewModal(null)
       return; //ingore null preview, just close the modal if open
     }
     if (showModal && typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches) {
@@ -124,8 +133,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // preview opens in a modal instead (see handleSelectionPreviewFull).
   //console.log("preview", preview, "actualLocationCard", actualLocationCard, "storyCard", storyCard);
   const leftContent = preview ? (
-      <BookPageContent
-        card={preview.card}
+      <Card variant="page" 
+        card={preview.card} 
         entity={preview.entity}
         entityType={preview.type}
         loading={false}
@@ -133,9 +142,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         onClose={handleBackOrClose}
         lockedReason={preview.lockedReason}
         statItemsToPageContent={preview.statItemsToPageContent}
+        {...preview.additionalProps}
       />
     ) : actualLocationCard ? <LocationCard location={actualLocationCard} card={actualLocationCard} story={story} />
-    : storyCard && <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
+    : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)
   const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, {
@@ -178,6 +188,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'story', null, [], false); setStatisticsCards(true) } }
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
+          {playerStats?.energy <= 1 && /* to Sleep if enery <=1 */
+            <GoToSleepCard story={story} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
+              matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept} />
+          }
           { /* TODO wheater here 
           <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
           { /* TODO special card here }

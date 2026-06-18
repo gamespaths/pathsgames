@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '@/components/book/Book'
-import BookPageContent from '@/components/book/BookPageContent'
 import Card from '@/components/layout/Card'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import useAntibot from '@/hooks/useAntibot'
@@ -216,19 +215,19 @@ export default function StartMatchFlow({ story, config, storyId }) {
       wrapperClass="book-wrapper start-match-wrapper"
       mobile={
         <div className="book-mobile-layout">
-          <BookPageContent card={story.card} story={story} loading={false} />
+          <Card variant="page" card={story.card} story={story} loading={false} />
           <div className="start-match-cards">{cardsBlock}</div>
           <div className="start-match-footer">{bottom}</div>
         </div>
       }
       left={ preview 
-        ? <BookPageContent loading={false}
+        ? <Card variant="page" loading={false}
                 card={preview.card}
                 entityType={preview.entityType}
                 story={story}
                 statItemsToPageContent={preview.statItemsToPageContent}
               />
-        : <BookPageContent card={story.card} story={story} loading={false} />}
+        : <Card variant="page" card={story.card} story={story} loading={false} />}
       right={
         <div className="start-match-right">
           <div className="start-match-cards">{cardsBlock}</div>
@@ -237,7 +236,7 @@ export default function StartMatchFlow({ story, config, storyId }) {
       }
     />
     {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
-    <CardPreviewModal preview={preview ? { entity: preview.entity, type: preview.entityType } : null} story={story} />
+    <CardPreviewModal preview={preview ? { card: preview.card, type: preview.entityType } : null} story={story} />
     </>
   )
 }

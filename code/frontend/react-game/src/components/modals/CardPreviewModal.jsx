@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../i18n/context'
-import BookPageContent from '../book/BookPageContent'
+import Card from '../layout/Card'
 
 /**
  * CardPreviewModal — mobile "big card" preview.
@@ -12,7 +12,7 @@ import BookPageContent from '../book/BookPageContent'
  */
 export default function CardPreviewModal({ preview, story }) {
   const { t } = useTranslation()
-
+console.log("CardPreviewModal preview",preview);
   return createPortal(
     <div className="modal fade" id="cardPreviewModal" tabIndex="-1" aria-hidden="true">
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -27,12 +27,13 @@ export default function CardPreviewModal({ preview, story }) {
           </button>
           <div className="modal-body card-preview-modal-body">
             {preview && (
-              <BookPageContent
-                card={preview?.card}
+              <Card variant="page"
+                card={preview?.entity?.card ?? preview?.card ?? preview?.entity}
                 entity={preview?.entity}
                 entityType={preview?.type}
-                story={story}
-                loading={false}
+                statItemsToPageContent={preview?.statItemsToPageContent}
+                story={story} 
+                loading={false} {...preview?.additionalProps}
               />
             )}
           </div>

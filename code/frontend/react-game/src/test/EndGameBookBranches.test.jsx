@@ -8,8 +8,8 @@ vi.mock('../i18n/context', () => ({ useTranslation: () => ({ t: (k) => k }) }))
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, mobile }) => <div>{left}{right}{mobile}</div>,
 }))
-vi.mock('../components/book/BookPageContent', () => ({
-  default: ({ card }) => <div data-testid="page">{card?.title}</div>,
+vi.mock('../components/layout/Card', () => ({
+  default: ({ card }) => <div data-testid="page">{card?.title ?? card?.name}</div>,
 }))
 
 import EndGameBook from '../features/gameplay/EndGameBook'
@@ -29,7 +29,8 @@ describe('EndGameBook (full cards + mobile stack)', () => {
     )
     expect(screen.getAllByText('My Story').length).toBeGreaterThan(0)
     expect(screen.getAllByText('The End').length).toBeGreaterThan(0)
-    expect(document.querySelectorAll('img.book-mobile-story-img').length).toBe(2)
+    // story + end-game cards rendered on both desktop pages and the mobile stack
+    expect(screen.getAllByTestId('page').length).toBe(4)
     fireEvent.click(screen.getByText('game.endGameClose'))
     expect(navigate).toHaveBeenCalledWith('/', { replace: true })
   })
@@ -45,8 +46,8 @@ describe('EndGameBook (full cards + mobile stack)', () => {
       </MemoryRouter>
     )
     expect(screen.getAllByText('CardTitle').length).toBeGreaterThan(0)
-    expect(screen.getByText('EndName')).toBeInTheDocument()
-    // no urlImage on either card → no mobile images
-    expect(document.querySelectorAll('img.book-mobile-story-img').length).toBe(0)
+    // endGameCard has only `name` → Card falls back to it (desktop + mobile)
+    expect(screen.getAllByText('EndName').length).toBeGreaterThan(0)
+    expect(screen.getAllByTestId('page').length).toBe(4)
   })
 })

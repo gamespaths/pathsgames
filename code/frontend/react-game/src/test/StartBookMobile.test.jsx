@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en', setLang: vi.fn() }),
 }))
-vi.mock('../components/book/BookPageContent', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ story }) => <div data-testid="hero-card">{story?.title}</div>,
 }))
 vi.mock('../features/start-book/ConfigView', () => ({

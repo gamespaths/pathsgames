@@ -44,7 +44,7 @@ export default function MatchCard({ match, story, onResume, onPreviewCard }) {
         onPreview={handlePreview}
         locked={!resumable}
         lockedIcon="fas fa-check-circle"
-        label={resumable ? null : statusLabel}
+        lockInfo={resumable ? undefined : statusLabel}
       >
         {/* status badge on non-resumable cards */}
         {/*!resumable && (

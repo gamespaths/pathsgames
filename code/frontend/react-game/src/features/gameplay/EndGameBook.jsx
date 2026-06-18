@@ -1,8 +1,8 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
 import Card from '../../components/layout/Card'
-import BookPageContent from '../../components/book/BookPageContent'
 
 /**
  * EndGameBook — displayed once the player has triggered the end-game event
@@ -18,11 +18,20 @@ export default function EndGameBook({ story, endGameCard , onClose}) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
+  // A Bootstrap preview modal (#cardPreviewModal) opened on mobile during play
+  // is unmounted when the game ends (GameBook early-returns this screen), but
+  // Bootstrap leaves its backdrop on <body>, covering the end screen. Clean up
+  // any leftover modal state on mount.
+  useEffect(() => {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove())
+    document.body.classList.remove('modal-open')
+    document.body.style.removeProperty('overflow')
+    document.body.style.removeProperty('padding-right')
+  }, [])
+
   const handleClose = () => navigate('/', { replace: true })
 
   const storyCard  = story?.card ?? null
-  const storyTitle = story?.title ?? story?.card?.title ?? null
-  const storyDesc  = story?.description ?? story?.card?.description ?? null
 
   const closeBtn = (
     <div className="end-game-actions">
@@ -36,43 +45,16 @@ export default function EndGameBook({ story, endGameCard , onClose}) {
     window.location.href = '/'
   }
 
-  const leftPage = <BookPageContent card={storyCard} loading={storyCard===undefined} story={story} />
-  const rightPage = <BookPageContent card={endGameCard} loading={endGameCard===undefined} story={story} 
-  
-          extraContentClassName="book-page-extra-align-right" extraContent={
-          <button className="gc-footer__btn m-2 p-2" onClick={() => goToHome()}>
-            <i className={`fas fa-home `} />
-            <span className="gc-footer__btn-label">{t('game.endGameClose')}</span>
-          </button>}
+  const leftPage = <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
+  const rightPage = <Card variant="page" card={endGameCard} loading={endGameCard===undefined} story={story} 
+    onAction={() => goToHome()} actionLabel={t('game.endGameClose')} actionIcon='fa-home'
   />
 
 
   const mobileStack = (
     <div className="book-mobile-layout end-game-mobile">
-      {storyCard && (
-        <div className="book-mobile-story-card">
-          {storyCard.urlImage && (
-            <img src={storyCard.urlImage} alt={storyTitle ?? ''} className="book-mobile-story-img" />
-          )}
-          <div className="book-mobile-story-body">
-            <h3 className="book-mobile-story-title">{storyTitle}</h3>
-            {storyDesc && <p className="book-mobile-story-desc">{storyDesc}</p>}
-          </div>
-        </div>
-      )}
-      {endGameCard && (
-        <div className="book-mobile-story-card">
-          {endGameCard.urlImage && (
-            <img src={endGameCard.urlImage} alt={endGameCard.title ?? ''} className="book-mobile-story-img" />
-          )}
-          <div className="book-mobile-story-body">
-            <h3 className="book-mobile-story-title">{endGameCard.title ?? endGameCard.name}</h3>
-            {endGameCard.description && (
-              <p className="book-mobile-story-desc">{endGameCard.description}</p>
-            )}
-          </div>
-        </div>
-      )}
+      {storyCard && <Card variant="page" card={storyCard} story={story} />}
+      {endGameCard && <Card variant="page" card={endGameCard} story={story} />}
       {closeBtn}
     </div>
   )

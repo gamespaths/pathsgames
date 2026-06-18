@@ -128,7 +128,8 @@
   },
   "card": {
     "info": "Info",
-    "viewOriginal": "View original"
+    "viewOriginal": "View original",
+    "actionInProgress": "Executing"
   },
   "game": {
     "currentLocation": "Current Location",
@@ -156,6 +157,7 @@
     "closeBook": "Close the book of match",
     "closePrompt": "You closed the game book without finishing it. You can resume from where you left off whenever you want by opening your matches list from your user icon.",
     "endGame": "End Game",
+    "endGameShort": "Ending",
     "endGameComplete": "Complete",
     "endGameTitle": "Adventure Complete",
     "endGameClose": "Close",

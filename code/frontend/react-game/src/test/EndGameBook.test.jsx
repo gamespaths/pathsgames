@@ -8,12 +8,11 @@ vi.mock('../i18n/context', () => ({
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, mobile }) => <div data-testid="book">{left}{right}{mobile}</div>,
 }))
-vi.mock('../components/book/BookPageContent', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading }) => (
-    <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title}</div>
+    <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title ?? card?.name}</div>
   ),
 }))
-vi.mock('../components/layout/Card', () => ({ default: () => <div data-testid="game-card" /> }))
 
 import EndGameBook from '../features/gameplay/EndGameBook'
 
@@ -50,10 +49,10 @@ describe('EndGameBook', () => {
     expect(screen.getByText('game.endGameClose')).toBeInTheDocument()
   })
 
-  it('shows story image in mobile layout when provided', () => {
+  it('stacks the story and end-game cards in the mobile layout too', () => {
     wrap()
-    const imgs = document.querySelectorAll('.book-mobile-story-img')
-    expect(imgs.length).toBeGreaterThan(0)
+    // desktop left + right + mobile story + mobile end-game = 4 page cards
+    expect(screen.getAllByTestId('book-page').length).toBeGreaterThanOrEqual(4)
   })
 
   it('navigates to home when close button is clicked', () => {

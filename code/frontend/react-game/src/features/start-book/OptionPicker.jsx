@@ -58,9 +58,8 @@ export default function OptionPicker({ type, options, selected, story, config, o
             }
             const isLocked = !!lockInfo
             const lockedReason = lockMessage(lockInfo)
-            const previewHandler = onPreview ? () => onPreview(opt, type , lockedReason) : undefined
-
-            
+            const statItemsToPageContent = getNonZeroStats(opt, type);
+            const previewHandler = onPreview ? () => onPreview(opt, type , lockedReason , statItemsToPageContent) : undefined
 
 //console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type)  );
             return (

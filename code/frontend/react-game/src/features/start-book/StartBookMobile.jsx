@@ -1,7 +1,7 @@
 import { useTranslation } from '../../i18n/context'
 import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
-import BookPageContent from '../../components/book/BookPageContent'
+import Card from '../../components/layout/Card'
 
 /**
  * StartBookMobile — mobile (≤767px) variant of the start book.
@@ -42,7 +42,7 @@ export default function StartBookMobile({
       ) : (
         <>
           <div className="book-mobile-hero-card">
-            <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory} />
+            <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory} />
           </div>
 
           {loadingDetail ? (

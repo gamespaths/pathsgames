@@ -9,7 +9,7 @@ vi.mock('../api/stories', () => ({ getStoryDetail: vi.fn(), getStories: vi.fn() 
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, onClose }) => <div data-testid="book">{left}{right}</div>,
 }))
-vi.mock('../components/book/BookPageContent', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading }) => (
     <div data-testid="book-page" data-loading={String(!!loading)}>{card?.title}</div>
   ),

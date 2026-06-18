@@ -70,26 +70,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
 
-25. Time advancement & clock cycle only backends
-    - Implement time-advancement trigger service, multi-character-ready: fires when ALL active characters have zero energy or are sleeping (in single-player the list is size 1) (backend)
-    - Implement POST /api/gameplay/{uuid_match}/action/sleep for voluntary sleep: set is_sleeping, then evaluate whether this triggers time-end (backend)
-    - On time-end: advance gaming_match.current_clock to the next time unit and create a log_clock_history record (backend)
-    - Recalculate gaming_turn_queue for all characters at new time start — reuse Step 24 TurnPriorityCalculator, reset rows to WAITING, activate the highest priority (backend)
-    - Implement GET /api/match/{uuid_match}/clock returning current clock, time unit, day/phase, and whether characters are sleeping (backend)
-    - Emit a TimeAdvanced domain event now (even though WebSocket broadcast is deferred to Step 64) so later steps just subscribe instead of being retrofitted (backend)
-    - Backend unit tests: trigger logic (all-sleeping / all-zero-energy), sleep endpoint, clock increment + log, queue recalculation, clock endpoint, clock widget rendering (tests)
-
-26. ✅ Time advancement & clock cycle frontends — DONE (v0.26.0)
-    - ClockWidget.jsx in react-game: shows current clock number + story clock label (singular/plural fallback); anyCharacterSleeping badge (frontend)
-    - SleepButton.jsx in react-game: medieval-themed confirm modal; POSTs /api/gameplay/{uuid}/action/sleep; surfaces 409 errors; calls onSlept to refresh clock (frontend)
-    - Wired into GameBook.jsx and GameBookMobile.jsx; clock fetched on mount and after sleep (frontend)
-    - Admin backend: GET /api/admin/matches/{uuid}/clock (new, port 8044); clockForAdmin in TimeAdvancementPort + TimeAdvancementService; MatchAdminController injects TimeAdvancementPort (backend)
-    - react-admin MatchDetailPage: read-only "Clock status" pg-card; per-character energy/sleeping state; gracefully hidden if endpoint unavailable (frontend)
-    - Unit tests: ClockWidget.test.jsx, SleepButton.test.jsx, updated GameBook.test.jsx, updated MatchDetailPage.test.jsx; all pass (tests)
 
 
 26. Time-start recovery, class bonuses & location counters
-    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
+    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. P is . Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
     - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: energy≤energy_max, life≤life_max, sadness≤sad_max, life≥0 (backend)
     - Decrement location time counters at time start; when a counter reaches zero, log it and flag id_event_if_counter_zero for execution — actual event execution is wired in Step 29 (stub now) (backend)
     - Create log records for recovery and counter changes; extend the clock/turn-sequence response with a per-character recovery summary (energy/life/sadness delta) (backend)

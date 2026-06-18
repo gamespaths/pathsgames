@@ -95,7 +95,7 @@
    to wrap rather than truncate at the bigger size. */
 .book-mobile-layout .selection-list .gc-title__text {
   font-size: clamp(1.20rem, 3.2vw, 1.20rem);
-  white-space: normal;
+  /* white-space: normal; */
 }
 /* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
    footer button would be a duplicate — hide it (StartGameView keeps its
@@ -150,7 +150,7 @@
   .book-mobile-layout,
   .book-mobile-left,
   .book-mobile-right { max-width: 100%; min-width: 0; }
-  .book-mobile-layout * { min-width: 0; max-width: 100%; }
+  .book-mobile-layout * { /* min-width: 0;*/ max-width: 100%; }
   .book-mobile-layout img { height: auto; }
 
   /* Game page: stack pages vertically */
@@ -247,7 +247,7 @@
   }
 
   .gc-footer__btn {
-    font-size: 1rem;
+    font-size: 1.125rem !important;
   }
 
 }

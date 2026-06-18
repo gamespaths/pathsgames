@@ -18,7 +18,7 @@ const guestCtx = {
 }
 vi.mock('@/features/guest-user/GuestUserContext', () => ({ useGuestUser: () => guestCtx }))
 vi.mock('../components/book/Book', () => ({ default: ({ left, right }) => <div>{left}{right}</div> }))
-vi.mock('../components/book/BookPageContent', () => ({
+vi.mock('../components/layout/Card', () => ({
   default: ({ card, onClose }) => (
     <div data-testid="bpc">
       {card?.title}

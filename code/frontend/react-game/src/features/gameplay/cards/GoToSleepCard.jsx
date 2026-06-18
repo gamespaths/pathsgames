@@ -43,7 +43,8 @@ export default function GoToSleepCard({ story, playerStats, onPreview, matchUuid
     onPreview={() => {
       onPreview(cardRight, 'sleep', null,
       [{ key: 'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax, label: t(`book.stats.totals.energy`) }],
-      true);
+      true,
+      {onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed' });
     }}
     story={story}
     flagInformationCard={true}

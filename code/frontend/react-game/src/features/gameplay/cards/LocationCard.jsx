@@ -1,4 +1,4 @@
-import BookPageContent from '@/components/book/BookPageContent'
+import Card from '@/components/layout/Card'
 
 /**
  * LocationCard — current-location card shown on the left book page.
@@ -16,7 +16,7 @@ export default function LocationCard({ location , card , story }) {
 
   return (
     <div className="game-location-card-wrap">
-      <BookPageContent
+      <Card variant="page"
         entity="location"
         card={card}
         icon={card?.awesomeIcon ?? 'fas fa-map-marker-alt'}

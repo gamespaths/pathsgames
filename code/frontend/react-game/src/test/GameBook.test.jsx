@@ -22,11 +22,6 @@ vi.mock('../components/book/Book', () => ({
 }))
 vi.mock('../components/book/BookPageLeft', () => ({ default: ({ children }) => <div>{children}</div> }))
 vi.mock('../components/book/BookPageRight', () => ({ default: ({ children }) => <div>{children}</div> }))
-vi.mock('../components/book/BookPageContent', () => ({
-  default: ({ card, extraContent }) => (
-    <div data-testid="book-page-content">{card?.title}{extraContent}</div>
-  ),
-}))
 vi.mock('../features/gameplay/cards/LocationCard', () => ({ default: ({ location }) => <div data-testid="location-card">{location?.name}</div> }))
 vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div data-testid="player-stats" /> }))
 // Selection cards pass `entityType` (config-card + preview-/action-<entityType>);
@@ -81,14 +76,14 @@ describe('GameBook', () => {
   it('renders EndGameBook after the end-game button triggers endMatch', async () => {
     endMatch.mockResolvedValue({})
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('game.endGame'))      // click the end-game action button
+    fireEvent.click(screen.getByText('game.endGameShort'))      // click the end-game action button
     expect(await screen.findByTestId('end-game-book')).toBeInTheDocument()
   })
 
   it('shows end-game error when endMatch fails', async () => {
     endMatch.mockRejectedValue({ message: 'NETWORK_ERROR' })
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByText('game.endGame'))
+    fireEvent.click(screen.getByText('game.endGameShort'))
     await waitFor(() => {
       expect(screen.getByText('NETWORK_ERROR')).toBeInTheDocument()
     })

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from '../../i18n/context'
 import Book from '../../components/book/Book'
-import BookPageContent from '../../components/book/BookPageContent'
+import Card from '../../components/layout/Card'
 import ConfigView from './ConfigView'
 import OptionPicker from './OptionPicker'
 import StartBookMobile from './StartBookMobile'
@@ -110,8 +110,8 @@ export default function StartBookModal({ story, onClose }) {
   }
 
   // Mobile has no left page, so the (i) lens opens the big card in a modal.
-  function handlePreviewModal(entity, type) {
-    setPreview(entity ? { entity, type } : null)
+  function handlePreviewModal(entity, type, lockedReason, statItemsToPageContent) {
+    setPreview(entity ? { entity: entity, type, lockedReason, statItemsToPageContent } : null)
     if (typeof window === 'undefined') return
     const el = document.getElementById('cardPreviewModal')
     const Modal = window.bootstrap?.Modal
@@ -146,16 +146,16 @@ export default function StartBookModal({ story, onClose }) {
   //console.log("preview",preview);
   const leftContent = preview ? ( 
      <CardPreviewOverlay
-      card={preview.entity?.card}
-      entity={preview.entity}
-      entityType={preview.type}
+      card={preview?.card}
+      entity={preview?.entity}
+      entityType={preview?.type}
       story={activeStory}
       onClose={handleBackOrClose}
-      lockedReason={preview.lockedReason}
-      statItemsToPageContent={preview.statItemsToPageContent}
+      lockedReason={preview?.lockedReason}
+      statItemsToPageContent={preview?.statItemsToPageContent}
     />
   ) : (
-    <BookPageContent card={activeStory.card} loading={loadingDetail} story={activeStory}/>
+    <Card variant="page" card={activeStory.card} loading={loadingDetail} story={activeStory}/>
   )
 
   let rightContent
@@ -214,7 +214,7 @@ export function CardPreviewOverlay({ card, entity, entityType, story, onClose, l
   //console.log(card.entity);
   return (
     <div className="card-preview-overlay">
-      <BookPageContent
+      <Card variant="page"
         card={card}
         entity={entity}
         entityType={entityType}

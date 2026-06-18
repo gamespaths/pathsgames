@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import { useGuestUser } from './GuestUserContext'
 import Book from '@/components/book/Book'
-import BookPageContent from '@/components/book/BookPageContent'
+import Card from '@/components/layout/Card'
 import UserMatchesList from './UserMatchesList'
 import UserLanguageSelector from './UserLanguageSelector'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
@@ -39,14 +39,14 @@ export default function GuestUserModal() {
 
   const leftPage = previewInfo
     ? (
-      <BookPageContent
+      <Card variant="page"
         card={previewInfo.card ?? { title: previewInfo.story?.title ?? t('matches.unknownStory'), description: previewInfo.statusLabel }}
         story={previewInfo.story}
         loading={false}
         onClose={() => setPreviewInfo(null)}
-      ></BookPageContent>
+      ></Card>
     )
-    : <BookPageContent card={userCard} loading={loading} extraContent={<UserLanguageSelector />} />
+    : <Card variant="page" card={userCard} loading={loading} extraContent={<UserLanguageSelector />} />
 
   const rightPage = <>
     
