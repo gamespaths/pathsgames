@@ -204,6 +204,11 @@
     "instagram": "Instagram",
     "youtube": "YouTube"
   },
+  "errors": {
+    "title": "Match Error",
+    "matchNotRunning": "Cannot load the match.",
+    "matchEnded": "Because the story has already ended."
+  },
   "modals": {
     "close": "Close",
     "privacy": {

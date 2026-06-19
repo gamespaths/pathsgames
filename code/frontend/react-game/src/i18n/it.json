@@ -190,6 +190,11 @@
     "instagram": "Instagram",
     "youtube": "YouTube"
   },
+  "errors": {
+    "title": "Errore Match",
+    "matchNotRunning": "Impossibile caricare il match.",
+    "matchEnded": "Perché la storia è già conclusa."
+  },
   "modals": {
     "close": "Chiudi",
     "privacy": {

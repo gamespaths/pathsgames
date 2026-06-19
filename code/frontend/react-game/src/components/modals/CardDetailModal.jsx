@@ -63,14 +63,14 @@ export default function CardDetailModal({ card, modalId, actionLabel, onAction }
               <button type="button" className="btn-secondary-pg" data-bs-dismiss="modal">
                 {t('modals.close')}
               </button>
-              <button
+              {onAction && <button
                 type="button"
                 className="btn-action"
                 data-bs-dismiss="modal"
                 onClick={onAction}
               >
                 <i className="fas fa-arrow-right me-2" />{actionLabel}
-              </button>
+              </button>}
             </div>
           </div>
         </div>

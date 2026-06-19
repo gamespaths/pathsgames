@@ -1,26 +1,38 @@
 import mockMatchInfo from '../mock/matchInfo.json'
-import { getMatchInfo } from './matches'
+import { getMatchInfo as fetchMatchInfo } from './matches'
+
+export class MatchNotRunningError extends Error {
+  constructor(status) {
+    super(`Match status is ${status}, not RUNNING`)
+    this.name = 'MatchNotRunningError'
+    this.status = status
+  }
+}
 
 /**
  * Gameplay data client.
  *
- * `getGameData` returns the backend `GET /api/match/{uuid}/info` payload
- * (MatchInfoResponse). It delegates to {@link getMatchInfo} so the call carries
- * the guest JWT and hits the real, match-scoped endpoint. When there is no match
- * (no uuid), when running against the mock server (`getMatchInfo` returns null),
- * or when the request fails, it falls back to `mock/matchInfo.json` — which
- * deliberately mirrors the exact same JSON shape as the API.
+ * `getMatchInfo` returns the backend `GET /api/match/{uuid}/info` payload
+ * (MatchInfoResponse). It delegates to {@link fetchMatchInfo} so the call
+ * carries the guest JWT and hits the real, match-scoped endpoint.
  *
- * The board shape consumed by GameBook is produced from this object by
- * `matchInfoToGameData` in ./matchInfoAdapter.js.
+ * Throws {@link MatchNotRunningError} if the match exists but its status is
+ * not RUNNING (e.g. ENDED, GAMEOVER). Network failures and mock-server null
+ * responses still fall back to `mock/matchInfo.json` so local dev works.
  */
-export async function getGameData(matchUuid, accessToken) {
+export async function getMatchInfo(matchUuid, accessToken) {
   if (matchUuid) {
+    let data = null
     try {
-      const data = await getMatchInfo(matchUuid, accessToken)
-      if (data) return data
+      data = await fetchMatchInfo(matchUuid, accessToken)
     } catch {
-      // fall through to the mock payload (same shape as the API)
+      // network / server errors fall through to the mock payload
+    }
+    if (data) {
+      if (data.match?.status !== 'RUNNING') {
+        throw new MatchNotRunningError(data.match?.status)
+      }
+      return data
     }
   }
   return mockMatchInfo
