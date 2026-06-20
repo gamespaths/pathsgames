@@ -4,13 +4,21 @@ import Card from '@/components/layout/Card'
 import PlayerStats from './PlayerStats'
 import { sleepCharacter } from '@/api/matches'
 import { buildCardToSleep } from '@/utils/loadoutCards'
+import { resolveSelectionEntity } from '@/utils/gamebook'
+import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 
-export default function GoToSleepCard({ story, playerStats, onPreview, matchUuid, accessToken, onSlept }) {
-
-  //console.log("GoToSleepCard", playerStats , story , onPreview, playerStats.energy, playerStats.energyMax);
+export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, matchUuid, accessToken, onSlept}) {
   const { t } = useTranslation()
   const [sleeping, setSleeping] = useState(false)
+  //console.log("GoToSleepCard gameData",gameData);
+  //console.log("GoToSleepCard", playerStats , story ,storyFull, onPreview, playerStats.energy, playerStats.energyMax);
+  
+  const locationsActive=gameData?.info?.locationsActive?.[0] ?? {};
+  const difficultyEnergy=resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.energy ?? null;
+  const dex=playerStats.dexterity ?? null;
+  const secureParam=locationsActive.secureParam ?? null;
+  const energyObject={energy: playerStats.energy, energyMax: playerStats.energyMax};
 
   // Sleep the caller's character; on success let the parent (GameBook) refresh
   // the clock and reload the board. Backend 409s (ALREADY_SLEEPING /
@@ -30,9 +38,33 @@ export default function GoToSleepCard({ story, playerStats, onPreview, matchUuid
   //const card=buildStatisticsCard(t('game.sleep'), aggregateBonusTotals(playerStats), 'fa-bed');
   const cardRight=buildCardToSleep(story, playerStats, t);
   const cardLeft={...cardRight};
-  const energyObject={energy: playerStats.energy, energyMax: playerStats.energyMax};
+  
+  //const energySleep=gameData?.difficulty?.energy ?? 0
+  //console.log("gameData",gameData);
   //cardLeft.title=energyBadge ;
   //cardRight.title=<><span className="clock-widget-title">{cardRight.title}</span>{energyBadge}</>
+
+  const isSafe = secureParam != null && secureParam > 0;
+  //`P` is defined as `secure_param + difficulty.energy`.
+  // - Safe location: `energy += DEX + P`, `life += COS + secure_param`, `sadness -= INT + secure_param`.
+  const energyRecovered = isSafe && difficultyEnergy != null && dex != null
+    ? difficultyEnergy + secureParam + dex
+    : difficultyEnergy;
+  const statItems= isSafe ? [ { key: 'energy', value: "" + energyRecovered, label: null }
+      ,{ key: 'life', value: "" + (playerStats.dexterity + secureParam ?? 0), label: null }
+      ,{ key: 'sadness', value: "" + (secureParam + playerStats.intelligence  ?? 0), label: null }
+   ]
+   : [{ key: 'energy', value: "" + energyRecovered }];
+  const sleepSecureContentBadge=<BonusBadgeList items={statItems} className="book-page-stats mb-0 display-ruby flex-direction-column" />;
+  const sleepSecureContent = (
+    <div className="sleep-secure-info">
+      {isSafe
+        ? <span>{t('game.sleep.safeLocation')} <strong>{sleepSecureContentBadge}</strong></span>
+        : <span>{t('game.sleep.unsafeLocation')} <strong>{sleepSecureContentBadge}</strong></span>
+      }
+    </div>
+  );
+
   return <Card
     card={cardLeft}
     entityType="sleep"
@@ -42,9 +74,11 @@ export default function GoToSleepCard({ story, playerStats, onPreview, matchUuid
     actionIcon= 'fa-bed'
     onPreview={() => {
       onPreview(cardRight, 'sleep', null,
-      [{ key: 'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax, label: t(`book.stats.totals.energy`) }],
+      [/*{ key: 'energy', value: "" + energyObject.energy + "/" + energyObject.energyMax, label: t(`book.stats.totals.energy`) }*/],
       true,
-      {onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed' });
+      {onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed' ,
+          extraContent:sleepSecureContent, extraContentClassName:''
+      } );
     }}
     story={story}
     flagInformationCard={true}

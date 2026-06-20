@@ -909,7 +909,7 @@ Step covers:
 - New DTOs: `AbstractCharacterStatsResponse` (shared base) and `ItemInstanceResponse`.
 - Extended OpenAPI schemas (`CharacterSummary`, `CharacterInstance`, new `ItemInstance`).
 - New OpenAPI spec file `v0.25.2-character-max-stats-api.yaml`.
-- All four backends (Java, Python, AWS, Node.js) and both React frontends updated to
+- All four backends (Java, Python, AWS) and both React frontends updated to
   expose or consume the new fields.
 - Robot E2E assertions added to suite `21_character_selection` for all new fields.
 
@@ -1310,9 +1310,6 @@ will enforce `weight ≤ weightMax` using the persisted `weight_max` column.
    `items = []` for all characters as a placeholder. When Step 33 implements inventory
    management, the AWS handler must also write `INVENTORY#{itemUuid}` items and update
    the read paths accordingly.
-
-5. **Node.js backend.** The Node.js backend is not updated in this step. It will be
-   aligned when a future step targets Node.js API parity.
 
 
 

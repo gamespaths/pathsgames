@@ -119,7 +119,9 @@ describe('MatchDetailPage', () => {
 
   it('renders locations and registry sections', async () => {
     renderPage()
-    expect(await screen.findByText('Locations (1)')).toBeInTheDocument()
+    expect(await screen.findByText('Location state — gaming_state_locations (1)')).toBeInTheDocument()
+    // Step 26 — the location time counter (clock_counter) is rendered.
+    expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('Registry (1)')).toBeInTheDocument()
     expect(screen.getByText('act_1_done')).toBeInTheDocument()
   })

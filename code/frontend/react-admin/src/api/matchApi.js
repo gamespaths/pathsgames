@@ -48,3 +48,8 @@ export const resumeMatch = (uuid) =>
 // DELETE /api/admin/matches/:uuid — delete a stopped match (ENDED / GAMEOVER)
 export const deleteMatch = (uuid) =>
   apiClient().delete(`/api/admin/matches/${uuid}`).then(r => r.data)
+
+// POST /api/admin/matches/:uuid/player/:playerUuid/changeStatistics
+// Override character statistics. Pass -1 to leave a field unchanged.
+export const changePlayerStatistics = (matchUuid, playerUuid, body) =>
+  apiClient().post(`/api/admin/matches/${matchUuid}/player/${playerUuid}/changeStatistics`, body).then(r => r.data)

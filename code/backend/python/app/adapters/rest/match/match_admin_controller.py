@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.models.match import match_statuses
-from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
+from app.core.ports.match.match_ports import CharacterCommandPort, MatchCommandPort, MatchQueryPort
 from app.adapters.rest.match.match_controller import (
     _error,
     _summary_to_camel,
@@ -28,10 +28,26 @@ class MatchUpdateRequestBody(BaseModel):
     name: Optional[str] = None
 
 
+class ChangeStatisticsRequestBody(BaseModel):
+    """Body for POST /api/admin/matches/{uuid}/player/{uuid}/changeStatistics.
+    Fields omitted or set to -1 are skipped."""
+    dex:    Optional[int] = None
+    intel:  Optional[int] = None
+    con:    Optional[int] = None
+    energy: Optional[int] = None
+    life:   Optional[int] = None
+    sad:    Optional[int] = None
+    coin:   Optional[int] = None
+    food:   Optional[int] = None
+    magic:  Optional[int] = None
+
+
 class MatchAdminController:
-    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort):
+    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
+                 character_command_port: Optional[CharacterCommandPort] = None):
         self.command_port = command_port
         self.query_port = query_port
+        self.character_command_port = character_command_port
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
@@ -56,6 +72,10 @@ class MatchAdminController:
         )
         self.router.add_api_route(
             "/api/admin/matches/{uuid_match}", self.delete_match, methods=["DELETE"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/player/{uuid_player}/changeStatistics",
+            self.change_statistics, methods=["POST"],
         )
 
     def list_all_matches(self):
@@ -106,6 +126,37 @@ class MatchAdminController:
         if detail is None:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))
+
+    def change_statistics(self, uuid_match: str, uuid_player: str,
+                          body: Optional[ChangeStatisticsRequestBody] = None):
+        """POST /api/admin/matches/{uuid}/player/{uuid}/changeStatistics."""
+        if not uuid_match or not uuid_player:
+            return _error("INVALID_INPUT", "Match uuid and player uuid are required", 400)
+        if self.character_command_port is None:
+            return _error("NOT_IMPLEMENTED", "Character command port not wired", 501)
+
+        def _skip(v): return None if (v is None or v == -1) else v
+
+        outcome = self.character_command_port.change_statistics(
+            uuid_match, uuid_player,
+            dex=_skip(body.dex if body else None),
+            intel=_skip(body.intel if body else None),
+            con=_skip(body.con if body else None),
+            energy=_skip(body.energy if body else None),
+            life=_skip(body.life if body else None),
+            sad=_skip(body.sad if body else None),
+            coin=_skip(body.coin if body else None),
+            food=_skip(body.food if body else None),
+            magic=_skip(body.magic if body else None),
+        )
+        if outcome == "UPDATED":
+            return JSONResponse(status_code=200, content={
+                "status": "UPDATED", "matchUuid": uuid_match, "playerUuid": uuid_player,
+            })
+        if outcome == "MATCH_NOT_FOUND":
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        return _error("PLAYER_NOT_FOUND",
+                      f"Character instance not found: {uuid_player}", 404)
 
     def _apply_update(self, uuid_match: str, status_val, name_val):
         outcome = self.command_port.update_match(uuid_match, status_val, name_val)

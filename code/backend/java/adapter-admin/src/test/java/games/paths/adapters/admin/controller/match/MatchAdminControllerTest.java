@@ -2,6 +2,7 @@ package games.paths.adapters.admin.controller.match;
 
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
@@ -31,14 +32,17 @@ class MatchAdminControllerTest {
     private MatchCommandPort commandPort;
     private MatchQueryPort queryPort;
     private TimeAdvancementPort timeAdvancementPort;
+    private CharacterCommandPort characterCommandPort;
 
     @BeforeEach
     void setUp() {
         commandPort = mock(MatchCommandPort.class);
         queryPort = mock(MatchQueryPort.class);
         timeAdvancementPort = mock(TimeAdvancementPort.class);
+        characterCommandPort = mock(CharacterCommandPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new MatchAdminController(commandPort, queryPort, timeAdvancementPort)).build();
+                new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
+                        characterCommandPort)).build();
     }
 
     private MatchSummary summary() {

@@ -64,20 +64,20 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     const Modal = window.bootstrap?.Modal
     if (el && Modal) Modal.getOrCreateInstance(el).hide()  
   }
-  function handleSlept() {
+  function handleReloadClockWeatherAndMatchData() {
     // Sleep may advance the clock (when all characters are done): refresh the
     // clock chrome AND reload the board so stats/energy/location reflect it.
     refreshClock()
+    // TODO refresh the weather card if the clock advanced to a new day (or night).
     onReload?.()
     handleBackOrClose()
-    //TODO new weather card!?!?!
     refreshComponents();
   }
   function handleSelectionPreview(card, type) {
     handleSelectionPreviewFull(card, type, null, null , true);
   }
   function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={}) {
-    //console.log("handleSelectionPreviewFull", { entity, type, lockReason, statistics . showModal});
+    //console.log("handleSelectionPreviewFull",  statistics);
     const previewData = card ? { card, type, lockedReason: lockReason, statItemsToPageContent: statistics, additionalProps } : null
     // Mobile has no left page, so the (i) lens opens the big card in a modal
     // (same pattern as StartBookModal). Desktop keeps the left-page preview.
@@ -144,14 +144,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         statItemsToPageContent={preview.statItemsToPageContent}
         {...preview.additionalProps}
       />
-    ) : actualLocationCard ? <LocationCard location={actualLocationCard} card={actualLocationCard} story={story} />
+    ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive} location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)
   const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, {
     matchUuid,
     accessToken: user?.accessToken,
-    onSlept: handleSlept,
+    onSlept: handleReloadClockWeatherAndMatchData,
   })
   // The loaded detail (with content lists) when available, otherwise the summary prop.
   const storyFull = storyDetail ?? story
@@ -162,22 +162,24 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   //console.log("storyFull",storyFull);
   //console.log("locations",locations , "actions", actions);
   //console.log("playerStats",playerStats);
+  //console.log("a",resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty'));
   
-
   const rightContent = 
     statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
-          <GoToSleepCard story={story} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-            matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept} />
+          <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
+            matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           {/* 
             TODO add others card  objects and special actions!
           */}          
-          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card} entityType="class" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card, 'class', null, null , true)} story={storyFull} flagInformationCard={true} />
+          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card} entityType="class" story={storyFull} flagInformationCard={true} 
+            onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card, 'class', null, null ,true)} />
           <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card} entityType="character" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card, 'character', null, null , true)} story={storyFull} flagInformationCard={true} />
           {playerStats?.traitUuids?.map((trait, index) => (
             <Card key={trait.uuid} card={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card} entityType="trait" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card, 'trait', null, null , true)} story={storyFull} flagInformationCard={true} />
           ))}
-          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card} entityType="difficulty" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card, 'difficulty', null, null , true)} story={storyFull} flagInformationCard={true} />
+          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card} entityType="difficulty" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card, 'difficulty', null, 
+            [{key:'energy',label:t('game.energyEverySleep'),value:resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty').energy}] , true)} story={storyFull} flagInformationCard={true} />
           <Card card={story.card} entityType="story" onPreview={() => handleSelectionPreviewFull(story.card, 'story', null, null , true)} story={story} flagInformationCard={true} />
         </div>
       </div>
@@ -189,8 +191,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
           {playerStats?.energy <= 1 && /* to Sleep if enery <=1 */
-            <GoToSleepCard story={story} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-              matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept} />
+            <GoToSleepCard story={story} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
+              matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           }
           { /* TODO wheater here 
           <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />

@@ -398,6 +398,9 @@ html, body {
   padding: 20px 20px 0;
   max-width: 1400px;
   margin: 0 auto;
+  
+}
+.stories-section-center {
   text-align: center;
 }
 .stories-loading{
@@ -608,6 +611,12 @@ html, body {
   margin-top: auto;
   padding: 10px;
   border-top: 1px solid var(--color-brown-dark);
+
+  font-size: 1.25rem;
+  color: var(--color-gold-deep);
+  line-height: 1.25;
+  overflow-y: auto;
+
 }
 .book-page-extra-align-right{
   display: flex;

@@ -167,6 +167,7 @@
       "title": "Adventure Complete",
       "description": "Your adventure has come to an end. Thank you for playing! We hope you enjoyed the story and the journey. Stay tuned for more adventures and features coming soon!"
     },
+    "energyEverySleep": "Energy every sleep action",
     "turn": {
       "title": "Turn order",
       "status": "Status",
@@ -185,7 +186,12 @@
       "confirmBody": "Your character will fall asleep. When everyone is asleep or out of energy, time advances to the next clock.",
       "confirm": "Sleep",
       "cancel": "Cancel",
-      "sleeping": "Sleeping"
+      "sleeping": "Sleeping",
+      "unsafeLocation": "You are not in a safe location. You recover ",
+      "safeLocation": "You are in a safe location. You recover "
+    },
+    "location": {
+      "clockCounter": "Time counter"
     }
   },
   "footer": {

@@ -19,7 +19,7 @@ def lambda_handler(event, context):
             # (injected as the ENV variable on the function).
             "env":     os.environ.get("ENV", "dev"),
             "name":    "Paths Games",
-            "version": "0.25.5"
+            "version": "0.26.0"
         }
     }
 

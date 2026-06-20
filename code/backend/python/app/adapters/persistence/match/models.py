@@ -78,6 +78,8 @@ class GamingCharacterInstanceEntity(Base):
     uuid = Column(String(36), unique=True, nullable=False)
     id_user = Column(Integer, ForeignKey("users.id"), nullable=False)
     id_character_template = Column(Integer, nullable=False)
+    # Step 26 — selected class id; resolves list_classes_bonus at time-start recovery.
+    id_class = Column(Integer)
     dexterity = Column(Integer, default=1, nullable=False)
     intelligence = Column(Integer, default=1, nullable=False)
     constitution = Column(Integer, default=1, nullable=False)
@@ -182,5 +184,25 @@ class LogClockHistoryEntity(Base):
     timestamp_end = Column(String(50))
     id_event_start = Column(Integer)
     id_event_end = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class LogEventsEntity(Base):
+    """Step 26 — append-only log of recovery summaries and counter-zero events.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it
+    is assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer)
+    timestamp = Column(String(50))
+    id_event = Column(Integer)
+    id_choise = Column(Integer)
+    log_message = Column(String(2000))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)

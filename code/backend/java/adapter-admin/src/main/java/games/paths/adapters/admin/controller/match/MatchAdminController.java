@@ -7,6 +7,7 @@ import games.paths.adapters.rest.dto.MatchUpdateRequest;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
@@ -40,13 +41,16 @@ public class MatchAdminController {
     private final MatchCommandPort matchCommandPort;
     private final MatchQueryPort matchQueryPort;
     private final TimeAdvancementPort timeAdvancementPort;
+    private final CharacterCommandPort characterCommandPort;
 
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
-                                TimeAdvancementPort timeAdvancementPort) {
+                                TimeAdvancementPort timeAdvancementPort,
+                                CharacterCommandPort characterCommandPort) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
+        this.characterCommandPort = characterCommandPort;
     }
 
     /** GET /api/admin/matches — lists every match in the platform (admin view). */
@@ -167,6 +171,81 @@ public class MatchAdminController {
                 return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND",
                         "Match not found: " + uuidMatch);
         }
+    }
+
+    /**
+     * POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics
+     * Override the current statistics of a character instance.
+     * Any field set to -1 is left unchanged.
+     * For energy, life, sad: the new value is capped at the character's max.
+     */
+    @PostMapping("/{uuidMatch}/player/{uuidPlayer}/changeStatistics")
+    public ResponseEntity<Object> changeStatistics(@PathVariable String uuidMatch,
+                                                   @PathVariable String uuidPlayer,
+                                                   @RequestBody(required = false) ChangeStatisticsRequest body) {
+        if (isBlank(uuidMatch) || isBlank(uuidPlayer)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid and player uuid are required");
+        }
+        CharacterCommandPort.ChangeStatsCommand command = new CharacterCommandPort.ChangeStatsCommand();
+        if (body != null) {
+            if (body.getDex()   != null && body.getDex()   != -1) command.setDex(body.getDex());
+            if (body.getIntel() != null && body.getIntel() != -1) command.setIntel(body.getIntel());
+            if (body.getCon()   != null && body.getCon()   != -1) command.setCon(body.getCon());
+            if (body.getEnergy() != null && body.getEnergy() != -1) command.setEnergy(body.getEnergy());
+            if (body.getLife()  != null && body.getLife()  != -1) command.setLife(body.getLife());
+            if (body.getSad()   != null && body.getSad()   != -1) command.setSad(body.getSad());
+            if (body.getCoin()  != null && body.getCoin()  != -1) command.setCoin(body.getCoin());
+            if (body.getFood()  != null && body.getFood()  != -1) command.setFood(body.getFood());
+            if (body.getMagic() != null && body.getMagic() != -1) command.setMagic(body.getMagic());
+        }
+        CharacterCommandPort.ChangeStatsOutcome outcome =
+                characterCommandPort.changeStatistics(uuidMatch, uuidPlayer, command);
+        return switch (outcome) {
+            case UPDATED -> {
+                Map<String, Object> responseBody = new LinkedHashMap<>();
+                responseBody.put("status", "UPDATED");
+                responseBody.put("matchUuid", uuidMatch);
+                responseBody.put("playerUuid", uuidPlayer);
+                yield ResponseEntity.ok(responseBody);
+            }
+            case MATCH_NOT_FOUND ->
+                    error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND", "Match not found: " + uuidMatch);
+            case PLAYER_NOT_FOUND ->
+                    error(HttpStatus.NOT_FOUND, "PLAYER_NOT_FOUND",
+                            "Character instance not found: " + uuidPlayer);
+        };
+    }
+
+    /** Request body for POST changeStatistics. Fields omitted or set to -1 are skipped. */
+    public static class ChangeStatisticsRequest {
+        private Integer dex;
+        private Integer intel;
+        private Integer con;
+        private Integer energy;
+        private Integer life;
+        private Integer sad;
+        private Integer coin;
+        private Integer food;
+        private Integer magic;
+
+        public Integer getDex() { return dex; }
+        public void setDex(Integer dex) { this.dex = dex; }
+        public Integer getIntel() { return intel; }
+        public void setIntel(Integer intel) { this.intel = intel; }
+        public Integer getCon() { return con; }
+        public void setCon(Integer con) { this.con = con; }
+        public Integer getEnergy() { return energy; }
+        public void setEnergy(Integer energy) { this.energy = energy; }
+        public Integer getLife() { return life; }
+        public void setLife(Integer life) { this.life = life; }
+        public Integer getSad() { return sad; }
+        public void setSad(Integer sad) { this.sad = sad; }
+        public Integer getCoin() { return coin; }
+        public void setCoin(Integer coin) { this.coin = coin; }
+        public Integer getFood() { return food; }
+        public void setFood(Integer food) { this.food = food; }
+        public Integer getMagic() { return magic; }
+        public void setMagic(Integer magic) { this.magic = magic; }
     }
 
     private ResponseEntity<Object> applyMatchUpdate(String uuidMatch, String status, String name) {

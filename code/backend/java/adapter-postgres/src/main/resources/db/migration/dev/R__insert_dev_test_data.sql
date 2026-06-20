@@ -190,11 +190,15 @@ INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90002, 9001, 
 INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 'choice_made', 'false', 'tutorial');
 
 -- ── Story 1 Locations ───────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90001, 9001, 100, 100, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90002, 9001, 101, 101, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90003, 9001, 102, 102, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90004, 9001, 103, 103, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90005, 9001, 104, 104, 1, 10);
+-- Step 26: secure_param > 0 marks a SAFE location (energy/life recovery + sadness
+-- relief at time-start); the start hall (90001) is safe and carries a counter_time
+-- so the location-counter decrement path is exercised where the player stands.
+-- The Choice Arena (90005) is UNSAFE (secure_param 0).
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param, counter_time) VALUES (90001, 9001, 100, 100, 1, 10, 1, 2);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90002, 9001, 101, 101, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90003, 9001, 102, 102, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90004, 9001, 103, 103, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90005, 9001, 104, 104, 1, 10, 0);
 INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90006, 9001, 105, 105, 1, 10);
 INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90007, 9001, 106, 106, 1, 10);
 INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 107, 107, 1, 10);

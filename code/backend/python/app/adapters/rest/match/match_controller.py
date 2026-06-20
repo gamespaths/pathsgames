@@ -144,6 +144,7 @@ def _location_info_to_camel(l):
         "idLocation": l.id_location,
         "uuid": l.uuid,
         "card": l.card,
+        "secureParam": l.secure_param,
         "neighbors": [
             {
                 "idLocation": n.id_location,
@@ -152,6 +153,7 @@ def _location_info_to_camel(l):
                 "flagBack": n.flag_back,
                 "energyCost": n.energy_cost,
                 "card": n.card,
+                "secureParam": n.secure_param,
             }
             for n in l.neighbors
         ],

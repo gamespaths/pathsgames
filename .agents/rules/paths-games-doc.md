@@ -166,3 +166,7 @@ Memory is one of several persistence mechanisms available to you as you assist t
 ## MEMORY.md
 
 Your MEMORY.md is currently empty. When you save new memories, they will appear here.
+
+
+# Nota pratica
+questo file è la regola dell'agente nel workspace. Per renderlo invocabile come sub-agent (come paths-games-doc) va copiato in ~/.claude/agents/paths-games-robot.md, che è fuori dal workspace — dimmi se vuoi che lo faccia (richiede la tua conferma per scrivere fuori dalla cartella di progetto).

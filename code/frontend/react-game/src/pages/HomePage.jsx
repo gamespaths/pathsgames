@@ -78,7 +78,7 @@ export default function HomePage() {
 
       {/* Catalog — gated by the Turnstile antibot check */}
       {gate.phase === 'error' ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <i className="fas fa-exclamation-triangle me-2" />{t('antibot.error')}
           <br />
           <div className="mt-5">
@@ -88,7 +88,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : gate.phase === 'checking' ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
 
           <div className="mt-5">
@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : loading ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
         </div>
       ) : (

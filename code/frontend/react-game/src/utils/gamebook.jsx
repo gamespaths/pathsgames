@@ -92,6 +92,8 @@ export function resolveSelectionEntity(story, playerStats, gameData, type, index
     uuid = Array.isArray(raw) ? raw[index] : raw
   }
   if (!uuid) {console.log("uuid not found for type", uuid, type, playerStats);return null;}
+//console.log("aa",playerStats, gameData, type, index, uuid)
+//console.log("bb", list, list.find(e => e.uuid === uuid));
   return list.find(e => e.uuid === uuid) ?? null
 }
 

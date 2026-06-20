@@ -51,6 +51,7 @@ const GAME_DATA = {
   // The end-game event action exposes an "end game" button via ConfigCard onAction.
   actions: [{ uuid: 'a1', name: 'Flee', uuidEvent: 'e1', endGame: true, card: { title: 'Flee' } }],
   endGameCard: { title: 'You Won!' },
+  info: { locationsActive: [{ secureParam: 1 }] },
 }
 
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }

@@ -137,6 +137,69 @@ def test_sleep_caller_without_character_returns_404():
     assert _body(result)['error'] == 'MATCH_NOT_FOUND'
 
 
+# ── Step 26 recovery ────────────────────────────────────────────────────────
+
+def _story_recovery(uuid='s1'):
+    """STORY item with a safe start location, a counter location, a difficulty
+    and a class bonus, for the Step 26 recovery flow."""
+    return {
+        'PK': f'STORY#{uuid}', 'SK': 'METADATA', 'uuid': uuid,
+        'clockSingularDescription': 'hour', 'clockPluralDescription': 'hours',
+        'difficulties': [{'uuid': 'd1', 'energy': 2}],
+        'classes': [{'uuid': 'cl1', 'id': 1}],
+        'classBonuses': [{'idClass': 1, 'statistic': 'energy', 'value': 1}],
+        'locations': [
+            {'id': 1, 'secureParam': 1, 'idEventIfCounterZero': None},
+            {'id': 2, 'secureParam': 0, 'counterStart': 1, 'idEventIfCounterZero': 99},
+        ],
+    }
+
+
+def _match_recovery(uuid='m1', clock=0):
+    m = _match(uuid=uuid, clock=clock)
+    m['difficultyUuid'] = 'd1'
+    m['locations'] = [
+        {'idLocation': 1, 'clockCounter': 0},
+        {'idLocation': 2, 'clockCounter': 1},
+    ]
+    return m
+
+
+def _char_recovery(match_uuid, cid, uuid, **over):
+    c = _char(match_uuid, cid, uuid, dex=3, life=20, energy=10)
+    c.update({
+        'intelligence': 2, 'constitution': 4, 'sad': 8,
+        'energyMax': 100, 'lifeMax': 100, 'sadMax': 100,
+        'classUuid': 'cl1', 'idLocation': 1,
+    })
+    c.update(over)
+    return c
+
+
+def test_sleep_recovers_stats_and_decrements_counter():
+    items = [PLAYER, _story_recovery(), _match_recovery(clock=0),
+             _char_recovery('m1', 1, 'c1')]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['timeEndTriggered'] is True
+    # secureParam=1, difficultyEnergy=2, p=3; safe; +energy bonus 1.
+    # energy 10 + dex3 + p3 + bonus1 = 17 (+7)
+    # life   20 + cos4 + secureParam1 = 25 (+5)
+    # sad    8 - (int2 + secureParam1) = 5 (-3)
+    assert len(body['recovery']) == 1
+    rec = body['recovery'][0]
+    assert (rec['energyDelta'], rec['lifeDelta'], rec['sadDelta']) == (7, 5, -3)
+    char = table.get_item('MATCH#m1', 'CHARACTER#c1')
+    assert (char['energy'], char['life'], char['sad']) == (17, 25, 5)
+    # counter location 2 decremented 1 -> 0 and flagged with the pending event
+    match = table.get_item('MATCH#m1')
+    loc2 = next(l for l in match['locations'] if l['idLocation'] == 2)
+    assert loc2['clockCounter'] == 0
+    assert loc2['pendingEvent'] == 99
+
+
 # ── clock ─────────────────────────────────────────────────────────────────────
 
 def test_clock_returns_labels_and_character_state():

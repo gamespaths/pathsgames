@@ -113,6 +113,7 @@ character_command_service = CharacterCommandService(
     match_persistence_adapter,
     user_access_adapter,
     character_persistence_adapter,
+    character_persistence_adapter,  # also implements CharacterReadPort
 )
 character_query_service = CharacterQueryService(
     match_persistence_adapter,
@@ -140,7 +141,8 @@ story_admin_controller = StoryAdminController(story_query_service, story_import_
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
 match_controller = MatchController(match_command_service, match_query_service)
-match_admin_controller = MatchAdminController(match_command_service, match_query_service)
+match_admin_controller = MatchAdminController(match_command_service, match_query_service,
+                                               character_command_service)
 character_controller = CharacterController(character_command_service, character_query_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter)

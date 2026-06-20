@@ -171,7 +171,12 @@
       "confirmBody": "Il tuo personaggio si addormenterà. Quando tutti dormono o sono senza energia, il tempo avanza al prossimo ciclo.",
       "confirm": "Dormi",
       "cancel": "Annulla",
-      "sleeping": "Sta dormendo"
+      "sleeping": "Sta dormendo",
+      "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
+      "safeLocation": "Ti trovi in un luogo sicuro. Recupererai energia:"
+    },
+    "location": {
+      "clockCounter": "Contatore tempo"
     }
   },
   "footer": {

@@ -13,20 +13,24 @@ from app.core.models.match import turn_models as tm
 from app.core.models.match.time_models import (
     ClockCharacter,
     ClockResult,
+    RecoveryItem,
     SleepResult,
     TimeAdvanced,
 )
 from app.core.models.match.turn_models import TurnCycleError
 from app.core.ports.event.event_ports import DomainEventPublisher
 from app.core.ports.match.time_ports import TimeAdvancementPort, TimeStorePort
+from app.core.services.match.time_start_recovery_service import TimeStartRecoveryService
 
 DEFAULT_LANG = "en"
 
 
 class TimeAdvancementService(TimeAdvancementPort):
-    def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher) -> None:
+    def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
+                 recovery_service: "TimeStartRecoveryService | None" = None) -> None:
         self.store = store
         self.event_publisher = event_publisher
+        self.recovery_service = recovery_service or TimeStartRecoveryService(store)
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -50,11 +54,13 @@ class TimeAdvancementService(TimeAdvancementPort):
         triggered = self._all_done(characters)
 
         current_clock = match["current_clock"]
+        recovery: List[RecoveryItem] = []
         if triggered:
-            current_clock = self._advance_time(match)
+            current_clock, recovery = self._advance_time(match)
 
         # After a time-end every character is awake again; otherwise the caller stays asleep.
-        return SleepResult(match_uuid, caller["uuid"], not triggered, triggered, current_clock)
+        return SleepResult(match_uuid, caller["uuid"], not triggered, triggered,
+                           current_clock, recovery)
 
     def clock(self, match_uuid: str, user_uuid: str) -> ClockResult:
         user_id = self._require_user(user_uuid)
@@ -86,13 +92,15 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
-    def _advance_time(self, match: Dict[str, Any]) -> int:
+    def _advance_time(self, match: Dict[str, Any]):
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)
         self.store.wake_all_characters(match["id"])
+        # Step 26: per-character recovery, class bonuses and location counters.
+        recovery = self.recovery_service.apply_at_time_start(match["id"])
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
-        return new_clock
+        return new_clock, recovery
 
     def _rebuild_queue(self, id_match: int, clock: int) -> None:
         characters = self.store.find_characters_by_match_id(id_match) or []

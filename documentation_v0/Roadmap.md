@@ -38,11 +38,11 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
 | 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
+| 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements |eco
 
 
 | Steps | Phase |
 | -- | -- |
-| 22-24 | Single-player match setup (story validation, traits, frontend UI) |
 | 25-27 | Core engine (turn cycle, time system, weather) |
 | 28-32 | Game mechanics — movement, events, choices |
 | 33-37 | Game mechanics — inventory, resources, registry, missions, experience |
@@ -68,19 +68,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-
-26. Time-start recovery, class bonuses & location counters
-    - Per-character recovery at time start: safe location → DES+P energy, COS+P life, −(INT+P) sadness; unsafe → DES energy only. P is secure_param (from location) + "energy" field from StoryDifficulty table of story of match. Location is safe if secure_param>0. Implement as applyRecovery(character, locationSafety) looped over all characters (backend)
-    - Apply class bonuses at time start from list_classes_bonus per character, respecting caps: 0≤energy≤energy_max, 0≤life≤life_max, 0≤sadness≤sad_max, max_life≥life≥0 (backend)
-    - If there are player into location with counter_time>0 not present into gaming_state_locations table, insert into gaming_state_locations 
-    - Decrement location time counters at time start; when a counter reaches zero, log it and flag id_event_if_counter_zero for execution — actual event execution is wired in Step 29 (stub now) (backend)
-    - Create log records for recovery and counter changes; extend the clock/turn-sequence response with a per-character recovery summary (energy/life/sadness delta) (backend)
-    - Check if clockCounter field into locations object into match/uuid/info API is location time counters
-    - Create a robot test to test "character recovery" , apply bonuses, insert location into gaming_state_locations, Decrement location time counters
-    - Frontend React admin , on matches/uuid page section to see gaming_state_locations table content
-    - Frontend react game: on locationCard show clockCounter if >0 like statistics
-    - Frontend react game: when clock is updated, when statistic is updated, update values on pages components
-    - Backend + frontend unit tests: safe/unsafe recovery math, stat caps, class-bonus application, counter decrement + zero handling (stub), recovery recap rendering (tests)
 
 27. Weather system — random selection and effects
     - RNG: add rng_seed BIGINT to gaming_match table (default NULL); when match is created, generate a random seed and save it on rng_seed; use this seed to initialize a per-match Random instance for all probability rolls; in Robot tests, create match with rng_seed=42 for deterministic results (backend)
@@ -719,7 +706,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.14.1 (here only due changes)
+- **Document Version**: 0.27.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -746,7 +733,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
     | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
     | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
-    | 0.27.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.27.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInventoryItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.27.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columns; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+    | 0.27.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.27.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.27.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
 
 - **Last Updated**: June 15, 2026
 - **Status**: In progress

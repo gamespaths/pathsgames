@@ -172,6 +172,11 @@ export default function Card({
           <SafeHtml value={pageDesc} />
         </div>
       )}
+      
+      {/* ── footer: info (i) + action button ── */}
+      { extraContent && 
+        <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>
+      }
 
       <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
             locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
@@ -182,11 +187,6 @@ export default function Card({
 
       {viewLink}
 
-      {/* ── footer: info (i) + action button ── */}
-      { extraContent && 
-        <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>
-      }
-      
       {isPage && card?.linkCopyright && (
         <CardCreditsBar card={card} story={story} />
       )}

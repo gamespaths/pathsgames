@@ -165,6 +165,7 @@ public class MatchInfoResponse {
         private CardInfoResponse card;
         private List<LocationNeighborDto> neighbors = new ArrayList<>();
         private List<EventInfoDto> events = new ArrayList<>();
+        private Integer secureParam;
 
         public static LocationInfoDto fromModel(LocationInfo m) {
             LocationInfoDto d = new LocationInfoDto();
@@ -177,6 +178,7 @@ public class MatchInfoResponse {
             for (EventInfo e : m.getEvents()) {
                 d.events.add(EventInfoDto.fromModel(e));
             }
+            d.secureParam = m.getSecureParam();
             return d;
         }
 
@@ -190,6 +192,8 @@ public class MatchInfoResponse {
         public void setNeighbors(List<LocationNeighborDto> neighbors) { this.neighbors = neighbors; }
         public List<EventInfoDto> getEvents() { return events; }
         public void setEvents(List<EventInfoDto> events) { this.events = events; }
+        public Integer getSecureParam() { return secureParam; }
+        public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
     }
 
     /** A neighbor location reachable from a player-occupied location. */
@@ -200,6 +204,7 @@ public class MatchInfoResponse {
         private Integer flagBack;
         private Integer energyCost;
         private CardInfoResponse card;
+        private Integer secureParam;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -209,6 +214,7 @@ public class MatchInfoResponse {
             d.flagBack = m.getFlagBack();
             d.energyCost = m.getEnergyCost();
             d.card = CardInfoResponse.fromModel(m.getCard());
+            d.secureParam = m.getSecureParam();
             return d;
         }
 
@@ -224,6 +230,8 @@ public class MatchInfoResponse {
         public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
+        public Integer getSecureParam() { return secureParam; }
+        public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
     }
 
     /** An event available at a player-occupied location, with its card. */

@@ -668,7 +668,7 @@ To validate the data model, we walk through complete gameplay scenarios and veri
 | Step | Action | Validation |
 |------|--------|------------|
 | 1 | `execStartNewTime(current_clock=10)` | Weather calculated via `timeCalculateNewWeather()`. Turn queue rebuilt via `timeCalculateCharactersSort()` (INV-17, INV-18) |
-| 2 | Characters wake up (is_sleeping=false). Safe-location characters gain DES+P energy, COS+P life, lose INT+P sadness (P=secure_param) via `timeAddBonusLuogoInizioGiornata()` | INV-01, INV-02, INV-03 boundaries enforced |
+| 2 | Characters wake up (is_sleeping=false). Safe-location characters gain DES+P energy, COS+secure_param life, lose INT+secure_param sadness (P=secure_param+difficulty.energy) via `timeAddBonusLuogoInizioGiornata()` | INV-01, INV-02, INV-03 boundaries enforced |
 | 3 | Location counter: Burning Cabin clock_counter 1→0. Triggers `id_event_if_counter_zero` | Event fires: "The cabin collapses!" All characters inside take damage |
 | 4 | Global random event check via `list_global_random_events`: "BanditRaid" (probability=20%, condition_key "Chapter" condition_value ≥ 3 met) → dice roll: 15 → fires | `execEvent()` for bandit raid |
 | 5 | Class bonus: Mage recovers +2 magic at time start (from `list_classes_bonus`) via `timeAddBonusClasse()` | UPDATE `gaming_backpack_resources` |

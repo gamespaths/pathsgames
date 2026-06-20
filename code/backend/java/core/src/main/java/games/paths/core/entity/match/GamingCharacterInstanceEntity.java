@@ -28,6 +28,10 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
     @Column(name = "id_character_template", nullable = false)
     private Long idCharacterTemplate;
 
+    /** Step 26: selected class id; resolves list_classes_bonus at time-start recovery. */
+    @Column(name = "id_class")
+    private Long idClass;
+
     @Column(nullable = false)
     private Integer dexterity;
 
@@ -105,6 +109,9 @@ public class GamingCharacterInstanceEntity extends AbstractMatchScopedEntity {
 
     public Long getIdCharacterTemplate() { return idCharacterTemplate; }
     public void setIdCharacterTemplate(Long idCharacterTemplate) { this.idCharacterTemplate = idCharacterTemplate; }
+
+    public Long getIdClass() { return idClass; }
+    public void setIdClass(Long idClass) { this.idClass = idClass; }
 
     public Integer getDexterity() { return dexterity; }
     public void setDexterity(Integer dexterity) { this.dexterity = dexterity; }

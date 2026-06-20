@@ -138,6 +138,7 @@ class LocationNeighborInfo:
     flag_back: Optional[int] = None
     energy_cost: Optional[int] = None
     card: Optional[Dict[str, Any]] = None
+    secure_param: Optional[int] = None
 
 
 @dataclass
@@ -150,6 +151,7 @@ class LocationInfo:
     card: Optional[Dict[str, Any]] = None
     neighbors: List[LocationNeighborInfo] = field(default_factory=list)
     events: List[EventInfo] = field(default_factory=list)
+    secure_param: Optional[int] = None
 
 
 @dataclass

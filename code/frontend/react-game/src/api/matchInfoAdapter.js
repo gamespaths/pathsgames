@@ -79,7 +79,7 @@ function toPlayerStats(player) {
  */
 export function matchInfoToGameData(info, story = null,t) {
   if (!info) {
-    return { actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
+    return { info:info, actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
   }
 
   const playerStats = toPlayerStats(info.players?.[0])
@@ -109,6 +109,15 @@ export function matchInfoToGameData(info, story = null,t) {
         awesomeIcon: story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
       }
       : null
+
+  // Step 26 — the residual location time counter (gaming_state_locations.clock_counter)
+  // for the location the player currently stands on, surfaced on the location card so
+  // LocationCard can render it as a statistic when > 0.
+  const stateLoc = (info.locations ?? []).find(l => l.idLocation === playerLoc) ?? null
+  const actualLocationCounter = stateLoc?.clockCounter ?? null
+  const actualLocationCardWithCounter = actualLocationCard
+    ? { ...actualLocationCard, clockCounter: actualLocationCounter }
+    : actualLocationCard
 
   // Neighbor locations of the active location become the board's move-target cards.
   const locations = (active?.neighbors ?? []).map(n => ({
@@ -153,7 +162,8 @@ export function matchInfoToGameData(info, story = null,t) {
   const tr = typeof t === 'function' ? t : (k) => k
   const endGameCard = buildEndGameCard(tr);// story?.endGameCard ?? story?.card ?? null
 
-  return { actualLocationCard, playerStats, locations, actions, endGameCard, match: info.match ?? null }
+  return { info: info, actualLocationCard: actualLocationCardWithCounter, 
+    playerStats, locations, actions, endGameCard, match: info.match ?? null }
 }
 
 export default matchInfoToGameData

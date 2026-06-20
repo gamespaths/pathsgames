@@ -20,15 +20,18 @@ public class LocationNeighborInfo {
     private final Integer flagBack;
     private final Integer energyCost;
     private final CardInfo card;
+    private final Integer secureParam;
 
     public LocationNeighborInfo(Long idLocation, String uuid, String direction,
-                                Integer flagBack, Integer energyCost, CardInfo card) {
+                                Integer flagBack, Integer energyCost, CardInfo card,
+                                Integer secureParam) {
         this.idLocation = idLocation;
         this.uuid = uuid;
         this.direction = direction;
         this.flagBack = flagBack;
         this.energyCost = energyCost;
         this.card = card;
+        this.secureParam = secureParam;
     }
 
     public Long getIdLocation() { return idLocation; }
@@ -37,4 +40,5 @@ public class LocationNeighborInfo {
     public Integer getFlagBack() { return flagBack; }
     public Integer getEnergyCost() { return energyCost; }
     public CardInfo getCard() { return card; }
+    public Integer getSecureParam() { return secureParam; }
 }

@@ -15,6 +15,7 @@ import games.paths.core.model.match.CharacterInstanceInfo;
 import games.paths.core.model.match.JoinMatchCommand;
 import games.paths.core.port.match.CharacterCommandPort.CharacterJoinException;
 import games.paths.core.port.match.CharacterPersistencePort;
+import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
@@ -38,6 +39,7 @@ class CharacterCommandServiceTest {
     private MatchReadPort matchReadPort;
     private UserAccessPort userAccessPort;
     private CharacterPersistencePort persistencePort;
+    private CharacterReadPort characterReadPort;
     private CharacterCommandService service;
 
     private static final long STORY_ID = 9001L;
@@ -50,7 +52,9 @@ class CharacterCommandServiceTest {
         matchReadPort = mock(MatchReadPort.class);
         userAccessPort = mock(UserAccessPort.class);
         persistencePort = mock(CharacterPersistencePort.class);
-        service = new CharacterCommandService(storyReadPort, matchReadPort, userAccessPort, persistencePort);
+        characterReadPort = mock(CharacterReadPort.class);
+        service = new CharacterCommandService(storyReadPort, matchReadPort, userAccessPort,
+                persistencePort, characterReadPort);
     }
 
     // ─── builders ───────────────────────────────────────────────────────────

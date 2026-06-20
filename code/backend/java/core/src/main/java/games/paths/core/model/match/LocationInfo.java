@@ -21,14 +21,17 @@ public class LocationInfo {
     private final CardInfo card;
     private final List<LocationNeighborInfo> neighbors;
     private final List<EventInfo> events;
+    private final Integer secureParam;
 
     public LocationInfo(Long idLocation, String uuid, CardInfo card,
-                        List<LocationNeighborInfo> neighbors, List<EventInfo> events) {
+                        List<LocationNeighborInfo> neighbors, List<EventInfo> events,
+                        Integer secureParam) {
         this.idLocation = idLocation;
         this.uuid = uuid;
         this.card = card;
         this.neighbors = neighbors != null ? neighbors : new ArrayList<>();
         this.events = events != null ? events : new ArrayList<>();
+        this.secureParam = secureParam;
     }
 
     public Long getIdLocation() { return idLocation; }
@@ -36,4 +39,5 @@ public class LocationInfo {
     public CardInfo getCard() { return card; }
     public List<LocationNeighborInfo> getNeighbors() { return neighbors; }
     public List<EventInfo> getEvents() { return events; }
+    public Integer getSecureParam() { return secureParam; }
 }

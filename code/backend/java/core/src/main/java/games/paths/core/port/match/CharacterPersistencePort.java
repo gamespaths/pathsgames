@@ -25,4 +25,13 @@ public interface CharacterPersistencePort {
 
     /** Number of characters already present in the match (used to assign the next composite id). */
     int countCharactersByMatchId(Long matchId);
+
+    /** Admin: persist updated base stats (dex/int/con/energy/life/sad) on the character instance. */
+    void updateCharacterStats(Long matchId, Long characterId,
+                              Integer dex, Integer intel, Integer con,
+                              Integer energy, Integer life, Integer sad);
+
+    /** Admin: persist updated backpack resources (food/magic/coin). */
+    void updateBackpackStats(Long matchId, Long characterId,
+                             Integer food, Integer magic, Integer coin);
 }

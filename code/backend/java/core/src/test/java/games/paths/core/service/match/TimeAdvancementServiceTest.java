@@ -33,6 +33,7 @@ class TimeAdvancementServiceTest {
     private TurnCycleStorePort store;
     private UserAccessPort userAccessPort;
     private DomainEventPublisher publisher;
+    private TimeStartRecoveryService recoveryService;
     private TimeAdvancementService service;
 
     private static final String MATCH = "match-uuid";
@@ -47,7 +48,9 @@ class TimeAdvancementServiceTest {
         store = mock(TurnCycleStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         publisher = mock(DomainEventPublisher.class);
-        service = new TimeAdvancementService(store, userAccessPort, publisher);
+        recoveryService = mock(TimeStartRecoveryService.class);
+        when(recoveryService.applyAtTimeStart(anyLong())).thenReturn(List.of());
+        service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService);
         when(userAccessPort.findByUuid(USER)).thenReturn(
                 Optional.of(new UserAccessPort.UserView(USER_ID, USER, "u", "PLAYER", 2)));
     }

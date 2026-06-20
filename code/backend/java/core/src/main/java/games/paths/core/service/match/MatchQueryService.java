@@ -303,7 +303,8 @@ public class MatchQueryService implements MatchQueryPort {
                         n.getDirection(),
                         n.getFlagBack(),
                         n.getEnergyCost(),
-                        resolveCard(storyId, neighborCardId)));
+                        resolveCard(storyId, neighborCardId),
+                        other != null ? other.getSecureParam() : null));
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();
@@ -318,7 +319,8 @@ public class MatchQueryService implements MatchQueryPort {
             }
 
             result.add(new LocationInfo(
-                    locId, loc.getUuid(), locCard, neighborInfos, eventInfos));
+                    locId, loc.getUuid(), locCard, neighborInfos, eventInfos,
+                    loc.getSecureParam()));
         }
         return result;
     }

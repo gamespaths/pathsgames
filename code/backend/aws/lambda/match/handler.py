@@ -289,6 +289,7 @@ def _build_locations_active(story, active_loc_ids):
                 "flagBack": n.get("flagBack"),
                 "energyCost": n.get("energyCost"),
                 "card": n.get("card") or (other.get("card") if other else None),
+                "secureParam": other.get("secureParam") if other else None,
             })
 
         event_infos = [
@@ -302,6 +303,7 @@ def _build_locations_active(story, active_loc_ids):
             "idLocation": loc_id,
             "uuid": loc.get("uuid"),
             "card": loc.get("card"),
+            "secureParam": loc.get("secureParam"),
             "neighbors": neighbor_infos,
             "events": event_infos,
         })
@@ -750,6 +752,75 @@ def _get_character(user, match_uuid, char_uuid):
     return _ok(_character_full(item))
 
 
+# ─── admin character statistics change ───────────────────────────────────────
+
+def _change_statistics(match_uuid, player_uuid, body):
+    """POST /api/admin/matches/{uuid}/player/{uuid}/changeStatistics.
+    Updates the character's statistics. Fields set to -1 or absent are skipped.
+    For energy/life/sad the value is capped at the corresponding max."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    if not player_uuid:
+        return _err(400, 'INVALID_INPUT', 'Player uuid is required')
+
+    item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{player_uuid}')
+    if item is None:
+        # player_uuid might be the character uuid stored in uuid field — scan characters
+        chars = _match_characters(match_uuid)
+        item = next((c for c in chars if c.get('uuid') == player_uuid), None)
+    if item is None:
+        # Try by match existence first
+        match_item = db_utils.get_item(f'MATCH#{match_uuid}', 'METADATA')
+        if match_item is None:
+            return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+        return _err(404, 'PLAYER_NOT_FOUND', f'Character not found: {player_uuid}')
+
+    def _skip(v):
+        return None if (v is None or v == -1) else int(v)
+
+    dex    = _skip(body.get('dex'))
+    intel  = _skip(body.get('intel'))
+    con    = _skip(body.get('con'))
+    energy = _skip(body.get('energy'))
+    life   = _skip(body.get('life'))
+    sad    = _skip(body.get('sad'))
+    coin   = _skip(body.get('coin'))
+    food   = _skip(body.get('food'))
+    magic  = _skip(body.get('magic'))
+
+    # Cap bounded stats at their max values
+    if energy is not None:
+        energy_max = _nz(item.get('energyMax'))
+        if energy_max > 0:
+            energy = min(energy, energy_max)
+    if life is not None:
+        life_max = _nz(item.get('lifeMax'))
+        if life_max > 0:
+            life = min(life, life_max)
+    if sad is not None:
+        sad_max = _nz(item.get('sadMax'))
+        if sad_max > 0:
+            sad = min(sad, sad_max)
+
+    updates = {}
+    if dex    is not None: updates['dexterity']    = dex
+    if intel  is not None: updates['intelligence'] = intel
+    if con    is not None: updates['constitution'] = con
+    if energy is not None: updates['energy']       = energy
+    if life   is not None: updates['life']         = life
+    if sad    is not None: updates['sad']          = sad
+    if coin   is not None: updates['coin']         = coin
+    if food   is not None: updates['food']         = food
+    if magic  is not None: updates['magic']        = magic
+
+    if updates:
+        updated = dict(item)
+        updated.update(updates)
+        db_utils.put_item(updated)
+
+    return _ok({'status': 'UPDATED', 'matchUuid': match_uuid, 'playerUuid': player_uuid})
+
+
 # ─── admin match control ─────────────────────────────────────────────────────
 
 def _get_admin_match_info(match_uuid):
@@ -970,6 +1041,83 @@ def _all_characters_done(characters):
     return True
 
 
+def _clamp(value, low, high):
+    if high < low:
+        return low
+    return max(low, min(high, value))
+
+
+def _compute_recovery(dexterity, intelligence, constitution, energy, life, sad,
+                      energy_max, life_max, sad_max, safe, p, difficulty_energy,
+                      bonus_energy, bonus_life, bonus_sad):
+    """Step 26 — pure recovery math (safe/unsafe + class bonuses + clamping)."""
+    secure_param = p - difficulty_energy
+    new_energy = energy + dexterity + p if safe else energy + difficulty_energy
+    new_life = life
+    new_sad = sad
+    if safe:
+        new_life = life + constitution + secure_param
+        new_sad = sad - (intelligence + secure_param)
+    new_energy += bonus_energy
+    new_life += bonus_life
+    new_sad += bonus_sad
+    return (_clamp(new_energy, 0, energy_max),
+            _clamp(new_life, 0, life_max),
+            _clamp(new_sad, 0, sad_max))
+
+
+def _apply_time_start_recovery(match, match_uuid, story):
+    """Step 26 — recover stats, apply class bonuses, decrement location counters.
+
+    Safe (secureParam > 0): energy += DEX + P, life += COS + secureParam, sadness -= INT + secureParam.
+    Unsafe: energy += difficulty.energy only (no DEX, no secureParam).
+    Counter-zero locations are flagged with a ``pendingEvent``
+    marker (actual event execution is wired in Step 29). Returns the recovery
+    recap (per-character deltas)."""
+    diff = next((d for d in (story.get('difficulties') or [])
+                 if d.get('uuid') == match.get('difficultyUuid')), {}) or {}
+    difficulty_energy = _nz(diff.get('energy'))
+    story_locations = {int(l.get('id', -1)): l for l in (story.get('locations') or [])}
+    class_bonuses = story.get('classBonuses') or []
+    class_id_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+
+    recaps = []
+    for c in _match_characters(match_uuid):
+        loc = story_locations.get(_nz(c.get('idLocation')))
+        secure_param = _nz(loc.get('secureParam')) if loc else 0
+        safe = secure_param > 0
+        p = secure_param + difficulty_energy
+        class_id = class_id_by_uuid.get(c.get('classUuid'))
+        bonuses = [b for b in class_bonuses if b.get('idClass') == class_id]
+        energy, life, sad = _compute_recovery(
+            _nz(c.get('dexterity')), _nz(c.get('intelligence')), _nz(c.get('constitution')),
+            _nz(c.get('energy')), _nz(c.get('life')), _nz(c.get('sad')),
+            _nz(c.get('energyMax')), _nz(c.get('lifeMax')), _nz(c.get('sadMax')),
+            safe, p, difficulty_energy,
+            _sum_bonus(bonuses, 'energy'), _sum_bonus(bonuses, 'life'),
+            _sum_bonus(bonuses, 'sad'))
+        recaps.append({
+            "characterUuid": c.get('uuid'),
+            "energyDelta": energy - _nz(c.get('energy')),
+            "lifeDelta": life - _nz(c.get('life')),
+            "sadDelta": sad - _nz(c.get('sad')),
+        })
+        c['energy'], c['life'], c['sad'] = energy, life, sad
+        db_utils.put_item(c)
+
+    # Decrement location counters on the embedded match state; flag zeros.
+    for ls in (match.get('locations') or []):
+        current = _nz(ls.get('clockCounter'))
+        if current <= 0:
+            continue
+        nxt = current - 1
+        ls['clockCounter'] = nxt
+        if nxt == 0:
+            loc = story_locations.get(_nz(ls.get('idLocation')))
+            ls['pendingEvent'] = (loc or {}).get('idEventIfCounterZero')
+    return recaps
+
+
 def _advance_time(match, match_uuid):
     """Advance the clock: log the advance, wake characters, rebuild the queue."""
     new_clock = _nz(match.get('currentClock')) + 1
@@ -988,6 +1136,10 @@ def _advance_time(match, match_uuid):
         if _nz(c.get('isSleeping')) == 1:
             c['isSleeping'] = 0
             db_utils.put_item(c)
+
+    # Step 26: per-character recovery, class bonuses and location counters.
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    recovery = _apply_time_start_recovery(match, match_uuid, story)
 
     # Rebuild the turn queue for the new clock (all WAITING, highest priority ACTIVE).
     characters = _match_characters(match_uuid)
@@ -1016,7 +1168,7 @@ def _advance_time(match, match_uuid):
 
     db_utils.put_item(match)
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
-    return new_clock
+    return new_clock, recovery
 
 
 def _sleep(user, match_uuid):
@@ -1044,8 +1196,9 @@ def _sleep(user, match_uuid):
     triggered = _all_characters_done(characters)
 
     current_clock = _nz(match.get('currentClock'))
+    recovery = []
     if triggered:
-        current_clock = _advance_time(match, match_uuid)
+        current_clock, recovery = _advance_time(match, match_uuid)
 
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -1053,6 +1206,7 @@ def _sleep(user, match_uuid):
         "isSleeping": not triggered,  # woke up at time start when triggered
         "timeEndTriggered": triggered,
         "currentClock": current_clock,
+        "recovery": recovery,
     })
 
 
@@ -1140,6 +1294,19 @@ def lambda_handler(event, context):
             return _update_match(match_uuid, 'PAUSED', None)
         if path.endswith('/resume') and method == 'POST':
             return _update_match(match_uuid, 'RUNNING', None)
+        # POST /api/admin/matches/{uuidMatch}/player/{uuidPlayer}/changeStatistics
+        if '/player/' in path and path.endswith('/changeStatistics') and method == 'POST':
+            segments = path.split('/')
+            # /api/admin/matches/{uuid}/player/{uuid}/changeStatistics
+            # idx:  0   1       2        3      4       5               6
+            player_uuid = segments[6] if len(segments) > 6 else (
+                (event.get('pathParameters') or {}).get('uuidPlayer') or ''
+            )
+            try:
+                body = json.loads(event.get('body') or '{}')
+            except (TypeError, ValueError):
+                return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+            return _change_statistics(match_uuid, player_uuid, body)
         if method == 'PUT':
             try:
                 body = json.loads(event.get('body') or '{}')

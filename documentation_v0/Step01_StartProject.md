@@ -65,8 +65,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Sadness (Sad) Threshold: When a character's sad value reaches their current life value, the character loses life points equal to their COS stat. Following this, sad is reset to 0, and the character enters the SLEEPING state immediately.
 		- Coma State: If a character's life drops to 0 or less, they enter a COMA. Characters in coma are simultaneously considered SLEEPING.
 		- Recovery at Time Start: At the beginning of each Time, characters recover stats based on their current location's Safety Parameter:	
-			- In a Safe Location: Gain DES + P energy, COS + P life, and lose INT + P sadness.
-			- In an Unsafe Location: Gain only DES energy (no life recovery or sadness reduction).
+			- In a Safe Location: Gain DES + P energy, COS + secure_param life, and lose INT + secure_param sadness (P = secure_param + difficulty.energy).
+			- In an Unsafe Location: Gain only difficulty.energy (no DES, no life recovery or sadness reduction).
 	- Turn Management & Concurrency (The Turn Loop): The game uses a dynamic turn system managed via WebSockets to ensure real-time updates:
 		- Turn sequence: Calculated at the start of every Time Unit using a specific formula. The character with the highest value acts first. In case of a tie, the id_character_match acts as a tie-breaker.
 		- Action Flow: Active characters act in sequence. A player can perform multiple actions during their turn as long as they have energy.
@@ -331,8 +331,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ POST	`/api/admin/stories/import`
 		- ✅ GET 	`/api/admin/stories`
 		- ✅ DELETE	`/api/admin/stories/{uuid}`
-		- GET   `/admin/matches/`: Load all matches informations
-		- PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
+		- ✅ GET   `/admin/matches/`: Load all matches informations
+		- ✅ PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
+		- ✅ POST 	`api/admin/match/{uuid_match}/player/{uuid_player}/changeStatistics` to change statistics of a player
 		- GET 	`/admin/params`: Get all parameter values
 		- GET 	`/admin/match/{uuid_match}/replay` Get all match logs
 		- GET 	`/admin/match/{uuid_match}/log/{filter}`: Get all logs with a filter (character, item, ...)
@@ -447,7 +448,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		48. timeStart(id_match,meteo_new) metodo che modifica le tabelle
 		49. timeCalculateNewWeather(id_match,giorno_nuovo) calcola un nuovo meteo senza salvare nulla e ritorna meteo_new
 		50. timeAddBonusClasse(id_match,id_character) data la classe e tipo aggiunge valori al character
-		51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+P,sad=-INT-P), se non si trova in luogo sicuro characterAddValues(energia=DES), P=secure_param del luogo in cui si trova
+		51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+secure_param,sad=-(INT+secure_param)), se non si trova in luogo sicuro characterAddValues(energia=difficulty.energy), P=secure_param+difficulty.energy del luogo in cui si trova
 		52. timeEnd(id_match) metodo di utilità quando tutti i characters sono a zero energia o stanno dormento che poi lancia la timeStart()
 		53. timeCalculateCharactersSort: svuota tabella gioco_coda_turni (id_match, id_character_match, ordine_turno) e ripopola con elenco characters con ordine determinato da formula_ordine (In caso di parità si aggiunge id_character)
 		54. timeStartDayEventiNeiLuoghi (id_match) per ogni luogo con almeno un giocatore eventExec(id_parita,evento_se_giocatore_inizia_day)

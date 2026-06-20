@@ -1,157 +1,157 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="342" failures="0" errors="0" time="6.629328435">
-    <testsuite name="src/test/BonusBadgeList.test.jsx" timestamp="2026-06-19T10:25:10.875Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.113233862">
-        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; returns null for missing or empty items" time="0.037894357">
+<testsuites name="vitest tests" tests="344" failures="0" errors="0" time="8.279157873">
+    <testsuite name="src/test/BonusBadgeList.test.jsx" timestamp="2026-06-20T15:24:16.273Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.099483147">
+        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; returns null for missing or empty items" time="0.020240414">
         </testcase>
-        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; hides zero / non-finite values by default and renders known stat icons" time="0.04983783">
+        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; hides zero / non-finite values by default and renders known stat icons" time="0.048047429">
         </testcase>
-        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; keeps zero values when showZeros is set" time="0.01365258">
+        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; keeps zero values when showZeros is set" time="0.014903422">
         </testcase>
-        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; returns null when every item is filtered out" time="0.002901929">
+        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; returns null when every item is filtered out" time="0.003403118">
         </testcase>
-        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; falls back to the default visual for an unknown stat key" time="0.004992892">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/Book.test.jsx" timestamp="2026-06-19T10:25:10.877Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.089157328">
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders left and right content" time="0.050877921">
-        </testcase>
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders close button when onClose is provided" time="0.017276198">
-        </testcase>
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; does not render close button when onClose is omitted" time="0.00301164">
-        </testcase>
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; applies custom overlayClass and wrapperClass" time="0.005279134">
-        </testcase>
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders mobile slot when provided" time="0.003933627">
-        </testcase>
-        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders book-spine inside the wrapper" time="0.00254256">
+        <testcase classname="src/test/BonusBadgeList.test.jsx" name="BonusBadgeList &gt; falls back to the default visual for an unknown stat key" time="0.007942718">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/Card.test.jsx" timestamp="2026-06-19T10:25:10.878Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.127877594">
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the card title, falling back to the placeholder icon without an image" time="0.044146467">
+    <testsuite name="src/test/Book.test.jsx" timestamp="2026-06-20T15:24:16.275Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.13332005">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders left and right content" time="0.080245081">
         </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the image when a urlImage is provided" time="0.007919478">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders close button when onClose is provided" time="0.023890715">
         </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; flagInformationCard wires the info button to onPreview" time="0.014979574">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; does not render close button when onClose is omitted" time="0.004888831">
         </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders an info-only button when only onPreview is given" time="0.004754748">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; applies custom overlayClass and wrapperClass" time="0.0085117">
         </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders a select button and fires onSelect" time="0.004521459">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders mobile slot when provided" time="0.006317171">
         </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders an action button and fires onAction" time="0.004784714">
-        </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; shows the locked coming-soon label with its reason" time="0.003607648">
-        </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the copyright view link when enabled and not disabled" time="0.004400966">
-        </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the children overlay over the image" time="0.003939421">
-        </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; variant=&quot;page&quot; &gt; renders the book page body with title, image and description" time="0.018580047">
-        </testcase>
-        <testcase classname="src/test/Card.test.jsx" name="Card &gt; variant=&quot;page&quot; &gt; shows the loading spinner and fires onClose from the back button" time="0.00744658">
+        <testcase classname="src/test/Book.test.jsx" name="Book &gt; renders book-spine inside the wrapper" time="0.003889018">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/CardCreditsBar.test.jsx" timestamp="2026-06-19T10:25:10.880Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.211199951">
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; returns null when neither author nor image credit is provided" time="0.016921517">
+    <testsuite name="src/test/Card.test.jsx" timestamp="2026-06-20T15:24:16.277Z" hostname="cirilla" tests="11" failures="0" errors="0" skipped="0" time="0.257536908">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the card title, falling back to the placeholder icon without an image" time="0.124615594">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; returns null when card and story are undefined" time="0.001612621">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the image when a urlImage is provided" time="0.018678182">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders story author as plain text when no storyUrl" time="0.029231556">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; flagInformationCard wires the info button to onPreview" time="0.017571109">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders story author as link when storyUrl is provided" time="0.135261353">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders an info-only button when only onPreview is given" time="0.006696559">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders image copyright as plain text when no imgUrl" time="0.005024647">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders a select button and fires onSelect" time="0.006419927">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders image copyright as link when imgUrl is provided" time="0.013455199">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders an action button and fires onAction" time="0.006608024">
         </testcase>
-        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders both story author and image credit together" time="0.005836268">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; shows the locked coming-soon label with its reason" time="0.00462455">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/CardImage.test.jsx" timestamp="2026-06-19T10:25:10.881Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.065017077">
-        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders an img with src/alt/class when a source is given" time="0.040905193">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the copyright view link when enabled and not disabled" time="0.013601747">
         </testcase>
-        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders the icon placeholder when no source" time="0.007784071">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; renders the children overlay over the image" time="0.005086229">
         </testcase>
-        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders nothing when no source and renderPlaceholder is false" time="0.003596316">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; variant=&quot;page&quot; &gt; renders the book page body with title, image and description" time="0.026291582">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/ClockWidget.test.jsx" timestamp="2026-06-19T10:25:10.882Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.176713443">
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; renders no clock bar without a clock" time="0.091092817">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; renders the clock value and the story label when clock &gt; 1" time="0.03418413">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; uses the singular label when the clock is 1" time="0.007527033">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; falls back to &quot;Clock N&quot; when the story has no clock labels" time="0.004317985">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; uses the story singular clock label as the badge tooltip (any clock value)" time="0.006992535">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; falls back to game.clock.title for the tooltip when the story has no singular label" time="0.003739319">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; shows a sleeping badge when any character is sleeping" time="0.021746618">
-        </testcase>
-        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; hides the sleeping badge when nobody is sleeping" time="0.003097746">
+        <testcase classname="src/test/Card.test.jsx" name="Card &gt; variant=&quot;page&quot; &gt; shows the loading spinner and fires onClose from the back button" time="0.02307319">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/ConfigView.test.jsx" timestamp="2026-06-19T10:25:10.883Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.206227883">
-        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; advances to the start-game confirmation when &quot;Start Game&quot; is clicked" time="0.154618548">
+    <testsuite name="src/test/CardCreditsBar.test.jsx" timestamp="2026-06-20T15:24:16.280Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.312882911">
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; returns null when neither author nor image credit is provided" time="0.014629002">
         </testcase>
-        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires selectable cards (action + lens) to onChangeClick" time="0.027100611">
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; returns null when card and story are undefined" time="0.001689963">
         </testcase>
-        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires the information (bonuses) cards to onPreview" time="0.006553146">
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders story author as plain text when no storyUrl" time="0.030827776">
         </testcase>
-        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires the character and trait cards to onChangeClick" time="0.009218984">
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders story author as link when storyUrl is provided" time="0.221407562">
         </testcase>
-        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; renders without crashing when story content lists are missing" time="0.004891227">
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders image copyright as plain text when no imgUrl" time="0.00755583">
+        </testcase>
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders image copyright as link when imgUrl is provided" time="0.025432951">
+        </testcase>
+        <testcase classname="src/test/CardCreditsBar.test.jsx" name="CardCreditsBar &gt; renders both story author and image credit together" time="0.007447298">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/EndGameBook.test.jsx" timestamp="2026-06-19T10:25:10.884Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.133808963">
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders the Book wrapper" time="0.077953658">
+    <testsuite name="src/test/CardImage.test.jsx" timestamp="2026-06-20T15:24:16.281Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.097789484">
+        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders an img with src/alt/class when a source is given" time="0.067876788">
+        </testcase>
+        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders the icon placeholder when no source" time="0.018048568">
+        </testcase>
+        <testcase classname="src/test/CardImage.test.jsx" name="CardImage &gt; renders nothing when no source and renderPlaceholder is false" time="0.008077096">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/ClockWidget.test.jsx" timestamp="2026-06-20T15:24:16.282Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.114924761">
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; renders no clock bar without a clock" time="0.035236403">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; renders the clock value and the story label when clock &gt; 1" time="0.028596317">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; uses the singular label when the clock is 1" time="0.006442385">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; falls back to &quot;Clock N&quot; when the story has no clock labels" time="0.004216461">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; uses the story singular clock label as the badge tooltip (any clock value)" time="0.005734437">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; falls back to game.clock.title for the tooltip when the story has no singular label" time="0.003500198">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; shows a sleeping badge when any character is sleeping" time="0.019076267">
+        </testcase>
+        <testcase classname="src/test/ClockWidget.test.jsx" name="ClockWidget &gt; hides the sleeping badge when nobody is sleeping" time="0.003130622">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/ConfigView.test.jsx" timestamp="2026-06-20T15:24:16.284Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.183160874">
+        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; advances to the start-game confirmation when &quot;Start Game&quot; is clicked" time="0.142635376">
+        </testcase>
+        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires selectable cards (action + lens) to onChangeClick" time="0.017570059">
+        </testcase>
+        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires the information (bonuses) cards to onPreview" time="0.005685208">
+        </testcase>
+        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; wires the character and trait cards to onChangeClick" time="0.006464504">
+        </testcase>
+        <testcase classname="src/test/ConfigView.test.jsx" name="ConfigView &gt; renders without crashing when story content lists are missing" time="0.006777707">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/EndGameBook.test.jsx" timestamp="2026-06-20T15:24:16.285Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.123140469">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders the Book wrapper" time="0.062581348">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders both left (story) and right (end-game) book pages" time="0.007578304">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders both left (story) and right (end-game) book pages" time="0.009408499">
         </testcase>
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders the close button in mobile layout" time="0.017441092">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders the close button in mobile layout" time="0.016444782">
         </testcase>
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; stacks the story and end-game cards in the mobile layout too" time="0.00496807">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; stacks the story and end-game cards in the mobile layout too" time="0.004888115">
         </testcase>
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; navigates to home when close button is clicked" time="0.017763431">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; navigates to home when close button is clicked" time="0.021161204">
         </testcase>
-        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders without endGameCard gracefully" time="0.004059957">
+        <testcase classname="src/test/EndGameBook.test.jsx" name="EndGameBook &gt; renders without endGameCard gracefully" time="0.003951029">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/EndGameBookBranches.test.jsx" timestamp="2026-06-19T10:25:10.885Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.129926532">
-        <testcase classname="src/test/EndGameBookBranches.test.jsx" name="EndGameBook (full cards + mobile stack) &gt; renders story + end-game images/titles and navigates home on close" time="0.107583501">
+    <testsuite name="src/test/EndGameBookBranches.test.jsx" timestamp="2026-06-20T15:24:16.286Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.094920438">
+        <testcase classname="src/test/EndGameBookBranches.test.jsx" name="EndGameBook (full cards + mobile stack) &gt; renders story + end-game images/titles and navigates home on close" time="0.075263987">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/EndGameBookBranches.test.jsx" name="EndGameBook (full cards + mobile stack) &gt; falls back to card title/name when story/endGame fields are missing" time="0.018065274">
+        <testcase classname="src/test/EndGameBookBranches.test.jsx" name="EndGameBook (full cards + mobile stack) &gt; falls back to card title/name when story/endGame fields are missing" time="0.011871963">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/Footer.test.jsx" timestamp="2026-06-19T10:25:10.886Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.454689176">
-        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders Paths Games brand" time="0.154690262">
+    <testsuite name="src/test/Footer.test.jsx" timestamp="2026-06-20T15:24:16.287Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.660447507">
+        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders Paths Games brand" time="0.146574664">
         </testcase>
-        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders GitHub link" time="0.178629785">
+        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders GitHub link" time="0.270090441">
         </testcase>
-        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders Instagram link" time="0.046590809">
+        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders Instagram link" time="0.095137644">
         </testcase>
-        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders YouTube link" time="0.070677454">
+        <testcase classname="src/test/Footer.test.jsx" name="Footer &gt; renders YouTube link" time="0.129279921">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/FooterStatus.test.jsx" timestamp="2026-06-19T10:25:10.887Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.360082072">
-        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; shows the version when the server responds online" time="0.134176178">
+    <testsuite name="src/test/FooterStatus.test.jsx" timestamp="2026-06-20T15:24:16.288Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.507307142">
+        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; shows the version when the server responds online" time="0.173934379">
         </testcase>
-        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; handles an online server that returns no version" time="0.016467052">
+        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; handles an online server that returns no version" time="0.02669912">
         </testcase>
-        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; marks the server offline when the status call fails" time="0.158028167">
+        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; marks the server offline when the status call fails" time="0.261076962">
         </testcase>
-        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; invokes changeServer when a different server is selected" time="0.047642633">
+        <testcase classname="src/test/FooterStatus.test.jsx" name="Footer — real-server status &gt; invokes changeServer when a different server is selected" time="0.041987185">
             <system-err>
 Warning: An update to Footer inside a test was not wrapped in act(...).
 
@@ -179,22 +179,13 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/test/GameBook.test.jsx" timestamp="2026-06-19T10:25:10.888Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.192130957">
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders the Book component" time="0.045910136">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+    <testsuite name="src/test/GameBook.test.jsx" timestamp="2026-06-20T15:24:16.289Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.182875601">
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders the Book component" time="0.049096026">
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders PlayerStats and action ConfigCards" time="0.008932323">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders PlayerStats and action ConfigCards" time="0.008150842">
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders EndGameBook after the end-game button triggers endMatch" time="0.051060731">
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders EndGameBook after the end-game button triggers endMatch" time="0.041921787">
             <system-out>
-CardPreviewModal preview [1mnull[22m
 Ending game with action: {
   uuid: [32m&apos;a1&apos;[39m,
   name: [32m&apos;Flee&apos;[39m,
@@ -202,13 +193,11 @@ Ending game with action: {
   endGame: [33mtrue[39m,
   card: { title: [32m&apos;Flee&apos;[39m }
 } { accessToken: [32m&apos;tok&apos;[39m } { eventUuid: [32m&apos;e1&apos;[39m, matchUuid: [32m&apos;m1&apos;[39m }
-CardPreviewModal preview [1mnull[22m
 
             </system-out>
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; shows end-game error when endMatch fails" time="0.025040122">
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; shows end-game error when endMatch fails" time="0.01963239">
             <system-out>
-CardPreviewModal preview [1mnull[22m
 Ending game with action: {
   uuid: [32m&apos;a1&apos;[39m,
   name: [32m&apos;Flee&apos;[39m,
@@ -216,51 +205,27 @@ Ending game with action: {
   endGame: [33mtrue[39m,
   card: { title: [32m&apos;Flee&apos;[39m }
 } { accessToken: [32m&apos;tok&apos;[39m } { eventUuid: [32m&apos;e1&apos;[39m, matchUuid: [32m&apos;m1&apos;[39m }
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
 
             </system-out>
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; sleep action calls sleepCharacter and reloads the board" time="0.028558564">
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; sleep action calls sleepCharacter and reloads the board" time="0.028899944">
             <system-out>
-CardPreviewModal preview [1mnull[22m
 list not found for type class { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 list not found for type character { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 list not found for type difficulty { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
-CardPreviewModal preview [1mnull[22m
+list not found for type difficulty { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 
 list not found for type class { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 list not found for type character { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 list not found for type difficulty { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 
-CardPreviewModal preview [1mnull[22m
+list not found for type difficulty { uuid: [32m&apos;s1&apos;[39m, title: [32m&apos;Test Story&apos;[39m, card: { title: [32m&apos;Test Story&apos;[39m } }
 
             </system-out>
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; opens the card preview modal on mobile when a preview opens" time="0.008421896">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview {
-  card: { title: [32m&apos;Flee&apos;[39m },
-  type: [32m&apos;action&apos;[39m,
-  lockedReason: [1mnull[22m,
-  statItemsToPageContent: [],
-  additionalProps: {
-    onAction: [36m[Function: onAction][39m,
-    actionLabel: [32m&apos;game.endGame&apos;[39m,
-    actionIcon: [32m&apos;fa-flag-checkered&apos;[39m
-  }
-}
-
-            </system-out>
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; opens the card preview modal on mobile when a preview opens" time="0.00751474">
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; shows the close confirmation prompt before exiting" time="0.016164179">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; shows the close confirmation prompt before exiting" time="0.016585192">
             <system-err>
 Warning: An update to GameBook inside a test was not wrapped in act(...).
 
@@ -276,225 +241,225 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders gracefully when gameData is null" time="0.004698096">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/GameBook.test.jsx" name="GameBook &gt; renders gracefully when gameData is null" time="0.005231404">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/GameBookMobile.test.jsx" timestamp="2026-06-19T10:25:10.890Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.08512628">
-        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; stacks the provided left and right content (left on top)" time="0.064186126">
+    <testsuite name="src/test/GameBookMobile.test.jsx" timestamp="2026-06-20T15:24:16.291Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.152745491">
+        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; stacks the provided left and right content (left on top)" time="0.113525854">
         </testcase>
-        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; shows the end error when provided" time="0.012174515">
+        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; shows the end error when provided" time="0.032046794">
         </testcase>
-        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; renders without left/right content without crashing" time="0.004733576">
+        <testcase classname="src/test/GameBookMobile.test.jsx" name="GameBookMobile &gt; renders without left/right content without crashing" time="0.003400306">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/GamePage.test.jsx" timestamp="2026-06-19T10:25:10.891Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.180967742">
-        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows loading spinner while data loads" time="0.091925818">
+    <testsuite name="src/test/GamePage.test.jsx" timestamp="2026-06-20T15:24:16.292Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.129569435">
+        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows loading spinner while data loads" time="0.054299229">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; renders GameBook after data loads" time="0.029158567">
+        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; renders GameBook after data loads" time="0.021387576">
         </testcase>
-        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows ErrorCard with status 400 when matchUuid is absent" time="0.019894913">
+        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows ErrorCard with status 400 when matchUuid is absent" time="0.011502567">
         </testcase>
-        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows ErrorCard when getMatchInfo throws MatchNotRunningError" time="0.011630415">
+        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; shows ErrorCard when getMatchInfo throws MatchNotRunningError" time="0.016029379">
         </testcase>
-        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; redirects to home when close is clicked (location.href)" time="0.020154437">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/GuestUserContext.test.jsx" timestamp="2026-06-19T10:25:10.892Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.191956492">
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; synthesizes a mock guest when server is mock without calling the API" time="0.070699155">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; uses resumeGuestSession when the backend still has a session" time="0.015542516">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; falls back to createGuestSession when resume fails" time="0.012307636">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; sets an error when both resume and create fail on mount" time="0.009458789">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest mints a fresh mock guest on the mock server" time="0.023510154">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest creates a guest via the API on a real server" time="0.015614132">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest records an error when create fails on a real server" time="0.012953053">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; clearGuest resets the user to none" time="0.010703639">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; openGuestModal stores preloaded matches; closeGuestModal clears them" time="0.010364976">
-        </testcase>
-        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; openGuestModal with no argument leaves matches null" time="0.00693173">
+        <testcase classname="src/test/GamePage.test.jsx" name="GamePage &gt; redirects to home when close is clicked (location.href)" time="0.022665031">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/GuestUserModal.test.jsx" timestamp="2026-06-19T10:25:10.894Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.127566472">
-        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; shows the matches list only after Turnstile passes" time="0.08551307">
+    <testsuite name="src/test/GuestUserContext.test.jsx" timestamp="2026-06-20T15:24:16.293Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.207880857">
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; synthesizes a mock guest when server is mock without calling the API" time="0.057255689">
         </testcase>
-        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; records a pass cookie after a human check" time="0.01180251">
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; uses resumeGuestSession when the backend still has a session" time="0.013783309">
         </testcase>
-        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; skips the widget and shows the matches list directly when a recent pass cookie exists" time="0.004471343">
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; falls back to createGuestSession when resume fails" time="0.00998621">
         </testcase>
-        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; offers a retry (instead of blocking) and hides the matches list on widget error" time="0.020668367">
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; sets an error when both resume and create fail on mount" time="0.010253928">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest mints a fresh mock guest on the mock server" time="0.026471255">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest creates a guest via the API on a real server" time="0.016210051">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; refreshGuest records an error when create fails on a real server" time="0.012835426">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; clearGuest resets the user to none" time="0.015287391">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; openGuestModal stores preloaded matches; closeGuestModal clears them" time="0.023269445">
+        </testcase>
+        <testcase classname="src/test/GuestUserContext.test.jsx" name="GuestUserContext &gt; openGuestModal with no argument leaves matches null" time="0.018535272">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/GuestUserModalFull.test.jsx" timestamp="2026-06-19T10:25:10.894Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.104204549">
-        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; starts in checking, shows error + retry on Turnstile failure" time="0.068810076">
+    <testsuite name="src/test/GuestUserModal.test.jsx" timestamp="2026-06-20T15:24:16.295Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.121271309">
+        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; shows the matches list only after Turnstile passes" time="0.077305132">
         </testcase>
-        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; passes Turnstile then shows matches; previewing swaps + closes the left page" time="0.016162514">
+        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; records a pass cookie after a human check" time="0.013762387">
         </testcase>
-        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; expire triggers a fresh antibot check" time="0.007812036">
+        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; skips the widget and shows the matches list directly when a recent pass cookie exists" time="0.006299827">
         </testcase>
-        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; renders nothing when the modal is closed" time="0.003281452">
+        <testcase classname="src/test/GuestUserModal.test.jsx" name="GuestUserModal — antibot after matches list &gt; offers a retry (instead of blocking) and hides the matches list on widget error" time="0.019977778">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/HomePage.test.jsx" timestamp="2026-06-19T10:25:10.895Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.215435883">
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens StartBookModal when no active match for that story" time="0.110610868">
+    <testsuite name="src/test/GuestUserModalFull.test.jsx" timestamp="2026-06-20T15:24:16.297Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.112509072">
+        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; starts in checking, shows error + retry on Turnstile failure" time="0.078631513">
+        </testcase>
+        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; passes Turnstile then shows matches; previewing swaps + closes the left page" time="0.01666713">
+        </testcase>
+        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; expire triggers a fresh antibot check" time="0.008600988">
+        </testcase>
+        <testcase classname="src/test/GuestUserModalFull.test.jsx" name="GuestUserModal (antibot + preview) &gt; renders nothing when the modal is closed" time="0.001956052">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/HomePage.test.jsx" timestamp="2026-06-20T15:24:16.298Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.296683812">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens StartBookModal when no active match for that story" time="0.169149348">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens GuestUserModal when RUNNING match exists for that story (handing over the fetched matches)" time="0.023214058">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens GuestUserModal when RUNNING match exists for that story (handing over the fetched matches)" time="0.033474357">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens GuestUserModal when CREATED match exists for that story" time="0.013746525">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; opens GuestUserModal when CREATED match exists for that story" time="0.011746391">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; does not redirect when active match is for a different story" time="0.013971835">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; does not redirect when active match is for a different story" time="0.013991559">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; falls back to StartBookModal when listMatches throws" time="0.017086462">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; falls back to StartBookModal when listMatches throws" time="0.020899913">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; offers a retry (instead of blocking) and never calls getStories on widget error" time="0.008721124">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; offers a retry (instead of blocking) and never calls getStories on widget error" time="0.010689797">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; records a pass cookie after a human check" time="0.01385554">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; records a pass cookie after a human check" time="0.015385884">
         </testcase>
-        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; skips the widget and loads stories directly when a recent pass cookie exists" time="0.01017416">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/LocationCard.test.jsx" timestamp="2026-06-19T10:25:10.897Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.151860341">
-        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; returns null when no location is provided" time="0.021142">
-        </testcase>
-        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; renders the location card content" time="0.046620295">
-        </testcase>
-        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; shows the card description when present" time="0.069207719">
-        </testcase>
-        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; hides description paragraph when absent" time="0.004620873">
-        </testcase>
-        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; falls back to default icon when awesomeIcon is missing" time="0.004432212">
+        <testcase classname="src/test/HomePage.test.jsx" name="HomePage — story click with active match check &gt; skips the widget and loads stories directly when a recent pass cookie exists" time="0.00683559">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/MatchCard.test.jsx" timestamp="2026-06-19T10:25:10.897Z" hostname="cirilla" tests="9" failures="0" errors="0" skipped="0" time="0.175361655">
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows story title" time="0.084540064">
+    <testsuite name="src/test/LocationCard.test.jsx" timestamp="2026-06-20T15:24:16.299Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.217759513">
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; returns null when no location is provided" time="0.057764943">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; renders the location card content" time="0.079560646">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; shows the card description when present" time="0.010873581">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; hides description paragraph when absent" time="0.009597558">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; falls back to default icon when awesomeIcon is missing" time="0.007944271">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; shows the clock counter as a statistic when greater than zero" time="0.005436335">
+        </testcase>
+        <testcase classname="src/test/LocationCard.test.jsx" name="LocationCard &gt; hides the clock counter when zero or missing" time="0.007050129">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/MatchCard.test.jsx" timestamp="2026-06-20T15:24:16.301Z" hostname="cirilla" tests="9" failures="0" errors="0" skipped="0" time="0.140156523">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows story title" time="0.065134213">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows resume button for RUNNING status" time="0.008035924">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows resume button for RUNNING status" time="0.007053569">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows resume button for CREATED status" time="0.006275232">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows resume button for CREATED status" time="0.005873088">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; calls onResume when resume button clicked" time="0.012786345">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; calls onResume when resume button clicked" time="0.011246227">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for PAUSED and no resume button" time="0.007645253">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for PAUSED and no resume button" time="0.00771834">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for ENDED" time="0.004884603">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for ENDED" time="0.004853193">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for GAMEOVER" time="0.005842142">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; shows status overlay for GAMEOVER" time="0.004572095">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; uses fallback name when story is null" time="0.008033752">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; uses fallback name when story is null" time="0.005595913">
         </testcase>
-        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; calls onPreviewCard with the match info when the (i) button is clicked" time="0.029294437">
+        <testcase classname="src/test/MatchCard.test.jsx" name="MatchCard &gt; calls onPreviewCard with the match info when the (i) button is clicked" time="0.019856002">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/Navbar.test.jsx" timestamp="2026-06-19T10:25:10.899Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.118040314">
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; renders brand link" time="0.075631385">
+    <testsuite name="src/test/Navbar.test.jsx" timestamp="2026-06-20T15:24:16.302Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.089361131">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; renders brand link" time="0.053475796">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; renders user button with guest username as title" time="0.009265303">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; renders user button with guest username as title" time="0.00802348">
         </testcase>
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; user button shows nav.guest label" time="0.006178174">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; user button shows nav.guest label" time="0.003765308">
         </testcase>
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; guest button calls openGuestModal on click" time="0.010599585">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; guest button calls openGuestModal on click" time="0.00845633">
         </testcase>
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; does not show exit button on home page" time="0.007736236">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; does not show exit button on home page" time="0.006865726">
         </testcase>
-        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; shows exit button on play page" time="0.004569371">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/PlayerStats.test.jsx" timestamp="2026-06-19T10:25:10.900Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.1589778">
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders all stat keys" time="0.061971997">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; passes showZeros=true to BonusBadgeList" time="0.006970109">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; defaults to 0 for missing stat keys" time="0.01012549">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; forwards stat values correctly" time="0.005672106">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders safely when stats is undefined" time="0.00661623">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders current/max gauges when max values are present (Step 27)" time="0.007158792">
-        </testcase>
-        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders the carried items list (Step 27)" time="0.055852662">
+        <testcase classname="src/test/Navbar.test.jsx" name="Navbar &gt; shows exit button on play page" time="0.004442899">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/PolicyModals.test.jsx" timestamp="2026-06-19T10:25:10.901Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.164344469">
-        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; CookiesModal renders its dialog and all six sections" time="0.06190521">
+    <testsuite name="src/test/PlayerStats.test.jsx" timestamp="2026-06-20T15:24:16.304Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.197954825">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders all stat keys" time="0.106889606">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; PrivacyModal renders its dialog and eleven sections" time="0.013441368">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; passes showZeros=true to BonusBadgeList" time="0.008492951">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; TermsModal renders its dialog and twelve sections" time="0.011562138">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; defaults to 0 for missing stat keys" time="0.019570763">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; CreditsModal renders a card grid from images.json" time="0.033663131">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; forwards stat values correctly" time="0.007030007">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; returns null when no card is provided" time="0.003240597">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders safely when stats is undefined" time="0.006157154">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; renders the card image + name and fires onAction" time="0.024987878">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders current/max gauges when max values are present (Step 27)" time="0.007265368">
         </testcase>
-        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; renders the icon placeholder when the card has no image" time="0.011278201">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/SafeHtml.test.jsx" timestamp="2026-06-19T10:25:10.902Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.052959462">
-        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; renders a React element directly" time="0.027335296">
-        </testcase>
-        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; injects an HTML string as sanitized markup" time="0.020224026">
-        </testcase>
-        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; renders nothing for null/undefined" time="0.002392995">
+        <testcase classname="src/test/PlayerStats.test.jsx" name="PlayerStats &gt; renders the carried items list (Step 27)" time="0.03867918">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/SelectionViewLocks.test.jsx" timestamp="2026-06-19T10:25:10.902Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.209075496">
-        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; renders lock reasons for requires/prohibited/generic and leaves unlocked selectable" time="0.060531509">
+    <testsuite name="src/test/PolicyModals.test.jsx" timestamp="2026-06-20T15:24:16.305Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.204320604">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; CookiesModal renders its dialog and all six sections" time="0.073274033">
         </testcase>
-        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; omits the preview handler when onPreview is not provided" time="0.006621207">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; PrivacyModal renders its dialog and eleven sections" time="0.017148156">
         </testcase>
-        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; calls onBack from the header button" time="0.138303786">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; TermsModal renders its dialog and twelve sections" time="0.015213295">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/ServerContext.test.jsx" timestamp="2026-06-19T10:25:10.903Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.133334893">
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; keeps a stored real server and does not probe" time="0.041558169">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="policy &amp; info modals &gt; CreditsModal renders a card grid from images.json" time="0.04619894">
         </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; defaults to MOCK_SERVER then probes and adopts the first reachable server" time="0.018051786">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; returns null when no card is provided" time="0.00352402">
         </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; stays on mock when no real server responds" time="0.017362488">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; renders the card image + name and fires onAction" time="0.031221315">
         </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer switches to mock" time="0.030876346">
-        </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer normalizes a real URL (strips trailing slash) and stores it" time="0.008922837">
-        </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer ignores non-http protocols and invalid URLs" time="0.009137129">
-        </testcase>
-        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; exposes Mock as a server option" time="0.003109611">
+        <testcase classname="src/test/PolicyModals.test.jsx" name="CardDetailModal &gt; renders the icon placeholder when the card has no image" time="0.012872979">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/SmallComponents.test.jsx" timestamp="2026-06-19T10:25:10.904Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.07440914">
-        <testcase classname="src/test/SmallComponents.test.jsx" name="UserLanguageSelector &gt; lists EN + IT and switches the active language on click" time="0.063795499">
+    <testsuite name="src/test/SafeHtml.test.jsx" timestamp="2026-06-20T15:24:16.307Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.090805096">
+        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; renders a React element directly" time="0.043806396">
+        </testcase>
+        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; injects an HTML string as sanitized markup" time="0.033983592">
+        </testcase>
+        <testcase classname="src/test/SafeHtml.test.jsx" name="SafeHtml &gt; renders nothing for null/undefined" time="0.002330156">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/SelectionViewLocks.test.jsx" timestamp="2026-06-20T15:24:16.307Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.336047645">
+        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; renders lock reasons for requires/prohibited/generic and leaves unlocked selectable" time="0.069217654">
+        </testcase>
+        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; omits the preview handler when onPreview is not provided" time="0.00938483">
+        </testcase>
+        <testcase classname="src/test/SelectionViewLocks.test.jsx" name="startBook/SelectionView lock handling &gt; calls onBack from the header button" time="0.2541987">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/ServerContext.test.jsx" timestamp="2026-06-20T15:24:16.308Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.173197503">
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; keeps a stored real server and does not probe" time="0.083731222">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; defaults to MOCK_SERVER then probes and adopts the first reachable server" time="0.027937188">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; stays on mock when no real server responds" time="0.009955297">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer switches to mock" time="0.024127126">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer normalizes a real URL (strips trailing slash) and stores it" time="0.009479121">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; changeServer ignores non-http protocols and invalid URLs" time="0.007591854">
+        </testcase>
+        <testcase classname="src/test/ServerContext.test.jsx" name="ServerContext &gt; exposes Mock as a server option" time="0.003245893">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/SmallComponents.test.jsx" timestamp="2026-06-20T15:24:16.309Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.113057516">
+        <testcase classname="src/test/SmallComponents.test.jsx" name="UserLanguageSelector &gt; lists EN + IT and switches the active language on click" time="0.105808896">
             <system-err>
 Warning: Each child in a list should have a unique &quot;key&quot; prop.
 
@@ -505,302 +470,224 @@ Check the render method of `UserLanguageSelector`. See https://reactjs.org/link/
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/SmallComponents.test.jsx" name="CookieConsentManager &gt; boots the consent banner with the current language and renders nothing" time="0.006267034">
+        <testcase classname="src/test/SmallComponents.test.jsx" name="CookieConsentManager &gt; boots the consent banner with the current language and renders nothing" time="0.003148056">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/StartBookMobile.test.jsx" timestamp="2026-06-19T10:25:10.905Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.158417425">
-        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; renders the story header and ConfigView by default" time="0.086506772">
+    <testsuite name="src/test/StartBookMobile.test.jsx" timestamp="2026-06-20T15:24:16.310Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.104803254">
+        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; renders the story header and ConfigView by default" time="0.043075328">
         </testcase>
-        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; shows a spinner while the detail is loading" time="0.029820909">
+        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; shows a spinner while the detail is loading" time="0.024692582">
         </testcase>
-        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; renders OptionPicker when a card is being changed" time="0.003979227">
+        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; renders OptionPicker when a card is being changed" time="0.004854182">
         </testcase>
-        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; wires the proceed action to onProceed" time="0.016480808">
+        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; wires the proceed action to onProceed" time="0.018558799">
         </testcase>
-        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; Start Game button advances via onProceed" time="0.006851249">
+        <testcase classname="src/test/StartBookMobile.test.jsx" name="StartBookMobile &gt; Start Game button advances via onProceed" time="0.007875113">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/StartBookModal.test.jsx" timestamp="2026-06-19T10:25:10.906Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.258858857">
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; shows loading spinner before detail loads" time="0.082055393">
+    <testsuite name="src/test/StartBookModal.test.jsx" timestamp="2026-06-20T15:24:16.311Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.219826662">
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; shows loading spinner before detail loads" time="0.048165856">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; renders ConfigView after detail loads" time="0.046123396">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; renders ConfigView after detail loads" time="0.070104968">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; switches to SelectionView when change is triggered" time="0.052444196">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview { entity: { uuid: [32m&apos;c1&apos;[39m, name: [32m&apos;Fighter&apos;[39m, card: {} }, type: [32m&apos;class&apos;[39m }
-
-            </system-out>
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; switches to SelectionView when change is triggered" time="0.030599375">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; returns to ConfigView after back from selection" time="0.023747914">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview { entity: { uuid: [32m&apos;c1&apos;[39m, name: [32m&apos;Fighter&apos;[39m, card: {} }, type: [32m&apos;class&apos;[39m }
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; returns to ConfigView after back from selection" time="0.024621786">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; updates config when an option is selected" time="0.023519464">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview { entity: { uuid: [32m&apos;c1&apos;[39m, name: [32m&apos;Fighter&apos;[39m, card: {} }, type: [32m&apos;class&apos;[39m }
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; updates config when an option is selected" time="0.017983782">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; returns null when story is not provided" time="0.00299578">
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; returns null when story is not provided" time="0.001831139">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; navigates to start-match and closes when &quot;Start Game&quot; is pressed" time="0.020351363">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartBookModal.test.jsx" name="StartBookModal &gt; navigates to start-match and closes when &quot;Start Game&quot; is pressed" time="0.016045503">
         </testcase>
-        <testcase classname="src/test/StartBookModal.test.jsx" name="CardPreviewOverlay &gt; renders BookPageContent with the provided card" time="0.003599165">
+        <testcase classname="src/test/StartBookModal.test.jsx" name="CardPreviewOverlay &gt; renders BookPageContent with the provided card" time="0.00573003">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/StartBookSelectionView.test.jsx" timestamp="2026-06-19T10:25:10.908Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.259492802">
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders all options" time="0.069139311">
+    <testsuite name="src/test/StartBookSelectionView.test.jsx" timestamp="2026-06-20T15:24:16.313Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.45781793">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders all options" time="0.062263716">
         </testcase>
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onBack when back button is clicked" time="0.158096395">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onBack when back button is clicked" time="0.326962328">
         </testcase>
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onSelect with the correct option when select button is clicked" time="0.010165865">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onSelect with the correct option when select button is clicked" time="0.018204781">
         </testcase>
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onPreview when preview button is clicked" time="0.008999859">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; calls onPreview when preview button is clicked" time="0.00966999">
         </testcase>
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders with empty options list without crash" time="0.004437622">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders with empty options list without crash" time="0.023051201">
         </testcase>
-        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders with no onPreview prop (no preview buttons)" time="0.005698547">
+        <testcase classname="src/test/StartBookSelectionView.test.jsx" name="StartBook SelectionView &gt; renders with no onPreview prop (no preview buttons)" time="0.014391288">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/StartMatchPage.test.jsx" timestamp="2026-06-19T10:25:10.909Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.620387945">
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; redirects home when navigation state is missing" time="0.093524386">
+    <testsuite name="src/test/StartMatchPage.test.jsx" timestamp="2026-06-20T15:24:16.314Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="1.021809926">
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; redirects home when navigation state is missing" time="0.106291441">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; passes the antibot check then shows the confirm step (terms + start)" time="0.086837803">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; passes the antibot check then shows the confirm step (terms + start)" time="0.174198379">
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; keeps the antibot gate and offers a retry on widget error (no confirm)" time="0.089086691">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; keeps the antibot gate and offers a retry on widget error (no confirm)" time="0.163053728">
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; creates the match after Start + delay with the full loadout and antibot token" time="0.103893404">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; creates the match after Start + delay with the full loadout and antibot token" time="0.127420043">
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; surfaces an error when the auto-join fails" time="0.079908075">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; surfaces an error when the auto-join fails" time="0.136453327">
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; jumps to the game page after the created delay" time="0.061021917">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; jumps to the game page after the created delay" time="0.099627747">
         </testcase>
-        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; shows an error and retries when match creation fails" time="0.101644003">
-            <system-out>
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-CardPreviewModal preview [1mnull[22m
-CardPreviewModal preview [1mnull[22m
-
-            </system-out>
+        <testcase classname="src/test/StartMatchPage.test.jsx" name="StartMatchPage &gt; shows an error and retries when match creation fails" time="0.200246567">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/StoryCatalog.test.jsx" timestamp="2026-06-19T10:25:10.912Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.267459287">
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders empty state when no stories" time="0.052328233">
+    <testsuite name="src/test/StoryCatalog.test.jsx" timestamp="2026-06-20T15:24:16.315Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.42987046">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders empty state when no stories" time="0.044377207">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders empty state when stories is undefined" time="0.005177419">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders empty state when stories is undefined" time="0.004954277">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders stories grouped by category" time="0.017602099">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders stories grouped by category" time="0.023194366">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; calls onStoryClick with the correct story when a card is clicked" time="0.011750767">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; calls onStoryClick with the correct story when a card is clicked" time="0.015121911">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; shows each category as a section label" time="0.149890632">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; shows each category as a section label" time="0.281832475">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders a single category when all stories share one" time="0.014919692">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; renders a single category when all stories share one" time="0.033377097">
         </testcase>
-        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; badges stories from the matches: Resume for active, Completed for ended" time="0.011855393">
+        <testcase classname="src/test/StoryCatalog.test.jsx" name="StoryCatalog &gt; badges stories from the matches: Resume for active, Completed for ended" time="0.021545992">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/UserMatchesList.test.jsx" timestamp="2026-06-19T10:25:10.913Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.142202055">
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows loading state initially" time="0.046122368">
+    <testsuite name="src/test/UserMatchesList.test.jsx" timestamp="2026-06-20T15:24:16.317Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.179106619">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows loading state initially" time="0.048160003">
             <system-err>
 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
 
             </system-err>
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; renders match cards after load" time="0.031315998">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; renders match cards after load" time="0.032019154">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows title heading" time="0.014307192">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows title heading" time="0.032389728">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows empty message when no matches" time="0.008445934">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows empty message when no matches" time="0.013840314">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows error message when API fails" time="0.006725081">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; shows error message when API fails" time="0.008014672">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; calls listMatches with the provided accessToken" time="0.011783706">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; calls listMatches with the provided accessToken" time="0.010795624">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; loads unique story UUIDs only once" time="0.008588024">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; loads unique story UUIDs only once" time="0.015643514">
         </testcase>
-        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; uses preloadedMatches and does NOT call listMatches" time="0.011619757">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/authApi.test.js" timestamp="2026-06-19T10:25:10.915Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.009109356">
-        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; createGuestSession returns null without a server or in mock mode" time="0.003565651">
-        </testcase>
-        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; createGuestSession posts to /api/auth/guest with credentials" time="0.002410963">
-        </testcase>
-        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; resumeGuestSession returns null without a server or in mock mode" time="0.000392859">
-        </testcase>
-        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; resumeGuestSession posts to /api/auth/guest/resume" time="0.000648826">
+        <testcase classname="src/test/UserMatchesList.test.jsx" name="UserMatchesList &gt; uses preloadedMatches and does NOT call listMatches" time="0.01200979">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/bonusStats.test.js" timestamp="2026-06-19T10:25:10.916Z" hostname="cirilla" tests="16" failures="0" errors="0" skipped="0" time="0.025707374">
-        <testcase classname="src/test/bonusStats.test.js" name="getNonZeroStats &gt; returns only non-zero base stats for a character" time="0.00333983">
+    <testsuite name="src/test/authApi.test.js" timestamp="2026-06-20T15:24:16.318Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.007132441">
+        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; createGuestSession returns null without a server or in mock mode" time="0.002124045">
         </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getNonZeroStats &gt; returns base stats AND class bonuses for a class" time="0.008184693">
+        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; createGuestSession posts to /api/auth/guest with credentials" time="0.00236758">
         </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; returns empty for missing bonuses" time="0.000422401">
+        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; resumeGuestSession returns null without a server or in mock mode" time="0.000429112">
         </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; maps shorthand statistic codes to canonical categories" time="0.000424042">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; drops bonuses with unknown statistic or zero value" time="0.000298278">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="aggregateBonusTotals &gt; sums base stats and class bonuses into category totals" time="0.000632956">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="aggregateBonusTotals &gt; returns categories in canonical order" time="0.000448099">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; returns true when template has no restrictions" time="0.005867724">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; blocks classes not matching idClassPermitted" time="0.000689944">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; blocks classes matching idClassProhibited" time="0.000350738">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="buildClassesById &gt; indexes class entities by their numeric id" time="0.00115268">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; returns null when no relevant selection is set" time="0.000302886">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; never locks a class during the class selection step" time="0.000152532">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; locks character template options prohibited by current class" time="0.000199638">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; locks trait options that require a class different from the selected one" time="0.000173023">
-        </testcase>
-        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; returns null when restrictions are satisfied" time="0.000112085">
+        <testcase classname="src/test/authApi.test.js" name="api/auth &gt; resumeGuestSession posts to /api/auth/guest/resume" time="0.00051228">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/clientApi.test.js" timestamp="2026-06-19T10:25:10.919Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.009533056">
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null in mock mode (default / explicit mock)" time="0.002299542">
+    <testsuite name="src/test/bonusStats.test.js" timestamp="2026-06-20T15:24:16.319Z" hostname="cirilla" tests="16" failures="0" errors="0" skipped="0" time="0.013955234">
+        <testcase classname="src/test/bonusStats.test.js" name="getNonZeroStats &gt; returns only non-zero base stats for a character" time="0.003210391">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null when the stored server is an invalid URL" time="0.000405326">
+        <testcase classname="src/test/bonusStats.test.js" name="getNonZeroStats &gt; returns base stats AND class bonuses for a class" time="0.001114632">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null when the protocol is not http(s)" time="0.000383922">
+        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; returns empty for missing bonuses" time="0.000366579">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; creates an axios instance for a valid http server (trailing slash trimmed)" time="0.002586639">
+        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; maps shorthand statistic codes to canonical categories" time="0.000408796">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; returns the mock data in mock mode without hitting the network" time="0.000711432">
+        <testcase classname="src/test/bonusStats.test.js" name="getClassBonusStats &gt; drops bonuses with unknown statistic or zero value" time="0.000377628">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; returns response data when the request succeeds" time="0.000988133">
+        <testcase classname="src/test/bonusStats.test.js" name="aggregateBonusTotals &gt; sums base stats and class bonuses into category totals" time="0.000679623">
         </testcase>
-        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; falls back to the mock data when the request fails" time="0.000442612">
+        <testcase classname="src/test/bonusStats.test.js" name="aggregateBonusTotals &gt; returns categories in canonical order" time="0.000520093">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/cookieConsent.test.js" timestamp="2026-06-19T10:25:10.920Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.02735385">
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent config &gt; declares necessary (read-only) + analytics off by default" time="0.014023677">
+        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; returns true when template has no restrictions" time="0.00044542">
         </testcase>
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent config &gt; runs only once (idempotent)" time="0.001845074">
+        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; blocks classes not matching idClassPermitted" time="0.000700217">
         </testcase>
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent → gtag bridge &gt; grants storage when analytics is accepted" time="0.003927175">
+        <testcase classname="src/test/bonusStats.test.js" name="isClassAllowedByTemplate &gt; blocks classes matching idClassProhibited" time="0.000379769">
         </testcase>
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent → gtag bridge &gt; denies storage when analytics is rejected" time="0.002123034">
+        <testcase classname="src/test/bonusStats.test.js" name="buildClassesById &gt; indexes class entities by their numeric id" time="0.001398174">
         </testcase>
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent helpers &gt; openCookiePreferences delegates to showPreferences" time="0.001488494">
+        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; returns null when no relevant selection is set" time="0.000400505">
         </testcase>
-        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent helpers &gt; setConsentLanguage ignored before init and for unknown langs" time="0.001436043">
+        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; never locks a class during the class selection step" time="0.000182848">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/echoApi.test.js" timestamp="2026-06-19T10:25:10.921Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.010230052">
-        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error if url is not a string" time="0.003444605">
+        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; locks character template options prohibited by current class" time="0.000259819">
         </testcase>
-        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error if url is empty string" time="0.000800381">
+        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; locks trait options that require a class different from the selected one" time="0.000216971">
         </testcase>
-        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error for unsupported protocol" time="0.000699655">
-        </testcase>
-        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; returns data from axios call" time="0.002616703">
-        </testcase>
-        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; handles http protocol" time="0.000954667">
+        <testcase classname="src/test/bonusStats.test.js" name="getOptionLockInfo &gt; returns null when restrictions are satisfied" time="0.000152787">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/gameApi.test.js" timestamp="2026-06-19T10:25:10.922Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.01102453">
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; returns the live match info when status is RUNNING" time="0.005202317">
+    <testsuite name="src/test/clientApi.test.js" timestamp="2026-06-20T15:24:16.324Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.014068502">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null in mock mode (default / explicit mock)" time="0.003724552">
         </testcase>
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; throws MatchNotRunningError when status is ENDED" time="0.001427166">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null when the stored server is an invalid URL" time="0.000599067">
         </testcase>
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; MatchNotRunningError carries the status" time="0.000688289">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; returns null when the protocol is not http(s)" time="0.000569266">
         </testcase>
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when there is no match uuid" time="0.000555644">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; apiClient &gt; creates an axios instance for a valid http server (trailing slash trimmed)" time="0.003767627">
         </testcase>
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when fetchMatchInfo returns null (mock server)" time="0.000425775">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; returns the mock data in mock mode without hitting the network" time="0.000929062">
         </testcase>
-        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when fetchMatchInfo throws (network error)" time="0.000463809">
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; returns response data when the request succeeds" time="0.001387121">
+        </testcase>
+        <testcase classname="src/test/clientApi.test.js" name="api/client &gt; fetchWithFallback &gt; falls back to the mock data when the request fails" time="0.000556055">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/gamebook.test.jsx" timestamp="2026-06-19T10:25:10.924Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.043460244">
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; resolves each selection type to the matching story entity" time="0.001643172">
+    <testsuite name="src/test/cookieConsent.test.js" timestamp="2026-06-20T15:24:16.326Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.023675881">
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent config &gt; declares necessary (read-only) + analytics off by default" time="0.010002694">
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; uses the first uuid for multi-select traits" time="0.000456415">
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent config &gt; runs only once (idempotent)" time="0.001745446">
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; returns null when the uuid is missing or unknown" time="0.00297968">
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent → gtag bridge &gt; grants storage when analytics is accepted" time="0.003968488">
+        </testcase>
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent → gtag bridge &gt; denies storage when analytics is rejected" time="0.002169706">
+        </testcase>
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent helpers &gt; openCookiePreferences delegates to showPreferences" time="0.001504574">
+        </testcase>
+        <testcase classname="src/test/cookieConsent.test.js" name="cookieConsent helpers &gt; setConsentLanguage ignored before init and for unknown langs" time="0.001412574">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/echoApi.test.js" timestamp="2026-06-20T15:24:16.327Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.01354466">
+        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error if url is not a string" time="0.00542527">
+        </testcase>
+        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error if url is empty string" time="0.000963096">
+        </testcase>
+        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; throws error for unsupported protocol" time="0.000931635">
+        </testcase>
+        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; returns data from axios call" time="0.002999334">
+        </testcase>
+        <testcase classname="src/test/echoApi.test.js" name="echoApi &gt; getServerStatus &gt; handles http protocol" time="0.000920159">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/gameApi.test.js" timestamp="2026-06-20T15:24:16.329Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.014364845">
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; returns the live match info when status is RUNNING" time="0.007201851">
+        </testcase>
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; throws MatchNotRunningError when status is ENDED" time="0.001464907">
+        </testcase>
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; MatchNotRunningError carries the status" time="0.000970758">
+        </testcase>
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when there is no match uuid" time="0.0005795">
+        </testcase>
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when fetchMatchInfo returns null (mock server)" time="0.000546518">
+        </testcase>
+        <testcase classname="src/test/gameApi.test.js" name="api/game — getMatchInfo &gt; falls back to the mock payload when fetchMatchInfo throws (network error)" time="0.000514531">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/gamebook.test.jsx" timestamp="2026-06-20T15:24:16.330Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.047798677">
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; resolves each selection type to the matching story entity" time="0.002285305">
+        </testcase>
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; uses the first uuid for multi-select traits" time="0.00049783">
+        </testcase>
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — resolveSelectionEntity &gt; returns null when the uuid is missing or unknown" time="0.003471077">
             <system-out>
 uuid not found for type [90mundefined[39m class {}
 type not found unknown {
@@ -823,235 +710,235 @@ list not found for type class {}
 
             </system-out>
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — counts &gt; storySelectionCount counts entities per type" time="0.000758018">
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — counts &gt; storySelectionCount counts entities per type" time="0.000669916">
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — counts &gt; selectedTraitCount counts the selected trait uuids" time="0.000359338">
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — counts &gt; selectedTraitCount counts the selected trait uuids" time="0.000362848">
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — card builders &gt; buildCardCharacteristics strips image/icon and uses the player description" time="0.028610467">
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — card builders &gt; buildCardCharacteristics strips image/icon and uses the player description" time="0.030944253">
         </testcase>
-        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — card builders &gt; buildCardCharacteristicsRight produces a JSX description flagged with descriptionTag" time="0.005518741">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/gtm.test.js" timestamp="2026-06-19T10:25:10.925Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.046105916">
-        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; does nothing without a container id" time="0.019620381">
-        </testcase>
-        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; injects the GTM container script with the given id" time="0.019962776">
-        </testcase>
-        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; is idempotent (loads the container at most once)" time="0.004249811">
+        <testcase classname="src/test/gamebook.test.jsx" name="utils/gamebook — card builders &gt; buildCardCharacteristicsRight produces a JSX description flagged with descriptionTag" time="0.005144782">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/i18nContext.test.jsx" timestamp="2026-06-19T10:25:10.926Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.100977116">
-        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; defaults to en and resolves a known nested key" time="0.036973018">
+    <testsuite name="src/test/gtm.test.js" timestamp="2026-06-20T15:24:16.332Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.08425129">
+        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; does nothing without a container id" time="0.020828165">
         </testcase>
-        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; returns the key itself when the translation is missing" time="0.009441425">
+        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; injects the GTM container script with the given id" time="0.032423685">
         </testcase>
-        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; switches language via setLang" time="0.049954214">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/test/loadoutCards.test.js" timestamp="2026-06-19T10:25:10.926Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.008233852">
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildGameTypeCard maps the single game-type labels and a person image" time="0.002472755">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildLoginCard maps the guest labels" time="0.000491515">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildTermsCard carries the terms texts" time="0.000310788">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildAntibotCard maps the antibot-ok labels" time="0.000368873">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildFreeToPlay maps the free-to-play labels" time="0.000299076">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildCardToSleep maps the sleep confirm i18n keys" time="0.000474043">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildEndGameCard maps the end-game card i18n keys" time="0.000327696">
-        </testcase>
-        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildStatisticsCard projects totals onto statItemsToPageContent and nulls the image" time="0.001259649">
+        <testcase classname="src/test/gtm.test.js" name="loadGtm &gt; is idempotent (loads the container at most once)" time="0.028765825">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/matchInfoAdapter.test.js" timestamp="2026-06-19T10:25:10.927Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.023685462">
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; returns empty board for null info" time="0.013075534">
+    <testsuite name="src/test/i18nContext.test.jsx" timestamp="2026-06-20T15:24:16.333Z" hostname="cirilla" tests="3" failures="0" errors="0" skipped="0" time="0.073851089">
+        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; defaults to en and resolves a known nested key" time="0.039284122">
         </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps players[0] stats (sad → sadness) into playerStats" time="0.001618147">
+        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; returns the key itself when the translation is missing" time="0.004967117">
         </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps Step 27 max statistics, carried weight and items" time="0.002084071">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; defaults max stats and items to empty when no player" time="0.00042119">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; builds actualLocationCard from the active location card (player position)" time="0.000622968">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps the active location neighbors into board move-target cards" time="0.000562776">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; falls back to a currentLocation* card (with story image) when locationsActive is absent" time="0.000690457">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; merges lean events/choices and active event cards into actions, flags END_GAME" time="0.000804995">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; builds the end-game card via the i18n translator" time="0.00081573">
-        </testcase>
-        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; tolerates a minimal info object without players/events" time="0.00053158">
+        <testcase classname="src/test/i18nContext.test.jsx" name="i18n LanguageProvider &gt; switches language via setLang" time="0.025304369">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/matchStatus.test.js" timestamp="2026-06-19T10:25:10.929Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.004635935">
-        <testcase classname="src/test/matchStatus.test.js" name="matchStatus &gt; storyHasActiveMatch: true only for CREATED/RUNNING of that story" time="0.00223368">
+    <testsuite name="src/test/loadoutCards.test.js" timestamp="2026-06-20T15:24:16.334Z" hostname="cirilla" tests="8" failures="0" errors="0" skipped="0" time="0.009865728">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildGameTypeCard maps the single game-type labels and a person image" time="0.002689216">
         </testcase>
-        <testcase classname="src/test/matchStatus.test.js" name="matchStatus &gt; storyMatchBadge: active wins, then completed, else null" time="0.000696875">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildLoginCard maps the guest labels" time="0.000501022">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/matches.test.js" timestamp="2026-06-19T10:25:10.929Z" hostname="cirilla" tests="32" failures="0" errors="0" skipped="0" time="0.066143799">
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; createMatch synthesizes a MatchSummary" time="0.012172297">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildTermsCard carries the terms texts" time="0.000304632">
         </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; createMatch tolerates a missing payload" time="0.000697854">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildAntibotCard maps the antibot-ok labels" time="0.000349429">
         </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; listMatches returns an empty array" time="0.005048975">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildFreeToPlay maps the free-to-play labels" time="0.000271987">
         </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchInfo returns null" time="0.000465517">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildCardToSleep maps the sleep confirm i18n keys" time="0.00057052">
         </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; endMatch synthesizes an ENDED response carrying the match uuid" time="0.000594896">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildEndGameCard maps the end-game card i18n keys" time="0.000390061">
         </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; joinMatch synthesizes a character carrying the match uuid and loadout" time="0.000887943">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchPlayers returns an empty array" time="0.000338319">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getCharacter returns null" time="0.00028195">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; startMatch synthesizes a RUNNING turn sequence carrying the match uuid" time="0.000854368">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; passTurn synthesizes a RUNNING pass result carrying the match uuid" time="0.000481986">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getTurnSequence synthesizes a sequence carrying the match uuid" time="0.000518477">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchClock synthesizes an empty clock at 0 carrying the match uuid" time="0.0004564">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; sleepCharacter synthesizes a sleeping success without ending time" time="0.000342831">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch posts to /api/matches with the bearer token" time="0.002238643">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch posts without an Authorization header when no token" time="0.000348235">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch propagates backend errors" time="0.006797457">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; listMatches gets /api/matches" time="0.011128954">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchInfo gets /api/match/{uuid}/info" time="0.00065717">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; endMatch PATCHes /api/match/{uuidMatch}/end/{uuidEvent} with the bearer token" time="0.001155696">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; endMatch propagates a 406 EVENT_NOT_END_GAME error" time="0.00046595">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; joinMatch posts to /api/matches/{uuid}/join with the loadout and bearer token" time="0.000517316">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; joinMatch sends an empty body when no loadout is given" time="0.004270733">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchPlayers gets /api/match/{uuid}/players" time="0.002082283">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getCharacter gets /api/match/{uuid}/characters/{uuidChar}" time="0.000395473">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; startMatch posts to /api/matches/{uuid}/start with the bearer token" time="0.000700623">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; startMatch propagates a 409 NO_CHARACTERS_JOINED error" time="0.000407468">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; passTurn posts to /api/gameplay/{uuid}/action/pass with the bearer token" time="0.001178938">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; passTurn propagates a 409 MATCH_NOT_RUNNING error" time="0.000417587">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getTurnSequence gets /api/match/{uuid}/turn-sequence" time="0.00040377">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchClock gets /api/match/{uuid}/clock with the auth header" time="0.000483916">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; sleepCharacter posts to /api/gameplay/{uuid}/action/sleep" time="0.000299121">
-        </testcase>
-        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; sleepCharacter propagates a 409 ALREADY_SLEEPING error" time="0.000365049">
+        <testcase classname="src/test/loadoutCards.test.js" name="utils/loadoutCards &gt; buildStatisticsCard projects totals onto statItemsToPageContent and nulls the image" time="0.001154572">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/mock.stories.test.js" timestamp="2026-06-19T10:25:10.934Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.004548267">
-        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; should be a non-empty array" time="0.001539468">
+    <testsuite name="src/test/matchInfoAdapter.test.js" timestamp="2026-06-20T15:24:16.335Z" hostname="cirilla" tests="10" failures="0" errors="0" skipped="0" time="0.01539794">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; returns empty board for null info" time="0.004291099">
         </testcase>
-        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; each story has required fields" time="0.00041054">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps players[0] stats (sad → sadness) into playerStats" time="0.001284596">
         </testcase>
-        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; each story card has urlImage and title" time="0.0003027">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps Step 27 max statistics, carried weight and items" time="0.001881352">
         </testcase>
-        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; stories have characters or difficulties" time="0.000303109">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; defaults max stats and items to empty when no player" time="0.000574058">
         </testcase>
-        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; story uuids are unique" time="0.000472841">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; builds actualLocationCard from the active location card (player position)" time="0.000677126">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/sanitizeHtml.test.js" timestamp="2026-06-19T10:25:10.935Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.031925917">
-        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; keeps benign formatting markup" time="0.020700258">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; maps the active location neighbors into board move-target cards" time="0.000573194">
         </testcase>
-        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; strips script tags and inline event handlers" time="0.008003403">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; falls back to a currentLocation* card (with story image) when locationsActive is absent" time="0.000518895">
         </testcase>
-        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; returns empty string for non-string or empty input" time="0.000603202">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; merges lean events/choices and active event cards into actions, flags END_GAME" time="0.00145849">
         </testcase>
-        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; exposes the same function as default and named export" time="0.000223504">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; builds the end-game card via the i18n translator" time="0.000941213">
         </testcase>
-    </testsuite>
-    <testsuite name="src/test/storiesApi.test.js" timestamp="2026-06-19T10:25:10.935Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.012593245">
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStories returns the adapted mock list" time="0.00296612">
-        </testcase>
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStory finds a story by uuid and returns null when unknown" time="0.000667878">
-        </testcase>
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStoryDetail fetches the detail endpoint with the lang query" time="0.003373782">
-        </testcase>
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStoryDetail defaults the lang to en" time="0.000909064">
-        </testcase>
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getTraitsForClass filters traits by class and builds the endpoint url" time="0.001825923">
-        </testcase>
-        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getTraitsForClass tolerates an unknown class uuid" time="0.000626">
+        <testcase classname="src/test/matchInfoAdapter.test.js" name="matchInfoToGameData &gt; tolerates a minimal info object without players/events" time="0.000583031">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/traitBudget.test.js" timestamp="2026-06-19T10:25:10.936Z" hostname="cirilla" tests="9" failures="0" errors="0" skipped="0" time="0.011782656">
-        <testcase classname="src/test/traitBudget.test.js" name="traitCostTotals &gt; sums positive and negative costs" time="0.003082484">
+    <testsuite name="src/test/matchStatus.test.js" timestamp="2026-06-20T15:24:16.338Z" hostname="cirilla" tests="2" failures="0" errors="0" skipped="0" time="0.004350464">
+        <testcase classname="src/test/matchStatus.test.js" name="matchStatus &gt; storyHasActiveMatch: true only for CREATED/RUNNING of that story" time="0.002053396">
         </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="traitCostTotals &gt; handles empty or invalid input" time="0.001607901">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="remainingTraitBudget &gt; returns null sides when the difficulty has no limits" time="0.000838172">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="remainingTraitBudget &gt; subtracts the selection totals from the budgets" time="0.000393137">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; allows a trait within the remaining budget (exact fit included)" time="0.000585133">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; rejects a trait that would exceed a budget" time="0.000570794">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; always allows when the difficulty has no limits" time="0.000302509">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="isTraitSelected / toggleTrait &gt; matches by uuid" time="0.000364811">
-        </testcase>
-        <testcase classname="src/test/traitBudget.test.js" name="isTraitSelected / toggleTrait &gt; toggles in and out immutably" time="0.001028134">
+        <testcase classname="src/test/matchStatus.test.js" name="matchStatus &gt; storyMatchBadge: active wins, then completed, else null" time="0.000624098">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/turnstile.test.js" timestamp="2026-06-19T10:25:10.938Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.018101484">
-        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; defaults the TTL to 30 minutes when not configured" time="0.01057128">
+    <testsuite name="src/test/matches.test.js" timestamp="2026-06-20T15:24:16.339Z" hostname="cirilla" tests="32" failures="0" errors="0" skipped="0" time="0.049177899">
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; createMatch synthesizes a MatchSummary" time="0.005073534">
         </testcase>
-        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; falls back to &quot;always&quot; appearance for unset env keys" time="0.001273084">
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; createMatch tolerates a missing payload" time="0.000654802">
         </testcase>
-        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; isTurnstilePassValid reflects the presence of the pass cookie" time="0.002814004">
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; listMatches returns an empty array" time="0.000663348">
         </testcase>
-        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; recordTurnstilePass writes the cookie with a max-age" time="0.001110937">
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchInfo returns null" time="0.000425241">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; endMatch synthesizes an ENDED response carrying the match uuid" time="0.000669287">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; joinMatch synthesizes a character carrying the match uuid and loadout" time="0.000695895">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchPlayers returns an empty array" time="0.000324584">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getCharacter returns null" time="0.000274401">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; startMatch synthesizes a RUNNING turn sequence carrying the match uuid" time="0.006100528">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; passTurn synthesizes a RUNNING pass result carrying the match uuid" time="0.000557688">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getTurnSequence synthesizes a sequence carrying the match uuid" time="0.000519543">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; getMatchClock synthesizes an empty clock at 0 carrying the match uuid" time="0.000453964">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; mock mode (no backend) &gt; sleepCharacter synthesizes a sleeping success without ending time" time="0.000332292">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch posts to /api/matches with the bearer token" time="0.002248146">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch posts without an Authorization header when no token" time="0.000411518">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; createMatch propagates backend errors" time="0.00233238">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; listMatches gets /api/matches" time="0.009479541">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchInfo gets /api/match/{uuid}/info" time="0.000614938">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; endMatch PATCHes /api/match/{uuidMatch}/end/{uuidEvent} with the bearer token" time="0.001083732">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; endMatch propagates a 406 EVENT_NOT_END_GAME error" time="0.004171674">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; joinMatch posts to /api/matches/{uuid}/join with the loadout and bearer token" time="0.000557599">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; joinMatch sends an empty body when no loadout is given" time="0.000580226">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchPlayers gets /api/match/{uuid}/players" time="0.000562186">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getCharacter gets /api/match/{uuid}/characters/{uuidChar}" time="0.000374952">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; startMatch posts to /api/matches/{uuid}/start with the bearer token" time="0.000738859">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; startMatch propagates a 409 NO_CHARACTERS_JOINED error" time="0.000470511">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; passTurn posts to /api/gameplay/{uuid}/action/pass with the bearer token" time="0.00048352">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; passTurn propagates a 409 MATCH_NOT_RUNNING error" time="0.000486773">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getTurnSequence gets /api/match/{uuid}/turn-sequence" time="0.002695193">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; getMatchClock gets /api/match/{uuid}/clock with the auth header" time="0.000630668">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; sleepCharacter posts to /api/gameplay/{uuid}/action/sleep" time="0.000353781">
+        </testcase>
+        <testcase classname="src/test/matches.test.js" name="matches api &gt; real server mode &gt; sleepCharacter propagates a 409 ALREADY_SLEEPING error" time="0.000414185">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/tutorialStoryAdapter.test.js" timestamp="2026-06-19T10:25:10.939Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.011861282">
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adaptTutorialStoryList returns a non-empty array" time="0.002967774">
+    <testsuite name="src/test/mock.stories.test.js" timestamp="2026-06-20T15:24:16.344Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.004427852">
+        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; should be a non-empty array" time="0.001761462">
         </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted story has required frontend fields" time="0.001470801">
+        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; each story has required fields" time="0.000502981">
         </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted story card has urlImage and title" time="0.000533018">
+        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; each story card has urlImage and title" time="0.000203752">
         </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted characterTemplates are non-empty and have required fields" time="0.000589269">
+        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; stories have characters or difficulties" time="0.000149358">
         </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted difficulties are non-empty and have required fields" time="0.000698774">
-        </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted traits are non-empty and have bonuses object" time="0.001125531">
-        </testcase>
-        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted classes are non-empty and have stats object" time="0.001206002">
+        <testcase classname="src/test/mock.stories.test.js" name="stories mock data (tutorial_story) &gt; story uuids are unique" time="0.000222814">
         </testcase>
     </testsuite>
-    <testsuite name="src/test/useAntibot.test.jsx" timestamp="2026-06-19T10:25:10.940Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.041810845">
-        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; bypasses (ready) when no site key is configured" time="0.020578064">
+    <testsuite name="src/test/sanitizeHtml.test.js" timestamp="2026-06-20T15:24:16.345Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.027915145">
+        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; keeps benign formatting markup" time="0.015233411">
         </testcase>
-        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; starts checking, then onSuccess stores the token and goes ready (no cookie write when cookie:false)" time="0.006174825">
+        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; strips script tags and inline event handlers" time="0.009543318">
         </testcase>
-        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; records the pass cookie on success when cookie:true" time="0.00372558">
+        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; returns empty string for non-string or empty input" time="0.000730727">
         </testcase>
-        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; skips the widget (ready) when cookie:true and a recent pass exists" time="0.003524225">
+        <testcase classname="src/test/sanitizeHtml.test.js" name="utils/sanitizeHtml &gt; exposes the same function as default and named export" time="0.000227932">
         </testcase>
-        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; goes to error on widget failure and retry restarts checking (new attempt)" time="0.003479199">
+    </testsuite>
+    <testsuite name="src/test/storiesApi.test.js" timestamp="2026-06-20T15:24:16.346Z" hostname="cirilla" tests="6" failures="0" errors="0" skipped="0" time="0.014287943">
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStories returns the adapted mock list" time="0.003418954">
+        </testcase>
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStory finds a story by uuid and returns null when unknown" time="0.000746184">
+        </testcase>
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStoryDetail fetches the detail endpoint with the lang query" time="0.00372263">
+        </testcase>
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getStoryDetail defaults the lang to en" time="0.001052587">
+        </testcase>
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getTraitsForClass filters traits by class and builds the endpoint url" time="0.001960667">
+        </testcase>
+        <testcase classname="src/test/storiesApi.test.js" name="api/stories &gt; getTraitsForClass tolerates an unknown class uuid" time="0.000729117">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/traitBudget.test.js" timestamp="2026-06-20T15:24:16.347Z" hostname="cirilla" tests="9" failures="0" errors="0" skipped="0" time="0.010334149">
+        <testcase classname="src/test/traitBudget.test.js" name="traitCostTotals &gt; sums positive and negative costs" time="0.003090494">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="traitCostTotals &gt; handles empty or invalid input" time="0.000710881">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="remainingTraitBudget &gt; returns null sides when the difficulty has no limits" time="0.000697874">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="remainingTraitBudget &gt; subtracts the selection totals from the budgets" time="0.000314781">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; allows a trait within the remaining budget (exact fit included)" time="0.000469535">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; rejects a trait that would exceed a budget" time="0.000479029">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="canAddTrait &gt; always allows when the difficulty has no limits" time="0.00031423">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="isTraitSelected / toggleTrait &gt; matches by uuid" time="0.000334462">
+        </testcase>
+        <testcase classname="src/test/traitBudget.test.js" name="isTraitSelected / toggleTrait &gt; toggles in and out immutably" time="0.000889857">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/turnstile.test.js" timestamp="2026-06-20T15:24:16.348Z" hostname="cirilla" tests="4" failures="0" errors="0" skipped="0" time="0.018516658">
+        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; defaults the TTL to 30 minutes when not configured" time="0.010509892">
+        </testcase>
+        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; falls back to &quot;always&quot; appearance for unset env keys" time="0.001336188">
+        </testcase>
+        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; isTurnstilePassValid reflects the presence of the pass cookie" time="0.003058798">
+        </testcase>
+        <testcase classname="src/test/turnstile.test.js" name="utils/turnstile &gt; recordTurnstilePass writes the cookie with a max-age" time="0.001118391">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/tutorialStoryAdapter.test.js" timestamp="2026-06-20T15:24:16.349Z" hostname="cirilla" tests="7" failures="0" errors="0" skipped="0" time="0.013901318">
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adaptTutorialStoryList returns a non-empty array" time="0.004345213">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted story has required frontend fields" time="0.002115273">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted story card has urlImage and title" time="0.000833061">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted characterTemplates are non-empty and have required fields" time="0.000980535">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted difficulties are non-empty and have required fields" time="0.000769092">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted traits are non-empty and have bonuses object" time="0.001133262">
+        </testcase>
+        <testcase classname="src/test/tutorialStoryAdapter.test.js" name="tutorialStoryAdapter &gt; adapted classes are non-empty and have stats object" time="0.001391418">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/test/useAntibot.test.jsx" timestamp="2026-06-20T15:24:16.350Z" hostname="cirilla" tests="5" failures="0" errors="0" skipped="0" time="0.053995683">
+        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; bypasses (ready) when no site key is configured" time="0.030207407">
+        </testcase>
+        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; starts checking, then onSuccess stores the token and goes ready (no cookie write when cookie:false)" time="0.008615431">
+        </testcase>
+        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; records the pass cookie on success when cookie:true" time="0.004316992">
+        </testcase>
+        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; skips the widget (ready) when cookie:true and a recent pass exists" time="0.003094058">
+        </testcase>
+        <testcase classname="src/test/useAntibot.test.jsx" name="useAntibot &gt; goes to error on widget failure and retry restarts checking (new attempt)" time="0.003615365">
         </testcase>
     </testsuite>
 </testsuites>

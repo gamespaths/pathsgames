@@ -249,6 +249,9 @@
   .gc-footer__btn {
     font-size: 1.125rem !important;
   }
-
+  .book-page-extra{
+    background: var(--book-page-background);
+    font-size: 1rem !important;
+  }
 }
 

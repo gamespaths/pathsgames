@@ -78,6 +78,10 @@ class FakeTimeStore:
     def find_story_clock_labels(self, id_match, lang):
         return self.labels
 
+    # ── Step 26 recovery store (no-op here: no story context) ──
+    def load_recovery_context(self, id_match):
+        return None
+
 
 class RecordingPublisher:
     def __init__(self):

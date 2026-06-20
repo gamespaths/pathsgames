@@ -201,6 +201,7 @@ class MatchQueryService(MatchQueryPort):
                     flag_back=n.get("flag_back"),
                     energy_cost=n.get("energy_cost"),
                     card=self._resolve_card(story_id, neighbor_card_id),
+                    secure_param=other.get("secure_param") if other else None,
                 ))
 
             event_infos: List[EventInfo] = []
@@ -219,6 +220,7 @@ class MatchQueryService(MatchQueryPort):
                 card=self._resolve_card(story_id, loc.get("id_card")),
                 neighbors=neighbor_infos,
                 events=event_infos,
+                secure_param=loc.get("secure_param"),
             ))
         return result
 

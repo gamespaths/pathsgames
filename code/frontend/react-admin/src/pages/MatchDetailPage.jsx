@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getMatchInfo, getMatchClock, stopMatch, pauseMatch, resumeMatch, deleteMatch } from '../api/matchApi'
+import { getMatchInfo, getMatchClock, stopMatch, pauseMatch, resumeMatch, deleteMatch, changePlayerStatistics } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -74,6 +74,103 @@ function StateBadges({ player }) {
   return <span className="pg-badge pg-badge-success">active</span>
 }
 
+const STATS_FIELDS = [
+  { key: 'dex',    label: 'DEX',    hint: null },
+  { key: 'intel',  label: 'INT',    hint: null },
+  { key: 'con',    label: 'CON',    hint: null },
+  { key: 'energy', label: 'Energy', hint: 'energyMax' },
+  { key: 'life',   label: 'Life',   hint: 'lifeMax' },
+  { key: 'sad',    label: 'Sad',    hint: 'sadMax' },
+  { key: 'coin',   label: 'Coin',   hint: null },
+  { key: 'food',   label: 'Food',   hint: null },
+  { key: 'magic',  label: 'Magic',  hint: null },
+]
+
+const PLAYER_FIELD_MAP = { dex: 'dexterity', intel: 'intelligence', con: 'constitution' }
+
+function EditStatsModal({ matchUuid, player, onClose, onSaved }) {
+  const [vals, setVals] = useState(() => {
+    const init = {}
+    STATS_FIELDS.forEach(f => {
+      const src = PLAYER_FIELD_MAP[f.key] || f.key
+      init[f.key] = String(player[src] ?? player[f.key] ?? '')
+    })
+    return init
+  })
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState('')
+
+  function handleSave() {
+    setSaving(true)
+    setErr('')
+    const body = {}
+    STATS_FIELDS.forEach(f => {
+      const raw = vals[f.key]
+      const n = raw === '' ? -1 : parseInt(raw, 10)
+      body[f.key] = isNaN(n) ? -1 : n
+    })
+    changePlayerStatistics(matchUuid, player.uuid, body)
+      .then(() => { onSaved(); onClose() })
+      .catch(e => setErr(e.response?.data?.message || e.message || 'Save failed'))
+      .finally(() => setSaving(false))
+  }
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9000,
+        background: 'rgba(0,0,0,0.65)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="pg-card" style={{ minWidth: 360, maxWidth: 480, width: '90%' }}>
+        <p className="pg-card-title" style={{ marginBottom: '0.75rem' }}>
+          <i className="fas fa-sliders-h me-2" />Edit statistics
+        </p>
+        <p style={{ fontSize: '0.78rem', color: 'var(--color-ash)', marginBottom: '0.75rem' }}>
+          Leave blank or enter -1 to keep the current value.
+          Energy, Life and Sad are capped at their max.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem 1rem' }}>
+          {STATS_FIELDS.map(f => {
+            const src = PLAYER_FIELD_MAP[f.key] || f.key
+            const cur = player[src] ?? player[f.key]
+            const maxVal = f.hint ? player[f.hint] : null
+            return (
+              <div key={f.key}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--color-ash)', display: 'block' }}>
+                  {f.label}
+                  {maxVal != null && (
+                    <span style={{ marginLeft: 4, color: 'var(--color-gold)' }}>/{maxVal}</span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  className="pg-input"
+                  style={{ width: '100%', padding: '0.25rem 0.4rem', fontSize: '0.85rem' }}
+                  placeholder={cur != null ? String(cur) : ''}
+                  value={vals[f.key]}
+                  onChange={e => setVals(v => ({ ...v, [f.key]: e.target.value }))}
+                />
+              </div>
+            )
+          })}
+        </div>
+        {err && (
+          <p style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '0.5rem' }}>{err}</p>
+        )}
+        <div className="flex gap-2" style={{ marginTop: '1rem', justifyContent: 'flex-end' }}>
+          <button className="pg-btn pg-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="pg-btn pg-btn-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const STATUS_COLOR = {
   CREATED:  { bg: '#1e3a5f', border: '#3b82f6', label: 'var(--color-parchment)' },
   RUNNING:  { bg: '#1a3a2a', border: '#22c55e', label: 'var(--color-parchment)' },
@@ -95,6 +192,7 @@ export default function MatchDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError]     = useState('')
   const [confirm, setConfirm]             = useState(null) // { title, message, onConfirm }
+  const [statsModal, setStatsModal]       = useState(null) // player object being edited
 
   const loadInfo = useCallback(() => {
     setLoading(true)
@@ -187,6 +285,14 @@ export default function MatchDetailPage() {
           onConfirm={confirm.onConfirm}
           onCancel={() => setConfirm(null)}
           danger
+        />
+      )}
+      {statsModal && (
+        <EditStatsModal
+          matchUuid={uuid}
+          player={statsModal}
+          onClose={() => setStatsModal(null)}
+          onSaved={() => loadInfo()}
         />
       )}
 
@@ -364,12 +470,12 @@ export default function MatchDetailPage() {
                     <th>DEX</th><th>INT</th><th>CON</th>
                     <th>Energy</th><th>Life</th><th>Sad</th><th>Weight</th>
                     <th>Items</th>
-                    <th>Position</th><th>State</th>
+                    <th>Position</th><th>State</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {players.length === 0 && (
-                    <tr><td colSpan={14} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
+                    <tr><td colSpan={15} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>
                       No characters have joined this match yet.
                     </td></tr>
                   )}
@@ -425,6 +531,16 @@ export default function MatchDetailPage() {
                       </td>
                       <td>{p.locationName || (p.idLocation != null ? `#${p.idLocation}` : '—')}</td>
                       <td><StateBadges player={p} /></td>
+                      <td>
+                        <button
+                          className="pg-btn pg-btn-ghost"
+                          style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem' }}
+                          onClick={() => setStatsModal(p)}
+                          title="Edit statistics"
+                        >
+                          <i className="fas fa-sliders-h" /> Edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -440,11 +556,14 @@ export default function MatchDetailPage() {
           {/* Locations */}
           <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
             <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
-              <i className="fas fa-map me-1" />Locations ({info.locations?.length ?? 0})
+              <i className="fas fa-map me-1" />Location state — gaming_state_locations ({info.locations?.length ?? 0})
             </p>
+            {/* Step 26 — the Counter column is the residual location time counter
+                (clock_counter), decremented at each time-start; it reaches 0 to fire
+                the location's counter-zero event (executed in Step 29). */}
             <div style={{ overflowX: 'auto' }}>
               <table className="pg-table" style={{ fontSize: '0.78rem' }}>
-                <thead><tr><th>UUID</th><th>Id</th><th>Activated</th><th>Clock</th></tr></thead>
+                <thead><tr><th>UUID</th><th>Id</th><th>Activated</th><th>Counter</th></tr></thead>
                 <tbody>
                   {(info.locations ?? []).length === 0 && (
                     <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--color-ash)' }}>No locations.</td></tr>

@@ -196,12 +196,19 @@ public class CoreConfig {
     }
 
     @Bean
+    public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
+            games.paths.core.port.match.RecoveryStorePort recoveryStorePort) {
+        return new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort);
+    }
+
+    @Bean
     public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.port.event.DomainEventPublisher domainEventPublisher) {
+            games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
+            games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService) {
         return new games.paths.core.service.match.TimeAdvancementService(
-                turnCycleStorePort, userAccessPort, domainEventPublisher);
+                turnCycleStorePort, userAccessPort, domainEventPublisher, timeStartRecoveryService);
     }
 
     // ───── Step 21: Character template & class selection ─────
@@ -210,9 +217,10 @@ public class CoreConfig {
     public CharacterCommandPort characterCommandPort(StoryReadPort storyReadPort,
                                                      MatchReadPort matchReadPort,
                                                      UserAccessPort userAccessPort,
-                                                     CharacterPersistencePort characterPersistencePort) {
+                                                     CharacterPersistencePort characterPersistencePort,
+                                                     CharacterReadPort characterReadPort) {
         return new CharacterCommandService(storyReadPort, matchReadPort,
-                userAccessPort, characterPersistencePort);
+                userAccessPort, characterPersistencePort, characterReadPort);
     }
 
     @Bean

@@ -221,6 +221,17 @@ class CharacterCommandPort(ABC):
         """Step 21 — instantiate the caller's character in the match. Raises
         :class:`CharacterJoinError` for validation failures."""
 
+    @abstractmethod
+    def change_statistics(self, match_uuid: str, player_uuid: str,
+                          dex: Optional[int], intel: Optional[int], con: Optional[int],
+                          energy: Optional[int], life: Optional[int], sad: Optional[int],
+                          coin: Optional[int], food: Optional[int],
+                          magic: Optional[int]) -> str:
+        """Admin — override current statistics of a character instance.
+        Pass None to skip a field. For energy/life/sad the value is capped at max.
+
+        Returns one of ``'UPDATED'``, ``'MATCH_NOT_FOUND'``, ``'PLAYER_NOT_FOUND'``."""
+
 
 class CharacterQueryPort(ABC):
     @abstractmethod
@@ -253,6 +264,19 @@ class CharacterPersistencePort(ABC):
     @abstractmethod
     def count_characters_by_match_id(self, match_id: int) -> int:
         ...
+
+    @abstractmethod
+    def update_character_stats(self, match_id: int, character_id: int,
+                               dex: Optional[int], intel: Optional[int], con: Optional[int],
+                               energy: Optional[int], life: Optional[int],
+                               sad: Optional[int]) -> None:
+        """Admin: persist updated base stats on the character instance. None = skip."""
+
+    @abstractmethod
+    def update_backpack_stats(self, match_id: int, character_id: int,
+                              food: Optional[int], magic: Optional[int],
+                              coin: Optional[int]) -> None:
+        """Admin: persist updated backpack resources. None = skip."""
 
 
 class CharacterReadPort(ABC):

@@ -142,12 +142,15 @@ SEED_STORIES = [
         # Step 19 — runtime seed data: locations and registry keys
         "idLocationStart":   1,
         "locations": [
+            # Step 26: location 1 is safe (secureParam > 0) so the start-location
+            # recovery exercises the safe branch; location 2 carries a time counter
+            # with a counter-zero event for the decrement/flag path.
             {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
-             "idCard": None,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": None,
              "card": {"title": "Welcome Hall", "description": "A bright entrance hall.",
                       "urlImage": None, "awesomeIcon": "fas fa-door-open"}},
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0,
-             "idCard": None,
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 2,
+             "secureParam": 0, "idEventIfCounterZero": 1, "idCard": None,
              "card": {"title": "Practice Yard", "description": "Where recruits train.",
                       "urlImage": None, "awesomeIcon": "fas fa-dumbbell"}},
         ],

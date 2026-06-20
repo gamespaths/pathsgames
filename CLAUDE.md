@@ -188,23 +188,8 @@ app/launcher.py      Entry point and DI wiring
 ```
 
 ### Node.js backend — Fastify/TypeScript/Prisma
+Node.js backend doesn'e exist! Is removed from project!
 
-```
-src/core/                 Pure domain (services, models, port interfaces — no framework)
-src/adapters/rest/        Fastify controllers (11 controllers, dual Fastify instances)
-src/adapters/persistence/ Prisma repositories (7 implementations)
-src/adapters/auth/        JWT token adapter
-src/__tests__/            Jest unit tests (21 tests)
-src/main.ts               Entry point + manual DI wiring
-prisma/schema.prisma      32 Prisma models mapped to list_* / users / gaming_* tables
-prisma/seed.js            Story seed data (tutorial story)
-```
-
-**Schema:** uses the documented relational `list_*` model (same tables as Java/Python/AWS). 32 Prisma models with `@@map("list_xxx")` and `@map("snake_case")` for column names; composite PKs `@@id([id, idStory])` with integer IDs (no autoincrement on composite PK parts — IDs assigned by the import service). Auth via `users` table (state=6 for guests) + `users_tokens`. Gaming via `gaming_match` + `gaming_character_instance`.
-
-**Schema push:** container startup executes `npx prisma db push --accept-data-loss` then `node prisma/seed.js`. The `--accept-data-loss` flag is required when the schema changes without a formal migration file (dev workflow).
-
-**Ports:** public 8042, admin 8044 (same as all other backends).
 
 ### AWS backend — serverless
 
@@ -244,5 +229,4 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | Java/SQLite | `R__insert_story_seed_data.sql` | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java/report.html
 | Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
 | Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
-| Node.js | `code/backend/node/prisma/seed.js` | code/scripts/dev/run_robots/run_robot_with_local_node.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-node/report.html
 

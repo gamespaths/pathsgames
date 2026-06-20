@@ -35,13 +35,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final TurnCycleStorePort store;
     private final UserAccessPort userAccessPort;
     private final DomainEventPublisher eventPublisher;
+    private final TimeStartRecoveryService recoveryService;
 
     public TimeAdvancementService(TurnCycleStorePort store,
                                   UserAccessPort userAccessPort,
-                                  DomainEventPublisher eventPublisher) {
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.eventPublisher = eventPublisher;
+        this.recoveryService = recoveryService;
     }
 
     @Override
@@ -66,13 +69,16 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         boolean triggered = allCharactersDone(characters);
 
         int currentClock = match.currentClock();
+        List<RecoveryItem> recovery = List.of();
         if (triggered) {
-            currentClock = advanceTime(match);
+            AdvanceResult advanced = advanceTime(match);
+            currentClock = advanced.newClock();
+            recovery = advanced.recovery();
         }
 
         // After a time-end every character is awake again; otherwise the caller stays asleep.
         boolean finalSleeping = !triggered;
-        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock);
+        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock, recovery);
     }
 
     @Override
@@ -124,13 +130,23 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         return true;
     }
 
-    private int advanceTime(MatchView match) {
+    private AdvanceResult advanceTime(MatchView match) {
         int newClock = store.incrementMatchClock(match.id());
         store.insertClockHistory(match.id(), newClock);
         store.wakeAllCharacters(match.id());
+        // Step 26: per-character recovery, class bonuses and location counters.
+        List<TimeStartRecoveryService.RecoveryRecap> recaps =
+                recoveryService.applyAtTimeStart(match.id());
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
-        return newClock;
+        List<RecoveryItem> recovery = new ArrayList<>();
+        for (TimeStartRecoveryService.RecoveryRecap r : recaps) {
+            recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));
+        }
+        return new AdvanceResult(newClock, recovery);
+    }
+
+    private record AdvanceResult(int newClock, List<RecoveryItem> recovery) {
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

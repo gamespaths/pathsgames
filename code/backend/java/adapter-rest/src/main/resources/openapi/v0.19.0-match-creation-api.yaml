@@ -465,6 +465,10 @@ components:
           nullable: true
         card:
           $ref: '#/components/schemas/CardInfo'
+        secureParam:
+          type: integer
+          nullable: true
+          description: "Safety parameter of the destination location: positive = safe (full recovery), zero or negative = unsafe (only difficulty.energy recovered)"
 
     EventInfo:
       type: object
@@ -493,6 +497,10 @@ components:
           nullable: true
         card:
           $ref: '#/components/schemas/CardInfo'
+        secureParam:
+          type: integer
+          nullable: true
+          description: "Safety parameter: positive = safe location (full recovery), zero or negative = unsafe (only difficulty.energy recovered)"
         neighbors:
           type: array
           items:

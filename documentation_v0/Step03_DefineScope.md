@@ -64,8 +64,8 @@ This is a functional specification document. Technical implementation details (d
 - Time advances when all characters have zero energy or voluntarily sleep
 - Each time has a "weather" affecting movement costs (random from valid weather list with probability weights)
 - At time start:
-  - Characters in safe locations gain: DES+P energy, COS+P life, lose INT+P sadness (P = location safety parameter)
-  - Characters in unsafe locations gain only DES energy
+  - Characters in safe locations gain: DES+P energy, COS+secure_param life, lose INT+secure_param sadness (P = secure_param + difficulty.energy)
+  - Characters in unsafe locations gain only `difficulty.energy` (no DES, no location safety parameter)
   - New weather is randomly determined
   - Class bonuses applied to characters
   - Temporary effects duration reduced
@@ -589,7 +589,7 @@ The following decisions are FROZEN for V1. No changes, additions, or "improvemen
 ### 5.1 Frozen Game Mechanics
 - Turn order formula: (DES*3 + INT*2 + COS*1) * 1000 + LIFE*10 + ID
 - Maximum carrying capacity formula: Constitution + difficulty_parameter + default_backpack_capacity
-- Stat recovery formula: DES+P energy, COS+P life, -INT-P sadness (P = safety parameter)
+- Stat recovery formula (safe location): DES+P energy, COS+secure_param life, -(INT+secure_param) sadness (P = secure_param + difficulty.energy); unsafe location: difficulty.energy only (no DES, no secure_param)
 - Energy/Sadness/Life cannot exceed maximums
 - Coma triggers at zero life
 - Sleep triggers at zero energy
