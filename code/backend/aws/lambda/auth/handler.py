@@ -30,25 +30,16 @@ import os
 import re
 import uuid
 import time
-import decimal
 from datetime import datetime, timezone
 
 from common import db_utils
 from common import jwt_utils
-
-class _DecimalEncoder(json.JSONEncoder):
-    """Serialise DynamoDB Decimal values as int or float."""
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
-
-def _dumps(obj):
-    return json.dumps(obj, cls=_DecimalEncoder)
+from common.response import dumps as _dumps, ok as _ok, HEADERS
+from common.http_utils import (normalize_path as _normalize_path,
+                               get_source_ip as _get_source_ip,
+                               bearer_token as _bearer_token)
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
-
-HEADERS = {"Content-Type": "application/json"}
 
 COOKIE_MAX_ACCESS  = 1_800        # 30 min  (access token lifetime)
 COOKIE_MAX_REFRESH = 15_552_000   # 6 months (refresh token; 180 * 86400)
@@ -59,12 +50,6 @@ def _now_ms():
 
 def _iso(ms):
     return datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-
-def _ok(body, status=200, cookies=None):
-    resp = {"statusCode": status, "headers": HEADERS, "body": _dumps(body)}
-    if cookies:
-        resp["cookies"] = cookies
-    return resp
 
 def _err(status, code, message):
     return {
@@ -77,42 +62,23 @@ def _err(status, code, message):
         })
     }
 
-def _normalize_path(raw_path):
-    """Strip API Gateway stage prefix  /dev/api/... → /api/..."""
-    if raw_path.startswith('/api/'):
-        return raw_path
-    idx = raw_path.find('/api/')
-    return raw_path[idx:] if idx >= 0 else raw_path
-
-def _get_source_ip(event):
-    """Extract caller source IP from HTTP API v2 event."""
-    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
-            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
-
 def _check_admin_ip(event):
     """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
     whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
     if not whitelist_raw:
-        return None  # no restriction configured
+        return None
     allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
     if not allowed:
         return None
     source_ip = _get_source_ip(event)
     if source_ip not in allowed:
-        return _err(403, 'FORBIDDEN', f'Source IP not authorized for admin access')
+        return _err(403, 'FORBIDDEN', 'Source IP not authorized for admin access')
     return None
 
 def _get_cookie(event, name):
     for c in event.get('cookies', []):
         if c.startswith(f'{name}='):
             return c[len(name) + 1:]
-    return None
-
-def _bearer_token(event):
-    auth = (event.get('headers') or {}).get('authorization',
-           (event.get('headers') or {}).get('Authorization', ''))
-    if auth.startswith('Bearer '):
-        return auth[7:]
     return None
 
 def _require_auth(event):

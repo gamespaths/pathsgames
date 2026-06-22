@@ -31,10 +31,17 @@ DynamoDB layout for stories
 import json
 import os
 import uuid as uuid_lib
-import decimal
 
 from common import db_utils
 from common import jwt_utils
+from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS
+from common.http_utils import (normalize_path as _normalize_path,
+                               get_source_ip as _get_source_ip,
+                               bearer_token as _bearer_token,
+                               check_admin_ip as _check_admin_ip_common)
+from common.data_utils import (safe_int as _safe_int,
+                               resolve_raw_text as _resolve_raw_text,
+                               resolve_card_from_raw as _find_card_from_raw)
 
 try:
     from story import story_validator
@@ -43,18 +50,11 @@ except ImportError:  # when handler is imported as a top-level module in tests
 
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
-HEADERS = {"Content-Type": "application/json"}
-
-def _get_source_ip(event):
-    """Extract caller source IP from HTTP API v2 event."""
-    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
-            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
-
 def _check_admin_ip(event):
     """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
     whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
     if not whitelist_raw:
-        return None  # no restriction configured
+        return None
     allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
     if not allowed:
         return None
@@ -63,42 +63,12 @@ def _check_admin_ip(event):
         return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
     return None
 
-class _DecimalEncoder(json.JSONEncoder):
-    """Serialise DynamoDB Decimal values as int or float."""
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
-
-def _dumps(obj):
-    return json.dumps(obj, cls=_DecimalEncoder)
-
-def _ok(body, status=200):
-    return {"statusCode": status, "headers": HEADERS, "body": _dumps(body)}
-
-def _err(status, code, message):
-    return {"statusCode": status, "headers": HEADERS,
-            "body": _dumps({"error": code, "message": message})}
-
 def _validation_400(errors):
-    """Step 22: 400 body for a failed story validation, carrying the errors[] array."""
+    """400 body for a failed story validation, carrying the errors[] array."""
     return {"statusCode": 400, "headers": HEADERS,
             "body": _dumps({"error": "INVALID_STORY",
                             "message": story_validator.summary(errors),
                             "errors": errors})}
-
-def _normalize_path(raw_path):
-    if raw_path.startswith('/api/'):
-        return raw_path
-    idx = raw_path.find('/api/')
-    return raw_path[idx:] if idx >= 0 else raw_path
-
-def _bearer_token(event):
-    auth = (event.get('headers') or {}).get('authorization',
-           (event.get('headers') or {}).get('Authorization', ''))
-    if auth.startswith('Bearer '):
-        return auth[7:]
-    return None
 
 def _require_admin(event):
     """Return (user_dict, None) or (None, error_response).
@@ -148,63 +118,6 @@ def _resolve_text(texts_dict, lang, field):
     t = texts_dict.get(lang) or texts_dict.get('en') or {}
     return t.get(field)
 
-def _safe_int(val, default=0):
-    """Safely convert a value to int, returning default on None/error."""
-    if val is None:
-        return default
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return default
-
-
-def _resolve_raw_text(raw_texts, id_text, lang):
-    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
-    if id_text is None:
-        return None
-    id_text_int = _safe_int(id_text)
-    fallback = None
-    for t in raw_texts:
-        if _safe_int(t.get('idText')) == id_text_int:
-            if t.get('lang') == lang:
-                return t.get('shortText') or t.get('longText')
-            if t.get('lang') == 'en':
-                fallback = t.get('shortText') or t.get('longText')
-    return fallback
-
-
-def _find_card_from_raw(raw_cards, raw_texts, id_card, lang):
-    """Look up a card by integer id from raw_cards and resolve text fields.
-
-    Cards are stored inline on the story item (not as separate DynamoDB items).
-    """
-    if id_card is None:
-        return None
-    id_card_int = _safe_int(id_card)
-    card = None
-    for c in raw_cards:
-        if _safe_int(c.get('id')) == id_card_int:
-            card = c
-            break
-    if not card:
-        return None
-    return {
-        'uuid':             card.get('uuid'),
-        'cardType':         card.get('cardType'),
-        # Storage key is `urlImage`; legacy records may still have `imageUrl`.
-        'urlImage':         card.get('urlImage'),# or card.get('imageUrl'),
-        'alternativeImage': card.get('alternativeImage'),
-        'awesomeIcon':      card.get('awesomeIcon'),
-        'styleMain':        card.get('styleMain'),
-        'styleDetail':      card.get('styleDetail'),
-        'styleImageLittle': card.get('styleImageLittle'),
-        'styleImageMedium': card.get('styleImageMedium'),
-        'styleImageLarge':  card.get('styleImageLarge'),
-        'title':            _resolve_raw_text(raw_texts, card.get('idTextTitle'), lang),
-        'description':      _resolve_raw_text(raw_texts, card.get('idTextDescription'), lang),
-        'copyrightText':    _resolve_raw_text(raw_texts, card.get('idTextCopyright'), lang),
-        'linkCopyright':    card.get('linkCopyright'),
-    }
 
 
 # ─── response builders ────────────────────────────────────────────────────────

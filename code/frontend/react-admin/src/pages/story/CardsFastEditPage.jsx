@@ -376,7 +376,7 @@ export default function CardsFastEditPage() {
         ),
       }))
     }
-    setSuccess(`Allineate ${misaligned.length} entit${misaligned.length === 1 ? 'à' : 'à'}`)
+    setSuccess(`Allineate ${misaligned.length} entit${misaligned.length === 1 ? 'à' : 'às'}`)
     setTimeout(() => setSuccess(''), 2500)
   }
   // ─────────────────────────────────────────────────────────────────────────

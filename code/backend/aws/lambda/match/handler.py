@@ -22,12 +22,16 @@ import json
 import os
 import time
 import uuid as uuid_lib
-import decimal
 import urllib.request
 import urllib.parse
 
 from common import db_utils
 from common import jwt_utils
+from common.response import dumps as _dumps, ok as _ok, HEADERS
+from common.http_utils import (normalize_path as _normalize_path,
+                               get_source_ip as _get_source_ip,
+                               bearer_token as _bearer_token)
+from common.data_utils import safe_int as _safe_int, resolve_raw_text as _resolve_raw_text
 
 _TURNSTILE_SECRET = os.environ.get('TURNSTILE_SECRET_KEY', '')
 # Optional Robot-test bypass token: when the current ENV is not "prod", the token
@@ -40,8 +44,6 @@ _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 # ─── shared helpers ──────────────────────────────────────────────────────────
 
-HEADERS = {"Content-Type": "application/json"}
-
 _BANNED_STATES = {3, 4}
 _MAINTENANCE_VALUE = "MAINTENANCE"
 
@@ -49,21 +51,6 @@ _MAINTENANCE_VALUE = "MAINTENANCE"
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
 MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
 TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
-
-
-class _DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):  # pragma: no cover - exercised via _dumps
-        if isinstance(obj, decimal.Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
-
-
-def _dumps(obj):
-    return json.dumps(obj, cls=_DecimalEncoder)
-
-
-def _ok(body, status=200):
-    return {"statusCode": status, "headers": HEADERS, "body": _dumps(body)}
 
 
 def _err(status, code, message):
@@ -78,26 +65,11 @@ def _err(status, code, message):
     }
 
 
-def _normalize_path(raw_path):
-    if raw_path.startswith('/api/'):
-        return raw_path
-    parts = raw_path.split('/api/', 1)
-    if len(parts) == 2:
-        return '/api/' + parts[1]
-    return raw_path
-
-
-def _get_source_ip(event):
-    """Extract caller source IP from HTTP API v2 event."""
-    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
-            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
-
-
 def _check_admin_ip(event):
     """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
     whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
     if not whitelist_raw:
-        return None  # no restriction configured
+        return None
     allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
     if not allowed:
         return None
@@ -105,14 +77,6 @@ def _check_admin_ip(event):
     if source_ip not in allowed:
         return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
     return None
-
-
-def _bearer_token(event):
-    headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
-    auth = headers.get('authorization')
-    if auth and auth.lower().startswith('bearer '):
-        return auth[7:].strip()
-    return ''
 
 
 def _resolve_user(event):
@@ -255,58 +219,7 @@ def _detail_from_item(item, players=None):
     }
 
 
-def _safe_int(val, default=None):
-    """Safely convert a value to int, returning default on None/error."""
-    if val is None:
-        return default
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return default
-
-
-def _resolve_raw_text(raw_texts, id_text, lang="en"):
-    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
-    if id_text is None:
-        return None
-    id_text_int = _safe_int(id_text)
-    fallback = None
-    for t in raw_texts:
-        if _safe_int(t.get("idText")) == id_text_int:
-            if t.get("lang") == lang:
-                return t.get("shortText") or t.get("longText")
-            if t.get("lang") == "en":
-                fallback = t.get("shortText") or t.get("longText")
-    return fallback
-
-
-def _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang="en"):
-    """Resolve a card object from raw_cards by integer id, mirroring the story
-    handler's _find_card_from_raw. idCard is the single source of truth: any
-    `card` object already embedded on the stored location/neighbor/event item is
-    IGNORED and the current card is always recovered from idCard."""
-    if id_card is None:
-        return None
-    id_card_int = _safe_int(id_card)
-    card = next((c for c in raw_cards if _safe_int(c.get("id")) == id_card_int), None)
-    if not card:
-        return None
-    return {
-        "uuid":             card.get("uuid"),
-        "cardType":         card.get("cardType"),
-        "urlImage":         card.get("urlImage"),
-        "alternativeImage": card.get("alternativeImage"),
-        "awesomeIcon":      card.get("awesomeIcon"),
-        "styleMain":        card.get("styleMain"),
-        "styleDetail":      card.get("styleDetail"),
-        "styleImageLittle": card.get("styleImageLittle"),
-        "styleImageMedium": card.get("styleImageMedium"),
-        "styleImageLarge":  card.get("styleImageLarge"),
-        "title":            _resolve_raw_text(raw_texts, card.get("idTextTitle"), lang),
-        "description":      _resolve_raw_text(raw_texts, card.get("idTextDescription"), lang),
-        "copyrightText":    _resolve_raw_text(raw_texts, card.get("idTextCopyright"), lang),
-        "linkCopyright":    card.get("linkCopyright"),
-    }
+from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 
 
 def _build_locations_active(story, active_loc_ids):

@@ -17,59 +17,19 @@ DynamoDB layout — data resides on the story item:
     raw_creators: [{id, uuid, idText, link, url, urlImage, urlEmote, urlInstagram}, ...]
 """
 
-import json
-import decimal
 import re
 
 from common import db_utils
+from common.response import ok as _ok, err as _err, dumps as _dumps
+from common.http_utils import normalize_path as _normalize_path
+from common.data_utils import safe_int as _safe_int
 
 # ─── shared helpers ───────────────────────────────────────────────────────────
-
-HEADERS = {"Content-Type": "application/json"}
-
-
-class _DecimalEncoder(json.JSONEncoder):
-    """Serialise DynamoDB Decimal values as int or float."""
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
-
-
-def _dumps(obj):
-    return json.dumps(obj, cls=_DecimalEncoder)
-
-
-def _ok(body, status=200):
-    return {"statusCode": status, "headers": HEADERS, "body": _dumps(body)}
-
-
-def _err(status, code, message):
-    return {"statusCode": status, "headers": HEADERS,
-            "body": _dumps({"error": code, "message": message})}
-
-
-def _normalize_path(raw_path):
-    if raw_path.startswith('/api/'):
-        return raw_path
-    idx = raw_path.find('/api/')
-    return raw_path[idx:] if idx >= 0 else raw_path
-
 
 def _get_lang(event):
     """Extract ?lang= query parameter (default 'en')."""
     qs = event.get('queryStringParameters') or {}
     return qs.get('lang', 'en') or 'en'
-
-
-def _safe_int(val, default=0):
-    """Safely convert a value to int, returning default on None/error."""
-    if val is None:
-        return default
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return default
 
 
 # ─── text / creator resolution helpers ────────────────────────────────────────

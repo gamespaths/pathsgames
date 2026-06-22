@@ -12,15 +12,12 @@ ADMIN_IP_WHITELIST: comma-separated allow-list. Empty = allow all (dev only, ins
 """
 import os
 
+from common.http_utils import get_source_ip as _get_source_ip
+
 
 def _allowed_ips():
     raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
     return [ip.strip() for ip in raw.split(',') if ip.strip()]
-
-
-def _get_source_ip(event):
-    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
-            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
 
 
 def lambda_handler(event, context):
