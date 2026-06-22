@@ -91,7 +91,7 @@ export function matchInfoToGameData(info, story = null,t) {
   const active = activeList.find(l => l.idLocation === playerLoc) ?? activeList[0] ?? null
   //console.log("active location", active,playerLoc, activeList);
   const activeCard = active?.card ?? null
-
+  //console.log("activeCard", activeCard, "active", active, "playerLoc", playerLoc, "activeList", activeList);
   const actualLocationCard = activeCard
     ? activeCard /*{
       uuid: active.uuid ?? info.currentLocationUuid ?? null,

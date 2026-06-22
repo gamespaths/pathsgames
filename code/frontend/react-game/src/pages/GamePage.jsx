@@ -33,6 +33,7 @@ export default function GamePage() {
       .then(([info, st]) => {
         if (cancelled) return
         setStory(st)
+        //console.log("info", info, "st", st, "t", t);
         setGameData(matchInfoToGameData(info, st, t))
         setLoading(false)
       })

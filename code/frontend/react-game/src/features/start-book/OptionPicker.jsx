@@ -58,10 +58,13 @@ export default function OptionPicker({ type, options, selected, story, config, o
             }
             const isLocked = !!lockInfo
             const lockedReason = lockMessage(lockInfo)
-            const statItemsToPageContent = getNonZeroStats(opt, type);
-            const previewHandler = onPreview ? () => onPreview(opt, type , lockedReason , statItemsToPageContent) : undefined
+            const statItemsToPageContent = getNonZeroStats(opt, type, t);
+            //console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type, t)  );
+            //console.log("option",opt ,"getNonZeroStats", statItemsToPageContent  );
+            const previewHandler = onPreview ? () => 
+              onPreview(opt, type , lockedReason , statItemsToPageContent) : undefined
 
-//console.log("option",opt ,"getNonZeroStats", getNonZeroStats(opt, type)  );
+            
             return (
             <Card story={story}
               key={opt.uuid ?? opt.name ?? i}
@@ -78,7 +81,7 @@ export default function OptionPicker({ type, options, selected, story, config, o
               onSelect={isLocked ? undefined : () => onSelect(opt)}
               onPreview={previewHandler}
               selectLabel={isTraitPicker && optSelected ? t('book.remove') : t('book.select')}
-              statistics={getNonZeroStats(opt, type)}
+              statistics={getNonZeroStats(opt, type,t)}
             />
           )})}
         </div>

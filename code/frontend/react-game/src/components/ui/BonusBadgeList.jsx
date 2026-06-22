@@ -66,8 +66,9 @@ const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
 
 export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false }) {
+  //console.log("BonusBadgeList", items, className, showZeros , lockedReason , littleVersion);
   if (!items || items.length === 0) return null
-
+  
   const visibleItems = showZeros
     ? items
     : items.filter(item => {

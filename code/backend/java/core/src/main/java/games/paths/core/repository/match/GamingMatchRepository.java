@@ -34,6 +34,16 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
     List<Long> findMatchIdsByNameLike(@Param("pattern") String pattern);
 
     /**
+     * Clears the current-turn character pointer for the given matches. Must run
+     * before the per-match character instances are deleted: the
+     * {@code fk_match_character_current_turn} FK (enforced on PostgreSQL) would
+     * otherwise block deletion of a still-referenced character row.
+     */
+    @Modifying
+    @Query("UPDATE GamingMatchEntity m SET m.idCharacterCurrentTurn = NULL WHERE m.id IN :matchIds")
+    int clearCurrentTurnByMatchIdIn(@Param("matchIds") List<Long> matchIds);
+
+    /**
      * Deletes every match whose name matches the given SQL LIKE pattern.
      * Used by the dev-only test-data cleanup. Returns the count of deleted rows.
      */

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Navbar from '../../../components/layout/Navbar'
 import { AuthProvider } from '../../../context/AuthContext'
@@ -45,5 +45,26 @@ describe('Navbar', () => {
   it('contains server selector', () => {
     renderNavbar()
     expect(screen.getByRole('combobox')).toBeInTheDocument()
+  })
+
+  it('renders navigation menu button', () => {
+    renderNavbar()
+    expect(screen.getByRole('button', { name: /navigation menu/i })).toBeInTheDocument()
+  })
+
+  it('opens dropdown with menu items when menu button is clicked', () => {
+    renderNavbar()
+    const menuBtn = screen.getByRole('button', { name: /navigation menu/i })
+    fireEvent.click(menuBtn)
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Guest Users')).toBeInTheDocument()
+    expect(screen.getByText('Server Status')).toBeInTheDocument()
+  })
+
+  it('closes dropdown after clicking a menu item', () => {
+    renderNavbar()
+    fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))
+    fireEvent.click(screen.getByText('Dashboard'))
+    expect(screen.queryByText('Guest Users')).not.toBeInTheDocument()
   })
 })

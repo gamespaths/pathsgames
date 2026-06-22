@@ -92,13 +92,14 @@ export default function Card({
       ? (card?.styleImageMedium ?? '')
       : (card?.styleImageLittle ?? '')
   const imageClassName = [styleDetail, sizedImageStyle].filter(Boolean).join(' ')
-  const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType).map(s => ({
+  const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType, t).map(s => ({
     key: s.key,
     label: STAT_CATEGORY_ORDER.includes(s.key)
       ? t(`book.stats.totals.${s.key}`)
-      : t(`book.stats.${s.key}`),
+      : t(`book.stats.${s.key}`) ,
     value: s.value,
   }))
+  //console.log("card statItemsReal" ,statItemsToPageContent , statItemsReal , entity, entityType);
 
   /* ── copyright view link (CreditsModal) ── */
   const viewLink = linkCopyright && showLinkCopyright && !isDisabled && (
@@ -119,7 +120,6 @@ export default function Card({
     //isDisabled ? 'config-card-disabled' : '',
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')
-
   return (
     <div className={cardClasses}>
       {isPage && loading && (
@@ -134,11 +134,12 @@ export default function Card({
           <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={true} />
         }
       </div>}
+      
       { isPage && <h2 className="book-page-title">
           { onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
           <i className="fas fa-arrow-left me-1" />
         </button>}
-        <SafeHtml value={name} />
+        <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
       </h2>}
 
       {/* ── children Into Image ── */}
@@ -164,12 +165,12 @@ export default function Card({
       />
 
       {children}
-
+      
       {/* pageDesc */ }
       {isPage && (pageDesc || statItemsReal) && (
         <div className="book-page-desc">
-          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} />
-          <SafeHtml value={pageDesc} />
+          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason}  />
+          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
         </div>
       )}
       

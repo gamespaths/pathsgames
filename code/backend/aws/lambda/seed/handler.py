@@ -145,14 +145,13 @@ SEED_STORIES = [
             # Step 26: location 1 is safe (secureParam > 0) so the start-location
             # recovery exercises the safe branch; location 2 carries a time counter
             # with a counter-zero event for the decrement/flag path.
+            # Step 27.x — locations reference a real card via idCard; the card is
+            # resolved from raw_cards at seed time (see _seed_stories), so it also
+            # appears in the story's card list instead of being an orphan literal.
             {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
-             "secureParam": 1, "idEventIfCounterZero": None, "idCard": None,
-             "card": {"title": "Welcome Hall", "description": "A bright entrance hall.",
-                      "urlImage": None, "awesomeIcon": "fas fa-door-open"}},
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
             {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 2,
-             "secureParam": 0, "idEventIfCounterZero": 1, "idCard": None,
-             "card": {"title": "Practice Yard", "description": "Where recruits train.",
-                      "urlImage": None, "awesomeIcon": "fas fa-dumbbell"}},
+             "secureParam": 0, "idEventIfCounterZero": 1, "idCard": 3},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
         "neighbors": [
@@ -272,6 +271,23 @@ SEED_STORIES = [
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 202, "lang": "it", "shortText": "Il tuo addestramento inizia qui.", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # location card texts (idCard 2 = Welcome Hall, idCard 3 = Practice Yard)
+            {"idText": 210, "lang": "en", "shortText": "Welcome Hall", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 210, "lang": "it", "shortText": "Sala di Benvenuto", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 211, "lang": "en", "shortText": "A bright entrance hall.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 211, "lang": "it", "shortText": "Un luminoso ingresso.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 212, "lang": "en", "shortText": "Practice Yard", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 212, "lang": "it", "shortText": "Cortile di Addestramento", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 213, "lang": "en", "shortText": "Where recruits train.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 213, "lang": "it", "shortText": "Dove si addestrano le reclute.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
         ],
         "raw_cards": [
             {
@@ -288,6 +304,42 @@ SEED_STORIES = [
                 "awesomeIcon":      "fa-graduation-cap",
                 "styleMain":        "card-tutorial",
                 "styleDetail":      "card-tutorial-detail",
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                2,
+                "uuid":             "card-tutorial-loc-1",
+                "cardType":         "location",
+                "idTextTitle":      210,
+                "idTextDescription": 211,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-door-open",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                3,
+                "uuid":             "card-tutorial-loc-2",
+                "cardType":         "location",
+                "idTextTitle":      212,
+                "idTextDescription": 213,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-dumbbell",
+                "styleMain":        None,
+                "styleDetail":      None,
                 "styleImageLittle": None,
                 "styleImageMedium": None,
                 "styleImageLarge":  None,
@@ -370,18 +422,14 @@ SEED_STORIES = [
         # Step 19 — runtime seed data
         "idLocationStart":   1,
         "locations": [
+            # Step 27.x — locations reference a real card via idCard; resolved from
+            # raw_cards at seed time (see _seed_stories) so cards appear in the list.
             {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0,
-             "idCard": None,
-             "card": {"title": "Crossroads", "description": "Three paths meet here.",
-                      "urlImage": None, "awesomeIcon": "fas fa-signs-post"}},
+             "idCard": 1},
             {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5,
-             "idCard": None,
-             "card": {"title": "Northern Path", "description": "A road heading north.",
-                      "urlImage": None, "awesomeIcon": "fas fa-road"}},
+             "idCard": 2},
             {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10,
-             "idCard": None,
-             "card": {"title": "Southern Cave", "description": "A dark cavern mouth.",
-                      "urlImage": None, "awesomeIcon": "fas fa-mountain"}},
+             "idCard": 3},
         ],
         # Step 27.x — neighbor links: Crossroads connects to both paths
         "neighbors": [
@@ -461,11 +509,155 @@ SEED_STORIES = [
                           "Ogni ora conta.",
              "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # location card texts (idCard 1/2/3)
+            {"idText": 310, "lang": "en", "shortText": "Crossroads", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 310, "lang": "it", "shortText": "Crocevia", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 311, "lang": "en", "shortText": "Three paths meet here.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 311, "lang": "it", "shortText": "Qui si incontrano tre sentieri.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 312, "lang": "en", "shortText": "Northern Path", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 312, "lang": "it", "shortText": "Sentiero Nord", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 313, "lang": "en", "shortText": "A road heading north.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 313, "lang": "it", "shortText": "Una strada verso nord.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 314, "lang": "en", "shortText": "Southern Cave", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 314, "lang": "it", "shortText": "Caverna Sud", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 315, "lang": "en", "shortText": "A dark cavern mouth.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 315, "lang": "it", "shortText": "L'imbocco di una caverna buia.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
         ],
-        "raw_cards":    [],
+        "raw_cards":    [
+            {
+                "id":                1,
+                "uuid":             "card-demo1-loc-1",
+                "cardType":         "location",
+                "idTextTitle":      310,
+                "idTextDescription": 311,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-signs-post",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                2,
+                "uuid":             "card-demo1-loc-2",
+                "cardType":         "location",
+                "idTextTitle":      312,
+                "idTextDescription": 313,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-road",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                3,
+                "uuid":             "card-demo1-loc-3",
+                "cardType":         "location",
+                "idTextTitle":      314,
+                "idTextDescription": 315,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-mountain",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+        ],
         "raw_creators": [],
     },
 ]
+
+
+def _safe_int(val, default=0):
+    """Safely convert a value to int, returning default on None/error."""
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
+def _resolve_raw_text(raw_texts, id_text, lang):
+    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
+    if id_text is None:
+        return None
+    id_text_int = _safe_int(id_text)
+    fallback = None
+    for t in raw_texts:
+        if _safe_int(t.get("idText")) == id_text_int:
+            if t.get("lang") == lang:
+                return t.get("shortText") or t.get("longText")
+            if t.get("lang") == "en":
+                fallback = t.get("shortText") or t.get("longText")
+    return fallback
+
+
+def _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang="en"):
+    """Resolve a card object from raw_cards by integer id, mirroring the story
+    import handler's _find_card_from_raw so the seed produces the same shape."""
+    if id_card is None:
+        return None
+    id_card_int = _safe_int(id_card)
+    card = next((c for c in raw_cards if _safe_int(c.get("id")) == id_card_int), None)
+    if not card:
+        return None
+    return {
+        "uuid":             card.get("uuid"),
+        "cardType":         card.get("cardType"),
+        "urlImage":         card.get("urlImage"),
+        "alternativeImage": card.get("alternativeImage"),
+        "awesomeIcon":      card.get("awesomeIcon"),
+        "styleMain":        card.get("styleMain"),
+        "styleDetail":      card.get("styleDetail"),
+        "styleImageLittle": card.get("styleImageLittle"),
+        "styleImageMedium": card.get("styleImageMedium"),
+        "styleImageLarge":  card.get("styleImageLarge"),
+        "title":            _resolve_raw_text(raw_texts, card.get("idTextTitle"), lang),
+        "description":      _resolve_raw_text(raw_texts, card.get("idTextDescription"), lang),
+        "copyrightText":    _resolve_raw_text(raw_texts, card.get("idTextCopyright"), lang),
+        "linkCopyright":    card.get("linkCopyright"),
+    }
+
+
+def _enrich_locations_with_cards(locations, raw_cards, raw_texts):
+    """Resolve each location's card from its idCard against raw_cards, so the
+    stored item carries both idCard and the resolved card — exactly like an
+    imported story. Locations no longer hold orphan inline card literals."""
+    enriched = []
+    for loc in locations:
+        loc = dict(loc)
+        loc["card"] = _resolve_card_from_raw(raw_cards, raw_texts, loc.get("idCard"))
+        enriched.append(loc)
+    return enriched
 
 
 def _seed_stories():
@@ -499,7 +691,12 @@ def _seed_stories():
             "item_count":               s["item_count"],
             # Step 19 — runtime data used by POST /api/matches
             "idLocationStart":          s.get("idLocationStart"),
-            "locations":                s.get("locations", []),
+            # Step 27.x — resolve each location's card from idCard against raw_cards
+            # so locationsActive returns idCard + a card that exists in the card list.
+            "locations":                _enrich_locations_with_cards(
+                                            s.get("locations", []),
+                                            s.get("raw_cards", []),
+                                            s.get("raw_texts", [])),
             # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info
             "neighbors":                s.get("neighbors", []),
             "keys":                     s.get("keys", []),

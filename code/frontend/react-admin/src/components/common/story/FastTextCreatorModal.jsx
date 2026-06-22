@@ -105,12 +105,12 @@ export default function FastTextCreatorModal({
             <div className="pg-fast-text-head">Long Text</div>
 
             <div className="pg-fast-text-lang">en</div>
-            <input aria-label="en-short" className="pg-input" value={enShortText} onChange={e => setEnShortText(e.target.value)} />
-            <textarea aria-label="en-long" className="pg-textarea" rows={3} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
+            <textarea aria-label="en-short" className="pg-textarea" rows={4} value={enShortText} onChange={e => { setEnShortText(e.target.value); setEnLongText(e.target.value) }} />
+            <textarea aria-label="en-long" className="pg-textarea" rows={4} value={enLongText} onChange={e => setEnLongText(e.target.value)} />
 
             <div className="pg-fast-text-lang">it</div>
-            <input aria-label="it-short" className="pg-input" value={itShortText} onChange={e => setItShortText(e.target.value)} />
-            <textarea aria-label="it-long" className="pg-textarea" rows={3} value={itLongText} onChange={e => setItLongText(e.target.value)} />
+            <textarea aria-label="it-short" className="pg-textarea" rows={4} value={itShortText} onChange={e => { setItShortText(e.target.value); setItLongText(e.target.value) }} />
+            <textarea aria-label="it-long" className="pg-textarea" rows={4} value={itLongText} onChange={e => setItLongText(e.target.value)} />
           </div>
 
           {error && (

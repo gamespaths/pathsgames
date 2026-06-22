@@ -35,8 +35,9 @@ describe('FastTextCreatorModal', () => {
     await userEvent.type(screen.getByLabelText('Text ID'), '500')
     await userEvent.selectOptions(screen.getByLabelText('Story'), 's2')
     
-    await userEvent.type(screen.getByLabelText('en-short'), 'English Title') 
-    await userEvent.type(screen.getByLabelText('en-long'), 'English Long Description') 
+    await userEvent.type(screen.getByLabelText('en-short'), 'English Title')
+    await userEvent.clear(screen.getByLabelText('en-long'))
+    await userEvent.type(screen.getByLabelText('en-long'), 'English Long Description')
     
     await userEvent.click(screen.getByText('Save Text'))
     

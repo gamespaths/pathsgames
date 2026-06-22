@@ -546,24 +546,39 @@ def test_get_match_info_locations_active(mock_jwt):
         'currentLocationId': 99, 'currentLocationUuid': 'old', 'currentLocationName': 'Old',
         'locations': [], 'registry': [],
     }
+    # Each location/neighbor/event references its card via idCard. A STALE inline
+    # `card` object is also present to prove the read path IGNORES it and always
+    # resolves the current card from idCard against raw_cards/raw_texts.
     story_item = {
         'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
         'idEventEndGame': 1,
         'locations': [
-            {'id': 1, 'uuid': 'loc-1', 'name': 'Hall',
-             'card': {'title': 'Hall', 'awesomeIcon': 'fa-x'}},
-            {'id': 2, 'uuid': 'loc-2', 'name': 'Yard',
-             'card': {'title': 'Yard', 'awesomeIcon': 'fa-y'}},
+            {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1,
+             'card': {'title': 'STALE-HALL', 'awesomeIcon': 'fa-stale'}},
+            {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'idCard': 2,
+             'card': {'title': 'STALE-YARD', 'awesomeIcon': 'fa-stale'}},
         ],
         'neighbors': [
             {'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
-             'flagBack': 1, 'energyCost': 1,
-             'card': {'title': 'To Yard', 'awesomeIcon': 'fa-z'}},
+             'flagBack': 1, 'energyCost': 1, 'idCard': 3,
+             'card': {'title': 'STALE-NB', 'awesomeIcon': 'fa-stale'}},
         ],
         'events': [
-            {'id': 1, 'uuid': 'evt-1', 'idLocation': 1, 'type': 'NORMAL',
-             'card': {'title': 'Greeting'}},
+            {'id': 1, 'uuid': 'evt-1', 'idLocation': 1, 'type': 'NORMAL', 'idCard': 4,
+             'card': {'title': 'STALE-EVT'}},
             {'id': 2, 'uuid': 'evt-2', 'idLocation': 2, 'type': 'NORMAL'},
+        ],
+        'raw_cards': [
+            {'id': 1, 'uuid': 'card-1', 'awesomeIcon': 'fa-x', 'idTextTitle': 10},
+            {'id': 2, 'uuid': 'card-2', 'awesomeIcon': 'fa-y', 'idTextTitle': 11},
+            {'id': 3, 'uuid': 'card-3', 'awesomeIcon': 'fa-z', 'idTextTitle': 12},
+            {'id': 4, 'uuid': 'card-4', 'idTextTitle': 13},
+        ],
+        'raw_texts': [
+            {'idText': 10, 'lang': 'en', 'shortText': 'Hall'},
+            {'idText': 11, 'lang': 'en', 'shortText': 'Yard'},
+            {'idText': 12, 'lang': 'en', 'shortText': 'To Yard'},
+            {'idText': 13, 'lang': 'en', 'shortText': 'Greeting'},
         ],
     }
     character = {
@@ -594,12 +609,16 @@ def test_get_match_info_locations_active(mock_jwt):
     la = body['locationsActive']
     assert len(la) == 1
     assert la[0]['idLocation'] == 1
+    assert la[0]['idCard'] == 1
+    # resolved from idCard (raw_cards), NOT the stale embedded card object
     assert la[0]['card']['title'] == 'Hall'
+    assert la[0]['card']['awesomeIcon'] == 'fa-x'
     assert la[0]['neighbors'][0]['idLocation'] == 2
     assert la[0]['neighbors'][0]['card']['title'] == 'To Yard'
     # only the event specific to location 1, flagged as the end-game event
     assert [e['uuid'] for e in la[0]['events']] == ['evt-1']
     assert la[0]['events'][0]['endGame'] is True
+    assert la[0]['events'][0]['card']['title'] == 'Greeting'
 
 
 @patch('match.handler.db_utils.get_item')

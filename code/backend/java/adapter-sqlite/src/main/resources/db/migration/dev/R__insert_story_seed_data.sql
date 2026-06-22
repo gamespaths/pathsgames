@@ -226,15 +226,17 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 -- sadness relief at time-start); the start hall (90001) is safe and carries a
 -- counter_time so the location-counter decrement path is exercised where the
 -- player actually stands. The Choice Arena (90005) is UNSAFE (secure_param 0).
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
-(90001, 9001, 100, 100, 1, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
-(90002, 9001, 101, 101, 1, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
-(90003, 9001, 102, 102, 1, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
-(90004, 9001, 103, 103, 1, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
-(90005, 9001, 104, 104, 1, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
-(90006, 9001, 105, 105, 1, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
-(90007, 9001, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
-(90008, 9001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
+-- Step 27.x: each location carries an id_card (logical FK to list_cards) so
+-- GET /api/match/{uuid}/info returns locationsActive[].idCard + its resolved card.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
+(90001, 9001, 90001, 100, 100, 1, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
+(90002, 9001, 90002, 101, 101, 1, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
+(90003, 9001, 90003, 102, 102, 1, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
+(90004, 9001, 90002, 103, 103, 1, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
+(90005, 9001, 90003, 104, 104, 1, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
+(90006, 9001, 90003, 105, 105, 1, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
+(90007, 9001, 90002, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
+(90008, 9001, 90001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -521,19 +523,19 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 (91003, 9002, 'countess_letter',   'false', 952, 'diplomacy', 3, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
-(91001, 9002, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
-(91002, 9002, 101, 101, 1, 1, 15),   -- Treviso
-(91003, 9002, 102, 102, 1, 1, 20),   -- Padova
-(91004, 9002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
-(91005, 9002, 104, 104, 1, 1, 6),    -- Asolo
-(91006, 9002, 105, 105, 1, 1, 10),   -- Cittadella
-(91007, 9002, 106, 106, 0, 2, 4),    -- Monastero di Campese
-(91008, 9002, 107, 107, 0, 2, 6),    -- Marostica
-(91009, 9002, 108, 108, 0, 2, 4),    -- Paludi del Sile
-(91010, 9002, 109, 109, 0, 2, 12),   -- Vicenza
-(91011, 9002, 110, 110, 0, 2, 6),    -- Bosco del Montello
-(91012, 9002, 111, 111, 1, 0, 8);    -- Ponte di Piave
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
+(91001, 9002, 91001, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
+(91002, 9002, 91002, 101, 101, 1, 1, 15),   -- Treviso
+(91003, 9002, 91003, 102, 102, 1, 1, 20),   -- Padova
+(91004, 9002, 91002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
+(91005, 9002, 91001, 104, 104, 1, 1, 6),    -- Asolo
+(91006, 9002, 91002, 105, 105, 1, 1, 10),   -- Cittadella
+(91007, 9002, 91003, 106, 106, 0, 2, 4),    -- Monastero di Campese
+(91008, 9002, 91002, 107, 107, 0, 2, 6),    -- Marostica
+(91009, 9002, 91003, 108, 108, 0, 2, 4),    -- Paludi del Sile
+(91010, 9002, 91001, 109, 109, 0, 2, 12),   -- Vicenza
+(91011, 9002, 91002, 110, 110, 0, 2, 6),    -- Bosco del Montello
+(91012, 9002, 91003, 111, 111, 1, 0, 8);    -- Ponte di Piave
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES

@@ -40,7 +40,7 @@ info:
     All backend implementations (Java, Python, AWS Lambda) honour this contract.
     The Java backend is the reference. The AWS DynamoDB schema has no inventory
     table yet, so AWS returns `weight: 0` and `items: []` for contract parity.
-  version: 0.27.0
+  version: 0.26.1
   contact:
     name: Paths Games
     url: https://paths.games

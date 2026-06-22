@@ -319,7 +319,7 @@ public class MatchQueryService implements MatchQueryPort {
             }
 
             result.add(new LocationInfo(
-                    locId, loc.getUuid(), locCard, neighborInfos, eventInfos,
+                    locId, loc.getUuid(), loc.getIdCard(), locCard, neighborInfos, eventInfos,
                     loc.getSecureParam()));
         }
         return result;

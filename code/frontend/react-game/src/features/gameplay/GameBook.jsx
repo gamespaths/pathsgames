@@ -144,7 +144,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         statItemsToPageContent={preview.statItemsToPageContent}
         {...preview.additionalProps}
       />
-    ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive} location={actualLocationCard} card={actualLocationCard} story={story} />
+    ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive} 
+        location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)

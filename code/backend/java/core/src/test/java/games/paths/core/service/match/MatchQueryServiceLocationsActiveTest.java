@@ -169,6 +169,7 @@ class MatchQueryServiceLocationsActiveTest {
         assertEquals(1, detail.getLocationsActive().size());
         LocationInfo active = detail.getLocationsActive().get(0);
         assertEquals(10L, active.getIdLocation());
+        assertEquals(100, active.getIdCard());
         assertNotNull(active.getCard());
         assertEquals("loc10", active.getCard().title());
 

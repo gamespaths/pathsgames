@@ -85,7 +85,11 @@ cd "$PROJECT_ROOT" && \
 python3 -m venv .venv && \
 source .venv/bin/activate
 
-# Start Java server with prod profile (PostgreSQL)
+# Start Java server with prod profile (PostgreSQL).
+# The prod profile disables the dev maintenance endpoints (application-prod.yml sets
+# game.dev.test-endpoints-enabled=false), which would make the post-run robot cleanup
+# (POST /api/dev/cleanup) return 403. Re-enable it via a -D override for this local
+# test run only, so the cleanup works while the server is still up.
 echo "Starting Java server with prod profile (PostgreSQL)..."
 DB_HOST="$DB_HOST" \
 DB_PORT="$DB_PORT" \
@@ -94,6 +98,7 @@ DB_USERNAME="$DB_USERNAME" \
 DB_PASSWORD="$DB_PASSWORD" \
 java \
 	-Dspring.profiles.active=prod \
+	-Dgame.dev.test-endpoints-enabled=true \
 	-jar "$PROJECT_ROOT/code/backend/java/ms-launcher/target/ms-launcher-"*-SNAPSHOT.jar &
 SERVER_PID=$!
 
@@ -129,7 +134,14 @@ ROBOT_VAR_ADMIN_TOKEN="${ROBOT_VAR_ADMIN_TOKEN:-}" \
 # Remove the rows created by this Robot run (guests + matches tagged "robottest"),
 # preserving every other row. Runs whether the tests passed or failed.
 echo "Cleaning up robot test data via POST /api/dev/cleanup ..."
-curl -s -X POST http://localhost:8044/api/dev/cleanup || echo "  cleanup request failed"
+CLEANUP_BODY=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8044/api/dev/cleanup || echo $'\n000')
+CLEANUP_CODE=$(printf '%s' "$CLEANUP_BODY" | tail -n1)
+CLEANUP_JSON=$(printf '%s' "$CLEANUP_BODY" | sed '$d')
+if [ "$CLEANUP_CODE" = "200" ]; then
+	echo "  cleanup OK: ${CLEANUP_JSON}"
+else
+	echo "  WARNING: cleanup did not succeed (HTTP ${CLEANUP_CODE}): ${CLEANUP_JSON}"
+fi
 echo
 
 kill "$SERVER_PID" 2>/dev/null || true

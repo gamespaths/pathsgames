@@ -1011,7 +1011,7 @@ The formulas are **identical** across Java, Python, and AWS Lambda.
 
 ## 5. Database Schema Changes
 
-### 5.1 Flyway migrations — V0.27.0
+### 5.1 Flyway migrations — V0.26.1
 
 Two new migration files are required (one per adapter):
 
@@ -1506,8 +1506,9 @@ render an explicit "end game" affordance without re-deriving it from the event
     | 0.25.4 | End-game flag on events: locationsActive[].events now carries a boolean `endGame` (true when event.id == story.idEventEndGame) across Java/Python/AWS (+ EventInfoDto.endGame, OpenAPI); react-game adapter maps it and GameBook renders an "end game" button via ConfigCard onAction/actionLabel/actionIcon (ConfigCard made override-friendly); Robot test "Event Cards Expose The End Game Flag" added; tests green: Java core 910 + adapter-rest 188, Python 597, AWS 320, react-game 367 (§14.9) | June 16, 2026 |
     | 0.25.4 | Events cards into GameBook and end match flag to complete a match | June 16, 2026 |
     | 0.25.4 | EndGame and sleep card on GameBook, sleep action to call APIs | June 16, 2026 |
+    | 0.26.1 | Bugfix `locationsActive[].idCard`: added `idCard` field to `LocationInfo` across Java/Python/AWS; AWS seed rewritten — removed orphan inline `card` literals on locations, added to `raw_cards`/`raw_texts`, new `_enrich_locations_with_cards` helper; SQL seeds (SQLite + PostgreSQL) and Python seed updated with valid `id_card` FK on all locations; OpenAPI `LocationInfo.idCard` documented; tests: Java BUILD SUCCESS, Python 604, AWS 322 (§15) | June 22, 2026 |
 
-- **Last Updated**: June 16, 2026
+- **Last Updated**: June 22, 2026
 - **Status**: Complete
 
 

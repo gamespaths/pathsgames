@@ -217,6 +217,7 @@ class MatchQueryService(MatchQueryPort):
             result.append(LocationInfo(
                 id_location=loc_id,
                 uuid=loc.get("uuid"),
+                id_card=loc.get("id_card"),
                 card=self._resolve_card(story_id, loc.get("id_card")),
                 neighbors=neighbor_infos,
                 events=event_infos,

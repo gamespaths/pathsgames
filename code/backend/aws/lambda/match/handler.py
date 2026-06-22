@@ -255,15 +255,75 @@ def _detail_from_item(item, players=None):
     }
 
 
+def _safe_int(val, default=None):
+    """Safely convert a value to int, returning default on None/error."""
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
+def _resolve_raw_text(raw_texts, id_text, lang="en"):
+    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
+    if id_text is None:
+        return None
+    id_text_int = _safe_int(id_text)
+    fallback = None
+    for t in raw_texts:
+        if _safe_int(t.get("idText")) == id_text_int:
+            if t.get("lang") == lang:
+                return t.get("shortText") or t.get("longText")
+            if t.get("lang") == "en":
+                fallback = t.get("shortText") or t.get("longText")
+    return fallback
+
+
+def _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang="en"):
+    """Resolve a card object from raw_cards by integer id, mirroring the story
+    handler's _find_card_from_raw. idCard is the single source of truth: any
+    `card` object already embedded on the stored location/neighbor/event item is
+    IGNORED and the current card is always recovered from idCard."""
+    if id_card is None:
+        return None
+    id_card_int = _safe_int(id_card)
+    card = next((c for c in raw_cards if _safe_int(c.get("id")) == id_card_int), None)
+    if not card:
+        return None
+    return {
+        "uuid":             card.get("uuid"),
+        "cardType":         card.get("cardType"),
+        "urlImage":         card.get("urlImage"),
+        "alternativeImage": card.get("alternativeImage"),
+        "awesomeIcon":      card.get("awesomeIcon"),
+        "styleMain":        card.get("styleMain"),
+        "styleDetail":      card.get("styleDetail"),
+        "styleImageLittle": card.get("styleImageLittle"),
+        "styleImageMedium": card.get("styleImageMedium"),
+        "styleImageLarge":  card.get("styleImageLarge"),
+        "title":            _resolve_raw_text(raw_texts, card.get("idTextTitle"), lang),
+        "description":      _resolve_raw_text(raw_texts, card.get("idTextDescription"), lang),
+        "copyrightText":    _resolve_raw_text(raw_texts, card.get("idTextCopyright"), lang),
+        "linkCopyright":    card.get("linkCopyright"),
+    }
+
+
 def _build_locations_active(story, active_loc_ids):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
-    directions) and the events specific to it. Cards are embedded in the seed."""
+    directions) and the events specific to it.
+
+    Cards are ALWAYS resolved from idCard against the story's raw_cards/raw_texts
+    at read time — any stale `card` object embedded on the stored item is ignored,
+    matching the Java/Python backends (which resolve from id_card via list_cards)."""
     if not active_loc_ids:
         return []
     locations = story.get("locations") or []
     neighbors = story.get("neighbors") or []
     events = story.get("events") or []
+    raw_cards = story.get("raw_cards") or []
+    raw_texts = story.get("raw_texts") or []
     end_event_id = story.get("idEventEndGame")
     loc_by_id = {l.get("id"): l for l in locations}
 
@@ -282,27 +342,33 @@ def _build_locations_active(story, active_loc_ids):
             else:
                 continue
             other = loc_by_id.get(other_id)
+            # idCard is the source of truth; fall back to the destination
+            # location's idCard when the link itself carries none.
+            neighbor_card_id = n.get("idCard")
+            if neighbor_card_id is None and other is not None:
+                neighbor_card_id = other.get("idCard")
             neighbor_infos.append({
                 "idLocation": other_id,
                 "uuid": other.get("uuid") if other else None,
                 "direction": n.get("direction"),
                 "flagBack": n.get("flagBack"),
                 "energyCost": n.get("energyCost"),
-                "card": n.get("card") or (other.get("card") if other else None),
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id),
                 "secureParam": other.get("secureParam") if other else None,
             })
 
         event_infos = [
             {"uuid": e.get("uuid"), "type": e.get("type"),
              "endGame": end_event_id is not None and e.get("id") == end_event_id,
-             "card": e.get("card")}
+             "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"))}
             for e in events if e.get("idLocation") == loc_id
         ]
 
         result.append({
             "idLocation": loc_id,
             "uuid": loc.get("uuid"),
-            "card": loc.get("card"),
+            "idCard": loc.get("idCard"),
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, loc.get("idCard")),
             "secureParam": loc.get("secureParam"),
             "neighbors": neighbor_infos,
             "events": event_infos,

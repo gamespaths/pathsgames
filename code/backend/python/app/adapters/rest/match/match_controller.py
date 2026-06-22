@@ -143,6 +143,7 @@ def _location_info_to_camel(l):
     return {
         "idLocation": l.id_location,
         "uuid": l.uuid,
+        "idCard": l.id_card,
         "card": l.card,
         "secureParam": l.secure_param,
         "neighbors": [

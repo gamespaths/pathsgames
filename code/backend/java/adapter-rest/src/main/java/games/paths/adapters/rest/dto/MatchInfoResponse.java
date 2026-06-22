@@ -162,6 +162,7 @@ public class MatchInfoResponse {
     public static class LocationInfoDto {
         private Long idLocation;
         private String uuid;
+        private Integer idCard;
         private CardInfoResponse card;
         private List<LocationNeighborDto> neighbors = new ArrayList<>();
         private List<EventInfoDto> events = new ArrayList<>();
@@ -171,6 +172,7 @@ public class MatchInfoResponse {
             LocationInfoDto d = new LocationInfoDto();
             d.idLocation = m.getIdLocation();
             d.uuid = m.getUuid();
+            d.idCard = m.getIdCard();
             d.card = CardInfoResponse.fromModel(m.getCard());
             for (LocationNeighborInfo n : m.getNeighbors()) {
                 d.neighbors.add(LocationNeighborDto.fromModel(n));
@@ -186,6 +188,8 @@ public class MatchInfoResponse {
         public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
         public String getUuid() { return uuid; }
         public void setUuid(String uuid) { this.uuid = uuid; }
+        public Integer getIdCard() { return idCard; }
+        public void setIdCard(Integer idCard) { this.idCard = idCard; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
         public List<LocationNeighborDto> getNeighbors() { return neighbors; }

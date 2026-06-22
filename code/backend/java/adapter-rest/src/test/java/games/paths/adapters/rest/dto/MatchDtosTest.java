@@ -161,7 +161,7 @@ class MatchDtosTest {
 
         LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1);
         EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
-        LocationInfo li = new LocationInfo(1L, "loc-1", locCard, List.of(nb), List.of(ev), 1);
+        LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
         MatchDetail d = new MatchDetail();
         d.setMatch(new MatchSummary());
@@ -172,6 +172,7 @@ class MatchDtosTest {
         MatchInfoResponse.LocationInfoDto dto = r.getLocationsActive().get(0);
         assertEquals(1L, dto.getIdLocation());
         assertEquals("loc-1", dto.getUuid());
+        assertEquals(7, dto.getIdCard());
         assertEquals("Tavern", dto.getCard().getTitle());
 
         assertEquals(1, dto.getNeighbors().size());

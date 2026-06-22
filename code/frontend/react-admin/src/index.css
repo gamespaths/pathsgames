@@ -102,6 +102,54 @@ body {
 .pg-sidebar-link i { width: 16px; text-align: center; color: var(--color-gold-dark); }
 .pg-sidebar-link:hover i, .pg-sidebar-link.active i { color: var(--color-gold-light); }
 
+/* ── Navbar Dropdown ── */
+.pg-nav-dropdown {
+  position: relative;
+}
+.pg-nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: linear-gradient(180deg, #2e1508 0%, #1a0a02 100%);
+  border: 1px solid rgba(200,150,10,0.35);
+  border-radius: 5px;
+  min-width: 220px;
+  z-index: 2000;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.65);
+  padding: 0.4rem 0 0.5rem;
+}
+.pg-nav-dropdown-section {
+  padding: 0.35rem 1rem 0.1rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-ash);
+  margin-top: 0.5rem;
+}
+.pg-nav-dropdown-section:first-child { margin-top: 0; }
+.pg-nav-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.48rem 1rem;
+  color: var(--color-parchment) !important;
+  text-decoration: none !important;
+  font-family: 'Cinzel', serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+}
+.pg-nav-dropdown-link:hover,
+.pg-nav-dropdown-link.active {
+  background: rgba(200,150,10,0.13);
+  color: var(--color-gold-light) !important;
+  border-left-color: var(--color-gold);
+}
+.pg-nav-dropdown-link i { width: 16px; text-align: center; color: var(--color-gold-dark); }
+.pg-nav-dropdown-link:hover i, .pg-nav-dropdown-link.active i { color: var(--color-gold-light); }
+
 /* ── Main content ── */
 .pg-content {
   flex: 1;
@@ -323,13 +371,14 @@ body {
 .pg-input::placeholder { color: var(--color-ash); }
 .pg-label {
   font-family: 'Cinzel', serif;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-gold-dark);
-  margin-bottom: 0.3rem;
+  color: var(--color-gold-shine);
+  margin-top: 0.25rem;
   display: block;
 }
+.text-ash { color: var(--color-gold-shine); }
 .pg-textarea {
   background: rgba(0,0,0,0.35);
   border: 1px solid rgba(200,150,10,0.3);

@@ -189,19 +189,26 @@ INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90001, 9001, 
 INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90002, 9001, 'items_collected', 'false', 'tutorial');
 INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 'choice_made', 'false', 'tutorial');
 
+-- ── Story 1 Cards ───────────────────────────────────────────────
+-- Inserted before locations: fk_locations_card (id_card, id_story) requires the card to exist.
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90001, 9001, 'https://paths.games/assets/cards/tutorial-academy.jpg', 'fas fa-graduation-cap', 'tutorial', 1, 2, 1);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90002, 9001, 'fas fa-book-open', 'learning');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90003, 9001, 'fas fa-lightbulb', 'tips');
+
 -- ── Story 1 Locations ───────────────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (energy/life recovery + sadness
 -- relief at time-start); the start hall (90001) is safe and carries a counter_time
 -- so the location-counter decrement path is exercised where the player stands.
 -- The Choice Arena (90005) is UNSAFE (secure_param 0).
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param, counter_time) VALUES (90001, 9001, 100, 100, 1, 10, 1, 2);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90002, 9001, 101, 101, 1, 10, 1);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90003, 9001, 102, 102, 1, 10, 1);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90004, 9001, 103, 103, 1, 10, 1);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90005, 9001, 104, 104, 1, 10, 0);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90006, 9001, 105, 105, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90007, 9001, 106, 106, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 107, 107, 1, 10);
+-- Step 27.x: id_card on each location so locationsActive returns idCard + card.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, secure_param, counter_time) VALUES (90001, 9001, 90001, 100, 100, 1, 10, 1, 2);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90002, 9001, 90002, 101, 101, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90003, 9001, 90003, 102, 102, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90004, 9001, 90002, 103, 103, 1, 10, 1);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters, secure_param) VALUES (90005, 9001, 90003, 104, 104, 1, 10, 0);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90006, 9001, 90003, 105, 105, 1, 10);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90007, 9001, 90002, 106, 106, 1, 10);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 90001, 107, 107, 1, 10);
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90001, 9001, 90001, 90002, 'NORTH', 0);
@@ -278,10 +285,8 @@ INSERT INTO list_missions_steps (id, id_story, id_mission, step, condition_key, 
 -- ── Story 1 Creator ─────────────────────────────────────────────
 INSERT INTO list_creator (id, id_story, link) VALUES (90001, 9001, 'https://paths.games');
 
--- ── Story 1 Cards ───────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90001, 9001, 'https://paths.games/assets/cards/tutorial-academy.jpg', 'fas fa-graduation-cap', 'tutorial', 1, 2, 1);
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90002, 9001, 'fas fa-book-open', 'learning');
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90003, 9001, 'fas fa-lightbulb', 'tips');
+-- (Story 1 Cards are inserted before Story 1 Locations so the
+--  fk_locations_card composite FK (id_card, id_story) is satisfied.)
 
 -- #############################################################################
 -- STORY 2: IL VALVASSORE DI MARCA (id=9002)
@@ -343,19 +348,25 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (91002, 9002, 211, 211, 8, 8, 6, 1, 5, 2, 91002, NULL);
 INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited) VALUES (91003, 9002, 212, 212, 14, 12, 10, 4, 1, 5, NULL,  91001);
 
+-- ── Story 2 Cards ───────────────────────────────────────────────
+-- Inserted before locations: fk_locations_card (id_card, id_story) requires the card to exist.
+INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91001, 9002, 'https://paths.games/assets/cards/valvassore.jpg', 'fas fa-chess-rook', 'medieval', 1, 2, 1);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
+
 -- ── Story 2 Locations ───────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 100, 100, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91002, 9002, 101, 101, 1, 15);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91003, 9002, 102, 102, 1, 20);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91004, 9002, 103, 103, 0, 8);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91005, 9002, 104, 104, 1, 6);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91006, 9002, 105, 105, 1, 10);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91007, 9002, 106, 106, 0, 4);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91008, 9002, 107, 107, 0, 6);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91009, 9002, 108, 108, 0, 4);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91010, 9002, 109, 109, 0, 12);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91011, 9002, 110, 110, 0, 6);
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES (91012, 9002, 111, 111, 1, 8);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 91001, 100, 100, 1, 10);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91002, 9002, 91002, 101, 101, 1, 15);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91003, 9002, 91003, 102, 102, 1, 20);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91004, 9002, 91002, 103, 103, 0, 8);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91005, 9002, 91001, 104, 104, 1, 6);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91006, 9002, 91002, 105, 105, 1, 10);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91007, 9002, 91003, 106, 106, 0, 4);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91008, 9002, 91002, 107, 107, 0, 6);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91009, 9002, 91003, 108, 108, 0, 4);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91010, 9002, 91001, 109, 109, 0, 12);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91011, 9002, 91002, 110, 110, 0, 6);
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91012, 9002, 91003, 111, 111, 1, 8);
 
 -- ── Story 2 Events ──────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (91001, 9002, 500, 500, 'NORMAL', 2, 0);
@@ -378,10 +389,7 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (91003, 9002, 91004, 'ENERGY', 3);
 
 -- ── Story 2 Cards ───────────────────────────────────────────────
-INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91001, 9002, 'https://paths.games/assets/cards/valvassore.jpg', 'fas fa-chess-rook', 'medieval', 1, 2, 1);
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
-INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
-
+-- (Card INSERTs moved before Story 2 Locations for the fk_locations_card FK.)
 UPDATE list_stories SET id_card = 91001 WHERE id = 9002;
 UPDATE list_stories SET id_card = 90001 WHERE id = 9001;
 

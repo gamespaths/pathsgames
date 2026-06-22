@@ -353,10 +353,6 @@ Step 26 guarantees only that the event id is recorded.
 - [x] `lambda/seed/handler.py`: tutorial location 1 set as safe (`secureParam: 1`); tutorial location 2 carries `counterStart: 2` and `idEventIfCounterZero: 1` for testing the counter path.
 - [x] `tests/test_time_advancement_handler.py`: extended to cover recovery recap shape, class bonus application, safe vs unsafe branch, and counter decrement/zero flag.
 
-### 7.4 Node.js backend
-
-Node.js already carried `classUuid` on character items from prior steps. Full API
-parity for Step 26 follows the same pattern as Java/Python.
 
 ### 7.5 React-Game frontend
 
@@ -466,6 +462,88 @@ No new endpoints. No status codes removed or added.
 
 
 
+## 15. Addendum (v0.26.1) — `locationsActive[].idCard` + seed consistency fix
+
+### 15.1 Problem
+
+`GET /api/match/{uuid}/info` returned in `locationsActive[].card` a card object
+that was **not present** in the `list_cards` table of the story. The root cause
+was that only the AWS seed (`lambda/seed/handler.py`) embedded a literal inline
+`card` object directly on each location row (with `idCard: None`), detached from
+`raw_cards`. All other backends derived the card at read-time from `id_card` on
+`list_locations`, so the AWS runtime was the only path that could return an
+orphan card. In addition, no backend exposed `idCard` on the `LocationInfo`
+domain object, so the API consumer could not verify the FK itself.
+
+### 15.2 What changed
+
+**`idCard` field added to `locationsActive[]` entries (all backends):**
+
+- **Java.** `core/model/match/LocationInfo.java` — new `idCard` (Long) field,
+  constructor and getter. `core/service/match/MatchQueryService.java` — passes
+  `loc.getIdCard()` when building the `LocationInfo`. `adapter-rest/dto/
+  MatchInfoResponse.java` — `LocationInfoDto.idCard` serialised.
+- **Python.** `core/models/match/match_models.py` — `id_card` field on
+  `LocationInfo`. `core/services/match/match_query_service.py` — populated from
+  the location row. `adapters/rest/match/match_controller.py` —
+  `_location_info_to_camel` serialises `"idCard"`.
+- **AWS Lambda.** `lambda/match/handler.py` — `_build_locations_active` reads
+  `"idCard"` from the location record and forwards it in the response.
+
+**OpenAPI.** `adapter-rest/src/main/resources/openapi/v0.19.0-match-creation-api.yaml`
+— `LocationInfo` schema gains `idCard` (integer, nullable) with description
+_"Logical reference to the location's visual card (list_cards id); the resolved
+card is returned in `card`."_
+
+**AWS seed fixed (`lambda/seed/handler.py`):**
+
+- Removed inline literal `card` objects from location entries; locations now
+  carry an `idCard` that references a real entry in `raw_cards`.
+- `raw_cards` enriched with the missing card objects; `raw_texts` enriched with
+  the corresponding title/description text entries.
+- New helper `_enrich_locations_with_cards(locations, raw_cards, raw_texts)` —
+  resolves the `card` dict from `idCard` at write-time, exactly as the story
+  import path does.
+- Supporting helpers added: `_safe_int`, `_resolve_raw_text`,
+  `_resolve_card_from_raw`.
+
+**Seed data — `id_card` set on all locations (SQL + Python):**
+
+| Seed file | Scope |
+|-----------|-------|
+| `adapter-sqlite/src/main/resources/db/migration/dev/R__insert_story_seed_data.sql` | Java dev / SQLite |
+| `adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | Java dev / PostgreSQL |
+| `app/adapters/persistence/seed_dev_data.py` | Python backend |
+
+All seed locations now carry a valid `id_card` value that references an existing
+`list_cards` row for the same story.
+
+### 15.3 Result
+
+`GET /api/match/{uuid}/info` now returns in every `locationsActive[]` entry:
+
+```json
+{
+  "idLocation": 1,
+  "uuid": "loc-001",
+  "idCard": 5,
+  "card": { "title": "Welcome Hall", "urlImage": "...", "awesomeIcon": "fas fa-door-open" },
+  "neighbors": [ ... ],
+  "events": [ ... ]
+}
+```
+
+The `card` object is guaranteed to correspond to the `list_cards` row identified
+by `idCard`. The fix is consistent across Java, Python, and AWS.
+
+### 15.4 Tests
+
+- Java: `mvn clean test` — BUILD SUCCESS (all existing suites).
+- Python: 604 tests pass.
+- AWS: 322 tests pass.
+
+
+
 # Version Control
 - Versions created with AI prompt:
    ```
@@ -476,12 +554,13 @@ No new endpoints. No status codes removed or added.
    let's go to develop all components
    ```
 
-- **Document Version**: 0.26.0
+- **Document Version**: 0.26.1
 
    | Version | Description | Date |
    |---------|-------------|------|
    | 0.26.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 19, 2026 |
    | 0.26.0 | ciao, i wanna create a new API on all backend project, POST admin/match/{uuid_match}/player/{uuid_player}/changeStatistics with in input dex,int,con, Energy, Life, Sad, coin, food, magic. This API updates actual values if value is not -1 and <= of max (for energy, life, sad). update the react-admin to show a button an "Players & characters" list to insert new values and send to API.  | June 19, 2026 |
+   | 0.26.1 | locationsActive.idCard + seed consistency fix | June 22, 2026 |
 
 - **Last Updated**: June 16, 2026
 - **Status**: Complete

@@ -12,7 +12,7 @@ import {
 describe('getNonZeroStats', () => {
   it('returns only non-zero base stats for a character', () => {
     const character = { lifeMax: 12, energyMax: 0, sadMax: 8, dexterityStart: 0, intelligenceStart: 3 }
-    const stats = getNonZeroStats(character, 'character')
+    const stats = getNonZeroStats(character, 'character', t => t) // Pass identity function for translation
     expect(stats).toEqual([
       { key: 'lifeMax', value: 12 },
       { key: 'sadMax', value: 8 },
@@ -32,7 +32,7 @@ describe('getNonZeroStats', () => {
         { statistic: 'sad', value: 0 },
       ],
     }
-    const stats = getNonZeroStats(cls, 'class')
+    const stats = getNonZeroStats(cls, 'class', t => t) // Pass identity function for translation
     expect(stats).toContainEqual({ key: 'weightMax', value: 12 })
     expect(stats).toContainEqual({ key: 'intelligenceBase', value: 3 })
     expect(stats).toContainEqual({ key: 'life', value: 3 })

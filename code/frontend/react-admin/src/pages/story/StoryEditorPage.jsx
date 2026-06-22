@@ -841,7 +841,7 @@ export default function StoryEditorPage() {
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-1">
           {success && (
             <div className="pg-alert pg-alert-success position-absolute left-1/2 z-10 px-4">
               <i className="fas fa-check-circle me-2" />{success}

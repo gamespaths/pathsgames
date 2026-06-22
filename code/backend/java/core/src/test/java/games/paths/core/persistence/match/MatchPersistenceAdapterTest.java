@@ -10,6 +10,7 @@ import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.LogEventsRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ class MatchPersistenceAdapterTest {
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingCharacterTraitsRepository characterTraitsRepository;
     private GamingInventoryItemsRepository inventoryRepository;
+    private LogEventsRepository logEventsRepository;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -42,8 +44,10 @@ class MatchPersistenceAdapterTest {
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
+        logEventsRepository = mock(LogEventsRepository.class);
         adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
-                characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository);
+                characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
+                logEventsRepository);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
     }
 
@@ -112,9 +116,12 @@ class MatchPersistenceAdapterTest {
         int deleted = adapter.deleteMatchesByNameLike("robottest%");
 
         assertEquals(2, deleted);
+        // current-turn FK must be cleared before the character rows are deleted
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(ids);
         verify(characterTraitsRepository).deleteByMatchIdIn(ids);
         verify(inventoryRepository).deleteByMatchIdIn(ids);
         verify(backpackRepository).deleteByMatchIdIn(ids);
+        verify(logEventsRepository).deleteByMatchIdIn(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryRepository).deleteByMatchIdIn(ids);
@@ -163,6 +170,8 @@ class MatchPersistenceAdapterTest {
 
         assertTrue(adapter.deleteMatchByUuid("u"));
 
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(List.of(5L));
+        verify(logEventsRepository).deleteByMatchIdIn(List.of(5L));
         verify(characterTraitsRepository).deleteByMatchIdIn(List.of(5L));
         verify(inventoryRepository).deleteByMatchIdIn(List.of(5L));
         verify(backpackRepository).deleteByMatchIdIn(List.of(5L));

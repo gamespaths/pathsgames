@@ -148,6 +148,7 @@ class LocationInfo:
 
     id_location: int
     uuid: Optional[str] = None
+    id_card: Optional[int] = None
     card: Optional[Dict[str, Any]] = None
     neighbors: List[LocationNeighborInfo] = field(default_factory=list)
     events: List[EventInfo] = field(default_factory=list)

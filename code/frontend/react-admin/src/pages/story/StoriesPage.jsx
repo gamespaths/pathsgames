@@ -222,6 +222,9 @@ export default function StoriesPage() {
                       <Link to={`/stories/${s.uuid}/edit`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Edit">
                         <i className="fas fa-edit" />
                       </Link>
+                      <Link to={`/stories/${s.uuid}/cards-fast-edit`} className="pg-btn pg-btn-ghost pg-btn-sm me-1" title="Cards Fast Edit">
+                        <i className="fas fa-id-card" />
+                      </Link>
                       <button className="pg-btn pg-btn-ghost pg-btn-sm me-1" onClick={() => handleExport(s)} title="Export JSON">
                         <i className="fas fa-file-export" />
                       </button>

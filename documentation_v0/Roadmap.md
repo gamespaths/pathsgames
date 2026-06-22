@@ -706,7 +706,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.27.0 (here only due changes)
+- **Document Version**: 0.26.1 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -733,9 +733,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.24.2 | Python backend dockerized for EC2 deploy (server3): Dockerfile now exposes both ports 8042+8044 and runs `python -m app.launcher`; `app/config.py` gains `host` setting with `HOST` env-var override; new `build_docker_python_test_and_push.sh` (tag `:test-python`); new `aws_ec2_with_python_docker/{start,redeploy,stop}.sh` lifecycle scripts; optional auto-seed via `scripts/seed_stories.py`; server naming convention (server2=Java, server3=Python). 524 pytest pass | June 14, 2026 |
     | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
     | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
-    | 0.27.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.27.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.27.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+    | 0.26.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.26.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.26.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+    | 0.26.1 | Bugfix `locationsActive[].idCard`: `idCard` field added to `LocationInfo` in Java/Python/AWS; AWS seed orphan inline cards removed, `raw_cards`/`raw_texts` completed, `_enrich_locations_with_cards` helper added; all seed data (SQLite/PostgreSQL/Python) updated with valid `id_card` FK; OpenAPI `LocationInfo.idCard` documented (see Step25_TimeAdvancementClockCycle.md §15) | June 22, 2026 |
 
-- **Last Updated**: June 15, 2026
+- **Last Updated**: June 22, 2026
 - **Status**: In progress
 
 
