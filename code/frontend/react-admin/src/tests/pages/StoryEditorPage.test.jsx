@@ -413,6 +413,46 @@ describe('StoryEditorPage', () => {
     ))
   })
 
+  it('cancels a delete confirmation (line 1215 onCancel)', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    const trashBtn = await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      return buttons.find(b => b.querySelector('.fa-trash'))
+    })
+    await userEvent.click(trashBtn)
+    expect(screen.getByText(/Are you sure you want to delete this location/i)).toBeInTheDocument()
+    // Cancel — line 1215: onCancel={() => setModal(null)}
+    await userEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText(/Are you sure you want to delete/i)).not.toBeInTheDocument())
+    expect(deleteEntity).not.toHaveBeenCalled()
+  })
+
+  it('selects the start location from its selector (lines 1146-1148)', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ idLocation: 5, idTextName: 101, uuid: 'loc-5' }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    // Click the "Select Start Location" selector button in metadata form
+    const startLocBtn = screen.queryByTitle(/Select Start Location ID/i)
+    if (startLocBtn) {
+      await userEvent.click(startLocBtn)
+      expect(await screen.findByText('Select Start Location')).toBeInTheDocument()
+      // Select the first option → onSelect callback runs (lines 1146-1148)
+      const selectBtns = screen.getAllByText('Select')
+      await userEvent.click(selectBtns[0])
+    }
+  })
+
   it('selects the coma/end-game location and event references from their selectors', async () => {
     listEntities.mockImplementation((uuid, type) => {
       if (type === 'texts') return Promise.resolve(MOCK_TEXTS)

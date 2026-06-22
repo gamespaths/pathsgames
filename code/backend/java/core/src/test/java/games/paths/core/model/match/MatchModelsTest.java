@@ -135,4 +135,63 @@ class MatchModelsTest {
         assertNotNull(d.getEvents());
         assertNotNull(d.getChoices());
     }
+
+    @Test
+    void joinMatchCommand_allArgsConstructor() {
+        JoinMatchCommand cmd = new JoinMatchCommand("mu", "uu", "ct", "cl", List.of("t1"));
+        assertEquals("mu", cmd.getMatchUuid());
+        assertEquals("uu", cmd.getUserUuid());
+        assertEquals("ct", cmd.getCharacterTemplateUuid());
+        assertEquals("cl", cmd.getClassUuid());
+        assertEquals(List.of("t1"), cmd.getTraitUuids());
+    }
+
+    @Test
+    void joinMatchCommand_setters() {
+        JoinMatchCommand cmd = new JoinMatchCommand();
+        cmd.setMatchUuid("m");
+        cmd.setUserUuid("u");
+        cmd.setCharacterTemplateUuid("c");
+        cmd.setClassUuid("cl");
+        cmd.setTraitUuids(List.of("t1", "t2"));
+
+        assertEquals("m", cmd.getMatchUuid());
+        assertEquals("u", cmd.getUserUuid());
+        assertEquals("c", cmd.getCharacterTemplateUuid());
+        assertEquals("cl", cmd.getClassUuid());
+        assertEquals(2, cmd.getTraitUuids().size());
+    }
+
+    @Test
+    void joinMatchCommand_nullTraits_defaultsToEmpty() {
+        JoinMatchCommand cmd = new JoinMatchCommand("m", "u", null, null, null);
+        assertNotNull(cmd.getTraitUuids());
+        assertTrue(cmd.getTraitUuids().isEmpty());
+    }
+
+    @Test
+    void joinMatchCommand_setTraitsNull_defaultsToEmpty() {
+        JoinMatchCommand cmd = new JoinMatchCommand();
+        cmd.setTraitUuids(null);
+        assertNotNull(cmd.getTraitUuids());
+        assertTrue(cmd.getTraitUuids().isEmpty());
+    }
+
+    @Test
+    void itemInstanceInfo_gettersAndSetters() {
+        ItemInstanceInfo info = new ItemInstanceInfo();
+        info.setUuid("iu");
+        info.setItemUuid("it");
+        info.setName("Sword");
+        info.setWeight(2);
+        info.setAmount(1);
+        info.setState("ACTIVE");
+
+        assertEquals("iu", info.getUuid());
+        assertEquals("it", info.getItemUuid());
+        assertEquals("Sword", info.getName());
+        assertEquals(2, info.getWeight());
+        assertEquals(1, info.getAmount());
+        assertEquals("ACTIVE", info.getState());
+    }
 }

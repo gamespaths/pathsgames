@@ -22,7 +22,7 @@ Every time you run, every time, after change something, when you complete your t
 
 Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
 
-Every time if you chage/create code (java, python, react) remember to check unit test codes.
+Every time if you chage/create code (java, python, react) remember to check unit test codes and test coverage of new code must be > 90%.
 
 At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
 

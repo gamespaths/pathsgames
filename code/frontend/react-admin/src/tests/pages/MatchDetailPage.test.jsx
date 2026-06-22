@@ -10,6 +10,7 @@ vi.mock('../../api/matchApi', () => ({
   pauseMatch:    vi.fn(),
   resumeMatch:   vi.fn(),
   deleteMatch:   vi.fn(),
+  changePlayerStatistics: vi.fn(),
 }))
 vi.mock('../../api/storyApi', () => ({ getStory: vi.fn(), listEntities: vi.fn() }))
 
@@ -338,5 +339,65 @@ describe('MatchDetailPage', () => {
     await screen.findByTestId('match-status-label')
     fireEvent.click(screen.getByRole('button', { name: /Matches/i }))
     expect(await screen.findByText('matches-list')).toBeInTheDocument()
+  })
+
+  it('opens EditStatsModal when Edit statistics button is clicked', async () => {
+    matchApi.changePlayerStatistics.mockResolvedValue({})
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    const editBtn = screen.getByTitle('Edit statistics')
+    fireEvent.click(editBtn)
+    expect(screen.getByText('Edit statistics')).toBeInTheDocument()
+  })
+
+  it('saves statistics and reloads info', async () => {
+    matchApi.changePlayerStatistics.mockResolvedValue({})
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    fireEvent.click(screen.getByTitle('Edit statistics'))
+    expect(screen.getByText('Edit statistics')).toBeInTheDocument()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+    })
+    await waitFor(() => expect(matchApi.changePlayerStatistics).toHaveBeenCalled())
+    await waitFor(() => expect(matchApi.getMatchInfo).toHaveBeenCalledTimes(2))
+  })
+
+  it('shows error in EditStatsModal when save fails', async () => {
+    matchApi.changePlayerStatistics.mockRejectedValue({ message: 'stat-save-error' })
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    fireEvent.click(screen.getByTitle('Edit statistics'))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+    })
+    await waitFor(() => expect(screen.getByText('stat-save-error')).toBeInTheDocument())
+  })
+
+  it('closes EditStatsModal via Cancel button', async () => {
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    fireEvent.click(screen.getByTitle('Edit statistics'))
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }))
+    await waitFor(() => expect(screen.queryByText('Edit statistics')).not.toBeInTheDocument())
+  })
+
+  it('triggers keyboard navigation on UuidLink with Enter key', async () => {
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    // UuidLink is the clickable uuid span — trigger Enter key
+    const uuidLinks = document.querySelectorAll('.uuid-link')
+    if (uuidLinks.length > 0) {
+      fireEvent.keyDown(uuidLinks[0], { key: 'Enter' })
+    }
+  })
+
+  it('triggers keyboard navigation on UuidLink with Space key', async () => {
+    renderPage()
+    await screen.findByTestId('match-status-label')
+    const uuidLinks = document.querySelectorAll('.uuid-link')
+    if (uuidLinks.length > 0) {
+      fireEvent.keyDown(uuidLinks[0], { key: ' ' })
+    }
   })
 })

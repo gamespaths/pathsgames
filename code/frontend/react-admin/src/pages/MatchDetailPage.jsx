@@ -122,7 +122,9 @@ function EditStatsModal({ matchUuid, player, onClose, onSaved }) {
         background: 'rgba(0,0,0,0.65)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
+      role="presentation"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
     >
       <div className="pg-card" style={{ minWidth: 360, maxWidth: 480, width: '90%' }}>
         <p className="pg-card-title" style={{ marginBottom: '0.75rem' }}>

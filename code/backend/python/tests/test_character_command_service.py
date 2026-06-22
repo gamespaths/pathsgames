@@ -449,3 +449,100 @@ def test_null_budgets_unlimited(env):
 
     info = service.join(_cmd())
     assert info.trait_uuids == ["trait-1", "trait-2"]
+
+
+# ─── change_statistics (lines 245-274, 295) ──────────────────────────────────
+
+def _change_stats_env():
+    """Return a (service, match_p, char_p) triple wired for change_statistics."""
+    match_p = MagicMock()
+    char_p = MagicMock()
+    service = CharacterCommandService(
+        story_read_port=MagicMock(),
+        match_persistence_port=match_p,
+        user_access_port=MagicMock(),
+        character_persistence_port=char_p,
+    )
+    return service, match_p, char_p
+
+
+def _char_record(**over):
+    base = {
+        "id": 1, "uuid": "char-uuid",
+        "energy_max": 100, "life_max": 120, "sad_max": 8,
+    }
+    base.update(over)
+    return base
+
+
+def test_change_statistics_match_not_found():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = None
+    result = service.change_statistics("bad-uuid", "player", None, None, None, None, None, None, None, None, None)
+    assert result == "MATCH_NOT_FOUND"
+
+
+def test_change_statistics_player_not_found():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = None
+    result = service.change_statistics("m-uuid", "bad-player", None, None, None, None, None, None, None, None, None)
+    assert result == "PLAYER_NOT_FOUND"
+
+
+def test_change_statistics_updated_basic():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record()
+    result = service.change_statistics("m-uuid", "char-uuid", 5, 5, 5, 50, 60, 2, None, None, None)
+    assert result == "UPDATED"
+    char_p.update_character_stats.assert_called_once()
+    char_p.update_backpack_stats.assert_not_called()
+
+
+def test_change_statistics_caps_at_max():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record(
+        energy_max=50, life_max=60, sad_max=4
+    )
+    result = service.change_statistics("m-uuid", "char-uuid", None, None, None, 200, 200, 10, None, None, None)
+    assert result == "UPDATED"
+    # call_args[0] is the positional args tuple: (match_id, char_id, dex, intel, con, eff_energy, eff_life, eff_sad)
+    call_args = char_p.update_character_stats.call_args[0]
+    assert call_args[5] == 50   # eff_energy capped at energy_max=50
+    assert call_args[6] == 60   # eff_life capped at life_max=60
+    assert call_args[7] == 4    # eff_sad capped at sad_max=4
+
+
+def test_change_statistics_updates_backpack_when_food_given():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record()
+    result = service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None, 3, None, None)
+    assert result == "UPDATED"
+    char_p.update_backpack_stats.assert_called_once()
+
+
+def test_change_statistics_updates_backpack_when_coin_given():
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record()
+    result = service.change_statistics("m-uuid", "char-uuid", None, None, None, None, None, None, None, None, 10)
+    assert result == "UPDATED"
+    char_p.update_backpack_stats.assert_called_once()
+
+
+def test_change_statistics_no_max_values_no_cap():
+    """When energy_max/life_max/sad_max are None, values pass through uncapped."""
+    service, match_p, char_p = _change_stats_env()
+    match_p.find_match_by_uuid.return_value = {"id": 1}
+    char_p.find_character_by_match_and_uuid.return_value = _char_record(
+        energy_max=None, life_max=None, sad_max=None
+    )
+    result = service.change_statistics("m-uuid", "char-uuid", None, None, None, 999, 888, 777, None, None, None)
+    assert result == "UPDATED"
+    call_args = char_p.update_character_stats.call_args[0]
+    assert call_args[5] == 999
+    assert call_args[6] == 888
+    assert call_args[7] == 777

@@ -93,8 +93,42 @@ describe('PathsOptionsSelectorModal', () => {
         title="Select Fruit"
       />
     )
-    
+
     fireEvent.click(screen.getByTestId('modal-backdrop'))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('filters out null/empty string options and handles string values', () => {
+    const mixedOptions = [
+      { value: 'valid-string', label: 'Valid' },
+      { value: '', label: 'Empty string — filtered' },
+      { value: null, label: 'Null — filtered' },
+      { value: undefined, label: 'Undefined — filtered' },
+      { value: 'another', label: 'Another' },
+    ]
+    render(
+      <PathsOptionsSelectorModal
+        open={true}
+        onClose={() => {}}
+        options={mixedOptions}
+        onSelect={() => {}}
+      />
+    )
+    expect(screen.getByText('Valid')).toBeInTheDocument()
+    expect(screen.getByText('Another')).toBeInTheDocument()
+    expect(screen.queryByText('Empty string — filtered')).not.toBeInTheDocument()
+    expect(screen.queryByText('Null — filtered')).not.toBeInTheDocument()
+  })
+
+  it('returns null when not open', () => {
+    const { container } = render(
+      <PathsOptionsSelectorModal
+        open={false}
+        onClose={() => {}}
+        options={MOCK_OPTIONS}
+        onSelect={() => {}}
+      />
+    )
+    expect(container.firstChild).toBeNull()
   })
 })

@@ -105,4 +105,15 @@ describe('storyApi', () => {
     expect(mockGet).toHaveBeenCalledWith('/api/stories', { params: { lang: 'en' } })
     expect(res).toEqual([])
   })
+
+  it('validateStory calls correct endpoint', async () => {
+    mockGet.mockResolvedValue({ data: { valid: true } })
+    const res = await storyApi.validateStory('s1')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/stories/s1/validate')
+    expect(res).toEqual({ valid: true })
+  })
+
+  it('getStory throws when uuid contains unsafe segment characters', () => {
+    expect(() => storyApi.getStory('s1/../etc')).toThrow('Invalid URL path segment')
+  })
 })

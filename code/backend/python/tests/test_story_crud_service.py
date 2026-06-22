@@ -212,3 +212,85 @@ class TestUpdateStory:
         result = service.update_story("s-uuid-1", {"author": "Updated"})
         assert result is not None
         mock_persist.update_story_by_id.assert_called_once()
+
+
+# === _validate_local (lines 32-34) ===
+
+class TestValidateLocal:
+    def test_validate_local_no_validator_is_noop(self, mock_read, mock_persist):
+        svc = StoryCrudService(mock_read, mock_persist, validator_port=None)
+        svc._validate_local("locations", {"name": "x"})  # must not raise
+
+    def test_validate_local_valid_entity_passes(self, mock_read, mock_persist):
+        from unittest.mock import MagicMock
+        validator = MagicMock()
+        report = MagicMock()
+        report.is_valid.return_value = True
+        validator.validate_entity.return_value = report
+        svc = StoryCrudService(mock_read, mock_persist, validator_port=validator)
+        svc._validate_local("locations", {"name": "x"})  # no raise
+
+    def test_validate_local_invalid_entity_raises(self, mock_read, mock_persist):
+        from unittest.mock import MagicMock
+        from app.core.services.story.story_crud_service import StoryValidationException
+        validator = MagicMock()
+        report = MagicMock()
+        report.is_valid.return_value = False
+        validator.validate_entity.return_value = report
+        svc = StoryCrudService(mock_read, mock_persist, validator_port=validator)
+        with pytest.raises(StoryValidationException):
+            svc._validate_local("locations", {"name": "bad"})
+
+
+# === _resolve_story_id edge cases (line 38) ===
+
+class TestResolveStoryId:
+    def test_blank_uuid_returns_none(self, service):
+        assert service._resolve_story_id("") is None
+        assert service._resolve_story_id("   ") is None
+
+
+# === get_story (lines 104-109) ===
+
+class TestGetStory:
+    def test_returns_none_when_uuid_empty(self, service):
+        assert service.get_story("") is None
+        assert service.get_story(None) is None
+
+    def test_returns_none_when_story_not_found(self, service, mock_read):
+        mock_read.find_story_by_uuid.return_value = None
+        assert service.get_story("bad-uuid") is None
+
+    def test_returns_story_dict(self, service, mock_read):
+        mock_read.find_story_by_uuid.return_value = STORY_DICT
+        result = service.get_story("s-uuid-1")
+        assert result is not None
+        assert result.get("uuid") == "s-uuid-1"
+
+
+# === _to_camel_keys edge cases (lines 247, 251, 254) ===
+
+class TestToCamelKeys:
+    def test_empty_data_returns_as_is(self, service):
+        assert service._to_camel_keys({}) == {}
+        assert service._to_camel_keys(None) is None
+
+    def test_dict_converts_to_camel(self, service):
+        result = service._to_camel_keys({"my_key": 1, "another_key": 2})
+        assert result == {"myKey": 1, "anotherKey": 2}
+
+    def test_mapping_proxy_converted(self, service):
+        from unittest.mock import MagicMock
+        proxy = MagicMock()
+        proxy._mapping = {"some_field": "val"}
+        result = service._to_camel_keys(proxy)
+        assert result == {"someField": "val"}
+
+    def test_non_dict_row_converted(self, service):
+        """Covers line 254: dict(data) fallback for SQLAlchemy Row-like objects."""
+        class FakeRow:
+            """Minimal mapping protocol that dict() can consume."""
+            def keys(self): return ["id_card"]
+            def __getitem__(self, key): return {"id_card": 42}[key]
+        result = service._to_camel_keys(FakeRow())
+        assert result == {"idCard": 42}

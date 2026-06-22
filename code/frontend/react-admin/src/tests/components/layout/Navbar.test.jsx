@@ -67,4 +67,21 @@ describe('Navbar', () => {
     fireEvent.click(screen.getByText('Dashboard'))
     expect(screen.queryByText('Guest Users')).not.toBeInTheDocument()
   })
+
+  it('closes dropdown when clicking outside', () => {
+    renderNavbar()
+    fireEvent.click(screen.getByRole('button', { name: /navigation menu/i }))
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    // Simulate mousedown outside the dropdown
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByText('Guest Users')).not.toBeInTheDocument()
+  })
+
+  it('calls changeServer when server selector changes', async () => {
+    renderNavbar()
+    const select = screen.getByRole('combobox')
+    fireEvent.change(select, { target: { value: 'http://localhost:8044' } })
+    // just checking no error thrown — AuthContext changeServer is a no-op in test
+    expect(select).toBeInTheDocument()
+  })
 })

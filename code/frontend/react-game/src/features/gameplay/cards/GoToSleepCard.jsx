@@ -51,8 +51,8 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     ? difficultyEnergy + secureParam + dex
     : difficultyEnergy;
   const statItems= isSafe ? [ { key: 'energy', value: "" + energyRecovered, label: null }
-      ,{ key: 'life', value: "" + (playerStats.dexterity + secureParam ?? 0), label: null }
-      ,{ key: 'sadness', value: "" + (secureParam + playerStats.intelligence  ?? 0), label: null }
+      ,{ key: 'life', value: "" + ((playerStats.dexterity ?? 0) + secureParam), label: null }
+      ,{ key: 'sadness', value: "" + (secureParam + (playerStats.intelligence ?? 0)), label: null }
    ]
    : [{ key: 'energy', value: "" + energyRecovered }];
   const sleepSecureContentBadge=<BonusBadgeList items={statItems} className="book-page-stats mb-0 display-ruby flex-direction-column" />;

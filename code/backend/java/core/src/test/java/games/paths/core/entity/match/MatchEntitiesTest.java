@@ -191,6 +191,143 @@ class MatchEntitiesTest {
     }
 
     @Test
+    void logEventsEntity_prePersistAppliesDefaults() {
+        LogEventsEntity e = new LogEventsEntity();
+        e.onCreate();
+        assertNotNull(e.getUuid());
+        assertNotNull(e.getTimestamp());
+        assertNotNull(e.getTsInsert());
+        assertNotNull(e.getTsUpdate());
+
+        // Second call must not overwrite already-set uuid/timestamp
+        String uuid = e.getUuid();
+        String ts = e.getTimestamp();
+        e.onCreate();
+        assertEquals(uuid, e.getUuid());
+        assertEquals(ts, e.getTimestamp());
+
+        e.onUpdate();
+        assertNotNull(e.getTsUpdate());
+    }
+
+    @Test
+    void logEventsEntity_settersRoundtrip() {
+        LogEventsEntity e = new LogEventsEntity();
+        e.setId(1L);
+        e.setIdMatch(2L);
+        e.setUuid("ev-uuid");
+        e.setIdCharacterMatch(3L);
+        e.setTimestamp("2025-01-01T00:00:00Z");
+        e.setIdEvent(4L);
+        e.setIdChoise(5L);
+        e.setLogMessage("msg");
+        e.setTsInsert("ins");
+        e.setTsUpdate("upd");
+
+        assertEquals(1L, e.getId());
+        assertEquals(2L, e.getIdMatch());
+        assertEquals("ev-uuid", e.getUuid());
+        assertEquals(3L, e.getIdCharacterMatch());
+        assertEquals("2025-01-01T00:00:00Z", e.getTimestamp());
+        assertEquals(4L, e.getIdEvent());
+        assertEquals(5L, e.getIdChoise());
+        assertEquals("msg", e.getLogMessage());
+        assertEquals("ins", e.getTsInsert());
+        assertEquals("upd", e.getTsUpdate());
+    }
+
+    @Test
+    void logEventsEntityId_equalsHashcode() {
+        LogEventsEntityId a = new LogEventsEntityId(1L, 2L);
+        LogEventsEntityId b = new LogEventsEntityId(1L, 2L);
+        LogEventsEntityId c = new LogEventsEntityId(3L, 4L);
+        LogEventsEntityId empty = new LogEventsEntityId();
+        empty.setId(9L);
+        empty.setIdMatch(10L);
+
+        assertEquals(a, a);
+        assertEquals(a, b);
+        assertNotEquals(a, c);
+        assertNotEquals(a, "x");
+        assertNotEquals(a, null);
+        assertEquals(a.hashCode(), b.hashCode());
+        assertEquals(1L, a.getId());
+        assertEquals(2L, a.getIdMatch());
+        assertEquals(9L, empty.getId());
+        assertEquals(10L, empty.getIdMatch());
+    }
+
+    @Test
+    void gamingCharacterInstanceEntity_prePersistAppliesDefaults() {
+        GamingCharacterInstanceEntity e = new GamingCharacterInstanceEntity();
+        e.onCreate();
+        assertNotNull(e.getUuid());
+        assertNotNull(e.getTsInsert());
+        assertNotNull(e.getTsUpdate());
+        assertEquals(1, e.getDexterity());
+        assertEquals(1, e.getIntelligence());
+        assertEquals(1, e.getConstitution());
+        assertEquals(0, e.getEnergy());
+        assertEquals(1, e.getLife());
+        assertEquals(0, e.getSad());
+        assertEquals(0, e.getLifeMax());
+        assertEquals(0, e.getEnergyMax());
+        assertEquals(0, e.getSadMax());
+        assertEquals(0, e.getWeightMax());
+        assertFalse(e.getIsSleeping());
+        assertFalse(e.getIsComa());
+        assertEquals(0, e.getClockInComa());
+        assertEquals(0, e.getCounterConsecutivePass());
+
+        e.onUpdate();
+        assertNotNull(e.getTsUpdate());
+    }
+
+    @Test
+    void gamingCharacterInstanceEntity_settersRoundtrip() {
+        GamingCharacterInstanceEntity e = new GamingCharacterInstanceEntity();
+        e.setIdUser(1L);
+        e.setIdCharacterTemplate(2L);
+        e.setIdClass(3L);
+        e.setDexterity(10);
+        e.setIntelligence(11);
+        e.setConstitution(12);
+        e.setEnergy(50);
+        e.setLife(100);
+        e.setSad(2);
+        e.setLifeMax(120);
+        e.setEnergyMax(60);
+        e.setSadMax(8);
+        e.setWeightMax(24);
+        e.setIdLocation(99L);
+        e.setIsSleeping(true);
+        e.setIsComa(false);
+        e.setClockInComa(3);
+        e.setTimestampLastPass("2025-01-01");
+        e.setCounterConsecutivePass(1);
+
+        assertEquals(1L, e.getIdUser());
+        assertEquals(2L, e.getIdCharacterTemplate());
+        assertEquals(3L, e.getIdClass());
+        assertEquals(10, e.getDexterity());
+        assertEquals(11, e.getIntelligence());
+        assertEquals(12, e.getConstitution());
+        assertEquals(50, e.getEnergy());
+        assertEquals(100, e.getLife());
+        assertEquals(2, e.getSad());
+        assertEquals(120, e.getLifeMax());
+        assertEquals(60, e.getEnergyMax());
+        assertEquals(8, e.getSadMax());
+        assertEquals(24, e.getWeightMax());
+        assertEquals(99L, e.getIdLocation());
+        assertTrue(e.getIsSleeping());
+        assertFalse(e.getIsComa());
+        assertEquals(3, e.getClockInComa());
+        assertEquals("2025-01-01", e.getTimestampLastPass());
+        assertEquals(1, e.getCounterConsecutivePass());
+    }
+
+    @Test
     void gamingStateRegistryEntityId_equalsHashcode() {
         GamingStateRegistryEntityId a = new GamingStateRegistryEntityId(1L, 2L);
         GamingStateRegistryEntityId b = new GamingStateRegistryEntityId(1L, 2L);
@@ -209,5 +346,77 @@ class MatchEntitiesTest {
         assertEquals(2L, a.getIdMatch());
         assertEquals(11L, empty.getId());
         assertEquals(12L, empty.getIdMatch());
+    }
+
+    @Test
+    void gamingInventoryItemsEntity_prePersistAppliesDefaults() {
+        GamingInventoryItemsEntity e = new GamingInventoryItemsEntity();
+        e.onCreate();
+        assertNotNull(e.getUuid());
+        assertEquals(1, e.getAmount());
+        assertEquals("ACTIVE", e.getState());
+    }
+
+    @Test
+    void gamingInventoryItemsEntity_settersRoundtrip() {
+        GamingInventoryItemsEntity e = new GamingInventoryItemsEntity();
+        e.setIdCharacterMatch(1L);
+        e.setIdItem(2L);
+        e.setAmount(3);
+        e.setState("USED");
+
+        assertEquals(1L, e.getIdCharacterMatch());
+        assertEquals(2L, e.getIdItem());
+        assertEquals(3, e.getAmount());
+        assertEquals("USED", e.getState());
+    }
+
+    @Test
+    void gamingInventoryItemsEntity_preUpdateDoesNotThrow() {
+        GamingInventoryItemsEntity e = new GamingInventoryItemsEntity();
+        e.onCreate();
+        String tsInsert = e.getTsInsert();
+        e.onUpdate();
+        // tsUpdate should now be set (may equal tsInsert if same millisecond)
+        assertNotNull(e.getTsUpdate());
+        assertNotNull(tsInsert);
+    }
+
+    @Test
+    void gamingInventoryItemsEntityId_equalsHashcode() {
+        GamingInventoryItemsEntityId a = new GamingInventoryItemsEntityId(1L, 2L);
+        GamingInventoryItemsEntityId b = new GamingInventoryItemsEntityId(1L, 2L);
+        GamingInventoryItemsEntityId c = new GamingInventoryItemsEntityId(3L, 4L);
+        GamingInventoryItemsEntityId empty = new GamingInventoryItemsEntityId();
+
+        assertEquals(a, b);
+        assertNotEquals(a, c);
+        assertNotEquals(a, null);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void gamingCharacterTraitsEntity_gettersAndSetters() {
+        GamingCharacterTraitsEntity e = new GamingCharacterTraitsEntity();
+        e.setIdCharacterMatch(1L);
+        e.setIdTraits(2L);
+        e.setIdEvent(3L);
+
+        assertEquals(1L, e.getIdCharacterMatch());
+        assertEquals(2L, e.getIdTraits());
+        assertEquals(3L, e.getIdEvent());
+    }
+
+    @Test
+    void gamingCharacterTraitsEntityId_equalsHashcode() {
+        GamingCharacterTraitsEntityId a = new GamingCharacterTraitsEntityId(1L, 2L);
+        GamingCharacterTraitsEntityId b = new GamingCharacterTraitsEntityId(1L, 2L);
+        GamingCharacterTraitsEntityId c = new GamingCharacterTraitsEntityId(3L, 4L);
+        GamingCharacterTraitsEntityId empty = new GamingCharacterTraitsEntityId();
+
+        assertEquals(a, b);
+        assertNotEquals(a, c);
+        assertNotEquals(a, null);
+        assertEquals(a.hashCode(), b.hashCode());
     }
 }

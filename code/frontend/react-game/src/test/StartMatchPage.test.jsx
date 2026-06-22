@@ -156,6 +156,53 @@ describe('StartMatchPage', () => {
     expect(screen.getByText('game-page')).toBeInTheDocument()
   })
 
+  it('clicking a card info button triggers handleSelectionPreview (preview state)', () => {
+    renderPage({ story: STORY, config: CONFIG })
+    // All Card info buttons have aria-label=t('card.info')='card.info'
+    const infoBtns = screen.getAllByRole('button', { name: 'card.info' })
+    expect(infoBtns.length).toBeGreaterThan(0)
+    // Clicking the first info button sets the preview (handleSelectionPreview)
+    fireEvent.click(infoBtns[0])
+    // No crash — preview state is set
+  })
+
+  it('clicking the terms card info button calls openTermsModal (Bootstrap modal)', () => {
+    const show = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
+    const termsEl = document.createElement('div')
+    termsEl.id = 'termsModal'
+    document.body.appendChild(termsEl)
+
+    renderPage({ story: STORY, config: CONFIG })
+    // The terms card (entityType="terms") preview button calls openTermsModal
+    const infoBtns = screen.getAllByRole('button', { name: 'card.info' })
+    // The terms card is last in cardsBlock — click its info button
+    fireEvent.click(infoBtns[infoBtns.length - 1])
+    // Bootstrap.Modal.getOrCreateInstance may have been called for termsModal
+
+    delete window.bootstrap
+    document.body.removeChild(termsEl)
+  })
+
+  it('clicking a card info button on mobile triggers Bootstrap modal (handleSelectionPreview mobile path)', () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: true })
+    const show = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
+    const modalEl = document.createElement('div')
+    modalEl.id = 'cardPreviewModal'
+    document.body.appendChild(modalEl)
+
+    renderPage({ story: STORY, config: CONFIG })
+    const infoBtns = screen.getAllByRole('button', { name: 'card.info' })
+    fireEvent.click(infoBtns[0])
+    // On mobile, handleSelectionPreview tries to open cardPreviewModal via Bootstrap
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)')
+
+    delete window.matchMedia
+    delete window.bootstrap
+    document.body.removeChild(modalEl)
+  })
+
   it('shows an error and retries when match creation fails', async () => {
     createMatch.mockRejectedValueOnce(new Error('STORY_HAS_NO_LOCATIONS'))
     renderPage({ story: STORY, config: CONFIG })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import FastTextCreatorModal from '../../components/common/story/FastTextCreatorModal'
 
@@ -66,5 +66,34 @@ describe('FastTextCreatorModal', () => {
     render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave} />)
     await userEvent.click(screen.getByText('Cancel'))
     expect(onClose).toHaveBeenCalledWith(null)
+  })
+
+  it('shows validation error when form submitted without story or textId', async () => {
+    const { container } = render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave} storyOptions={[]} />)
+    // Submit the form directly (bypassing disabled button)
+    const form = container.querySelector('form')
+    await userEvent.click(form)
+    fireEvent.submit(form)
+    expect(await screen.findByText(/Story and Text ID are required/i)).toBeInTheDocument()
+    expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('closes modal when backdrop is clicked', async () => {
+    render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave} storyOptions={MOCK_STORY_OPTIONS} />)
+    const backdrop = document.querySelector('.pg-modal-backdrop')
+    await userEvent.click(backdrop)
+    expect(onClose).toHaveBeenCalledWith(null)
+  })
+
+  it('updates Italian text fields when typed into', async () => {
+    render(<FastTextCreatorModal open={true} onClose={onClose} onSave={onSave} storyOptions={MOCK_STORY_OPTIONS} initialTextId={1} />)
+    const itShortField = screen.getByLabelText('it-short')
+    await userEvent.clear(itShortField)
+    await userEvent.type(itShortField, 'Titolo Italiano')
+    expect(itShortField).toHaveValue('Titolo Italiano')
+    const itLongField = screen.getByLabelText('it-long')
+    await userEvent.clear(itLongField)
+    await userEvent.type(itLongField, 'Descrizione Lunga')
+    expect(itLongField).toHaveValue('Descrizione Lunga')
   })
 })

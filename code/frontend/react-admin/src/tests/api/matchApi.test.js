@@ -78,4 +78,18 @@ describe('matchApi', () => {
     expect(mockDelete).toHaveBeenCalledWith('/api/admin/matches/m1')
     expect(res).toEqual({ status: 'DELETED' })
   })
+
+  it('listMatchStatuses calls statuses endpoint', async () => {
+    mockGet.mockResolvedValue({ data: [{ value: 'RUNNING', terminal: false }] })
+    const res = await matchApi.listMatchStatuses()
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/statuses')
+    expect(res).toEqual([{ value: 'RUNNING', terminal: false }])
+  })
+
+  it('changePlayerStatistics posts to the changeStatistics endpoint', async () => {
+    mockPost.mockResolvedValue({ data: { status: 'UPDATED' } })
+    const res = await matchApi.changePlayerStatistics('m1', 'p1', { life: 100 })
+    expect(mockPost).toHaveBeenCalledWith('/api/admin/matches/m1/player/p1/changeStatistics', { life: 100 })
+    expect(res).toEqual({ status: 'UPDATED' })
+  })
 })

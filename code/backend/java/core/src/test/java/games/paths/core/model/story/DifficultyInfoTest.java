@@ -102,5 +102,33 @@ class DifficultyInfoTest {
                 () -> assertEquals(0, di.getWeight())
             );
         }
+
+        @Test
+        @DisplayName("Should expose idCard, card, and trait budget fields")
+        void build_cardAndTraitBudgetFields() {
+            CardInfo card = new CardInfo(null, "STORY", null, null, null, null, null, null, null, null, "Easy Mode", null, null, null, null);
+            DifficultyInfo di = DifficultyInfo.builder()
+                    .uuid("diff-2")
+                    .idCard(7)
+                    .card(card)
+                    .traitCostPositiveBudget(10)
+                    .traitCostNegativeBudget(5)
+                    .build();
+
+            assertEquals(7, di.getIdCard());
+            assertSame(card, di.getCard());
+            assertEquals(10, di.getTraitCostPositiveBudget());
+            assertEquals(5, di.getTraitCostNegativeBudget());
+        }
+
+        @Test
+        @DisplayName("Null trait budgets should remain null")
+        void build_nullTraitBudgets() {
+            DifficultyInfo di = DifficultyInfo.builder().uuid("diff-3").build();
+            assertNull(di.getIdCard());
+            assertNull(di.getCard());
+            assertNull(di.getTraitCostPositiveBudget());
+            assertNull(di.getTraitCostNegativeBudget());
+        }
     }
 }

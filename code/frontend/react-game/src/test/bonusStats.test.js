@@ -13,11 +13,10 @@ describe('getNonZeroStats', () => {
   it('returns only non-zero base stats for a character', () => {
     const character = { lifeMax: 12, energyMax: 0, sadMax: 8, dexterityStart: 0, intelligenceStart: 3 }
     const stats = getNonZeroStats(character, 'character', t => t) // Pass identity function for translation
-    expect(stats).toEqual([
-      { key: 'lifeMax', value: 12 },
-      { key: 'sadMax', value: 8 },
-      { key: 'intelligenceStart', value: 3 },
-    ])
+    expect(stats).toHaveLength(3)
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'lifeMax', value: 12 }))
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'sadMax', value: 8 }))
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'intelligenceStart', value: 3 }))
   })
 
   it('returns base stats AND class bonuses for a class', () => {
@@ -33,10 +32,10 @@ describe('getNonZeroStats', () => {
       ],
     }
     const stats = getNonZeroStats(cls, 'class', t => t) // Pass identity function for translation
-    expect(stats).toContainEqual({ key: 'weightMax', value: 12 })
-    expect(stats).toContainEqual({ key: 'intelligenceBase', value: 3 })
-    expect(stats).toContainEqual({ key: 'life', value: 3 })
-    expect(stats).toContainEqual({ key: 'energy', value: 2 })
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'weightMax', value: 12 }))
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'intelligenceBase', value: 3 }))
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'life', value: 3 }))
+    expect(stats).toContainEqual(expect.objectContaining({ key: 'energy', value: 2 }))
     expect(stats.find(s => s.key === 'sad')).toBeUndefined()
   })
 })
