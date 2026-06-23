@@ -91,7 +91,7 @@ def _wire_full(story, match_p, user_a, char_p):
         "trait-1": _trait(90001, life=2, con=1),
         "trait-2": _trait(90002, energy=2, dex=1),
     }.get(u)
-    story.find_locations_by_story_id.return_value = [{"id": 90001, "uuid": "loc-start", "counter_start": 0}]
+    story.find_locations_by_story_id.return_value = [{"id": 90001, "uuid": "loc-start", "counter_time": 0}]
 
 
 def _cmd(**over):

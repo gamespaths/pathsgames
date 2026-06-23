@@ -48,8 +48,8 @@ STORY_ITEM = {
         {'uuid': 'diff-uuid-2', 'expCost': 10},
     ],
     'locations': [
-        {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'counterStart': 0},
-        {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'counterStart': 5},
+        {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'counterTime': 0},
+        {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'counterTime': 5},
     ],
     'keys': [
         {'id': 1, 'keyName': 'k1', 'keyValue': '7'},

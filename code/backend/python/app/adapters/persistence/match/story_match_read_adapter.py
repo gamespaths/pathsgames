@@ -64,7 +64,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 {
                     "id": r.id,
                     "uuid": r.uuid,
-                    "counter_start": r.counter_start,
+                    "counter_time": r.counter_time,
                 }
                 for r in rows
             ]

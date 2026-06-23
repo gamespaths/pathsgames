@@ -174,7 +174,7 @@ class LocationEntity(Base):
     max_characters = Column(Integer)
     id_event_on_enter = Column(Integer)
     id_event_if_counter_zero = Column(Integer)
-    counter_start = Column(Integer)
+    counter_time = Column(Integer)
     id_card = Column(Integer)
 
 

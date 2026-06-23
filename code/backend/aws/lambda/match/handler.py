@@ -478,7 +478,7 @@ def _create_match(user, body):
             "idLocation": int(loc.get('id', 0)),
             "uuid": str(uuid_lib.uuid4()),
             "flagAlreadyActived": 0,
-            "clockCounter": int(loc.get('counterStart') or loc.get('counter_time') or 0),
+            "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
             "name": loc.get('name'),
         })
 
@@ -1060,8 +1060,12 @@ def _apply_time_start_recovery(match, match_uuid, story):
     class_bonuses = story.get('classBonuses') or []
     class_id_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
 
+    characters = list(_match_characters(match_uuid))
+    occupied_ids = {_nz(c.get('idLocation')) for c in characters
+                    if c.get('idLocation') is not None}
+
     recaps = []
-    for c in _match_characters(match_uuid):
+    for c in characters:
         loc = story_locations.get(_nz(c.get('idLocation')))
         secure_param = _nz(loc.get('secureParam')) if loc else 0
         safe = secure_param > 0
@@ -1084,6 +1088,21 @@ def _apply_time_start_recovery(match, match_uuid, story):
         c['energy'], c['life'], c['sad'] = energy, life, sad
         db_utils.put_item(c)
 
+    # Re-seed location counters that were pre-created with 0 (match created before
+    # counter_time was set on the location) when the character is now occupying them.
+    for ls in (match.get('locations') or []):
+        id_location = _nz(ls.get('idLocation'))
+        if id_location not in occupied_ids:
+            continue
+        if _nz(ls.get('clockCounter')) != 0:
+            continue
+        if _nz(ls.get('flagAlreadyActived')) != 0:
+            continue
+        loc = story_locations.get(id_location)
+        counter_time = _nz((loc or {}).get('counterTime') or (loc or {}).get('counter_time'))
+        if counter_time > 0:
+            ls['clockCounter'] = counter_time
+
     # Decrement location counters on the embedded match state; flag zeros.
     for ls in (match.get('locations') or []):
         current = _nz(ls.get('clockCounter'))
@@ -1094,6 +1113,7 @@ def _apply_time_start_recovery(match, match_uuid, story):
         if nxt == 0:
             loc = story_locations.get(_nz(ls.get('idLocation')))
             ls['pendingEvent'] = (loc or {}).get('idEventIfCounterZero')
+            ls['flagAlreadyActived'] = 1
     return recaps
 
 

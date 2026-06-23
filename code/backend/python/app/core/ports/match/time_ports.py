@@ -92,3 +92,7 @@ class TimeStorePort(TurnCycleStorePort):
     def log_counter_zero(self, id_match: int, id_location: int,
                          id_event_if_counter_zero: Optional[int], message: str) -> None:
         """Audit a counter-zero event (pending execution; wired in Step 29)."""
+
+    @abstractmethod
+    def mark_state_location_activated(self, id_match: int, id_location: int) -> None:
+        """Set gaming_state_locations.flag_already_actived = 1 when the counter reaches zero."""

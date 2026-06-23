@@ -224,7 +224,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     max_characters=item.get("maxCharacters"),
                     id_event_on_enter=item.get("idEventOnEnter"),
                     id_event_if_counter_zero=item.get("idEventIfCounterZero"),
-                    counter_start=item.get("counterStart"),
+                    counter_time=item.get("counterTime"),
                     id_card=item.get("idCard")
                 )
                 explicit_id = _get_long(item, "id")

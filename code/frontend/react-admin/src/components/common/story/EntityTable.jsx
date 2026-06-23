@@ -108,10 +108,11 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
                       return <td key={col.key}>—</td>
                     }
                     const textVal = resolveText(rawId)
+                    const textShort = textVal.length > 33 ? textVal.slice(0, 33) + '…' : textVal
                     return (
                       <td key={col.key}>
                         <span className="pg-badge pg-badge-resolved" title={textVal}>
-                          #{rawId} {textVal}
+                          #{rawId} {textShort}
                         </span>
                       </td>
                     )

@@ -67,15 +67,33 @@ public class TimeStartRecoveryService {
         List<ClassBonusView> allBonuses = store.findClassBonuses(ctx.idStory());
 
         Map<Long, Integer> counterByLocation = new HashMap<>();
+        Map<Long, Integer> flagByLocation = new HashMap<>();
         for (StateLocationView sl : store.findStateLocations(idMatch)) {
             counterByLocation.put(sl.idLocation(), sl.clockCounter());
+            flagByLocation.put(sl.idLocation(), sl.flagAlreadyActived());
         }
 
-        // 1. Seed missing state-location rows for occupied locations with a counter.
+        // Build the set of locations currently occupied by characters.
         Set<Long> occupied = new HashSet<>();
         for (RecoveryCharacter c : characters) {
             if (c.idLocation() != null) occupied.add(c.idLocation());
         }
+
+        // 1a. Re-seed occupied locations where the existing row has clockCounter = 0
+        //     and has never been activated, but the story definition now carries
+        //     counterTime > 0. This fixes matches created before counter_time was set.
+        for (Long idLocation : occupied) {
+            Integer existing = counterByLocation.get(idLocation);
+            if (existing == null || existing > 0) continue;
+            if (flagByLocation.getOrDefault(idLocation, 0) != 0) continue;
+            LocationSafety s = safetyByLocation.get(idLocation);
+            int counterTime = s == null ? 0 : nz(s.counterTime());
+            if (counterTime <= 0) continue;
+            store.updateStateLocationCounter(idMatch, idLocation, counterTime);
+            counterByLocation.put(idLocation, counterTime);
+        }
+
+        // 1b. Seed missing state-location rows for occupied locations with a counter.
         for (Long idLocation : occupied) {
             if (counterByLocation.containsKey(idLocation)) continue;
             LocationSafety s = safetyByLocation.get(idLocation);
@@ -127,6 +145,7 @@ public class TimeStartRecoveryService {
                 store.logCounterZero(idMatch, idLocation, pendingEvent,
                         "counter reached zero at location " + idLocation
                                 + (pendingEvent != null ? "; pending event " + pendingEvent : ""));
+                store.markStateLocationActivated(idMatch, idLocation);
             }
         }
 

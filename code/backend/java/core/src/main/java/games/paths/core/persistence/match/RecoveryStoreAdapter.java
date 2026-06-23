@@ -108,7 +108,7 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
     public List<StateLocationView> findStateLocations(long idMatch) {
         List<StateLocationView> out = new ArrayList<>();
         for (GamingStateLocationsEntity s : stateLocationsRepository.findByIdMatch(idMatch)) {
-            out.add(new StateLocationView(s.getIdLocation(), nz(s.getClockCounter())));
+            out.add(new StateLocationView(s.getIdLocation(), nz(s.getClockCounter()), nz(s.getFlagAlreadyActived())));
         }
         return out;
     }
@@ -139,6 +139,15 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
         stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
                 .ifPresent(s -> {
                     s.setClockCounter(newClockCounter);
+                    stateLocationsRepository.save(s);
+                });
+    }
+
+    @Override
+    public void markStateLocationActivated(long idMatch, long idLocation) {
+        stateLocationsRepository.findById(new GamingStateLocationsEntityId(idMatch, idLocation))
+                .ifPresent(s -> {
+                    s.setFlagAlreadyActived(1);
                     stateLocationsRepository.save(s);
                 });
     }

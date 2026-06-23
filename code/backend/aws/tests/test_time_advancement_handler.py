@@ -150,7 +150,7 @@ def _story_recovery(uuid='s1'):
         'classBonuses': [{'idClass': 1, 'statistic': 'energy', 'value': 1}],
         'locations': [
             {'id': 1, 'secureParam': 1, 'idEventIfCounterZero': None},
-            {'id': 2, 'secureParam': 0, 'counterStart': 1, 'idEventIfCounterZero': 99},
+            {'id': 2, 'secureParam': 0, 'counterTime': 1, 'idEventIfCounterZero': 99},
         ],
     }
 
@@ -198,6 +198,42 @@ def test_sleep_recovers_stats_and_decrements_counter():
     loc2 = next(l for l in match['locations'] if l['idLocation'] == 2)
     assert loc2['clockCounter'] == 0
     assert loc2['pendingEvent'] == 99
+    assert loc2.get('flagAlreadyActived') == 1
+
+
+def test_sleep_reseeds_zero_counter_for_occupied_location():
+    """Match created before counterTime was set: clockCounter=0 + flagAlreadyActived=0
+    must be re-seeded to counterTime, then immediately decremented."""
+    story = {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'clockSingularDescription': 'hour', 'clockPluralDescription': 'hours',
+        'difficulties': [],
+        'classes': [],
+        'classBonuses': [],
+        'locations': [
+            {'id': 10, 'secureParam': 0, 'counterTime': 5, 'idEventIfCounterZero': None},
+        ],
+    }
+    match = {
+        'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1',
+        'status': 'RUNNING', 'currentClock': 0, 'userCreatorUuid': 'player-uuid-001',
+        'storyUuid': 's1', 'tsInsert': 1,
+        'locations': [
+            # pre-seeded with 0 when match was created (before counterTime was added)
+            {'idLocation': 10, 'clockCounter': 0, 'flagAlreadyActived': 0},
+        ],
+    }
+    char = _char('m1', 1, 'c1', energy=50)
+    char['idLocation'] = 10
+    items = [PLAYER, story, match, char]
+    with _env(items) as (table, _):
+        result = h.lambda_handler(_event('POST', '/api/gameplay/m1/action/sleep'), None)
+    assert result['statusCode'] == 200
+    assert _body(result)['timeEndTriggered'] is True
+    saved_match = table.get_item('MATCH#m1')
+    loc10 = next(l for l in saved_match['locations'] if l['idLocation'] == 10)
+    # must have been re-seeded to 5 then decremented to 4
+    assert loc10['clockCounter'] == 4
 
 
 # ── clock ─────────────────────────────────────────────────────────────────────

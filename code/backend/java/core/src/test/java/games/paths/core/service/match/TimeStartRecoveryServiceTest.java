@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -103,7 +104,7 @@ class TimeStartRecoveryServiceTest {
                     new LocationSafety(idLocation, 1, 3, 777))); // secure_param=1 -> safe, counterTime=3
             when(store.findClassBonuses(idStory)).thenReturn(List.of(
                     new ClassBonusView(5L, "energy", 1)));
-            // No existing state-location row -> must be seeded.
+            // No existing state-location row → must be seeded (1b path).
             when(store.findStateLocations(idMatch)).thenReturn(List.of());
 
             List<RecoveryRecap> recaps = service(store).applyAtTimeStart(idMatch);
@@ -138,12 +139,64 @@ class TimeStartRecoveryServiceTest {
                     new LocationSafety(idLocation, 0, 1, 777))); // unsafe, counter already at 1
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
             when(store.findStateLocations(idMatch)).thenReturn(List.of(
-                    new StateLocationView(idLocation, 1)));
+                    new StateLocationView(idLocation, 1, 0)));
 
             service(store).applyAtTimeStart(idMatch);
 
             verify(store).updateStateLocationCounter(idMatch, idLocation, 0);
             verify(store).logCounterZero(eq(idMatch), eq(idLocation), eq(777), anyString());
+            verify(store).markStateLocationActivated(idMatch, idLocation);
+        }
+
+        @Test
+        @DisplayName("re-seeds an occupied location whose counter was pre-seeded with 0 but definition now has counterTime > 0")
+        void reseedsZeroCounterForOccupiedLocation() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            long idLocation = 100L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
+                    10L, "char-a", null, idLocation,
+                    1, 1, 1, 10, 10, 10, 100, 100, 100)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(idLocation, 0, 5, null))); // counterTime=5
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            // Row exists with clockCounter=0 and flagAlreadyActived=0 (pre-seeded before counter was added)
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(idLocation, 0, 0)));
+
+            service(store).applyAtTimeStart(idMatch);
+
+            // Must re-seed to counterTime=5, then immediately decrement to 4
+            verify(store).updateStateLocationCounter(idMatch, idLocation, 5);
+            verify(store).updateStateLocationCounter(idMatch, idLocation, 4);
+            verify(store, never()).markStateLocationActivated(anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("does not re-seed an occupied location whose counter legitimately reached 0 (flagAlreadyActived=1)")
+        void noReseedWhenAlreadyActivated() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            long idLocation = 100L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
+                    10L, "char-a", null, idLocation,
+                    1, 1, 1, 10, 10, 10, 100, 100, 100)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(idLocation, 0, 5, null)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            // Row has clockCounter=0 but flagAlreadyActived=1 (counter already fired)
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(idLocation, 0, 1)));
+
+            service(store).applyAtTimeStart(idMatch);
+
+            // Must NOT update the counter (already activated)
+            verify(store, never()).updateStateLocationCounter(anyLong(), anyLong(), anyInt());
+            verify(store, never()).markStateLocationActivated(anyLong(), anyLong());
         }
 
         @Test

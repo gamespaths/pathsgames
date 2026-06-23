@@ -114,4 +114,25 @@ describe('EntityTable', () => {
     render(<EntityTable columns={cols} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
     expect(screen.getByText('—')).toBeInTheDocument()
   })
+
+  it('truncates idTextName text to 33 characters with ellipsis', () => {
+    const longText = 'A very long location name that definitely exceeds thirty-three characters'
+    const cols = [{ key: 'idName', label: 'Name', type: 'idTextName' }]
+    const ents = [{ uuid: '1', id: 1, idName: 42 }]
+    const texts = [{ idText: 42, lang: 'en', shortText: longText }]
+    render(<EntityTable columns={cols} entities={ents} texts={texts} onEdit={()=>{}} onDelete={()=>{}} />)
+    const badge = screen.getByTitle(longText)
+    expect(badge.textContent).toContain('…')
+    expect(badge.textContent.replace(/^#\d+\s*/, '')).toHaveLength(34) // 33 chars + '…'
+  })
+
+  it('does not truncate idTextName text shorter than 34 characters', () => {
+    const shortText = 'Short name'
+    const cols = [{ key: 'idName', label: 'Name', type: 'idTextName' }]
+    const ents = [{ uuid: '1', id: 1, idName: 7 }]
+    const texts = [{ idText: 7, lang: 'en', shortText: shortText }]
+    render(<EntityTable columns={cols} entities={ents} texts={texts} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText(/Short name/)).toBeInTheDocument()
+    expect(screen.queryByText(/…/)).toBeNull()
+  })
 })

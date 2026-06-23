@@ -226,12 +226,29 @@ class RecoveryStoreAdapterTest {
         GamingStateLocationsEntity s = new GamingStateLocationsEntity();
         s.setIdLocation(7L);
         s.setClockCounter(3);
+        s.setFlagAlreadyActived(1);
         when(stateLocationsRepository.findByIdMatch(1L)).thenReturn(List.of(s));
 
         List<RecoveryStorePort.StateLocationView> result = adapter.findStateLocations(1L);
         assertEquals(1, result.size());
         assertEquals(7L, result.get(0).idLocation());
         assertEquals(3, result.get(0).clockCounter());
+        assertEquals(1, result.get(0).flagAlreadyActived());
+    }
+
+    @Test
+    void markStateLocationActivated_setsFlag() {
+        GamingStateLocationsEntity s = new GamingStateLocationsEntity();
+        s.setIdMatch(1L);
+        s.setIdLocation(7L);
+        s.setFlagAlreadyActived(0);
+        when(stateLocationsRepository.findById(new games.paths.core.entity.match.GamingStateLocationsEntityId(1L, 7L)))
+                .thenReturn(Optional.of(s));
+
+        adapter.markStateLocationActivated(1L, 7L);
+
+        assertEquals(1, s.getFlagAlreadyActived());
+        verify(stateLocationsRepository).save(s);
     }
 
     // ─── updateCharacterStats ───────────────────────────────────────────────

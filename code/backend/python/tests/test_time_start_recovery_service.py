@@ -50,12 +50,19 @@ class FakeRecoveryStore:
         self._characters = characters
         self._safety = safety
         self._bonuses = bonuses
-        self._state = {s["id_location"]: s["clock_counter"] for s in state_locations}
+        self._state = {
+            s["id_location"]: {
+                "clock_counter": s["clock_counter"],
+                "flag_already_actived": s.get("flag_already_actived", 0),
+            }
+            for s in state_locations
+        }
         self.stat_updates = []
         self.inserts = []
         self.counter_updates = []
         self.recovery_logs = []
         self.counter_zero_logs = []
+        self.activated = []
 
     def load_recovery_context(self, id_match):
         return self._context
@@ -70,14 +77,21 @@ class FakeRecoveryStore:
         return self._bonuses
 
     def find_state_locations(self, id_match):
-        return [{"id_location": k, "clock_counter": v} for k, v in self._state.items()]
+        return [
+            {
+                "id_location": k,
+                "clock_counter": v["clock_counter"],
+                "flag_already_actived": v["flag_already_actived"],
+            }
+            for k, v in self._state.items()
+        ]
 
     def update_character_stats(self, id_match, id_character, energy, life, sad):
         self.stat_updates.append((id_character, energy, life, sad))
 
     def insert_state_location(self, id_match, id_location, clock_counter):
         self.inserts.append((id_location, clock_counter))
-        self._state[id_location] = clock_counter
+        self._state[id_location] = {"clock_counter": clock_counter, "flag_already_actived": 0}
 
     def update_state_location_counter(self, id_match, id_location, new_clock_counter):
         self.counter_updates.append((id_location, new_clock_counter))
@@ -87,6 +101,9 @@ class FakeRecoveryStore:
 
     def log_counter_zero(self, id_match, id_location, id_event_if_counter_zero, message):
         self.counter_zero_logs.append((id_location, id_event_if_counter_zero))
+
+    def mark_state_location_activated(self, id_match, id_location):
+        self.activated.append(id_location)
 
 
 def test_full_flow_seeds_recovers_and_decrements():
@@ -129,11 +146,55 @@ def test_counter_zero_logs_pending_event():
         safety=[{"id_location": 100, "secure_param": 0, "counter_time": 1,
                  "id_event_if_counter_zero": 777}],
         bonuses=[],
-        state_locations=[{"id_location": 100, "clock_counter": 1}],
+        state_locations=[{"id_location": 100, "clock_counter": 1, "flag_already_actived": 0}],
     )
     TimeStartRecoveryService(store).apply_at_time_start(1)
     assert store.counter_updates == [(100, 0)]
     assert store.counter_zero_logs == [(100, 777)]
+    assert store.activated == [100]
+
+
+def test_reseeds_zero_counter_for_occupied_location():
+    """Row pre-seeded with 0 (match created before counter_time set) should be
+    re-seeded when the character is in that location and flag_already_actived=0."""
+    store = FakeRecoveryStore(
+        context={"id_story": 9, "difficulty_energy": 0},
+        characters=[{
+            "id": 10, "uuid": "char-a", "id_class": None, "id_location": 100,
+            "dexterity": 1, "intelligence": 1, "constitution": 1,
+            "energy": 10, "life": 10, "sad": 10,
+            "energy_max": 100, "life_max": 100, "sad_max": 100,
+        }],
+        safety=[{"id_location": 100, "secure_param": 0, "counter_time": 5,
+                 "id_event_if_counter_zero": None}],
+        bonuses=[],
+        state_locations=[{"id_location": 100, "clock_counter": 0, "flag_already_actived": 0}],
+    )
+    TimeStartRecoveryService(store).apply_at_time_start(1)
+    # Must re-seed to 5 then immediately decrement to 4
+    assert (100, 5) in store.counter_updates
+    assert (100, 4) in store.counter_updates
+    assert store.activated == []
+
+
+def test_no_reseed_when_already_activated():
+    """Row with clockCounter=0 and flag_already_actived=1 must not be re-seeded."""
+    store = FakeRecoveryStore(
+        context={"id_story": 9, "difficulty_energy": 0},
+        characters=[{
+            "id": 10, "uuid": "char-a", "id_class": None, "id_location": 100,
+            "dexterity": 1, "intelligence": 1, "constitution": 1,
+            "energy": 10, "life": 10, "sad": 10,
+            "energy_max": 100, "life_max": 100, "sad_max": 100,
+        }],
+        safety=[{"id_location": 100, "secure_param": 0, "counter_time": 5,
+                 "id_event_if_counter_zero": None}],
+        bonuses=[],
+        state_locations=[{"id_location": 100, "clock_counter": 0, "flag_already_actived": 1}],
+    )
+    TimeStartRecoveryService(store).apply_at_time_start(1)
+    assert store.counter_updates == []
+    assert store.activated == []
 
 
 def test_returns_empty_without_context():

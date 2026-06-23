@@ -150,9 +150,9 @@ SEED_STORIES = [
             # Step 27.x — locations reference a real card via idCard; the card is
             # resolved from raw_cards at seed time (see _seed_stories), so it also
             # appears in the story's card list instead of being an orphan literal.
-            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterTime": 0,
              "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 2,
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 2,
              "secureParam": 0, "idEventIfCounterZero": 1, "idCard": 3},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
@@ -426,11 +426,11 @@ SEED_STORIES = [
         "locations": [
             # Step 27.x — locations reference a real card via idCard; resolved from
             # raw_cards at seed time (see _seed_stories) so cards appear in the list.
-            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0,
+            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterTime": 0,
              "idCard": 1},
-            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5,
+            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterTime": 5,
              "idCard": 2},
-            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10,
+            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterTime": 10,
              "idCard": 3},
         ],
         # Step 27.x — neighbor links: Crossroads connects to both paths

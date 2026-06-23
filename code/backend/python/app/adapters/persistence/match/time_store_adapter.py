@@ -196,12 +196,12 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 .filter(LocationEntity.id_story == id_story)
                 .all()
             )
-            # Python schema uses is_safe (0/1) + counter_start; treat is_safe as the
+            # Python schema uses is_safe (0/1) + counter_time; treat is_safe as the
             # numeric secure_param (safe when > 0) to mirror the Java formula.
             return [{
                 "id_location": l.id,
                 "secure_param": l.is_safe or 0,
-                "counter_time": l.counter_start,
+                "counter_time": l.counter_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
             } for l in rows]
 
@@ -222,8 +222,11 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 .filter(GamingStateLocationEntity.id_match == id_match)
                 .all()
             )
-            return [{"id_location": s.id_location, "clock_counter": s.clock_counter}
-                    for s in rows]
+            return [{
+                "id_location": s.id_location,
+                "clock_counter": s.clock_counter,
+                "flag_already_actived": s.flag_already_actived or 0,
+            } for s in rows]
 
     def update_character_stats(self, id_match: int, id_character: int,
                                energy: int, life: int, sad: int) -> None:
@@ -272,6 +275,22 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
             if s is None:
                 return
             s.clock_counter = new_clock_counter
+            s.ts_update = _now_iso()
+            session.commit()
+
+    def mark_state_location_activated(self, id_match: int, id_location: int) -> None:
+        with self.session_factory() as session:
+            s = (
+                session.query(GamingStateLocationEntity)
+                .filter(
+                    GamingStateLocationEntity.id_match == id_match,
+                    GamingStateLocationEntity.id_location == id_location,
+                )
+                .first()
+            )
+            if s is None:
+                return
+            s.flag_already_actived = 1
             s.ts_update = _now_iso()
             session.commit()
 

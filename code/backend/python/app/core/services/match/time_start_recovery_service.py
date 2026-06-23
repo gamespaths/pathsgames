@@ -37,13 +37,34 @@ class TimeStartRecoveryService:
             s["id_location"]: s for s in self.store.find_location_safety(id_story)
         }
         all_bonuses = self.store.find_class_bonuses(id_story) or []
+        state_rows = self.store.find_state_locations(id_match)
         counter_by_location: Dict[int, int] = {
-            s["id_location"]: _nz(s.get("clock_counter"))
-            for s in self.store.find_state_locations(id_match)
+            s["id_location"]: _nz(s.get("clock_counter")) for s in state_rows
+        }
+        flag_by_location: Dict[int, int] = {
+            s["id_location"]: _nz(s.get("flag_already_actived")) for s in state_rows
         }
 
-        # 1. Seed missing state-location rows for occupied counter-locations.
+        # Build the set of locations occupied by characters.
         occupied = {c["id_location"] for c in characters if c.get("id_location") is not None}
+
+        # 1a. Re-seed occupied locations whose existing counter is 0, not yet activated,
+        #     but the story definition now carries counter_time > 0. Fixes matches
+        #     created before counter_time was added to the location.
+        for id_location in occupied:
+            existing = counter_by_location.get(id_location)
+            if existing is None or existing > 0:
+                continue
+            if flag_by_location.get(id_location, 0) != 0:
+                continue
+            s = safety_by_location.get(id_location)
+            counter_time = _nz(s.get("counter_time")) if s else 0
+            if counter_time <= 0:
+                continue
+            self.store.update_state_location_counter(id_match, id_location, counter_time)
+            counter_by_location[id_location] = counter_time
+
+        # 1b. Seed missing state-location rows for occupied counter-locations.
         for id_location in occupied:
             if id_location in counter_by_location:
                 continue
@@ -92,6 +113,7 @@ class TimeStartRecoveryService:
                 if pending is not None:
                     msg += f"; pending event {pending}"
                 self.store.log_counter_zero(id_match, id_location, pending, msg)
+                self.store.mark_state_location_activated(id_match, id_location)
 
         return recaps
 

@@ -126,7 +126,7 @@ class MatchCommandService(MatchCommandPort):
                 "id_match": saved["id"],
                 "id_location": loc["id"],
                 "flag_already_actived": 0,
-                "clock_counter": loc.get("counter_start") or loc.get("counter_time") or 0,
+                "clock_counter": loc.get("counter_time") or 0,
             })
         self.match_persistence_port.save_locations(location_rows)
 

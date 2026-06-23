@@ -77,7 +77,7 @@ def seed():
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.
             {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
-             "counterStart": 2, "idEventIfCounterZero": 1}
+             "counterTime": 2, "idEventIfCounterZero": 1}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",

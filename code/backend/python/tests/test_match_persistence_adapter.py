@@ -149,7 +149,7 @@ def test_story_match_read_adapter(session_factory):
         story_id = story.id
 
         diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5)
-        location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_start=3)
+        location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_time=3)
         key = KeyEntity(id=20, id_story=story_id, uuid="key-uuid", key_name="k", key_value="1")
         session.add_all([diff, location, key])
         session.commit()
@@ -170,7 +170,7 @@ def test_story_match_read_adapter(session_factory):
     assert read.find_difficulty_by_id(s_by_uuid["id"], 99) is None
 
     locs = read.find_locations_by_story_id(s_by_uuid["id"])
-    assert locs[0]["counter_start"] == 3
+    assert locs[0]["counter_time"] == 3
     keys = read.find_keys_by_story_id(s_by_uuid["id"])
     assert keys[0]["key_value"] == "1"
 

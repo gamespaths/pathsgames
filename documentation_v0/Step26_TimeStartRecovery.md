@@ -146,8 +146,8 @@ the call `recoveryService.applyAtTimeStart(match.id())` fires between waking cha
 | `time_store_adapter.py` | `app/adapters/persistence/match/` | SQLAlchemy implementations of the new port methods |
 
 > **Python note:** Python's `list_locations` uses the column `is_safe` (treated as a
-> numeric `secure_param` proxy) and `counter_start` rather than the relational
-> `secure_param` / `counter_time` column names used in Java/PostgreSQL. The recovery
+> numeric `secure_param` proxy); the counter column is now unified as `counter_time`
+> (exposed as `counterTime` in the API, matching Java/PostgreSQL). The recovery
 > logic is otherwise identical.
 
 ### 3.4 AWS Lambda models
@@ -239,7 +239,7 @@ AWS Lambda stores `classUuid` on the DynamoDB character item; no schema change.
 |--------|------|-----------------|
 | `id_match` | INTEGER | FK → `gaming_match(id)` |
 | `id_location` | INTEGER | FK → `list_locations(id)` |
-| `flag_already_actived` | BOOLEAN | Not modified in Step 26 |
+| `flag_already_actived` | BOOLEAN | Set to `1` when the counter legitimately reaches zero; prevents re-seeding after activation (see §6.4) |
 | `clock_counter` | INTEGER | Seeded from `list_locations.counter_time`; decremented on each time-start; when it reaches `0` the location's `id_event_if_counter_zero` is logged as pending |
 
 ### 5.4 `list_locations` — columns read by Step 26
@@ -277,15 +277,21 @@ Full sequence:
    `secure_param`, `counter_time`, `id_event_if_counter_zero` per location.
 4. Load `list_classes_bonus` rows for the story (`ClassBonusView` list).
 5. Load existing `gaming_state_locations` rows for the match (`StateLocationView` list).
-6. **Seed missing state-location rows**: for each location currently occupied by a
-   character (`gaming_character_instance.id_location`) that has `counter_time > 0`
-   but no `gaming_state_locations` row yet, INSERT a row with
-   `clock_counter = counter_time`.
+6a. **Re-seed stale rows** (v0.26.1 fix): for each occupied location whose existing
+    `gaming_state_locations` row has `clock_counter = 0` AND `flag_already_actived = 0`
+    but whose story definition now carries `counter_time > 0`, call
+    `updateStateLocationCounter` to reinitialize `clock_counter` to the definition value.
+    Rows where `flag_already_actived != 0` are skipped (counter legitimately reached zero).
+6b. **Seed missing state-location rows**: for each location currently occupied by a
+    character (`gaming_character_instance.id_location`) that has `counter_time > 0`
+    but no `gaming_state_locations` row yet, INSERT a row with
+    `clock_counter = counter_time`.
 7. **Recover each character**: compute `(safe, P)` from the location, compute base
    recovery, add class bonuses, clamp; call `updateCharacterStats`; call `logRecovery`.
 8. **Decrement counters**: for each `gaming_state_locations` row with
    `clock_counter > 0`, decrement by 1; when the result is `0`, call `logCounterZero`
-   with the `id_event_if_counter_zero` (may be `null`).
+   with the `id_event_if_counter_zero` (may be `null`), then call
+   `markStateLocationActivated` to set `flag_already_actived = 1`.
 9. Return `List<RecoveryRecap>` (one item per character) to `TimeAdvancementService`,
    which stores it in `SleepResult.recovery()` for serialization.
 
@@ -296,7 +302,49 @@ A character who joins a match at a counter-location does not automatically creat
 Step 26 pre-seeds it at the first time-start if the character is already there, so that
 the decrement logic has a row to work with.
 
-### 6.3 Pending counter-zero events (stub)
+### 6.3 Re-seed fix for counters added after match creation (v0.26.1)
+
+**Problem.** When a match is created, the backend pre-seeds a `gaming_state_locations`
+row for each occupied location using `counter_time || 0`. If `counter_time` is then
+raised on the story definition _after_ the match already exists, the row is already
+present with `clock_counter = 0` and is never re-initialized: the counter stays at zero
+and is never decremented.
+
+**Fix.** `TimeStartRecoveryService.applyAtTimeStart` now includes a re-seed step (step
+1a in the sequence below) that runs _before_ the normal seed-missing-rows step (1b):
+
+> For every occupied location whose `gaming_state_locations` row has
+> `clock_counter = 0` **and** `flag_already_actived = 0`, but whose story definition
+> now carries `counter_time > 0`, the service calls
+> `updateStateLocationCounter(idMatch, idLocation, counterTime)` to reinitialize
+> the counter to the definition value. The row is then decremented in step 3 as
+> usual.
+
+The fix is applied identically in Java (`TimeStartRecoveryService`), Python
+(`time_start_recovery_service.py`), and AWS Lambda (`_apply_time_start_recovery` in
+`lambda/match/handler.py`).
+
+### 6.4 Guard flag — no re-seed after counter reaches zero
+
+When a counter is legitimately decremented to zero, the service sets
+`gaming_state_locations.flag_already_actived = 1` by calling:
+
+- **Java** `RecoveryStorePort.markStateLocationActivated(idMatch, idLocation)` (new
+  port method, implemented in `RecoveryStoreAdapter`).
+- **Python** `time_store_adapter.mark_state_location_activated(id_match, id_location)`
+  (new method on `TimeStorePort`).
+- **AWS** sets the embedded field `flagAlreadyActived = 1` on the match's `locations`
+  array entry in DynamoDB.
+
+The re-seed check in step 1a skips any location where `flag_already_actived != 0`,
+so a location whose counter has legitimately reached zero will never be re-seeded on
+subsequent time-starts. This prevents a false re-seed when `counter_time > 0` on the
+story definition but the counter has already fired.
+
+`StateLocationView` (Java record in `RecoveryStorePort`) and its Python/AWS equivalents
+now expose `flagAlreadyActived` so the service can perform this check.
+
+### 6.5 Pending counter-zero events (stub)
 
 When `clock_counter` reaches `0`, `logCounterZero` writes a row to `log_events` with
 type PENDING and the `id_event_if_counter_zero` as a reference. The actual execution of
@@ -312,8 +360,8 @@ Step 26 guarantees only that the event id is recorded.
 **Core module**
 
 - [x] `TimeStartRecoveryService` (`service/match/`): `applyAtTimeStart(long idMatch)` orchestrator; static `computeRecovery(...)` for pure-math unit tests; inner records `StatTriple` and `RecoveryRecap`.
-- [x] `RecoveryStorePort` (`port/match/`): all read/write methods; inner records `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView`.
-- [x] `RecoveryStoreAdapter` (`persistence/match/`): JDBC/JPA implementations of all port methods.
+- [x] `RecoveryStorePort` (`port/match/`): all read/write methods; inner records `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView` (now includes `flagAlreadyActived`). New method `markStateLocationActivated(idMatch, idLocation)` sets `flag_already_actived = 1` when a counter reaches zero.
+- [x] `RecoveryStoreAdapter` (`persistence/match/`): JDBC/JPA implementations of all port methods including `markStateLocationActivated`.
 - [x] `LogEventsEntity` + `LogEventsEntityId` (`entity/match/`): JPA entity for `log_events` table writes.
 - [x] `TimeAdvancementService`: inject `TimeStartRecoveryService`; call `applyAtTimeStart` between wake-all and queue rebuild; store result in `SleepResult`.
 - [x] `TimeAdvancementPort.SleepResult`: add `List<RecoveryItem> recovery()` accessor.
@@ -337,8 +385,8 @@ Step 26 guarantees only that the event id is recorded.
 
 - [x] `time_start_recovery_service.py` (`app/core/services/match/`): `apply_at_time_start(id_match)` and module-level `compute_recovery(...)`.
 - [x] `RecoveryItem` dataclass added to `time_models.py`.
-- [x] `TimeStorePort` extended with 10 new abstract methods for recovery and counter operations.
-- [x] `time_store_adapter.py`: all new port methods implemented via SQLAlchemy / raw SQL.
+- [x] `TimeStorePort` extended with 11 new abstract methods for recovery and counter operations (including `mark_state_location_activated`).
+- [x] `time_store_adapter.py`: all new port methods implemented via SQLAlchemy / raw SQL, including `mark_state_location_activated`.
 - [x] `time_clock_controller.py`: recovery recap serialized into the sleep response JSON.
 - [x] `tests/test_time_start_recovery_service.py`: pytest suite mirroring Java unit tests.
 
@@ -348,9 +396,9 @@ Step 26 guarantees only that the event id is recorded.
 
 - [x] `lambda/match/handler.py`:
   - `_compute_recovery(dexterity, intelligence, constitution, energy, life, sad, energy_max, life_max, sad_max, safe, p, bonus_energy, bonus_life, bonus_sad)` — pure function.
-  - `_apply_time_start_recovery(match, match_uuid, story)` — iterates characters, resolves class bonuses from `story.classes`, seeds/decrements location counters (embedded on the match `locations` array), sets `pendingEvent` marker when counter reaches zero; returns recovery list.
+  - `_apply_time_start_recovery(match, match_uuid, story)` — iterates characters, resolves class bonuses from `story.classes`, re-seeds counters stuck at zero (see §6.3), seeds/decrements location counters (embedded on the match `locations` array), sets `flagAlreadyActived = 1` and `pendingEvent` marker when counter reaches zero; returns recovery list.
   - `_advance_time(match, match_uuid)` — calls `_apply_time_start_recovery` after waking characters; appends the result to the sleep response.
-- [x] `lambda/seed/handler.py`: tutorial location 1 set as safe (`secureParam: 1`); tutorial location 2 carries `counterStart: 2` and `idEventIfCounterZero: 1` for testing the counter path.
+- [x] `lambda/seed/handler.py`: tutorial location 1 set as safe (`secureParam: 1`); tutorial location 2 carries `counterTime: 2` and `idEventIfCounterZero: 1` for testing the counter path.
 - [x] `tests/test_time_advancement_handler.py`: extended to cover recovery recap shape, class bonus application, safe vs unsafe branch, and counter decrement/zero flag.
 
 
@@ -375,20 +423,20 @@ Step 26 guarantees only that the event id is recorded.
 
 | Backend | File | Key scenarios |
 |---------|------|---------------|
-| Java | `TimeStartRecoveryServiceTest` | Safe branch (energy=DEX+P, life=COS+secureParam, sad=INT+secureParam); unsafe branch (`energy = difficulty.energy` only, life/sad unchanged); class bonus addition; clamp at max (energy and sad); clamp at zero; no class (id_class null) |
+| Java | `TimeStartRecoveryServiceTest` | Safe branch (energy=DEX+P, life=COS+secureParam, sad=INT+secureParam); unsafe branch (`energy = difficulty.energy` only, life/sad unchanged); class bonus addition; clamp at max (energy and sad); clamp at zero; no class (id_class null); re-seed when counter=0 and flag=0; no re-seed when flag=1 |
 | Java | `TimeAdvancementServiceTest` | `applyAtTimeStart` called once per time-end; recovery list propagated to `SleepResult` |
 | Java | `TimeClockDtoSerializationTest` | `recovery` field serializes as JSON array |
-| Python | `test_time_start_recovery_service.py` | Same safe/unsafe/bonus/clamp scenarios via pytest (life/sad use secureParam); `apply_at_time_start` with mocked `TimeStorePort` |
-| AWS | `test_time_advancement_handler.py` | Recovery recap shape; class bonus from story classes; counter seed, decrement, zero flag; safe vs unsafe |
+| Python | `test_time_start_recovery_service.py` | Same safe/unsafe/bonus/clamp/re-seed scenarios via pytest (life/sad use secureParam); `apply_at_time_start` with mocked `TimeStorePort` |
+| AWS | `test_time_advancement_handler.py` | Recovery recap shape; class bonus from story classes; counter seed, decrement, zero flag; safe vs unsafe; re-seed when counter stuck at 0; no-reseed after `flagAlreadyActived=1` |
 | react-game | `LocationCard.test.jsx` | Counter badge present when `> 0`; absent when `0` or missing |
 | react-admin | `MatchDetailPage.test.jsx` | Location section heading; counter column value |
 
-**Test counts (all green):** Java mvn test BUILD SUCCESS; Python 604; AWS 322;
+**Test counts (all green):** Java mvn test BUILD SUCCESS; Python 627; AWS 364;
 react-game 344; react-admin 333.
 
-### 8.2 Robot Framework E2E suite
+### 8.2 Robot Framework E2E suites
 
-Suite: `code/tests/robot/tests/26_time_recovery/time_recovery.robot`
+**Suite 1:** `code/tests/robot/tests/26_time_recovery/time_recovery.robot`
 
 | Test case | Assertion |
 |-----------|-----------|
@@ -402,14 +450,27 @@ Suite: `code/tests/robot/tests/26_time_recovery/time_recovery.robot`
 > deltas because a freshly-joined character starts at full stats and no energy-draining
 > action exists before Step 28 — the deltas are legitimately `0` in this context.
 
+**Suite 2 (v0.26.1):** `code/tests/robot/tests/26_time_recovery/location_counter_reseed.robot`
+
+Validates the re-seed fix and the guard flag using admin `PUT` on the location's
+`counterTime` to simulate both the bug scenario and the legitimate-zero scenario.
+
+| Test case | Scenario | Assertion |
+|-----------|----------|-----------|
+| `Normal Seeding Counter Decrements On Sleep` | `counterTime = 3` set before match creation | `clockCounter` pre-seeded to `3`; decrements to `2` after one time-end sleep |
+| `Counter Reseeds When Set After Match Creation` | Match created with `counterTime = 0`; then raised to `3` | First sleep re-seeds counter to `3`, then decrements to `2` |
+| `Counter Does Not Reseed After Reaching Zero` | `counterTime = 1`; counter reaches `0`; `flag_already_actived = 1` | Second sleep leaves `clockCounter` at `0` — no re-seed |
+
+Suite teardown restores the location's original `counterTime` via admin `PUT`.
+
 **Seed prerequisites:**
 
 | Backend | Location config |
 |---------|-----------------|
 | Java SQLite | `R__insert_story_seed_data.sql`: location 90001 `secure_param=1`, `counter_time=2`; location 90005 `secure_param=0` (unsafe) |
 | Java PostgreSQL | `R__insert_dev_test_data.sql`: same location rows |
-| Python | `scripts/seed_stories.py`: `is_safe` / `counter_start` equivalents |
-| AWS Lambda | `seed/handler.py`: location 1 `secureParam=1`; location 2 `counterStart=2`, `idEventIfCounterZero=1` |
+| Python | `scripts/seed_stories.py`: `is_safe` / `counterTime` equivalents |
+| AWS Lambda | `seed/handler.py`: location 1 `secureParam=1`; location 2 `counterTime=2`, `idEventIfCounterZero=1` |
 
 ---
 
@@ -440,17 +501,23 @@ No new endpoints. No status codes removed or added.
    recovery deltas will therefore be `0` (recovery cannot exceed the cap) in all
    current E2E scenarios. This is by design and documented in the Robot suite header.
 
-3. **Counter seeding happens only once.** If a `gaming_state_locations` row already
-   exists for a location (e.g., inserted at location entry in a future step), the seed
-   step in `applyAtTimeStart` skips it (`counterByLocation.containsKey(idLocation)`).
+3. **Counter seeding happens only once per missing row.** If a `gaming_state_locations`
+   row already exists for a location (e.g., inserted at location entry in a future step),
+   the seed step (6b) in `applyAtTimeStart` skips it. The re-seed step (6a) may still
+   update an existing row when `clock_counter = 0` and `flag_already_actived = 0`.
+
+3a. **Re-seed is bounded by `flag_already_actived`.** Once a counter has legitimately
+   reached zero, `flag_already_actived` is set to `1` by `markStateLocationActivated`.
+   Subsequent calls to `applyAtTimeStart` skip that location in step 6a, so the counter
+   is never re-seeded after it has fired.
 
 4. **Counter-zero event execution is deferred to Step 29.** Step 26 only writes the
    pending audit row to `log_events`. No event handler, stat change, or choice
    presentation is triggered in this step.
 
 5. **Python column name difference.** Python's `list_locations` model uses `is_safe`
-   (treated as numeric `secure_param`) and `counter_start` (seed value for
-   `clock_counter`). The Java/PostgreSQL schema uses `secure_param` and `counter_time`.
+   (treated as numeric `secure_param`). The counter column is now unified as
+   `counter_time` (`counterTime` in the API) across Java/PostgreSQL, Python and AWS.
    Both resolve to the same recovery formula.
 
 6. **`id_class` is nullable.** Characters joined before the V0.26.0 migration have
@@ -544,6 +611,71 @@ by `idCard`. The fix is consistent across Java, Python, and AWS.
 
 
 
+## 16. Addendum (v0.26.1) — Location counter re-seed bugfix
+
+### 16.1 Problem
+
+When a match is created, the backend pre-seeds `gaming_state_locations` rows for all
+occupied locations using `counter_time || 0`. If `counter_time` is added or raised on a
+story location _after_ the match already exists, the row is present with
+`clock_counter = 0` and `flag_already_actived = 0` — and since the seed step (6b) skips
+existing rows, the counter is never re-initialized and never decremented.
+
+### 16.2 Fix
+
+A new step **6a** was added to `TimeStartRecoveryService.applyAtTimeStart` (and its
+Python / AWS equivalents) that runs before the existing seed step 6b:
+
+> For each occupied location whose `gaming_state_locations` row has
+> `clock_counter = 0` AND `flag_already_actived = 0`, but whose story definition
+> now carries `counter_time > 0`, call `updateStateLocationCounter` to restore
+> `clock_counter` to the definition value.
+
+The counter is then decremented as normal in step 8.
+
+### 16.3 Guard: `flag_already_actived`
+
+To prevent the re-seed from firing on a location that has legitimately counted down
+to zero, step 8 now also calls `markStateLocationActivated(idMatch, idLocation)` when
+`clock_counter` reaches `0`. This sets `flag_already_actived = 1`, which causes step
+6a to skip the location on all future time-starts.
+
+**New port method across all backends:**
+
+| Backend | Method / field |
+|---------|----------------|
+| Java | `RecoveryStorePort.markStateLocationActivated(idMatch, idLocation)` → `RecoveryStoreAdapter` |
+| Python | `TimeStorePort.mark_state_location_activated(id_match, id_location)` → `time_store_adapter.py` |
+| AWS Lambda | Sets `flagAlreadyActived = 1` on the embedded location entry in `_apply_time_start_recovery` |
+
+`StateLocationView` (all backends) now exposes `flagAlreadyActived` so the service
+can read it during step 6a.
+
+### 16.4 New Robot suite
+
+`code/tests/robot/tests/26_time_recovery/location_counter_reseed.robot` — 3 test cases
+(see §8.2 Suite 2 for details). The suite uses admin `PUT` on the location's
+`counterTime` field to control the before/after state and is backend-agnostic.
+
+### 16.5 Files changed
+
+| File | Change |
+|------|--------|
+| `core/.../service/match/TimeStartRecoveryService.java` | Step 6a re-seed block; step 8 calls `markStateLocationActivated` |
+| `core/.../port/match/RecoveryStorePort.java` | New `markStateLocationActivated` method; `StateLocationView` gains `flagAlreadyActived` |
+| `core/.../persistence/match/RecoveryStoreAdapter.java` | Implements `markStateLocationActivated` |
+| `core/.../service/match/TimeStartRecoveryServiceTest.java` | New re-seed and no-reseed-after-zero test cases |
+| `core/.../persistence/match/RecoveryStoreAdapterTest.java` | Tests for `markStateLocationActivated` |
+| `app/core/ports/match/time_ports.py` | New `mark_state_location_activated` abstract method |
+| `app/adapters/persistence/match/time_store_adapter.py` | Implements `mark_state_location_activated`; re-seed logic |
+| `app/core/services/match/time_start_recovery_service.py` | Step 6a re-seed + flag check |
+| `tests/test_time_start_recovery_service.py` | New re-seed and no-reseed-after-zero test cases |
+| `lambda/match/handler.py` | `_apply_time_start_recovery` re-seed step + `flagAlreadyActived` guard |
+| `tests/test_time_advancement_handler.py` | New re-seed and no-reseed-after-zero test cases |
+| `code/tests/robot/tests/26_time_recovery/location_counter_reseed.robot` | NEW — 3 test cases |
+
+---
+
 # Version Control
 - Versions created with AI prompt:
    ```
@@ -561,8 +693,10 @@ by `idCard`. The fix is consistent across Java, Python, and AWS.
    | 0.26.0 | Time Advancement & Clock Cycle: sleep action, time-end trigger (all-sleeping / all-zero-energy), clock increment + log_clock_history insert, queue recalculation reusing Step 24 TurnPriorityCalculator, GET /clock endpoint, TimeAdvanced domain event (in-process); backends only (Java / Python / AWS) + Robot suite 25_time_clock; no frontend, no new DB migration expected | June 19, 2026 |
    | 0.26.0 | ciao, i wanna create a new API on all backend project, POST admin/match/{uuid_match}/player/{uuid_player}/changeStatistics with in input dex,int,con, Energy, Life, Sad, coin, food, magic. This API updates actual values if value is not -1 and <= of max (for energy, life, sad). update the react-admin to show a button an "Players & characters" list to insert new values and send to API.  | June 19, 2026 |
    | 0.26.1 | locationsActive.idCard + seed consistency fix | June 22, 2026 |
+   | 0.26.1 | Bugfix: location counter re-seed when counter_time added after match creation; `flag_already_actived` guard prevents re-seed after counter reaches zero; new Robot suite `location_counter_reseed.robot` (3 test cases); `markStateLocationActivated` added to all 3 backends | June 23, 2026 |
+   | 0.26.1 | Unified `counterTime`/`counter_time` field name across all backends: Python renamed `counterStart`/`counter_start` → `counterTime`/`counter_time`; AWS renamed `counterStart` → `counterTime` (legacy `counter_time` read fallback kept for existing DynamoDB documents); Java was already correct. Robot suite `location_counter_reseed.robot` updated to send `counterTime`. No `counterStart` remains in code or seeds. Python 627 tests pass; AWS 364 tests pass; Robot --dryrun 3/3 PASS | June 23, 2026 |
 
-- **Last Updated**: June 16, 2026
+- **Last Updated**: June 23, 2026
 - **Status**: Complete
 
 

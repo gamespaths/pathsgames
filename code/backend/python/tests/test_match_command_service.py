@@ -170,8 +170,8 @@ def test_no_locations_empty():
 
 def test_happy_path_creates_match_and_seeds_state():
     locations = [
-        {"id": 10, "uuid": "loc-1", "counter_start": 5},
-        {"id": 11, "uuid": "loc-2", "counter_start": None},
+        {"id": 10, "uuid": "loc-1", "counter_time": 5},
+        {"id": 11, "uuid": "loc-2", "counter_time": None},
     ]
     keys = [
         {"id": 20, "key_name": "n1", "key_value": "1"},
@@ -215,7 +215,7 @@ def test_difficulty_default_exp_cost_when_none():
         user=_user(),
         story=_story(),
         difficulty={"id": 3, "uuid": "d", "exp_cost": None},
-        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        locations=[{"id": 10, "uuid": "u", "counter_time": 0}],
         keys=[],
         saved_match=_saved(),
     )
@@ -257,7 +257,7 @@ def test_happy_path_persists_creator_loadout():
         user=_user(),
         story=_story(),
         difficulty=_difficulty(),
-        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        locations=[{"id": 10, "uuid": "u", "counter_time": 0}],
         keys=[],
         saved_match=_saved(),
     )
@@ -287,7 +287,7 @@ def test_single_player_defaults_to_one_when_not_provided():
         user=_user(),
         story=_story(),
         difficulty=_difficulty(),
-        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        locations=[{"id": 10, "uuid": "u", "counter_time": 0}],
         keys=[],
         saved_match=_saved(),
     )
@@ -419,7 +419,7 @@ def _build_loadout_service(difficulty=None):
         user=_user(),
         story=_story(),
         difficulty=difficulty or _difficulty(),
-        locations=[{"id": 10, "uuid": "u", "counter_start": 0}],
+        locations=[{"id": 10, "uuid": "u", "counter_time": 0}],
         keys=[],
         saved_match=_saved(),
     )

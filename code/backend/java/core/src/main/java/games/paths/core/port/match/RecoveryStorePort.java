@@ -38,6 +38,9 @@ public interface RecoveryStorePort {
     /** Update gaming_state_locations.clock_counter for a location. */
     void updateStateLocationCounter(long idMatch, long idLocation, int newClockCounter);
 
+    /** Set gaming_state_locations.flag_already_actived = 1 when the counter reaches zero. */
+    void markStateLocationActivated(long idMatch, long idLocation);
+
     /** Audit a per-character recovery summary into log_events. */
     void logRecovery(long idMatch, long idCharacter, String message);
 
@@ -71,6 +74,6 @@ public interface RecoveryStorePort {
     record ClassBonusView(long idClass, String statistic, int value) {
     }
 
-    record StateLocationView(long idLocation, int clockCounter) {
+    record StateLocationView(long idLocation, int clockCounter, int flagAlreadyActived) {
     }
 }
