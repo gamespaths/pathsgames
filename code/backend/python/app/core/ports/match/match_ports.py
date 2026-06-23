@@ -51,7 +51,7 @@ class MatchQueryPort(ABC):
         """Return every match in the platform, newest first (admin view)."""
 
     @abstractmethod
-    def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
+    def get_match_info(self, match_uuid: str, user_uuid: str, lang: str = "en") -> Optional[MatchDetail]:
         ...
 
     @abstractmethod

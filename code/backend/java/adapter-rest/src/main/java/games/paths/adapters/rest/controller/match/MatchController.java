@@ -92,6 +92,7 @@ public class MatchController {
 
     @GetMapping("/api/match/{uuidMatch}/info")
     public ResponseEntity<Object> getMatchInfo(@PathVariable String uuidMatch,
+                                               @RequestParam(value = "lang", defaultValue = "en") String lang,
                                                HttpServletRequest request) {
         String userUuid = (String) request.getAttribute("userUuid");
         if (userUuid == null || userUuid.isBlank()) {
@@ -102,7 +103,7 @@ public class MatchController {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT",
                     "Match uuid is required");
         }
-        MatchDetail detail = matchQueryPort.getMatchInfo(uuidMatch, userUuid);
+        MatchDetail detail = matchQueryPort.getMatchInfo(uuidMatch, userUuid, lang);
         if (detail == null) {
             return error(HttpStatus.NOT_FOUND, "MATCH_NOT_FOUND",
                     "Match not found or not accessible");

@@ -16,31 +16,29 @@ export default function TurnOrderPanel({ players, nameOf }) {
 
   return (
     <div className="pg-card" data-testid="turn-order-panel">
-      <div className="pg-card-header">
+      <p className="pg-card-title mb-2">
         <i className="fas fa-hourglass-half me-1" />
         Projected turn order ({order.length})
-      </div>
-      <div className="pg-card-body">
-        {order.length === 0 ? (
-          <p style={{ color: 'var(--color-ash)' }} data-testid="turn-order-empty">
-            No characters to order yet.
-          </p>
-        ) : (
-          <ol className="pg-turn-order" data-testid="turn-order-list">
-            {order.map((p, i) => (
-              <li key={p.uuid ?? i} data-testid="turn-order-row">
-                <span className="pg-turn-rank">#{i + 1}</span>
-                <span className="pg-turn-name">
-                  {nameOf ? nameOf(p.characterTemplateUuid) : shortUuid(p.uuid)}
-                </span>
-                <span className="pg-turn-priority" title="Projected priority">
-                  {p.priority}
-                </span>
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
+      </p>
+      {order.length === 0 ? (
+        <p style={{ color: 'var(--color-ash)' }} data-testid="turn-order-empty">
+          No characters to order yet.
+        </p>
+      ) : (
+        <ol className="pg-turn-order" data-testid="turn-order-list">
+          {order.map((p, i) => (
+            <li key={p.uuid ?? i} data-testid="turn-order-row">
+              <span className="pg-turn-rank">#{i + 1}</span>
+              <span className="pg-turn-name">
+                {nameOf ? nameOf(p.characterTemplateUuid) : shortUuid(p.uuid)}
+              </span>
+              <span className="pg-turn-priority" title="Projected priority">
+                {p.priority}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   )
 }

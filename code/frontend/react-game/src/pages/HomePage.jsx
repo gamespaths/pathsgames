@@ -17,7 +17,7 @@ const HERO_IMG = {
 }
 
 export default function HomePage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const { user, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
@@ -34,13 +34,13 @@ export default function HomePage() {
   useEffect(() => {
     if (gate.phase !== 'ready') return undefined
     let cancelled = false
-    getStories().then(data => {
+    getStories(lang).then(data => {
       if (cancelled) return
       setStories(data)
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [gate.phase])
+  }, [gate.phase, lang])
 
   // Load the guest's matches once cleared, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the

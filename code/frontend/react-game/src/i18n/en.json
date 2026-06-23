@@ -191,7 +191,7 @@
       "safeLocation": "You are in a safe location. You recover "
     },
     "location": {
-      "clockCounter": "Time counter"
+      "clockCounter": "Location time counter"
     }
   },
   "footer": {

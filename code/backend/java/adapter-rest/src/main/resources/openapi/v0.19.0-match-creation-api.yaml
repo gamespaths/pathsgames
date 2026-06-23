@@ -155,6 +155,13 @@ paths:
       operationId: getMatchInfo
       parameters:
         - $ref: '#/components/parameters/uuidMatch'
+        - name: lang
+          in: query
+          required: false
+          description: Language code used to resolve all card texts (location, neighbor and event cards). Falls back to English when blank or missing.
+          schema:
+            type: string
+            default: en
       responses:
         '200':
           description: Match runtime info

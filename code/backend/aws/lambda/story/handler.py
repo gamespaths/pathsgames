@@ -114,9 +114,32 @@ def _get_lang(event):
     return qs.get('lang', 'en') or 'en'
 
 def _resolve_text(texts_dict, lang, field):
-    """Resolve a text field with English fallback."""
-    t = texts_dict.get(lang) or texts_dict.get('en') or {}
-    return t.get(field)
+    """Resolve a text field from a derived per-language map with PER-FIELD English
+    fallback: when the requested language exists but lacks this specific field
+    (or it is empty), fall back to the English value for that field rather than
+    returning None. Mirrors the per-row fallback of resolve_raw_text / Java /
+    Python so a partially-translated language never blanks a field."""
+    val = (texts_dict.get(lang) or {}).get(field)
+    if val in (None, ''):
+        val = (texts_dict.get('en') or {}).get(field)
+    return val
+
+
+def _resolve_story_text(item, lang, field, id_text):
+    """Resolve a story-level title/description preferring the flat ``raw_texts``
+    rows (resolved per idText + lang, like cards), and only falling back to the
+    derived ``texts`` map when no raw row is found.
+
+    This makes the summary/detail title robust for IMPORTED stories whose derived
+    ``texts`` map may be incomplete for a language even though the raw Italian row
+    exists, while SEED stories (which carry the derived map but no top-level
+    idText*) still resolve through the map fallback."""
+    raw_texts = item.get('raw_texts', [])
+    if id_text is not None and raw_texts:
+        val = _resolve_raw_text(raw_texts, id_text, lang)
+        if val not in (None, ''):
+            return val
+    return _resolve_text(item.get('texts', {}), lang, field)
 
 
 
@@ -135,8 +158,8 @@ def _story_summary(item, lang):
     return {
         'uuid':            item.get('uuid'),
         'id':              _safe_int(item.get('id')),
-        'title':           _resolve_text(texts, lang, 'title'),
-        'description':     _resolve_text(texts, lang, 'description'),
+        'title':           _resolve_story_text(item, lang, 'title', item.get('idTextTitle')),
+        'description':     _resolve_story_text(item, lang, 'description', item.get('idTextDescription')),
         'author':          item.get('author'),
         'category':        item.get('category'),
         'group':           item.get('group'),
@@ -259,8 +282,8 @@ def _story_detail(item, lang):
     return {
         'uuid':                       item.get('uuid'),
         'id':                         _safe_int(item.get('id')),
-        'title':                      _resolve_text(texts, lang, 'title'),
-        'description':                _resolve_text(texts, lang, 'description'),
+        'title':                      _resolve_story_text(item, lang, 'title', item.get('idTextTitle')),
+        'description':                _resolve_story_text(item, lang, 'description', item.get('idTextDescription')),
         'author':                     item.get('author'),
         'category':                   item.get('category'),
         'group':                      item.get('group'),
@@ -1176,7 +1199,10 @@ def create_entity(event, story_uuid, entity_type):
 
     if field not in item:
         item[field] = []
-    data['id'] = len(item[field]) + 1
+    # Next id = max(existing ids) + 1 (NOT len+1, which collides after a middle
+    # element is deleted — the list shrinks but high ids remain). Mirrors _assign_ids.
+    existing_ids = [_safe_int(e.get('id')) for e in item[field]]
+    data['id'] = (max(existing_ids) if existing_ids else 0) + 1
     if entity_type=='cards':
         data['idCard']=data['id']
     _normalize_entity_input(entity_type, data)

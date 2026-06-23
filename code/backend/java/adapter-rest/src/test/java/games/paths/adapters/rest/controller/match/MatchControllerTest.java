@@ -228,7 +228,7 @@ class MatchControllerTest {
 
     @Test
     void getMatchInfo_notFound_returns404() throws Exception {
-        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(null);
+        when(queryPort.getMatchInfo("abc", "user-uuid", "en")).thenReturn(null);
         mockMvc.perform(authed(get("/api/match/abc/info")))
                 .andExpect(status().isNotFound());
     }
@@ -254,7 +254,7 @@ class MatchControllerTest {
         detail.setRegistry(List.of(r));
         detail.setEvents(List.of(new MatchEventOption("ev", "n", "EVENT")));
         detail.setChoices(List.of(new MatchEventOption("ch", "n", "CHOICE")));
-        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(detail);
+        when(queryPort.getMatchInfo("abc", "user-uuid", "en")).thenReturn(detail);
 
         mockMvc.perform(authed(get("/api/match/abc/info")))
                 .andExpect(status().isOk())

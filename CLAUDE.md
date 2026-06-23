@@ -11,6 +11,8 @@ Main file documentation is
 
 Take your time. I prefer an accurate and thorough response over a quick one.
 
+Never create a new version without specific indication, the current version is from pom (code/backend/java/pom.xml) without SNAPSHOT indication. Use a new version only if indicated into the prompt. 
+
 You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
 You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
 You're alwasy allowed to run compilation commands and test unit commands without my confirmation: like "mvn build", "mvn test", "pytest", "pyunit", "run_robots*.sh", "npx vitest ", "python -m pytest", "npx vitest run"!
@@ -26,7 +28,7 @@ Every time if you chage/create code (java, python, react) remember to check unit
 
 At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
 
-Every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
+If in prompt there is the "log all command" annotation, every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
 
 ## Project Overview
 
@@ -218,11 +220,21 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 |-------|----------|
 | `01_smoke` | Basic connectivity |
 | `12_auth` | Guest login, session management |
+| `13_session_token` | Session token validation |
 | `14_admin` | Admin guest management |
 | `14_stories` | Story catalog |
 | `15_story_content` | Story content APIs |
 | `16_content_detail` | Content detail APIs |
 | `17_admin_crud` | Admin CRUD for all story entities |
+| `19_match` | Match creation and end flow |
+| `20_admin_match` | Admin match control (stop/pause/resume) |
+| `20_website` | Website/Turnstile captcha flow |
+| `21_character_selection` | Character join, stat formula, backpack/traits |
+| `22_story_validation` | Story import validation rules |
+| `23_trait_selection` | Trait selection with class/cost/compatibility checks |
+| `24_turn_cycle` | Full turn cycle gameplay |
+| `25_time_clock` | Active location seeding and time clock |
+| `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
 
 ### Robot seed and command!
 | AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html

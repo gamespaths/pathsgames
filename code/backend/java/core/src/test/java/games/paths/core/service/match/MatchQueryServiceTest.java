@@ -198,22 +198,22 @@ class MatchQueryServiceTest {
         @Test
         @DisplayName("blank user uuid → null")
         void blankUser() {
-            assertNull(service.getMatchInfo("m", null));
-            assertNull(service.getMatchInfo("m", "  "));
+            assertNull(service.getMatchInfo("m", null, "en"));
+            assertNull(service.getMatchInfo("m", "  ", "en"));
         }
 
         @Test
         @DisplayName("blank match uuid → null")
         void blankMatch() {
-            assertNull(service.getMatchInfo(null, "u"));
-            assertNull(service.getMatchInfo("  ", "u"));
+            assertNull(service.getMatchInfo(null, "u", "en"));
+            assertNull(service.getMatchInfo("  ", "u", "en"));
         }
 
         @Test
         @DisplayName("unknown user → null")
         void unknownUser() {
             when(userAccessPort.findByUuid("u")).thenReturn(Optional.empty());
-            assertNull(service.getMatchInfo("m", "u"));
+            assertNull(service.getMatchInfo("m", "u", "en"));
         }
 
         @Test
@@ -221,7 +221,7 @@ class MatchQueryServiceTest {
         void matchNotFound() {
             when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
             when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.empty());
-            assertNull(service.getMatchInfo("m", "u"));
+            assertNull(service.getMatchInfo("m", "u", "en"));
         }
 
         @Test
@@ -230,7 +230,7 @@ class MatchQueryServiceTest {
             when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
             when(matchReadPort.findMatchByUuid("m"))
                     .thenReturn(Optional.of(match(1L, "m", 99L, 2L, 3L)));
-            assertNull(service.getMatchInfo("m", "u"));
+            assertNull(service.getMatchInfo("m", "u", "en"));
         }
 
         @Test
@@ -252,7 +252,7 @@ class MatchQueryServiceTest {
             when(matchReadPort.findRegistryByMatchId(1L))
                     .thenReturn(List.of(regEntry(20L, 1L, "k")));
 
-            MatchDetail detail = service.getMatchInfo("m", "u");
+            MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
             assertEquals("m", detail.getMatch().getUuid());
             assertEquals("story-uuid", detail.getMatch().getStoryUuid());
@@ -279,7 +279,7 @@ class MatchQueryServiceTest {
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
             when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
 
-            MatchDetail detail = service.getMatchInfo("m", "u");
+            MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
             assertNull(detail.getCurrentLocationId());
             assertNull(detail.getCurrentLocationUuid());
@@ -297,7 +297,7 @@ class MatchQueryServiceTest {
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
             when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
 
-            MatchDetail detail = service.getMatchInfo("m", "u");
+            MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
             assertEquals(10L, detail.getCurrentLocationId());
             assertNull(detail.getCurrentLocationUuid());
@@ -313,7 +313,7 @@ class MatchQueryServiceTest {
             when(matchReadPort.findLocationsByMatchId(1L)).thenReturn(List.of());
             when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
 
-            MatchDetail detail = service.getMatchInfo("m", "u");
+            MatchDetail detail = service.getMatchInfo("m", "u", "en");
             assertNotNull(detail);
             assertNull(detail.getMatch().getStoryUuid());
             assertNull(detail.getMatch().getDifficultyUuid());

@@ -23,11 +23,12 @@ public interface MatchQueryPort {
     List<MatchSummary> listAllMatches();
 
     /**
-     * Returns the full match detail (summary + state) by match uuid.
+     * Returns the full match detail (summary + state) by match uuid, with all
+     * card texts resolved in {@code lang} (English fallback when blank/missing).
      * @return {@code null} when the match does not exist or the user
      *         is not allowed to access it.
      */
-    MatchDetail getMatchInfo(String matchUuid, String userUuid);
+    MatchDetail getMatchInfo(String matchUuid, String userUuid, String lang);
 
     /**
      * Returns the full match detail (summary + state) by match uuid for the

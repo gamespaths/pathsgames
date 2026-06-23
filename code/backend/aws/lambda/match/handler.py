@@ -179,8 +179,9 @@ def _summary_from_item(item):
     }
 
 
-def _detail_from_item(item, players=None):
+def _detail_from_item(item, players=None, lang='en'):
     players = players or []
+    lang = lang if lang and lang.strip() else 'en'
     # Locations currently occupied by one or more players (insertion-ordered).
     active_loc_ids = []
     for c in players:
@@ -215,14 +216,14 @@ def _detail_from_item(item, players=None):
         # Step 21 — the players/characters of the match (summary rows).
         "players": [_character_summary(c) for c in players],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
-        "locationsActive": _build_locations_active(story, active_loc_ids),
+        "locationsActive": _build_locations_active(story, active_loc_ids, lang),
     }
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 
 
-def _build_locations_active(story, active_loc_ids):
+def _build_locations_active(story, active_loc_ids, lang='en'):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
     directions) and the events specific to it.
@@ -266,14 +267,14 @@ def _build_locations_active(story, active_loc_ids):
                 "direction": n.get("direction"),
                 "flagBack": n.get("flagBack"),
                 "energyCost": n.get("energyCost"),
-                "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id),
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id, lang),
                 "secureParam": other.get("secureParam") if other else None,
             })
 
         event_infos = [
             {"uuid": e.get("uuid"), "type": e.get("type"),
              "endGame": end_event_id is not None and e.get("id") == end_event_id,
-             "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"))}
+             "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang)}
             for e in events if e.get("idLocation") == loc_id
         ]
 
@@ -281,7 +282,7 @@ def _build_locations_active(story, active_loc_ids):
             "idLocation": loc_id,
             "uuid": loc.get("uuid"),
             "idCard": loc.get("idCard"),
-            "card": _resolve_card_from_raw(raw_cards, raw_texts, loc.get("idCard")),
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, loc.get("idCard"), lang),
             "secureParam": loc.get("secureParam"),
             "neighbors": neighbor_infos,
             "events": event_infos,
@@ -541,13 +542,13 @@ def _list_all_matches():
     return _ok([_summary_from_item(i) for i in items_sorted])
 
 
-def _get_match_info(user, match_uuid):
+def _get_match_info(user, match_uuid, lang='en'):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid)))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang))
 
 
 def _end_match(user, match_uuid, event_uuid):
@@ -1339,7 +1340,8 @@ def lambda_handler(event, context):
             # Fallback when API Gateway didn't expose the path parameter
             segments = path.split('/')
             match_uuid = segments[3] if len(segments) > 4 else ''
-        return _get_match_info(user, match_uuid)
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _get_match_info(user, match_uuid, lang)
 
     # Step 20.1 — PATCH /api/match/{uuidMatch}/end/{uuidEvent}
     if (path.startswith('/api/match/') and '/end/' in path and method == 'PATCH'):

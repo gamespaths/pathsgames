@@ -186,6 +186,37 @@ class MatchQueryServiceLocationsActiveTest {
     }
 
     @Test
+    void getMatchInfoResolvesCardsInRequestedLang() {
+        wire(10L);
+        when(userAccessPort.findByUuid("user-7"))
+                .thenReturn(Optional.of(new UserAccessPort.UserView(7L, "user-7", "u", "PLAYER", 2)));
+        // Italian variant of the active location card.
+        when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(100), eq("it")))
+                .thenReturn(card("loc10-it"));
+
+        MatchDetail detail = service.getMatchInfo("match-uuid", "user-7", "it");
+
+        assertNotNull(detail);
+        LocationInfo active = detail.getLocationsActive().get(0);
+        assertEquals("loc10-it", active.getCard().title());
+        verify(contentQueryPort).getCardByStoryIdAndCardId(STORY_ID, 100, "it");
+        verify(contentQueryPort, never()).getCardByStoryIdAndCardId(STORY_ID, 100, "en");
+    }
+
+    @Test
+    void getMatchInfoBlankLangFallsBackToEnglish() {
+        wire(10L);
+        when(userAccessPort.findByUuid("user-7"))
+                .thenReturn(Optional.of(new UserAccessPort.UserView(7L, "user-7", "u", "PLAYER", 2)));
+
+        MatchDetail detail = service.getMatchInfo("match-uuid", "user-7", "  ");
+
+        assertNotNull(detail);
+        assertEquals("loc10", detail.getLocationsActive().get(0).getCard().title());
+        verify(contentQueryPort).getCardByStoryIdAndCardId(STORY_ID, 100, "en");
+    }
+
+    @Test
     void noPlayersLeavesLocationsActiveEmptyAndFallsBackToStart() {
         wire(10L);
         when(characterReadPort.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());

@@ -319,6 +319,32 @@ def test_locations_active_carries_card_neighbors_events():
     assert active.events[0].card["title"] == "Stranger"
 
 
+def test_get_match_info_resolves_cards_in_requested_lang():
+    service = _build_enriched(player_loc=10)
+    # Make the text lookup lang-aware: Italian variant for the active card title.
+    it_texts = {1000: "Taverna", 2000: "Cave", 3000: "Stranger"}
+    en_texts = {1000: "Tavern", 2000: "Cave", 3000: "Stranger"}
+    service.story_read_port.find_text_by_story_id_text_and_lang.side_effect = (
+        lambda sid, tid, lang: (
+            {"short_text": (it_texts if lang == "it" else en_texts).get(tid)}
+            if tid in en_texts else None
+        )
+    )
+
+    detail = service.get_match_info("m", "u", "it")
+
+    active = detail.locations_active[0]
+    assert active.card["title"] == "Taverna"
+    service.story_read_port.find_text_by_story_id_text_and_lang.assert_any_call(2, 1000, "it")
+
+
+def test_get_match_info_blank_lang_falls_back_to_english():
+    service = _build_enriched(player_loc=10)
+    detail = service.get_match_info("m", "u", "  ")
+    assert detail.locations_active[0].card["title"] == "Tavern"
+    service.story_read_port.find_text_by_story_id_text_and_lang.assert_any_call(2, 1000, "en")
+
+
 def test_locations_active_empty_without_players_falls_back_to_start():
     service = _build_enriched(player_loc=10)
     # no character joined → no active locations, current location = story start

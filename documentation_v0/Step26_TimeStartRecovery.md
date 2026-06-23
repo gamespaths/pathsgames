@@ -431,7 +431,7 @@ Step 26 guarantees only that the event id is recorded.
 | react-game | `LocationCard.test.jsx` | Counter badge present when `> 0`; absent when `0` or missing |
 | react-admin | `MatchDetailPage.test.jsx` | Location section heading; counter column value |
 
-**Test counts (all green):** Java mvn test BUILD SUCCESS; Python 627; AWS 364;
+**Test counts (all green):** Java mvn test BUILD SUCCESS; Python 627; AWS 370;
 react-game 344; react-admin 333.
 
 ### 8.2 Robot Framework E2E suites
@@ -462,6 +462,20 @@ Validates the re-seed fix and the guard flag using admin `PUT` on the location's
 | `Counter Does Not Reseed After Reaching Zero` | `counterTime = 1`; counter reaches `0`; `flag_already_actived = 1` | Second sleep leaves `clockCounter` at `0` — no re-seed |
 
 Suite teardown restores the location's original `counterTime` via admin `PUT`.
+
+**Suite 3 (v0.26.1 — regression):** `code/tests/robot/tests/26_time_recovery/match_info_lang.robot`
+
+The file already covered `GET /api/match/{uuid}/info?lang=` propagation tests. A new
+test case was added as a regression guard for the AWS i18n bug:
+
+| Test case | Assertion |
+|-----------|-----------|
+| `Story List Lang IT Never Blanks A Title That English Has` | `GET /api/stories?lang=it` must not return a null/empty `title` for any story that has a title under `lang=en`. Compares the full story list in both languages; for each English title present, the corresponding Italian title must be non-null and non-empty (translated when available, English fallback otherwise). Backend-agnostic and order-independent — survives CRUD mutations from earlier suites. Tags: `stories lang i18n regression` |
+
+The new keyword `Build Title Map By Uuid` builds a `{uuid: title}` dict from a story
+list, making the cross-language comparison order-independent.
+
+Robot suite Python execution after this addition: **383 tests**, all green.
 
 **Seed prerequisites:**
 
@@ -695,6 +709,8 @@ can read it during step 6a.
    | 0.26.1 | locationsActive.idCard + seed consistency fix | June 22, 2026 |
    | 0.26.1 | Bugfix: location counter re-seed when counter_time added after match creation; `flag_already_actived` guard prevents re-seed after counter reaches zero; new Robot suite `location_counter_reseed.robot` (3 test cases); `markStateLocationActivated` added to all 3 backends | June 23, 2026 |
    | 0.26.1 | Unified `counterTime`/`counter_time` field name across all backends: Python renamed `counterStart`/`counter_start` → `counterTime`/`counter_time`; AWS renamed `counterStart` → `counterTime` (legacy `counter_time` read fallback kept for existing DynamoDB documents); Java was already correct. Robot suite `location_counter_reseed.robot` updated to send `counterTime`. No `counterStart` remains in code or seeds. Python 627 tests pass; AWS 364 tests pass; Robot --dryrun 3/3 PASS | June 23, 2026 |
+   | 0.61.1 | Bugfix i18n propagation: `GET /api/match/{uuid}/info` now accepts `?lang=` (Java/Python/AWS) and propagates it to location/event/neighbour `resolveCard`; react-game `getStories(lang)`, `getStory(uuid,lang)`, `getMatchInfo(uuid,token,lang)` forward `?lang=`; callers updated (HomePage, GamePage, UserMatchesList); lang-propagation + fallback-en tests added; all suites green (react-game 386, Java core 993 + adapter-rest 188, Python 629, AWS 366) | June 23, 2026 |
+   | 0.26.1 | AWS i18n bugfix (`GET /api/stories?lang=it` returning null title for imported stories): `_resolve_text` gains per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (same approach as cards), then falls back to derived map; 4 new AWS unit tests (370 total); Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to `26_time_recovery/match_info_lang.robot` (383 robot tests total, all green) | June 23, 2026 |
 
 - **Last Updated**: June 23, 2026
 - **Status**: Complete

@@ -114,7 +114,15 @@ Note: for SQL-based backends (Java, Python) the response leaves `userCreatorUuid
 
 ### 2.4 `GET /api/match/{uuidMatch}/info`
 
-Returns the runtime state needed to render the in-game UI:
+Returns the runtime state needed to render the in-game UI.
+
+| Query param | Required | Description |
+|-------------|----------|-------------|
+| `lang`      | no       | Language code for localised card text (`en`, `it`, …). Defaults to `en` when omitted or blank. If the requested language has no translation the backend falls back to English. |
+
+| Header          | Required | Description                             |
+|-----------------|----------|-----------------------------------------|
+| `Authorization` | yes      | `Bearer <accessToken>` (PLAYER or ADMIN) |
 
 ```json
 {
@@ -132,6 +140,12 @@ Returns the runtime state needed to render the in-game UI:
 The `events` and `choices` arrays are empty in Step 19 — the choice/event
 engine is delivered by Steps 30–32. The contract is exposed now so the
 frontend can already consume the endpoint.
+
+The `lang` parameter propagates through the entire response chain: location
+cards, neighbour cards, and event cards all return their `title` /
+`description` fields in the requested language (`resolveCard` /
+`_resolve_card` in all backends). The react-admin match detail view always
+uses `en` (no `lang` parameter sent).
 
 ---
 
@@ -268,7 +282,9 @@ version `0.19.10`.
 |---------------------------------------|-----------------------------------------------------------|
 | `POST /api/matches`                   | NEW (v0.19.0); request body extended (v0.19.9)            |
 | `GET /api/matches`                    | NEW (v0.19.0); response extended (v0.19.9)                |
-| `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9)        |
+| `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9); added `?lang` query param (v0.19.13) |
+| `GET /api/stories`                    | `?lang` query param now forwarded by react-game (v0.19.13) |
+| `GET /api/stories/{uuid}`             | `?lang` query param now forwarded by react-game (v0.19.13) |
 | `GET /api/admin/matches`              | NEW (v0.19.10) — admin-wide list, all backends            |
 | `GET /api/admin/matches/{uuid}/info`  | NEW (v0.19.12) — admin detail without ownership check; see [Step21_AdminMatchControl.md](Step21_AdminMatchControl.md) |
 
@@ -411,7 +427,7 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.19.10
+- **Document Version**: 0.19.13
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -427,8 +443,9 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.19.10 | StartMatchPage on react-game, Matches list on react-admin and GET /api/admin/matches | May 20, 2026 |
     | 0.19.11 | Dev-only test-data cleanup | May 21, 2026 |
     | 0.19.12 | Admin match control (update/stop/pause/resume/delete) | May 21, 2026 |
+    | 0.19.13 | `?lang` param on GET /api/match/{uuid}/info (all 3 backends); react-game forwards lang to /api/stories and match info | Jun 23, 2026 |
 
-- **Last Updated**: May 21, 2026
+- **Last Updated**: Jun 23, 2026
 - **Status**: Complete
 
 

@@ -134,10 +134,16 @@ describe('matches api', () => {
       expect(get).toHaveBeenCalledWith('/api/matches', expect.any(Object))
     })
 
-    it('getMatchInfo gets /api/match/{uuid}/info', async () => {
+    it('getMatchInfo gets /api/match/{uuid}/info with default lang', async () => {
       get.mockResolvedValue({ data: { match: { uuid: 'm1' } } })
       await getMatchInfo('m1', 'tok')
-      expect(get).toHaveBeenCalledWith('/api/match/m1/info', expect.any(Object))
+      expect(get).toHaveBeenCalledWith('/api/match/m1/info?lang=en', expect.any(Object))
+    })
+
+    it('getMatchInfo forwards the requested lang', async () => {
+      get.mockResolvedValue({ data: { match: { uuid: 'm1' } } })
+      await getMatchInfo('m1', 'tok', 'it')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/info?lang=it', expect.any(Object))
     })
 
     it('endMatch PATCHes /api/match/{uuidMatch}/end/{uuidEvent} with the bearer token', async () => {

@@ -29,7 +29,7 @@ export default function GamePage() {
       setLoading(false)
       return
     }
-    Promise.all([getMatchInfo(matchUuid, user?.accessToken), getStory(storyId)])
+    Promise.all([getMatchInfo(matchUuid, user?.accessToken, lang), getStory(storyId, lang)])
       .then(([info, st]) => {
         if (cancelled) return
         setStory(st)
@@ -43,12 +43,12 @@ export default function GamePage() {
         setLoading(false)
       })
     return () => { cancelled = true }
-  }, [storyId, matchUuid, user?.accessToken])
+  }, [storyId, matchUuid, user?.accessToken, lang])
 
   // Re-fetch the match board after actions that mutate match state (e.g. sleep).
   async function reloadGameData() {
     try {
-      const info = await getMatchInfo(matchUuid, user?.accessToken)
+      const info = await getMatchInfo(matchUuid, user?.accessToken, lang)
       setGameData(matchInfoToGameData(info, story, t))
     } catch {
       // keep existing board state if reload fails

@@ -292,6 +292,38 @@ body {
   color: var(--color-gold-light);
 }
 
+/* ── Turn order panel ── */
+.pg-turn-order {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pg-turn-order li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid rgba(200,150,10,0.08);
+}
+.pg-turn-order li:last-child { border-bottom: none; }
+.pg-turn-order li:hover { background: rgba(200,150,10,0.05); }
+.pg-turn-rank {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  color: var(--color-gold-dark);
+  min-width: 2.2rem;
+}
+.pg-turn-name {
+  flex: 1;
+  color: var(--color-parchment);
+  font-size: 0.9rem;
+}
+.pg-turn-priority {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.1rem;
+  color: var(--color-gold-light);
+}
+
 /* ── Table ── */
 .pg-table {
   width: 100%;

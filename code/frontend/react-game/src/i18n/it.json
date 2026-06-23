@@ -126,7 +126,8 @@
   },
   "card": {
     "info": "Info",
-    "viewOriginal": "Vedi originale"
+    "viewOriginal": "Vedi originale",
+    "actionInProgress": "Esecuzione"
   },
   "game": {
     "currentLocation": "Posizione Attuale",
@@ -173,8 +174,9 @@
       "cancel": "Annulla",
       "sleeping": "Sta dormendo",
       "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
-      "safeLocation": "Ti trovi in un luogo sicuro. Recupererai energia:"
+      "safeLocation": "Ti trovi in un luogo sicuro. Recupererai:"
     },
+    "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
     "location": {
       "clockCounter": "Contatore tempo"
     }

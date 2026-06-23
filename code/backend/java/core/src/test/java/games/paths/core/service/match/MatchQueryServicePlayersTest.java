@@ -111,7 +111,7 @@ class MatchQueryServicePlayersTest {
         MatchQueryService service =
                 new MatchQueryService(matchReadPort, storyReadPort, userAccessPort, characterReadPort);
 
-        MatchDetail detail = service.getMatchInfo("match-uuid", "user-uuid");
+        MatchDetail detail = service.getMatchInfo("match-uuid", "user-uuid", "en");
 
         assertNotNull(detail);
         assertEquals(1, detail.getPlayers().size());

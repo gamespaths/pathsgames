@@ -11,8 +11,8 @@ describe('api/game — getMatchInfo', () => {
 
   it('returns the live match info when status is RUNNING', async () => {
     fetchMatchInfo.mockResolvedValue({ match: { status: 'RUNNING' }, live: true })
-    expect(await getMatchInfo('m1', 'tok')).toEqual({ match: { status: 'RUNNING' }, live: true })
-    expect(fetchMatchInfo).toHaveBeenCalledWith('m1', 'tok')
+    expect(await getMatchInfo('m1', 'tok', 'it')).toEqual({ match: { status: 'RUNNING' }, live: true })
+    expect(fetchMatchInfo).toHaveBeenCalledWith('m1', 'tok', 'it')
   })
 
   it('throws MatchNotRunningError when status is ENDED', async () => {

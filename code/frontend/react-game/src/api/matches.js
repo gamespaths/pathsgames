@@ -67,10 +67,10 @@ export async function listMatches(accessToken) {
 }
 
 /** Retrieve the full runtime info of one match owned by the current user. */
-export async function getMatchInfo(uuid, accessToken) {
+export async function getMatchInfo(uuid, accessToken, lang) {
   const client = apiClient()
   if (!client) return null
-  const res = await client.get(`/api/match/${uuid}/info`, authConfig(accessToken))
+  const res = await client.get(`/api/match/${uuid}/info?lang=${lang ?? 'en'}`, authConfig(accessToken))
   return res.data
 }
 

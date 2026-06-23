@@ -89,10 +89,17 @@ List All Matches
 
 Get Match Info
     [Documentation]    GET /api/match/{uuidMatch}/info with the given Bearer token.
-    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ...                When ${lang} is set it is forwarded as the `?lang=` query
+    ...                parameter so card texts are resolved in that language.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${None}
     ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    $lang is not None
+        Set To Dictionary    ${params}    lang    ${lang}
+    END
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/info
     ...    headers=${headers}
+    ...    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 

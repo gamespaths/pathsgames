@@ -131,7 +131,7 @@ public class MatchQueryService implements MatchQueryPort {
     }
 
     @Override
-    public MatchDetail getMatchInfo(String matchUuid, String userUuid) {
+    public MatchDetail getMatchInfo(String matchUuid, String userUuid, String lang) {
         if (matchUuid == null || matchUuid.isBlank() || userUuid == null || userUuid.isBlank()) {
             return null;
         }
@@ -149,7 +149,7 @@ public class MatchQueryService implements MatchQueryPort {
         if (!match.getIdUserCreator().equals(user.id())) {
             return null;
         }
-        return buildDetail(match, user.uuid());
+        return buildDetail(match, user.uuid(), resolveLang(lang));
     }
 
     @Override
@@ -163,14 +163,19 @@ public class MatchQueryService implements MatchQueryPort {
         }
         // Admin view — no per-user ownership check. userCreatorUuid is left
         // null, consistent with the admin list (listAllMatches).
-        return buildDetail(matchOpt.get(), null);
+        return buildDetail(matchOpt.get(), null, DEFAULT_LANG);
+    }
+
+    /** Falls back to {@link #DEFAULT_LANG} when no/blank lang requested. */
+    private static String resolveLang(String lang) {
+        return (lang == null || lang.isBlank()) ? DEFAULT_LANG : lang;
     }
 
     /**
      * Builds the full {@link MatchDetail} for a match. Shared by the per-user
      * and the admin info endpoints.
      */
-    private MatchDetail buildDetail(GamingMatchEntity match, String userCreatorUuid) {
+    private MatchDetail buildDetail(GamingMatchEntity match, String userCreatorUuid, String lang) {
         Optional<StoryEntity> storyOpt = storyReadPort.findAllStories().stream()
                 .filter(s -> s.getId().equals(match.getIdStory()))
                 .findFirst();
@@ -258,7 +263,7 @@ public class MatchQueryService implements MatchQueryPort {
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
         Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
         detail.setLocationsActive(
-                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById));
+                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang));
 
         return detail;
     }
@@ -271,7 +276,8 @@ public class MatchQueryService implements MatchQueryPort {
     private List<LocationInfo> buildLocationsActive(Long storyId,
                                                     Integer endEventId,
                                                     Set<Long> activeLocIds,
-                                                    Map<Long, LocationEntity> locationsById) {
+                                                    Map<Long, LocationEntity> locationsById,
+                                                    String lang) {
         List<LocationInfo> result = new ArrayList<>();
         if (storyId == null || activeLocIds.isEmpty()) {
             return result;
@@ -285,7 +291,7 @@ public class MatchQueryService implements MatchQueryPort {
             if (loc == null) {
                 continue;
             }
-            CardInfo locCard = resolveCard(storyId, loc.getIdCard());
+            CardInfo locCard = resolveCard(storyId, loc.getIdCard(), lang);
 
             List<LocationNeighborInfo> neighborInfos = new ArrayList<>();
             for (LocationNeighborEntity n : neighbors) {
@@ -303,7 +309,7 @@ public class MatchQueryService implements MatchQueryPort {
                         n.getDirection(),
                         n.getFlagBack(),
                         n.getEnergyCost(),
-                        resolveCard(storyId, neighborCardId),
+                        resolveCard(storyId, neighborCardId, lang),
                         other != null ? other.getSecureParam() : null));
             }
 
@@ -314,7 +320,7 @@ public class MatchQueryService implements MatchQueryPort {
                     boolean endGame = endEventId != null && e.getId() != null
                             && endEventId.longValue() == e.getId();
                     eventInfos.add(new EventInfo(
-                            e.getUuid(), e.getType(), endGame, resolveCard(storyId, e.getIdCard())));
+                            e.getUuid(), e.getType(), endGame, resolveCard(storyId, e.getIdCard(), lang)));
                 }
             }
 
@@ -343,11 +349,11 @@ public class MatchQueryService implements MatchQueryPort {
     }
 
     /** Resolves a card via the content port, or null when no port/idCard. */
-    private CardInfo resolveCard(Long storyId, Integer idCard) {
+    private CardInfo resolveCard(Long storyId, Integer idCard, String lang) {
         if (contentQueryPort == null || idCard == null) {
             return null;
         }
-        return contentQueryPort.getCardByStoryIdAndCardId(storyId, idCard, DEFAULT_LANG);
+        return contentQueryPort.getCardByStoryIdAndCardId(storyId, idCard, lang);
     }
 
     private MatchSummary toSummary(GamingMatchEntity match, String userUuid,

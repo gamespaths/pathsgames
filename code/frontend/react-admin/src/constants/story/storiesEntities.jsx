@@ -260,6 +260,7 @@ export const STORIES_ENTITIES_FIELDS = {
     ],
     'weather-rules': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idText', label: 'Text ID', type: 'number' },
       { key: 'probability', label: 'Probability', type: 'number' },
       { key: 'costMoveSafeLocation', label: 'Cost Move Safe', type: 'number' },
       { key: 'costMoveNotSafeLocation', label: 'Cost Move Not Safe', type: 'number' },
@@ -267,7 +268,6 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'conditionKeyValue', label: 'Condition Key Value', type: 'text' },
       { key: 'timeFrom', label: 'Time From', type: 'number' },
       { key: 'timeTo', label: 'Time To', type: 'number' },
-      { key: 'idText', label: 'Text ID', type: 'number' },
       { key: 'active', label: 'Active', type: 'number' },
       { key: 'priority', label: 'Priority', type: 'number' },
       { key: 'deltaEnergy', label: 'Delta Energy', type: 'number' },
@@ -444,6 +444,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'key', label: 'Key' },
     ],
     'weather-rules': [
+      { key: 'idText', label: 'ID Text', type: 'idTextName' },
       { key: 'probability', label: 'Probability' },
       { key: 'conditionKey', label: 'Condition Key' },
       { key: 'timeFrom', label: 'Time From' },

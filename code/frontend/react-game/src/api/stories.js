@@ -5,12 +5,12 @@ import { adaptTutorialStoryList, adaptTutorialStory } from '../mock/tutorialStor
 // Mock datasource: tutorial_story.json converted to frontend format
 const mockStories = adaptTutorialStoryList(tutorialStoryDoc)
 
-export async function getStories() {
-  return fetchWithFallback('/api/stories', mockStories)
+export async function getStories(lang) {
+  return fetchWithFallback(`/api/stories?lang=${lang ?? 'en'}`, mockStories)
 }
 
-export async function getStory(uuid) {
-  const stories = await fetchWithFallback('/api/stories', mockStories)
+export async function getStory(uuid, lang) {
+  const stories = await getStories(lang)
   return stories.find(s => s.uuid === uuid) ?? null
 }
 

@@ -346,6 +346,48 @@ The `StoryQueryService` resolves text fields through the `list_texts` table:
 3. If still not found, return `null`
 4. If `lang` parameter is null or blank, default to "en"
 
+> **Java and Python** already implement per-row resolution with full English fallback.
+> **AWS backend** had a divergence (see §AWS Text Resolution Fix below).
+
+### AWS Backend — Text Resolution Fix (v0.26.1)
+
+The AWS Lambda story handler had a bug where `GET /api/stories?lang=it` could return
+a `null` title for a story that had a valid Italian row in DynamoDB, if the story was
+imported before the multi-language derived map was fully built.
+
+**Root cause:** `_story_summary` and `_story_detail` read title/description from a
+derived nested map `item['texts'][lang][field]` built at import time. If the `it` key
+in that map was absent or incomplete, the title came back `null` — even though the
+Italian text existed in the flat `raw_texts` array (the same source used by cards).
+
+**Fix — two changes in `code/backend/aws/lambda/story/handler.py`:**
+
+1. **`_resolve_text(texts_dict, lang, field)`** — now implements per-field English
+   fallback: if the requested language exists but the specific field is missing or
+   empty, it falls back to the English value for that field (instead of returning
+   `None`). This mirrors the per-row behaviour of Java `StoryQueryService.resolveText`
+   and Python `_resolve_text`.
+
+2. **New helper `_resolve_story_text(item, lang, field, id_text)`** — resolves
+   story-level title/description by first scanning `raw_texts` (per `idText + lang`,
+   exactly like card resolution), and only falling back to the derived `texts` map
+   when no raw row is found. Used in `_story_summary` and `_story_detail`.
+
+   - **Imported stories**: the title is read from `raw_texts` → Italian text found. ✅
+   - **Seed stories** (no `idTextTitle` top-level field, only derived map): resolution
+     falls back to `_resolve_text` with per-field English fallback. ✅
+
+**AWS unit tests added (`code/backend/aws/tests/test_story_handler.py`):**
+
+| Test function | Scenario |
+|---------------|----------|
+| `test_resolve_text_per_field_english_fallback` | `it` map has title but not description → description falls back to English value |
+| `test_resolve_story_text_prefers_raw_texts` | imported story: Italian title from `raw_texts` even when derived map is English-only |
+| `test_resolve_story_text_falls_back_to_derived_map_for_seed` | seed story: no `idTextTitle` → derived map with English fallback |
+| `test_list_stories_lang_it_resolves_title_from_raw_texts` | end-to-end: `GET /api/stories?lang=it` returns Italian title from `raw_texts` |
+
+AWS unit suite: **370 tests**, all green.
+
 ### Story Import Flow
 The `StoryImportService` processes a structured JSON map:
 1. Extract UUID from data (auto-generate if null/blank)
@@ -432,17 +474,18 @@ Full API specification: `adapter-rest/src/main/resources/openapi/v0.14.0-story-a
     > create a AWS backend version "code/backend/aws" with cloudformation, aws api gateway, lambda function, dynamo and cloudwatch. I wanna all api with openpi "code/backend/java/adapter-rest/src/main/resources/openapi" and jwt rules. Let's go!
 
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.26.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.14.0 | Create a website new prototype with React and Vite | April 8, 2026 |
     | 0.14.1 | Manage projects structure and 101 steps definition | April 9, 2026 |
     | 0.14.2 | Full backend implementation: JPA entities, services, API, tests | April 10, 2026 |
-    | 0.14.3 | Create robot-test-framework components to test all APIs | April 10, 2026 | 
+    | 0.14.3 | Create robot-test-framework components to test all APIs | April 10, 2026 |
     | 0.17.4 | Harmonize ID policy across backends (explicit ID, sync sequences) | May 03, 2026 |
     | 0.19.3 | Document hard FK vs. soft reference distinction in import payloads (`fk_char_templates_card`) | May 14, 2026 |
-    | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
-- **Last Updated**: May 14, 2026
+    | 0.19.3 | Add style fields columns into card tables and use into frontend | May 14, 2026 |
+    | 0.26.1 | AWS i18n bugfix: `_resolve_text` per-field English fallback; new `_resolve_story_text` reads title/description from `raw_texts` first (like cards); 4 new AWS unit tests; Robot regression test `Story List Lang IT Never Blanks A Title That English Has` added to suite `26_time_recovery/match_info_lang.robot` | June 23, 2026 |
+- **Last Updated**: June 23, 2026
 - **Status**: ✅ Complete
 
 

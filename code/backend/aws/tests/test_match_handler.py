@@ -621,6 +621,55 @@ def test_get_match_info_locations_active(mock_jwt):
     assert la[0]['events'][0]['card']['title'] == 'Greeting'
 
 
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_get_match_info_resolves_cards_in_requested_lang(mock_jwt):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+
+    match_item = {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'currentLocationId': 99, 'currentLocationUuid': 'old', 'currentLocationName': 'Old',
+        'locations': [], 'registry': [],
+    }
+    story_item = {
+        'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'idEventEndGame': 1,
+        'locations': [{'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1}],
+        'neighbors': [],
+        'events': [],
+        'raw_cards': [{'id': 1, 'uuid': 'card-1', 'awesomeIcon': 'fa-x', 'idTextTitle': 10}],
+        'raw_texts': [
+            {'idText': 10, 'lang': 'en', 'shortText': 'Hall'},
+            {'idText': 10, 'lang': 'it', 'shortText': 'Sala'},
+        ],
+    }
+    character = {
+        'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+        'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
+    }
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return story_item
+        return None
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info',
+                          path_params={'uuidMatch': 'm1'}, qs={'lang': 'it'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body['locationsActive'][0]['card']['title'] == 'Sala'
+
+
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_match_info_missing_uuid_param_falls_back_to_path_segment(mock_jwt, mock_get):

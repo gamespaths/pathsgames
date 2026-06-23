@@ -67,7 +67,7 @@ class MatchQueryService(MatchQueryPort):
             difficulty["uuid"] if difficulty else None,
         )
 
-    def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
+    def get_match_info(self, match_uuid: str, user_uuid: str, lang: str = "en") -> Optional[MatchDetail]:
         if not match_uuid or not user_uuid:
             return None
         user = self.user_access_port.find_by_uuid(user_uuid)
@@ -76,7 +76,7 @@ class MatchQueryService(MatchQueryPort):
         match = self.match_persistence_port.find_match_by_uuid(match_uuid)
         if match is None or match.get("id_user_creator") != user["id"]:
             return None
-        return self._build_detail(match, user["uuid"])
+        return self._build_detail(match, user["uuid"], lang if lang and lang.strip() else "en")
 
     def get_match_info_for_admin(self, match_uuid: str) -> Optional[MatchDetail]:
         if not match_uuid:
@@ -86,9 +86,9 @@ class MatchQueryService(MatchQueryPort):
             return None
         # Admin view — no ownership check. user_creator_uuid is left None,
         # consistent with the admin list (list_all_matches).
-        return self._build_detail(match, None)
+        return self._build_detail(match, None, "en")
 
-    def _build_detail(self, match, user_creator_uuid) -> MatchDetail:
+    def _build_detail(self, match, user_creator_uuid, lang: str = "en") -> MatchDetail:
         story = self.story_read_port.find_story_by_id(match["id_story"])
         difficulty = self.story_read_port.find_difficulty_by_id(
             match["id_story"], match["id_difficulty"]
@@ -153,7 +153,7 @@ class MatchQueryService(MatchQueryPort):
         story_id = story.get("id") if story else None
         end_event_id = story.get("id_event_end_game") if story else None
         locations_active = self._build_locations_active(
-            story_id, end_event_id, active_loc_ids, loc_by_id
+            story_id, end_event_id, active_loc_ids, loc_by_id, lang
         )
 
         return MatchDetail(
@@ -169,7 +169,7 @@ class MatchQueryService(MatchQueryPort):
             locations_active=locations_active,
         )
 
-    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id) -> List[LocationInfo]:
+    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en") -> List[LocationInfo]:
         """Build the enriched ``locations_active`` list: each player-occupied
         location with its card, the neighbor links touching it (both directions)
         and the events specific to it — each with a resolved card."""
@@ -200,7 +200,7 @@ class MatchQueryService(MatchQueryPort):
                     direction=n.get("direction"),
                     flag_back=n.get("flag_back"),
                     energy_cost=n.get("energy_cost"),
-                    card=self._resolve_card(story_id, neighbor_card_id),
+                    card=self._resolve_card(story_id, neighbor_card_id, lang),
                     secure_param=other.get("secure_param") if other else None,
                 ))
 
@@ -211,14 +211,14 @@ class MatchQueryService(MatchQueryPort):
                         uuid=e.get("uuid"),
                         type=e.get("type"),
                         end_game=(end_event_id is not None and e.get("id") == end_event_id),
-                        card=self._resolve_card(story_id, e.get("id_card")),
+                        card=self._resolve_card(story_id, e.get("id_card"), lang),
                     ))
 
             result.append(LocationInfo(
                 id_location=loc_id,
                 uuid=loc.get("uuid"),
                 id_card=loc.get("id_card"),
-                card=self._resolve_card(story_id, loc.get("id_card")),
+                card=self._resolve_card(story_id, loc.get("id_card"), lang),
                 neighbors=neighbor_infos,
                 events=event_infos,
                 secure_param=loc.get("secure_param"),

@@ -169,8 +169,48 @@ For all backends (Java, Python), the system now enforces **composite primary key
 1. **PostgreSQL**: Manual insertions of IDs during import/CRUD are followed by `SELECT setval(sequence_name, MAX(id))` to ensure the serial generator stays in sync.
 2. **SQLite**: Scoped ID generation is used to mimic auto-increment behavior within the `id_story` scope.
 
+### 6.7 AWS Bugfix — Duplicate ID on Sub-Entity Creation After Delete (v0.26.1)
 
-### 6.7 Final Validation Snapshot
+**Affected backend:** AWS serverless only (DynamoDB). Java and Python are NOT affected.
+
+**File:** `code/backend/aws/lambda/story/handler.py`, function `create_entity`
+(`POST /api/admin/stories/{uuid}/{entityType}`).
+
+**Root cause:** The next sub-entity ID was computed as `len(item[field]) + 1` (list
+length + 1). When a sub-entity in the middle of the list is deleted, the list shrinks
+but the higher IDs already assigned to other items remain in place. The next insertion
+then generates an ID that collides with an existing entry.
+
+Example: a story has cards with IDs `[1, 2, 3, 4, 5]`. After deleting card `id=2`
+the embedded list becomes `[1, 3, 4, 5]` (length 4). The next `create_entity` call
+computes `id = 4 + 1 = 5`, which duplicates the existing card with `id=5`.
+
+**Fix:** The ID is now computed as `max(existing_ids, default=0) + 1`, which is always
+strictly greater than every existing ID regardless of deletions. For `cards`, `idCard`
+is set equal to the new `id` in the same step. This behaviour mirrors the `_assign_ids`
+helper already used by the AWS import path, and matches the SQL-based implementations
+of the other backends (`COALESCE(MAX(id), 0) + 1 WHERE id_story = ...` in both Java's
+`StoryPersistenceAdapter.java` and Python's `story_persistence_adapter.py`).
+
+**Scope:** Affects all sub-entity types managed by `create_entity` (cards, locations,
+difficulties, classes, traits, events, items, etc.).
+
+**Why Java and Python are NOT affected:** Both use a SQL query
+(`COALESCE(MAX(id), 0) + 1` scoped to `id_story`) that always considers the real
+maximum in the database, so mid-list deletions have no effect on the next generated ID.
+
+**Important notes:**
+- The fix prevents **new** ID collisions from this point forward. It does **not** repair
+  already-duplicated data that may exist in DynamoDB before the fix was deployed. Such
+  entries must be corrected manually.
+- A **Lambda redeploy** is required for the fix to become active in AWS environments.
+
+**Regression test:** `test_create_entity_id_is_max_plus_one_not_len_plus_one` added to
+`code/backend/aws/tests/test_story_handler.py`. Scenario: list with IDs `[1, 3, 5]`
+(gap at 2 and 4) → new entity must receive `id=6`, not `id=4` (which would collide).
+AWS unit suite: **365 passed, 0 failed** after the fix.
+
+### 6.8 Final Validation Snapshot
 Current validation status after applying Step 17 compatibility fixes:
 
 - `mvn -pl core test -DskipITs` → **605 passed, 0 failed**.
@@ -317,7 +357,7 @@ The admin frontend provides a full management interface for Step 17 features:
 
 cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspace/pathsgames/.venv/bin/activate && pip install -q -r requirements.txt && python -m robot --variablefile variables/dev.yaml tests/14_admin/story_import.robot
 
-- **Document Version**: 0.19.3
+- **Document Version**: 0.26.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.17.0 | Admin CRUD APIs | April 25, 2026 |
@@ -326,8 +366,9 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.17.3 | Fields on Story Info: `id_text_clock_singular`, `id_text_clock_plural` | April 30, 2026 |
     | 0.17.4 | Harmonize primary keys and import ID policy across backends | May 03, 2026 |
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
+    | 0.26.1 | AWS bugfix: duplicate sub-entity ID after mid-list delete in `create_entity` | June 23, 2026 |
     
-- **Last Updated**: May 14, 2026
+- **Last Updated**: June 23, 2026
 - **Status**: ✅ Complete
 
 

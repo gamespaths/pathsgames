@@ -734,9 +734,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
     | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
     | 0.26.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.26.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.26.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
-    | 0.26.1 | Bugfix `locationsActive[].idCard`: `idCard` field added to `LocationInfo` in Java/Python/AWS; AWS seed orphan inline cards removed, `raw_cards`/`raw_texts` completed, `_enrich_locations_with_cards` helper added; all seed data (SQLite/PostgreSQL/Python) updated with valid `id_card` FK; OpenAPI `LocationInfo.idCard` documented (see Step25_TimeAdvancementClockCycle.md §15) | June 22, 2026 |
 
-- **Last Updated**: June 22, 2026
+- **Last Updated**: June 23, 2026
 - **Status**: In progress
 
 

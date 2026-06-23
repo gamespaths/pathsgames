@@ -20,11 +20,11 @@ export class MatchNotRunningError extends Error {
  * not RUNNING (e.g. ENDED, GAMEOVER). Network failures and mock-server null
  * responses still fall back to `mock/matchInfo.json` so local dev works.
  */
-export async function getMatchInfo(matchUuid, accessToken) {
+export async function getMatchInfo(matchUuid, accessToken, lang) {
   if (matchUuid) {
     let data = null
     try {
-      data = await fetchMatchInfo(matchUuid, accessToken)
+      data = await fetchMatchInfo(matchUuid, accessToken, lang)
     } catch {
       // network / server errors fall through to the mock payload
     }

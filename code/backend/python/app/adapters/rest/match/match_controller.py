@@ -248,13 +248,13 @@ class MatchController:
         results = self.query_port.list_user_matches(user_uuid)
         return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
 
-    def get_match_info(self, uuid_match: str, request: Request):
+    def get_match_info(self, uuid_match: str, request: Request, lang: str = "en"):
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
         if not uuid_match:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
-        detail = self.query_port.get_match_info(uuid_match, user_uuid)
+        detail = self.query_port.get_match_info(uuid_match, user_uuid, lang)
         if detail is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))

@@ -19,6 +19,19 @@ describe('api/stories', () => {
     expect(list[0].uuid).toBeTruthy()
   })
 
+  it('getStories forwards the requested lang and defaults to en', async () => {
+    await getStories('it')
+    expect(fetchWithFallback).toHaveBeenCalledWith('/api/stories?lang=it', expect.anything())
+    await getStories()
+    expect(fetchWithFallback).toHaveBeenCalledWith('/api/stories?lang=en', expect.anything())
+  })
+
+  it('getStory forwards lang to the list endpoint', async () => {
+    const known = (await getStories())[0].uuid
+    await getStory(known, 'it')
+    expect(fetchWithFallback).toHaveBeenCalledWith('/api/stories?lang=it', expect.anything())
+  })
+
   it('getStory finds a story by uuid and returns null when unknown', async () => {
     const list = await getStories()
     const known = list[0].uuid

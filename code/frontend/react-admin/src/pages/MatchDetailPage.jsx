@@ -315,41 +315,41 @@ export default function MatchDetailPage() {
         <LoadingSpinner text="Loading match…" />
       ) : info && (
         <>
-          {/* Match actions panel */}
-          <div
-            className="pg-card mb-4"
-            style={{
-              borderLeft: `4px solid ${colors.border}`,
-              background: colors.bg,
-            }}
-          >
-            <div className="flex items-center gap-3 flex-wrap">
-              <div style={{ flex: 1 }}>
-                <p className="pg-card-title mb-1" style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                  <i className="fas fa-circle-notch me-1" />Match status
-                </p>
-                <span
-                  data-testid="match-status-label"
-                  style={{
-                    fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.05em',
-                    color: colors.border,
-                  }}
-                >
-                  {status || '—'}
-                </span>
-              </div>
+          {/* Match configuration */}
+          <div className="pg-card mb-4">
+            <p className="pg-card-title mb-2"><i className="fas fa-sliders-h me-1" />Match configuration</p>
+
+            {/* Match status + actions — compact first row */}
+            <div
+              className="flex items-center gap-3 flex-wrap mb-2"
+              style={{
+                borderLeft: `3px solid ${colors.border}`,
+                background: colors.bg,
+                borderRadius: 5,
+                padding: '0.4rem 0.6rem',
+              }}
+            >
+              <span style={{ fontSize: '0.72rem', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <i className="fas fa-circle-notch me-1" />Status
+              </span>
+              <span
+                data-testid="match-status-label"
+                style={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: '0.05em', color: colors.border }}
+              >
+                {status || '—'}
+              </span>
 
               {actionError && (
-                <span style={{ color: '#ef4444', fontSize: '0.82rem', flex: '1 1 100%' }}>
+                <span style={{ color: '#ef4444', fontSize: '0.78rem', flex: '1 1 100%' }}>
                   <i className="fas fa-exclamation-circle me-1" />{actionError}
                 </span>
               )}
 
-              <div className="flex gap-2 flex-wrap" style={{ flexShrink: 0 }}>
+              <div className="flex gap-2 flex-wrap" style={{ flexShrink: 0, marginLeft: 'auto' }}>
                 {/* Pause — only when RUNNING */}
                 {status === 'RUNNING' && (
                   <button
-                    className="pg-btn pg-btn-gold"
+                    className="pg-btn pg-btn-gold pg-btn-sm"
                     disabled={actionLoading}
                     onClick={handlePause}
                   >
@@ -360,7 +360,7 @@ export default function MatchDetailPage() {
                 {/* Resume — only when PAUSED */}
                 {status === 'PAUSED' && (
                   <button
-                    className="pg-btn pg-btn-success"
+                    className="pg-btn pg-btn-success pg-btn-sm"
                     disabled={actionLoading}
                     onClick={handleResume}
                   >
@@ -371,7 +371,7 @@ export default function MatchDetailPage() {
                 {/* Stop — when not yet terminal */}
                 {!isTerminalStatus && (
                   <button
-                    className="pg-btn pg-btn-danger"
+                    className="pg-btn pg-btn-danger pg-btn-sm"
                     disabled={actionLoading}
                     onClick={handleStop}
                   >
@@ -382,7 +382,7 @@ export default function MatchDetailPage() {
                 {/* Delete — only when terminal */}
                 {isTerminalStatus && (
                   <button
-                    className="pg-btn pg-btn-danger"
+                    className="pg-btn pg-btn-danger pg-btn-sm"
                     disabled={actionLoading}
                     onClick={handleDelete}
                   >
@@ -391,18 +391,12 @@ export default function MatchDetailPage() {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Match configuration */}
-          <div className="pg-card mb-4">
-            <p className="pg-card-title mb-2"><i className="fas fa-sliders-h me-1" />Match configuration</p>
             <table className="pg-table" style={{ fontSize: '0.82rem' }}>
               <tbody>
                 <tr>
                   <th scope="row">Match UUID</th>
                   <td><UuidCopy uuid={match?.uuid}>{match?.uuid}</UuidCopy></td>
-                </tr>
-                <tr>
                   <th scope="row">Story UUID</th>
                   <td><UuidCopy uuid={match?.storyUuid}>{match?.storyUuid || '—'}</UuidCopy></td>
                 </tr>
@@ -413,12 +407,21 @@ export default function MatchDetailPage() {
                       {difficultyName(match?.difficultyUuid)}
                     </UuidCopy>
                   </td>
+                  <th scope="row">Mode</th>
+                  <td>{match?.singlePlayer === 0 ? 'Multiplayer' : 'Single'}</td>
                 </tr>
-                <tr><th scope="row">Mode</th><td>{match?.singlePlayer === 0 ? 'Multiplayer' : 'Single'}</td></tr>
-                <tr><th scope="row">Clock</th><td>{match?.currentClock ?? 0}</td></tr>
-                <tr><th scope="row">XP Cost</th><td>{match?.expCost ?? 0}</td></tr>
-                <tr><th scope="row">Created</th><td>{fmtDate(match?.tsInsert)}</td></tr>
-                <tr><th scope="row">Current location</th><td>{info.currentLocationName || '—'}</td></tr>
+                <tr>
+                  <th scope="row">Clock</th>
+                  <td>{match?.currentClock ?? 0}</td>
+                  <th scope="row">XP Cost</th>
+                  <td>{match?.expCost ?? 0}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Created</th>
+                  <td>{fmtDate(match?.tsInsert)}</td>
+                  <th scope="row">Current location</th>
+                  <td>{info.currentLocationName || '—'}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -550,11 +553,6 @@ export default function MatchDetailPage() {
             </div>
           </div>
 
-          {/* Step 24 — projected turn order */}
-          <div className="mb-4">
-            <TurnOrderPanel players={players} nameOf={templateName} />
-          </div>
-
           {/* Locations */}
           <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
             <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
@@ -584,7 +582,7 @@ export default function MatchDetailPage() {
           </div>
 
           {/* Registry */}
-          <div className="pg-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
             <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
               <i className="fas fa-list me-1" />Registry ({info.registry?.length ?? 0})
             </p>
@@ -605,6 +603,11 @@ export default function MatchDetailPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Step 24 — projected turn order */}
+          <div className="mb-4">
+            <TurnOrderPanel players={players} nameOf={templateName} />
           </div>
         </>
       )}
