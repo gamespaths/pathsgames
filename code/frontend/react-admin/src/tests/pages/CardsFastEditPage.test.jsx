@@ -343,6 +343,63 @@ describe('CardsFastEditPage', () => {
     }
   })
 
+  it('shows entity-type badge for a card referenced by an entity', async () => {
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')    return Promise.resolve(mockCards)
+      if (type === 'texts')    return Promise.resolve(mockTexts)
+      if (type === 'creators') return Promise.resolve(mockCreators)
+      // Card 1 is linked to a location
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc1', idCard: 1 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    expect(screen.getByTitle('Linked to Locations')).toBeInTheDocument()
+  })
+
+  it('shows delete button in Entity column for unreferenced cards', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    // No ref entities in default mock → both cards unused
+    expect(screen.getAllByTitle('Delete unused card').length).toBe(2)
+    expect(screen.getAllByTitle('Card not referenced by any entity').length).toBe(2)
+  })
+
+  it('renders open-link buttons enabled only when a URL is present', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    // Card 1 has linkCopyright set, card 2 is empty
+    const links = screen.getAllByLabelText('Open Copyright Link')
+    expect(links[0]).toHaveAttribute('href', 'http://example.com')
+    expect(links[0]).toHaveAttribute('target', '_blank')
+    expect(links[1]).not.toHaveAttribute('href')
+  })
+
+  it('filters cards by entity type via the Entity dropdown', async () => {
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')     return Promise.resolve(mockCards)
+      if (type === 'texts')     return Promise.resolve(mockTexts)
+      if (type === 'creators')  return Promise.resolve(mockCreators)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc1', idCard: 1 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    const entitySelect = screen.getByLabelText('Filter by entity type')
+    // Select "Locations" → only card 1 (linked to a location) remains
+    fireEvent.change(entitySelect, { target: { value: 'locations' } })
+    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.queryByText('#2')).not.toBeInTheDocument()
+    // Select "Non collegate" → only card 2 (unlinked) remains
+    fireEvent.change(entitySelect, { target: { value: '__none__' } })
+    expect(screen.getByText('#2')).toBeInTheDocument()
+    expect(screen.queryByText('#1')).not.toBeInTheDocument()
+    // Back to "Tutti" → both shown
+    fireEvent.change(entitySelect, { target: { value: '' } })
+    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.getByText('#2')).toBeInTheDocument()
+  })
+
   it('shows alert badge when title and desc text id are the same', async () => {
     storyApi.listEntities.mockImplementation((uuid, type) => {
       if (type === 'cards') return Promise.resolve([

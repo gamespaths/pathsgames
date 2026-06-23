@@ -46,6 +46,44 @@ const INPUT_STYLE = {
   outline: 'none',
 }
 
+// Prettify an entity-type slug into a short readable label, e.g.
+// "character-templates" → "Character Templates".
+const prettyEntityType = (type) =>
+  type
+    .split('-')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+
+function LinkFieldCell({ value, onChange, ariaLabel }) {
+  const href = value && value.trim() ? value.trim() : ''
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, width: '100%' }}>
+      <input
+        style={{ ...INPUT_STYLE, minWidth: 60 }}
+        value={value ?? ''}
+        onChange={onChange}
+        placeholder="https://…"
+        aria-label={ariaLabel}
+      />
+      <a
+        href={href || undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="pg-btn pg-btn-ghost pg-btn-sm"
+        style={{
+          padding: '0.2rem 0.35rem', fontSize: '0.68rem', flexShrink: 0,
+          ...(href ? {} : { pointerEvents: 'none', opacity: 0.3 }),
+        }}
+        title={href ? 'Open link in new tab' : 'No link'}
+        onClick={href ? undefined : (e) => e.preventDefault()}
+        aria-label={`Open ${ariaLabel}`}
+      >
+        <i className="fas fa-external-link-alt" />
+      </a>
+    </span>
+  )
+}
+
 function TextFieldCell({ value, textShort, onOpenSelector, onOpenCreator, onAlert, onAlignAlert }) {
   const label = value ? `#${value}${textShort}` : '—'
   const onClick = value ? onOpenCreator : onOpenSelector
@@ -95,7 +133,6 @@ export default function CardsFastEditPage() {
   const [origRows, setOrigRows]     = useState([])
   const [texts, setTexts]           = useState([])
   const [creators, setCreators]     = useState([])
-  const [usedCardIds, setUsedCardIds]           = useState(new Set())
   const [refEntitiesByType, setRefEntitiesByType] = useState({})
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
@@ -117,6 +154,8 @@ export default function CardsFastEditPage() {
   // { cardUuid } | null  — create new separate desc text
   const [splitDescCreator, setSplitDescCreator] = useState(null)
   const [filter, setFilter] = useState('')
+  // '' = tutti | '__none__' = non collegate | <entity-type>
+  const [entityFilter, setEntityFilter] = useState('')
 
   const creatorsOptions = useMemo(() => makeReferenceOptions({
     entities: creators,
@@ -138,6 +177,18 @@ export default function CardsFastEditPage() {
       en: { shortText: en?.shortText || '', longText: en?.longText || '' },
       it: { shortText: it?.shortText || '', longText: it?.longText || '' },
     }
+  }
+
+  /** Returns the distinct entity types referencing this card via idCard
+   *  (plus 'story' when the story itself points at the card). */
+  const getCardEntityTypes = (idCard) => {
+    const types = []
+    if (story?.idCard != null && Number(story.idCard) === Number(idCard)) types.push('story')
+    CARD_REF_TYPES.forEach(type => {
+      const list = refEntitiesByType[type] || []
+      if (list.some(e => e.idCard != null && Number(e.idCard) === Number(idCard))) types.push(type)
+    })
+    return types
   }
 
   const getCreatorLabel = (idCreator) => {
@@ -174,13 +225,6 @@ export default function CardsFastEditPage() {
       setStoryOptions([{ value: storyData.uuid, label: `${storyData.author || 'Story'} (${storyData.uuid.slice(0, 8)})` }])
       setTexts(textsData)
       setCreators(creatorsData)
-
-      const used = new Set()
-      if (storyData.idCard != null) used.add(Number(storyData.idCard))
-      refLists.forEach(list =>
-        list.forEach(e => { if (e.idCard != null) used.add(Number(e.idCard)) })
-      )
-      setUsedCardIds(used)
 
       const byType = {}
       CARD_REF_TYPES.forEach((type, i) => { byType[type] = refLists[i] })
@@ -314,7 +358,6 @@ export default function CardsFastEditPage() {
       await deleteEntity(uuid, 'cards', cardUuid)
       setRows(prev => prev.filter(r => r.uuid !== cardUuid))
       setOrigRows(prev => prev.filter(r => r.uuid !== cardUuid))
-      setUsedCardIds(prev => { const s = new Set(prev); s.delete(Number(idCard)); return s })
       setSuccess(`Card #${idCard} deleted`)
       setTimeout(() => setSuccess(''), 2000)
     } catch (e) {
@@ -398,19 +441,32 @@ export default function CardsFastEditPage() {
 
   if (loading) return <LoadingSpinner text="Loading cards…" />
 
-  const filteredRows      = filter
-    ? rows.filter(r => {
-        const f = filter.toLowerCase()
-        return (
-          String(r.idCard).includes(f) ||
-          getTextShort(r.idTextTitle).toLowerCase().includes(f) ||
-          getTextShort(r.idTextDescription).toLowerCase().includes(f) ||
-          getTextShort(r.idTextCopyright).toLowerCase().includes(f) ||
-          (r.linkCopyright || '').toLowerCase().includes(f) ||
-          (r.urlImage || '').toLowerCase().includes(f)
-        )
-      })
-    : rows
+  // Entity types actually present among the loaded cards (for the dropdown).
+  const presentEntityTypes = [...new Set(
+    rows.flatMap(r => getCardEntityTypes(r.idCard))
+  )].sort()
+
+  const matchesEntityFilter = (row) => {
+    if (!entityFilter) return true
+    const types = getCardEntityTypes(row.idCard)
+    if (entityFilter === '__none__') return types.length === 0
+    return types.includes(entityFilter)
+  }
+
+  const filteredRows      = rows
+    .filter(matchesEntityFilter)
+    .filter(r => {
+      if (!filter) return true
+      const f = filter.toLowerCase()
+      return (
+        String(r.idCard).includes(f) ||
+        getTextShort(r.idTextTitle).toLowerCase().includes(f) ||
+        getTextShort(r.idTextDescription).toLowerCase().includes(f) ||
+        getTextShort(r.idTextCopyright).toLowerCase().includes(f) ||
+        (r.linkCopyright || '').toLowerCase().includes(f) ||
+        (r.urlImage || '').toLowerCase().includes(f)
+      )
+    })
 
   const nextTextId = texts.length
     ? Math.max(...texts.map(t => Number(t.idText)).filter(v => Number.isFinite(v))) + 1
@@ -482,18 +538,44 @@ export default function CardsFastEditPage() {
               <thead>
                 <tr>
                   <th style={{ width: 56, textAlign: 'center' }}>ID</th>
+                  <th style={{ minWidth: 130 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span>Entity</span>
+                      <select
+                        value={entityFilter}
+                        onChange={e => setEntityFilter(e.target.value)}
+                        aria-label="Filter by entity type"
+                        style={{
+                          background: 'rgba(0,0,0,0.35)',
+                          border: '1px solid rgba(200,150,10,0.3)',
+                          borderRadius: 3,
+                          color: 'var(--color-parchment)',
+                          fontSize: '0.68rem',
+                          padding: '0.1rem 0.2rem',
+                          fontFamily: 'Crimson Text, Georgia, serif',
+                          outline: 'none',
+                        }}
+                      >
+                        <option value="">Tutti</option>
+                        <option value="__none__">Non collegate</option>
+                        {presentEntityTypes.map(t => (
+                          <option key={t} value={t}>{prettyEntityType(t)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
                   <th style={{ minWidth: 160 }}>Title Text</th>
                   <th style={{ minWidth: 160 }}>Desc Text</th>
                   <th style={{ minWidth: 160 }}>Copyright Text</th>
-                  <th style={{ minWidth: 180 }}>Copyright Link</th>
-                  <th style={{ minWidth: 180 }}>Image URL</th>
+                  <th style={{ width: 90 }}>Copyright Link</th>
+                  <th style={{ width: 90 }}>Image URL</th>
                   <th style={{ width: 70 }}>Creator</th>
                   <th style={{ width: 52 }}></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-ash)', padding: '1.5rem' }}>No cards match the filter.</td></tr>
+                  <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--color-ash)', padding: '1.5rem' }}>No cards match the filter.</td></tr>
                 )}
                 {filteredRows.map(row => {
                   const dirty   = isDirty(row)
@@ -513,22 +595,46 @@ export default function CardsFastEditPage() {
                         >
                           #{row.idCard}
                         </button>
-                        {!usedCardIds.has(Number(row.idCard)) && (<>
-                          <i
-                            className="fas fa-exclamation-triangle ms-1"
-                            style={{ color: 'var(--color-ember)', fontSize: '0.62rem' }}
-                            title="Card not referenced by any entity"
-                          />
-                          <button
-                            type="button"
-                            className="pg-btn pg-btn-danger pg-btn-sm ms-1"
-                            style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', lineHeight: 1 }}
-                            onClick={() => setDeleteConfirm({ cardUuid: row.uuid, idCard: row.idCard })}
-                            title="Delete unused card"
-                          >
-                            <i className="fas fa-times" />
-                          </button>
-                        </>)}
+                      </td>
+
+                      <td style={{ ...CELL, whiteSpace: 'nowrap' }}>
+                        {(() => {
+                          const entityTypes = getCardEntityTypes(row.idCard)
+                          if (entityTypes.length === 0) {
+                            return (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <i
+                                  className="fas fa-exclamation-triangle"
+                                  style={{ color: 'var(--color-ember)', fontSize: '0.62rem' }}
+                                  title="Card not referenced by any entity"
+                                />
+                                <button
+                                  type="button"
+                                  className="pg-btn pg-btn-danger pg-btn-sm"
+                                  style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', lineHeight: 1 }}
+                                  onClick={() => setDeleteConfirm({ cardUuid: row.uuid, idCard: row.idCard })}
+                                  title="Delete unused card"
+                                >
+                                  <i className="fas fa-times" />
+                                </button>
+                              </span>
+                            )
+                          }
+                          return (
+                            <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3 }}>
+                              {entityTypes.map(t => (
+                                <span
+                                  key={t}
+                                  className="pg-badge pg-badge-gold"
+                                  style={{ fontSize: '0.6rem' }}
+                                  title={`Linked to ${prettyEntityType(t)}`}
+                                >
+                                  {prettyEntityType(t)}
+                                </span>
+                              ))}
+                            </span>
+                          )
+                        })()}
                       </td>
 
                       <td style={CELL}>
@@ -570,22 +676,18 @@ export default function CardsFastEditPage() {
                       </td>
 
                       <td style={CELL}>
-                        <input
-                          style={INPUT_STYLE}
-                          value={row.linkCopyright ?? ''}
+                        <LinkFieldCell
+                          value={row.linkCopyright}
                           onChange={e => updateRow(row.uuid, 'linkCopyright', e.target.value)}
-                          placeholder="https://…"
-                          aria-label="Copyright Link"
+                          ariaLabel="Copyright Link"
                         />
                       </td>
 
                       <td style={CELL}>
-                        <input
-                          style={INPUT_STYLE}
-                          value={row.urlImage ?? ''}
+                        <LinkFieldCell
+                          value={row.urlImage}
                           onChange={e => updateRow(row.uuid, 'urlImage', e.target.value)}
-                          placeholder="https://…"
-                          aria-label="Image URL"
+                          ariaLabel="Image URL"
                         />
                       </td>
 

@@ -96,7 +96,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 25,
-      "idCard": 25,
       "idCreator": 1,
       "idTextCopyright": 95,
       "idTextDescription": 120,
@@ -115,7 +114,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 26,
-      "idCard": 26,
       "idCreator": 1,
       "idTextCopyright": 96,
       "idTextDescription": 121,
@@ -134,7 +132,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 27,
-      "idCard": 27,
       "idCreator": 1,
       "idTextCopyright": 15,
       "idTextDescription": 122,
@@ -153,7 +150,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 28,
-      "idCard": 28,
       "idCreator": 1,
       "idTextCopyright": 97,
       "idTextDescription": 123,
@@ -172,7 +168,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 29,
-      "idCard": 29,
       "idCreator": 1,
       "idTextCopyright": 98,
       "idTextDescription": 124,
@@ -191,7 +186,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 30,
-      "idCard": 30,
       "idCreator": 1,
       "idTextCopyright": 99,
       "idTextDescription": 125,
@@ -210,7 +204,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 31,
-      "idCard": 31,
       "idCreator": 1,
       "idTextCopyright": 88,
       "idTextDescription": 114,
@@ -229,7 +222,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 32,
-      "idCard": 32,
       "idCreator": 1,
       "idTextCopyright": 89,
       "idTextDescription": 115,
@@ -248,7 +240,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 33,
-      "idCard": 33,
       "idCreator": 1,
       "idTextCopyright": 90,
       "idTextDescription": 116,
@@ -267,7 +258,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 34,
-      "idCard": 34,
       "idCreator": 1,
       "idTextCopyright": 91,
       "idTextDescription": 117,
@@ -286,7 +276,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 35,
-      "idCard": 35,
       "idCreator": 1,
       "idTextCopyright": 92,
       "idTextDescription": 118,
@@ -305,7 +294,6 @@
       "awesomeIcon": "",
       "cardType": null,
       "id": 36,
-      "idCard": 36,
       "idCreator": 1,
       "idTextCopyright": 94,
       "idTextDescription": 119,
@@ -324,7 +312,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 37,
-      "idCard": 37,
       "idCreator": 1,
       "idTextCopyright": 100,
       "idTextDescription": 126,
@@ -343,7 +330,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 38,
-      "idCard": 38,
       "idCreator": 1,
       "idTextCopyright": 101,
       "idTextDescription": 127,
@@ -362,7 +348,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 39,
-      "idCard": 39,
       "idCreator": 1,
       "idTextCopyright": 102,
       "idTextDescription": 128,
@@ -381,7 +366,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 40,
-      "idCard": 40,
       "idCreator": 1,
       "idTextCopyright": 103,
       "idTextDescription": 129,
@@ -400,7 +384,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 42,
-      "idCard": 42,
       "idCreator": 1,
       "idTextCopyright": 104,
       "idTextDescription": 130,
@@ -419,7 +402,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 43,
-      "idCard": 43,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 131,
@@ -456,7 +438,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 45,
-      "idCard": 45,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 132,
@@ -475,7 +456,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 46,
-      "idCard": 46,
       "idCreator": 1,
       "idTextCopyright": 113,
       "idTextDescription": 133,
@@ -507,6 +487,30 @@
       "styleMain": null,
       "urlImage": null,
       "uuid": "362a3e1b-36a9-4a8f-b2c2-21703494132c"
+    },
+    {
+      "id": 48,
+      "idCard": 48,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 135,
+      "idTextName": 135,
+      "idTextTitle": 135,
+      "linkCopyright": "https://unsplash.com/photos/brown-field-under-blue-sky-during-daytime-OVX3oiL5PsE",
+      "urlImage": "https://images.unsplash.com/photo-1604949210966-9440c324823f?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "8f40eae9-54f4-433c-8796-092d225f4dec"
+    },
+    {
+      "id": 49,
+      "idCard": 49,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 136,
+      "idTextName": 136,
+      "idTextTitle": 136,
+      "linkCopyright": "https://unsplash.com/photos/a-beautiful-rural-landscape-at-sunset-panorama-of-countryside-in-slovakia-OYws_mZAWpE",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1663054703415-6d6d0ef1541d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "acc5e4ff-d8ce-4ea5-8337-9e49b464dcd8"
     }
   ],
   "category": "adventure",
@@ -520,7 +524,7 @@
       "idCard": 25,
       "idClassPermitted": null,
       "idClassProhibited": null,
-      "idTextDescription": 70,
+      "idTextDescription": 120,
       "idTextName": 70,
       "id_tipo": 1,
       "intelligenceStart": 0,
@@ -542,7 +546,7 @@
       "idCard": 26,
       "idClassPermitted": null,
       "idClassProhibited": 1,
-      "idTextDescription": 71,
+      "idTextDescription": 121,
       "idTextName": 71,
       "id_tipo": 2,
       "intelligenceStart": 0,
@@ -564,7 +568,7 @@
       "idCard": 27,
       "idClassPermitted": null,
       "idClassProhibited": 6,
-      "idTextDescription": 72,
+      "idTextDescription": 122,
       "idTextName": 72,
       "id_tipo": 3,
       "intelligenceStart": 0,
@@ -586,7 +590,7 @@
       "idCard": 28,
       "idClassPermitted": null,
       "idClassProhibited": 5,
-      "idTextDescription": 73,
+      "idTextDescription": 123,
       "idTextName": 73,
       "id_tipo": 4,
       "intelligenceStart": 0,
@@ -608,7 +612,7 @@
       "idCard": 29,
       "idClassPermitted": null,
       "idClassProhibited": 1,
-      "idTextDescription": 74,
+      "idTextDescription": 124,
       "idTextName": 74,
       "id_tipo": 5,
       "intelligenceStart": 0,
@@ -630,7 +634,7 @@
       "idCard": 30,
       "idClassPermitted": 3,
       "idClassProhibited": null,
-      "idTextDescription": 75,
+      "idTextDescription": 125,
       "idTextName": 75,
       "id_tipo": 6,
       "intelligenceStart": 2,
@@ -672,8 +676,12 @@
       "intelligenceBase": 3,
       "texts": {
         "en": {
-          "description": "Knight",
+          "description": "An armored warrior focusing on defense and physical vigor. The party's shield against any threat. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Knight"
+        },
+        "it": {
+          "description": "Guerriero corazzato che punta sulla difesa e sul vigore fisico. È lo scudo del gruppo contro ogni minaccia.",
+          "name": "Guerriero"
         }
       },
       "uuid": "4fc3edc1-e60c-4081-a3b0-8607e6023788",
@@ -689,7 +697,11 @@
       "intelligenceBase": 3,
       "texts": {
         "en": {
-          "description": "Archer",
+          "description": "A sharpshooter combining agility and lethal precision. Strikes enemies before they can even get close. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.\n",
+          "name": "Archer"
+        },
+        "it": {
+          "description": "Tiratore scelto che combina agilità e precisione letale. Colpisce i nemici prima ancora che possano avvicinarsi.",
           "name": "Archer"
         }
       },
@@ -701,11 +713,15 @@
       "dexterityBase": 2,
       "id": 3,
       "idCard": 33,
-      "idTextDescription": 78,
+      "idTextDescription": 116,
       "idTextName": 78,
       "intelligenceBase": 5,
       "texts": {
         "en": {
+          "description": "Mage",
+          "name": "Mage"
+        },
+        "it": {
           "description": "Mage",
           "name": "Mage"
         }
@@ -718,7 +734,7 @@
       "dexterityBase": 4,
       "id": 4,
       "idCard": 34,
-      "idTextDescription": 79,
+      "idTextDescription": 117,
       "idTextName": 79,
       "intelligenceBase": 3,
       "texts": {
@@ -739,7 +755,7 @@
       "dexterityBase": 2,
       "id": 5,
       "idCard": 35,
-      "idTextDescription": 80,
+      "idTextDescription": 118,
       "idTextName": 80,
       "intelligenceBase": 4,
       "texts": {
@@ -756,7 +772,7 @@
       "dexterityBase": 4,
       "id": 6,
       "idCard": 36,
-      "idTextDescription": 81,
+      "idTextDescription": 119,
       "idTextName": 81,
       "intelligenceBase": 3,
       "texts": {
@@ -806,7 +822,10 @@
       "sad": 0,
       "texts": {
         "en": {
-          "title": "Easy"
+          "title": "A smooth path for those who wish to explore the story without too much struggle. <br />You will recover 4 energy points every time you rest."
+        },
+        "it": {
+          "title": "Un cammino agevole per chi desidera esplorare la storia senza troppi affanni. <br />Recupererai 4 punti energia ogni volta che riposerai."
         }
       },
       "uuid": "60d1b190-05b8-4166-b656-301663875d51",
@@ -821,7 +840,7 @@
       "expCost": 0,
       "id": 2,
       "idCard": 21,
-      "idTextDescription": 42,
+      "idTextDescription": 41,
       "idTextName": 42,
       "intelligence": 0,
       "life": 0,
@@ -847,7 +866,7 @@
       "expCost": 0,
       "id": 3,
       "idCard": 22,
-      "idTextDescription": 45,
+      "idTextDescription": 44,
       "idTextName": 45,
       "intelligence": 0,
       "life": 0,
@@ -873,7 +892,7 @@
       "expCost": 0,
       "id": 4,
       "idCard": 23,
-      "idTextDescription": 48,
+      "idTextDescription": 47,
       "idTextName": 48,
       "intelligence": 0,
       "life": 0,
@@ -895,6 +914,22 @@
   "eventEffects": [],
   "events": [
     {
+      "card": {
+        "alternativeImage": null,
+        "awesomeIcon": null,
+        "cardType": null,
+        "copyrightText": "Paths Games Team",
+        "description": "You have finally reached the climax of your adventure inside the Cursed Fortress. This card represents the achievement of your final goal and the conclusion of the narrative mission. By activating this event, the match will officially transition to the ENDED state, allowing you to view the summary of your story\n. Every choice you made along the misty corridors has led you to this glorious milestone. Congratulations, you have proven that your destiny is forged only by your actions.",
+        "linkCopyright": "https://unsplash.com/photos/sunset-over-the-dark-horizon-with-colorful-sky-80k046rJxl0",
+        "styleDetail": null,
+        "styleImageLarge": null,
+        "styleImageLittle": null,
+        "styleImageMedium": null,
+        "styleMain": null,
+        "title": "Complete story",
+        "urlImage": "https://images.unsplash.com/photo-1742710511506-a0b63b2d6b64?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "1b07f163-bc7b-430c-a446-94d23171641b"
+      },
       "characteristicToAdd": null,
       "characteristicToRemove": null,
       "coinCost": 0,
@@ -956,8 +991,24 @@
   ],
   "locations": [
     {
+      "card": {
+        "alternativeImage": null,
+        "awesomeIcon": null,
+        "cardType": "location",
+        "copyrightText": "Daniel J. Schwarz",
+        "description": "Welcome to the introduction match of paths.games.\n<br /><br />Here you can constantly check your vital statistics such as Life, Energy, and Happiness.\n<br /><br /> Examine the movement section to discover which adjacent locations are ready to be explored.\n<br /><br /> Browse the list of available actions to interact with your current location and advance the story.\n<br /><br /> Remember that every choice consumes resources and uniquely shapes your winding path",
+        "linkCopyright": "https://unsplash.com/photos/wooden-walkway-through-coastal-heathland-at-sunset-72_NYAYSpo4",
+        "styleDetail": null,
+        "styleImageLarge": null,
+        "styleImageLittle": null,
+        "styleImageMedium": null,
+        "styleMain": null,
+        "title": "Tutorial start location",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "8ae5abf9-afca-4d22-b97c-e7d0dd36612c"
+      },
       "costEnergyEnter": 0,
-      "counterTime": 0,
+      "counterTime": 100,
       "id": 1,
       "idAudio": null,
       "idCard": 44,
@@ -968,7 +1019,7 @@
       "idEventNotFirstTime": null,
       "idImage": null,
       "idTextDescription": 105,
-      "idTextName": 105,
+      "idTextName": 111,
       "idTextNarrative": null,
       "id_card": 44,
       "isSafe": false,
@@ -978,6 +1029,22 @@
       "uuid": "43173188-2b89-40e3-989b-6c0ebb073a8f"
     },
     {
+      "card": {
+        "alternativeImage": null,
+        "awesomeIcon": null,
+        "cardType": null,
+        "copyrightText": "Daniel J. Schwarz",
+        "description": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
+        "linkCopyright": "https://unsplash.com/photos/wooden-walkway-through-coastal-heathland-at-sunset-72_NYAYSpo4",
+        "styleDetail": null,
+        "styleImageLarge": null,
+        "styleImageLittle": null,
+        "styleImageMedium": null,
+        "styleMain": null,
+        "title": "Tutorial End location",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "4a34065a-76b3-48bb-98dc-1c5335246aec"
+      },
       "costEnergyEnter": 1,
       "counterTime": null,
       "id": 2,
@@ -1539,9 +1606,9 @@
     {
       "id": 39,
       "idCard": null,
-      "idCreator": null,
+      "idCreator": 1,
       "idText": 39,
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "idTextDescription": null,
       "idTextName": null,
       "lang": "en",
@@ -1623,9 +1690,9 @@
     {
       "id": 45,
       "idCard": null,
-      "idCreator": null,
+      "idCreator": 1,
       "idText": 45,
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "idTextDescription": null,
       "idTextName": null,
       "lang": "en",
@@ -1665,9 +1732,9 @@
     {
       "id": 48,
       "idCard": null,
-      "idCreator": null,
+      "idCreator": 1,
       "idText": 48,
-      "idTextCopyright": null,
+      "idTextCopyright": 3,
       "idTextDescription": null,
       "idTextName": null,
       "lang": "en",
@@ -2680,8 +2747,8 @@
       "idTextName": null,
       "lang": "it",
       "linkCopyright": null,
-      "longText": "",
-      "shortText": "",
+      "longText": "Ladro",
+      "shortText": "Ladro",
       "uuid": "fd664faa-fb5a-4994-afb1-96f6d6518666"
     },
     {
@@ -2694,8 +2761,8 @@
       "idTextName": null,
       "lang": "it",
       "linkCopyright": null,
-      "longText": "Sangue Antico",
-      "shortText": "Ancestrale",
+      "longText": "Divino",
+      "shortText": "Divino",
       "uuid": "026a0026-a29c-458c-885f-b41a669fc676"
     },
     {
@@ -2722,8 +2789,8 @@
       "idTextName": null,
       "lang": "it",
       "linkCopyright": null,
-      "longText": "",
-      "shortText": "",
+      "longText": "Paths Tutorial",
+      "shortText": "Paths Tutorial",
       "uuid": "e04209e7-8b7a-42bb-8485-51783fe39fa2"
     },
     {
@@ -2784,8 +2851,8 @@
       "idText": 77,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Archer",
-      "shortText": "Archer",
+      "longText": "Arciere",
+      "shortText": "Arciere",
       "uuid": "dd81c870-198b-4976-be9f-1f9329a17d47"
     },
     {
@@ -2794,8 +2861,8 @@
       "idText": 78,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Mage",
-      "shortText": "Mage",
+      "longText": "Mago",
+      "shortText": "Mago",
       "uuid": "4fbbd80b-d9cd-499b-b3f8-9cdc07cbf821"
     },
     {
@@ -3104,8 +3171,8 @@
       "idText": 85,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Blessed",
-      "shortText": "Blessed",
+      "longText": "Benedetto",
+      "shortText": "Benedetto",
       "uuid": "73f09fda-e145-4248-a15f-5b2a059389c6"
     },
     {
@@ -3114,8 +3181,8 @@
       "idText": 86,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Coward",
-      "shortText": "Coward",
+      "longText": "Codardo",
+      "shortText": "Codardo",
       "uuid": "7fc81889-9158-42e1-b2b4-02558a6411bf"
     },
     {
@@ -3287,9 +3354,179 @@
       "longText": "Luogo inizio tutorial",
       "shortText": "Luogo inizio tutorial",
       "uuid": "9ce74779-6950-419b-8681-0688bd65cb2d"
+    },
+    {
+      "id": 135,
+      "idCreator": 1,
+      "idText": 135,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Beautiful time",
+      "shortText": "Beautiful time",
+      "uuid": "ce59cf16-8dd2-4c00-8072-b4aaa8ea7cae"
+    },
+    {
+      "id": 136,
+      "idCreator": 1,
+      "idText": 136,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Nice time",
+      "shortText": "Nice time",
+      "uuid": "5f346e89-1b5d-4f00-93eb-02917e2dbe70"
+    },
+    {
+      "id": 106,
+      "idCreator": 1,
+      "idText": 106,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Completa la storia",
+      "shortText": "Completa la storia",
+      "uuid": "b516c7b9-e406-4bff-b5d7-b16dd3f2ec92"
+    },
+    {
+      "id": 39,
+      "idCreator": 1,
+      "idText": 39,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Facile",
+      "shortText": "Facile",
+      "uuid": "dd3c4364-bec6-40dd-81d6-6f037346cba9"
+    },
+    {
+      "id": 45,
+      "idCreator": 1,
+      "idText": 45,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Difficile",
+      "shortText": "Difficile",
+      "uuid": "8e61c824-8af7-42e4-9336-3d6645bcdaf0"
+    },
+    {
+      "id": 48,
+      "idCreator": 1,
+      "idText": 48,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Leggendario",
+      "shortText": "Leggendario",
+      "uuid": "5c309d80-8d67-4f89-b043-71e33d07ae10"
+    },
+    {
+      "id": 70,
+      "idCreator": 1,
+      "idText": 70,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Soldato",
+      "shortText": "Soldato",
+      "uuid": "b93c8cdc-9672-4885-9b5d-35247ce69094"
+    },
+    {
+      "id": 71,
+      "idCreator": 1,
+      "idText": 71,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Elfo dei boschi",
+      "shortText": "Elfo dei boschi",
+      "uuid": "489c68b5-7833-4664-9690-043726373aef"
+    },
+    {
+      "id": 72,
+      "idCreator": 1,
+      "idText": 72,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Nano",
+      "shortText": "Nano",
+      "uuid": "16869c3f-5b69-40ed-a1de-62fa85831bda"
+    },
+    {
+      "id": 73,
+      "idCreator": 1,
+      "idText": 73,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Orco",
+      "shortText": "Orco",
+      "uuid": "a375c438-7f10-416d-b9ac-0a9395d117c7"
+    },
+    {
+      "id": 74,
+      "idCreator": 1,
+      "idText": 74,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mezzuomo",
+      "shortText": "Mezzuomo",
+      "uuid": "04f950a9-0b77-4d11-938b-de1c7af93463"
+    },
+    {
+      "id": 75,
+      "idCreator": 1,
+      "idText": 75,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Stregone",
+      "shortText": "Stregone",
+      "uuid": "71fddd92-9798-4960-a22d-6c315a7dcc1c"
+    },
+    {
+      "id": 80,
+      "idCreator": 1,
+      "idText": 80,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Paladino",
+      "shortText": "Paladino",
+      "uuid": "235af6a0-dbce-440e-b30e-69c9bf9eace3"
+    },
+    {
+      "id": 81,
+      "idCreator": 1,
+      "idText": 81,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Bardo",
+      "shortText": "Bardo",
+      "uuid": "79a48cfe-c53d-4ac2-b558-b72e8b2cb1e3"
+    },
+    {
+      "id": 82,
+      "idCreator": 1,
+      "idText": 82,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Coraggioso",
+      "shortText": "Coraggioso",
+      "uuid": "1f6374f3-6d24-4445-9bbe-259b7017463b"
+    },
+    {
+      "id": 83,
+      "idCreator": 1,
+      "idText": 83,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Furbo",
+      "shortText": "Furbo",
+      "uuid": "dcd807ce-8992-4679-b594-df497154264a"
+    },
+    {
+      "id": 84,
+      "idCreator": 1,
+      "idText": 84,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Maledetto",
+      "shortText": "Maledetto",
+      "uuid": "239fb661-fd50-4b95-9e07-76b4749b4f1c"
     }
   ],
-  "title": "Paths Alpha",
+  "title": "Paths Tutorial",
   "traitCount": 6,
   "traits": [
     {
@@ -3302,7 +3539,7 @@
       "idCard": 37,
       "idClassPermitted": null,
       "idClassProhibited": 6,
-      "idTextDescription": 82,
+      "idTextDescription": 126,
       "idTextName": 82,
       "intelligence": 0,
       "life": 0,
@@ -3326,7 +3563,7 @@
       "idCard": 38,
       "idClassPermitted": null,
       "idClassProhibited": 1,
-      "idTextDescription": 83,
+      "idTextDescription": 127,
       "idTextName": 83,
       "intelligence": 1,
       "life": 0,
@@ -3350,7 +3587,7 @@
       "idCard": 39,
       "idClassPermitted": null,
       "idClassProhibited": 2,
-      "idTextDescription": 84,
+      "idTextDescription": 128,
       "idTextName": 84,
       "intelligence": 0,
       "life": 0,
@@ -3374,13 +3611,17 @@
       "idCard": 40,
       "idClassPermitted": null,
       "idClassProhibited": 4,
-      "idTextDescription": 85,
+      "idTextDescription": 129,
       "idTextName": 85,
       "intelligence": 0,
       "life": 0,
       "sad": 1,
       "texts": {
         "en": {
+          "description": "Blessed",
+          "name": "Blessed"
+        },
+        "it": {
           "description": "Blessed",
           "name": "Blessed"
         }
@@ -3398,13 +3639,17 @@
       "idCard": 42,
       "idClassPermitted": null,
       "idClassProhibited": 5,
-      "idTextDescription": 86,
+      "idTextDescription": 130,
       "idTextName": 86,
       "intelligence": 0,
       "life": 0,
       "sad": -1,
       "texts": {
         "en": {
+          "description": "Coward",
+          "name": "Coward"
+        },
+        "it": {
           "description": "Coward",
           "name": "Coward"
         }
@@ -3422,7 +3667,7 @@
       "idCard": 43,
       "idClassPermitted": null,
       "idClassProhibited": 3,
-      "idTextDescription": 87,
+      "idTextDescription": 131,
       "idTextName": 87,
       "intelligence": 0,
       "life": 1,
