@@ -42,15 +42,18 @@ public class MatchAdminController {
     private final MatchQueryPort matchQueryPort;
     private final TimeAdvancementPort timeAdvancementPort;
     private final CharacterCommandPort characterCommandPort;
+    private final games.paths.core.service.match.WeatherSelectionService weatherService;
 
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
                                 TimeAdvancementPort timeAdvancementPort,
-                                CharacterCommandPort characterCommandPort) {
+                                CharacterCommandPort characterCommandPort,
+                                games.paths.core.service.match.WeatherSelectionService weatherService) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
         this.characterCommandPort = characterCommandPort;
+        this.weatherService = weatherService;
     }
 
     /** GET /api/admin/matches — lists every match in the platform (admin view). */
@@ -114,6 +117,64 @@ public class MatchAdminController {
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }
+    }
+
+    /**
+     * GET /api/admin/matches/{uuidMatch}/weather — admin weather view (Step 27):
+     * the per-match rng_seed, the current weather with its delta_energy and
+     * movement-cost modifiers, and the full log_weather history.
+     */
+    @GetMapping("/{uuidMatch}/weather")
+    public ResponseEntity<Object> getAdminMatchWeather(@PathVariable String uuidMatch) {
+        if (isBlank(uuidMatch)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
+        }
+        var view = weatherService.weatherAdmin(uuidMatch);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("rngSeed", view.rngSeed());
+        body.put("current", view.current() == null ? null : weatherToMap(view.current()));
+        List<Map<String, Object>> rules = view.rules().stream().map(r -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", r.id());
+            row.put("uuid", r.uuid());
+            row.put("idTextName", r.idTextName());
+            row.put("name", r.name());
+            row.put("probability", r.probability());
+            row.put("deltaEnergy", r.deltaEnergy());
+            row.put("costMoveSafeLocation", r.costMoveSafeLocation());
+            row.put("costMoveNotSafeLocation", r.costMoveNotSafeLocation());
+            row.put("active", r.active());
+            row.put("current", r.current());
+            return row;
+        }).collect(Collectors.toList());
+        body.put("rules", rules);
+        List<Map<String, Object>> log = view.log().stream().map(l -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", l.id());
+            row.put("uuid", l.uuid());
+            row.put("clock", l.clock());
+            row.put("idWeather", l.idWeather());
+            row.put("weatherUuid", l.weatherUuid());
+            row.put("idTextName", l.idTextName());
+            row.put("timestampStart", l.timestampStart());
+            return row;
+        }).collect(Collectors.toList());
+        body.put("log", log);
+        return ResponseEntity.ok(body);
+    }
+
+    private static Map<String, Object> weatherToMap(
+            games.paths.core.port.match.WeatherStorePort.CurrentWeatherView v) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("idWeather", v.idWeather());
+        m.put("uuid", v.uuid());
+        m.put("idCard", v.idCard());
+        m.put("idTextName", v.idTextName());
+        m.put("deltaEnergy", v.deltaEnergy());
+        m.put("costMoveSafeLocation", v.costMoveSafeLocation());
+        m.put("costMoveNotSafeLocation", v.costMoveNotSafeLocation());
+        m.put("currentClock", v.currentClock());
+        return m;
     }
 
     /**

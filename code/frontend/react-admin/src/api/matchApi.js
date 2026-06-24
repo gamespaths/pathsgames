@@ -25,6 +25,12 @@ export const getMatchInfo = (uuid) =>
 export const getMatchClock = (uuid) =>
   apiClient().get(`/api/admin/matches/${uuid}/clock`).then(r => r.data)
 
+// GET /api/admin/matches/:uuid/weather — weather view (Step 27): the per-match
+// rngSeed, the current weather (delta_energy + movement-cost modifiers) and the
+// full log_weather history ordered by clock.
+export const getMatchWeather = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/weather`).then(r => r.data)
+
 // GET /api/admin/matches/statuses — valid match statuses [{ value, terminal }]
 export const listMatchStatuses = () =>
   apiClient().get('/api/admin/matches/statuses').then(r => r.data)

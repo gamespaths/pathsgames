@@ -10,6 +10,7 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
 vi.mock('../api/matches', () => ({
   endMatch: vi.fn(),
   getMatchClock: vi.fn(() => Promise.resolve(null)),
+  getMatchWeather: vi.fn(() => Promise.resolve(null)),
   sleepCharacter: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({

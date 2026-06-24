@@ -182,10 +182,18 @@ public class CoreConfig {
     // ───── Step 24: Turn cycle engine (single-player) ─────
 
     @Bean
+    public games.paths.core.service.match.WeatherSelectionService weatherSelectionService(
+            games.paths.core.port.match.WeatherStorePort weatherStorePort) {
+        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort);
+    }
+
+    @Bean
     public games.paths.core.port.match.TurnCyclePort turnCyclePort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
-            UserAccessPort userAccessPort) {
-        return new games.paths.core.service.match.TurnCycleService(turnCycleStorePort, userAccessPort);
+            UserAccessPort userAccessPort,
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
+        return new games.paths.core.service.match.TurnCycleService(
+                turnCycleStorePort, userAccessPort, weatherSelectionService);
     }
 
     // ───── Step 25: Time advancement & clock cycle (single-player) ─────
@@ -206,9 +214,11 @@ public class CoreConfig {
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
-            games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService) {
+            games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
         return new games.paths.core.service.match.TimeAdvancementService(
-                turnCycleStorePort, userAccessPort, domainEventPublisher, timeStartRecoveryService);
+                turnCycleStorePort, userAccessPort, domainEventPublisher,
+                timeStartRecoveryService, weatherSelectionService);
     }
 
     // ───── Step 21: Character template & class selection ─────

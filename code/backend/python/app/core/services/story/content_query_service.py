@@ -48,6 +48,36 @@ class ContentQueryService(ContentQueryPort):
             creator=creator
         )
 
+    def get_card_by_story_id_and_card_id(self, story_id, id_card, lang: str) -> Optional[CardInfo]:
+        """Step 27 — resolve a card by numeric story id + card id (used by the
+        weather endpoint, which carries id_card not a card uuid)."""
+        if story_id is None or id_card is None:
+            return None
+        card = self.read_port.find_card_for_story(story_id, id_card)
+        if not card:
+            return None
+        title = self._resolve_text(story_id, card.get("id_text_title") or card.get("id_text_name"), lang)
+        description = self._resolve_text(story_id, card.get("id_text_description"), lang)
+        copyright_text = self._resolve_text(story_id, card.get("id_text_copyright"), lang)
+        creator = self._resolve_creator(story_id, card.get("id_creator"), lang)
+        return CardInfo(
+            uuid=card.get("uuid") or str(card.get("id", "")),
+            cardType=card.get("card_type"),
+            urlImage=card.get("url_image"),
+            alternativeImage=card.get("alternative_image"),
+            awesomeIcon=card.get("awesome_icon"),
+            styleMain=card.get("style_main"),
+            styleDetail=card.get("style_detail"),
+            styleImageLittle=card.get("style_image_little"),
+            styleImageMedium=card.get("style_image_medium"),
+            styleImageLarge=card.get("style_image_large"),
+            title=title,
+            description=description,
+            copyrightText=copyright_text,
+            linkCopyright=card.get("link_copyright"),
+            creator=creator
+        )
+
     def get_text_by_story_and_id_text(self, story_uuid: str, id_text: int, lang: str) -> Optional[TextInfo]:
         if not story_uuid or not story_uuid.strip():
             return None

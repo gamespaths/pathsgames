@@ -6,6 +6,7 @@ import MatchDetailPage from '../../pages/MatchDetailPage'
 vi.mock('../../api/matchApi', () => ({
   getMatchInfo:  vi.fn(),
   getMatchClock: vi.fn(),
+  getMatchWeather: vi.fn(),
   stopMatch:     vi.fn(),
   pauseMatch:    vi.fn(),
   resumeMatch:   vi.fn(),
@@ -66,6 +67,19 @@ describe('MatchDetailPage', () => {
       anyCharacterSleeping: true,
       characters: [{ characterUuid: 'c1', isSleeping: true, energy: 88 }],
     })
+    matchApi.getMatchWeather.mockResolvedValue({
+      rngSeed: 42,
+      current: { idWeather: 2, uuid: 'we-storm', idCard: 6, deltaEnergy: -2,
+                 costMoveSafeLocation: 5, costMoveNotSafeLocation: 9, currentClock: 1 },
+      rules: [
+        { id: 1, uuid: 'we-clear', idTextName: 800, name: 'Clear Skies', probability: 70,
+          deltaEnergy: 0, costMoveSafeLocation: 4, costMoveNotSafeLocation: 6, active: true, current: false },
+        { id: 2, uuid: 'we-storm', idTextName: 801, name: 'Storm', probability: 30,
+          deltaEnergy: -2, costMoveSafeLocation: 5, costMoveNotSafeLocation: 9, active: true, current: true },
+      ],
+      log: [{ id: 1, uuid: 'l-1', clock: 0, idWeather: 2, weatherUuid: 'we-storm',
+              idTextName: 101, timestampStart: '2026-06-24T00:00:00Z' }],
+    })
     matchApi.stopMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.pauseMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.resumeMatch.mockResolvedValue({ status: 'UPDATED' })
@@ -79,6 +93,8 @@ describe('MatchDetailPage', () => {
         { idText: 230, lang: 'en', shortText: 'Normal' },
         { idText: 240, lang: 'en', shortText: 'Brave' },
         { idText: 241, lang: 'en', shortText: 'Quick' },
+        { idText: 800, lang: 'en', shortText: 'Clear Skies' },
+        { idText: 801, lang: 'en', shortText: 'Storm' },
       ])
       if (type === 'classes')      return Promise.resolve([{ uuid: 'cls-1', idTextName: 220 }])
       if (type === 'difficulties') return Promise.resolve([{ uuid: 'd1',    idTextName: 230 }])
@@ -159,6 +175,36 @@ describe('MatchDetailPage', () => {
     expect(await screen.findByText('Saturday run')).toBeInTheDocument()
     // …but the clock panel is absent
     expect(screen.queryByText('Clock status')).not.toBeInTheDocument()
+  })
+
+  // ── weather panel (Step 27) ────────────────────────────────────────────────
+
+  it('renders the Weather panel with rng seed, current weather and log', async () => {
+    renderPage()
+    expect(await screen.findByTestId('weather-panel')).toBeInTheDocument()
+    // RNG seed row in the config table
+    expect(screen.getByText('RNG seed')).toBeInTheDocument()
+    expect(screen.getAllByText('42').length).toBeGreaterThan(0)
+    expect(matchApi.getMatchWeather).toHaveBeenCalledWith('m1')
+    // weather panel title carries the seed; every rule listed, active flagged
+    expect(screen.getByText(/Weather · seed 42/)).toBeInTheDocument()
+    expect(screen.getByText('70')).toBeInTheDocument()   // clear probability
+    expect(screen.getByText('30')).toBeInTheDocument()   // storm probability
+    expect(screen.getByText('current')).toBeInTheDocument()
+    // the active storm rule's energy delta and move costs are in its row
+    expect(screen.getAllByText('-2').length).toBeGreaterThan(0)
+    expect(screen.getByText('Move (safe)')).toBeInTheDocument()
+    expect(screen.getByText('Move (unsafe)')).toBeInTheDocument()
+    // initials column: "Clear Skies" → CS, "Storm" → S
+    expect(screen.getByText('CS')).toBeInTheDocument()
+    expect(screen.getByText('S')).toBeInTheDocument()
+  })
+
+  it('hides the Weather panel when the weather endpoint fails', async () => {
+    matchApi.getMatchWeather.mockRejectedValue(new Error('no weather endpoint'))
+    renderPage()
+    expect(await screen.findByText('Saturday run')).toBeInTheDocument()
+    expect(screen.queryByTestId('weather-panel')).not.toBeInTheDocument()
   })
 
   // ── status panel & buttons ────────────────────────────────────────────────

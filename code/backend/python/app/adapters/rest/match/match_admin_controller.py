@@ -44,13 +44,19 @@ class ChangeStatisticsRequestBody(BaseModel):
 
 class MatchAdminController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
-                 character_command_port: Optional[CharacterCommandPort] = None):
+                 character_command_port: Optional[CharacterCommandPort] = None,
+                 weather_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.character_command_port = character_command_port
+        # Step 27 — weather admin view (rng_seed + current + log_weather).
+        self.weather_service = weather_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/weather", self.get_admin_match_weather, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/admin/matches/statuses", self.list_match_statuses, methods=["GET"]
@@ -118,6 +124,48 @@ class MatchAdminController:
             return _error("MATCH_NOT_STOPPED",
                           "Only stopped matches (ENDED or GAMEOVER) can be deleted", 409)
         return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+
+    def get_admin_match_weather(self, uuid_match: str):
+        """GET /api/admin/matches/{uuid}/weather — rng_seed + current weather +
+        log_weather history (Step 27)."""
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if self.weather_service is None:
+            return _error("NOT_IMPLEMENTED", "Weather service not wired", 501)
+        view = self.weather_service.weather_admin(uuid_match)
+        current = view.get("current")
+        body = {
+            "rngSeed": view.get("rng_seed"),
+            "current": None if current is None else {
+                "idWeather": current.get("id_weather"),
+                "uuid": current.get("uuid"),
+                "idCard": current.get("id_card"),
+                "idTextName": current.get("id_text_name"),
+                "deltaEnergy": current.get("delta_energy"),
+                "currentClock": current.get("current_clock"),
+            },
+            "rules": [
+                {
+                    "id": r.get("id"), "uuid": r.get("uuid"),
+                    "idTextName": r.get("id_text_name"), "name": r.get("name"),
+                    "probability": r.get("probability"),
+                    "deltaEnergy": r.get("delta_energy"),
+                    "costMoveSafeLocation": r.get("cost_move_safe_location"),
+                    "costMoveNotSafeLocation": r.get("cost_move_not_safe_location"),
+                    "active": r.get("active"), "current": r.get("current"),
+                }
+                for r in view.get("rules", [])
+            ],
+            "log": [
+                {
+                    "id": l.get("id"), "uuid": l.get("uuid"), "clock": l.get("clock"),
+                    "idWeather": l.get("id_weather"), "weatherUuid": l.get("weather_uuid"),
+                    "idTextName": l.get("id_text_name"), "timestampStart": l.get("timestamp_start"),
+                }
+                for l in view.get("log", [])
+            ],
+        }
+        return JSONResponse(status_code=200, content=body)
 
     def get_admin_match_info(self, uuid_match: str):
         """GET /api/admin/matches/{uuid}/info — full match detail for the admin

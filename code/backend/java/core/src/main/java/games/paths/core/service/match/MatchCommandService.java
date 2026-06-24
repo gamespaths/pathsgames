@@ -120,6 +120,11 @@ public class MatchCommandService implements MatchCommandPort {
         match.setCharacterTemplateUuid(command.getCharacterTemplateUuid());
         match.setClassUuid(command.getClassUuid());
         match.setTraitUuids(MatchTraitCodec.join(command.getTraitUuids()));
+        // Step 27 — deterministic per-match RNG seed: honour the explicit seed
+        // (Robot tests pass 42), otherwise generate a fresh random one.
+        match.setRngSeed(command.getRngSeed() != null
+                ? command.getRngSeed()
+                : new java.util.Random().nextLong());
 
         GamingMatchEntity saved = persistencePort.saveMatch(match);
 

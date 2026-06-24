@@ -40,6 +40,8 @@ class MatchCreateRequestBody(BaseModel):
     traitUuids: Optional[List[str]] = None
     singlePlayer: Optional[int] = None
     turnstileToken: Optional[str] = None
+    # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
+    rngSeed: Optional[int] = None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -234,6 +236,7 @@ class MatchController:
             single_player=body.singlePlayer,
             turnstile_token=body.turnstileToken,
             remote_ip=request.client.host if request.client else None,
+            rng_seed=body.rngSeed,
         )
         try:
             summary = self.command_port.create_match(command)

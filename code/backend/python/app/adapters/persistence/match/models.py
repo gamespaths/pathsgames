@@ -3,7 +3,7 @@
 Schema is intentionally aligned with the Java Flyway migrations
 ``V0.10.6__create_gaming_core.sql`` and ``V0.10.7__create_gaming_state.sql``.
 """
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String
 
 from app.adapters.persistence.auth.models import Base
 
@@ -20,6 +20,8 @@ class GamingMatchEntity(Base):
     status = Column(String(20), default="CREATED", nullable=False)
     current_clock = Column(Integer, default=0, nullable=False)
     id_current_weather = Column(Integer)
+    # Step 27 — per-match deterministic RNG seed (weather/probability rolls).
+    rng_seed = Column(BigInteger)
     id_user_creator = Column(Integer, ForeignKey("users.id"), nullable=False)
     timestamp_start = Column(String(50))
     timestamp_lock_expiration = Column(String(50))
@@ -204,5 +206,24 @@ class LogEventsEntity(Base):
     id_event = Column(Integer)
     id_choise = Column(Integer)
     log_message = Column(String(2000))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class LogWeatherEntity(Base):
+    """Step 27 — append-only log of weather selections. One row per time-start.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it
+    is assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_weather"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer, nullable=False)
+    id_weather = Column(Integer)
+    timestamp_start = Column(String(50))
+    timestamp_end = Column(String(50))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)

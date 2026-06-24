@@ -180,6 +180,11 @@
       "title": "Time",
       "fallback": "Clock"
     },
+    "weather": {
+      "title": "Weather",
+      "description": "The current weather. Some weather drains energy at each time unit and changes movement costs.",
+      "energyDelta": "Energy change"
+    },
     "sleep": {
       "action": "Sleep",
       "confirmTitle": "Go to sleep?",

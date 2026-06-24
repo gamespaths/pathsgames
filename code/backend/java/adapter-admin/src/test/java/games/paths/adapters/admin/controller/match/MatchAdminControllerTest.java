@@ -33,6 +33,7 @@ class MatchAdminControllerTest {
     private MatchQueryPort queryPort;
     private TimeAdvancementPort timeAdvancementPort;
     private CharacterCommandPort characterCommandPort;
+    private games.paths.core.service.match.WeatherSelectionService weatherService;
 
     @BeforeEach
     void setUp() {
@@ -40,9 +41,10 @@ class MatchAdminControllerTest {
         queryPort = mock(MatchQueryPort.class);
         timeAdvancementPort = mock(TimeAdvancementPort.class);
         characterCommandPort = mock(CharacterCommandPort.class);
+        weatherService = mock(games.paths.core.service.match.WeatherSelectionService.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
-                        characterCommandPort)).build();
+                        characterCommandPort, weatherService)).build();
     }
 
     private MatchSummary summary() {
@@ -103,6 +105,38 @@ class MatchAdminControllerTest {
                 .andExpect(jsonPath("$.characters[0].characterUuid").value("char-a"))
                 .andExpect(jsonPath("$.characters[0].isSleeping").value(true))
                 .andExpect(jsonPath("$.characters[0].energy").value(40));
+    }
+
+    @Test
+    void getAdminMatchWeather_returns200WithSeedCurrentAndLog() throws Exception {
+        when(weatherService.weatherAdmin("m1")).thenReturn(
+                new games.paths.core.service.match.WeatherSelectionService.WeatherAdminView(
+                        42L,
+                        new games.paths.core.port.match.WeatherStorePort.CurrentWeatherView(
+                                9L, "w-9", 7L, 55, 123, -5, 1, 2, 3),
+                        List.of(new games.paths.core.port.match.WeatherStorePort.WeatherRuleSummary(
+                                9L, "w-9", 123, "Storm", 30, -5, 1, 3, true, true)),
+                        List.of(new games.paths.core.port.match.WeatherStorePort.WeatherLogView(
+                                1L, "l-1", 0, 9L, "w-9", 123, "2026-06-24T00:00:00Z"))));
+        mockMvc.perform(get("/api/admin/matches/m1/weather"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rngSeed").value(42))
+                .andExpect(jsonPath("$.current.idWeather").value(9))
+                .andExpect(jsonPath("$.current.idCard").value(55))
+                .andExpect(jsonPath("$.current.deltaEnergy").value(-5))
+                .andExpect(jsonPath("$.rules[0].current").value(true))
+                .andExpect(jsonPath("$.rules[0].name").value("Storm"))
+                .andExpect(jsonPath("$.rules[0].costMoveSafeLocation").value(1))
+                .andExpect(jsonPath("$.rules[0].costMoveNotSafeLocation").value(3))
+                .andExpect(jsonPath("$.rules[0].probability").value(30))
+                .andExpect(jsonPath("$.log[0].weatherUuid").value("w-9"));
+    }
+
+    @Test
+    void getAdminMatchWeather_returns400WhenBlankUuid() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/ /weather"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
     }
 
     @Test

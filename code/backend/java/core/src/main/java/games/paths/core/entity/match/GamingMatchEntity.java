@@ -41,6 +41,10 @@ public class GamingMatchEntity {
     @Column(name = "id_current_weather")
     private Long idCurrentWeather;
 
+    /** Step 27 — per-match deterministic RNG seed (weather & probability rolls). */
+    @Column(name = "rng_seed")
+    private Long rngSeed;
+
     @Column(name = "id_user_creator", nullable = false)
     private Long idUserCreator;
 
@@ -132,6 +136,9 @@ public class GamingMatchEntity {
 
     public Long getIdCurrentWeather() { return idCurrentWeather; }
     public void setIdCurrentWeather(Long idCurrentWeather) { this.idCurrentWeather = idCurrentWeather; }
+
+    public Long getRngSeed() { return rngSeed; }
+    public void setRngSeed(Long rngSeed) { this.rngSeed = rngSeed; }
 
     public Long getIdUserCreator() { return idUserCreator; }
     public void setIdUserCreator(Long idUserCreator) { this.idUserCreator = idUserCreator; }

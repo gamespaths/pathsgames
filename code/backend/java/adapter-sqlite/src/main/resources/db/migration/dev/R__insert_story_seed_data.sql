@@ -263,10 +263,10 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 (90003, 9001, 90004, 'ENERGY', 3);
 
 -- ── Weather Rules ───────────────────────────────────────────────
-INSERT INTO list_weather_rules (id, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
-(90001, 9001, 800, 800, 50, 0, 0, 1, 1,  0),   -- Clear Skies (common, no penalty)
-(90002, 9001, 801, 801, 35, 0, 1, 1, 2,  0),   -- Light Rain (mild penalty)
-(90003, 9001, 802, 802, 15, 0, 1, 1, 3, -1);   -- Training Storm (demonstrates weather effect)
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
+(90001, 9001, 90010, 800, 800, 50, 0, 0, 1, 1,  0),   -- Clear Skies (common, no penalty)
+(90002, 9001, 90011, 801, 801, 35, 0, 1, 1, 2,  0),   -- Light Rain (mild penalty)
+(90003, 9001, 90012, 802, 802, 15, 0, 1, 1, 3, -1);   -- Training Storm (demonstrates weather effect)
 
 -- ── Events ──────────────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
@@ -333,7 +333,11 @@ INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main , id_
 (90001, 9001, 'https://images.unsplash.com/photo-1585829365343-ea8ed0b1cb5b?q=80&w=1470', 'fas fa-graduation-cap', 'tutorial', 42, 42, 1
     ,'https://unsplash.com/photos/green-and-black-typewriter-with-white-printer-paper-HpWwEURimK8', 43 ),
 (90002, 9001, NULL, 'fas fa-book-open',      'learning', 911, 911, 911 ,'',42),
-(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912,'',42);
+(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912,'',42),
+-- Step 27 — weather cards (referenced by list_weather_rules.id_card)
+(90010, 9001, NULL, 'fas fa-sun',            'weather', 800, 800, 800,'',42),
+(90011, 9001, NULL, 'fas fa-cloud-rain',     'weather', 801, 801, 801,'',42),
+(90012, 9001, NULL, 'fas fa-cloud-bolt',     'weather', 802, 802, 802,'',42);
 
 
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
@@ -569,10 +573,10 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 (91005, 9002, 91005, 'COIN',    5);
 
 -- ── Weather Rules ───────────────────────────────────────────────
-INSERT INTO list_weather_rules (id, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
-(91001, 9002, 800, 800, 40, 0, 0, 1, 1,  0),   -- Autumn Sun
-(91002, 9002, 801, 801, 35, 0, 1, 1, 2,  0),   -- Fog
-(91003, 9002, 802, 802, 25, 1, 2, 1, 3, -1);   -- Storm
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
+(91001, 9002, 91010, 800, 800, 40, 0, 0, 1, 1,  0),   -- Autumn Sun
+(91002, 9002, 91011, 801, 801, 35, 0, 1, 1, 2,  0),   -- Fog
+(91003, 9002, 91012, 802, 802, 25, 1, 2, 1, 3, -1);   -- Storm
 
 -- ── Events ──────────────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
@@ -646,7 +650,11 @@ INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
 INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description , id_text_name) VALUES
 (91001, 9002, 'https://unsplash.com/photos/a-castle-in-the-middle-of-a-lush-green-forest-nxySr36wCSM', 'fas fa-chess-rook',    'medieval', 1, 2 ,1),
 (91002, 9002, NULL, 'fas fa-scroll',        'evidence', 941, 941, 942),
-(91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943);
+(91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943),
+-- Step 27 — weather cards for story 9002
+(91010, 9002, NULL, 'fas fa-sun',           'weather', 800, 800, 800),
+(91011, 9002, NULL, 'fas fa-smog',          'weather', 801, 801, 801),
+(91012, 9002, NULL, 'fas fa-cloud-bolt',    'weather', 802, 802, 802);
 
 -- ── Step 27.x / 0.25.4 — match-info locationsActive wiring ──────
 -- Set the start location (so a joined character has idLocation), mark the

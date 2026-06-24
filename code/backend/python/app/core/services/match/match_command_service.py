@@ -1,4 +1,5 @@
 """Step 19 — single-player match creation service."""
+import random
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import match_statuses
@@ -118,6 +119,9 @@ class MatchCommandService(MatchCommandPort):
             "character_template_uuid": command.character_template_uuid,
             "class_uuid": command.class_uuid,
             "trait_uuids": command.trait_uuids,
+            # Step 27 — deterministic per-match RNG seed (explicit or random).
+            "rng_seed": command.rng_seed if command.rng_seed is not None
+            else random.getrandbits(63),
         })
 
         location_rows: List[Dict[str, Any]] = []

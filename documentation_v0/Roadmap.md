@@ -38,12 +38,12 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
 | 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
-| 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix + `flag_already_actived` guard (v0.26.1) |
+| 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix |
+| 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ |  Weather System — random selection & effects | 
 
 
 | Steps | Phase |
 | -- | -- |
-| 25-27 | Core engine (turn cycle, time system, weather) |
 | 28-32 | Game mechanics — movement, events, choices |
 | 33-37 | Game mechanics — inventory, resources, registry, missions, experience |
 | 38-40 | Edge states, logging, snapshots |
@@ -69,18 +69,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-27. Weather system — random selection and effects
-    - RNG: add rng_seed BIGINT to gaming_match table (default NULL); when match is created, generate a random seed and save it on rng_seed; use this seed to initialize a per-match Random instance for all probability rolls; in Robot tests, create match with rng_seed=42 for deterministic results (backend)
-    - Implement weather selection algorithm using probability weights, registry conditions, and time range filters (backend)
-    - Select weather at time start from list_weather_rules matching current conditions and active=true (backend): check if it's already developed! 
-    - Apply weather energy delta to characters at time start (delta_energy field) (backend)
-    - Trigger weather-linked events when weather has id_event configured (backend)
-    - Store weather in gaming_match.id_current_weather and create log_weather history record (backend)
-    - Implement GET /matches/{uuid}/weather endpoint returning current weather with movement cost modifiers (backend)
-    - Write backend unit tests for weather selection, probability distribution, condition filtering, and energy delta application (backend tests)
-    - Write Robot test to cover all new implementation using RNG=42 always! 
-    - Frontend react-admin: on matches/uuid page section to see current weather and delta_energy and a section to check log_weather contents. Add rng_seed too. 
-    - Frontend react-game on gameBook after GoToSleepCard add weatcher card (in both points)
 28. Movement system — adjacency, energy cost, validation
     - Implement POST /gameplay/{uuid_match}/movements/start endpoint accepting target location for character movement (backend)
     - Implement GET /match/{uuid_match}/locations endpoint returning list of already visited locations (backend)
@@ -734,6 +722,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.25.0 | Step 25 Time Advancement & Clock Cycle (backends): sleep action, time-end trigger, clock increment + log_clock_history, turn queue rebuild, GET /clock, TimeAdvanced domain event; Java + Python + AWS + Robot suite 25_time_clock | June 15, 2026 |
     | 0.26.0 | Step 26 Time Advancement Frontend: ClockWidget + SleepButton in react-game; Clock status panel in react-admin; new admin endpoint GET /api/admin/matches/{uuid}/clock (port 8044) | June 15, 2026 |
     | 0.26.0 | Step 27 Character Max Stats, Weight & Items: lifeMax/energyMax/sadMax/weightMax persisted at join via Flyway V0.26.0; weight = Σ(item.weight × amount); items[] list on all match-info endpoints (GET info, players, character detail, join response, admin info); GamingInvenyItemsEntity + repository; CharacterMapper extended; ItemInstanceResponse DTO; OpenAPI v0.26.0; matchInfoAdapter in react-game with current/max gauges and items panel; react-admin MatchDetailPage Weight+Items columntors; Robot suite 21 assertions added, 357 pass | June 15, 2026 |
+    | 0.27.0 | Step 27 Weather System — random selection & effects: new `gaming_match.rng_seed` (Flyway V0.27.0 sqlite+postgres), random seed at create or explicit `rngSeed` body field (Robot=42). Deterministic weighted roll (weight=`probability`, seed=`rng_seed+clock`) at every time-start, filtered by clock time-range + registry condition; applies `delta_energy` (clamped), stores `id_current_weather`, appends `log_weather`, logs weather-linked `id_event` as pending. New `GET /api/matches/{uuid}/weather` + admin `GET /api/admin/matches/{uuid}/weather` (rng_seed + current + log). Java (WeatherSelectionService/Port/Adapter, LogWeather entity, hooked into time-start+match-start, OpenAPI v0.27.0) BUILD SUCCESS; Python mirror 645 pass; AWS single-table mirror + seed weatherRules 374 pass; react-game WeatherCard after GoToSleepCard (397 pass); react-admin MatchDetailPage weather panel + rng_seed (398 pass); new Robot suite `27_weather` (6 tests, dry-run pass). Deferred: weather-event execution (Step 29), movement-cost use (Step 28) | June 24, 2026 |
 
 - **Last Updated**: June 23, 2026
 - **Status**: In progress

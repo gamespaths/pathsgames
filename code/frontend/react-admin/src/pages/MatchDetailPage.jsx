@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getMatchInfo, getMatchClock, stopMatch, pauseMatch, resumeMatch, deleteMatch, changePlayerStatistics } from '../api/matchApi'
+import { getMatchInfo, getMatchClock, getMatchWeather, stopMatch, pauseMatch, resumeMatch, deleteMatch, changePlayerStatistics } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -27,6 +27,13 @@ function resolveEntityName(texts, entity) {
   if (!textId) return null
   const text = (texts || []).find(t => Number(t.idText) === Number(textId) && t.lang === 'en')
   return text?.shortText || `#${textId}`
+}
+
+/** First letter of each word of a name, uppercased (e.g. "Clear Skies" → "CS"). */
+function nameInitials(name) {
+  if (!name) return '—'
+  const initials = String(name).trim().split(/\s+/).map(w => w[0]).join('').toUpperCase()
+  return initials || '—'
 }
 
 /** Inline UUID chip — title shows full UUID, click copies it. */
@@ -190,6 +197,7 @@ export default function MatchDetailPage() {
   const [info, setInfo]               = useState(null)
   const [storyCtx, setStoryCtx]       = useState(null)
   const [clock, setClock]             = useState(null)
+  const [weather, setWeather]         = useState(null)
 
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError]     = useState('')
@@ -212,6 +220,11 @@ export default function MatchDetailPage() {
     getMatchClock(uuid)
       .then(setClock)
       .catch(() => setClock(null))
+    // Weather view (Step 27) — rng_seed + current weather + log_weather history;
+    // tolerate its absence (older backends) by hiding the panel.
+    getMatchWeather(uuid)
+      .then(setWeather)
+      .catch(() => setWeather(null))
   }, [uuid])
 
   useEffect(() => { loadInfo() }, [loadInfo])
@@ -422,6 +435,13 @@ export default function MatchDetailPage() {
                   <th scope="row">Current location</th>
                   <td>{info.currentLocationName || '—'}</td>
                 </tr>
+                <tr>
+                  {/* Step 27 — per-match deterministic RNG seed (weather rolls). */}
+                  <th scope="row">RNG seed</th>
+                  <td>{(weather?.rngSeed ?? match?.rngSeed) ?? '—'}</td>
+                  <th scope="row" />
+                  <td />
+                </tr>
               </tbody>
             </table>
           </div>
@@ -552,6 +572,70 @@ export default function MatchDetailPage() {
               </table>
             </div>
           </div>
+
+          {/* Weather (Step 27) — every weather rule + log_weather history */}
+          {weather && (
+            <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }} data-testid="weather-panel">
+              <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
+                <i className="fas fa-cloud-sun-rain me-1" />Weather · seed {(weather.rngSeed ?? match?.rngSeed) ?? '—'}
+              </p>
+              {/* Step 27 — every weather rule of the story; the active one is flagged. */}
+              {weather.rules?.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="pg-table" style={{ fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr><th>Weather</th><th>Name</th><th>Probability</th><th>Energy Δ</th>
+                        <th>Move (safe)</th><th>Move (unsafe)</th><th>Active</th><th>Current</th></tr>
+                    </thead>
+                    <tbody>
+                      {weather.rules.map(r => {
+                        const nm = r.name || resolveEntityName(texts, r)
+                        return (
+                          <tr key={r.id ?? r.uuid}
+                              className={r.current ? 'pg-row-active' : undefined}
+                              style={r.current ? { fontWeight: 600 } : undefined}>
+                            <td>{r.uuid ? shortUuid(r.uuid) : r.id}</td>
+                            <td title={nm || ''}>{nameInitials(nm)}</td>
+                            <td>{r.probability ?? '—'}</td>
+                            <td>{r.deltaEnergy ?? 0}</td>
+                            <td>{r.costMoveSafeLocation ?? '—'}</td>
+                            <td>{r.costMoveNotSafeLocation ?? '—'}</td>
+                            <td>{r.active ? 'yes' : 'no'}</td>
+                            <td>{r.current
+                              ? <span className="pg-badge pg-badge-success">current</span>
+                              : '—'}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="pg-muted" style={{ padding: '0 1rem 0.75rem', fontSize: '0.82rem' }}>
+                  No weather rules defined for this story.
+                </p>
+              )}
+              {weather.log?.length > 0 && (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="pg-table" style={{ fontSize: '0.8rem' }}>
+                    <thead>
+                      <tr><th>#</th><th>Clock</th><th>Weather</th><th>Since</th></tr>
+                    </thead>
+                    <tbody>
+                      {weather.log.map(l => (
+                        <tr key={l.id ?? `${l.clock}-${l.idWeather}`}>
+                          <td>{l.id}</td>
+                          <td>{l.clock}</td>
+                          <td>{l.weatherUuid ? shortUuid(l.weatherUuid) : (l.idWeather ?? '—')}</td>
+                          <td>{l.timestampStart ? fmtDate(l.timestampStart) : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Locations */}
           <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>

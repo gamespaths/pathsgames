@@ -36,15 +36,26 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final UserAccessPort userAccessPort;
     private final DomainEventPublisher eventPublisher;
     private final TimeStartRecoveryService recoveryService;
+    private final WeatherSelectionService weatherService;
 
     public TimeAdvancementService(TurnCycleStorePort store,
                                   UserAccessPort userAccessPort,
                                   DomainEventPublisher eventPublisher,
                                   TimeStartRecoveryService recoveryService) {
+        this(store, userAccessPort, eventPublisher, recoveryService, null);
+    }
+
+    /** Step 27 — overload wiring the weather selection engine (may be null in tests). */
+    public TimeAdvancementService(TurnCycleStorePort store,
+                                  UserAccessPort userAccessPort,
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService,
+                                  WeatherSelectionService weatherService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.eventPublisher = eventPublisher;
         this.recoveryService = recoveryService;
+        this.weatherService = weatherService;
     }
 
     @Override
@@ -137,6 +148,10 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         // Step 26: per-character recovery, class bonuses and location counters.
         List<TimeStartRecoveryService.RecoveryRecap> recaps =
                 recoveryService.applyAtTimeStart(match.id());
+        // Step 27: select the weather for the new time unit and apply its energy delta.
+        if (weatherService != null) {
+            weatherService.applyAtTimeStart(match.id());
+        }
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
         List<RecoveryItem> recovery = new ArrayList<>();

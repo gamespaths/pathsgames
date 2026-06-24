@@ -439,8 +439,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_weather_rules(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(WeatherRuleEntity, story_id, items, {
-            "id_card": "idCard", "id_text_name": "idTextName", "probability": "probability", 
-            "delta_energy": "deltaEnergy", "id_event": "idEvent", 
+            "id_card": "idCard", "id_text_name": "idTextName", "probability": "probability",
+            "delta_energy": "deltaEnergy", "id_event": "idEvent",
+            "cost_move_safe_location": "costMoveSafeLocation",
+            "cost_move_not_safe_location": "costMoveNotSafeLocation",
             "condition_key": "conditionKey", "condition_value": "conditionValue",
             "time_start": "timeStart", "time_end": "timeEnd", "is_active": "isActive"
         })

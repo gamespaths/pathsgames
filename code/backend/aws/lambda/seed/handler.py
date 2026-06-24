@@ -202,6 +202,19 @@ SEED_STORIES = [
             {"uuid": "cb-tut-3", "idClass": 2, "statistic": "int",    "value": 3},
             {"uuid": "cb-tut-4", "idClass": 3, "statistic": "dex",    "value": 3},
         ],
+        # Step 27 — weather rules: a dominant "clear" weather (no energy delta) and
+        # a rarer "storm" that drains energy. Probabilities make the roll
+        # deterministic enough for the rng_seed=42 Robot checks.
+        "weatherRules": [
+            {"uuid": "we-tut-clear", "id": 1, "idTextName": 800, "idCard": 5, "probability": 70,
+             "deltaEnergy": 0, "idEvent": None, "conditionKey": None,
+             "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 1,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1},
+            {"uuid": "we-tut-storm", "id": 2, "idTextName": 801, "idCard": 6, "probability": 30,
+             "deltaEnergy": -2, "idEvent": None, "conditionKey": None,
+             "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 1,
+             "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3},
+        ],
         # Step 23 — tr-tut-quick permitted only for class 2, tr-tut-resilient
         # prohibited for class 1, tr-tut-frail/tr-tut-weary are negative-cost;
         # tr-tut-brave stays unrestricted (robot loadout default)
@@ -243,6 +256,15 @@ SEED_STORIES = [
             {"idText": 1, "lang": "en", "shortText": "TUTORIAL", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # Step 27 — weather names
+            {"idText": 800, "lang": "en", "shortText": "Clear Skies", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 800, "lang": "it", "shortText": "Cielo Sereno", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 801, "lang": "en", "shortText": "Storm", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 801, "lang": "it", "shortText": "Tempesta", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 2, "lang": "en",
              "shortText": "A short training adventure in the Academy of Paths. "
@@ -340,6 +362,43 @@ SEED_STORIES = [
                 "urlImage":         None,
                 "alternativeImage": None,
                 "awesomeIcon":      "fas fa-dumbbell",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            # Step 27 — weather cards (referenced by list_weather_rules.idCard)
+            {
+                "id":                5,
+                "uuid":             "card-tutorial-weather-clear",
+                "cardType":         "weather",
+                "idTextTitle":      800,
+                "idTextDescription": 800,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-sun",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                6,
+                "uuid":             "card-tutorial-weather-storm",
+                "cardType":         "weather",
+                "idTextTitle":      801,
+                "idTextDescription": 801,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-cloud-bolt",
                 "styleMain":        None,
                 "styleDetail":      None,
                 "styleImageLittle": None,
@@ -657,6 +716,8 @@ def _seed_stories():
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),
             "classBonuses":             s.get("classBonuses", []),
+            # Step 27 — weather rules embedded on the story item.
+            "weatherRules":             s.get("weatherRules", []),
             "traits":                   s.get("traits", []),
             "card":                     s.get("card"),
             "idCard":                   s.get("idCard"),

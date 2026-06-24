@@ -194,6 +194,10 @@ INSERT INTO list_keys (id, id_story, name, value, "group") VALUES (90003, 9001, 
 INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90001, 9001, 'https://paths.games/assets/cards/tutorial-academy.jpg', 'fas fa-graduation-cap', 'tutorial', 1, 2, 1);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90002, 9001, 'fas fa-book-open', 'learning');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (90003, 9001, 'fas fa-lightbulb', 'tips');
+-- Step 27 — weather cards (referenced by list_weather_rules.id_card)
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90010, 9001, 'fas fa-sun', 'weather', 800, 800, 800);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90011, 9001, 'fas fa-cloud-rain', 'weather', 801, 801, 801);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (90012, 9001, 'fas fa-cloud-bolt', 'weather', 802, 802, 802);
 
 -- ── Story 1 Locations ───────────────────────────────────────────
 -- Step 26: secure_param > 0 marks a SAFE location (energy/life recovery + sadness
@@ -232,9 +236,9 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90003, 9001, 90004, 'ENERGY', 3);
 
 -- ── Story 1 Weather Rules ───────────────────────────────────────
-INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90001, 9001, 800, 50, 1);
-INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90002, 9001, 801, 35, 1);
-INSERT INTO list_weather_rules (id, id_story, id_text_name, probability, active) VALUES (90003, 9001, 802, 15, 1);
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90001, 9001, 90010, 800, 50, 1);
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90002, 9001, 90011, 801, 35, 1);
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90003, 9001, 90012, 802, 15, 1);
 
 -- ── Story 1 Events ──────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90001, 9001, 500, 500, 'FIRST', 0, 0);
@@ -353,6 +357,10 @@ INSERT INTO list_character_templates (id_tipo, id_story, id_text_name, id_text_d
 INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91001, 9002, 'https://paths.games/assets/cards/valvassore.jpg', 'fas fa-chess-rook', 'medieval', 1, 2, 1);
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91002, 9002, 'fas fa-scroll', 'evidence');
 INSERT INTO list_cards (id, id_story, awesome_icon, style_main) VALUES (91003, 9002, 'fas fa-balance-scale', 'justice');
+-- Step 27 — weather cards for story 9002
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91010, 9002, 'fas fa-sun', 'weather', 800, 800, 800);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91011, 9002, 'fas fa-smog', 'weather', 801, 801, 801);
+INSERT INTO list_cards (id, id_story, awesome_icon, style_main, id_text_title, id_text_description, id_text_name) VALUES (91012, 9002, 'fas fa-cloud-bolt', 'weather', 802, 802, 802);
 
 -- ── Story 2 Locations ───────────────────────────────────────────
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (91001, 9002, 91001, 100, 100, 1, 10);

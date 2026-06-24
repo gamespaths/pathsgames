@@ -27,10 +27,13 @@ DEFAULT_LANG = "en"
 
 class TimeAdvancementService(TimeAdvancementPort):
     def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
-                 recovery_service: "TimeStartRecoveryService | None" = None) -> None:
+                 recovery_service: "TimeStartRecoveryService | None" = None,
+                 weather_service=None) -> None:
         self.store = store
         self.event_publisher = event_publisher
         self.recovery_service = recovery_service or TimeStartRecoveryService(store)
+        # Step 27 — optional weather selection engine (may be None in tests).
+        self.weather_service = weather_service
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -98,6 +101,9 @@ class TimeAdvancementService(TimeAdvancementPort):
         self.store.wake_all_characters(match["id"])
         # Step 26: per-character recovery, class bonuses and location counters.
         recovery = self.recovery_service.apply_at_time_start(match["id"])
+        # Step 27: select the weather for the new time unit and apply its delta.
+        if self.weather_service is not None:
+            self.weather_service.apply_at_time_start(match["id"])
         self._rebuild_queue(match["id"], new_clock)
         self.event_publisher.publish(TimeAdvanced(match["uuid"], new_clock))
         return new_clock, recovery

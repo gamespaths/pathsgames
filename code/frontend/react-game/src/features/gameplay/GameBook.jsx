@@ -4,7 +4,7 @@ import LocationCard from './cards/LocationCard'
 import PlayerStats from './cards/PlayerStats'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
-import { endMatch, getMatchClock } from '../../api/matches'
+import { endMatch, getMatchClock, getMatchWeather } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
@@ -18,6 +18,7 @@ import {
 } from '@/utils/gamebook'
 import CloseGameCard from './cards/CloseGameCard'
 import GoToSleepCard from './cards/GoToSleepCard'
+import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose }) {//info=
@@ -34,6 +35,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const [endError, setEndError] = useState(null)
   const [preview, setPreview] = useState(null) // { entity, type } or null
   const [clock, setClock] = useState(null)
+  const [weather, setWeather] = useState(null)
   const [previewModal, setPreviewModal] = useState(null)
   // The `story` prop is the lean summary (no classes/characters/traits/difficulties).
   // The full detail (with content lists) arrives via the `storyDetail` prop, loaded
@@ -57,6 +59,25 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
 
+  // Step 27 — load the current weather once the match is known, and after each
+  // sleep that advances the clock (a new time unit re-selects the weather).
+  async function refreshWeather() {
+    if (!matchUuid) return
+    try {
+      setWeather(await getMatchWeather(matchUuid, user?.accessToken))
+    } catch {
+      // Weather is non-critical chrome; leave the previous value on failure.
+    }
+  }
+  useEffect(() => {
+    let cancelled = false
+    if (!matchUuid) return undefined
+    getMatchWeather(matchUuid, user?.accessToken)
+      .then(w => { if (!cancelled) setWeather(w) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [matchUuid, user?.accessToken])
+
   function refreshComponents(){
     setPreview(null)
     setPreviewModal(null)
@@ -68,7 +89,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // Sleep may advance the clock (when all characters are done): refresh the
     // clock chrome AND reload the board so stats/energy/location reflect it.
     refreshClock()
-    // TODO refresh the weather card if the clock advanced to a new day (or night).
+    // Step 27 — the clock may have advanced to a new time unit: re-select weather.
+    refreshWeather()
     onReload?.()
     handleBackOrClose()
     refreshComponents();
@@ -148,8 +170,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
-  const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock)
-  const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, {
+  const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock , weather)
+  const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, weather, {
     matchUuid,
     accessToken: user?.accessToken,
     onSlept: handleReloadClockWeatherAndMatchData,
@@ -170,9 +192,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         <div className="config-cards-area selection-list">
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
-          {/* 
+          <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} />
+          {/*
             TODO add others card  objects and special actions!
-          */}          
+          */}
           <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card} entityType="class" story={storyFull} flagInformationCard={true} 
             onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card, 'class', null, null ,true)} />
           <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card} entityType="character" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card, 'character', null, null , true)} story={storyFull} flagInformationCard={true} />
@@ -195,10 +218,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             <GoToSleepCard story={story} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
               matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           }
-          { /* TODO wheater here 
-          <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
-          { /* TODO special card here }
-          <Card type="story"      value={{ card: story.card }} story={story} flagInformationCard={true} onPreview={handleSelectionPreviewFull} count={0} />
+          {/* Step 27 — current weather card (in both render points). }
+          <WeatherCard weather={weather} story={story} onPreview={handleSelectionPreviewFull} /> {  
+          removed (for now) because weathere card is on cardCharacteristics */}
+
           { /* TODO for every neighbor-location */  }
 
           { /* for every action in location — end-game events expose an "end game" button */  }

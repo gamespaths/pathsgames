@@ -166,6 +166,11 @@
       "title": "Tempo",
       "fallback": "Tempo {n}"
     },
+    "weather": {
+      "title": "Meteo",
+      "description": "Il meteo attuale. Alcune condizioni meteo consumano energia a ogni unità di tempo e modificano i costi di movimento.",
+      "energyDelta": "Variazione energia"
+    },
     "sleep": {
       "action": "Dormi",
       "confirmTitle": "Vuoi dormire?",

@@ -65,7 +65,8 @@ public class MatchController {
                 body.getTraitUuids(),
                 body.getSinglePlayer(),
                 body.getTurnstileToken(),
-                request.getRemoteAddr());
+                request.getRemoteAddr(),
+                body.getRngSeed());
 
         try {
             MatchSummary created = matchCommandPort.createMatch(command);

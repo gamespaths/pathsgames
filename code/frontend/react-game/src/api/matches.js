@@ -238,6 +238,27 @@ export async function getMatchClock(uuidMatch, accessToken) {
 }
 
 /**
+ * Step 27 — read the current weather of a match (GET /api/matches/{uuid}/weather).
+ * Returns the weather payload, or null when none is set yet (the backend answers
+ * 404 WEATHER_NOT_FOUND, which we map to null so callers can render nothing).
+ * Mock mode returns null.
+ */
+export async function getMatchWeather(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return null
+  try {
+    const res = await client.get(
+      `/api/matches/${uuidMatch}/weather`,
+      authConfig(accessToken),
+    )
+    return res.data
+  } catch (e) {
+    if (e?.response?.status === 404) return null
+    throw e
+  }
+}
+
+/**
  * Set the caller's character to sleep, then evaluate the time-end trigger; when
  * every character is sleeping or out of energy the backend advances the clock
  * (`timeEndTriggered = true`). Throws on a backend error (409 ALREADY_SLEEPING /

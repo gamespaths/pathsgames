@@ -41,6 +41,21 @@ export function buildEndGameCard(t) {
   return metaCard('endgame', t('game.endGameCard.title'), t('game.endGameCard.description'));
 }
 
+/**
+ * Step 27 — weather card shown after the sleep card. `weather` is the
+ * GET /api/matches/{uuid}/weather payload (or null when none is set). The
+ * description appends the energy delta applied to every character at time-start.
+ */
+export function buildWeatherCard(weather, t) {
+  const card = metaCard('weather', t('game.weather.title'), t('game.weather.description'));
+  const delta = weather?.deltaEnergy ?? 0;
+  if (delta) {
+    const sign = delta > 0 ? '+' : '';
+    card.description = `${card.description} (${t('game.weather.energyDelta')}: ${sign}${delta})`;
+  }
+  return card;
+}
+
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
   return metaCard('gems', t('book.guest'), t('book.guestDesc'));

@@ -204,6 +204,14 @@ Resources:
       RouteKey: "GET /api/match/{uuidMatch}/clock"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 27 — weather system (player API)
+  GetWeatherRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/matches/{uuidMatch}/weather"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # ── admin match control (modify / stop / delete) — admin API + IP authorizer ──
   ListMatchStatusesRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -219,6 +227,16 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches/{uuidMatch}/info"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # Step 27 — admin weather view (rng_seed + current + log_weather)
+  AdminMatchWeatherRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/weather"
       Target: !Sub "integrations/${MatchAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

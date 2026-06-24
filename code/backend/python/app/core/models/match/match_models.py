@@ -16,6 +16,8 @@ class MatchCreateCommand:
     single_player: Optional[int] = None
     turnstile_token: Optional[str] = None
     remote_ip: Optional[str] = None
+    # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
+    rng_seed: Optional[int] = None
 
 
 @dataclass

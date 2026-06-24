@@ -41,6 +41,13 @@ describe('matchApi', () => {
     expect(await matchApi.getMatchInfo('m1')).toEqual({ match: { uuid: 'm1' } })
   })
 
+  it('getMatchWeather calls the admin weather endpoint and returns data', async () => {
+    mockGet.mockResolvedValue({ data: { rngSeed: 42, current: null, log: [] } })
+    const res = await matchApi.getMatchWeather('m1')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/weather')
+    expect(res.rngSeed).toBe(42)
+  })
+
   it('listMatchStatuses calls the statuses endpoint', async () => {
     mockGet.mockResolvedValue({ data: [{ value: 'CREATED', terminal: false }] })
     expect(await matchApi.listMatchStatuses()).toEqual([{ value: 'CREATED', terminal: false }])

@@ -504,12 +504,13 @@
       "id": 49,
       "idCard": 49,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 137,
       "idTextDescription": 136,
       "idTextName": 136,
       "idTextTitle": 136,
-      "linkCopyright": "https://unsplash.com/photos/a-beautiful-rural-landscape-at-sunset-panorama-of-countryside-in-slovakia-OYws_mZAWpE",
-      "urlImage": "https://plus.unsplash.com/premium_photo-1663054703415-6d6d0ef1541d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "id_card": 49,
+      "linkCopyright": "https://unsplash.com/photos/cumulus-clouds-Pe1Ol9oLc4o",
+      "urlImage": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=751&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "acc5e4ff-d8ce-4ea5-8337-9e49b464dcd8"
     }
   ],
@@ -3371,8 +3372,8 @@
       "idText": 136,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Nice time",
-      "shortText": "Nice time",
+      "longText": "Bad weather",
+      "shortText": "Bad weather",
       "uuid": "5f346e89-1b5d-4f00-93eb-02917e2dbe70"
     },
     {
@@ -3524,6 +3525,26 @@
       "longText": "Maledetto",
       "shortText": "Maledetto",
       "uuid": "239fb661-fd50-4b95-9e07-76b4749b4f1c"
+    },
+    {
+      "id": 136,
+      "idCreator": 1,
+      "idText": 136,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Maltempo",
+      "shortText": "Maltempo",
+      "uuid": "f7b67ce3-10e1-47e4-abb7-e56cfabcde8f"
+    },
+    {
+      "id": 137,
+      "idCreator": 1,
+      "idText": 137,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Dadee Aissa",
+      "shortText": "Dadee Aissa",
+      "uuid": "66a99049-a8c5-484d-949e-f30f9825731e"
     }
   ],
   "title": "Paths Tutorial",

@@ -61,20 +61,32 @@ describe('utils/gamebook — counts', () => {
 })
 
 describe('utils/gamebook — card builders', () => {
-  it('buildCardCharacteristics strips image/icon and uses the player description', () => {
-    const card = buildCardCharacteristics(STORY, PLAYER, null)
-    expect(card.urlImage).toBeNull()
-    expect(card.awesomeIcon).toBeNull()
-    expect(card.description).toBe('a hero')
-    render(<div>{card.title}</div>)
-    expect(screen.getByTestId('clock-widget')).toBeInTheDocument()
+  const WEATHER = { idWeather: 2, card: { title: 'Storm', urlImage: 'http://x/storm.png', awesomeIcon: 'fa-bolt' } }
+
+  it('buildCardCharacteristics copies the story card when there is no weather', () => {
+    const card = buildCardCharacteristics(STORY, PLAYER, null, null)
+    expect(card.urlImage).toBe('http://x/c.png')
+    expect(card.awesomeIcon).toBe('fa-x')
+    // returns a copy, not the same reference
+    expect(card).not.toBe(STORY.card)
+  })
+
+  it('buildCardCharacteristics prefers the resolved weather card when present', () => {
+    const card = buildCardCharacteristics(STORY, PLAYER, null, WEATHER)
+    expect(card.title).toBe('Storm')
+    expect(card.urlImage).toBe('http://x/storm.png')
   })
 
   it('buildCardCharacteristicsRight produces a JSX description flagged with descriptionTag', () => {
-    const card = buildCardCharacteristicsRight(STORY, PLAYER, null, { matchUuid: 'm1' })
+    const card = buildCardCharacteristicsRight(STORY, PLAYER, null, null, { matchUuid: 'm1' })
     expect(card.descriptionTag).toBe(true)
-    expect(card.urlImage).toBeNull()
-    render(<div>{card.title}{card.description}</div>)
+    render(<div>{card.description}</div>)
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()
+  })
+
+  it('buildCardCharacteristicsRight uses the weather card image when present', () => {
+    const card = buildCardCharacteristicsRight(STORY, PLAYER, null, WEATHER, { matchUuid: 'm1' })
+    expect(card.urlImage).toBe('http://x/storm.png')
+    expect(card.descriptionTag).toBe(true)
   })
 })

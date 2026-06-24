@@ -41,6 +41,47 @@ Create Match
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
+Create Match With Rng Seed
+    [Documentation]    POST /api/matches with an explicit rngSeed (Step 27) so weather
+    ...                selection is deterministic. Robot always passes 42.
+    [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
+    ...    ${rng_seed}=42    ${name}=robottest_weather    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    Set To Dictionary    ${headers}    Content-Type=application/json
+    &{body}=    Create Dictionary
+    ...    storyUuid=${story_uuid}
+    ...    difficultyUuid=${difficulty_uuid}
+    ...    name=${name}
+    ...    rngSeed=${rng_seed}
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    ${EMPTY}
+    IF    '${cf_token}' != ''
+        Set To Dictionary    ${body}    turnstileToken=${cf_token}
+    END
+    ${response}=    POST On Session    public_session    /api/matches
+    ...    headers=${headers}
+    ...    json=${body}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Match Weather
+    [Documentation]    GET /api/matches/{uuidMatch}/weather (Step 27) — current weather.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/matches/${match_uuid}/weather
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Admin Match Weather
+    [Documentation]    GET /api/admin/matches/{uuidMatch}/weather (Step 27) — admin view
+    ...                with rng_seed, current weather and log_weather history.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/weather
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
 Create Match With Loadout
     [Documentation]    POST /api/matches with the full creator loadout —
     ...                character template, class, traits and single-player flag.

@@ -8,10 +8,34 @@ import {
   buildStatisticsCard,
   buildCardToSleep,
   buildEndGameCard,
+  buildWeatherCard,
 } from '../utils/loadoutCards'
 
 // Identity translate fn so we can assert on the i18n keys directly.
 const t = (k) => k
+
+describe('utils/loadoutCards weather (Step 27)', () => {
+  it('buildWeatherCard appends a negative energy delta', () => {
+    const c = buildWeatherCard({ deltaEnergy: -3 }, t)
+    expect(c.title).toBe('game.weather.title')
+    expect(c.description).toContain('-3')
+  })
+
+  it('buildWeatherCard appends a positive energy delta with a + sign', () => {
+    const c = buildWeatherCard({ deltaEnergy: 2 }, t)
+    expect(c.description).toContain('+2')
+  })
+
+  it('buildWeatherCard leaves the description unchanged for a zero delta', () => {
+    const c = buildWeatherCard({ deltaEnergy: 0 }, t)
+    expect(c.description).not.toContain('(')
+  })
+
+  it('buildWeatherCard tolerates a null weather payload', () => {
+    const c = buildWeatherCard(null, t)
+    expect(c.title).toBe('game.weather.title')
+  })
+})
 
 describe('utils/loadoutCards', () => {
   it('buildGameTypeCard maps the single game-type labels and a person image', () => {

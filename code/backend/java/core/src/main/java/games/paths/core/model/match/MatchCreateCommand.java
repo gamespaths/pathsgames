@@ -25,6 +25,8 @@ public class MatchCreateCommand {
     private final Integer singlePlayer;
     private final String turnstileToken;
     private final String remoteIp;
+    /** Step 27 — optional explicit RNG seed (Robot tests pass 42 for determinism). */
+    private final Long rngSeed;
 
     public MatchCreateCommand(String userUuid, String storyUuid, String difficultyUuid,
                               String name, String characterTemplateUuid,
@@ -37,6 +39,14 @@ public class MatchCreateCommand {
                               String name, String characterTemplateUuid,
                               String classUuid, List<String> traitUuids, Integer singlePlayer,
                               String turnstileToken, String remoteIp) {
+        this(userUuid, storyUuid, difficultyUuid, name, characterTemplateUuid,
+                classUuid, traitUuids, singlePlayer, turnstileToken, remoteIp, null);
+    }
+
+    public MatchCreateCommand(String userUuid, String storyUuid, String difficultyUuid,
+                              String name, String characterTemplateUuid,
+                              String classUuid, List<String> traitUuids, Integer singlePlayer,
+                              String turnstileToken, String remoteIp, Long rngSeed) {
         this.userUuid = userUuid;
         this.storyUuid = storyUuid;
         this.difficultyUuid = difficultyUuid;
@@ -47,6 +57,7 @@ public class MatchCreateCommand {
         this.singlePlayer = singlePlayer;
         this.turnstileToken = turnstileToken;
         this.remoteIp = remoteIp;
+        this.rngSeed = rngSeed;
     }
 
     public String getUserUuid() { return userUuid; }
@@ -59,4 +70,5 @@ public class MatchCreateCommand {
     public Integer getSinglePlayer() { return singlePlayer; }
     public String getTurnstileToken() { return turnstileToken; }
     public String getRemoteIp() { return remoteIp; }
+    public Long getRngSeed() { return rngSeed; }
 }

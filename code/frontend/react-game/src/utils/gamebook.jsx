@@ -17,12 +17,12 @@ import PlayerStats from '@/features/gameplay/cards/PlayerStats'
  * description as body. Shown with PlayerStats injected over the image by the
  * caller (childrenIntoImage).
  */
-export function buildCardCharacteristics(story, playerStats, clock) {
-  const card = { ...story?.card }
-  card.title = <ClockWidget clock={clock} className="display-inline-grid display-grid" badgeClassName="" />
-  card.urlImage = null
-  card.awesomeIcon = null
-  card.description = playerStats?.description ?? ''
+export function buildCardCharacteristics(story, playerStats, clock , weather) {
+  const card = weather?.card ? { ...weather.card } : { ...story?.card }
+  //card.title = <ClockWidget clock={clock} className="display-inline-grid display-grid" badgeClassName="" />
+  //card.urlImage = null
+  //card.awesomeIcon = null
+  //card.description = playerStats?.description ?? ''
   return card
 }
 
@@ -31,11 +31,11 @@ export function buildCardCharacteristics(story, playerStats, clock) {
  * body with the full PlayerStats plus the SleepButton. `descriptionTag` marks
  * the description as a React element so BookPageContent renders it directly.
  */
-export function buildCardCharacteristicsRight(story, playerStats, clock, { matchUuid, accessToken, onSlept } = {}) {
-  const card = { ...story?.card }
+export function buildCardCharacteristicsRight(story, playerStats, clock, weather, { matchUuid, accessToken, onSlept } = {}) {
+  const card = weather?.card ? { ...weather.card } : { ...story?.card }
   
-  card.urlImage = null
-  card.awesomeIcon = null
+  //card.urlImage = null
+  //card.awesomeIcon = null
   //TODO card.title= weathere
   //EX card.title = <ClockWidget clock={clock} className="display-inline-flex ml-2" title={story?.title} />
   // Derive a stats copy (never mutate the caller's object; it may be undefined

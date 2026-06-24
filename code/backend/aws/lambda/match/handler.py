@@ -20,6 +20,7 @@ DynamoDB layout:
 
 import json
 import os
+import random
 import time
 import uuid as uuid_lib
 import urllib.request
@@ -169,6 +170,7 @@ def _summary_from_item(item):
         "status": item.get("status"),
         "currentClock": int(item.get("currentClock", 0)),
         "expCost": int(item.get("expCost", 0)),
+        "rngSeed": item.get("rngSeed"),
         "userCreatorUuid": item.get("userCreatorUuid"),
         "tsInsert": item.get("tsInsert"),
         # Step 0.19.9 — creator loadout chosen at match creation.
@@ -473,6 +475,10 @@ def _create_match(user, body):
     raw_single_player = (body or {}).get('singlePlayer')
     single_player = int(raw_single_player) if raw_single_player is not None else 1
 
+    # Step 27 — deterministic per-match RNG seed (explicit or random).
+    raw_seed = (body or {}).get('rngSeed')
+    rng_seed = int(raw_seed) if raw_seed is not None else random.getrandbits(63)
+
     location_states = []
     for loc in locations:
         location_states.append({
@@ -513,6 +519,9 @@ def _create_match(user, body):
         "traitUuids": (body or {}).get('traitUuids') or [],
         "status": "CREATED",
         "currentClock": 0,
+        "rngSeed": rng_seed,
+        "currentWeatherId": None,
+        "weatherLog": [],
         "expCost": int(matched_diff.get('expCost') or 5),
         "userCreatorUuid": user['uuid'],
         "tsInsert": now_ms,
@@ -942,6 +951,11 @@ def _start_match(user, match_uuid):
 
     match['status'] = 'RUNNING'
     match['activeCharacterUuid'] = top['characterUuid']
+
+    # Step 27: select the initial weather for clock 0 when the match starts.
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    _apply_weather_at_time_start(match, match_uuid, story)
+
     db_utils.put_item(match)
 
     return _ok(_sequence_response(match, rows))
@@ -1118,6 +1132,182 @@ def _apply_time_start_recovery(match, match_uuid, story):
     return recaps
 
 
+# ─── Step 27 — weather selection & effects ───────────────────────────────────
+
+def _weather_time_matches(rule, clock):
+    """A null bound is open; otherwise clock must fall inside [timeStart, timeEnd]."""
+    time_from = rule.get('timeStart')
+    time_to = rule.get('timeEnd')
+    if time_from is not None and clock < time_from:
+        return False
+    return time_to is None or clock <= time_to
+
+
+def _weather_condition_matches(rule, registry):
+    """No conditionKey → always matches; otherwise the registry value must equal it."""
+    key = rule.get('conditionKey')
+    if not key:
+        return True
+    actual = None
+    for r in (registry or []):
+        if r.get('key') == key:
+            if r.get('stringValue') is not None:
+                actual = r.get('stringValue')
+            elif r.get('intValue') is not None:
+                actual = str(r.get('intValue'))
+            break
+    expected = rule.get('conditionValue')
+    return actual is None if expected is None else expected == actual
+
+
+def _weather_weighted_pick(eligible, seed):
+    """Weighted roll across eligible rules (weight = probability); deterministic."""
+    ordered = sorted(eligible, key=lambda r: _nz(r.get('id')))
+    total = sum(max(0.0, float(r.get('probability') or 0)) for r in ordered)
+    if total <= 0:
+        return ordered[0]
+    # Coerce to int: DynamoDB Decimal seeds are not accepted by random.Random().
+    roll = random.Random(int(seed)).random() * total
+    cumulative = 0.0
+    for r in ordered:
+        cumulative += max(0.0, float(r.get('probability') or 0))
+        if roll < cumulative:
+            return r
+    return ordered[-1]
+
+
+def _apply_weather_at_time_start(match, match_uuid, story):
+    """Select the weather for the current clock, apply its energy delta, store it
+    on the match and append a log_weather entry. Mirrors the Java/Python engine."""
+    rules = story.get('weatherRules') or []
+    clock = _nz(match.get('currentClock'))
+    eligible = [r for r in rules
+                if _nz(r.get('isActive', 1)) != 0
+                and _weather_time_matches(r, clock)
+                and _weather_condition_matches(r, match.get('registry'))]
+    if not eligible:
+        match['currentWeatherId'] = None
+        return None
+
+    # DynamoDB returns numbers as Decimal, but random.Random() only accepts
+    # int/float/str/bytes — coerce the seed to int (Decimal would raise TypeError).
+    seed_base = match.get('rngSeed')
+    seed = _nz(seed_base) if seed_base is not None else _nz(story.get('id'))
+    seed += clock
+    chosen = _weather_weighted_pick(eligible, seed)
+
+    match['currentWeatherId'] = chosen.get('id')
+    log = match.get('weatherLog')
+    if not isinstance(log, list):
+        log = []
+    log.append({"id": len(log) + 1, "clock": clock, "idWeather": chosen.get('id'),
+                "weatherUuid": chosen.get('uuid'), "timestampStart": _ts_ms()})
+    match['weatherLog'] = log
+
+    delta = _nz(chosen.get('deltaEnergy'))
+    if delta != 0:
+        for c in _match_characters(match_uuid):
+            new_energy = _clamp(_nz(c.get('energy')) + delta, 0, _nz(c.get('energyMax')))
+            if new_energy != _nz(c.get('energy')):
+                c['energy'] = new_energy
+                db_utils.put_item(c)
+    return chosen
+
+
+def _resolve_weather_name(raw_cards, raw_texts, id_text_name, id_card, lang='en'):
+    """A weather rule's display name: the id_text_name text, falling back to the
+    title text of the weather's card (Step 27)."""
+    name = _resolve_raw_text(raw_texts, id_text_name, lang)
+    if name:
+        return name
+    card = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
+    return card.get('title') if card else None
+
+
+def _current_weather_payload(match, story, lang='en'):
+    """Resolve the match's current weather rule into the REST response shape,
+    including its idCard and the resolved card (Step 27)."""
+    id_weather = match.get('currentWeatherId')
+    if id_weather is None:
+        return None
+    rule = next((r for r in (story.get('weatherRules') or [])
+                 if _nz(r.get('id')) == _nz(id_weather)), None)
+    if rule is None:
+        return None
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    return {
+        "idWeather": rule.get('id'),
+        "uuid": rule.get('uuid'),
+        "idTextName": rule.get('idTextName'),
+        "idCard": rule.get('idCard'),
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, rule.get('idCard'), lang),
+        "deltaEnergy": rule.get('deltaEnergy'),
+        "costMoveSafeLocation": rule.get('costMoveSafeLocation'),
+        "costMoveNotSafeLocation": rule.get('costMoveNotSafeLocation'),
+        "currentClock": _nz(match.get('currentClock')),
+    }
+
+
+def _get_weather(match_uuid, lang='en'):
+    """GET /api/matches/{uuid}/weather — current weather + card + movement modifiers."""
+    if not match_uuid or not match_uuid.strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    payload = _current_weather_payload(match, story, lang)
+    if payload is None:
+        return _err(404, 'WEATHER_NOT_FOUND', 'No weather is currently set for this match')
+    return _ok(payload)
+
+
+def _get_admin_match_weather(match_uuid):
+    """GET /api/admin/matches/{uuid}/weather — rng_seed + current + log_weather."""
+    if not match_uuid or not match_uuid.strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    all_rules = story.get('weatherRules') or []
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    rules_by_id = {_nz(r.get('id')): r for r in all_rules}
+    current_id = _nz(match.get('currentWeatherId')) if match.get('currentWeatherId') is not None else None
+    rules = [{
+        "id": r.get('id'),
+        "uuid": r.get('uuid'),
+        "idTextName": r.get('idTextName'),
+        "name": _resolve_weather_name(raw_cards, raw_texts, r.get('idTextName'), r.get('idCard')),
+        "probability": r.get('probability'),
+        "deltaEnergy": r.get('deltaEnergy'),
+        "costMoveSafeLocation": r.get('costMoveSafeLocation'),
+        "costMoveNotSafeLocation": r.get('costMoveNotSafeLocation'),
+        "active": _nz(r.get('isActive', 1)) != 0,
+        "current": current_id is not None and _nz(r.get('id')) == current_id,
+    } for r in all_rules]
+    log = []
+    for entry in (match.get('weatherLog') or []):
+        rule = rules_by_id.get(_nz(entry.get('idWeather')))
+        log.append({
+            "id": entry.get('id'),
+            "uuid": entry.get('weatherUuid'),
+            "clock": entry.get('clock'),
+            "idWeather": entry.get('idWeather'),
+            "weatherUuid": (rule or {}).get('uuid') or entry.get('weatherUuid'),
+            "idTextName": (rule or {}).get('idTextName'),
+            "timestampStart": entry.get('timestampStart'),
+        })
+    return _ok({
+        "rngSeed": match.get('rngSeed'),
+        "current": _current_weather_payload(match, story),
+        "rules": rules,
+        "log": log,
+    })
+
+
 def _advance_time(match, match_uuid):
     """Advance the clock: log the advance, wake characters, rebuild the queue."""
     new_clock = _nz(match.get('currentClock')) + 1
@@ -1140,6 +1330,8 @@ def _advance_time(match, match_uuid):
     # Step 26: per-character recovery, class bonuses and location counters.
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     recovery = _apply_time_start_recovery(match, match_uuid, story)
+    # Step 27: select the weather for the new time unit and apply its energy delta.
+    _apply_weather_at_time_start(match, match_uuid, story)
 
     # Rebuild the turn queue for the new clock (all WAITING, highest priority ACTIVE).
     characters = _match_characters(match_uuid)
@@ -1288,6 +1480,8 @@ def lambda_handler(event, context):
 
         if path.endswith('/info') and method == 'GET':
             return _get_admin_match_info(match_uuid)
+        if path.endswith('/weather') and method == 'GET':
+            return _get_admin_match_weather(match_uuid)
         if path.endswith('/stop') and method == 'POST':
             return _update_match(match_uuid, 'ENDED', None)
         if path.endswith('/pause') and method == 'POST':
@@ -1332,6 +1526,16 @@ def lambda_handler(event, context):
 
     if path == '/api/matches' and method == 'GET':
         return _list_user_matches(user)
+
+    # Step 27 — GET /api/matches/{uuidMatch}/weather
+    if (path.startswith('/api/matches/') and path.endswith('/weather') and method == 'GET'):
+        params = (event.get('pathParameters') or {})
+        match_uuid = params.get('uuidMatch')
+        if not match_uuid:
+            segments = path.split('/')
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _get_weather(match_uuid, lang)
 
     if path.startswith('/api/match/') and path.endswith('/info') and method == 'GET':
         params = (event.get('pathParameters') or {})

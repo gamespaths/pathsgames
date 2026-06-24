@@ -108,6 +108,18 @@ def seed():
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,
              "idClassPermitted": None, "idClassProhibited": None}
         ],
+        # Step 27 — weather rules: a dominant "clear" weather (no energy delta) and
+        # a rarer "storm" that drains energy. With rngSeed=42 the roll is deterministic.
+        "weatherRules": [
+            {"idTextName": 200, "idCard": 5, "probability": 70, "deltaEnergy": 0, "idEvent": None,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1,
+             "conditionKey": None, "conditionValue": None, "timeStart": None,
+             "timeEnd": None, "isActive": 1},
+            {"idTextName": 201, "idCard": 6, "probability": 30, "deltaEnergy": -2, "idEvent": None,
+             "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3,
+             "conditionKey": None, "conditionValue": None, "timeStart": None,
+             "timeEnd": None, "isActive": 1},
+        ],
         "cards": [
             {
                 "id": 1,
@@ -118,7 +130,12 @@ def seed():
                 "awesomeIcon": "fa-graduation-cap",
                 "styleMain": "card-tutorial",
                 "styleDetail": "card-tutorial-detail"
-            }
+            },
+            # Step 27 — weather cards (referenced by weatherRules.idCard)
+            {"id": 5, "uuid": "card-tutorial-weather-clear", "idTextTitle": 200,
+             "idTextDescription": 200, "awesomeIcon": "fa-sun", "styleMain": "card-weather"},
+            {"id": 6, "uuid": "card-tutorial-weather-storm", "idTextTitle": 201,
+             "idTextDescription": 201, "awesomeIcon": "fa-cloud-bolt", "styleMain": "card-weather"},
         ]
     }
     
