@@ -240,7 +240,7 @@ INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_descrip
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
-(90001, 9001, 90001, 90002, 'NORTH', 1, 0),   -- Welcome ↔ Movement Room
+(90001, 9001, 90001, 90002, 'NORTH', 1, 2),   -- Welcome ↔ Movement Room (Step 28: edge energy cost)
 (90002, 9001, 90002, 90003, 'EAST',  1, 0),   -- Movement ↔ Energy Classroom
 (90003, 9001, 90003, 90004, 'NORTH', 1, 0),   -- Energy ↔ Item Workshop
 (90004, 9001, 90004, 90005, 'EAST',  1, 0),   -- Items ↔ Choice Arena

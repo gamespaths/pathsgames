@@ -227,3 +227,23 @@ class LogWeatherEntity(Base):
     timestamp_end = Column(String(50))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class LogMovementEntity(Base):
+    """Step 28 — append-only log of character movements. One row per successful move.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it
+    is assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_movements"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_location_from = Column(Integer)
+    id_location_to = Column(Integer, nullable=False)
+    energy_cost = Column(Integer, default=0, nullable=False)
+    timestamp_start = Column(String(50))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

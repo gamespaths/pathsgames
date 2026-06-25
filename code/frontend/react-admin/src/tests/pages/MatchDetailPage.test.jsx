@@ -7,6 +7,7 @@ vi.mock('../../api/matchApi', () => ({
   getMatchInfo:  vi.fn(),
   getMatchClock: vi.fn(),
   getMatchWeather: vi.fn(),
+  getMatchLocations: vi.fn(),
   stopMatch:     vi.fn(),
   pauseMatch:    vi.fn(),
   resumeMatch:   vi.fn(),
@@ -54,6 +55,12 @@ function renderPage() {
   )
 }
 
+/** The page lays its sections out as tabs (default "Match configuration"); click
+ *  the tab whose label matches before asserting that section's content. */
+async function gotoTab(label) {
+  fireEvent.click(await screen.findByRole('tab', { name: new RegExp(label, 'i') }))
+}
+
 describe('MatchDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -80,6 +87,18 @@ describe('MatchDetailPage', () => {
       log: [{ id: 1, uuid: 'l-1', clock: 0, idWeather: 2, weatherUuid: 'we-storm',
               idTextName: 101, timestampStart: '2026-06-24T00:00:00Z' }],
     })
+    matchApi.getMatchLocations.mockResolvedValue({
+      matchUuid: 'm1',
+      locations: [
+        { idLocation: 90001, uuid: 'loc-1', idCard: 2, safe: true, characterCount: 1,
+          neighbors: [
+            { idLocation: 90002, uuid: 'loc-2', direction: 'NORTH',
+              baseEnergyCost: 2, entryEnergyCost: 0, weatherEnergyCost: 5,
+              totalEnergyCost: 7, conditionMet: true },
+          ] },
+        { idLocation: 90002, uuid: 'loc-2', idCard: 3, safe: false, characterCount: 0, neighbors: [] },
+      ],
+    })
     matchApi.stopMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.pauseMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.resumeMatch.mockResolvedValue({ status: 'UPDATED' })
@@ -93,8 +112,14 @@ describe('MatchDetailPage', () => {
         { idText: 230, lang: 'en', shortText: 'Normal' },
         { idText: 240, lang: 'en', shortText: 'Brave' },
         { idText: 241, lang: 'en', shortText: 'Quick' },
+        { idText: 250, lang: 'en', shortText: 'Welcome Hall of the Academy' },
+        { idText: 251, lang: 'en', shortText: 'Movement Training Room' },
         { idText: 800, lang: 'en', shortText: 'Clear Skies' },
         { idText: 801, lang: 'en', shortText: 'Storm' },
+      ])
+      if (type === 'locations') return Promise.resolve([
+        { id: 90001, uuid: 'loc-1-story', idTextName: 250 },
+        { id: 90002, uuid: 'loc-2', idTextName: 251 },
       ])
       if (type === 'classes')      return Promise.resolve([{ uuid: 'cls-1', idTextName: 220 }])
       if (type === 'difficulties') return Promise.resolve([{ uuid: 'd1',    idTextName: 230 }])
@@ -111,6 +136,7 @@ describe('MatchDetailPage', () => {
   it('loads the match and renders players with stats and resolved template name', async () => {
     renderPage()
     expect(await screen.findByText('Saturday run')).toBeInTheDocument()
+    await gotoTab('Players')
     await waitFor(() => expect(screen.getByText('Players & characters (1)')).toBeInTheDocument())
     // "Warrior" now appears both in the players table and the Step 24 projected
     // turn-order panel, so there are two occurrences.
@@ -128,24 +154,32 @@ describe('MatchDetailPage', () => {
 
   it('renders difficulty, class and trait names', async () => {
     renderPage()
-    expect(await screen.findByText('Normal')).toBeInTheDocument()   // difficulty
-    expect(screen.getByText('Mage')).toBeInTheDocument()             // class
+    // difficulty is on the default Match configuration tab
+    expect(await screen.findByText('Normal')).toBeInTheDocument()
+    // class + traits live on the Players tab
+    await gotoTab('Players')
+    expect(await screen.findByText('Mage')).toBeInTheDocument()       // class
     expect(screen.getByText('Brave')).toBeInTheDocument()            // trait
     expect(screen.getByText('Quick')).toBeInTheDocument()            // trait
   })
 
   it('renders locations and registry sections', async () => {
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Locations')
     expect(await screen.findByText('Location state — gaming_state_locations (1)')).toBeInTheDocument()
     // Step 26 — the location time counter (clock_counter) is rendered.
     expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.getByText('Registry (1)')).toBeInTheDocument()
+    await gotoTab('Registry')
+    expect(await screen.findByText('Registry (1)')).toBeInTheDocument()
     expect(screen.getByText('act_1_done')).toBeInTheDocument()
   })
 
   it('shows empty-state when no players', async () => {
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [] }))
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Players')
     expect(await screen.findByText(/No characters have joined/i)).toBeInTheDocument()
   })
 
@@ -153,6 +187,29 @@ describe('MatchDetailPage', () => {
     matchApi.getMatchInfo.mockRejectedValue(new Error('boom'))
     renderPage()
     expect(await screen.findByText('boom')).toBeInTheDocument()
+  })
+
+  // ── tabs ───────────────────────────────────────────────────────────────────
+
+  it('defaults to the Match configuration tab and hides the other sections', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    // config content is visible by default (the status label lives only in the config card)
+    expect(screen.getByTestId('match-status-label')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Match configuration/i })).toHaveAttribute('aria-selected', 'true')
+    // other sections are not mounted until their tab is selected
+    expect(screen.queryByText('Players & characters (1)')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('weather-panel')).not.toBeInTheDocument()
+  })
+
+  it('switches the visible section when a tab is clicked', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    expect(screen.getByTestId('match-status-label')).toBeInTheDocument()
+    await gotoTab('Players')
+    expect(await screen.findByText('Players & characters (1)')).toBeInTheDocument()
+    // leaving the config tab unmounts its content (status label is gone)
+    expect(screen.queryByTestId('match-status-label')).not.toBeInTheDocument()
   })
 
   // ── clock status panel (Step 26) ──────────────────────────────────────────
@@ -181,10 +238,12 @@ describe('MatchDetailPage', () => {
 
   it('renders the Weather panel with rng seed, current weather and log', async () => {
     renderPage()
-    expect(await screen.findByTestId('weather-panel')).toBeInTheDocument()
-    // RNG seed row in the config table
+    await screen.findByText('Saturday run')
+    // RNG seed row is on the default Match configuration tab
     expect(screen.getByText('RNG seed')).toBeInTheDocument()
     expect(screen.getAllByText('42').length).toBeGreaterThan(0)
+    await gotoTab('Weather')
+    expect(await screen.findByTestId('weather-panel')).toBeInTheDocument()
     expect(matchApi.getMatchWeather).toHaveBeenCalledWith('m1')
     // weather panel title carries the seed; every rule listed, active flagged
     expect(screen.getByText(/Weather · seed 42/)).toBeInTheDocument()
@@ -195,9 +254,9 @@ describe('MatchDetailPage', () => {
     expect(screen.getAllByText('-2').length).toBeGreaterThan(0)
     expect(screen.getByText('Move (safe)')).toBeInTheDocument()
     expect(screen.getByText('Move (unsafe)')).toBeInTheDocument()
-    // initials column: "Clear Skies" → CS, "Storm" → S
-    expect(screen.getByText('CS')).toBeInTheDocument()
-    expect(screen.getByText('S')).toBeInTheDocument()
+    // name column now shows the first 20 chars of the weather name (not initials)
+    expect(screen.getByText('Clear Skies')).toBeInTheDocument()
+    expect(screen.getByText('Storm')).toBeInTheDocument()
   })
 
   it('hides the Weather panel when the weather endpoint fails', async () => {
@@ -205,6 +264,43 @@ describe('MatchDetailPage', () => {
     renderPage()
     expect(await screen.findByText('Saturday run')).toBeInTheDocument()
     expect(screen.queryByTestId('weather-panel')).not.toBeInTheDocument()
+  })
+
+  // ── movement view inside Location state (Step 28) ──────────────────────────
+
+  it('shows location name, characters and neighbor cost formula in Location state', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Locations')
+    expect(await screen.findByText('Location state — gaming_state_locations (1)')).toBeInTheDocument()
+    expect(matchApi.getMatchLocations).toHaveBeenCalledWith('m1')
+    // location name truncated to the first 20 chars in the row
+    expect(screen.getByText('Welcome Hall of the')).toBeInTheDocument()
+    // neighbor (beside Characters): destination name (first 20 chars) + cost formula
+    expect(screen.getByText(/Movement Training Ro/)).toBeInTheDocument()
+    expect(screen.getByText(/2 \+ 0 \+ 5 =/)).toBeInTheDocument()  // edge + entry + weather
+    expect(screen.getByText('7')).toBeInTheDocument()              // total badge
+    // character shown inline on the location row (Characters column of the Locations tab)
+    expect(screen.getAllByText('Warrior').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders Location state without neighbors when there is no movement data', async () => {
+    matchApi.getMatchLocations.mockResolvedValue({ matchUuid: 'm1', locations: [] })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Locations')
+    expect(await screen.findByText('Location state — gaming_state_locations (1)')).toBeInTheDocument()
+    // no neighbor cost badge rendered
+    expect(screen.queryByText('7')).not.toBeInTheDocument()
+  })
+
+  it('tolerates the movement endpoint failing on older backends', async () => {
+    matchApi.getMatchLocations.mockRejectedValue(new Error('no locations endpoint'))
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Locations')
+    expect(await screen.findByText('Location state — gaming_state_locations (1)')).toBeInTheDocument()
+    expect(screen.queryByText('7')).not.toBeInTheDocument()
   })
 
   // ── status panel & buttons ────────────────────────────────────────────────
@@ -285,6 +381,8 @@ describe('MatchDetailPage', () => {
 
   it('copies UUID to clipboard when a UuidCopy chip is clicked', async () => {
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Players')
     const chip = await screen.findByTitle('ct-w')
     fireEvent.click(chip)
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ct-w')
@@ -323,6 +421,8 @@ describe('MatchDetailPage', () => {
     const comaPlayer = { ...PLAYER, isSleeping: false, isComa: true }
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [comaPlayer] }))
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Players')
     expect(await screen.findByText('coma')).toBeInTheDocument()
   })
 
@@ -330,6 +430,8 @@ describe('MatchDetailPage', () => {
     const sleepingPlayer = { ...PLAYER, isSleeping: true, isComa: false }
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [sleepingPlayer] }))
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Players')
     expect(await screen.findByText('sleeping')).toBeInTheDocument()
   })
 
@@ -359,6 +461,7 @@ describe('MatchDetailPage', () => {
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { players: [noClassPlayer] }))
     renderPage()
     await screen.findByText('Saturday run')
+    await gotoTab('Players')
     const dashes = await screen.findAllByText('—')
     expect(dashes.length).toBeGreaterThan(0)
   })
@@ -376,8 +479,11 @@ describe('MatchDetailPage', () => {
   it('renders empty state for locations and registry when lists are empty', async () => {
     matchApi.getMatchInfo.mockResolvedValue(mockInfo('RUNNING', { locations: [], registry: [] }))
     renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Locations')
     expect(await screen.findByText('No locations.')).toBeInTheDocument()
-    expect(screen.getByText('No registry entries.')).toBeInTheDocument()
+    await gotoTab('Registry')
+    expect(await screen.findByText('No registry entries.')).toBeInTheDocument()
   })
 
   it('navigates back to matches list when back button is clicked', async () => {
@@ -391,7 +497,8 @@ describe('MatchDetailPage', () => {
     matchApi.changePlayerStatistics.mockResolvedValue({})
     renderPage()
     await screen.findByTestId('match-status-label')
-    const editBtn = screen.getByTitle('Edit statistics')
+    await gotoTab('Players')
+    const editBtn = await screen.findByTitle('Edit statistics')
     fireEvent.click(editBtn)
     expect(screen.getByText('Edit statistics')).toBeInTheDocument()
   })
@@ -400,7 +507,8 @@ describe('MatchDetailPage', () => {
     matchApi.changePlayerStatistics.mockResolvedValue({})
     renderPage()
     await screen.findByTestId('match-status-label')
-    fireEvent.click(screen.getByTitle('Edit statistics'))
+    await gotoTab('Players')
+    fireEvent.click(await screen.findByTitle('Edit statistics'))
     expect(screen.getByText('Edit statistics')).toBeInTheDocument()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
@@ -413,7 +521,8 @@ describe('MatchDetailPage', () => {
     matchApi.changePlayerStatistics.mockRejectedValue({ message: 'stat-save-error' })
     renderPage()
     await screen.findByTestId('match-status-label')
-    fireEvent.click(screen.getByTitle('Edit statistics'))
+    await gotoTab('Players')
+    fireEvent.click(await screen.findByTitle('Edit statistics'))
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
     })
@@ -423,7 +532,8 @@ describe('MatchDetailPage', () => {
   it('closes EditStatsModal via Cancel button', async () => {
     renderPage()
     await screen.findByTestId('match-status-label')
-    fireEvent.click(screen.getByTitle('Edit statistics'))
+    await gotoTab('Players')
+    fireEvent.click(await screen.findByTitle('Edit statistics'))
     fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }))
     await waitFor(() => expect(screen.queryByText('Edit statistics')).not.toBeInTheDocument())
   })

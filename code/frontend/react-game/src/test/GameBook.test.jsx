@@ -11,7 +11,9 @@ vi.mock('../api/matches', () => ({
   endMatch: vi.fn(),
   getMatchClock: vi.fn(() => Promise.resolve(null)),
   getMatchWeather: vi.fn(() => Promise.resolve(null)),
+  getMatchLocations: vi.fn(() => Promise.resolve({ matchUuid: 'm1', locations: [] })),
   sleepCharacter: vi.fn(),
+  startMovement: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, onClose }) => (

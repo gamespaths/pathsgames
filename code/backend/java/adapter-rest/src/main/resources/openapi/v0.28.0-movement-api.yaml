@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Movement System API
+  description: |
+    Step 28 — single-player movement system (adjacency, energy cost, validation).
+
+    A character moves to an adjacent location, paying an energy cost that combines
+    the edge cost, the target location entry cost (`cost_energy_enter`) and the
+    Step 27 weather modifier (different for safe vs unsafe locations):
+
+        safe            = targetLocation.secureParam > 0
+        weatherModifier = safe ? weather.costMoveSafeLocation : weather.costMoveNotSafeLocation
+        totalEnergyCost = edge.energyCost + target.costEnergyEnter + weatherModifier
+
+    Validation order (each a distinct error code): match RUNNING → character awake →
+    target is a neighbor → registry condition (`condition_registry_key`/value) →
+    weight ≤ capacity → energy ≥ cost → target not at `max_characters` capacity.
+    On success the character position and energy are persisted and a `log_movements`
+    row is appended.
+
+    The neighbor *list* (with the base `energyCost`) is exposed on
+    `GET /api/match/{uuid}/info`; the new `GET /api/match/{uuid}/locations` endpoint
+    adds the resolved `totalEnergyCost` per neighbor and the per-location character
+    count. The admin variant is served on the admin port at
+    `GET /api/admin/matches/{uuid}/locations`.
+
+    Scope: Step 28 only moves the character and pays energy. Automatic
+    location-entry events are Step 32; group/follow movement and concurrent locking
+    are Step 67; the full weight/capacity formula is Step 34 (carried weight is 0
+    until inventory lands).
+  version: 0.28.0
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+  - url: http://localhost:8044
+    description: Local development (admin API)
+tags:
+  - name: movement
+    description: Movement system (adjacency, energy cost)
+security:
+  - bearerAuth: []
+paths:
+  /api/gameplay/{uuidMatch}/movements/start:
+    post:
+      tags: [movement]
+      summary: Move the active character to an adjacent location
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetLocationUuid]
+              properties:
+                targetLocationUuid:
+                  type: string
+                  description: uuid of the adjacent (to) location
+      responses:
+        '200':
+          description: Movement applied
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MovementStartResponse' }
+        '400': { description: targetLocationUuid is required (MISSING_TARGET) }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND }
+        '409':
+          description: >
+            MATCH_NOT_RUNNING | CHARACTER_CANNOT_ACT | NOT_A_NEIGHBOR |
+            MOVEMENT_CONDITION_NOT_MET | OVERWEIGHT | INSUFFICIENT_ENERGY | LOCATION_FULL
+  /api/match/{uuidMatch}/locations:
+    get:
+      tags: [movement]
+      summary: Visited locations of a match with per-neighbor total energy cost
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Visited locations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchLocationsResponse' }
+        '401': { description: Unauthenticated }
+        '404': { description: MATCH_NOT_FOUND }
+  /api/admin/matches/{uuidMatch}/locations:
+    get:
+      tags: [movement]
+      summary: Admin visited-locations view (no ownership check; admin port 8044)
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Visited locations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchLocationsResponse' }
+        '404': { description: MATCH_NOT_FOUND }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MovementStartResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        characterUuid: { type: string }
+        fromLocationId: { type: integer, nullable: true }
+        fromLocationUuid: { type: string, nullable: true }
+        toLocationId: { type: integer }
+        toLocationUuid: { type: string }
+        energySpent: { type: integer }
+        newEnergy: { type: integer }
+        currentClock: { type: integer }
+    MatchLocationsResponse:
+      type: object
+      properties:
+        matchUuid: { type: string }
+        locations:
+          type: array
+          items: { $ref: '#/components/schemas/LocationView' }
+    LocationView:
+      type: object
+      properties:
+        idLocation: { type: integer }
+        uuid: { type: string }
+        idCard: { type: integer, nullable: true }
+        safe: { type: boolean }
+        characterCount: { type: integer }
+        neighbors:
+          type: array
+          items: { $ref: '#/components/schemas/NeighborView' }
+    NeighborView:
+      type: object
+      description: >
+        Energy-cost breakdown: baseEnergyCost (edge) + entryEnergyCost (target
+        location entry) + weatherEnergyCost (weather modifier) = totalEnergyCost.
+      properties:
+        idLocation: { type: integer }
+        uuid: { type: string }
+        direction: { type: string }
+        baseEnergyCost: { type: integer }
+        entryEnergyCost: { type: integer }
+        weatherEnergyCost: { type: integer }
+        totalEnergyCost: { type: integer }
+        conditionMet: { type: boolean }

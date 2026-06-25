@@ -212,6 +212,21 @@ Resources:
       RouteKey: "GET /api/matches/{uuidMatch}/weather"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 28 — movement system (player API)
+  StartMovementRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/movements/start"
+      Target: !Sub "integrations/${MatchIntegration}"
+
+  GetLocationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/match/{uuidMatch}/locations"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # ── admin match control (modify / stop / delete) — admin API + IP authorizer ──
   ListMatchStatusesRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -237,6 +252,16 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches/{uuidMatch}/weather"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # Step 28 — admin movement view (visited locations + total energy cost)
+  AdminMatchLocationsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/locations"
       Target: !Sub "integrations/${MatchAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId

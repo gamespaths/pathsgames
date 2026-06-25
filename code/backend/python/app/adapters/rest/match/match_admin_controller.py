@@ -45,18 +45,23 @@ class ChangeStatisticsRequestBody(BaseModel):
 class MatchAdminController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
                  character_command_port: Optional[CharacterCommandPort] = None,
-                 weather_service=None):
+                 weather_service=None, movement_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.character_command_port = character_command_port
         # Step 27 — weather admin view (rng_seed + current + log_weather).
         self.weather_service = weather_service
+        # Step 28 — movement admin view (visited locations + total energy cost).
+        self.movement_service = movement_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/admin/matches/{uuid_match}/weather", self.get_admin_match_weather, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/locations", self.get_admin_match_locations, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/admin/matches/statuses", self.list_match_statuses, methods=["GET"]
@@ -124,6 +129,22 @@ class MatchAdminController:
             return _error("MATCH_NOT_STOPPED",
                           "Only stopped matches (ENDED or GAMEOVER) can be deleted", 409)
         return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+
+    def get_admin_match_locations(self, uuid_match: str):
+        """GET /api/admin/matches/{uuid}/locations — visited locations with the
+        per-neighbor totalEnergyCost and character counts (Step 28). No ownership
+        check; mirrors the player endpoint GET /api/match/{uuid}/locations."""
+        from app.core.models.match.movement_models import MovementError
+        from app.adapters.rest.match.movement_controller import _locations_to_camel
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if self.movement_service is None:
+            return _error("NOT_IMPLEMENTED", "Movement service not wired", 501)
+        try:
+            locations = self.movement_service.list_locations_for_admin(uuid_match)
+        except MovementError as exc:
+            return _error(exc.code, exc.message, 404)
+        return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))
 
     def get_admin_match_weather(self, uuid_match: str):
         """GET /api/admin/matches/{uuid}/weather — rng_seed + current weather +

@@ -5,6 +5,7 @@ import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort;
 
@@ -34,6 +35,7 @@ class MatchAdminControllerTest {
     private TimeAdvancementPort timeAdvancementPort;
     private CharacterCommandPort characterCommandPort;
     private games.paths.core.service.match.WeatherSelectionService weatherService;
+    private MovementPort movementPort;
 
     @BeforeEach
     void setUp() {
@@ -42,9 +44,33 @@ class MatchAdminControllerTest {
         timeAdvancementPort = mock(TimeAdvancementPort.class);
         characterCommandPort = mock(CharacterCommandPort.class);
         weatherService = mock(games.paths.core.service.match.WeatherSelectionService.class);
+        movementPort = mock(MovementPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
-                        characterCommandPort, weatherService)).build();
+                        characterCommandPort, weatherService, movementPort)).build();
+    }
+
+    @Test
+    void getAdminMatchLocations_returnsLocationsWithTotalEnergyCost() throws Exception {
+        MovementPort.NeighborCost n = new MovementPort.NeighborCost(2L, "loc-2", "NORTH", 1, 1, 2, 4, true);
+        MovementPort.VisitedLocation loc = new MovementPort.VisitedLocation(
+                1L, "loc-1", 10, true, 2, List.of(n));
+        when(movementPort.listLocationsForAdmin("match-uuid")).thenReturn(List.of(loc));
+
+        mockMvc.perform(get("/api/admin/matches/match-uuid/locations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locations[0].characterCount").value(2))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].totalEnergyCost").value(4))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].uuid").value("loc-2"));
+    }
+
+    @Test
+    void getAdminMatchLocations_notFound() throws Exception {
+        when(movementPort.listLocationsForAdmin("missing")).thenThrow(
+                new MovementPort.MovementException(
+                        MovementPort.MovementException.Code.MATCH_NOT_FOUND, "no"));
+        mockMvc.perform(get("/api/admin/matches/missing/locations"))
+                .andExpect(status().isNotFound());
     }
 
     private MatchSummary summary() {

@@ -39,8 +39,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
 | 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix |
-| 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ |  Weather System — random selection & effects | 
-
+| 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
+| 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
 
 | Steps | Phase |
 | -- | -- |
@@ -75,13 +75,42 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Validate movement: target is neighbor, character has sufficient energy, weight does not exceed capacity (backend)
     - Check movement conditions: registry key/value requirements from list_locations_neighbors (backend)
     - Calculate total energy cost: base cost + location entry cost + weather modifier (safe/unsafe different costs) (backend)
+        note: locations api must have this values (total_energy_cost) on response
     - Deduct energy from character, update gaming_character_instance.id_location, check location capacity limits (backend)
     - Write backend unit tests for movement validation, energy calculation, registry conditions, capacity limits, and weight checks (backend tests)
-    - Frontend react-game on gameBook after GoToSleepCard add locations cards if neighbor (in both points) and action button to movements/start API calls
-    - Frontend react-admin: check if add section into matches/uuid page with this step feature!
+    - Frontend react-game on gameBook after GoToSleepCard add locations cards if neighbor (only where there is "TODO for every neighbor-location" comment) and action button to movements/start API calls 
+        note: location neighbor list is from "info" api, locations api should be used for total_energy_cost and others files not in info api response. 
+    - Frontend react-admin: into match detail page add informations
+        - number of character inside the location
+        - total_energy_cost information for every location with character (sub list with neighbors list)
     - Capacity check is first-come-first-served; concurrent movement locking deferred to Step 67
 
-29. Location entry events — automatic triggers
+29. Optional events — player-triggered actions
+    - List available optional events at current location via GET /match/{uuid_match}/info response (backend)
+    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate optional event (backend)
+    - Validate event activation: character has sufficient energy, coin cost, and is not sleeping or comatose (backend)
+    - Deduct energy and coins, apply event effects to character and match state (backend)
+    - Apply stat modifications respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
+    - Handle flag_end_time: if event causes time end, force all characters to sleep and advance time (backend)
+    - Write backend unit tests for optional event activation, cost validation, effect application, and time-end trigger (backend tests)
+30. Choice engine — conditions, validation, presentation
+    - Return currently available choices within GET /match/{uuid_match}/info response for active character (backend)
+    - Load choice options from list_choices for current event or location, ordered by priority (backend)
+    - Evaluate choice conditions: sad limit, stat requirements (DES/INT/COS minimums), prohibited/required traits (backend)
+    - Evaluate complex conditions: registry key checks, item possession, class checks, location checks, stat sum thresholds (backend)
+    - Apply logic operator (AND/OR) across conditions to determine option availability (backend)
+    - Filter and return only valid options to the player, include otherwise option if defined (backend)
+    - Write backend unit tests for condition evaluation covering all condition types, AND/OR logic, and edge cases (backend tests)
+31. Choice resolution — apply effects and outcomes
+    - Implement POST /gameplay/{uuid_match}/action/select-choice endpoint to submit selected option (backend)
+    - Validate selected option is still available and character can act (not sleeping, not comatose, has turn) (backend)
+    - Apply choice effects: stat modifications (single or group based on flag_group), key updates, item changes (backend)
+    - Execute linked event (id_event_torun) with its full effect chain based on choice result (backend)
+    - Handle is_progress flag: insert into gaming_story_progress for narrative milestone tracking (backend)
+    - Log choice execution in log_choices_executed with event, choice, and timestamp (backend)
+    - Write backend unit tests for choice submission, effect application, event chaining, progress tracking, and error cases (backend tests)
+
+32. Location entry events — automatic triggers
     - Implement event trigger evaluation on location entry: AUTOMATIC_FIRST_ENTRY for first visit (backend)
     - Implement AUTOMATIC_SUBSEQUENT_ENTRY trigger for repeat visits using gaming_state_locations.flag_already_actived (backend)
     - Implement AUTOMATIC_FIRST_IN_LOCATION trigger when character enters empty location (no other characters present) (backend)
@@ -90,30 +119,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implements/execute events runned from zero-counter developed on 26 step and execute event. 
     - Update gaming_state_locations to mark location as visited and log event execution in log_events (backend)
     - Write backend unit tests for all automatic trigger types, event effects, chaining, interrupts, and state updates (backend tests)
-30. Optional events — player-triggered actions
-    - List available optional events at current location via GET /match/{uuid_match}/info response (backend)
-    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate optional event (backend)
-    - Validate event activation: character has sufficient energy, coin cost, and is not sleeping or comatose (backend)
-    - Deduct energy and coins, apply event effects to character and match state (backend)
-    - Apply stat modifications respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
-    - Handle flag_end_time: if event causes time end, force all characters to sleep and advance time (backend)
-    - Write backend unit tests for optional event activation, cost validation, effect application, and time-end trigger (backend tests)
-31. Choice engine — conditions, validation, presentation
-    - Return currently available choices within GET /match/{uuid_match}/info response for active character (backend)
-    - Load choice options from list_choices for current event or location, ordered by priority (backend)
-    - Evaluate choice conditions: sad limit, stat requirements (DES/INT/COS minimums), prohibited/required traits (backend)
-    - Evaluate complex conditions: registry key checks, item possession, class checks, location checks, stat sum thresholds (backend)
-    - Apply logic operator (AND/OR) across conditions to determine option availability (backend)
-    - Filter and return only valid options to the player, include otherwise option if defined (backend)
-    - Write backend unit tests for condition evaluation covering all condition types, AND/OR logic, and edge cases (backend tests)
-32. Choice resolution — apply effects and outcomes
-    - Implement POST /gameplay/{uuid_match}/action/select-choice endpoint to submit selected option (backend)
-    - Validate selected option is still available and character can act (not sleeping, not comatose, has turn) (backend)
-    - Apply choice effects: stat modifications (single or group based on flag_group), key updates, item changes (backend)
-    - Execute linked event (id_event_torun) with its full effect chain based on choice result (backend)
-    - Handle is_progress flag: insert into gaming_story_progress for narrative milestone tracking (backend)
-    - Log choice execution in log_choices_executed with event, choice, and timestamp (backend)
-    - Write backend unit tests for choice submission, effect application, event chaining, progress tracking, and error cases (backend tests)
+
 33. Inventory and item management
     - Implement GET /gameplay/{uuid_match}/inventory endpoint listing active character items with weight and effects (backend)
     - Implement POST /gameplay/{uuid_match}/inventory/use-item endpoint to use a consumable item (backend)
@@ -165,7 +171,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 39. Action logging and match history
     - Implement centralized logging service recording all player actions with match UUID, character, timestamp, and details (backend)
     - Log all events triggered (automatic and optional) in log_events with full context (backend)
-    - Log all movements in log_movements with from/to, energy cost, and weather conditions (backend)
+    - Log all movements in log_movements with from/to, energy cost, and weather conditions (backend) - note: maybe done on 28 step (don't remove this note)!
     - Log all item usage in log_item_usage with item, effects, and result (backend)
     - Log all weather changes in log_weather with clock, timestamps, and conditions (backend)
     - Implement GET /match/{uuid_match}/events/history/{page} endpoint returning paginated event history (backend)

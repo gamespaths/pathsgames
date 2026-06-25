@@ -25,6 +25,12 @@ export const getMatchInfo = (uuid) =>
 export const getMatchClock = (uuid) =>
   apiClient().get(`/api/admin/matches/${uuid}/clock`).then(r => r.data)
 
+// GET /api/admin/matches/:uuid/locations — movement view (Step 28): the visited
+// locations, each with its current character count and the per-neighbor
+// totalEnergyCost (edge + entry + weather) resolved for the current weather.
+export const getMatchLocations = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/locations`).then(r => r.data)
+
 // GET /api/admin/matches/:uuid/weather — weather view (Step 27): the per-match
 // rngSeed, the current weather (delta_energy + movement-cost modifiers) and the
 // full log_weather history ordered by clock.

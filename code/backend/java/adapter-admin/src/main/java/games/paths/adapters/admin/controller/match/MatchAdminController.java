@@ -2,6 +2,7 @@ package games.paths.adapters.admin.controller.match;
 
 import games.paths.adapters.rest.dto.ClockResponse;
 import games.paths.adapters.rest.dto.MatchInfoResponse;
+import games.paths.adapters.rest.dto.MatchLocationsResponse;
 import games.paths.adapters.rest.dto.MatchSummaryResponse;
 import games.paths.adapters.rest.dto.MatchUpdateRequest;
 import games.paths.core.model.match.MatchDetail;
@@ -10,6 +11,7 @@ import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort;
 
@@ -43,17 +45,20 @@ public class MatchAdminController {
     private final TimeAdvancementPort timeAdvancementPort;
     private final CharacterCommandPort characterCommandPort;
     private final games.paths.core.service.match.WeatherSelectionService weatherService;
+    private final MovementPort movementPort;
 
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
                                 TimeAdvancementPort timeAdvancementPort,
                                 CharacterCommandPort characterCommandPort,
-                                games.paths.core.service.match.WeatherSelectionService weatherService) {
+                                games.paths.core.service.match.WeatherSelectionService weatherService,
+                                MovementPort movementPort) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
         this.characterCommandPort = characterCommandPort;
         this.weatherService = weatherService;
+        this.movementPort = movementPort;
     }
 
     /** GET /api/admin/matches — lists every match in the platform (admin view). */
@@ -161,6 +166,25 @@ public class MatchAdminController {
         }).collect(Collectors.toList());
         body.put("log", log);
         return ResponseEntity.ok(body);
+    }
+
+    /**
+     * GET /api/admin/matches/{uuidMatch}/locations — admin movement view (Step 28):
+     * the visited locations of the match, each with its current character count and
+     * the per-neighbor totalEnergyCost resolved for the current weather. Mirrors the
+     * player endpoint GET /api/match/{uuidMatch}/locations but skips the ownership check.
+     */
+    @GetMapping("/{uuidMatch}/locations")
+    public ResponseEntity<Object> getAdminMatchLocations(@PathVariable String uuidMatch) {
+        if (isBlank(uuidMatch)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
+        }
+        try {
+            return ResponseEntity.ok(MatchLocationsResponse.fromModel(
+                    uuidMatch, movementPort.listLocationsForAdmin(uuidMatch)));
+        } catch (MovementPort.MovementException ex) {
+            return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
+        }
     }
 
     private static Map<String, Object> weatherToMap(

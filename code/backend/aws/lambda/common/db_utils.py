@@ -81,50 +81,65 @@ def delete_all_by_pk(pk):
         count += 1
     return count
 
+def _paginate(operation, **kwargs):
+    """Run a DynamoDB query/scan to completion, following LastEvaluatedKey.
+
+    A single query/scan returns at most 1 MB of data; for a scan that 1 MB is
+    measured BEFORE the FilterExpression is applied, so a large table can hide
+    matching items on later pages. Looping on ExclusiveStartKey returns them all.
+    """
+    items = []
+    while True:
+        response = operation(**kwargs)
+        items.extend(response.get('Items', []))
+        last_key = response.get('LastEvaluatedKey')
+        if not last_key:
+            break
+        kwargs['ExclusiveStartKey'] = last_key
+    return items
+
 def query_by_pk(pk):
-    """Query all items with the same Partition Key."""
+    """Query all items with the same Partition Key (paginated)."""
     try:
-        response = _get_table().query(
+        return _paginate(
+            _get_table().query,
             KeyConditionExpression='PK = :pk',
-            ExpressionAttributeValues={':pk': pk}
+            ExpressionAttributeValues={':pk': pk},
         )
-        return response.get('Items', [])
     except ClientError as e:
         print(f"Error querying PK {pk}: {e}")
         return []
 
 def query_gsi(gsi_name, pk_val, sk_prefix=None):
-    """Query a secondary index."""
+    """Query a secondary index (paginated)."""
     try:
         condition  = 'GSI1_PK = :pk'
         attr_vals  = {':pk': pk_val}
         if sk_prefix:
             condition += ' AND begins_with(GSI1_SK, :sk)'
             attr_vals[':sk'] = sk_prefix
-        response = _get_table().query(
+        return _paginate(
+            _get_table().query,
             IndexName=gsi_name,
             KeyConditionExpression=condition,
-            ExpressionAttributeValues=attr_vals
+            ExpressionAttributeValues=attr_vals,
         )
-        return response.get('Items', [])
     except ClientError as e:
         print(f"Error querying GSI {gsi_name}: {e}")
         return []
 
 def scan_filter(attr_name, attr_value):
-    """Scan the table filtering on a single attribute value."""
+    """Scan the table filtering on a single attribute value (paginated)."""
     try:
-        response = _get_table().scan(FilterExpression=Attr(attr_name).eq(attr_value))
-        return response.get('Items', [])
+        return _paginate(_get_table().scan, FilterExpression=Attr(attr_name).eq(attr_value))
     except ClientError as e:
         print(f"Error scanning filter {attr_name}={attr_value}: {e}")
         return []
 
 def scan_pk_prefix(prefix):
-    """Scan the table returning every item whose PK starts with the prefix."""
+    """Scan the table returning every item whose PK starts with the prefix (paginated)."""
     try:
-        response = _get_table().scan(FilterExpression=Attr('PK').begins_with(prefix))
-        return response.get('Items', [])
+        return _paginate(_get_table().scan, FilterExpression=Attr('PK').begins_with(prefix))
     except ClientError as e:
         print(f"Error scanning PK prefix {prefix}: {e}")
         return []

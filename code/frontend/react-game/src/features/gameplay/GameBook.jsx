@@ -4,7 +4,7 @@ import LocationCard from './cards/LocationCard'
 import PlayerStats from './cards/PlayerStats'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
-import { endMatch, getMatchClock, getMatchWeather } from '../../api/matches'
+import { endMatch, getMatchClock, getMatchWeather, getMatchLocations } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
@@ -18,6 +18,7 @@ import {
 } from '@/utils/gamebook'
 import CloseGameCard from './cards/CloseGameCard'
 import GoToSleepCard from './cards/GoToSleepCard'
+import MovementCard from './cards/MovementCard'
 import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 
@@ -37,6 +38,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const [clock, setClock] = useState(null)
   const [weather, setWeather] = useState(null)
   const [previewModal, setPreviewModal] = useState(null)
+  // Step 28 — map of neighbor location uuid → totalEnergyCost (edge + entry +
+  // weather), loaded from /locations. The neighbor list itself is the /info
+  // adapter's `locations`; this only supplies the weather-resolved move cost.
+  const [locationCosts, setLocationCosts] = useState({})
   // The `story` prop is the lean summary (no classes/characters/traits/difficulties).
   // The full detail (with content lists) arrives via the `storyDetail` prop, loaded
   // by GamePage; `storyFull` falls back to the summary until the detail arrives.
@@ -78,6 +83,34 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
 
+  // Step 28 — load the per-neighbor total energy cost; the weather can change it,
+  // so it is refreshed together with the clock/weather after a board reload.
+  function buildLocationCosts(payload) {
+    const map = {}
+    for (const loc of payload?.locations ?? []) {
+      for (const n of loc.neighbors ?? []) {
+        if (n.uuid != null) map[n.uuid] = n.totalEnergyCost
+      }
+    }
+    return map
+  }
+  async function refreshLocations() {
+    if (!matchUuid) return
+    try {
+      setLocationCosts(buildLocationCosts(await getMatchLocations(matchUuid, user?.accessToken)))
+    } catch {
+      // Move costs are non-critical chrome; leave the previous map on failure.
+    }
+  }
+  useEffect(() => {
+    let cancelled = false
+    if (!matchUuid) return undefined
+    getMatchLocations(matchUuid, user?.accessToken)
+      .then(p => { if (!cancelled) setLocationCosts(buildLocationCosts(p)) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [matchUuid, user?.accessToken])
+
   function refreshComponents(){
     setPreview(null)
     setPreviewModal(null)
@@ -91,6 +124,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     refreshClock()
     // Step 27 — the clock may have advanced to a new time unit: re-select weather.
     refreshWeather()
+    // Step 28 — weather/position changed: refresh the per-neighbor move costs.
+    refreshLocations()
     onReload?.()
     handleBackOrClose()
     refreshComponents();
@@ -222,7 +257,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <WeatherCard weather={weather} story={story} onPreview={handleSelectionPreviewFull} /> {  
           removed (for now) because weathere card is on cardCharacteristics */}
 
-          { /* TODO for every neighbor-location */  }
+          { /* Step 28 — for every neighbor-location render a move-target card */ }
+          { (locations ?? []).map(loc => (
+            <MovementCard key={loc.uuid ?? loc.idLocation} location={loc}
+              totalEnergyCost={loc.uuid != null ? locationCosts[loc.uuid] : undefined}
+              playerStats={playerStats} story={story} onPreview={handleSelectionPreviewFull}
+              matchUuid={matchUuid} accessToken={user?.accessToken}
+              onMoved={handleReloadClockWeatherAndMatchData} />
+          )) }
 
           { /* for every action in location — end-game events expose an "end game" button */  }
           { (actions ?? []).map( action => {

@@ -215,7 +215,7 @@ INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_descrip
 INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES (90008, 9001, 90001, 107, 107, 1, 10);
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
-INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90001, 9001, 90001, 90002, 'NORTH', 0);
+INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90001, 9001, 90001, 90002, 'NORTH', 2);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90002, 9001, 90002, 90003, 'EAST', 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90003, 9001, 90003, 90004, 'NORTH', 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90004, 9001, 90004, 90005, 'EAST', 0);

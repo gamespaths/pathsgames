@@ -225,3 +225,35 @@ class TestDbUtilsErrorBranches:
             'UpdateItem'
         )
         assert db.update_ts_last_access('USER#1', 12345) is False
+
+
+@patch.object(db, '_table')
+class TestPagination:
+    """scan/query helpers must follow LastEvaluatedKey so large tables are fully read."""
+
+    def test_scan_pk_prefix_follows_last_evaluated_key(self, mock_table):
+        mock_table.scan.side_effect = [
+            {'Items': [{'PK': 'MATCH#1'}], 'LastEvaluatedKey': {'PK': 'MATCH#1'}},
+            {'Items': [{'PK': 'MATCH#2'}]},
+        ]
+        result = db.scan_pk_prefix('MATCH#')
+        assert [i['PK'] for i in result] == ['MATCH#1', 'MATCH#2']
+        assert mock_table.scan.call_count == 2
+        assert mock_table.scan.call_args_list[1].kwargs['ExclusiveStartKey'] == {'PK': 'MATCH#1'}
+
+    def test_query_by_pk_follows_last_evaluated_key(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'A'}], 'LastEvaluatedKey': {'SK': 'A'}},
+            {'Items': [{'SK': 'B'}]},
+        ]
+        result = db.query_by_pk('MATCH#1')
+        assert len(result) == 2
+        assert mock_table.query.call_count == 2
+
+    def test_query_gsi_follows_last_evaluated_key(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'A'}], 'LastEvaluatedKey': {'SK': 'A'}},
+            {'Items': [{'SK': 'B'}]},
+        ]
+        assert len(db.query_gsi('GSI1', 'USER_MATCHES#u1')) == 2
+        assert mock_table.query.call_count == 2

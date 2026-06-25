@@ -282,7 +282,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/matches/{uuid}/characters/templates`
 		- GET `/matches/{uuid}/characters/classes`
 		- GET `/matches/{uuid}/characters/traits`
-		- GET `/matches/{uuid}/weather`
+		- ✅ GET `/matches/{uuid}/weather`
 		- GET `/matches/{uuid}/characters/{uuid}/resources `
 		- ?? GET `/match/{uuid_match}/locations`: Location list (only already visited)		
 	- Match

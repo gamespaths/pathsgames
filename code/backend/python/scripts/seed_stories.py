@@ -76,8 +76,12 @@ def seed():
         "locations": [
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.
+            # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
             {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
-             "counterTime": 2, "idEventIfCounterZero": 1}
+             "counterTime": 2, "idEventIfCounterZero": 1,
+             "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2}]},
+            # Step 28: a second location to move into.
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",

@@ -221,6 +221,15 @@ public class CoreConfig {
                 timeStartRecoveryService, weatherSelectionService);
     }
 
+    // ───── Step 28: Movement system (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.match.MovementPort movementPort(
+            games.paths.core.port.match.MovementStorePort movementStorePort,
+            UserAccessPort userAccessPort) {
+        return new games.paths.core.service.match.MovementService(movementStorePort, userAccessPort);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean

@@ -1,5 +1,21 @@
 {
   "author": "Paths Games Team",
+  "card": {
+    "alternativeImage": null,
+    "awesomeIcon": "fas fa-chess-rook",
+    "cardType": null,
+    "copyrightText": "Lili Popper on Unsplash",
+    "description": "Welcome to the Paths Alpha tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges. Step inside and discover how every choice shapes your destiny.",
+    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+    "styleDetail": null,
+    "styleImageLarge": null,
+    "styleImageLittle": null,
+    "styleImageMedium": null,
+    "styleMain": null,
+    "title": "Paths Tutorial",
+    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
+    "uuid": "52b424e5-945a-4b50-b16c-c9b83ae957fb"
+  },
   "cards": [
     {
       "alternativeImage": null,
@@ -512,6 +528,36 @@
       "linkCopyright": "https://unsplash.com/photos/cumulus-clouds-Pe1Ol9oLc4o",
       "urlImage": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=751&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "acc5e4ff-d8ce-4ea5-8337-9e49b464dcd8"
+    },
+    {
+      "id": 50,
+      "idCard": 50,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 138,
+      "idTextName": 138,
+      "idTextTitle": 138,
+      "uuid": "22713807-b0d5-4ae5-b59a-9a68f833db1e"
+    },
+    {
+      "id": 51,
+      "idCard": 51,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 0,
+      "idTextName": 139,
+      "idTextTitle": 139,
+      "uuid": "46521bfe-eb04-4e66-b027-4c16b8a9fd73"
+    },
+    {
+      "id": 52,
+      "idCard": 52,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 140,
+      "idTextName": 140,
+      "idTextTitle": 140,
+      "uuid": "9bb9f466-8cf0-47ed-bb31-2f97f77da0bd"
     }
   ],
   "category": "adventure",
@@ -941,10 +987,11 @@
       "idEventNext": null,
       "idItemToAdd": null,
       "idLocation": 1,
-      "idSpecificLocation": 1,
+      "idSpecificLocation": 2,
       "idTextDescription": 132,
       "idTextName": 106,
       "idWeather": null,
+      "id_card": 45,
       "keyToAdd": null,
       "keyValueToAdd": null,
       "type": "NORMAL",
@@ -976,18 +1023,31 @@
     {
       "conditionRegistryKey": null,
       "conditionRegistryValue": null,
-      "direction": "EAST",
-      "energyCost": 1,
+      "direction": "NORTH",
+      "energyCost": 0,
       "flagBack": 1,
       "id": 1,
-      "idCard": null,
+      "idCard": 51,
       "idLocationFrom": 1,
-      "idLocationTo": 2,
+      "idLocationTo": 3,
       "idTextBack": 110,
       "idTextDescription": null,
       "idTextGo": 109,
-      "idTextName": null,
+      "idTextName": 139,
+      "id_card": 51,
       "uuid": "fcfd4cb6-9a2a-453e-9881-daeb228d2ab8"
+    },
+    {
+      "direction": "NORTH",
+      "energyCost": 2,
+      "flagBack": 1,
+      "id": 2,
+      "idCard": 52,
+      "idLocationFrom": 3,
+      "idLocationTo": 2,
+      "idTextName": 140,
+      "id_card": 52,
+      "uuid": "088f1c34-b065-4342-8472-1c9d98efc72b"
     }
   ],
   "locations": [
@@ -1046,7 +1106,7 @@
         "urlImage": "https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "4a34065a-76b3-48bb-98dc-1c5335246aec"
       },
-      "costEnergyEnter": 1,
+      "costEnergyEnter": 0,
       "counterTime": null,
       "id": 2,
       "idAudio": null,
@@ -1060,11 +1120,20 @@
       "idTextDescription": 133,
       "idTextName": 107,
       "idTextNarrative": null,
+      "id_card": 46,
       "isSafe": 0,
       "maxCharacters": 100,
       "priorityAutomaticEvent": 0,
       "secureParam": 0,
       "uuid": "ce40c926-9f8e-4e10-8431-1250f66e55a8"
+    },
+    {
+      "id": 3,
+      "idCard": 50,
+      "idTextDescription": 138,
+      "idTextName": 138,
+      "id_card": 50,
+      "uuid": "c4149c69-5ea4-4b58-9a13-d1b374d6bd1b"
     }
   ],
   "missionSteps": [],
@@ -3545,6 +3614,36 @@
       "longText": "Dadee Aissa",
       "shortText": "Dadee Aissa",
       "uuid": "66a99049-a8c5-484d-949e-f30f9825731e"
+    },
+    {
+      "id": 138,
+      "idCreator": 1,
+      "idText": 138,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tutorial center location",
+      "shortText": "Tutorial center location",
+      "uuid": "fa007a86-01e7-47b5-b5d4-9c14f77dac91"
+    },
+    {
+      "id": 139,
+      "idCreator": 1,
+      "idText": 139,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to center",
+      "shortText": "Go to center",
+      "uuid": "93c1f297-9698-4cd3-b26a-6c1f01623e54"
+    },
+    {
+      "id": 140,
+      "idCreator": 1,
+      "idText": 140,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to the end",
+      "shortText": "Go to the end",
+      "uuid": "343f1afc-6bb5-4496-99e6-6b13403111a4"
     }
   ],
   "title": "Paths Tutorial",

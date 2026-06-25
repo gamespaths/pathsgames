@@ -49,6 +49,9 @@ from app.adapters.persistence.match.time_store_adapter import TimeStoreAdapter
 from app.core.services.match.time_advancement_service import TimeAdvancementService
 from app.core.services.event.in_process_event_publisher import InProcessDomainEventPublisher
 from app.adapters.rest.match.time_clock_controller import TimeClockController
+from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
+from app.core.services.match.movement_service import MovementService
+from app.adapters.rest.match.movement_controller import MovementController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.weather_selection_service import WeatherSelectionService
 from app.adapters.rest.match.weather_controller import WeatherController
@@ -151,9 +154,14 @@ weather_store_adapter = WeatherStoreAdapter(SessionLocal)
 weather_selection_service = WeatherSelectionService(weather_store_adapter)
 weather_controller = WeatherController(weather_selection_service, content_query_service)
 
+# Step 28 — movement system store + service (shared by player and admin controllers).
+movement_store_adapter = MovementStoreAdapter(SessionLocal)
+movement_service = MovementService(movement_store_adapter)
+
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
                                                character_command_service,
-                                               weather_selection_service)
+                                               weather_selection_service,
+                                               movement_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
@@ -164,6 +172,12 @@ domain_event_publisher = InProcessDomainEventPublisher()
 time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
                                                   weather_service=weather_selection_service)
 time_clock_controller = TimeClockController(time_advancement_service)
+
+# Step 28 — movement system (single-player). The controller is mounted on the
+# public app; the service is also passed to the admin controller for the admin
+# locations view.
+movement_controller = MovementController(movement_service)
+
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
@@ -251,6 +265,7 @@ app = _build_app([
     character_controller.router,
     turn_cycle_controller.router,
     time_clock_controller.router,
+    movement_controller.router,
     weather_controller.router,
 ])
 

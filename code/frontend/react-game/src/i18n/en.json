@@ -197,6 +197,11 @@
     },
     "location": {
       "clockCounter": "Location time counter"
+    },
+    "movement": {
+      "action": "Move here",
+      "cost": "Energy cost:",
+      "noEnergy": "Energy"
     }
   },
   "footer": {

@@ -184,6 +184,11 @@
     "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
     "location": {
       "clockCounter": "Contatore tempo"
+    },
+    "movement": {
+      "action": "Vai qui",
+      "cost": "Costo energia:",
+      "noEnergy": "Energia insufficiente"
     }
   },
   "footer": {

@@ -283,3 +283,51 @@ export async function sleepCharacter(uuidMatch, accessToken) {
   )
   return res.data
 }
+
+/* ── Step 28 — movement system ────────────────────────────────────────────── */
+
+/**
+ * Move the caller's active character to an adjacent location identified by its
+ * location uuid. The backend deducts the combined energy cost (edge + entry +
+ * weather) and returns the new position/energy. Throws on a backend error
+ * (409 NOT_A_NEIGHBOR / INSUFFICIENT_ENERGY / LOCATION_FULL / …, 404
+ * MATCH_NOT_FOUND); mock mode synthesizes a plausible success response.
+ */
+export async function startMovement(uuidMatch, targetLocationUuid, accessToken) {
+  const client = apiClient()
+  if (!client) {
+    return {
+      matchUuid: uuidMatch ?? null,
+      characterUuid: null,
+      fromLocationId: null,
+      fromLocationUuid: null,
+      toLocationId: null,
+      toLocationUuid: targetLocationUuid ?? null,
+      energySpent: 0,
+      newEnergy: 0,
+      currentClock: 0,
+    }
+  }
+  const res = await client.post(
+    `/api/gameplay/${uuidMatch}/movements/start`,
+    { targetLocationUuid },
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
+ * Step 28 — read the visited locations of a match, each with its character count
+ * and the per-neighbor `totalEnergyCost` resolved for the current weather (the
+ * neighbor list itself comes from /info; this endpoint carries the resolved
+ * cost). Returns `{ matchUuid, locations: [] }`; mock mode returns an empty list.
+ */
+export async function getMatchLocations(uuidMatch, accessToken) {
+  const client = apiClient()
+  if (!client) return { matchUuid: uuidMatch ?? null, locations: [] }
+  const res = await client.get(
+    `/api/match/${uuidMatch}/locations`,
+    authConfig(accessToken),
+  )
+  return res.data
+}

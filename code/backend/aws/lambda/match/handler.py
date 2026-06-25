@@ -1442,6 +1442,224 @@ def _get_clock(user, match_uuid):
     })
 
 
+# ─── Step 28 — movement system ────────────────────────────────────────────────
+
+def _registry_value(registry, key):
+    """Current registry value for a key (string/int), or None when absent."""
+    for r in (registry or []):
+        if r.get('key') == key:
+            if r.get('stringValue') is not None:
+                return r.get('stringValue')
+            if r.get('intValue') is not None:
+                return str(r.get('intValue'))
+            return None
+    return None
+
+
+def _current_weather_rule(match, story):
+    """The match's current weather rule from the STORY item, or None."""
+    id_weather = match.get('currentWeatherId')
+    if id_weather is None:
+        return None
+    return next((r for r in (story.get('weatherRules') or [])
+                 if _nz(r.get('id')) == _nz(id_weather)), None)
+
+
+def _movement_total_cost(edge, target, weather_rule):
+    """edge cost + target entry cost + weather modifier (safe vs unsafe)."""
+    safe = _nz(target.get('secureParam')) > 0
+    weather_modifier = 0
+    if weather_rule is not None:
+        weather_modifier = _nz(weather_rule.get('costMoveSafeLocation') if safe
+                               else weather_rule.get('costMoveNotSafeLocation'))
+    return _nz(edge.get('energyCost')) + _nz(target.get('costEnergyEnter')) + weather_modifier
+
+
+def _find_edge(neighbors, from_id, to_id):
+    for n in (neighbors or []):
+        a, b = n.get('idLocationFrom'), n.get('idLocationTo')
+        if (a == from_id and b == to_id) or (a == to_id and b == from_id):
+            return n
+    return None
+
+
+def _start_movement(user, match_uuid, body):
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    target_uuid = (body or {}).get('targetLocationUuid')
+    if not target_uuid:
+        return _err(400, 'MISSING_TARGET', 'targetLocationUuid is required')
+
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    caller = next((c for c in _match_characters(match_uuid)
+                   if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+    if _nz(caller.get('isSleeping')) == 1 or _nz(caller.get('isComa')) == 1:
+        return _err(409, 'CHARACTER_CANNOT_ACT', 'Character cannot move while sleeping or in coma')
+    if caller.get('idLocation') is None:
+        return _err(409, 'NOT_A_NEIGHBOR', 'Character has no current location')
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    locations = story.get('locations') or []
+    target = next((l for l in locations if l.get('uuid') == target_uuid), None)
+    if target is None:
+        return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
+
+    from_id = caller.get('idLocation')
+    edge = _find_edge(story.get('neighbors'), from_id, target.get('id'))
+    if edge is None:
+        return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
+
+    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    if cond_key:
+        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+        if _registry_value(match.get('registry'), cond_key) != cond_value:
+            return _err(409, 'MOVEMENT_CONDITION_NOT_MET', 'Movement condition not met')
+
+    total_cost = _movement_total_cost(edge, target, _current_weather_rule(match, story))
+
+    # Step 34 owns the weight formula; carried weight is 0 until inventory exists.
+    if 0 > _nz(caller.get('weightMax')):
+        return _err(409, 'OVERWEIGHT', 'Carried weight exceeds capacity')
+    if _nz(caller.get('energy')) < total_cost:
+        return _err(409, 'INSUFFICIENT_ENERGY', 'Not enough energy')
+
+    max_chars = _nz(target.get('maxCharacters'))
+    if max_chars > 0:
+        count = sum(1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
+        if count >= max_chars:
+            return _err(409, 'LOCATION_FULL', 'Target location is at capacity')
+
+    new_energy = _nz(caller.get('energy')) - total_cost
+    caller['idLocation'] = target.get('id')
+    caller['locationUuid'] = target.get('uuid')
+    caller['energy'] = new_energy
+    db_utils.put_item(caller)
+
+    # Append a movement log entry on the match item (used to derive visited locations).
+    movement_log = match.get('movementLog') or []
+    movement_log.append({
+        "characterUuid": caller.get('uuid'),
+        "idLocationFrom": from_id,
+        "idLocationTo": target.get('id'),
+        "energyCost": total_cost,
+        "timestampStart": _ts_ms(),
+    })
+    match['movementLog'] = movement_log
+    db_utils.put_item(match)
+
+    return _ok({
+        "matchUuid": match.get('uuid'),
+        "characterUuid": caller.get('uuid'),
+        "fromLocationId": from_id,
+        "fromLocationUuid": None,
+        "toLocationId": target.get('id'),
+        "toLocationUuid": target.get('uuid'),
+        "energySpent": total_cost,
+        "newEnergy": new_energy,
+        "currentClock": _nz(match.get('currentClock')),
+    })
+
+
+def _visited_locations_payload(match, match_uuid):
+    """Build the visited-locations payload with character counts and per-neighbor
+    totalEnergyCost resolved for the current weather (Step 28)."""
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    locations = story.get('locations') or []
+    neighbors = story.get('neighbors') or []
+    loc_by_id = {l.get('id'): l for l in locations}
+    weather_rule = _current_weather_rule(match, story)
+    characters = _match_characters(match_uuid)
+
+    # visited = current character positions ∪ movementLog from/to.
+    visited = []
+    seen = set()
+
+    def add(value):
+        if value is not None and value not in seen:
+            seen.add(value)
+            visited.append(value)
+
+    for c in characters:
+        add(c.get('idLocation'))
+    for m in (match.get('movementLog') or []):
+        add(m.get('idLocationFrom'))
+        add(m.get('idLocationTo'))
+
+    result = []
+    for loc_id in visited:
+        loc = loc_by_id.get(loc_id)
+        if loc is None:
+            continue
+        count = sum(1 for c in characters if c.get('idLocation') == loc_id)
+        neighbor_costs = []
+        for n in neighbors:
+            a, b = n.get('idLocationFrom'), n.get('idLocationTo')
+            if a == loc_id:
+                other_id = b
+            elif b == loc_id:
+                other_id = a
+            else:
+                continue
+            other = loc_by_id.get(other_id)
+            if other is None:
+                continue
+            cond_key = n.get('conditionKey') or n.get('conditionRegistryKey')
+            cond_met = True
+            if cond_key:
+                cond_value = n.get('conditionValue') or n.get('conditionRegistryValue')
+                cond_met = _registry_value(match.get('registry'), cond_key) == cond_value
+            safe = _nz(other.get('secureParam')) > 0
+            weather_mod = 0
+            if weather_rule is not None:
+                weather_mod = _nz(weather_rule.get('costMoveSafeLocation') if safe
+                                  else weather_rule.get('costMoveNotSafeLocation'))
+            base = _nz(n.get('energyCost'))
+            entry = _nz(other.get('costEnergyEnter'))
+            neighbor_costs.append({
+                "idLocation": other_id,
+                "uuid": other.get('uuid'),
+                "direction": n.get('direction'),
+                "baseEnergyCost": base,
+                "entryEnergyCost": entry,
+                "weatherEnergyCost": weather_mod,
+                "totalEnergyCost": base + entry + weather_mod,
+                "conditionMet": cond_met,
+            })
+        result.append({
+            "idLocation": loc_id,
+            "uuid": loc.get('uuid'),
+            "idCard": loc.get('idCard'),
+            "safe": _nz(loc.get('secureParam')) > 0,
+            "characterCount": count,
+            "neighbors": neighbor_costs,
+        })
+    return {"matchUuid": match_uuid, "locations": result}
+
+
+def _get_locations(user, match_uuid):
+    match, err = _require_owned_match(user, match_uuid)
+    if err:
+        return err
+    return _ok(_visited_locations_payload(match, match_uuid))
+
+
+def _get_admin_locations(match_uuid):
+    if not match_uuid or not match_uuid.strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    return _ok(_visited_locations_payload(match, match_uuid))
+
+
 # ─── router ──────────────────────────────────────────────────────────────────
 
 def lambda_handler(event, context):
@@ -1482,6 +1700,8 @@ def lambda_handler(event, context):
             return _get_admin_match_info(match_uuid)
         if path.endswith('/weather') and method == 'GET':
             return _get_admin_match_weather(match_uuid)
+        if path.endswith('/locations') and method == 'GET':
+            return _get_admin_locations(match_uuid)
         if path.endswith('/stop') and method == 'POST':
             return _update_match(match_uuid, 'ENDED', None)
         if path.endswith('/pause') and method == 'POST':
@@ -1634,5 +1854,26 @@ def lambda_handler(event, context):
             segments = path.split('/')  # /api/match/{uuidMatch}/clock
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _get_clock(user, match_uuid)
+
+    # ── Step 28 — movement system ──
+    if (path.startswith('/api/gameplay/') and path.endswith('/movements/start') and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/movements/start
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        return _start_movement(user, match_uuid, body)
+
+    if (path.startswith('/api/match/') and path.endswith('/locations') and method == 'GET'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/match/{uuidMatch}/locations
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        return _get_locations(user, match_uuid)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

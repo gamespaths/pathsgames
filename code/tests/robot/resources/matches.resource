@@ -374,3 +374,30 @@ Get Clock
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/clock
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}
+
+# ── Step 28 — movement system ──
+
+Start Movement
+    [Documentation]    POST /api/gameplay/{uuidMatch}/movements/start — move to an adjacent location.
+    [Arguments]    ${token}    ${match_uuid}    ${target_location_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    targetLocationUuid=${target_location_uuid}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/movements/start
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Locations
+    [Documentation]    GET /api/match/{uuidMatch}/locations — visited locations + total energy cost (Step 28).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/locations
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Admin Get Locations
+    [Documentation]    GET /api/admin/matches/{uuidMatch}/locations — admin visited-locations view (Step 28).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/locations
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}

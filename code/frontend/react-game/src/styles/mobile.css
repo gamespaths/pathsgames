@@ -94,7 +94,7 @@
 /* Enlarge the small (little) card titles on mobile for readability; allow them
    to wrap rather than truncate at the bigger size. */
 .book-mobile-layout .selection-list .gc-title__text {
-  font-size: clamp(1.20rem, 3.2vw, 1.20rem);
+  font-size: clamp(1rem, 3.2vw, 1rem);
   /* white-space: normal; */
 }
 /* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
