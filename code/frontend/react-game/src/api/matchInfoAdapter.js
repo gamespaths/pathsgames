@@ -22,7 +22,8 @@
  *     players:   [{ uuid, idLocation, energy, life, sad, ... }],
  *     locationsActive: [{
  *       idLocation, uuid, card,
- *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card }],
+ *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card,
+ *                     idLocationFrom, idLocationTo, cardBack }],
  *       events:    [{ uuid, type, endGame, card }],
  *     }]
  *   }
@@ -120,17 +121,23 @@ export function matchInfoToGameData(info, story = null,t) {
     : actualLocationCard
 
   // Neighbor locations of the active location become the board's move-target cards.
-  const locations = (active?.neighbors ?? []).map(n => ({
-    uuid: n.uuid ?? null,
-    idLocation: n.idLocation ?? null,
-    name: n.card?.title ?? '',
-    description: n.card?.description ?? '',
-    urlImage: n.card?.urlImage ?? null,
-    awesomeIcon: n.card?.awesomeIcon ?? 'fas fa-location-arrow',
-    direction: n.direction ?? null,
-    energyCost: n.energyCost ?? null,
-    card: n.card ?? null,
-  }))
+  // Step 0.28.2 — when the player stands on the edge's `to` location, prefer the
+  // optional return card (cardBack); otherwise show the forward card.
+  const locations = (active?.neighbors ?? []).map(n => {
+    const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
+    const displayCard = (playerAtTo && n.cardBack) ? n.cardBack : n.card
+    return {
+      uuid: n.uuid ?? null,
+      idLocation: n.idLocation ?? null,
+      name: displayCard?.title ?? '',
+      description: displayCard?.description ?? '',
+      urlImage: displayCard?.urlImage ?? null,
+      awesomeIcon: displayCard?.awesomeIcon ?? 'fas fa-location-arrow',
+      direction: n.direction ?? null,
+      energyCost: n.energyCost ?? null,
+      card: displayCard ?? null,
+    }
+  })
 
   // Lean events + choices still drive the END_GAME flow (uuidEvent is what
   // endMatch expects). Step 27.x — ADD the active location's enriched event cards

@@ -158,8 +158,10 @@ class MatchDtosTest {
                 null, null, null, null, null, "Cave", "dark", null, null, null);
         CardInfo evCard = new CardInfo("c-ev", "event", null, null, "fa-z",
                 null, null, null, null, null, "Stranger", "appears", null, null, null);
+        CardInfo nbBackCard = new CardInfo("c-nb-back", "location", null, null, "fa-yb",
+                null, null, null, null, null, "Cave Return", "back", null, null, null);
 
-        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1);
+        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard);
         EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
         LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
@@ -182,6 +184,9 @@ class MatchDtosTest {
         assertEquals(3, nbDto.getEnergyCost());
         assertEquals("Cave", nbDto.getCard().getTitle());
         assertEquals(1, nbDto.getSecureParam());
+        assertEquals(1L, nbDto.getIdLocationFrom());
+        assertEquals(2L, nbDto.getIdLocationTo());
+        assertEquals("Cave Return", nbDto.getCardBack().getTitle());
 
         assertEquals(1, dto.getEvents().size());
         MatchInfoResponse.EventInfoDto evDto = dto.getEvents().get(0);

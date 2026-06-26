@@ -231,6 +231,38 @@ The admin frontend provides a full management interface for Step 17 features:
 - **Text Resolution**: Automatic lookup of `short_text` for `idTextName`, `idTextDescription`, and `idTextTitle` columns by fetching the story's text collection.
 - **Generic Entity Form**: A dynamic form (`EntityForm.jsx`) to create or update any story sub-entity.
 
+#### Loc Neighbors — "Card Back" column (v0.28.2)
+
+The **Loc Neighbors** tab in the Story Editor displays a dedicated **Card Back** column in `EntityTable.jsx`. This column is always visible (outside the generic 3-column display cap) and appears only for neighbor entities, detected by the presence of the `idCardBack` key in the entity data.
+
+Column rendering logic:
+
+| Condition | Rendered element |
+|-----------|-----------------|
+| `idCardBack` is set | Button `#<id>` — opens that card in the card edit modal |
+| `idCardBack` empty, `idCard` present | `fa-clone` icon button — triggers the "duplicate card back" flow |
+| Both absent | Dash (`—`) |
+
+**Duplicate card back flow** (`handleDuplicateCardBack` in `StoryEditorPage.jsx`):
+
+1. Locate the source card referenced by `neighbor.idCard` in the cards catalogue.
+2. Create two new text entries (IDs above the current maximum): one for the title, one for the description. All language values are copied from the source texts, with " BIS" appended to `shortText`/`longText`.
+3. Create a new card copying all fields of the source card, replacing `idTextTitle` and `idTextDescription` with the two new " BIS" text IDs. The new card receives a new `idCard`.
+4. Patch the neighbor with `idCardBack` = new card ID (partial update via the existing entity CRUD endpoint).
+5. Reload texts, cards and the neighbor list.
+
+The `idCardBack` field is **not** rendered as a plain column in `storiesEntities.jsx` for neighbors — the dedicated "Card Back" column above supersedes it. No backend change was required; `idCardBack` was already supported end-to-end across Java, Python and AWS backends.
+
+Files changed (react-admin only):
+
+| File | Change |
+|------|--------|
+| `src/components/common/story/EntityTable.jsx` | "Card Back" column + `onDuplicateCardBack` prop |
+| `src/pages/story/StoryEditorPage.jsx` | `handleDuplicateCardBack` handler + wiring |
+| `src/constants/story/storiesEntities.jsx` | Removed plain `idCardBack` column for neighbors |
+| `src/tests/components/EntityTable.test.jsx` | +4 tests |
+| `src/tests/pages/StoryEditorPage.test.jsx` | +6 tests (418 total pass) |
+
 ### 7.2 Game Client (`react-game`)
 - **Story Catalog**: A public interface that lists available stories with medieval-themed styling (Cinzel/Crimson Text fonts).
 - **Architecture**: Initialized with Vite, Tailwind CSS, and a public `storyApi.js` for story consumption.
@@ -353,7 +385,7 @@ The admin frontend provides a full management interface for Step 17 features:
 
   > edit only java project. in all tables then name start with "list_" and with id_story column i wanna add "id_Story" to primary keys. in all tables then name start with "gaming_" and with id_match column i wanna add id_match to primary keys. i wanna change all "list_" and "match_" with id column: id columns are already autoincrement but the import system must use id values if present into import data: to StoryImportService could be present id values (id_Story or others IDs). If ID values is empty must be generated with autoincrement; if id value is present into request and value is not already presenti into table must be insert into table with id value from input; if id value is presenti into request but is present into table too system must stop with error "story/xx id=yy already present". Remember we have sqlite and postgresql version (check if on postgres sequence must be reset after insert). after i wanna update unit test and robot test. after I wanna you read all sql files and update all MD documentation files into Documentation_v0 folder. let's go!
 
-  > TODO: export stories in json format! check import functionality!
+  > Export JSON is implemented in `StoriesPage.jsx` (button on row and on detail modal). All 22 entity types verified round-trip against admin API and `StoryImportService`. A bugfix in v0.28.2 corrected two camelCase apiTypes (`weatherRules` → `weather-rules`, `globalRandomEvents` → `global-random-events`) that caused Weather Rules and Global Random Events to export empty.
 
 cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspace/pathsgames/.venv/bin/activate && pip install -q -r requirements.txt && python -m robot --variablefile variables/dev.yaml tests/14_admin/story_import.robot
 
@@ -367,9 +399,11 @@ cd /mnt/Dati4/Workspace/pathsgames/code/tests/robot && source /mnt/Dati4/Workspa
     | 0.17.4 | Harmonize primary keys and import ID policy across backends | May 03, 2026 |
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     | 0.26.1 | AWS bugfix: duplicate sub-entity ID after mid-list delete in `create_entity` | June 23, 2026 |
-    
-- **Last Updated**: June 23, 2026
-- **Status**: ✅ Complete
+    | 0.28.2 | Loc Neighbors "Card Back" column in `EntityTable.jsx`; `handleDuplicateCardBack` in `StoryEditorPage.jsx`; `idCardBack` plain column removed from `storiesEntities.jsx` for neighbors; +10 vitest tests (418 total pass) | June 26, 2026 |
+    | 0.28.2 | **Bugfix** Stories export: `handleExport` in `StoriesPage.jsx` used camelCase apiTypes `'weatherRules'` and `'globalRandomEvents'`; admin API requires kebab-case, so those collections exported empty and were lost on reimport. Corrected to `'weather-rules'` / `'global-random-events'`; jsonKey values unchanged. Regression test added; 419 vitest tests pass. | June 26, 2026 |
+
+- **Last Updated**: June 26, 2026
+- **Status**: In progress
 
 
 

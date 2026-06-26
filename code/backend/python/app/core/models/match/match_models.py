@@ -171,6 +171,9 @@ class LocationNeighborInfo:
     energy_cost: Optional[int] = None
     card: Optional[Dict[str, Any]] = None
     secure_param: Optional[int] = None
+    id_location_from: Optional[int] = None
+    id_location_to: Optional[int] = None
+    card_back: Optional[Dict[str, Any]] = None
 
 
 @dataclass

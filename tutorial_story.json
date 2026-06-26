@@ -472,7 +472,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 46,
-      "idCard": 46,
       "idCreator": 1,
       "idTextCopyright": 113,
       "idTextDescription": 133,
@@ -491,7 +490,6 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 47,
-      "idCard": 47,
       "idCreator": 1,
       "idTextCopyright": 3,
       "idTextDescription": 134,
@@ -506,62 +504,179 @@
       "uuid": "362a3e1b-36a9-4a8f-b2c2-21703494132c"
     },
     {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
       "id": 48,
-      "idCard": 48,
       "idCreator": 1,
       "idTextCopyright": 141,
       "idTextDescription": 135,
-      "idTextName": 135,
       "idTextTitle": 135,
-      "id_card": 48,
       "linkCopyright": "https://unsplash.com/photos/brown-field-under-blue-sky-during-daytime-OVX3oiL5PsE",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
       "urlImage": "https://images.unsplash.com/photo-1604949210966-9440c324823f?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "8f40eae9-54f4-433c-8796-092d225f4dec"
     },
     {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
       "id": 49,
-      "idCard": 49,
       "idCreator": 1,
       "idTextCopyright": 137,
       "idTextDescription": 136,
-      "idTextName": 136,
       "idTextTitle": 136,
-      "id_card": 49,
       "linkCopyright": "https://unsplash.com/photos/cumulus-clouds-Pe1Ol9oLc4o",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
       "urlImage": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?q=80&w=751&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "acc5e4ff-d8ce-4ea5-8337-9e49b464dcd8"
     },
     {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
       "id": 50,
       "idCard": 50,
       "idCreator": 1,
-      "idTextCopyright": 3,
-      "idTextDescription": 138,
-      "idTextName": 138,
+      "idTextCopyright": 157,
+      "idTextDescription": 154,
       "idTextTitle": 138,
-      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-leading-to-a-beach-with-sand-dunes-in-the-background-AKnXtxfBKN8",
-      "urlImage": "https://plus.unsplash.com/premium_photo-1676648534483-98f7e98fb734?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "id_card": 50,
+      "linkCopyright": "https://unsplash.com/photos/wooden-post-on-a-sandy-beach-landscape-RSITeuLLalk",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1742561620384-f76310e32a5c?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "22713807-b0d5-4ae5-b59a-9a68f833db1e"
     },
     {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
       "id": 51,
       "idCard": 51,
       "idCreator": 1,
-      "idTextCopyright": 3,
-      "idTextDescription": 0,
-      "idTextName": 139,
+      "idTextCopyright": 158,
+      "idTextDescription": 159,
       "idTextTitle": 139,
+      "id_card": 51,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-path-in-a-field-with-mountains-in-the-background-n0eQB589B6I",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1692911035405-68371738b438?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "46521bfe-eb04-4e66-b027-4c16b8a9fd73"
     },
     {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
       "id": 52,
       "idCard": 52,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 145,
       "idTextDescription": 140,
-      "idTextName": 140,
       "idTextTitle": 140,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-in-a-grassy-field-with-a-sky-background-ktiBz2DIC4E",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1668972578985-9e9eafdb9609?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "9bb9f466-8cf0-47ed-bb31-2f97f77da0bd"
+    },
+    {
+      "awesomeIcon": "fa-walking",
+      "id": 53,
+      "idCard": 53,
+      "idCreator": 1,
+      "idTextCopyright": 156,
+      "idTextDescription": 153,
+      "idTextName": 142,
+      "idTextTitle": 142,
+      "id_card": 53,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-leading-to-a-beach-with-sand-dunes-in-the-background-AKnXtxfBKN8",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1676648534483-98f7e98fb734?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "71efeaf8-c533-461f-a674-e24651fbdeb6"
+    },
+    {
+      "awesomeIcon": "fa-walking",
+      "id": 54,
+      "idCard": 54,
+      "idCreator": 1,
+      "idTextCopyright": 146,
+      "idTextDescription": 143,
+      "idTextName": 143,
+      "idTextTitle": 143,
+      "id_card": 54,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-bridge-over-water-GzTGEQ1Dq9k",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1670081614687-cf53176c0c1f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "ef7f5a45-e0e0-49d0-9c66-3ef1b50ec40a"
+    },
+    {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
+      "id": 55,
+      "idCard": 55,
+      "idCreator": 1,
+      "idTextCopyright": 144,
+      "idTextDescription": 148,
+      "idTextTitle": 147,
+      "linkCopyright": "https://unsplash.com/photos/wooden-walkway-through-tall-dry-grass-and-trees-9D9pgXVA5AY",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1766850624367-88e65f69dd16?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "2a861cc4-a1c8-4c5f-af50-19ae5a98b4ac"
+    },
+    {
+      "alternativeImage": null,
+      "awesomeIcon": null,
+      "cardType": null,
+      "id": 56,
+      "idCard": 56,
+      "idCreator": 1,
+      "idTextCopyright": 145,
+      "idTextDescription": 150,
+      "idTextTitle": 149,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-in-a-grassy-field-with-a-sky-background-ktiBz2DIC4E",
+      "styleDetail": null,
+      "styleImageLarge": null,
+      "styleImageLittle": null,
+      "styleImageMedium": null,
+      "styleMain": null,
+      "urlImage": "https://plus.unsplash.com/premium_photo-1668972578985-9e9eafdb9609?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "8b49c18b-a9ce-4345-9116-349114dfe68f"
+    },
+    {
+      "awesomeIcon": "fa-walking",
+      "id": 57,
+      "idCard": 57,
+      "idCreator": 1,
+      "idTextCopyright": 146,
+      "idTextDescription": 152,
+      "idTextName": 143,
+      "idTextTitle": 151,
+      "id_card": 57,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-bridge-over-water-GzTGEQ1Dq9k",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1670081614687-cf53176c0c1f?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "94d197a1-023a-4636-9516-0f435c1f68d8"
     }
   ],
   "category": "adventure",
@@ -583,8 +698,12 @@
       "sadMax": 3,
       "texts": {
         "en": {
-          "description": "Soldier",
+          "description": "A trained veteran in melee combat, master of weapons and shields, capable of withstanding the toughest trials.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Soldier"
+        },
+        "it": {
+          "description": "Un veterano addestrato nel corpo a corpo, maestro di armi e scudi, capace di resistere alle prove più dure.",
+          "name": "Soldato"
         }
       },
       "uuid": "3983e20e-5d58-46c1-a9ff-3d39c2063ecc"
@@ -605,8 +724,12 @@
       "sadMax": 2,
       "texts": {
         "en": {
-          "description": "Forest Elf",
+          "description": "An agile woodland creature using keen senses and natural grace to move unseen among the trees.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Forest Elf"
+        },
+        "it": {
+          "description": "Agile creatura delle selve che sfrutta sensi acuti e grazia naturale per muoversi invisibile tra gli alberi.",
+          "name": "Elfo dei boschi"
         }
       },
       "uuid": "dfd890b1-9faf-477c-b59b-0962336d7f33"
@@ -627,8 +750,12 @@
       "sadMax": 2,
       "texts": {
         "en": {
-          "description": "Dwarf",
+          "description": "Tough and resilient as rock, an untiring warrior who never backs down in the face of danger.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Dwarf"
+        },
+        "it": {
+          "description": "Tenace e resistente come la roccia, è un guerriero infaticabile che non indietreggia mai davanti al pericolo.",
+          "name": "Nano"
         }
       },
       "uuid": "d2d40c4e-48c2-4c96-a48f-5e8a357845c0"
@@ -649,8 +776,12 @@
       "sadMax": 1,
       "texts": {
         "en": {
-          "description": "Orc",
+          "description": "A mass of raw brute strength and wild instinct, dominating the battlefield with sheer ferocity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Orc"
+        },
+        "it": {
+          "description": "Un ammasso di pura forza bruta e istinto selvaggio, che domina il campo di battaglia con la sua ferocia.",
+          "name": "Orco"
         }
       },
       "uuid": "9d67bb0e-5fa5-421d-bd8f-e67b40983d2b"
@@ -671,8 +802,12 @@
       "sadMax": 4,
       "texts": {
         "en": {
-          "description": "Halfling",
+          "description": "Nimble and resourceful, relying on legendary luck to overcome obstacles and adversity.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Halfling"
+        },
+        "it": {
+          "description": "Agile e intraprendente, confida nella propria leggendaria fortuna per superare ostacoli e avversità.",
+          "name": "Mezzuomo"
         }
       },
       "uuid": "7b300960-3f97-42ca-89cd-2faca0ce1f1d"
@@ -693,8 +828,12 @@
       "sadMax": 3,
       "texts": {
         "en": {
-          "description": "Wizard",
+          "description": "A scholar manipulating the arcane threads, capable of bending reality to their will with the power of the mind.<br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Wizard"
+        },
+        "it": {
+          "description": "Erudito che manipola le trame dell'arcano, capace di piegare la realtà al proprio volere con il potere della mente.",
+          "name": "Stregone"
         }
       },
       "uuid": "b9844846-22cb-4091-bef3-835937b27b1c"
@@ -753,7 +892,7 @@
         },
         "it": {
           "description": "Tiratore scelto che combina agilità e precisione letale. Colpisce i nemici prima ancora che possano avvicinarsi.",
-          "name": "Archer"
+          "name": "Arciere"
         }
       },
       "uuid": "b051a37b-3344-4ac9-8f81-dc5281123c21",
@@ -769,12 +908,12 @@
       "intelligenceBase": 5,
       "texts": {
         "en": {
-          "description": "Mage",
+          "description": "Master of the arcane arts, capable of casting devastating spells. Their intelligence is their sharpest weapon. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Mage"
         },
         "it": {
-          "description": "Mage",
-          "name": "Mage"
+          "description": "Maestro delle arti arcane, capace di lanciare incantesimi devastanti. La sua intelligenza è la sua arma più affilata.",
+          "name": "Mago"
         }
       },
       "uuid": "135d4f38-c4b2-4f8c-9e9b-f5138a2215c3",
@@ -790,12 +929,12 @@
       "intelligenceBase": 3,
       "texts": {
         "en": {
-          "description": "Rogue",
+          "description": "specializzato nel colpire nell'ombra e superare ostacoli con l'ingegno.\nA master of stealth and speed, specialized in striking from the shadows and overcoming obstacles with wit. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Rogue"
         },
         "it": {
-          "description": "",
-          "name": ""
+          "description": "Esperto di furtività e rapidità, specializzato nel colpire nell'ombra e superare ostacoli con l'ingegno.",
+          "name": "Ladro"
         }
       },
       "uuid": "c7a448c3-47e7-4f26-8b24-9a51f6c52243",
@@ -811,8 +950,12 @@
       "intelligenceBase": 4,
       "texts": {
         "en": {
-          "description": "Paladin",
+          "description": "A holy champion combining martial strength and unwavering faith. Protects the weak with blessings and steel. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Paladin"
+        },
+        "it": {
+          "description": "Campione sacro che unisce forza marziale e fede incrollabile. Protegge i deboli con benedizioni e acciaio.",
+          "name": "Paladino"
         }
       },
       "uuid": "8eed89f9-0027-4c56-a242-c7cf96659532",
@@ -828,8 +971,12 @@
       "intelligenceBase": 3,
       "texts": {
         "en": {
-          "description": "Bard",
+          "description": "A traveler using music and stories to inspire companions. Their voice can heal wounds or confuse minds. <br /><br />Tutorial Note: the data and features displayed in this adventure are provided for example purposes only.",
           "name": "Bard"
+        },
+        "it": {
+          "description": "Viaggiatore che usa musica e storie per ispirare i compagni. La sua voce può curare ferite o confondere le menti.",
+          "name": "Bardo"
         }
       },
       "uuid": "b05fac21-496c-4d68-aab1-0d1b5c2133da",
@@ -902,7 +1049,10 @@
       "sad": 0,
       "texts": {
         "en": {
-          "title": "Normal"
+          "title": "The classic challenge for every adventurer, where every resource counts and danger is real. <br />You will recover 3 energy points every time you rest."
+        },
+        "it": {
+          "title": "La sfida classica per ogni avventuriero, dove ogni risorsa conta e il pericolo è reale. <br />Recupererai 3 punti energia ogni volta che riposerai."
         }
       },
       "uuid": "95ae1391-314b-41a7-abbf-4a1330023a63",
@@ -928,7 +1078,10 @@
       "sad": 0,
       "texts": {
         "en": {
-          "title": "Hard"
+          "title": "A rugged path that will severely test your determination and skills. <br />You will recover 2 energy points every time you rest."
+        },
+        "it": {
+          "title": "Un sentiero impervio che metterà a dura prova la tua determinazione e le tue abilità. <br />Recupererai 2 punti energia ogni volta che riposerai."
         }
       },
       "uuid": "cf71aa3e-0016-49ec-ba47-ac5b51385b1c",
@@ -954,7 +1107,10 @@
       "sad": 0,
       "texts": {
         "en": {
-          "title": "Legendary"
+          "title": "Only true heroes or fools dare to challenge such an adverse fate. <br />You will recover only 1 energy point every time you rest."
+        },
+        "it": {
+          "title": "Solo i veri eroi o i folli osano sfidare un destino così avverso. <br />Recupererai solo 1 punto energia ogni volta che riposerai."
         }
       },
       "uuid": "73f0f0ce-eb23-4f36-9a8f-b710b1d72416",
@@ -1022,7 +1178,7 @@
   "items": [],
   "keys": [],
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
-  "locationCount": 2,
+  "locationCount": 3,
   "locationNeighbors": [
     {
       "conditionRegistryKey": null,
@@ -1032,6 +1188,7 @@
       "flagBack": 1,
       "id": 1,
       "idCard": 51,
+      "idCardBack": 55,
       "idLocationFrom": 1,
       "idLocationTo": 3,
       "idTextBack": 110,
@@ -1047,11 +1204,25 @@
       "flagBack": 1,
       "id": 2,
       "idCard": 52,
+      "idCardBack": 56,
       "idLocationFrom": 3,
       "idLocationTo": 2,
       "idTextName": 140,
       "id_card": 52,
       "uuid": "088f1c34-b065-4342-8472-1c9d98efc72b"
+    },
+    {
+      "direction": "WEST",
+      "energyCost": "",
+      "flagBack": 1,
+      "id": 3,
+      "idCard": 54,
+      "idCardBack": 57,
+      "idLocationFrom": 3,
+      "idLocationTo": 4,
+      "idTextName": 143,
+      "id_card": 54,
+      "uuid": "0d53dec4-723b-4cdc-a5eb-9a95330d26d9"
     }
   ],
   "locations": [
@@ -1100,14 +1271,14 @@
         "cardType": null,
         "copyrightText": "Daniel J. Schwarz",
         "description": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
-        "linkCopyright": "https://unsplash.com/photos/wooden-walkway-through-coastal-heathland-at-sunset-72_NYAYSpo4",
+        "linkCopyright": "https://unsplash.com/photos/a-wooden-dock-sitting-on-top-of-a-body-of-water-Gu0mck1if7M",
         "styleDetail": null,
         "styleImageLarge": null,
         "styleImageLittle": null,
         "styleImageMedium": null,
         "styleMain": null,
-        "title": "Tutorial End location",
-        "urlImage": "https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "title": "Ending location",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1675198764240-930a8d8b66b1?q=80&w=1451&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
         "uuid": "4a34065a-76b3-48bb-98dc-1c5335246aec"
       },
       "costEnergyEnter": 0,
@@ -1121,7 +1292,7 @@
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "idImage": null,
-      "idTextDescription": 107,
+      "idTextDescription": 133,
       "idTextName": 107,
       "idTextNarrative": null,
       "id_card": 46,
@@ -1132,12 +1303,37 @@
       "uuid": "ce40c926-9f8e-4e10-8431-1250f66e55a8"
     },
     {
+      "card": {
+        "alternativeImage": null,
+        "awesomeIcon": null,
+        "cardType": null,
+        "copyrightText": "Paths Games Team",
+        "description": "Center location",
+        "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-leading-to-a-beach-with-sand-dunes-in-the-background-AKnXtxfBKN8",
+        "styleDetail": null,
+        "styleImageLarge": null,
+        "styleImageLittle": null,
+        "styleImageMedium": null,
+        "styleMain": null,
+        "title": "Center location",
+        "urlImage": "https://plus.unsplash.com/premium_photo-1676648534483-98f7e98fb734?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+        "uuid": "22713807-b0d5-4ae5-b59a-9a68f833db1e"
+      },
       "id": 3,
       "idCard": 50,
-      "idTextDescription": 138,
+      "idTextDescription": 154,
       "idTextName": 138,
       "id_card": 50,
       "uuid": "c4149c69-5ea4-4b58-9a13-d1b374d6bd1b"
+    },
+    {
+      "id": 4,
+      "idCard": 53,
+      "idTextDescription": 153,
+      "idTextName": 142,
+      "id_card": 53,
+      "secureParam": 1,
+      "uuid": "4549aaff-e89f-4711-8b71-32af58391503"
     }
   ],
   "missionSteps": [],
@@ -3385,8 +3581,8 @@
       "idText": 133,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
-      "shortText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
+      "longText": "This is the tutorial location when you can complete the story. <br /> <br /> Execute the ending action to complete the story or back in other locations to explore.",
+      "shortText": "This is the tutorial location when you can complete the story. <br /> <br /> Execute the ending action to complete the story or back in other locations to explore.",
       "uuid": "e2876518-54dc-45e5-8dbf-c252329df793"
     },
     {
@@ -3395,8 +3591,8 @@
       "idText": 133,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
-      "shortText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
+      "longText": "Questo è il tuovo di termine del tutoria. <br /><br /> Puoi completare la storia con il bottone oppure tornare in altre location per continuare l'esplorazione.",
+      "shortText": "Questo è il tuovo di termine del tutoria. <br /><br /> Puoi completare la storia con il bottone oppure tornare in altre location per continuare l'esplorazione.",
       "uuid": "e58dbc47-352e-438c-adcb-ac65759e8aac"
     },
     {
@@ -3635,8 +3831,8 @@
       "idText": 139,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Go to center",
-      "shortText": "Go to center",
+      "longText": "Move to center",
+      "shortText": "Move to center",
       "uuid": "93c1f297-9698-4cd3-b26a-6c1f01623e54"
     },
     {
@@ -3645,8 +3841,8 @@
       "idText": 140,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Go to the end",
-      "shortText": "Go to the end",
+      "longText": "Go to the finish",
+      "shortText": "Go to the finish",
       "uuid": "343f1afc-6bb5-4496-99e6-6b13403111a4"
     },
     {
@@ -3688,6 +3884,256 @@
       "longText": "Mick Haupt",
       "shortText": "Mick Haupt",
       "uuid": "21b262af-e77a-45dc-b4ae-7ee4234cc751"
+    },
+    {
+      "id": 142,
+      "idCreator": 1,
+      "idText": 142,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Safe location",
+      "shortText": "Safe location",
+      "uuid": "1a90bc53-39d6-4680-8ddf-3318e3444446"
+    },
+    {
+      "id": 143,
+      "idCreator": 1,
+      "idText": 143,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to west",
+      "shortText": "Go to west",
+      "uuid": "0447bebc-3ed0-4d8f-a5e5-dcb08cc14aa8"
+    },
+    {
+      "id": 144,
+      "idCreator": 1,
+      "idText": 144,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
+      "uuid": "664ccdf6-def8-4a6b-a5ea-43e2552e35ad"
+    },
+    {
+      "id": 145,
+      "idCreator": 1,
+      "idText": 145,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ricardo Resende",
+      "shortText": "Ricardo Resende",
+      "uuid": "905fc63d-b8df-41cd-a23c-facb1057966a"
+    },
+    {
+      "id": 146,
+      "idCreator": 1,
+      "idText": 146,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tim Schmidbauer",
+      "shortText": "Tim Schmidbauer",
+      "uuid": "95908584-f24b-414a-a7b3-942795310159"
+    },
+    {
+      "id": 147,
+      "idCreator": 1,
+      "idText": 147,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Back to start",
+      "shortText": "Back to start",
+      "uuid": "8ec179c2-3d09-41cd-8468-fecedace4016"
+    },
+    {
+      "id": 148,
+      "idCreator": null,
+      "idText": 148,
+      "idTextCopyright": null,
+      "lang": "en",
+      "longText": "",
+      "shortText": "BIS",
+      "uuid": "8bbdfec2-6b95-4e61-bfac-e5bc61c19b92"
+    },
+    {
+      "id": 149,
+      "idCreator": 1,
+      "idText": 149,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Back to center",
+      "shortText": "Back to center",
+      "uuid": "de5d54fa-a917-48f4-acc6-a1b08d928ee6"
+    },
+    {
+      "id": 150,
+      "idCreator": 1,
+      "idText": 150,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to the end BIS",
+      "shortText": "Go to the end BIS",
+      "uuid": "4aa4e0fa-047a-4bb3-8ea5-23263fe642c7"
+    },
+    {
+      "id": 151,
+      "idCreator": 1,
+      "idText": 151,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Back to center",
+      "shortText": "Back to center",
+      "uuid": "845a6ab8-3b6e-442e-b53b-6a59f567c677"
+    },
+    {
+      "id": 152,
+      "idCreator": 1,
+      "idText": 152,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to west BIS",
+      "shortText": "Go to west BIS",
+      "uuid": "4886dec3-4970-403f-8a04-e63cd3705c27"
+    },
+    {
+      "id": 147,
+      "idCreator": 1,
+      "idText": 147,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "47133a4a-fa5d-40de-9265-fc1b2fd09f9a"
+    },
+    {
+      "id": 149,
+      "idCreator": 1,
+      "idText": 149,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "60ab9cb0-cd04-4672-af45-1155fb1fd2b4"
+    },
+    {
+      "id": 151,
+      "idCreator": 1,
+      "idText": 151,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "9b660341-3ae7-4aa7-9ce3-fee3c153ea6d"
+    },
+    {
+      "id": 153,
+      "idCreator": 1,
+      "idText": 153,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
+      "shortText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
+      "uuid": "a9c7042b-2b1b-46e0-beab-ac7bc414ec75"
+    },
+    {
+      "id": 153,
+      "idCreator": 1,
+      "idText": 153,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
+      "shortText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
+      "uuid": "0be044f9-959b-4af9-ae4a-922119e03518"
+    },
+    {
+      "id": 154,
+      "idCreator": 1,
+      "idText": 154,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This is the center location of tutorial story. <br /> <br /> Explore all location.",
+      "shortText": "This is the center location of tutorial story. <br /> <br /> Explore all location.",
+      "uuid": "df2b988e-9c1c-47f2-8ea5-0bf6976dd09f"
+    },
+    {
+      "id": 154,
+      "idCreator": 1,
+      "idText": 154,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo è la location centrale del tutorial.  <br /> <br /> Esplora altri luoghi.",
+      "shortText": "Questo è la location centrale del tutorial.  <br /> <br /> Esplora altri luoghi.",
+      "uuid": "9a7e2243-36ea-4a6a-8a0a-e7b375c52d53"
+    },
+    {
+      "id": 140,
+      "idCreator": 1,
+      "idText": 140,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Vai al finale",
+      "shortText": "Vai al finale",
+      "uuid": "ec5a6a09-99e6-46c8-9045-cf2a0f971e6c"
+    },
+    {
+      "id": 155,
+      "idCreator": 1,
+      "idText": 155,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Frank van Hulst",
+      "shortText": "Frank van Hulst",
+      "uuid": "6ec77be1-3ca5-471e-a07b-f58e3113a76f"
+    },
+    {
+      "id": 156,
+      "idCreator": 1,
+      "idText": 156,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Frank van Hulst",
+      "shortText": "Frank van Hulst",
+      "uuid": "f184f8f8-98bd-40f4-a86d-26055e05bd2c"
+    },
+    {
+      "id": 157,
+      "idCreator": 1,
+      "idText": 157,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
+      "uuid": "b69ce8a4-7f0a-4a6a-9675-03b664185fca"
+    },
+    {
+      "id": 158,
+      "idCreator": 1,
+      "idText": 158,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ahmed",
+      "shortText": "Ahmed",
+      "uuid": "c2a0cfb9-655b-4668-918d-cd1c836f1866"
+    },
+    {
+      "id": 139,
+      "idCreator": 1,
+      "idText": 139,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "7a63cea5-1360-4744-b381-64f6610fafdd"
+    },
+    {
+      "id": 159,
+      "idCreator": 1,
+      "idText": 159,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Move to the another location spending energy cost calculated by weather and location configuration",
+      "shortText": "Move to the another location spending energy cost calculated by weather and location configuration",
+      "uuid": "92153a11-f384-464a-a0df-811b47809864"
     }
   ],
   "title": "Paths Tutorial",
@@ -3710,8 +4156,12 @@
       "sad": 0,
       "texts": {
         "en": {
-          "description": "Brave",
+          "description": "Unwavering courage that fears no danger. An iron will that inspires steadiness even in the most desperate situations.",
           "name": "Brave"
+        },
+        "it": {
+          "description": "Coraggio incrollabile che non teme il pericolo. Una volontà di ferro che ispira fermezza anche nelle situazioni più disperate",
+          "name": "Coraggioso"
         }
       },
       "uuid": "bd02e05f-654d-4589-bfae-846a04dc9d3c",
@@ -3734,8 +4184,12 @@
       "sad": 0,
       "texts": {
         "en": {
-          "description": "Cunning",
+          "description": "An agile mind and quick reflexes. The ability to turn every situation to your advantage with wit and speed.",
           "name": "Cunning"
+        },
+        "it": {
+          "description": "Mente agile e riflessi pronti. La capacità di volgere ogni situazione a proprio vantaggio con ingegno e rapidità",
+          "name": "Furbo"
         }
       },
       "uuid": "eae41d9d-ef60-440c-94d6-ec0630c8cef5",
@@ -3758,8 +4212,12 @@
       "sad": -1,
       "texts": {
         "en": {
-          "description": "Cursed",
+          "description": "Marked by a dark fate, this burden weighs on the soul but can awaken latent powers at a terrible price.",
           "name": "Cursed"
+        },
+        "it": {
+          "description": "Segnato da un destino oscuro, questo fardello grava sull'anima ma può risvegliare poteri latenti a un prezzo terribile",
+          "name": "Maledetto"
         }
       },
       "uuid": "686933dc-7835-42b6-bb09-836953cd76b8",
@@ -3782,12 +4240,12 @@
       "sad": 1,
       "texts": {
         "en": {
-          "description": "Blessed",
+          "description": "Touched by divine grace, you walk under a protective light that mitigates adversity and instills hope.",
           "name": "Blessed"
         },
         "it": {
-          "description": "Blessed",
-          "name": "Blessed"
+          "description": "Toccato dalla grazia divina, cammini sotto una luce protettrice che mitiga le avversità e infonde speranza",
+          "name": "Benedetto"
         }
       },
       "uuid": "d5529a0c-5338-48e8-a189-6272c4fac857",
@@ -3810,12 +4268,12 @@
       "sad": -1,
       "texts": {
         "en": {
-          "description": "Coward",
+          "description": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.",
           "name": "Coward"
         },
         "it": {
-          "description": "Coward",
-          "name": "Coward"
+          "description": "La sopravvivenza prima di tutto. La prontezza nel fuggire permette di evitare colpi che abbatterebbero i più audaci",
+          "name": "Codardo"
         }
       },
       "uuid": "fc54095e-ae0e-49ae-8641-c26dbf81fac9",
@@ -3838,12 +4296,12 @@
       "sad": 0,
       "texts": {
         "en": {
-          "description": "Ancident",
+          "description": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.",
           "name": "Ancident"
         },
         "it": {
-          "description": "Ancestrale",
-          "name": "Ancestrale"
+          "description": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria\n",
+          "name": "Divino"
         }
       },
       "uuid": "89a8c863-4f1e-44bc-ab43-d14a6a66fafe",
@@ -3854,5 +4312,26 @@
   "versionMax": null,
   "versionMin": "0.19.3",
   "visibility": "PUBLIC",
-  "weatherRules": []
+  "weatherRules": [
+    {
+      "costMoveNotSafeLocation": 1,
+      "costMoveSafeLocation": 1,
+      "id": 1,
+      "idCard": 48,
+      "idText": 135,
+      "id_card": 48,
+      "probability": 50,
+      "uuid": "9efa0012-39cf-4c8b-bc83-505faf9ed0d1"
+    },
+    {
+      "costMoveNotSafeLocation": 3,
+      "costMoveSafeLocation": 3,
+      "id": 2,
+      "idCard": 49,
+      "idText": 136,
+      "id_card": 49,
+      "probability": 50,
+      "uuid": "34c34e37-2875-4684-8a54-0bc77e1adcc2"
+    }
+  ]
 }

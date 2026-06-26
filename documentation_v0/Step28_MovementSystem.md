@@ -649,15 +649,233 @@ No existing endpoints are modified. No existing error codes are removed.
    dedicated admin connector (port 8044). The public connector (8042) returns 404 for
    this path.
 
+# Paths Games V0 - Step 0.28.2: Neighbor "Return Card" (idCardBack) — AWS Bugfix & Robot Suite 29
+
+This document covers two related deliveries shipped in **v0.28.2** of Paths Games:
+
+1. **AWS backend bugfix** — `GET /api/match/{uuid}/info` was returning the wrong `cardBack`
+   for neighbor edges that had an explicit `idCardBack` set via the admin API.
+2. **New Robot E2E suite** `29_neighbor_card_back` — backend-agnostic regression test
+   that catches the above desync and validates the full admin-set `idCard`/`idCardBack`
+   round-trip on any backend.
+
+Neither change affects the Java or Python backends. No Flyway migration is required.
+The version number stays **0.28.2** (pom `0.28.2-SNAPSHOT`; no bump).
+
 ---
+
+## 1. AWS Bugfix — neighbor `cardBack` desync
+
+### 1.1 Symptom
+
+After setting a distinct `idCardBack` on a neighbor edge via the react-admin Story Editor
+(`PUT /api/admin/stories/{uuid}/location-neighbors/{euuid}` on port 8044), the gameplay
+endpoint `GET /api/match/{uuid}/info?lang=en` still returned `cardBack` equal to the
+forward `card` — as if `idCardBack` had never been set.
+
+The same issue affected any field written by the admin CRUD on a neighbor edge
+(`direction`, `energyCost`, `idCard`, `idCardBack`): changes were invisible to the
+gameplay engine.
+
+### 1.2 Root cause (AWS-only)
+
+On the AWS DynamoDB Single Table Design, the STORY item stores **two separate arrays** for
+location neighbor edges:
+
+| Array key | Written by | Read by |
+|-----------|-----------|---------|
+| `neighbors` | Story seed / import (`POST /api/admin/stories/import`) | Gameplay engine (`match/handler.py`) — match-info, movement, visited locations |
+| `locationNeighbors` | Admin CRUD (`PUT /api/admin/stories/.../location-neighbors/{uuid}`) via `TYPE_MAP` entity handling | Admin read endpoints only |
+
+When an admin updated a neighbor edge (including setting `idCardBack`), the change landed
+in `locationNeighbors`. The gameplay engine continued to read from `neighbors`, which
+still held the original seed values — so `cardBack` fell back to the forward card because
+the stale `neighbors` copy carried no `idCardBack`.
+
+This was a **general desync**, not limited to `cardBack`: any admin edit to direction,
+energyCost, idCard, or idCardBack was invisible to the gameplay engine on AWS.
+
+Java and Python were **not** affected: both backends maintain a single source-of-truth
+table (`list_locations_neighbors`) that admin writes and gameplay reads share.
+
+### 1.3 Fix
+
+A new helper `_story_neighbors(story)` was added to
+`code/backend/aws/lambda/match/handler.py`:
+
+```python
+def _story_neighbors(story):
+    """Return the authoritative neighbor list for a story item.
+
+    Admin CRUD edits the `locationNeighbors` array (the content-API copy), while
+    the seed writes only the gameplay `neighbors` array. Read `locationNeighbors`
+    first so admin edits (direction, energyCost, idCard, idCardBack, …) are
+    always visible to the gameplay engine. Fall back to `neighbors` for seed
+    stories that never carried a `locationNeighbors` copy."""
+    return (story or {}).get('locationNeighbors') or (story or {}).get('neighbors') or []
+```
+
+The helper is applied at the **three gameplay read-points** in `match/handler.py`:
+
+| Function | Role |
+|----------|------|
+| `_build_locations_active` | Builds the `locationsActive` neighbor list in `GET /api/match/{uuid}/info` |
+| `_find_edge` | Resolves the neighbor edge for `POST /api/gameplay/{uuid}/movements/start` (movement validation) |
+| `_build_locations_visited` | Builds the neighbor sub-list for `GET /api/match/{uuid}/locations` |
+
+Priority: `locationNeighbors` (admin-edited, always up-to-date) over `neighbors`
+(seed/import copy, may be stale). Seed stories that were never admin-edited carry only
+`neighbors` and continue to work via the fallback.
+
+### 1.4 Unit tests
+
+New regression test added in `code/backend/aws/tests/test_match_handler.py`:
+
+```
+test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors
+```
+
+The test constructs a story item with a stale `neighbors` copy (no `idCardBack`) and an
+admin-edited `locationNeighbors` copy (with a distinct `idCardBack`). It asserts that
+`GET /api/match/{uuid}/info` returns the `cardBack` from `locationNeighbors`, not the
+stale fallback from `neighbors`.
+
+**AWS test suite after fix: 407 pass** (was 402 before — net +5 for this fix plus
+prior tests that were already green).
+
+### 1.5 Deploy note
+
+The fix is in `lambda/match/handler.py`. The live AWS endpoint at
+`api-test.paths.games` requires a **Lambda redeploy** (`sam deploy --config-env dev`) to
+reflect the fix — it is not yet deployed as of the time of writing.
+
+---
+
+## 2. New Robot Suite — `29_neighbor_card_back`
+
+**File:** `code/tests/robot/tests/29_neighbor_card_back/neighbor_card_back.robot`
+
+**Tags:** `match-info`, `movement-back`, `step28`, `regression`
+
+### 2.1 Purpose
+
+End-to-end regression that validates the full `idCard` + `idCardBack` contract on a
+neighbor edge — from admin write to gameplay read. It is the canonical test that catches
+the AWS desync described in §1.
+
+### 2.2 Backend agnosticism
+
+Card IDs and the story's start location are discovered at runtime via admin API calls,
+not hard-coded. The suite therefore runs identically against:
+
+- Java + SQLite (default dev profile)
+- Java + PostgreSQL (prod profile)
+- Python backend
+- AWS Serverless backend
+
+### 2.3 Test flow
+
+| Phase | Actions |
+|-------|---------|
+| **Suite Setup** | Create admin session (port 8044); call `Pick Story Loadout` for a joinable story/difficulty/character/class/trait combo; obtain a guest token via `POST /api/auth/guest` |
+| **Admin: discover catalog** | `GET /api/admin/stories/{uuid}/cards` → pick two distinct cards (A and B) |
+| **Admin: discover start location** | `GET /api/admin/stories/{uuid}` → read `idLocationStart` |
+| **Admin: find neighbor edge** | `GET /api/admin/stories/{uuid}/location-neighbors` → first edge with an endpoint on the start location |
+| **Admin: wire idCard + idCardBack** | `PUT /api/admin/stories/{uuid}/location-neighbors/{euuid}` with `{idCard: A, idCardBack: B}` |
+| **Player: create match** | `POST /api/matches` → `POST /api/matches/{uuid}/join` → `POST /api/matches/{uuid}/start` |
+| **Player: read match-info** | `GET /api/match/{uuid}/info?lang=en` |
+| **Assert** | The edited neighbor in `locationsActive[start].neighbors` has `card.uuid == uuid_A`, `cardBack.uuid == uuid_B`, and `card.uuid != cardBack.uuid`; both cards resolve via `GET /api/admin/stories/{uuid}/cards/{uuid}` |
+| **Teardown** | `PUT` the neighbor back to its original `idCard`/`idCardBack` values |
+
+### 2.4 Keywords
+
+New keywords implemented in the suite file itself (not extracted to shared resources,
+since they are specific to this regression):
+
+| Keyword | Purpose |
+|---------|---------|
+| `Suite Setup Neighbor Card Back` | Wires admin session + guest token + loadout suite variables |
+| `Admin List Entities` | `GET /api/admin/stories/{uuid}/{entity_type}` → returns list |
+| `Card Id And Uuid` | Extracts `(cardId, cardUuid)` from a card entity dict |
+| `Story Start Location` | Reads `idLocationStart` from story detail |
+| `Neighbor Touching` | Finds first neighbor edge with an endpoint on the given location ID |
+| `Start Match And Get Info` | Creates, joins, starts a match and returns the match-info JSON |
+| `Active Location` | Finds the start location entry in `locationsActive` |
+| `Neighbor In Info By Edge` | Finds a neighbor by its `(idLocationFrom, idLocationTo)` pair |
+| `Restore Neighbor Cards` | Teardown: restores original `idCard`/`idCardBack` on the edited neighbor |
+
+### 2.5 Assertions
+
+```
+card.uuid         == uuid of card A (set via idCard)
+cardBack.uuid     == uuid of card B (set via idCardBack)
+card.uuid         != cardBack.uuid
+GET /cards/uuid_A → HTTP 200  (real catalog card)
+GET /cards/uuid_B → HTTP 200  (real catalog card)
+```
+
+### 2.6 Status
+
+Validated in dry-run. The suite is designed to be the definitive catch for the
+`locationNeighbors` / `neighbors` desync on AWS — it will **fail** against the
+pre-fix AWS Lambda and **pass** against all backends with the fix applied.
+
+---
+
+## 3. Files Changed
+
+| File | Change |
+|------|--------|
+| `code/backend/aws/lambda/match/handler.py` | Added `_story_neighbors()` helper; applied at `_build_locations_active`, `_find_edge`, `_build_locations_visited` |
+| `code/backend/aws/tests/test_match_handler.py` | New regression test `test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors` |
+| `code/tests/robot/tests/29_neighbor_card_back/neighbor_card_back.robot` | New E2E suite |
+
+No changes to Java backend, Python backend, React frontends, Flyway migrations,
+DynamoDB schema, or OpenAPI specs.
+
+---
+
+## 4. API Contract
+
+No new endpoints. The affected endpoint is:
+
+| Endpoint | Status |
+|----------|--------|
+| `GET /api/match/{uuid}/info?lang=en` | Bug fix only (AWS): `neighbors[*].cardBack` now correctly resolves `idCardBack` when it differs from `idCard`. Contract unchanged. |
+
+The `idCardBack` field on `list_locations_neighbors` / the DynamoDB `locationNeighbors`
+array was already part of the API contract (added in v0.28.2 react-admin Story Editor
+feature). This fix ensures the gameplay engine honours it on AWS.
+
+---
+
+## 5. Notes
+
+1. **Java and Python are not affected.** Both backends use a single table
+   (`list_locations_neighbors`) for admin writes and gameplay reads. The desync is
+   structurally impossible there.
+
+2. **The fix is backward-compatible.** Seed stories that only carry `neighbors` (no
+   `locationNeighbors`) continue to work via the fallback in `_story_neighbors`. No
+   data migration is required.
+
+3. **The Lambda must be redeployed to take effect on `api-test.paths.games`.** Running
+   `sam deploy --config-env dev` from `code/backend/aws/` will push the fix to the live
+   dev endpoint.
+
+4. **Suite 29 is backend-agnostic.** Because it discovers card IDs and the start location
+   at runtime, it does not require any changes to the seed data and runs correctly on all
+   four backend targets.
+
 
 # Version Control
 
-- **Document Version**: 0.28.0
+- **Document Version**: 0.28.2
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.28.0 | Initial Step 28 documentation: movement system (adjacency validation, energy cost formula, 8-code ordered validation, existing log_movements table reused from V0.10.9, V0.28.0 Flyway no-ops, visited-locations derivation), new POST movements/start + GET locations + GET admin/locations endpoints, MovementCard in react-game, movement card in react-admin MatchDetailPage, Robot suite 28_movement 10/10 (399/399 total) | June 25, 2026 |
+  | 0.28.2 | Initial documentation: AWS neighbor cardBack desync bugfix (`_story_neighbors` helper applied at 3 gameplay read-points); new Robot suite 29 backend-agnostic regression | June 26, 2026 |
 
 - **Last Updated**: June 25, 2026
 - **Status**: Complete

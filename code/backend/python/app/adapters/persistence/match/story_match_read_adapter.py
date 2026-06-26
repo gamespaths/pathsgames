@@ -112,6 +112,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "direction": r.direction,
                     "energy_cost": r.energy_cost,
                     "id_card": r.id_card,
+                    "id_card_back": r.id_card_back,
                 }
                 for r in rows
             ]

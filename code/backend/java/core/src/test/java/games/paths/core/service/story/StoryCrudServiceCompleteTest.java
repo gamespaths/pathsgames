@@ -592,7 +592,7 @@ class StoryCrudServiceCompleteTest {
     @Test
     void createEntity_locationNeighbors() {
         setup_create("location-neighbors");
-        when(persistencePort.saveLocationNeighbor(any())).thenReturn(base(new LocationNeighborEntity()));
+        when(persistencePort.saveLocationNeighbor(any())).thenAnswer(i -> i.getArgument(0));
         Map<String, Object> data = new HashMap<>();
         data.put("idLocationFrom", 1);
         data.put("idLocationTo", 2);
@@ -603,7 +603,12 @@ class StoryCrudServiceCompleteTest {
         data.put("energyCost", 3);
         data.put("idTextGo", 4);
         data.put("idTextBack", 5);
-        assertNotNull(service.createEntity("s", "location-neighbors", data));
+        data.put("idCard", 6);
+        data.put("idCardBack", 7);
+        Map<String, Object> out = service.createEntity("s", "location-neighbors", data);
+        assertNotNull(out);
+        assertEquals(6, out.get("idCard"));
+        assertEquals(7, out.get("idCardBack"));
     }
 
     @Test

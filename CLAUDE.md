@@ -235,6 +235,9 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | `24_turn_cycle` | Full turn cycle gameplay |
 | `25_time_clock` | Active location seeding and time clock |
 | `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
+| `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
+| `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations |
+| `29_neighbor_card_back` | Neighbor return card (idCardBack): admin-set idCardBack reflected in match-info; guards gameplay/admin desync on AWS |
 
 ### Robot seed and command!
 | AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html

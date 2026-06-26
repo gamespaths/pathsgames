@@ -183,7 +183,9 @@ class LocationNeighborEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
+    id_card_back = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_location_from = Column(Integer)

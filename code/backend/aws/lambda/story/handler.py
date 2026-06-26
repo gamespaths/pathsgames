@@ -804,6 +804,10 @@ def import_story(event):
     for n in _assign_ids(data.get('locationNeighbors', []), 'id'):
         n = dict(n)
         n['card'] = _resolve_inline_card(n.get('idCard'))
+        # Step 0.28.2 — optional return card; falls back to the forward idCard.
+        n['cardBack'] = _resolve_inline_card(n.get('idCardBack')
+                                             if n.get('idCardBack') is not None
+                                             else n.get('idCard'))
         neighbors_enriched.append(n)
 
     # Events expose their owning location as `idSpecificLocation` in the import

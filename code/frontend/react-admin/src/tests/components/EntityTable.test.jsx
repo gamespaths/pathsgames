@@ -99,6 +99,58 @@ describe('EntityTable', () => {
     expect(onOpenIdCardForm).toHaveBeenCalledWith(12)
   })
 
+  // ── Step 0.28.2 — "Card Back" column for Loc Neighbors ───────────────────────
+
+  it('shows the Card Back column and opens the back card when idCardBack is set', async () => {
+    const onOpenIdCardForm = vi.fn()
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCard: 12, idCardBack: 34 }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents}
+                       onOpenIdCardForm={onOpenIdCardForm}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('#34'))
+    expect(onOpenIdCardForm).toHaveBeenCalledWith(34)
+  })
+
+  it('offers a duplicate icon and fires onDuplicateCardBack when idCardBack is empty', async () => {
+    const onDuplicateCardBack = vi.fn()
+    const ent = { uuid: '1', id: 1, name: 'X', idCard: 12, idCardBack: null }
+    render(<EntityTable columns={MOCK_COLS} entities={[ent]}
+                       onDuplicateCardBack={onDuplicateCardBack}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    const dupBtn = screen.getAllByRole('button').find(b => b.querySelector('.fa-clone'))
+    expect(dupBtn).toBeTruthy()
+    await userEvent.click(dupBtn)
+    expect(onDuplicateCardBack).toHaveBeenCalledWith(ent)
+  })
+
+  it('shows a dash in Card Back when neither idCardBack nor idCard is set', () => {
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCardBack: null }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    expect(document.querySelector('.fa-clone')).toBeNull()
+  })
+
+  it('hides the Card Back column for entity types without idCardBack', () => {
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCard: 12 }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.queryByText('Card Back')).toBeNull()
+  })
+
+  it('forces the Card Back column via showCardBackColumn even without the key', async () => {
+    const onDuplicateCardBack = vi.fn()
+    // Row has NO idCardBack key (e.g. a backend that does not echo it) but has idCard.
+    const ent = { uuid: '1', id: 1, name: 'X', idCard: 12 }
+    render(<EntityTable columns={MOCK_COLS} entities={[ent]} showCardBackColumn
+                       onDuplicateCardBack={onDuplicateCardBack}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    const dupBtn = screen.getAllByRole('button').find(b => b.querySelector('.fa-clone'))
+    await userEvent.click(dupBtn)
+    expect(onDuplicateCardBack).toHaveBeenCalledWith(ent)
+  })
+
   it('resolves a relation label from relationOptionsByField', () => {
     const cols = [{ key: 'idClass', label: 'Class' }]
     const ents = [{ uuid: '1', id: 1, idClass: 7 }]

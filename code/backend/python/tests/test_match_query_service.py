@@ -470,11 +470,31 @@ def test_locations_active_carries_card_neighbors_events():
     assert active.card["title"] == "Tavern"
     # neighbors: both links touch location 10 → others are 12 and 11
     assert {n.id_location for n in active.neighbors} == {12, 11}
+    # Step 0.28.2 — orientation exposed; card_back falls back to the forward card.
+    fwd = next(n for n in active.neighbors if n.id_location == 12)
+    assert fwd.id_location_from == 10
+    assert fwd.id_location_to == 12
+    assert fwd.card_back["title"] == fwd.card["title"] == "Cave"
     # event filtered to location 10 only
     assert len(active.events) == 1
     assert active.events[0].uuid == "evt-1"
     assert active.events[0].end_game is True  # evt-1 (id 1) == story id_event_end_game
     assert active.events[0].card["title"] == "Stranger"
+
+
+def test_neighbor_resolves_dedicated_return_card_when_id_card_back_set():
+    service = _build_enriched(player_loc=10)
+    # Override neighbors: 10->12 link now carries a distinct return card (300 = Stranger).
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "energy_cost": 2, "id_card": 200, "id_card_back": 300},
+    ]
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card["title"] == "Cave"          # forward card (id_card 200)
+    assert n.card_back["title"] == "Stranger"  # return card (id_card_back 300)
+    assert n.id_location_from == 10
+    assert n.id_location_to == 12
 
 
 def test_get_match_info_resolves_cards_in_requested_lang():

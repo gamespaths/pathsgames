@@ -228,6 +228,17 @@ def _detail_from_item(item, players=None, lang='en'):
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 
 
+def _story_neighbors(story):
+    """Authoritative neighbor list for gameplay.
+
+    Admin CRUD edits the `locationNeighbors` array (the content-API copy), while
+    the seed writes only the gameplay `neighbors` array. Read `locationNeighbors`
+    first so admin edits (direction, energyCost, idCard, idCardBack, …) are
+    reflected in match-info and movement; fall back to `neighbors` for seeded
+    stories that never carried a `locationNeighbors` copy."""
+    return (story or {}).get('locationNeighbors') or (story or {}).get('neighbors') or []
+
+
 def _build_locations_active(story, active_loc_ids, lang='en'):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
@@ -239,7 +250,7 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
     if not active_loc_ids:
         return []
     locations = story.get("locations") or []
-    neighbors = story.get("neighbors") or []
+    neighbors = _story_neighbors(story)
     events = story.get("events") or []
     raw_cards = story.get("raw_cards") or []
     raw_texts = story.get("raw_texts") or []
@@ -266,6 +277,11 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
             neighbor_card_id = n.get("idCard")
             if neighbor_card_id is None and other is not None:
                 neighbor_card_id = other.get("idCard")
+            # Step 0.28.2 — optional "return" card: falls back to the forward card
+            # (idCard) when the link defines no idCardBack.
+            neighbor_card_back_id = n.get("idCardBack")
+            if neighbor_card_back_id is None:
+                neighbor_card_back_id = neighbor_card_id
             neighbor_infos.append({
                 "idLocation": other_id,
                 "uuid": other.get("uuid") if other else None,
@@ -274,6 +290,9 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
                 "energyCost": n.get("energyCost"),
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_id, lang),
                 "secureParam": other.get("secureParam") if other else None,
+                "idLocationFrom": n.get("idLocationFrom"),
+                "idLocationTo": n.get("idLocationTo"),
+                "cardBack": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_back_id, lang),
             })
 
         event_infos = [
@@ -1584,7 +1603,7 @@ def _start_movement(user, match_uuid, body):
         return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
 
     from_id = caller.get('idLocation')
-    edge = _find_edge(story.get('neighbors'), from_id, target.get('id'))
+    edge = _find_edge(_story_neighbors(story), from_id, target.get('id'))
     if edge is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
 
@@ -1644,7 +1663,7 @@ def _visited_locations_payload(match, match_uuid):
     totalEnergyCost resolved for the current weather (Step 28)."""
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     locations = story.get('locations') or []
-    neighbors = story.get('neighbors') or []
+    neighbors = _story_neighbors(story)
     loc_by_id = {l.get('id'): l for l in locations}
     weather_rule = _current_weather_rule(match, story)
     characters = _match_characters(match_uuid)

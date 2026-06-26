@@ -249,6 +249,10 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 (90007, 9001, 90007, 90008, 'NORTH', 1, 0),   -- Mission ↔ Multiplayer Courtyard
 (90008, 9001, 90001, 90008, 'EAST',  1, 1);   -- Welcome ↔ Multiplayer (shortcut)
 
+-- Step 0.28.2 — optional return card: when the player stands on locationTo (90002)
+-- the Welcome↔Movement edge shows id_card_back (catalog card 90003) instead of card.
+UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
+
 -- ── Items ───────────────────────────────────────────────────────
 INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight, is_consumabile) VALUES
 (90001, 9001, 400, 400, 1, 1),  -- Training Potion

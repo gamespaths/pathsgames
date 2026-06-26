@@ -117,6 +117,39 @@ describe('EntityForm', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 
+  // ── Step 0.28.2 — idCard must differ from idCardBack (neighbor return card) ───
+
+  const CARD_BACK_FIELDS = [
+    { key: 'idCard', label: 'Card ID', type: 'number' },
+    { key: 'idCardBack', label: 'Card Back ID', type: 'number' },
+  ]
+
+  it('blocks save and shows an error when idCard equals idCardBack', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ uuid: 'n1', idCard: 5, idCardBack: 5 }}
+                       fields={CARD_BACK_FIELDS} onSave={onSave} onCancel={() => {}} />)
+    await userEvent.click(screen.getByText('Save'))
+    expect(onSave).not.toHaveBeenCalled()
+    expect(screen.getByTestId('entity-form-error')).toBeInTheDocument()
+  })
+
+  it('allows save when idCard differs from idCardBack', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ uuid: 'n1', idCard: 5, idCardBack: 6 }}
+                       fields={CARD_BACK_FIELDS} onSave={onSave} onCancel={() => {}} />)
+    await userEvent.click(screen.getByText('Save'))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: 5, idCardBack: 6 }))
+    expect(screen.queryByTestId('entity-form-error')).not.toBeInTheDocument()
+  })
+
+  it('allows save when idCardBack is empty (optional field)', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ uuid: 'n1', idCard: 5 }}
+                       fields={CARD_BACK_FIELDS} onSave={onSave} onCancel={() => {}} />)
+    await userEvent.click(screen.getByText('Save'))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ idCard: 5 }))
+  })
+
   it('handles backdrop click to cancel', () => {
     const onCancel = vi.fn()
     render(<EntityForm fields={MOCK_FIELDS} onSave={() => {}} onCancel={onCancel} />)

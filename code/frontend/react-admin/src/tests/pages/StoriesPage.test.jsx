@@ -181,6 +181,38 @@ describe('StoriesPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('exports weather-rules and global-random-events under their import keys', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => {
+      if (apiType === 'weather-rules') return Promise.resolve([{ id: 1, idTextName: 800, probability: 70 }])
+      if (apiType === 'global-random-events') return Promise.resolve([{ id: 2, idEvent: 5 }])
+      return Promise.resolve([])
+    })
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    // The admin API is queried with kebab-case types (the bug used camelCase).
+    expect(listEntities).toHaveBeenCalledWith('aaa-111', 'weather-rules')
+    expect(listEntities).toHaveBeenCalledWith('aaa-111', 'global-random-events')
+    expect(listEntities).not.toHaveBeenCalledWith('aaa-111', 'weatherRules')
+    expect(listEntities).not.toHaveBeenCalledWith('aaa-111', 'globalRandomEvents')
+
+    // The importer reads camelCase keys → data must land under those keys, non-empty.
+    const parsed = JSON.parse(await capturedBlob.text())
+    expect(parsed.weatherRules).toHaveLength(1)
+    expect(parsed.weatherRules[0].probability).toBe(70)
+    expect(parsed.globalRandomEvents).toHaveLength(1)
+    expect(parsed.globalRandomEvents[0].idEvent).toBe(5)
+
+    clickSpy.mockRestore()
+  })
+
   it('exports JSON with alphabetically sorted keys, including nested nodes', async () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     let capturedBlob = null

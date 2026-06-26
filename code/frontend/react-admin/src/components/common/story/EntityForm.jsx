@@ -31,12 +31,14 @@ export default function EntityForm({
   const [textCreatorState, setTextCreatorState] = useState({ open: false, field: null, idText: null, values: null })
   const [descManuallySelected, setDescManuallySelected] = useState(false)
   const [isCreatingFastCard, setIsCreatingFastCard] = useState(false)
+  const [error, setError] = useState(null)
   const isEditMode = !!entity?.uuid
 
   useEffect(() => {
     setData(entity || initialData || {})
     setSelectorState(null)
     setDescManuallySelected(false)
+    setError(null)
   }, [entity, initialData])
 
   const TEXT_SELECTOR_KEYS = new Set([
@@ -122,8 +124,18 @@ export default function EntityForm({
     }
   }
 
+  // Step 0.28.2 — a neighbor's return card (idCardBack) must differ from its
+  // forward card (idCard). Client-side guard only (the backend stores both freely).
+  const hasValue = (v) => v !== null && v !== undefined && v !== ''
+
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (hasValue(data.idCard) && hasValue(data.idCardBack)
+        && Number(data.idCard) === Number(data.idCardBack)) {
+      setError('Card Back (idCardBack) must differ from Card (idCard).')
+      return
+    }
+    setError(null)
     onSave(data)
   }
 
@@ -275,6 +287,13 @@ export default function EntityForm({
               </div>
             ))}
           </div>
+
+          {error && (
+            <div className="pg-alert pg-alert-danger mt-3" role="alert" data-testid="entity-form-error"
+              style={{ flexShrink: 0, fontSize: '0.8rem' }}>
+              <i className="fas fa-exclamation-triangle me-2" />{error}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 mt-4" style={{ flexShrink: 0, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <button type="button" className="pg-btn pg-btn-ghost" onClick={onCancel}>Cancel</button>

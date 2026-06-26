@@ -199,8 +199,8 @@
       "clockCounter": "Location time counter"
     },
     "movement": {
-      "action": "Move here",
-      "cost": "Energy cost:",
+      "action": "Move",
+      "cost": "Cost",
       "noEnergy": "Energy"
     }
   },

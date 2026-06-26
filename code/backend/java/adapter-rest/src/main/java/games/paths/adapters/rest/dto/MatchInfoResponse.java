@@ -209,6 +209,9 @@ public class MatchInfoResponse {
         private Integer energyCost;
         private CardInfoResponse card;
         private Integer secureParam;
+        private Long idLocationFrom;
+        private Long idLocationTo;
+        private CardInfoResponse cardBack;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -219,6 +222,9 @@ public class MatchInfoResponse {
             d.energyCost = m.getEnergyCost();
             d.card = CardInfoResponse.fromModel(m.getCard());
             d.secureParam = m.getSecureParam();
+            d.idLocationFrom = m.getIdLocationFrom();
+            d.idLocationTo = m.getIdLocationTo();
+            d.cardBack = CardInfoResponse.fromModel(m.getCardBack());
             return d;
         }
 
@@ -236,6 +242,12 @@ public class MatchInfoResponse {
         public void setCard(CardInfoResponse card) { this.card = card; }
         public Integer getSecureParam() { return secureParam; }
         public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
+        public Long getIdLocationFrom() { return idLocationFrom; }
+        public void setIdLocationFrom(Long idLocationFrom) { this.idLocationFrom = idLocationFrom; }
+        public Long getIdLocationTo() { return idLocationTo; }
+        public void setIdLocationTo(Long idLocationTo) { this.idLocationTo = idLocationTo; }
+        public CardInfoResponse getCardBack() { return cardBack; }
+        public void setCardBack(CardInfoResponse cardBack) { this.cardBack = cardBack; }
     }
 
     /** An event available at a player-occupied location, with its card. */

@@ -930,6 +930,8 @@ class StoryEntitiesTest {
             e.setEnergyCost(5);
             e.setIdTextGo(6);
             e.setIdTextBack(7);
+            e.setIdCard(8);
+            e.setIdCardBack(9);
 
             assertAll(
                 () -> assertEquals(1L, e.getId()),
@@ -939,7 +941,11 @@ class StoryEntitiesTest {
                 () -> assertEquals(1, e.getFlagBack()),
                 () -> assertEquals("key", e.getConditionRegistryKey()),
                 () -> assertEquals("val", e.getConditionRegistryValue()),
-                () -> assertEquals(5, e.getEnergyCost())
+                () -> assertEquals(5, e.getEnergyCost()),
+                () -> assertEquals(6, e.getIdTextGo()),
+                () -> assertEquals(7, e.getIdTextBack()),
+                () -> assertEquals(8, e.getIdCard()),
+                () -> assertEquals(9, e.getIdCardBack())
             );
         }
     }

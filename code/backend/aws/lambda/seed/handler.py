@@ -159,6 +159,9 @@ SEED_STORIES = [
         "neighbors": [
             {"id": 1, "uuid": "nb-tutorial-1", "idLocationFrom": 1, "idLocationTo": 2,
              "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             # Step 0.28.2 — optional return card shown when the player stands on
+             # locationTo (2); resolves to catalog card 2 (Welcome Hall).
+             "idCardBack": 2,
              "card": {"title": "To the Practice Yard", "description": "A short walk north.",
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],

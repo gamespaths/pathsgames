@@ -236,6 +236,11 @@ class MatchQueryService(MatchQueryPort):
                 neighbor_card_id = n.get("id_card")
                 if neighbor_card_id is None and other is not None:
                     neighbor_card_id = other.get("id_card")
+                # Optional "return" card: falls back to the forward card (id_card)
+                # when the link defines no id_card_back.
+                neighbor_card_back_id = n.get("id_card_back")
+                if neighbor_card_back_id is None:
+                    neighbor_card_back_id = neighbor_card_id
                 neighbor_infos.append(LocationNeighborInfo(
                     id_location=other_id,
                     uuid=other["uuid"] if other else None,
@@ -244,6 +249,9 @@ class MatchQueryService(MatchQueryPort):
                     energy_cost=n.get("energy_cost"),
                     card=self._resolve_card(story_id, neighbor_card_id, lang),
                     secure_param=other.get("secure_param") if other else None,
+                    id_location_from=n.get("id_location_from"),
+                    id_location_to=n.get("id_location_to"),
+                    card_back=self._resolve_card(story_id, neighbor_card_back_id, lang),
                 ))
 
             event_infos: List[EventInfo] = []

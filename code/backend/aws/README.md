@@ -168,6 +168,30 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.28.2 — AWS bugfix: neighbor `cardBack` desync
+
+- **`lambda/match/handler.py`**: Added `_story_neighbors(story)` helper that returns
+  the authoritative neighbor list for a STORY item. The AWS DynamoDB item carries two
+  separate arrays: `locationNeighbors` (written by admin CRUD) and `neighbors` (written
+  by seed/import). Before this fix, the gameplay engine read only `neighbors`, so admin
+  edits to `idCard`, `idCardBack`, `direction`, or `energyCost` were invisible to
+  `GET /api/match/{uuid}/info`, `POST /api/gameplay/{uuid}/movements/start`, and
+  `GET /api/match/{uuid}/locations`. The helper reads `locationNeighbors` first and
+  falls back to `neighbors` for seed stories that predate admin edits. Applied at the
+  three gameplay read-points: `_build_locations_active` (match-info),
+  `_find_edge` (movement validation), `_build_locations_visited` (locations query).
+- **`tests/test_match_handler.py`**: New regression test
+  `test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors` — asserts
+  that a stale `neighbors` copy does not shadow the `locationNeighbors` admin edit.
+- **Unit tests**: 407 Lambda unit tests pass.
+- **Robot**: New suite `code/tests/robot/tests/29_neighbor_card_back/neighbor_card_back.robot`
+  (backend-agnostic): admin sets `idCard`+`idCardBack` on a neighbor touching the start
+  location; player reads `GET /api/match/{uuid}/info?lang=en`; asserts distinct
+  `card`/`cardBack` UUIDs, both resolving as real catalog cards; teardown restores
+  originals. See `documentation_v0/Step29_NeighborCardBack.md` for full details.
+- **Note**: `api-test.paths.games` requires a Lambda redeployment (`sam deploy
+  --config-env dev`) to apply this fix.
+
 ### v0.28.1 — Admin match listing: pagination, filtering, GSI2 index
 
 - **`template.yaml`**: New DynamoDB **GSI2** index `PathsGamesGSI2` on attribute pair `GSI2_PK` / `GSI2_SK`. Every MATCH METADATA item now carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`.

@@ -95,6 +95,22 @@ Neighbor Cards Resolve From The Catalog When Present
         END
     END
 
+Neighbors Expose Return Card And Edge Orientation
+    [Documentation]    Step 0.28.2 — every neighbor exposes idLocationFrom / idLocationTo /
+    ...                cardBack. When cardBack is present it is a real catalog card (resolves
+    ...                with 200). Backend-agnostic: skips the catalog check when no cardBack.
+    [Tags]    location-card    idcard    match-info    step28    movement-back
+    ${active}=    Get Active Location
+    FOR    ${n}    IN    @{active}[neighbors]
+        Dictionary Should Contain Key    ${n}    idLocationFrom
+        Dictionary Should Contain Key    ${n}    idLocationTo
+        Dictionary Should Contain Key    ${n}    cardBack
+        IF    $n['cardBack'] is not None
+            ${response}=    Get Card Info    ${STORY_UUID}    ${n}[cardBack][uuid]
+            Status Should Be    ${response}    200
+        END
+    END
+
 
 *** Keywords ***
 

@@ -450,7 +450,7 @@ def test_import_story_resolves_inline_cards_for_gameplay():
                    'urlImage': 'hall.png', 'awesomeIcon': 'fas fa-map'}],
         'locations': [{'id': 1, 'idCard': 44}, {'id': 2, 'idCard': 44}],
         'locationNeighbors': [{'id': 1, 'idLocationFrom': 1, 'idLocationTo': 2,
-                               'direction': 'EAST', 'idCard': None}],
+                               'direction': 'EAST', 'idCard': None, 'idCardBack': 44}],
         'events': [{'id': 1, 'idCard': 44, 'idSpecificLocation': 1, 'type': 'NORMAL'}],
     }
     captured = {}
@@ -474,6 +474,8 @@ def test_import_story_resolves_inline_cards_for_gameplay():
     # Neighbors stored under the key the match handler reads
     assert 'neighbors' in item
     assert item['neighbors'][0]['idLocationTo'] == 2
+    # Step 0.28.2 — optional return card resolved inline from idCardBack
+    assert item['neighbors'][0]['cardBack']['title'] == 'Hall'
     # Events get the gameplay `idLocation` alias + resolved card
     assert item['events'][0]['idLocation'] == 1
     assert item['events'][0]['card']['title'] == 'Hall'

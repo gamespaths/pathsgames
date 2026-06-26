@@ -227,7 +227,9 @@ def test_get_match_info_serializes_locations_active(env):
             neighbors=[LocationNeighborInfo(
                 id_location=12, uuid="loc-12", direction="N",
                 flag_back=0, energy_cost=2,
-                card={"title": "Cave"})],
+                card={"title": "Cave"},
+                id_location_from=10, id_location_to=12,
+                card_back={"title": "Cave Return"})],
             events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
         )
     ]
@@ -242,6 +244,9 @@ def test_get_match_info_serializes_locations_active(env):
     assert la[0]["neighbors"][0]["idLocation"] == 12
     assert la[0]["neighbors"][0]["energyCost"] == 2
     assert la[0]["neighbors"][0]["card"]["title"] == "Cave"
+    assert la[0]["neighbors"][0]["idLocationFrom"] == 10
+    assert la[0]["neighbors"][0]["idLocationTo"] == 12
+    assert la[0]["neighbors"][0]["cardBack"]["title"] == "Cave Return"
     assert la[0]["events"][0]["uuid"] == "evt-1"
     assert la[0]["events"][0]["endGame"] is True
     assert la[0]["events"][0]["card"]["title"] == "Stranger"

@@ -8,6 +8,7 @@ import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.LocationNeighborEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.LocationInfo;
+import games.paths.core.model.match.LocationNeighborInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
@@ -75,6 +76,10 @@ class MatchQueryServiceLocationsActiveTest {
     }
 
     private LocationNeighborEntity neighbor(int from, int to, String dir, Integer idCard) {
+        return neighbor(from, to, dir, idCard, null);
+    }
+
+    private LocationNeighborEntity neighbor(int from, int to, String dir, Integer idCard, Integer idCardBack) {
         LocationNeighborEntity n = new LocationNeighborEntity();
         n.setIdLocationFrom(from);
         n.setIdLocationTo(to);
@@ -82,6 +87,7 @@ class MatchQueryServiceLocationsActiveTest {
         n.setFlagBack(0);
         n.setEnergyCost(2);
         n.setIdCard(idCard);
+        n.setIdCardBack(idCardBack);
         return n;
     }
 
@@ -178,11 +184,40 @@ class MatchQueryServiceLocationsActiveTest {
         assertTrue(active.getNeighbors().stream().anyMatch(n -> n.getIdLocation() == 12L));
         assertTrue(active.getNeighbors().stream().anyMatch(n -> n.getIdLocation() == 11L));
 
+        // Step 0.28.2 — orientation (from/to) is exposed; cardBack falls back to the
+        // forward card when the link carries no dedicated idCardBack.
+        LocationNeighborInfo fwd = active.getNeighbors().stream()
+                .filter(n -> n.getIdLocation() == 12L).findFirst().orElseThrow();
+        assertEquals(10L, fwd.getIdLocationFrom());
+        assertEquals(12L, fwd.getIdLocationTo());
+        assertNotNull(fwd.getCardBack());
+        assertEquals(fwd.getCard().title(), fwd.getCardBack().title());
+
         // events: only the one specific to location 10
         assertEquals(1, active.getEvents().size());
         assertEquals("evt-1", active.getEvents().get(0).getUuid());
         assertTrue(active.getEvents().get(0).isEndGame());
         assertEquals("evt1", active.getEvents().get(0).getCard().title());
+    }
+
+    @Test
+    void neighborResolvesDedicatedReturnCardWhenIdCardBackSet() {
+        wire(10L);
+        // Override the neighbors: 10->12 link now carries a distinct return card (500).
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 12, "N", 200, 500)));
+        when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(500), eq("en")))
+                .thenReturn(card("returnCard"));
+
+        MatchDetail detail = service.getMatchInfoForAdmin("match-uuid");
+        LocationInfo active = detail.getLocationsActive().get(0);
+        LocationNeighborInfo n = active.getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 12L).findFirst().orElseThrow();
+
+        assertEquals("toCave", n.getCard().title());        // forward card (idCard 200)
+        assertEquals("returnCard", n.getCardBack().title()); // return card (idCardBack 500)
+        assertEquals(10L, n.getIdLocationFrom());
+        assertEquals(12L, n.getIdLocationTo());
     }
 
     @Test

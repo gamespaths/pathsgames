@@ -84,7 +84,8 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     flagInformationCard={true}
     actionOnlyIfPreview={true}
     actionWithInfo={true}
-    childrenIntoImage={<PlayerStats stats={energyObject} plainFlag={false} showZeros={false} className="m-1 pl-2 display-inline-grid flex-direction-column" />}
+    childrenIntoImage={<PlayerStats stats={energyObject} plainFlag={false} showZeros={false} 
+      className="m-1 pl-2 display-inline-grid flex-direction-column" />}
     />
 
 }

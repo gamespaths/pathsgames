@@ -186,9 +186,9 @@
       "clockCounter": "Contatore tempo"
     },
     "movement": {
-      "action": "Vai qui",
-      "cost": "Costo energia:",
-      "noEnergy": "Energia insufficiente"
+      "action": "Muovi",
+      "cost": "Costo",
+      "noEnergy": "Energia"
     }
   },
   "footer": {

@@ -103,3 +103,22 @@ def test_update_entity_missing_row_is_noop(adapter):
 
 def test_update_story_missing_is_noop(adapter):
     assert adapter.update_story_by_id(99999, {"author": "ghost"}) is None
+
+
+def test_create_location_neighbor_roundtrips_uuid_and_cardback(adapter):
+    # Step 0.28.2 regression: admin-CRUD create of a location-neighbor saves a uuid
+    # (the model previously lacked it → 500 on the post-save re-read) and the optional
+    # return card (idCardBack) round-trips alongside idCard.
+    from app.adapters.persistence.story.models import LocationNeighborEntity
+    story_id = adapter.save_story({"uuid": "s-neighbor"})
+    adapter.save_entity(story_id, "list_locations_neighbors", {
+        "uuid": "nb-crud-1", "idLocationFrom": 1, "idLocationTo": 2,
+        "direction": "NORTH", "idCard": 7, "idCardBack": 9,
+    })
+    with adapter.session_factory() as session:
+        # mirrors StoryReadAdapter.find_entity_by_story_and_uuid (Model.uuid == uuid)
+        nb = session.query(LocationNeighborEntity).filter_by(
+            id_story=story_id, uuid="nb-crud-1").first()
+        assert nb is not None
+        assert nb.id_card == 7
+        assert nb.id_card_back == 9

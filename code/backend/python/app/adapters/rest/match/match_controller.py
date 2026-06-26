@@ -157,6 +157,9 @@ def _location_info_to_camel(l):
                 "energyCost": n.energy_cost,
                 "card": n.card,
                 "secureParam": n.secure_param,
+                "idLocationFrom": n.id_location_from,
+                "idLocationTo": n.id_location_to,
+                "cardBack": n.card_back,
             }
             for n in l.neighbors
         ],

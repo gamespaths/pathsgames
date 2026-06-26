@@ -560,7 +560,7 @@ def test_get_match_info_locations_active(mock_jwt):
         ],
         'neighbors': [
             {'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
-             'flagBack': 1, 'energyCost': 1, 'idCard': 3,
+             'flagBack': 1, 'energyCost': 1, 'idCard': 3, 'idCardBack': 2,
              'card': {'title': 'STALE-NB', 'awesomeIcon': 'fa-stale'}},
         ],
         'events': [
@@ -615,6 +615,10 @@ def test_get_match_info_locations_active(mock_jwt):
     assert la[0]['card']['awesomeIcon'] == 'fa-x'
     assert la[0]['neighbors'][0]['idLocation'] == 2
     assert la[0]['neighbors'][0]['card']['title'] == 'To Yard'
+    # Step 0.28.2 — orientation + dedicated return card (idCardBack 2 → 'Yard')
+    assert la[0]['neighbors'][0]['idLocationFrom'] == 1
+    assert la[0]['neighbors'][0]['idLocationTo'] == 2
+    assert la[0]['neighbors'][0]['cardBack']['title'] == 'Yard'
     # only the event specific to location 1, flagged as the end-game event
     assert [e['uuid'] for e in la[0]['events']] == ['evt-1']
     assert la[0]['events'][0]['endGame'] is True
@@ -668,6 +672,68 @@ def test_get_match_info_resolves_cards_in_requested_lang(mock_jwt):
     assert result['statusCode'] == 200
     body = _body(result)
     assert body['locationsActive'][0]['card']['title'] == 'Sala'
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors(mock_jwt):
+    # Step 0.28.2 regression: admin CRUD edits the `locationNeighbors` array while
+    # the seed/import gameplay copy lives under `neighbors`. The match handler must
+    # read the admin-authoritative `locationNeighbors` so an idCardBack set in admin
+    # is reflected — otherwise cardBack wrongly falls back to the forward card.
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+
+    match_item = {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'currentLocationId': 99, 'currentLocationUuid': 'old', 'currentLocationName': 'Old',
+        'locations': [], 'registry': [],
+    }
+    story_item = {
+        'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'locations': [
+            {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1},
+            {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'idCard': 2},
+        ],
+        # Stale gameplay copy: NO idCardBack.
+        'neighbors': [{'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N', 'idCard': 3}],
+        # Admin-edited copy: idCardBack set to card 2 (Yard).
+        'locationNeighbors': [{'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
+                               'idCard': 3, 'idCardBack': 2}],
+        'events': [],
+        'raw_cards': [
+            {'id': 2, 'uuid': 'card-2', 'awesomeIcon': 'fa-y', 'idTextTitle': 11},
+            {'id': 3, 'uuid': 'card-3', 'awesomeIcon': 'fa-z', 'idTextTitle': 12},
+        ],
+        'raw_texts': [
+            {'idText': 11, 'lang': 'en', 'shortText': 'Yard'},
+            {'idText': 12, 'lang': 'en', 'shortText': 'To Yard'},
+        ],
+    }
+    character = {
+        'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+        'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
+    }
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return story_item
+        return None
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    nb = _body(result)['locationsActive'][0]['neighbors'][0]
+    assert nb['card']['title'] == 'To Yard'      # forward card (idCard 3)
+    assert nb['cardBack']['title'] == 'Yard'     # idCardBack 2 from locationNeighbors, NOT 'To Yard'
 
 
 @patch('match.handler.db_utils.get_item')

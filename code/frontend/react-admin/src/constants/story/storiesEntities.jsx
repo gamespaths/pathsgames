@@ -94,6 +94,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
+      { key: 'idCardBack', label: 'Card Back ID', type: 'number' },
     ],
     events: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -329,7 +330,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'maxCharacters', label: 'Max Chars' },
     ],
     'location-neighbors': [
-     
+
       { key: 'idLocationFrom', label: 'From' },
       { key: 'idLocationTo', label: 'To' },
       { key: 'direction', label: 'Direction' },

@@ -580,6 +580,8 @@ public class StoryImportService implements StoryImportPort {
             e.setEnergyCost(getInteger(item, "energyCost"));
             e.setIdTextGo(getInteger(item, "idTextGo"));
             e.setIdTextBack(getInteger(item, "idTextBack"));
+            e.setIdCard(getInteger(item, "idCard"));
+            e.setIdCardBack(getInteger(item, "idCardBack"));
             entities.add(e);
         }
         persistencePort.saveLocationNeighbors(entities);

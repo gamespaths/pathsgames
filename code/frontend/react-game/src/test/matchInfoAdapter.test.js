@@ -53,8 +53,22 @@ describe('matchInfoToGameData', () => {
   it('maps the active location neighbors into board move-target cards', () => {
     const gd = matchInfoToGameData(mockMatchInfo)
     expect(gd.locations).toHaveLength(2)
+    // Step 0.28.2 — player stands on the edge's `to` location (1001) for the cave
+    // neighbor, so its return card (cardBack) is shown instead of the forward card.
     const cave = gd.locations.find(l => l.idLocation === 1002)
-    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Dark Cave', energyCost: 2, direction: 'N' })
+    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Back to the Dark Cave', energyCost: 2, direction: 'N' })
+    // For the forest neighbor the player is on the `from` side → forward card.
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest).toMatchObject({ name: 'Ancient Forest' })
+  })
+
+  it('shows the forward card (not cardBack) when no cardBack is present', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    // Active 1001 is the `to` side but the edge has no cardBack → keep forward card.
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.cardBack = null
+    const gd = matchInfoToGameData(info)
+    expect(gd.locations.find(l => l.idLocation === 1002).name).toBe('Dark Cave')
   })
 
   it('falls back to a currentLocation* card (with story image) when locationsActive is absent', () => {

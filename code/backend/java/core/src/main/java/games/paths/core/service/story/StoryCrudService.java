@@ -812,6 +812,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("energyCost", ln.getEnergyCost());
             m.put("idTextGo", ln.getIdTextGo());
             m.put("idTextBack", ln.getIdTextBack());
+            m.put("idCardBack", ln.getIdCardBack());
         } else if (e instanceof LocationEntity) {
             LocationEntity l = (LocationEntity) e;
             m.put("idTextNarrative", l.getIdTextNarrative());
@@ -1379,6 +1380,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdTextGo(intVal(d, "idTextGo"));
         if (d.containsKey("idTextBack"))
             e.setIdTextBack(intVal(d, "idTextBack"));
+        if (d.containsKey("idCardBack"))
+            e.setIdCardBack(intVal(d, "idCardBack"));
     }
 
     private void applyKeyFields(KeyEntity e, Map<String, Object> d) {

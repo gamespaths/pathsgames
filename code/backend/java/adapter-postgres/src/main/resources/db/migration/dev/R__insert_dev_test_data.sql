@@ -223,6 +223,8 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90006, 9001, 90006, 90007, 'EAST', 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90007, 9001, 90007, 90008, 'NORTH', 0);
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES (90008, 9001, 90001, 90008, 'EAST', 1);
+-- Step 0.28.2 — optional return card on the Welcome↔Movement edge (catalog card 90003).
+UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
 -- ── Story 1 Items ───────────────────────────────────────────────
 INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90001, 9001, 400, 400, 1);

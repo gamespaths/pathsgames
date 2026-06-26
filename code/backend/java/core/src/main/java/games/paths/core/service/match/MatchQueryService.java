@@ -421,6 +421,11 @@ public class MatchQueryService implements MatchQueryPort {
                 Integer neighborCardId = n.getIdCard() != null
                         ? n.getIdCard()
                         : (other != null ? other.getIdCard() : null);
+                // Optional "return" card: when the link defines no idCardBack it
+                // falls back to the forward card (idCard).
+                Integer neighborCardBackId = n.getIdCardBack() != null
+                        ? n.getIdCardBack()
+                        : neighborCardId;
                 neighborInfos.add(new LocationNeighborInfo(
                         otherId,
                         other != null ? other.getUuid() : null,
@@ -428,7 +433,10 @@ public class MatchQueryService implements MatchQueryPort {
                         n.getFlagBack(),
                         n.getEnergyCost(),
                         resolveCard(storyId, neighborCardId, lang),
-                        other != null ? other.getSecureParam() : null));
+                        other != null ? other.getSecureParam() : null,
+                        n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null,
+                        n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null,
+                        resolveCard(storyId, neighborCardBackId, lang)));
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();

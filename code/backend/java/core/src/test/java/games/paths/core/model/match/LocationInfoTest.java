@@ -1,5 +1,6 @@
 package games.paths.core.model.match;
 
+import games.paths.core.model.story.CardInfo;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -10,7 +11,7 @@ class LocationInfoTest {
 
     @Test
     void constructorAndGetters() {
-        LocationNeighborInfo neighbor = new LocationNeighborInfo(2L, "n-uuid", "NORTH", 0, 1, null, 5);
+        LocationNeighborInfo neighbor = new LocationNeighborInfo(2L, "n-uuid", "NORTH", 0, 1, null, 5, 1L, 2L, null);
         LocationInfo loc = new LocationInfo(1L, "loc-uuid", 10, null, List.of(neighbor), List.of(), 7);
 
         assertEquals(1L, loc.getIdLocation());
@@ -33,7 +34,9 @@ class LocationInfoTest {
 
     @Test
     void locationNeighborInfoGetters() {
-        LocationNeighborInfo n = new LocationNeighborInfo(3L, "n-uuid", "SOUTH", 1, 2, null, 4);
+        CardInfo back = new CardInfo("c-back", "location", null, null, "fa-b",
+                null, null, null, null, null, "Back", "return", null, null, null);
+        LocationNeighborInfo n = new LocationNeighborInfo(3L, "n-uuid", "SOUTH", 1, 2, null, 4, 30L, 31L, back);
         assertEquals(3L, n.getIdLocation());
         assertEquals("n-uuid", n.getUuid());
         assertEquals("SOUTH", n.getDirection());
@@ -41,5 +44,8 @@ class LocationInfoTest {
         assertEquals(2, n.getEnergyCost());
         assertNull(n.getCard());
         assertEquals(4, n.getSecureParam());
+        assertEquals(30L, n.getIdLocationFrom());
+        assertEquals(31L, n.getIdLocationTo());
+        assertEquals("Back", n.getCardBack().title());
     }
 }

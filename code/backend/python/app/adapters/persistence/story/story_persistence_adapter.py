@@ -237,12 +237,17 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     ne = LocationNeighborEntity(
                         id=next_nb_id(),
                         id_story=story_id,
+                        # A uuid is required for the neighbor to be addressable via the
+                        # admin CRUD API (GET/PUT/DELETE .../location-neighbors/{uuid}).
+                        uuid=n.get("uuid") or str(__import__('uuid').uuid4()),
                         id_location_from=loc.id,
                         id_location_to=n.get("idLocationTo"),
                         direction=n.get("direction"),
                         energy_cost=n.get("energyCost", 1),
                         condition_key=n.get("conditionKey"),
-                        condition_value=n.get("conditionValue")
+                        condition_value=n.get("conditionValue"),
+                        id_card=n.get("idCard"),
+                        id_card_back=n.get("idCardBack")
                     )
                     session.add(ne)
             session.commit()

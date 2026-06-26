@@ -38,19 +38,19 @@ export default function MovementCard({
     }
   }
 
-  const costItems = [{ key: 'energy', value: '-' + cost, label: null }]
+  const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
   const costBadge = (
-    <BonusBadgeList items={costItems}
-      className="book-page-stats mb-0 display-ruby flex-direction-column" />
-  )
-  const moveInfo = (
+    <BonusBadgeList items={costItems} 
+      className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
+  ) 
+  /* const moveInfo = (
     <div className="movement-info">
       <span>
-        {location?.direction ? `${location.direction} · ` : ''}
-        {t('game.movement.cost')} <strong>{costBadge}</strong>
+        { location?.direction ? `${location.direction} · ` : '' }
+        { t('game.movement.cost')} <strong>{costBadge}</strong> */ /* display-inline-grid }
       </span>
     </div>
-  )
+  )*/
 
   return (
     <Card
@@ -59,16 +59,18 @@ export default function MovementCard({
       entityType="movement"
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
-      actionIcon="fa-person-walking"
+      actionIcon={location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"}
       locked={!canMove}
       lockInfo={!canMove ? t('game.movement.noEnergy') : undefined}
-      lockedIcon="fas fa-person-walking-arrow-right"
+      lockedIcon="fas fa-bed"
       onPreview={() => {
-        onPreview(location?.card ?? null, 'movement', null, [], true,
+        //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
+        onPreview(location?.card ?? null, 'movement', null, costItems, true,
           canMove
             ? { onAction: handleMove, actionLabel: t('game.movement.action'),
-                actionIcon: 'fa-person-walking', extraContent: moveInfo, extraContentClassName: '' }
-            : { extraContent: moveInfo, extraContentClassName: '' })
+                actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
+                , /* extraContent: moveInfo, extraContentClassName: '' */ }
+            : { /* extraContent: moveInfo, extraContentClassName: ''*/ })
       }}
       story={story}
       flagInformationCard={true}

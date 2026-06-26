@@ -146,7 +146,14 @@ def test_various_saves(adapter):
     story_id = adapter.save_story({"uuid": "test-uuid-6"})
     
     adapter.save_difficulties(story_id, [{"idTextDescription": 1, "expCost": 10}])
-    adapter.save_locations(story_id, [{"idTextName": 1, "neighbors": [{"idLocationTo": 2, "direction": "N"}]}])
+    adapter.save_locations(story_id, [{"idTextName": 1, "neighbors": [
+        {"idLocationTo": 2, "direction": "N", "idCard": 7, "idCardBack": 9}]}])
+    # Step 0.28.2 — the neighbor's forward + return cards persist.
+    from app.adapters.persistence.story.models import LocationNeighborEntity
+    with adapter.session_factory() as session:
+        nb = session.query(LocationNeighborEntity).filter_by(id_story=story_id).first()
+        assert nb.id_card == 7
+        assert nb.id_card_back == 9
     adapter.save_events(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_items(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_classes(story_id, [{"idTextName": 1, "bonuses": [{"bonusType": "STR", "bonusValue": 10}]}])

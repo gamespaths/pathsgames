@@ -12,7 +12,7 @@ import { useState } from 'react'
  * @param {Function} props.onEdit - Callback when edit is clicked
  * @param {Function} props.onDelete - Callback when delete is clicked
  */
-export default function EntityTable({ entities, columns, texts = [], relationOptionsByField = {}, onOpenIdCardForm, onEdit, onDelete }) {
+export default function EntityTable({ entities, columns, texts = [], relationOptionsByField = {}, onOpenIdCardForm, onDuplicateCardBack, showCardBackColumn = false, onEdit, onDelete }) {
   const [search, setSearch] = useState('')
 
   // Show max 3 columns from the definition
@@ -44,6 +44,12 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
   const displayed = [...filtered].reverse()
 
   const hasIdCardColumn = entities.some(entity => entity?.idCard !== null && entity?.idCard !== undefined && entity?.idCard !== '')
+  // Shown when the caller opts in (the "Loc Neighbors" tab) OR when any row already
+  // carries the `idCardBack` key — so the column appears even if the running backend
+  // does not echo the key on neighbors.
+  const hasIdCardBackColumn = showCardBackColumn
+    || entities.some(entity => Object.prototype.hasOwnProperty.call(entity || {}, 'idCardBack'))
+  const hasValue = (v) => v !== null && v !== undefined && v !== ''
 
   return (
     <div className="pg-card" style={{ padding: 0 }}>
@@ -64,6 +70,7 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
             <tr>
               <th style={{ width: 100 }}>ID</th>
               {hasIdCardColumn && <th style={{ width: 120 }}>Card</th>}
+              {hasIdCardBackColumn && <th style={{ width: 120 }}>Card Back</th>}
               {visibleColumns.map(col => (
                 <th key={col.key}>{col.label}</th>
               ))}
@@ -72,7 +79,7 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
           </thead>
           <tbody>
             {displayed.length === 0 && (
-              <tr><td colSpan={visibleColumns.length + (hasIdCardColumn ? 3 : 2)} className="text-center py-8 text-white/20">No items found.</td></tr>
+              <tr><td colSpan={visibleColumns.length + 2 + (hasIdCardColumn ? 1 : 0) + (hasIdCardBackColumn ? 1 : 0)} className="text-center py-8 text-white/20">No items found.</td></tr>
             )}
             {displayed.map(ent => (
               <tr key={ent.uuid || ent.id}>
@@ -95,6 +102,29 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
                         title="Open card"
                       >
                         #{ent.idCard}
+                      </button>
+                    ) : '—'}
+                  </td>
+                )}
+                {hasIdCardBackColumn && (
+                  <td>
+                    {hasValue(ent.idCardBack) ? (
+                      <button
+                        type="button"
+                        className="pg-btn pg-btn-ghost pg-btn-sm"
+                        onClick={() => onOpenIdCardForm?.(ent.idCardBack)}
+                        title="Open card back"
+                      >
+                        #{ent.idCardBack}
+                      </button>
+                    ) : hasValue(ent.idCard) ? (
+                      <button
+                        type="button"
+                        className="pg-btn pg-btn-ghost pg-btn-sm text-gold"
+                        onClick={() => onDuplicateCardBack?.(ent)}
+                        title="Duplicate the Card as Card Back (copies every field; creates new ' BIS' title/desc texts)"
+                      >
+                        <i className="fas fa-clone" />
                       </button>
                     ) : '—'}
                   </td>

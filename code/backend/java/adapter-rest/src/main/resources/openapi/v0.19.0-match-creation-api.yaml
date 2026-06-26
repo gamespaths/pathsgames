@@ -546,6 +546,20 @@ components:
           type: integer
           nullable: true
           description: "Safety parameter of the destination location: positive = safe (full recovery), zero or negative = unsafe (only difficulty.energy recovered)"
+        idLocationFrom:
+          description: The `from` endpoint of the neighbor edge (raw orientation).
+          type: integer
+          format: int64
+          nullable: true
+        idLocationTo:
+          description: The `to` endpoint of the neighbor edge (raw orientation). When the active player stands on this location, clients show `cardBack` instead of `card`.
+          type: integer
+          format: int64
+          nullable: true
+        cardBack:
+          description: "Optional resolved \"return\" card, shown when the player traverses the edge from the locationTo side. Falls back to `card` when the link defines no idCardBack."
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
 
     EventInfo:
       type: object

@@ -76,11 +76,19 @@
           "direction": "N",
           "flagBack": 1,
           "energyCost": 2,
+          "idLocationFrom": 1002,
+          "idLocationTo": 1001,
           "card": {
             "title": "Dark Cave",
             "description": "A cold draught seeps from the cave mouth.",
             "urlImage": null,
             "awesomeIcon": "fas fa-mountain"
+          },
+          "cardBack": {
+            "title": "Back to the Dark Cave",
+            "description": "Retrace your steps into the dark.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-arrow-left"
           }
         },
         {
@@ -89,7 +97,15 @@
           "direction": "E",
           "flagBack": 1,
           "energyCost": 1,
+          "idLocationFrom": 1001,
+          "idLocationTo": 1003,
           "card": {
+            "title": "Ancient Forest",
+            "description": "Towering trees swallow the light.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-tree"
+          },
+          "cardBack": {
             "title": "Ancient Forest",
             "description": "Towering trees swallow the light.",
             "urlImage": null,

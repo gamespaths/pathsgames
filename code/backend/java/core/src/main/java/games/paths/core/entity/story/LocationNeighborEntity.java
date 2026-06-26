@@ -37,6 +37,9 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
     @Column(name = "id_text_back")
     private Integer idTextBack;
 
+    @Column(name = "id_card_back")
+    private Integer idCardBack;
+
     @PrePersist
     protected void onCreate() {
         if (flagBack == null) flagBack = 0;
@@ -71,5 +74,8 @@ public class LocationNeighborEntity extends BaseStoryScopedEntity {
 
     public Integer getIdTextBack() { return idTextBack; }
     public void setIdTextBack(Integer idTextBack) { this.idTextBack = idTextBack; }
+
+    public Integer getIdCardBack() { return idCardBack; }
+    public void setIdCardBack(Integer idCardBack) { this.idCardBack = idCardBack; }
 
 }

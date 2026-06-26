@@ -11,6 +11,12 @@ import games.paths.core.model.story.CardInfo;
  * neighbor link (the destination relative to the active location). The
  * {@link CardInfo} is resolved from the neighbor link's own card, falling back
  * to the destination location's card.</p>
+ *
+ * <p>{@code idLocationFrom}/{@code idLocationTo} expose the raw edge orientation
+ * so a client can detect when the player stands on the {@code to} side and show
+ * {@link #getCardBack()} (the optional "return" card) instead of {@link #getCard()}.
+ * {@code cardBack} falls back to the forward card when the link defines no
+ * dedicated {@code idCardBack}.</p>
  */
 public class LocationNeighborInfo {
 
@@ -21,10 +27,14 @@ public class LocationNeighborInfo {
     private final Integer energyCost;
     private final CardInfo card;
     private final Integer secureParam;
+    private final Long idLocationFrom;
+    private final Long idLocationTo;
+    private final CardInfo cardBack;
 
     public LocationNeighborInfo(Long idLocation, String uuid, String direction,
                                 Integer flagBack, Integer energyCost, CardInfo card,
-                                Integer secureParam) {
+                                Integer secureParam, Long idLocationFrom, Long idLocationTo,
+                                CardInfo cardBack) {
         this.idLocation = idLocation;
         this.uuid = uuid;
         this.direction = direction;
@@ -32,6 +42,9 @@ public class LocationNeighborInfo {
         this.energyCost = energyCost;
         this.card = card;
         this.secureParam = secureParam;
+        this.idLocationFrom = idLocationFrom;
+        this.idLocationTo = idLocationTo;
+        this.cardBack = cardBack;
     }
 
     public Long getIdLocation() { return idLocation; }
@@ -41,4 +54,7 @@ public class LocationNeighborInfo {
     public Integer getEnergyCost() { return energyCost; }
     public CardInfo getCard() { return card; }
     public Integer getSecureParam() { return secureParam; }
+    public Long getIdLocationFrom() { return idLocationFrom; }
+    public Long getIdLocationTo() { return idLocationTo; }
+    public CardInfo getCardBack() { return cardBack; }
 }
