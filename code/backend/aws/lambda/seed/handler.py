@@ -709,8 +709,12 @@ def _seed_stories():
                                             s.get("locations", []),
                                             s.get("raw_cards", []),
                                             s.get("raw_texts", [])),
-            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info
+            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info.
+            # Step 0.28.2 — also store them under `locationNeighbors` (the admin-CRUD
+            # field): gameplay reads locationNeighbors-first and the admin API lists/edits
+            # this same array, so seeded neighbors are both playable AND admin-editable.
             "neighbors":                s.get("neighbors", []),
+            "locationNeighbors":        s.get("neighbors", []),
             "keys":                     s.get("keys", []),
             # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
             "idEventEndGame":           s.get("idEventEndGame"),

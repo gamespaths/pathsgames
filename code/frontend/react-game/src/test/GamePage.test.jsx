@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 vi.mock('../api/game', () => ({
@@ -16,17 +16,19 @@ vi.mock('../i18n/context', () => ({
   useTranslation: () => ({ t: (k) => k, lang: 'en' }),
 }))
 vi.mock('../features/gameplay/GameBook', () => ({
-  default: ({ gameData, matchUuid, story, onClose }) => (
+  default: ({ gameData, matchUuid, story, onClose, onError }) => (
     <div data-testid="game-book">
       <span data-testid="match-uuid">{matchUuid ?? 'none'}</span>
       <button onClick={onClose}>close</button>
+      <button onClick={() => onError?.({ status: 409, response: { data: { message: 'Not enough energy: have 2, need 4' } } })}>trigger-error</button>
     </div>
   ),
 }))
 vi.mock('../components/modals/ErrorCard', () => ({
-  default: ({ status, onClose }) => (
+  default: ({ status, message, onClose }) => (
     <div data-testid="error-card">
       <span data-testid="error-status">{status ?? 'none'}</span>
+      <span data-testid="error-message">{message ?? 'none'}</span>
       <button onClick={onClose}>close-error</button>
     </div>
   ),
@@ -73,6 +75,25 @@ describe('GamePage', () => {
     expect(await screen.findByTestId('error-card')).toBeInTheDocument()
     expect(screen.getByTestId('error-status').textContent).toBe('400')
     expect(screen.queryByTestId('game-book')).not.toBeInTheDocument()
+  })
+
+  it('surfaces a GameBook API error as a transient ErrorCard without leaving the board', async () => {
+    getMatchInfo.mockResolvedValue({ locations: [] })
+    getStory.mockResolvedValue({ uuid: 'abc', title: 'Test Story' })
+    wrap('abc', { matchUuid: 'match-1' })
+    await screen.findByTestId('game-book')
+
+    fireEvent.click(screen.getByText('trigger-error'))
+    // The API error message is shown, and the board stays mounted (transient).
+    expect(await screen.findByTestId('error-card')).toBeInTheDocument()
+    expect(screen.getByTestId('error-message').textContent).toBe('Not enough energy: have 2, need 4')
+    expect(screen.getByTestId('error-status').textContent).toBe('409')
+    expect(screen.getByTestId('game-book')).toBeInTheDocument()
+
+    // Dismissing a transient error keeps the player in the game (no redirect).
+    fireEvent.click(screen.getByText('close-error'))
+    expect(screen.queryByTestId('error-card')).not.toBeInTheDocument()
+    expect(screen.getByTestId('game-book')).toBeInTheDocument()
   })
 
   it('shows ErrorCard when getMatchInfo throws MatchNotRunningError', async () => {

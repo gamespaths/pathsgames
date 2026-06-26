@@ -43,6 +43,13 @@ describe('ErrorCard', () => {
     expect(desc).toContain('errors.matchEnded')
   })
 
+  it('shows the explicit API message when provided, overriding the generic text', () => {
+    render(<ErrorCard status="RUNNING" message="Not enough energy: have 2, need 4" onClose={vi.fn()} />)
+    const desc = screen.getByTestId('card-desc').textContent
+    expect(desc).toBe('Not enough energy: have 2, need 4')
+    expect(desc).not.toContain('errors.matchNotRunning')
+  })
+
   it('calls onClose when the Bootstrap modal hidden event fires', () => {
     const el = document.createElement('div')
     el.id = 'error-card-match-modal'

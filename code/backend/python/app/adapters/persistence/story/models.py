@@ -257,7 +257,10 @@ class EventEntity(Base):
     id_event_next = Column(Integer)
     flag_interrupt = Column(Integer, default=0)
     flag_end_time = Column(Integer, default=0)
-    id_location = Column(Integer)
+    # The owning location of a location-specific event. Named to match the shared
+    # contract / Java column `id_specific_location` (camelCase idSpecificLocation),
+    # so the admin CRUD and match-info agree on a single field.
+    id_specific_location = Column(Integer)
 
 
 class EventEffectEntity(Base):

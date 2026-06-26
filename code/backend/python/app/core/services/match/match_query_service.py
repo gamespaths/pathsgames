@@ -256,7 +256,7 @@ class MatchQueryService(MatchQueryPort):
 
             event_infos: List[EventInfo] = []
             for e in events:
-                if e.get("id_location") == loc_id:
+                if e.get("id_specific_location") == loc_id:
                     event_infos.append(EventInfo(
                         uuid=e.get("uuid"),
                         type=e.get("type"),

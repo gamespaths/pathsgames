@@ -61,7 +61,7 @@ describe('MovementCard', () => {
     render(<MovementCard location={LOCATION} totalEnergyCost={4}
       playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
       matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
-    expect(screen.getByTestId('badge-energy').textContent).toBe('-4')
+    expect(screen.getByTestId('badge-energy').textContent).toBe('4')
   })
 
   it('calls startMovement with the location uuid and reloads', async () => {
@@ -88,7 +88,20 @@ describe('MovementCard', () => {
     render(<MovementCard location={LOCATION} totalEnergyCost={undefined}
       playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
       matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
-    expect(screen.getByTestId('badge-energy').textContent).toBe('-1')
+    expect(screen.getByTestId('badge-energy').textContent).toBe('1')
+  })
+
+  it('calls onError when startMovement fails (surfaces the error instead of failing silently)', async () => {
+    const onError = vi.fn()
+    const onMoved = vi.fn()
+    const err = new Error('boom')
+    startMovement.mockRejectedValueOnce(err)
+    render(<MovementCard location={LOCATION} totalEnergyCost={4}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={vi.fn()}
+      matchUuid="m1" accessToken="tok" onMoved={onMoved} onError={onError} />)
+    fireEvent.click(screen.getByTestId('action-btn'))
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(err))
+    expect(onMoved).not.toHaveBeenCalled()
   })
 
   it('does not move when location uuid is missing', async () => {

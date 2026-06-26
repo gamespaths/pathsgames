@@ -238,6 +238,7 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
 | `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations |
 | `29_neighbor_card_back` | Neighbor return card (idCardBack): admin-set idCardBack reflected in match-info; guards gameplay/admin desync on AWS |
+| `30_event_location` | Event-to-location binding (idSpecificLocation): admin-set location reflected in locationsActive[].events; guards AWS stale-alias + Python column-name bugs |
 
 ### Robot seed and command!
 | AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html

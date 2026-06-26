@@ -270,7 +270,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_next=item.get("idEventNext"),
                     flag_interrupt=item.get("flagInterrupt", 0),
                     flag_end_time=item.get("flagEndTime", 0),
-                    id_location=item.get("idLocation")
+                    id_specific_location=item.get("idSpecificLocation")
+                    if item.get("idSpecificLocation") is not None else item.get("idLocation")
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()

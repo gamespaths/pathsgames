@@ -432,8 +432,8 @@ def _build_enriched(player_loc=10):
          "energy_cost": 1, "id_card": 210},
     ]
     story_read.find_events_by_story_id.return_value = [
-        {"id": 1, "uuid": "evt-1", "type": "NORMAL", "id_location": 10, "id_card": 300},
-        {"id": 2, "uuid": "evt-other", "type": "NORMAL", "id_location": 11, "id_card": 310},
+        {"id": 1, "uuid": "evt-1", "type": "NORMAL", "id_specific_location": 10, "id_card": 300},
+        {"id": 2, "uuid": "evt-other", "type": "NORMAL", "id_specific_location": 11, "id_card": 310},
     ]
     cards = {
         100: {"uuid": "c100", "card_type": "location", "url_image": "u",

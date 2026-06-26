@@ -736,6 +736,60 @@ def test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors(mock
     assert nb['cardBack']['title'] == 'Yard'     # idCardBack 2 from locationNeighbors, NOT 'To Yard'
 
 
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_event_placed_by_idspecificlocation_not_stale_idlocation(mock_jwt):
+    # Regression: an event whose location was changed in admin carries an updated
+    # idSpecificLocation but a STALE idLocation alias (set only at import). match-info
+    # must place the event by idSpecificLocation (its real location B), not the alias.
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+
+    match_item = {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'currentLocationId': 2, 'currentLocationUuid': 'loc-2', 'currentLocationName': 'B',
+        'locations': [], 'registry': [],
+    }
+    story_item = {
+        'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'locations': [
+            {'id': 1, 'uuid': 'loc-1', 'name': 'A', 'idCard': 1},
+            {'id': 2, 'uuid': 'loc-2', 'name': 'B', 'idCard': 1},
+        ],
+        'neighbors': [],
+        # Event moved to B in admin: idSpecificLocation=2, stale idLocation alias still 1.
+        'events': [{'id': 5, 'uuid': 'evt-moved', 'type': 'NORMAL',
+                    'idSpecificLocation': 2, 'idLocation': 1, 'idCard': 1}],
+        'raw_cards': [{'id': 1, 'uuid': 'card-1', 'awesomeIcon': 'fa-x', 'idTextTitle': 10}],
+        'raw_texts': [{'idText': 10, 'lang': 'en', 'shortText': 'Card'}],
+    }
+    character = {
+        'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+        'userUuid': 'player-uuid-001', 'idLocation': 2, 'locationName': 'B',
+    }
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return story_item
+        return None
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    active = _body(result)['locationsActive']
+    entry = next(e for e in active if e['idLocation'] == 2)
+    # The event shows under B (idSpecificLocation), not lost to the stale alias.
+    assert [e['uuid'] for e in entry['events']] == ['evt-moved']
+
+
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
 def test_get_match_info_missing_uuid_param_falls_back_to_path_segment(mock_jwt, mock_get):

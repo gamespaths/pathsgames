@@ -4,7 +4,7 @@ import CardDetailModal from './CardDetailModal'
 
 const MODAL_ID = 'error-card-match-modal'
 
-export default function ErrorCard({ status, onClose }) {
+export default function ErrorCard({ status, message, onClose }) {
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -20,9 +20,13 @@ export default function ErrorCard({ status, onClose }) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const description = status === 'ENDED'
-    ? `${t('errors.matchNotRunning')} ${t('errors.matchEnded')}`
-    : t('errors.matchNotRunning')
+  // A specific API error message (e.g. INSUFFICIENT_ENERGY detail) takes precedence
+  // over the generic match-not-running text.
+  const description = message
+    ? message
+    : status === 'ENDED'
+      ? `${t('errors.matchNotRunning')} ${t('errors.matchEnded')}`
+      : t('errors.matchNotRunning')
 
   const card = {
     awesomeIcon: 'fas fa-exclamation-triangle',

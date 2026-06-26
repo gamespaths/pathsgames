@@ -105,6 +105,23 @@ def test_update_story_missing_is_noop(adapter):
     assert adapter.update_story_by_id(99999, {"author": "ghost"}) is None
 
 
+def test_save_events_persists_idspecificlocation(adapter):
+    # Step 0.28.2: events store their owning location under id_specific_location
+    # (camelCase idSpecificLocation), matching the admin contract + Java. save_events
+    # accepts idSpecificLocation (falling back to the legacy idLocation key).
+    from app.adapters.persistence.story.models import EventEntity
+    story_id = adapter.save_story({"uuid": "s-events"})
+    adapter.save_events(story_id, [
+        {"uuid": "ev-spec", "idTextName": 1, "type": "NORMAL", "idSpecificLocation": 2},
+        {"uuid": "ev-legacy", "idTextName": 1, "type": "NORMAL", "idLocation": 3},
+    ])
+    with adapter.session_factory() as session:
+        spec = session.query(EventEntity).filter_by(id_story=story_id, uuid="ev-spec").first()
+        legacy = session.query(EventEntity).filter_by(id_story=story_id, uuid="ev-legacy").first()
+        assert spec.id_specific_location == 2
+        assert legacy.id_specific_location == 3   # legacy idLocation key still honored
+
+
 def test_create_location_neighbor_roundtrips_uuid_and_cardback(adapter):
     # Step 0.28.2 regression: admin-CRUD create of a location-neighbor saves a uuid
     # (the model previously lacked it → 500 on the post-save re-read) and the optional

@@ -649,7 +649,8 @@ No existing endpoints are modified. No existing error codes are removed.
    dedicated admin connector (port 8044). The public connector (8042) returns 404 for
    this path.
 
-# Paths Games V0 - Step 0.28.2: Neighbor "Return Card" (idCardBack) — AWS Bugfix & Robot Suite 29
+
+# Paths Games V0 - Step 0.28.2: Neighbor "Return Card" (idCardBack)
 
 This document covers two related deliveries shipped in **v0.28.2** of Paths Games:
 
@@ -868,6 +869,202 @@ feature). This fix ensures the gameplay engine honours it on AWS.
    four backend targets.
 
 
+
+# Paths Games V0 - Bugfix Event-to-Location Binding — idSpecificLocation
+
+This document describes a **cross-backend bugfix** shipped as part of v0.28.2.
+
+The issue affected `GET /api/match/{uuid}/info?lang=en`: events appeared under the wrong
+location (or not at all) inside `locationsActive[].events` when their owning location had
+been set or changed via the admin panel.
+
+Java was not affected. AWS and Python each had a distinct root cause. The fix is
+regression-guarded by new unit tests in both backends and a new backend-agnostic Robot
+E2E suite `30_event_location`.
+
+---
+
+## 1. Symptom
+
+After an admin updates an event's location via
+`PUT /api/admin/stories/{uuid}/events/{euuid}` (field `idSpecificLocation`), a subsequent
+call to `GET /api/match/{uuid}/info?lang=en` returned that event:
+
+- under the **old** location (AWS), or
+- **not at all** (Python and any event created entirely through the admin panel).
+
+---
+
+## 2. Root Causes
+
+### 2.1 AWS Lambda (`lambda/match/handler.py`)
+
+At story import time the seed handler copies `idSpecificLocation` into a derived alias
+field `idLocation` on each event item stored in DynamoDB:
+
+```python
+# story/handler.py — import path (simplified)
+e['idLocation'] = e.get('idSpecificLocation')
+```
+
+`_build_locations_active` then filtered events using this `idLocation` alias.
+
+The alias was **set once at import and never refreshed** when an admin later changed
+`idSpecificLocation` via the CRUD endpoints. Consequence:
+
+| Scenario | Observed result |
+|----------|-----------------|
+| Admin changes `idSpecificLocation` from A to B | Event still appears under A (`idLocation` stale) |
+| Event created entirely via admin (no import) | Event missing from `locationsActive` (`idLocation` never set) |
+
+### 2.2 Python (`app/adapters/persistence/story/`)
+
+The Python `EventEntity` model originally declared the column as `id_location`, while the
+shared admin/seed contract uses the camelCase key `idSpecificLocation` (snake_case:
+`id_specific_location`, matching Java's column name).
+
+The mismatch meant:
+
+- `save_events` read `item.get("idLocation")` — the field seed data does **not** send
+  (`seed_stories.py` uses `idSpecificLocation`), so the column was never populated.
+- React-admin sends `idSpecificLocation` → the admin PUT path wrote `idSpecificLocation`
+  correctly, but the read path (match-info filter) used the old `id_location` column which
+  was always null.
+
+### 2.3 Java
+
+Java was **not affected**. The JPA `EventEntity` maps directly to the `id_specific_location`
+column (shared with the admin table). `MatchQueryService` filters events using
+`getIdSpecificLocation()`, so admin edits are reflected immediately.
+
+---
+
+## 3. Fix
+
+### 3.1 AWS — new helper `_event_location`
+
+Added to `code/backend/aws/lambda/match/handler.py`:
+
+```python
+def _event_location(event):
+    """Owning location id of an event.
+    `idSpecificLocation` is the admin-canonical field (what the admin form writes).
+    `idLocation` is a legacy alias set only at import time and NOT refreshed on admin edits.
+    Prefer idSpecificLocation so a location change in admin is reflected immediately;
+    fall back to idLocation for seeded events that pre-date this fix.
+    """
+    e = event or {}
+    return e.get('idSpecificLocation') if e.get('idSpecificLocation') is not None \
+        else e.get('idLocation')
+```
+
+`_build_locations_active` now calls `_event_location(e)` instead of reading `e.get('idLocation')`
+directly. No DynamoDB schema change; no re-import required.
+
+### 3.2 Python — column rename + dual-key read
+
+Changes in `code/backend/python/app/adapters/persistence/story/`:
+
+| File | Change |
+|------|--------|
+| `models.py` — `EventEntity` | Column renamed from `id_location` to `id_specific_location` (aligns with Java and the shared SQL schema) |
+| `story_persistence_adapter.py` — `save_events` | Now reads `item.get("idSpecificLocation") or item.get("idLocation")` (fallback preserves legacy seed data) |
+| `story_read_adapter.py` — `find_events_by_story_id` | Returns `"id_specific_location": r.id_specific_location` |
+| `match/story_match_read_adapter.py` — `find_events_by_story_id` | Returns `"id_specific_location": r.id_specific_location` |
+
+The match query service filters events using `event.get("id_specific_location")`, replacing
+the previous `event.get("id_location")`.
+
+**No Flyway migration required** for Python (SQLite/PostgreSQL column name change handled
+by SQLAlchemy model; existing rows with data in `id_location` are handled via fallback in
+`save_events`).
+
+---
+
+## 4. API Contract
+
+No API contract change. `GET /api/match/{uuid}/info?lang=en` already declared
+`locationsActive[].events` in its response. This fix makes the field populate correctly
+after admin edits.
+
+The relevant admin endpoint used to trigger the bug (and validate the fix):
+
+```
+PUT /api/admin/stories/{storyUuid}/events/{eventUuid}
+Body: { "idSpecificLocation": "<location-uuid>" }
+```
+
+---
+
+## 5. Tests
+
+### 5.1 AWS Unit Tests
+
+New regression test in `code/backend/aws/tests/test_match_handler.py`:
+
+```
+test_match_info_event_appears_under_idSpecificLocation_not_stale_idLocation_alias
+```
+
+Scenario: an event has `idSpecificLocation = "loc-B"` but a stale `idLocation = "loc-A"`.
+The test asserts the event appears under location B in `locationsActive`, not A.
+
+AWS suite after fix: **408 pass**.
+
+### 5.2 Python Unit Tests
+
+New tests in `code/backend/python/tests/test_story_persistence_adapter_extra.py`:
+
+- `save_events` persists `idSpecificLocation` into the `id_specific_location` column.
+- `save_events` with only legacy `idLocation` key still writes the column (fallback path).
+- `find_events_by_story_id` returns `id_specific_location` in the dict.
+
+Python suite after fix: **702 pass**.
+
+### 5.3 New Robot Suite — `30_event_location`
+
+File: `code/tests/robot/tests/30_event_location/event_location.robot`
+
+Tags: `match-info`, `event-location`, `step28`, `regression`
+
+The suite is backend-agnostic (runs against Java, Python, and AWS via `dev.yaml`):
+
+| Step | Action |
+|------|--------|
+| Setup | Authenticate admin + player; discover story UUID and start location |
+| 1 | Pick the first addressable event; record its original `idSpecificLocation` |
+| 2 | `PUT /api/admin/stories/{uuid}/events/{euuid}` — set `idSpecificLocation` to the start location |
+| 3 | Create match → join → start match |
+| 4 | `GET /api/match/{uuid}/info?lang=en` — assert the event appears under `locationsActive[start].events` |
+| Teardown | Restore the event's original `idSpecificLocation` via another PUT |
+
+---
+
+## 6. Deployment Note (AWS)
+
+The AWS fix is in `lambda/match/handler.py`. **Lambda redeployment is required** on
+`api-test.paths.games` before the fix takes effect in the cloud environment. Local SAM
+runs pick it up immediately.
+
+---
+
+## 7. Files Changed
+
+| Backend | File(s) |
+|---------|---------|
+| AWS Lambda | `code/backend/aws/lambda/match/handler.py` — `_event_location()` helper + filter call in `_build_locations_active` |
+| AWS Tests | `code/backend/aws/tests/test_match_handler.py` — new regression test |
+| Python | `code/backend/python/app/adapters/persistence/story/models.py` — column rename on `EventEntity` |
+| Python | `code/backend/python/app/adapters/persistence/story/story_persistence_adapter.py` — `save_events` dual-key read |
+| Python | `code/backend/python/app/adapters/persistence/story/story_read_adapter.py` — `find_events_by_story_id` |
+| Python | `code/backend/python/app/adapters/persistence/match/story_match_read_adapter.py` — `find_events_by_story_id` |
+| Python Tests | `code/backend/python/tests/test_story_persistence_adapter_extra.py` — new unit tests |
+| Robot | `code/tests/robot/tests/30_event_location/event_location.robot` — new E2E suite |
+| Java | No change |
+
+
+
+
 # Version Control
 
 - **Document Version**: 0.28.2
@@ -876,6 +1073,7 @@ feature). This fix ensures the gameplay engine honours it on AWS.
   |---------|-------------|------|
   | 0.28.0 | Initial Step 28 documentation: movement system (adjacency validation, energy cost formula, 8-code ordered validation, existing log_movements table reused from V0.10.9, V0.28.0 Flyway no-ops, visited-locations derivation), new POST movements/start + GET locations + GET admin/locations endpoints, MovementCard in react-game, movement card in react-admin MatchDetailPage, Robot suite 28_movement 10/10 (399/399 total) | June 25, 2026 |
   | 0.28.2 | Initial documentation: AWS neighbor cardBack desync bugfix (`_story_neighbors` helper applied at 3 gameplay read-points); new Robot suite 29 backend-agnostic regression | June 26, 2026 |
+  | 0.28.2 | Initial document — cross-backend bugfix for event-to-location binding | June 26, 2026 |
 
 - **Last Updated**: June 25, 2026
 - **Status**: Complete

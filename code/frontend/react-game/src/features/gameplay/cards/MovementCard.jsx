@@ -16,7 +16,7 @@ import { startMovement } from '@/api/matches'
  * `label` prop — see the no-label-prop-in-card convention).
  */
 export default function MovementCard({
-  location, totalEnergyCost, playerStats, story, onPreview, matchUuid, accessToken, onMoved,
+  location, totalEnergyCost, playerStats, story, onPreview, matchUuid, accessToken, onMoved, onError,
 }) {
   const { t } = useTranslation()
   const [moving, setMoving] = useState(false)
@@ -33,6 +33,8 @@ export default function MovementCard({
       onMoved?.(result)
     } catch (e) {
       console.error('movement failed', e?.response?.data?.error || e?.message)
+      // Surface the failure to the GamePage so it is shown instead of failing silently.
+      onError?.(e)
     } finally {
       setMoving(false)
     }

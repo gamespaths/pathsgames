@@ -70,18 +70,34 @@ export default function GamePage() {
     window.location.href = '/'
   }
 
+  // Surface an API error raised inside GameBook (e.g. startMovement). `transient`
+  // errors are shown over the board and dismissed in place; fatal match-load errors
+  // (no transient flag) send the player home on close.
+  const handleGameError = (err) => {
+    setMatchError({
+      status: err?.status ?? err?.response?.status ?? null,
+      message: err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? null,
+      transient: true,
+    })
+  }
+
+  const handleErrorClose = () => {
+    if (matchError?.transient) setMatchError(null)
+    else gotoHomePage(null)
+  }
+
   return (
     <div className="game-page-wrap">
       {matchError && (
-        <ErrorCard status={matchError.status} onClose={() => gotoHomePage(null)} />
+        <ErrorCard status={matchError.status} message={matchError.message} onClose={handleErrorClose} />
       )}
       {loading ? (
         <div className="game-page-loading">
           <i className="fas fa-spinner fa-spin me-4" />Loading…
         </div>
-      ) : !matchError && (
+      ) : (!matchError || matchError.transient) && (
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
-          onReload={reloadGameData} onClose={() => gotoHomePage(null)} />
+          onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError} />
       )}
     </div>
   )

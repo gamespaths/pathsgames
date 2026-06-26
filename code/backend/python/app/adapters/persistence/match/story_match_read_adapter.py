@@ -129,7 +129,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id": r.id,
                     "uuid": r.uuid,
                     "type": r.event_type,
-                    "id_location": r.id_location,
+                    "id_specific_location": r.id_specific_location,
                     "id_card": r.id_card,
                 }
                 for r in rows

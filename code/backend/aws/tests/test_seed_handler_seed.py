@@ -27,6 +27,15 @@ def test_seed_route_inserts_users_and_stories():
     assert any(i['PK'].startswith('USER#') for i in put_items)
     assert any(i['PK'].startswith('STORY#') for i in put_items)
 
+    # Step 0.28.2 — seeded stories expose `locationNeighbors` (the admin-CRUD field)
+    # mirroring `neighbors`, so neighbors of seeded stories are admin-editable, not
+    # only playable. Guards the AWS gap where admin location-neighbors was empty.
+    stories_with_neighbors = [i for i in put_items
+                              if i['PK'].startswith('STORY#') and i.get('neighbors')]
+    assert stories_with_neighbors, 'expected at least one seeded story with neighbors'
+    for s in stories_with_neighbors:
+        assert s.get('locationNeighbors') == s['neighbors']
+
 
 def test_seed_route_blocked_outside_dev():
     from seed.handler import lambda_handler

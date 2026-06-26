@@ -22,7 +22,7 @@ import MovementCard from './cards/MovementCard'
 import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 
-export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose }) {//info=
+export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t } = useTranslation()
   const { user } = useGuestUser()
 
@@ -263,7 +263,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
               totalEnergyCost={loc.uuid != null ? locationCosts[loc.uuid] : undefined}
               playerStats={playerStats} story={story} onPreview={handleSelectionPreviewFull}
               matchUuid={matchUuid} accessToken={user?.accessToken}
-              onMoved={handleReloadClockWeatherAndMatchData} />
+              onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
           )) }
 
           { /* for every action in location — end-game events expose an "end game" button */  }

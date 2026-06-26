@@ -239,6 +239,16 @@ def _story_neighbors(story):
     return (story or {}).get('locationNeighbors') or (story or {}).get('neighbors') or []
 
 
+def _event_location(event):
+    """Owning location id of an event. `idSpecificLocation` is the admin-canonical
+    field (what the admin form writes); `idLocation` is a legacy alias set only at
+    import time and NOT refreshed on admin edits. Prefer idSpecificLocation so a
+    location change in admin is reflected; fall back to idLocation for seeded events
+    that only carry the alias."""
+    e = event or {}
+    return e.get('idSpecificLocation') if e.get('idSpecificLocation') is not None else e.get('idLocation')
+
+
 def _build_locations_active(story, active_loc_ids, lang='en'):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
@@ -299,7 +309,7 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
             {"uuid": e.get("uuid"), "type": e.get("type"),
              "endGame": end_event_id is not None and e.get("id") == end_event_id,
              "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang)}
-            for e in events if e.get("idLocation") == loc_id
+            for e in events if _event_location(e) == loc_id
         ]
 
         result.append({
@@ -1556,13 +1566,19 @@ def _current_weather_rule(match, story):
 
 
 def _movement_total_cost(edge, target, weather_rule):
-    """edge cost + target entry cost + weather modifier (safe vs unsafe)."""
+    """Returns (total, breakdown): edge cost + target entry cost + weather modifier
+    (safe vs unsafe). The breakdown explains the total for diagnostics/logging."""
     safe = _nz(target.get('secureParam')) > 0
     weather_modifier = 0
     if weather_rule is not None:
         weather_modifier = _nz(weather_rule.get('costMoveSafeLocation') if safe
                                else weather_rule.get('costMoveNotSafeLocation'))
-    return _nz(edge.get('energyCost')) + _nz(target.get('costEnergyEnter')) + weather_modifier
+    edge_cost = _nz(edge.get('energyCost'))
+    entry_cost = _nz(target.get('costEnergyEnter'))
+    total = edge_cost + entry_cost + weather_modifier
+    breakdown = {'edge': edge_cost, 'entry': entry_cost,
+                 'weather': weather_modifier, 'safe': safe}
+    return total, breakdown
 
 
 def _find_edge(neighbors, from_id, to_id):
@@ -1613,13 +1629,22 @@ def _start_movement(user, match_uuid, body):
         if _registry_value(match.get('registry'), cond_key) != cond_value:
             return _err(409, 'MOVEMENT_CONDITION_NOT_MET', 'Movement condition not met')
 
-    total_cost = _movement_total_cost(edge, target, _current_weather_rule(match, story))
+    total_cost, cost_breakdown = _movement_total_cost(
+        edge, target, _current_weather_rule(match, story))
+    energy = _nz(caller.get('energy'))
 
     # Step 34 owns the weight formula; carried weight is 0 until inventory exists.
     if 0 > _nz(caller.get('weightMax')):
         return _err(409, 'OVERWEIGHT', 'Carried weight exceeds capacity')
-    if _nz(caller.get('energy')) < total_cost:
-        return _err(409, 'INSUFFICIENT_ENERGY', 'Not enough energy')
+    if energy < total_cost:
+        return _err(
+            409, 'INSUFFICIENT_ENERGY',
+            "Not enough energy: have {have}, need {need} "
+            "(edge {edge} + entry {entry} + weather {weather}; target {safety})".format(
+                have=energy, need=total_cost,
+                edge=cost_breakdown['edge'], entry=cost_breakdown['entry'],
+                weather=cost_breakdown['weather'],
+                safety='safe' if cost_breakdown['safe'] else 'unsafe'))
 
     max_chars = _nz(target.get('maxCharacters'))
     if max_chars > 0:
@@ -1627,7 +1652,7 @@ def _start_movement(user, match_uuid, body):
         if count >= max_chars:
             return _err(409, 'LOCATION_FULL', 'Target location is at capacity')
 
-    new_energy = _nz(caller.get('energy')) - total_cost
+    new_energy = energy - total_cost
     caller['idLocation'] = target.get('id')
     caller['locationUuid'] = target.get('uuid')
     caller['energy'] = new_energy
