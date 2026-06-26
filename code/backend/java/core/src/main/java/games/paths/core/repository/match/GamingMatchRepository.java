@@ -1,6 +1,7 @@
 package games.paths.core.repository.match;
 
 import games.paths.core.entity.match.GamingMatchEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,38 @@ public interface GamingMatchRepository extends JpaRepository<GamingMatchEntity, 
     List<GamingMatchEntity> findAllByOrderByTsInsertDesc();
 
     long countByIdUserCreatorAndStatusIn(Long idUserCreator, List<String> statuses);
+
+    /**
+     * v0.28.1 — keyset page of the admin match list, newest first.
+     *
+     * <p>Every filter is optional ({@code NULL} ⇒ ignored). {@code tsFrom} scopes
+     * to matches created at/after an ISO-8601 instant (sinceDays). The keyset
+     * cursor ({@code tsCursor}/{@code idCursor}) selects the rows strictly older
+     * than the last row of the previous page, so pages never skip or duplicate a
+     * row even while new matches are inserted. {@code ts_insert} is an ISO-8601
+     * instant string, so its lexical order matches chronological order; {@code id}
+     * is the deterministic tie-breaker.</p>
+     *
+     * <p>{@code pageable} supplies only the LIMIT (pass an unsorted page); the
+     * ORDER BY lives in the query.</p>
+     */
+    @Query("""
+            SELECT m FROM GamingMatchEntity m
+            WHERE (:status IS NULL OR m.status = :status)
+              AND (:idUser IS NULL OR m.idUserCreator = :idUser)
+              AND (:idStory IS NULL OR m.idStory = :idStory)
+              AND (:tsFrom IS NULL OR m.tsInsert >= :tsFrom)
+              AND (:tsCursor IS NULL OR m.tsInsert < :tsCursor
+                   OR (m.tsInsert = :tsCursor AND m.id < :idCursor))
+            ORDER BY m.tsInsert DESC, m.id DESC
+            """)
+    List<GamingMatchEntity> findMatchesPage(@Param("status") String status,
+                                            @Param("idUser") Long idUser,
+                                            @Param("idStory") Long idStory,
+                                            @Param("tsFrom") String tsFrom,
+                                            @Param("tsCursor") String tsCursor,
+                                            @Param("idCursor") Long idCursor,
+                                            Pageable pageable);
 
     /**
      * Returns the ids of every match whose name matches the given SQL LIKE

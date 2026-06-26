@@ -401,6 +401,19 @@ body {
 }
 .pg-input:focus { border-color: var(--color-gold); }
 .pg-input::placeholder { color: var(--color-ash); }
+/* Dropdown list items — replace the ugly default (white) background with the
+   medieval brown so <option>s match the dark theme. */
+.pg-input option,
+.pg-input optgroup,
+select.pg-input option {
+  background-color: var(--color-brown-dark);
+  color: var(--color-parchment);
+}
+.pg-input option:checked,
+.pg-input option:hover {
+  background-color: var(--color-brown-mid);
+  color: var(--color-gold-light);
+}
 .pg-label {
   font-family: 'Cinzel', serif;
   font-size: 0.85rem;

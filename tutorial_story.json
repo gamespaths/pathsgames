@@ -472,17 +472,18 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 46,
+      "idCard": 46,
       "idCreator": 1,
       "idTextCopyright": 113,
       "idTextDescription": 133,
       "idTextTitle": 107,
-      "linkCopyright": "https://unsplash.com/photos/wooden-walkway-through-coastal-heathland-at-sunset-72_NYAYSpo4",
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-dock-sitting-on-top-of-a-body-of-water-Gu0mck1if7M",
       "styleDetail": null,
       "styleImageLarge": null,
       "styleImageLittle": null,
       "styleImageMedium": null,
       "styleMain": null,
-      "urlImage": "https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1675198764240-930a8d8b66b1?q=80&w=1451&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "4a34065a-76b3-48bb-98dc-1c5335246aec"
     },
     {
@@ -508,10 +509,11 @@
       "id": 48,
       "idCard": 48,
       "idCreator": 1,
-      "idTextCopyright": 3,
+      "idTextCopyright": 141,
       "idTextDescription": 135,
       "idTextName": 135,
       "idTextTitle": 135,
+      "id_card": 48,
       "linkCopyright": "https://unsplash.com/photos/brown-field-under-blue-sky-during-daytime-OVX3oiL5PsE",
       "urlImage": "https://images.unsplash.com/photo-1604949210966-9440c324823f?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "8f40eae9-54f4-433c-8796-092d225f4dec"
@@ -537,6 +539,8 @@
       "idTextDescription": 138,
       "idTextName": 138,
       "idTextTitle": 138,
+      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-leading-to-a-beach-with-sand-dunes-in-the-background-AKnXtxfBKN8",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1676648534483-98f7e98fb734?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "22713807-b0d5-4ae5-b59a-9a68f833db1e"
     },
     {
@@ -1069,7 +1073,7 @@
         "uuid": "8ae5abf9-afca-4d22-b97c-e7d0dd36612c"
       },
       "costEnergyEnter": 0,
-      "counterTime": 100,
+      "counterTime": 0,
       "id": 1,
       "idAudio": null,
       "idCard": 44,
@@ -1086,7 +1090,7 @@
       "isSafe": false,
       "maxCharacters": 100,
       "priorityAutomaticEvent": 0,
-      "secureParam": 1,
+      "secureParam": 0,
       "uuid": "43173188-2b89-40e3-989b-6c0ebb073a8f"
     },
     {
@@ -1117,7 +1121,7 @@
       "idEventIfFirstTime": null,
       "idEventNotFirstTime": null,
       "idImage": null,
-      "idTextDescription": 133,
+      "idTextDescription": 107,
       "idTextName": 107,
       "idTextNarrative": null,
       "id_card": 46,
@@ -2635,8 +2639,8 @@
       "idTextName": null,
       "lang": "en",
       "linkCopyright": null,
-      "longText": "Tutorial End location",
-      "shortText": "Tutorial End location",
+      "longText": "Ending location",
+      "shortText": "Ending location",
       "uuid": "71c5d36f-88e7-470c-adc9-6409944e8e77"
     },
     {
@@ -3431,8 +3435,8 @@
       "idText": 135,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Beautiful time",
-      "shortText": "Beautiful time",
+      "longText": "Beautiful day",
+      "shortText": "Beautiful day",
       "uuid": "ce59cf16-8dd2-4c00-8072-b4aaa8ea7cae"
     },
     {
@@ -3621,8 +3625,8 @@
       "idText": 138,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Tutorial center location",
-      "shortText": "Tutorial center location",
+      "longText": "Center location",
+      "shortText": "Center location",
       "uuid": "fa007a86-01e7-47b5-b5d4-9c14f77dac91"
     },
     {
@@ -3644,6 +3648,46 @@
       "longText": "Go to the end",
       "shortText": "Go to the end",
       "uuid": "343f1afc-6bb5-4496-99e6-6b13403111a4"
+    },
+    {
+      "id": 107,
+      "idCreator": 1,
+      "idText": 107,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8045d355-a3c9-4295-b793-a896532c0075"
+    },
+    {
+      "id": 138,
+      "idCreator": 1,
+      "idText": 138,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8f408c29-bc42-4f71-ab54-18199f6a3127"
+    },
+    {
+      "id": 135,
+      "idCreator": 1,
+      "idText": 135,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8369bfdb-0a76-4904-8a02-10ce57147245"
+    },
+    {
+      "id": 141,
+      "idCreator": 1,
+      "idText": 141,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mick Haupt",
+      "shortText": "Mick Haupt",
+      "uuid": "21b262af-e77a-45dc-b4ae-7ee4234cc751"
     }
   ],
   "title": "Paths Tutorial",

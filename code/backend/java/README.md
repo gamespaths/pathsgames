@@ -117,7 +117,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | POST | `/api/matches` | Create a new single-player match |
     | GET | `/api/matches` | List matches owned by the authenticated user |
     | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
-    | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) |
+    | GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
 
 ## Recent Fixes (Step 17 CRUD)
 
@@ -188,7 +188,8 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | 0.19.7 | list_stories_difficulty: added 7 stat columns (life=100, energy=100, sad=0, dexterity=10, intelligence=10, constitution=10, weight=10) via Flyway V0.19.7 on both adapters; StoryDifficultyEntity, DifficultyInfo (builder), DifficultyResponse, StoryQueryService, StoryCrudService.applyDifficultyFields(), StoryImportService.importDifficulties(); OpenAPI v0.14.0 DifficultyResponse extended; core tests 711 pass | May 19, 2026 |
     | 0.19.9 | gaming_match: 4 loadout columns added (single_player, character_template_uuid, class_uuid, trait_uuids) via Flyway V0.19.9 on both adapters; MatchCreateRequest extended (classUuid, traitUuids, singlePlayer new; characterTemplateUuid now persisted); MatchSummary echoes loadout; MatchTraitCodec handles comma-separated trait list; OpenAPI v0.19.0-match-creation-api.yaml bumped to 0.19.9; 152 adapter-rest unit tests + core pass | May 20, 2026 |
     | 0.19.10 | GET /api/admin/matches: MatchController.listAllMatches, MatchQueryService.listAllMatches, MatchReadPort.findAllMatches, GamingMatchRepository.findAllByOrderByTsInsertDesc; OpenAPI bumped to 0.19.10; 154 adapter-rest unit tests pass | May 20, 2026 |
-- **Last Updated**: May 20, 2026
+    | 0.28.1 | GET /api/admin/matches pagination & filtering: `MatchAdminController.listAllMatches` now reads query params (`limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`); `MatchQueryService.listMatchesPage`; new port method `MatchReadPort.findMatchesPage(MatchPageCriteria)`; new JPQL `GamingMatchRepository.findMatchesPage` with optional filters and keyset pagination on `(ts_insert DESC, id DESC)`; new core domain types `MatchListFilter`, `MatchSummaryPage`, record `MatchPageCriteria`; new REST DTO `PagedMatchesResponse`; cursor = base64 of `"{tsInsert}|{id}"`; OpenAPI `v0.19.0-match-creation-api.yaml` extended with `PagedMatches` schema and query params; full Java test suite 1079+ pass | Jun 26, 2026 |
+- **Last Updated**: Jun 26, 2026
 - **Status**: In progress
 
 

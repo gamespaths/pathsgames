@@ -14,9 +14,11 @@ import games.paths.core.model.match.LocationInfo;
 import games.paths.core.model.match.LocationNeighborInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchEventOption;
+import games.paths.core.model.match.MatchListFilter;
 import games.paths.core.model.match.MatchLocationState;
 import games.paths.core.model.match.MatchRegistryEntry;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
@@ -115,6 +117,122 @@ public class MatchQueryService implements MatchQueryPort {
             result.add(toSummary(m, null, storyOf(m, storiesById), m.getIdDifficulty()));
         }
         return result;
+    }
+
+    /** Admin-list page-size bounds (v0.28.1). */
+    private static final int DEFAULT_PAGE_LIMIT = 50;
+    private static final int MAX_PAGE_LIMIT = 200;
+
+    @Override
+    public MatchSummaryPage listMatchesPage(MatchListFilter filter) {
+        MatchListFilter f = filter != null
+                ? filter : new MatchListFilter(null, null, null, null, null, null);
+        int limit = clampLimit(f.limit());
+
+        // Resolve creator/story uuids to ids. An unknown uuid yields an empty
+        // page rather than silently dropping the filter (which would leak
+        // unrelated matches to the caller).
+        Long idUser = null;
+        if (notBlank(f.userUuid())) {
+            Optional<UserAccessPort.UserView> u = userAccessPort.findByUuid(f.userUuid());
+            if (u.isEmpty()) {
+                return emptyPage(limit);
+            }
+            idUser = u.get().id();
+        }
+        Long idStory = null;
+        if (notBlank(f.storyUuid())) {
+            Optional<StoryEntity> s = storyReadPort.findStoryByUuid(f.storyUuid());
+            if (s.isEmpty()) {
+                return emptyPage(limit);
+            }
+            idStory = s.get().getId();
+        }
+        String tsFrom = sinceDaysToTs(f.sinceDays());
+        String status = notBlank(f.status()) ? f.status() : null;
+
+        String[] cursor = decodeCursor(f.cursor());
+        String tsCursor = cursor != null ? cursor[0] : null;
+        Long idCursor = cursor != null ? Long.valueOf(cursor[1]) : null;
+
+        // Over-fetch one row to learn whether a further page exists.
+        List<GamingMatchEntity> rows = matchReadPort.findMatchesPage(
+                new MatchReadPort.MatchPageCriteria(
+                        status, idUser, idStory, tsFrom, tsCursor, idCursor, limit + 1));
+
+        boolean hasMore = rows.size() > limit;
+        List<GamingMatchEntity> pageRows = hasMore ? rows.subList(0, limit) : rows;
+
+        Map<Long, StoryEntity> storiesById = storiesById();
+        List<MatchSummary> items = new ArrayList<>();
+        for (GamingMatchEntity m : pageRows) {
+            items.add(toSummary(m, null, storyOf(m, storiesById), m.getIdDifficulty()));
+        }
+        String nextCursor = null;
+        if (hasMore && !pageRows.isEmpty()) {
+            GamingMatchEntity last = pageRows.get(pageRows.size() - 1);
+            nextCursor = encodeCursor(last.getTsInsert(), last.getId());
+        }
+        return new MatchSummaryPage(items, nextCursor, limit);
+    }
+
+    private static int clampLimit(Integer requested) {
+        if (requested == null) {
+            return DEFAULT_PAGE_LIMIT;
+        }
+        return Math.max(1, Math.min(requested, MAX_PAGE_LIMIT));
+    }
+
+    private static MatchSummaryPage emptyPage(int limit) {
+        return new MatchSummaryPage(new ArrayList<>(), null, limit);
+    }
+
+    private static boolean notBlank(String s) {
+        return s != null && !s.isBlank();
+    }
+
+    /** sinceDays → ISO-8601 lower bound on {@code ts_insert}; null when unset/≤0. */
+    private static String sinceDaysToTs(Integer sinceDays) {
+        if (sinceDays == null || sinceDays <= 0) {
+            return null;
+        }
+        return java.time.Instant.now()
+                .minus(sinceDays, java.time.temporal.ChronoUnit.DAYS)
+                .toString();
+    }
+
+    /** Encodes the keyset position ({@code ts_insert}|{@code id}) as an opaque token. */
+    static String encodeCursor(String tsInsert, Long id) {
+        if (tsInsert == null || id == null) {
+            return null;
+        }
+        String raw = tsInsert + "|" + id;
+        return java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Decodes an opaque cursor into {@code [tsInsert, id]}. Returns {@code null}
+     * for a missing or malformed token, so the query simply starts from page one
+     * instead of failing.
+     */
+    static String[] decodeCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        try {
+            String raw = new String(java.util.Base64.getUrlDecoder().decode(cursor),
+                    java.nio.charset.StandardCharsets.UTF_8);
+            int sep = raw.lastIndexOf('|');
+            if (sep <= 0 || sep == raw.length() - 1) {
+                return null;
+            }
+            String idPart = raw.substring(sep + 1);
+            Long.parseLong(idPart); // validate the id is numeric
+            return new String[]{raw.substring(0, sep), idPart};
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     /** Index all stories by id once, so a list of matches doesn't re-scan per row. */

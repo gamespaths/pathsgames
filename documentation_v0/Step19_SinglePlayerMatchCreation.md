@@ -86,31 +86,60 @@ the **v0.19.9** loadout (`characterTemplateUuid`, `classUuid`, `traitUuids`,
 
 Returns the matches owned by the authenticated user, newest first.
 
-### 2.3 `GET /api/admin/matches` *(v0.19.10)*
+### 2.3 `GET /api/admin/matches` *(v0.19.10 — paginato e filtrabile da v0.28.1)*
 
-Returns **all** matches on the platform (newest first), regardless of creator. Requires `ADMIN` role.
+Returns **all** matches on the platform, regardless of creator. Requires `ADMIN` role.
+
+**v0.28.1** — the response shape changed from a bare array to a **paged envelope**. Query parameters for filtering and cursor-based pagination are now accepted. Only this endpoint changes shape; `GET /api/matches` (user-scoped list) still returns a plain array.
 
 | Header          | Required | Description                              |
 |-----------------|----------|------------------------------------------|
 | `Authorization` | yes      | `Bearer <accessToken>` (ADMIN only)      |
 
+#### Query parameters (all optional, v0.28.1)
+
+| Parameter   | Type    | Default | Description |
+|-------------|---------|---------|-------------|
+| `limit`     | integer | 50      | Page size, clamped to [1, 200] |
+| `cursor`    | string  | —       | Opaque token from `nextCursor` of the previous page; omit for the first page |
+| `status`    | string  | —       | Exact status filter: `CREATED`, `RUNNING`, `PAUSED`, `ENDED`, `GAMEOVER` |
+| `userUuid`  | string  | —       | Filter by match creator UUID |
+| `storyUuid` | string  | —       | Filter by story UUID |
+| `sinceDays` | integer | —       | Only matches created in the last N days |
+
+#### Response envelope (v0.28.1)
+
+```json
+{
+  "items": [ /* array of MatchSummary */ ],
+  "nextCursor": "string or null",
+  "limit": 50
+}
+```
+
+`nextCursor` is `null` on the last page. Pass it as `?cursor=<value>` to retrieve the next page. The cursor is an opaque base64 token; its internal format is implementation-specific per backend.
+
 | HTTP status | Cause                                           |
 |-------------|--------------------------------------------------|
-| `200`       | Array of `MatchSummary` (same schema as 2.2)    |
+| `200`       | Paged envelope with `items`, `nextCursor`, `limit` |
 | `401`       | Missing / invalid bearer token                  |
 | `403`       | Caller does not hold the ADMIN role             |
 
 Admin role enforcement is handled by each backend's existing JWT filter / middleware (the AWS Lambda handler checks the role field explicitly). This endpoint was introduced so the react-admin Matches section can display matches created by guest players, which the user-scoped `GET /api/matches` cannot surface when called with an admin token.
 
-Implementation by backend:
+#### Implementation by backend (v0.28.1)
 
 | Backend | Controller method | Service method | Persistence method |
 |---------|-------------------|----------------|--------------------|
-| Java    | `MatchController.listAllMatches` | `MatchQueryService.listAllMatches` | `MatchReadPort.findAllMatches` → `GamingMatchRepository.findAllByOrderByTsInsertDesc` |
-| Python  | `MatchController.list_all_matches` | `MatchQueryService.list_all_matches` | `MatchPersistenceAdapter.find_all_matches` |
-| AWS     | `match/handler.py` `_list_all_matches` | — | `db_utils.scan_pk_prefix`; route `ListAllMatchesRoute` in `template/match.yaml` |
+| Java    | `MatchAdminController.listAllMatches` | `MatchQueryService.listMatchesPage` | `MatchReadPort.findMatchesPage` → `GamingMatchRepository.findMatchesPage(MatchPageCriteria)` — keyset pagination on `(ts_insert DESC, id DESC)` |
+| Python  | `MatchAdminController.list_all_matches` | `MatchQueryService.list_matches_page` | `MatchPersistenceAdapter.find_matches_page` — SQLAlchemy keyset; helpers `_clamp_limit`, `_since_days_to_ts`, `_encode_cursor`, `_decode_cursor` |
+| AWS     | `match/handler.py` `_list_all_matches` | — | `db_utils.query_index_page` on **GSI2** `MATCH` index (newest-first Query, no full Scan); `db_utils.encode_cursor`/`decode_cursor` (base64 of `LastEvaluatedKey`) |
 
-Note: for SQL-based backends (Java, Python) the response leaves `userCreatorUuid`, `storyUuid` and `difficultyUuid` null, mirroring the behaviour of `GET /api/matches`. The AWS backend populates all three fields from DynamoDB.
+**New domain types (Java/Python):** `MatchListFilter`, `MatchSummaryPage` (core models); `MatchPageCriteria` (Java port record); `PagedMatchesResponse` (Java REST DTO).
+
+**AWS GSI2 — migration note:** a new DynamoDB index **GSI2** ("by type") is provisioned in `template.yaml`. Every MATCH METADATA item now carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`, enabling a single newest-first **Query** instead of a full table Scan. Matches created before v0.28.1 lack these keys and will not appear in the admin list until they are updated (first-write self-heal on next status change).
+
+Note: for SQL-based backends (Java, Python) the response may leave `userCreatorUuid`, `storyUuid` and `difficultyUuid` null in the `items` array (same behaviour as `GET /api/matches`). The AWS backend populates all three fields from DynamoDB.
 
 ### 2.4 `GET /api/match/{uuidMatch}/info`
 
@@ -285,7 +314,7 @@ version `0.19.10`.
 | `GET /api/match/{uuidMatch}/info`     | NEW (v0.19.0); embedded summary extended (v0.19.9); added `?lang` query param (v0.19.13) |
 | `GET /api/stories`                    | `?lang` query param now forwarded by react-game (v0.19.13) |
 | `GET /api/stories/{uuid}`             | `?lang` query param now forwarded by react-game (v0.19.13) |
-| `GET /api/admin/matches`              | NEW (v0.19.10) — admin-wide list, all backends            |
+| `GET /api/admin/matches`              | NEW (v0.19.10) — admin-wide list, all backends; **v0.28.1** — response changed from plain array to paged envelope `{items, nextCursor, limit}`; query params `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` added; AWS backend migrated from Scan to GSI2 Query |
 | `GET /api/admin/matches/{uuid}/info`  | NEW (v0.19.12) — admin detail without ownership check; see [Step21_AdminMatchControl.md](Step21_AdminMatchControl.md) |
 
 ---
@@ -381,7 +410,7 @@ Tests live under `code/tests/robot/tests/19_match/`. They exercise:
   class, traits and the single-player flag) verified end-to-end via
   `GET /api/match/{uuid}/info`.
 - Match listing (`GET /api/matches` — user-scoped).
-- Admin match listing (`GET /api/admin/matches`): asserts 200 for an ADMIN token and 403 for a non-admin token.
+- Admin match listing (`GET /api/admin/matches`): asserts 200 for an ADMIN token and 403 for a non-admin token. **v0.28.1**: additional tests verify the paged envelope shape (`items` array, `nextCursor`, `limit`), the `limit` query param, cursor-based next-page retrieval, and the `status` filter.
 - Match info retrieval (own match, foreign match returning 404).
 
 Run them against the Java backend with:
@@ -427,7 +456,7 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
   
   > Ciao, i've a problem; when rotob test runned , in tables there are so many rows from tests execution, for example guest users and matches. I wanna remove these elements from tables (sql/dynamo) after robot test runned, i wanna remove only robot test rows preserve others informations. 
 
-- **Document Version**: 0.19.13
+- **Document Version**: 0.28.1
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.19.0 | Single player match creation | May 08, 2026 |
@@ -444,8 +473,9 @@ The same suite passes against the Python backends — see `code/scripts/dev/run_
     | 0.19.11 | Dev-only test-data cleanup | May 21, 2026 |
     | 0.19.12 | Admin match control (update/stop/pause/resume/delete) | May 21, 2026 |
     | 0.19.13 | `?lang` param on GET /api/match/{uuid}/info (all 3 backends); react-game forwards lang to /api/stories and match info | Jun 23, 2026 |
+    | 0.28.1 | GET /api/admin/matches pagination & filtering: response changed from plain array to `{items, nextCursor, limit}` envelope; query params `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`; Java keyset pagination + new port/criteria/service types; Python keyset + helpers; AWS migrated from Scan to GSI2 Query (`GSI2_PK="MATCH"`, `GSI2_SK=ts#uuid`); react-admin MatchesPage server-side pagination + status/period filters; OpenAPI `v0.19.0-match-creation-api.yaml` extended with `PagedMatches` schema and query params; Robot `List All Matches` keyword accepts `params`; new tests on limit/cursor/status filter | Jun 26, 2026 |
 
-- **Last Updated**: Jun 23, 2026
+- **Last Updated**: Jun 26, 2026
 - **Status**: Complete
 
 

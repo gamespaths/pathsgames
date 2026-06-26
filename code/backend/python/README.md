@@ -154,7 +154,7 @@ docker rmi pathsgames-backend-python
 | POST | `/api/matches` | Create a new single-player match |
 | GET | `/api/matches` | List matches owned by the authenticated user |
 | GET | `/api/match/{uuid}/info` | Match runtime state (summary, location/registry state) |
-| GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) |
+| GET | `/api/admin/matches` | List all matches on the platform (ADMIN only) — paged envelope `{items, nextCursor, limit}`; query params: `limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays` |
 
 ## Architecture
 
@@ -227,7 +227,8 @@ PYTHONPATH=. pytest -v tests/
     | 0.19.9 | gaming_match: 4 loadout columns added (single_player, character_template_uuid, class_uuid, trait_uuids) via SQLAlchemy create_all (model updated); MatchCreateRequest and MatchSummary extended with classUuid, traitUuids, singlePlayer (characterTemplateUuid now persisted); trait list encoded as comma-separated string; 67 unit tests pass | May 20, 2026 |
     | 0.19.10 | GET /api/admin/matches: MatchController.list_all_matches, MatchQueryService.list_all_matches, MatchPersistenceAdapter.find_all_matches; 341 unit tests pass | May 20, 2026 |
     | 0.24.1 | Dockerfile rewritten to expose both ports 8042+8044 and run a single `python -m app.launcher` process. `app/config.py` gains `host` setting (default `127.0.0.1`, overridden to `0.0.0.0` by `HOST` env var in Docker). `launcher.py` uses `settings.host` for both uvicorn servers. New `tests/test_config_host.py`. New `code/scripts/test/build_docker_python_test_and_push.sh` and EC2 lifecycle scripts under `aws_ec2_with_python_docker/` (server3, tag `:test-python`). 524 unit tests pass | June 14, 2026 |
-- **Last Updated**: June 14, 2026
+    | 0.28.1 | GET /api/admin/matches pagination & filtering: `MatchAdminController.list_all_matches` accepts query params (`limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`); `MatchQueryService.list_matches_page` with helpers `_clamp_limit`, `_since_days_to_ts`, `_encode_cursor`, `_decode_cursor`; `MatchPersistenceAdapter.find_matches_page` (SQLAlchemy keyset on `ts_insert DESC, id DESC`); new dataclasses `MatchListFilter`, `MatchSummaryPage` in core models; response envelope `{items, nextCursor, limit}`; 699 unit tests pass | Jun 26, 2026 |
+- **Last Updated**: Jun 26, 2026
 - **Status**: In progress
 
 

@@ -27,7 +27,7 @@ Follows the medieval dark theme (`v0.16.3-prototype-api`):
 | `/guests`          | List, inspect and delete guest users; cleanup expired    |
 | `/stories`         | List all stories (any visibility); delete stories        |
 | `/stories/import`  | Import a complete story from JSON (`POST /api/admin/stories/import`) |
-| `/matches`         | List all matches across all players; open detail modal with match info, location state and registry |
+| `/matches`         | List all matches across all players with server-side pagination (Load more / nextCursor), status filter and period filter (7/30/90 days / All); open detail modal with match info, location state and registry |
 | `/echo`            | Server health check (`GET /api/echo/status`)             |
 
 ## Admin APIs covered
@@ -44,11 +44,11 @@ From OpenAPI specs in `code/backend/java/adapter-rest/src/main/resources/openapi
 | List all stories                 | `GET /api/admin/stories`        |
 | Import story                     | `POST /api/admin/stories/import`|
 | Delete story                     | `DELETE /api/admin/stories/:uuid`|
-| List all matches (admin-wide)    | `GET /api/admin/matches`        |
-| Match detail / state             | `GET /api/match/:uuid/info`     |
+| List all matches (admin-wide, paged) | `GET /api/admin/matches` — envelope `{items, nextCursor, limit}`; query params `limit`, `cursor`, `status`, `sinceDays` |
+| Match detail / state             | `GET /api/admin/matches/:uuid/info` |
 | Server status / echo             | `GET /api/echo/status`          |
 
-Note: `GET /api/admin/matches` (added in v0.19.10) returns all matches regardless of creator. The user-scoped `GET /api/matches` is used by the player-facing `react-game` frontend only.
+Note: `GET /api/admin/matches` (added in v0.19.10, paged envelope from v0.28.1) returns all matches regardless of creator. The user-scoped `GET /api/matches` is used by the player-facing `react-game` frontend only.
 
 ## Development
 
@@ -89,7 +89,8 @@ npm run test:coverage
     | 0.19.6 | Difficulty editor extended with the seven stat fields (`life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight`) in both `STORIES_ENTITIES_FIELDS.difficulties` (form) and `STORIES_ENTITIES_COLUMNS.difficulties` (table); StoriesPage detail panel renders a second amber stats line per difficulty; StoryImportPage example payload includes the new defaults | May 19, 2026 |
     | 0.19.6 | Code refactoring: story-related pages (`StoriesPage`, `StoryEditorPage`, `StoryEditorPageHelpers`, `StoryEditorPageSidebar`, `StoryImportPage`) moved from `src/pages/` to `src/pages/story/` subfolder; all imports in `App.jsx`, page files and test files updated accordingly | May 20, 2026 |
     | 0.19.10 | New **Matches** section at `/matches`: `MatchesPage.jsx` shows a filterable table of all-player matches (text/status filter, stat cards, refresh) and a detail modal loading `GET /api/match/{uuid}/info` (summary, current location, locations state, registry). New `src/api/matchApi.js` (`listMatches` calls `GET /api/admin/matches`, `getMatchInfo`). Tests: `src/tests/api/matchApi.test.js`, `src/tests/pages/MatchesPage.test.jsx`. 236 tests pass. | May 20, 2026 |
-- **Last Updated**: May 20, 2026
+    | 0.28.1 | `MatchesPage` server-side pagination: `matchApi.listMatches(params)` returns `{items, nextCursor, limit}` envelope; "Load more" button appends next page via `nextCursor`; server-side **status** filter and **period** filter (`sinceDays`: All / 7 / 30 / 90 days) sent as query params; text filter remains client-side on loaded rows. 408 vitest tests pass. | Jun 26, 2026 |
+- **Last Updated**: Jun 26, 2026
 - **Status**: In progress
 
 

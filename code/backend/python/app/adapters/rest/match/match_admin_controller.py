@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.core.models.match import match_statuses
+from app.core.models.match.match_models import MatchListFilter
 from app.core.ports.match.match_ports import CharacterCommandPort, MatchCommandPort, MatchQueryPort
 from app.adapters.rest.match.match_controller import (
     _error,
@@ -89,11 +90,25 @@ class MatchAdminController:
             self.change_statistics, methods=["POST"],
         )
 
-    def list_all_matches(self):
-        """GET /api/admin/matches — every match in the platform (admin view).
-        The admin role is enforced by the JWT middleware for /api/admin/ paths."""
-        results = self.query_port.list_all_matches()
-        return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
+    def list_all_matches(self, limit: Optional[int] = None, cursor: Optional[str] = None,
+                         status: Optional[str] = None, userUuid: Optional[str] = None,
+                         storyUuid: Optional[str] = None, sinceDays: Optional[int] = None):
+        """GET /api/admin/matches — paginated, filterable list of matches (v0.28.1).
+
+        Returns a ``{items, nextCursor, limit}`` envelope so the console never reads
+        the whole table. Query params (all optional): ``limit`` (default 50, max 200),
+        ``cursor`` (opaque token), ``status``, ``userUuid``, ``storyUuid``,
+        ``sinceDays`` (last N days). The admin role is enforced by the JWT middleware
+        for /api/admin/ paths."""
+        page = self.query_port.list_matches_page(MatchListFilter(
+            status=status, user_uuid=userUuid, story_uuid=storyUuid,
+            since_days=sinceDays, cursor=cursor, limit=limit,
+        ))
+        return JSONResponse(status_code=200, content={
+            "items": [_summary_to_camel(s) for s in page.items],
+            "nextCursor": page.next_cursor,
+            "limit": page.limit,
+        })
 
     def list_match_statuses(self):
         """GET /api/admin/matches/statuses — valid statuses, each flagged

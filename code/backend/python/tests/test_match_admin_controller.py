@@ -13,9 +13,11 @@ from app.adapters.rest.match.match_admin_controller import MatchAdminController
 from app.core.models.match.match_models import (
     MatchDetail,
     MatchEventOption,
+    MatchListFilter,
     MatchLocationState,
     MatchRegistryEntry,
     MatchSummary,
+    MatchSummaryPage,
 )
 
 
@@ -60,14 +62,39 @@ def _detail():
     )
 
 
-def test_list_all_matches_returns_list(env):
+def test_list_all_matches_returns_envelope(env):
     client, _, query_port = env
-    query_port.list_all_matches.return_value = [_summary()]
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[_summary()], next_cursor="next-tok", limit=50)
     response = client.get("/api/admin/matches")
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["uuid"] == "match-uuid"
+    assert body["items"][0]["uuid"] == "match-uuid"
+    assert body["nextCursor"] == "next-tok"
+    assert body["limit"] == 50
+
+
+def test_list_all_matches_empty_envelope(env):
+    client, _, query_port = env
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[], next_cursor=None, limit=50)
+    body = client.get("/api/admin/matches").json()
+    assert body == {"items": [], "nextCursor": None, "limit": 50}
+
+
+def test_list_all_matches_forwards_query_params(env):
+    client, _, query_port = env
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[], next_cursor=None, limit=25)
+    response = client.get("/api/admin/matches", params={
+        "limit": 25, "cursor": "cur-1", "status": "RUNNING",
+        "userUuid": "u-9", "storyUuid": "s-7", "sinceDays": 7,
+    })
+    assert response.status_code == 200
+    query_port.list_matches_page.assert_called_once()
+    sent = query_port.list_matches_page.call_args.args[0]
+    assert sent == MatchListFilter(status="RUNNING", user_uuid="u-9", story_uuid="s-7",
+                                   since_days=7, cursor="cur-1", limit=25)
 
 
 def test_list_match_statuses(env):

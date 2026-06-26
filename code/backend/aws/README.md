@@ -21,7 +21,7 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
-| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches`) |
+| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Log Groups ×5 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
 
@@ -85,7 +85,7 @@ code/backend/aws/
 │   ├── common/           # Shared code (db_utils, jwt_utils)
 │   ├── auth/             # Guest login, sessions, admin guests (11 routes)
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
-│   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches)
+│   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches with pagination & filters)
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
 └── README.md             # This file
@@ -95,12 +95,22 @@ code/backend/aws/
 
 All entities coexist in the same table using a prefix for differentiation:
 
-| Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) |
-| :--- | :--- | :--- | :--- |
-| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` |
-| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` |
-| **Card** | `CARD#<id>` | `METADATA` | — |
-| **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` |
+| Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) | GSI2_PK | GSI2_SK |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` | — | — |
+| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` | — | — |
+| **Card** | `CARD#<id>` | `METADATA` | — | — | — |
+| **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` | `MATCH` | `{tsInsert:020d}#{uuid}` |
+
+**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression. Matches created before v0.28.1 lack GSI2 keys and will not appear in the admin list until their items are rewritten. **After deploying the GSI2 template, run the one-time backfill once per environment** to index existing matches:
+
+```bash
+# from code/backend/aws/ (needs AWS creds with DynamoDB scan/update on the table)
+python scripts/backfill_gsi2_matches.py --env dev            # or --table PathsGamesBackend-prod
+python scripts/backfill_gsi2_matches.py --env dev --dry-run  # preview only, no writes
+```
+
+The script is idempotent (rows already carrying `GSI2_PK` are skipped) and reuses `db_utils.backfill_gsi2_matches`, which writes the exact `GSI2_SK` format `_create_match` uses, so backfilled and new rows sort together.
 
 Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
@@ -157,6 +167,15 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.28.1 — Admin match listing: pagination, filtering, GSI2 index
+
+- **`template.yaml`**: New DynamoDB **GSI2** index `PathsGamesGSI2` on attribute pair `GSI2_PK` / `GSI2_SK`. Every MATCH METADATA item now carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`.
+- **`lambda/match/handler.py`**: `_list_all_matches` rewritten to call `db_utils.query_index_page` on GSI2 instead of `scan_pk_prefix`. Accepts query params `limit` (default 50, clamped to [1, 200]), `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`. Returns paged envelope `{"items": [...], "nextCursor": string|null, "limit": int}`.
+- **`lambda/common/db_utils.py`**: New helpers `query_index_page`, `encode_cursor`, `decode_cursor` (cursor = base64 of DynamoDB `LastEvaluatedKey`), and `backfill_gsi2_matches` (one-time migration adding GSI2 keys to pre-v0.28.1 matches; idempotent).
+- **`scripts/backfill_gsi2_matches.py`**: CLI wrapper for the migration — run once per environment after deploy (`--env dev` / `--table ...`, `--dry-run` supported) so existing matches appear in the admin list.
+- **Unit tests**: 406 Lambda unit tests pass.
+- **Robot**: `List All Matches` keyword in `resources/matches.resource` accepts optional `params`; new tests in `19_match/match_creation.robot` for paged envelope shape, limit/cursor pagination, and status filter.
 
 ### v0.19.10 — Admin-wide match listing
 

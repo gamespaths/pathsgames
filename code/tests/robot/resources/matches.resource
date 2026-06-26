@@ -121,10 +121,13 @@ List Matches
 List All Matches
     [Documentation]    GET /api/admin/matches with the given Bearer token (admin-only).
     ...                Served on the admin endpoint (admin_session → ADMIN_BASE_URL).
-    [Arguments]    ${token}    ${expected_status}=any
+    ...                v0.28.1 — returns a paginated envelope {items, nextCursor, limit};
+    ...                ${params} may carry limit/cursor/status/userUuid/storyUuid/sinceDays.
+    [Arguments]    ${token}    ${expected_status}=any    ${params}=${None}
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    admin_session    /api/admin/matches
     ...    headers=${headers}
+    ...    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 

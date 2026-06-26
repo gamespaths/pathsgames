@@ -1,7 +1,9 @@
 package games.paths.adapters.admin.controller.match;
 
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchListFilter;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
@@ -17,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -92,19 +95,47 @@ class MatchAdminControllerTest {
     }
 
     @Test
-    void listAllMatches_returnsArray() throws Exception {
-        when(queryPort.listAllMatches()).thenReturn(List.of(summary()));
+    void listAllMatches_returnsEnvelope() throws Exception {
+        when(queryPort.listMatchesPage(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new MatchSummaryPage(List.of(summary()), "next-tok", 50));
         mockMvc.perform(get("/api/admin/matches"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].uuid").value("match-uuid"));
+                .andExpect(jsonPath("$.items[0].uuid").value("match-uuid"))
+                .andExpect(jsonPath("$.nextCursor").value("next-tok"))
+                .andExpect(jsonPath("$.limit").value(50));
     }
 
     @Test
-    void listAllMatches_emptyArray() throws Exception {
-        when(queryPort.listAllMatches()).thenReturn(List.of());
+    void listAllMatches_emptyEnvelope() throws Exception {
+        when(queryPort.listMatchesPage(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new MatchSummaryPage(List.of(), null, 50));
         mockMvc.perform(get("/api/admin/matches"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items").isEmpty());
+    }
+
+    @Test
+    void listAllMatches_forwardsQueryParams() throws Exception {
+        when(queryPort.listMatchesPage(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new MatchSummaryPage(List.of(), null, 25));
+        mockMvc.perform(get("/api/admin/matches")
+                        .param("limit", "25")
+                        .param("cursor", "cur-1")
+                        .param("status", "RUNNING")
+                        .param("userUuid", "u-9")
+                        .param("storyUuid", "s-7")
+                        .param("sinceDays", "7"))
+                .andExpect(status().isOk());
+        var captor = org.mockito.ArgumentCaptor.forClass(MatchListFilter.class);
+        verify(queryPort).listMatchesPage(captor.capture());
+        MatchListFilter f = captor.getValue();
+        assertEquals(25, f.limit());
+        assertEquals("cur-1", f.cursor());
+        assertEquals("RUNNING", f.status());
+        assertEquals("u-9", f.userUuid());
+        assertEquals("s-7", f.storyUuid());
+        assertEquals(7, f.sinceDays());
     }
 
     @Test

@@ -16,6 +16,9 @@ DynamoDB layout:
   PK = MATCH#{uuid}, SK = METADATA
     Match metadata + embedded ``locations`` / ``registry`` lists.
     GSI1_PK = USER_MATCHES#{userUuid}, GSI1_SK = MATCH#{tsInsertMs}#{uuid}
+    GSI2_PK = MATCH,                   GSI2_SK = {tsInsertMs:020d}#{uuid}
+      v0.28.1 "by type" index — backs the paginated admin list
+      (GET /api/admin/matches) as a single Query instead of a full Scan.
 """
 
 import json
@@ -533,6 +536,11 @@ def _create_match(user, body):
         # GSI to list all matches owned by the user, newest first
         "GSI1_PK": f'USER_MATCHES#{user["uuid"]}',
         "GSI1_SK": f'MATCH#{now_ms:020d}#{match_uuid}',
+        # v0.28.1 — "by type" index for the admin list (GET /api/admin/matches).
+        # Constant PK groups every match in one partition; the ts-prefixed SK keeps
+        # them ordered newest-first and lets sinceDays be a cheap SK range query.
+        "GSI2_PK": 'MATCH',
+        "GSI2_SK": f'{now_ms:020d}#{match_uuid}',
     }
     db_utils.put_item(item)
     return _ok(_summary_from_item(item), status=201)
@@ -544,11 +552,74 @@ def _list_user_matches(user):
     return _ok([_summary_from_item(i) for i in items_sorted])
 
 
-def _list_all_matches():
-    """Admin view — every match in the table, newest first."""
-    items = db_utils.scan_pk_prefix('MATCH#') or []
-    items_sorted = sorted(items, key=lambda i: i.get('tsInsert', 0), reverse=True)
-    return _ok([_summary_from_item(i) for i in items_sorted])
+# Admin-list pagination bounds (v0.28.1).
+_ADMIN_LIST_DEFAULT_LIMIT = 50
+_ADMIN_LIST_MAX_LIMIT = 200
+_MS_PER_DAY = 86_400_000
+
+
+def _admin_list_limit(params):
+    """Clamp the requested page size to [1, _ADMIN_LIST_MAX_LIMIT]."""
+    raw = params.get('limit')
+    if raw is None or str(raw).strip() == '':
+        return _ADMIN_LIST_DEFAULT_LIMIT
+    try:
+        limit = int(raw)
+    except (TypeError, ValueError):
+        return _ADMIN_LIST_DEFAULT_LIMIT
+    return max(1, min(limit, _ADMIN_LIST_MAX_LIMIT))
+
+
+def _since_days_sk(params, now_ms):
+    """Translate ?sinceDays=N into a GSI2_SK lower bound ('{ts:020d}').
+
+    Returns None when sinceDays is absent or not a positive integer."""
+    raw = params.get('sinceDays')
+    if raw is None or str(raw).strip() == '':
+        return None
+    try:
+        days = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if days <= 0:
+        return None
+    threshold = max(0, now_ms - days * _MS_PER_DAY)
+    return f'{threshold:020d}'
+
+
+def _list_all_matches(event):
+    """Admin view — paginated, filterable list of matches (v0.28.1).
+
+    Backed by the GSI2 "by type" index (GSI2_PK='MATCH'), so this is a single
+    Query (newest-first) instead of a full-table Scan. Query params:
+
+      limit      page size (default 50, max 200)
+      cursor     opaque token from a previous nextCursor
+      status     exact status filter (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER)
+      userUuid   filter by creator
+      storyUuid  filter by story
+      sinceDays  only matches created within the last N days (SK range)
+
+    Response envelope: {"items": [...], "nextCursor": str|null, "limit": int}.
+    """
+    params = event.get('queryStringParameters') or {}
+    limit = _admin_list_limit(params)
+    start_key = db_utils.decode_cursor(params.get('cursor'))
+    sk_from = _since_days_sk(params, int(time.time() * 1000))
+    eq_filters = {
+        'status': (params.get('status') or '').strip() or None,
+        'userCreatorUuid': (params.get('userUuid') or '').strip() or None,
+        'storyUuid': (params.get('storyUuid') or '').strip() or None,
+    }
+    items, last_key = db_utils.query_index_page(
+        'GSI2', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from=sk_from,
+        eq_filters=eq_filters, limit=limit, start_key=start_key, ascending=False,
+    )
+    return _ok({
+        'items': [_summary_from_item(i) for i in items],
+        'nextCursor': db_utils.encode_cursor(last_key),
+        'limit': limit,
+    })
 
 
 def _get_match_info(user, match_uuid, lang='en'):
@@ -1685,7 +1756,7 @@ def lambda_handler(event, context):
             return _err(403, 'FORBIDDEN', 'Admin access required')
 
         if path == '/api/admin/matches' and method == 'GET':
-            return _list_all_matches()
+            return _list_all_matches(event)
         if path == '/api/admin/matches/statuses' and method == 'GET':
             return _list_match_statuses()
 

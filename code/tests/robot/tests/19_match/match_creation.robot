@@ -132,22 +132,54 @@ List Matches Resolves Story And Difficulty Uuid
     Should Be Equal As Strings    ${match}[difficultyUuid]    ${DIFFICULTY_UUID}
 
 List All Matches As Admin Returns Created Match
-    [Documentation]    GET /api/admin/matches with an ADMIN token lists every
-    ...                match on the platform, including the one created above.
+    [Documentation]    GET /api/admin/matches with an ADMIN token lists every match
+    ...                on the platform. v0.28.1 — the response is a paginated envelope
+    ...                {items, nextCursor, limit}; the created match (newest) is on page 1.
     [Tags]    matches    step19
     ${admin_token}=    Generate Admin Token
     ${response}=    List All Matches    ${admin_token}
     Status Should Be    ${response}    200
     ${body}=    Set Variable    ${response.json()}
-    Should Not Be Empty    ${body}
+    Dictionary Should Contain Key    ${body}    items
+    Dictionary Should Contain Key    ${body}    nextCursor
+    Dictionary Should Contain Key    ${body}    limit
+    ${items}=    Set Variable    ${body}[items]
+    Should Not Be Empty    ${items}
     ${found}=    Set Variable    ${False}
-    FOR    ${m}    IN    @{body}
+    FOR    ${m}    IN    @{items}
         IF    "${m}[uuid]" == "${MATCH_UUID}"
             ${found}=    Set Variable    ${True}
             BREAK
         END
     END
     Should Be True    ${found}
+
+Admin Match List Honours Limit And Exposes Cursor
+    [Documentation]    GET /api/admin/matches?limit=1 returns at most one item and
+    ...                echoes the effective limit; nextCursor is present (string or null).
+    [Tags]    matches    step19
+    ${admin_token}=    Generate Admin Token
+    ${params}=    Create Dictionary    limit=1
+    ${response}=    List All Matches    ${admin_token}    params=${params}
+    Status Should Be    ${response}    200
+    ${body}=    Set Variable    ${response.json()}
+    Should Be Equal As Integers    ${body}[limit]    1
+    ${count}=    Get Length    ${body}[items]
+    Should Be True    ${count} <= 1
+    Dictionary Should Contain Key    ${body}    nextCursor
+
+Admin Match List Filters By Status
+    [Documentation]    GET /api/admin/matches?status=CREATED returns only CREATED
+    ...                matches; every item on the page carries that status.
+    [Tags]    matches    step19
+    ${admin_token}=    Generate Admin Token
+    ${params}=    Create Dictionary    status=CREATED    limit=50
+    ${response}=    List All Matches    ${admin_token}    params=${params}
+    Status Should Be    ${response}    200
+    ${items}=    Set Variable    ${response.json()}[items]
+    FOR    ${m}    IN    @{items}
+        Should Be Equal As Strings    ${m}[status]    CREATED
+    END
 
 List All Matches As Non Admin Returns 403
     [Documentation]    GET /api/admin/matches with a non-admin (guest) token → 403.

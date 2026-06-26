@@ -7,7 +7,9 @@ from app.core.models.match.match_models import (
     JoinMatchCommand,
     MatchCreateCommand,
     MatchDetail,
+    MatchListFilter,
     MatchSummary,
+    MatchSummaryPage,
 )
 
 
@@ -51,6 +53,12 @@ class MatchQueryPort(ABC):
         """Return every match in the platform, newest first (admin view)."""
 
     @abstractmethod
+    def list_matches_page(self, filter: MatchListFilter) -> MatchSummaryPage:
+        """v0.28.1 — return one keyset page of the admin match list, applying the
+        optional filters (status / creator / story / sinceDays) and resuming from
+        ``filter.cursor``. Backs GET /api/admin/matches."""
+
+    @abstractmethod
     def get_match_info(self, match_uuid: str, user_uuid: str, lang: str = "en") -> Optional[MatchDetail]:
         ...
 
@@ -78,6 +86,16 @@ class MatchPersistencePort(ABC):
     @abstractmethod
     def find_all_matches(self) -> List[Dict[str, Any]]:
         """Return every ``gaming_match`` row, newest first."""
+
+    @abstractmethod
+    def find_matches_page(self, status: Optional[str], id_user: Optional[int],
+                          id_story: Optional[int], ts_from: Optional[str],
+                          ts_cursor: Optional[str], id_cursor: Optional[int],
+                          limit: int) -> List[Dict[str, Any]]:
+        """v0.28.1 — keyset page of matches (newest first) matching the resolved
+        filters. Any ``None`` filter is ignored. ``ts_from`` is an ISO lower bound;
+        ``ts_cursor``/``id_cursor`` carry the keyset position. Returns at most
+        ``limit`` rows."""
 
     @abstractmethod
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:

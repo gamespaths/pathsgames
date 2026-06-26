@@ -54,6 +54,12 @@ const MOCK_INFO = {
   events: [], choices: [],
 }
 
+// v0.28.1 — the admin list is paginated: GET /api/admin/matches returns the
+// envelope { items, nextCursor, limit } instead of a bare array.
+function env(items, nextCursor = null, limit = 50) {
+  return { items, nextCursor, limit }
+}
+
 function renderPage() {
   return render(<MemoryRouter><MatchesPage /></MemoryRouter>)
 }
@@ -61,7 +67,7 @@ function renderPage() {
 describe('MatchesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    listMatches.mockResolvedValue(MOCK_MATCHES)
+    listMatches.mockResolvedValue(env(MOCK_MATCHES))
     getMatchInfo.mockResolvedValue(MOCK_INFO)
     listMatchStatuses.mockResolvedValue(MOCK_STATUSES)
     updateMatch.mockResolvedValue({ status: 'UPDATED' })
@@ -86,7 +92,7 @@ describe('MatchesPage', () => {
   it('renders stats cards', async () => {
     renderPage()
     await screen.findByText('Saturday run')
-    expect(screen.getByText('Total')).toBeInTheDocument()
+    expect(screen.getByText('Loaded')).toBeInTheDocument()
     expect(screen.getByText('Running')).toBeInTheDocument()
   })
 
@@ -98,12 +104,57 @@ describe('MatchesPage', () => {
     expect(screen.getByText('Night raid')).toBeInTheDocument()
   })
 
-  it('filters by status', async () => {
+  it('defaults the scope to running matches', async () => {
     renderPage()
     await screen.findByText('Saturday run')
-    await userEvent.selectOptions(screen.getByLabelText('Filter by status'), 'RUNNING')
-    expect(screen.queryByText('Saturday run')).toBeNull()
-    expect(screen.getByText('Night raid')).toBeInTheDocument()
+    // v0.28.1 — the page opens scoped to RUNNING matches.
+    expect(listMatches).toHaveBeenCalledWith({ limit: 50, status: 'RUNNING' })
+  })
+
+  it('filters by status server-side and reloads', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    // Default scope is RUNNING; switching to CREATED reloads page 1 with ?status=CREATED;
+    // the server returns the narrowed set (here only the CREATED match).
+    listMatches.mockResolvedValueOnce(env([MOCK_MATCHES[0]]))
+    await userEvent.selectOptions(screen.getByLabelText('Filter by status'), 'CREATED')
+    await waitFor(() =>
+      expect(listMatches).toHaveBeenLastCalledWith({ limit: 50, status: 'CREATED' }))
+    expect(screen.queryByText('Night raid')).toBeNull()
+    expect(screen.getByText('Saturday run')).toBeInTheDocument()
+  })
+
+  it('filters by period (sinceDays) server-side', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await userEvent.selectOptions(screen.getByLabelText('Filter by period'), 'Last 30 days')
+    // Period combines with the default RUNNING scope.
+    await waitFor(() =>
+      expect(listMatches).toHaveBeenLastCalledWith({ limit: 50, status: 'RUNNING', sinceDays: 30 }))
+  })
+
+  it('loads the next page via the cursor and appends rows', async () => {
+    listMatches
+      .mockResolvedValueOnce(env([MOCK_MATCHES[0]], 'tok1'))
+      .mockResolvedValueOnce(env([MOCK_MATCHES[1]], null))
+    renderPage()
+    const loadMore = await screen.findByRole('button', { name: /load more/i })
+    await userEvent.click(loadMore)
+    await waitFor(() => expect(screen.getByText('Night raid')).toBeInTheDocument())
+    expect(screen.getByText('Saturday run')).toBeInTheDocument()
+    // The cursor carries the active filters (default RUNNING scope) plus the cursor.
+    expect(listMatches).toHaveBeenLastCalledWith({ limit: 50, status: 'RUNNING', cursor: 'tok1' })
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /load more/i })).not.toBeInTheDocument())
+  })
+
+  it('disables paging when there is no next cursor', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    // The footer is always shown; with no cursor the button is disabled "No more pages".
+    expect(screen.queryByRole('button', { name: /load more/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /no more pages/i })).toBeDisabled()
+    expect(screen.getByText(/all loaded/i)).toBeInTheDocument()
   })
 
   it('opens the detail modal and loads match info', async () => {
@@ -133,7 +184,7 @@ describe('MatchesPage', () => {
   })
 
   it('shows empty state when there are no matches', async () => {
-    listMatches.mockResolvedValue([])
+    listMatches.mockResolvedValue(env([]))
     renderPage()
     expect(await screen.findByText('No matches found.')).toBeInTheDocument()
   })
@@ -167,9 +218,9 @@ describe('MatchesPage', () => {
   })
 
   it('deletes a stopped match after confirmation', async () => {
-    listMatches.mockResolvedValue([
+    listMatches.mockResolvedValue(env([
       { ...MOCK_MATCHES[0], status: 'ENDED' },
-    ])
+    ]))
     renderPage()
     await screen.findByText('Saturday run')
     await waitFor(() => expect(listMatchStatuses).toHaveBeenCalled())
@@ -223,13 +274,13 @@ describe('MatchesPage', () => {
   })
 
   it('renders untitled match with fallback label', async () => {
-    listMatches.mockResolvedValue([{ ...MOCK_MATCHES[0], name: null }])
+    listMatches.mockResolvedValue(env([{ ...MOCK_MATCHES[0], name: null }]))
     renderPage()
     expect(await screen.findByText('untitled')).toBeInTheDocument()
   })
 
   it('renders Multiplayer badge for singlePlayer=0 match', async () => {
-    listMatches.mockResolvedValue([{ ...MOCK_MATCHES[0], singlePlayer: 0 }])
+    listMatches.mockResolvedValue(env([{ ...MOCK_MATCHES[0], singlePlayer: 0 }]))
     renderPage()
     expect(await screen.findByText('Multiplayer')).toBeInTheDocument()
   })

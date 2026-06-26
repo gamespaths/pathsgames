@@ -114,24 +114,74 @@ paths:
   /api/admin/matches:
     get:
       tags: [Matches]
-      summary: List every match in the platform (admin)
+      summary: List matches in the platform — paginated (admin)
       description: |
-        Admin-only view returning every match created on the platform,
-        newest first. Unlike `GET /api/matches` — which is scoped to the
-        caller — this endpoint is not filtered by owner. The bearer token
-        must belong to a user whose role is `ADMIN`.
+        Admin-only view of the matches created on the platform, newest first.
+        Unlike `GET /api/matches` — which is scoped to the caller — this endpoint
+        is not filtered by owner. The bearer token must belong to a user whose
+        role is `ADMIN`.
 
         Step 0.19.10 — added so the admin console can list all matches.
+
+        v0.28.1 — the endpoint is now **paginated and filterable** so the admin
+        console never reads the whole table:
+          * the response is a `PagedMatches` envelope `{ items, nextCursor, limit }`
+            (no longer a bare array);
+          * pass `?cursor=` with the previous response's `nextCursor` to fetch the
+            next page (`nextCursor` is `null` on the last page);
+          * optional filters: `status`, `userUuid`, `storyUuid`, `sinceDays`.
+        On AWS this is a single DynamoDB Query on the `GSI2` "by type" index; on
+        Java/Python it is a keyset query (`ts_insert`, `id`) with `LIMIT`.
       operationId: listAllMatches
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size. Clamped to [1, 200].
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque token from a previous response's `nextCursor`. Omit for the first page.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: Exact status filter.
+          schema:
+            type: string
+            enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+        - name: userUuid
+          in: query
+          required: false
+          description: Only matches created by this user.
+          schema:
+            type: string
+        - name: storyUuid
+          in: query
+          required: false
+          description: Only matches of this story.
+          schema:
+            type: string
+        - name: sinceDays
+          in: query
+          required: false
+          description: Only matches created within the last N days.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
-          description: Matches list (newest first)
+          description: One page of matches (newest first)
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MatchSummary'
+                $ref: '#/components/schemas/PagedMatches'
         '401':
           description: Missing or invalid bearer token
         '403':
@@ -311,6 +361,26 @@ components:
             type: string
             format: uuid
           description: Trait UUIDs selected by the creator
+
+    PagedMatches:
+      type: object
+      description: |
+        v0.28.1 — one page of the admin match list (newest first). Returned by
+        `GET /api/admin/matches`.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Opaque token for the next page; `null` on the last page. Pass it back as `?cursor=`.
+        limit:
+          type: integer
+          format: int32
+          description: Effective (clamped) page size that produced this page.
+      required: [items, limit]
 
     LocationState:
       type: object

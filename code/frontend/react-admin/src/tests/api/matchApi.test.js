@@ -19,15 +19,23 @@ describe('matchApi', () => {
     })
   })
 
-  it('listMatches calls the admin endpoint', async () => {
-    mockGet.mockResolvedValue({ data: [] })
+  it('listMatches calls the admin endpoint with default empty params', async () => {
+    mockGet.mockResolvedValue({ data: { items: [], nextCursor: null, limit: 50 } })
     await matchApi.listMatches()
-    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches')
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches', { params: {} })
   })
 
-  it('listMatches returns response data', async () => {
-    mockGet.mockResolvedValue({ data: [{ uuid: 'm1' }] })
-    expect(await matchApi.listMatches()).toEqual([{ uuid: 'm1' }])
+  it('listMatches forwards pagination/filter params', async () => {
+    mockGet.mockResolvedValue({ data: { items: [], nextCursor: null, limit: 25 } })
+    await matchApi.listMatches({ limit: 25, cursor: 'c1', status: 'RUNNING', sinceDays: 7 })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches', {
+      params: { limit: 25, cursor: 'c1', status: 'RUNNING', sinceDays: 7 },
+    })
+  })
+
+  it('listMatches returns the envelope', async () => {
+    mockGet.mockResolvedValue({ data: { items: [{ uuid: 'm1' }], nextCursor: 'tok', limit: 50 } })
+    expect(await matchApi.listMatches()).toEqual({ items: [{ uuid: 'm1' }], nextCursor: 'tok', limit: 50 })
   })
 
   it('getMatchInfo calls the admin detail endpoint', async () => {

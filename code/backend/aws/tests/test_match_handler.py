@@ -727,24 +727,35 @@ ADMIN_USER = {
 }
 
 
-@patch('match.handler.db_utils.scan_pk_prefix')
+# v0.28.1 — the admin list is now a paginated GSI2 Query (not a Scan) and
+# returns a {items, nextCursor, limit} envelope with optional filters.
+
+@patch('match.handler.db_utils.query_index_page')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_list_all_matches_as_admin_returns_all(mock_jwt, mock_get, mock_scan):
+def test_list_all_matches_as_admin_returns_envelope(mock_jwt, mock_get, mock_page):
     mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
     mock_get.return_value = ADMIN_USER
-    mock_scan.return_value = [
-        {'uuid': 'm1', 'status': 'CREATED', 'currentClock': 0, 'expCost': 5, 'tsInsert': 100},
+    # The index already returns newest-first; the handler must not re-sort.
+    mock_page.return_value = ([
         {'uuid': 'm2', 'status': 'RUNNING', 'currentClock': 0, 'expCost': 5, 'tsInsert': 200},
-    ]
+        {'uuid': 'm1', 'status': 'CREATED', 'currentClock': 0, 'expCost': 5, 'tsInsert': 100},
+    ], None)
     from match.handler import lambda_handler
     event = make_event('GET', '/api/admin/matches',
                        headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
     body = _body(result)
-    assert [m['uuid'] for m in body] == ['m2', 'm1']  # newest first
-    mock_scan.assert_called_once_with('MATCH#')
+    assert [m['uuid'] for m in body['items']] == ['m2', 'm1']
+    assert body['nextCursor'] is None
+    assert body['limit'] == 50
+    # Backed by GSI2, default page size, newest-first, no filters/cursor.
+    args, kwargs = mock_page.call_args
+    assert args[0] == 'GSI2' and args[2] == 'MATCH'
+    assert kwargs['limit'] == 50 and kwargs['ascending'] is False
+    assert kwargs['start_key'] is None and kwargs['sk_from'] is None
+    assert kwargs['eq_filters'] == {'status': None, 'userCreatorUuid': None, 'storyUuid': None}
 
 
 @patch('match.handler.db_utils.get_item')
@@ -759,19 +770,73 @@ def test_list_all_matches_non_admin_returns_403(mock_jwt, mock_get):
     assert result['statusCode'] == 403
 
 
-@patch('match.handler.db_utils.scan_pk_prefix')
+@patch('match.handler.db_utils.query_index_page')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_list_all_matches_empty(mock_jwt, mock_get, mock_scan):
+def test_list_all_matches_empty(mock_jwt, mock_get, mock_page):
     mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
     mock_get.return_value = ADMIN_USER
-    mock_scan.return_value = []
+    mock_page.return_value = ([], None)
     from match.handler import lambda_handler
     event = make_event('GET', '/api/admin/matches',
                        headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 200
-    assert _body(result) == []
+    assert _body(result) == {'items': [], 'nextCursor': None, 'limit': 50}
+
+
+@patch('match.handler.db_utils.query_index_page')
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_emits_next_cursor(mock_jwt, mock_get, mock_page):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    last_key = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'GSI2_PK': 'MATCH', 'GSI2_SK': '00000000000000000100#m1'}
+    mock_page.return_value = ([{'uuid': 'm1', 'status': 'RUNNING'}], last_key)
+    from match.handler import lambda_handler, db_utils
+    event = make_event('GET', '/api/admin/matches', qs={'limit': '1'},
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
+    result = lambda_handler(event, {})
+    body = _body(result)
+    assert body['limit'] == 1
+    assert mock_page.call_args.kwargs['limit'] == 1
+    # The opaque cursor round-trips back to the LastEvaluatedKey.
+    assert body['nextCursor'] is not None
+    assert db_utils.decode_cursor(body['nextCursor']) == last_key
+
+
+@patch('match.handler.db_utils.query_index_page', return_value=([], None))
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_forwards_filters_and_cursor(mock_jwt, mock_get, mock_page):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    from match.handler import lambda_handler, db_utils
+    cursor = db_utils.encode_cursor({'PK': 'MATCH#prev', 'SK': 'METADATA'})
+    event = make_event('GET', '/api/admin/matches', headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       qs={'status': 'RUNNING', 'userUuid': 'u-9', 'storyUuid': 's-7',
+                           'sinceDays': '7', 'cursor': cursor})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    kwargs = mock_page.call_args.kwargs
+    assert kwargs['eq_filters'] == {'status': 'RUNNING', 'userCreatorUuid': 'u-9', 'storyUuid': 's-7'}
+    assert kwargs['start_key'] == {'PK': 'MATCH#prev', 'SK': 'METADATA'}
+    assert kwargs['sk_from'] is not None and len(kwargs['sk_from']) == 20  # 020d ts prefix
+
+
+@patch('match.handler.db_utils.query_index_page', return_value=([], None))
+@patch('match.handler.db_utils.get_item')
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_list_all_matches_clamps_and_defaults_limit(mock_jwt, mock_get, mock_page):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    mock_get.return_value = ADMIN_USER
+    from match.handler import lambda_handler
+    for raw, expected in [('9999', 200), ('0', 1), ('-5', 1), ('abc', 50), ('', 50), ('25', 25)]:
+        event = make_event('GET', '/api/admin/matches', qs={'limit': raw},
+                           headers={'Authorization': 'Bearer MOCK_ACCESS_admin'})
+        result = lambda_handler(event, {})
+        assert _body(result)['limit'] == expected, raw
+        assert mock_page.call_args.kwargs['limit'] == expected, raw
 
 
 # ── admin match control (statuses / update / stop / delete) ───────────────────

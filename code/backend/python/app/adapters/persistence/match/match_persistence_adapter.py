@@ -3,6 +3,8 @@ import uuid as uuid_lib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, or_
+
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
@@ -88,6 +90,41 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             rows = (
                 session.query(GamingMatchEntity)
                 .order_by(GamingMatchEntity.ts_insert.desc())
+                .all()
+            )
+            return [self._match_to_dict(r) for r in rows]
+
+    def find_matches_page(self, status: Optional[str], id_user: Optional[int],
+                          id_story: Optional[int], ts_from: Optional[str],
+                          ts_cursor: Optional[str], id_cursor: Optional[int],
+                          limit: int) -> List[Dict[str, Any]]:
+        # v0.28.1 — keyset page of the admin match list. ts_insert is an ISO
+        # string, so its lexical order matches chronological order; id is the
+        # deterministic tie-breaker. The keyset clause selects the rows strictly
+        # older than the previous page's last row, so pages never skip/duplicate.
+        with self.session_factory() as session:
+            q = session.query(GamingMatchEntity)
+            if status is not None:
+                q = q.filter(GamingMatchEntity.status == status)
+            if id_user is not None:
+                q = q.filter(GamingMatchEntity.id_user_creator == id_user)
+            if id_story is not None:
+                q = q.filter(GamingMatchEntity.id_story == id_story)
+            if ts_from is not None:
+                q = q.filter(GamingMatchEntity.ts_insert >= ts_from)
+            if ts_cursor is not None:
+                q = q.filter(
+                    or_(
+                        GamingMatchEntity.ts_insert < ts_cursor,
+                        and_(
+                            GamingMatchEntity.ts_insert == ts_cursor,
+                            GamingMatchEntity.id < id_cursor,
+                        ),
+                    )
+                )
+            rows = (
+                q.order_by(GamingMatchEntity.ts_insert.desc(), GamingMatchEntity.id.desc())
+                .limit(max(1, limit))
                 .all()
             )
             return [self._match_to_dict(r) for r in rows]

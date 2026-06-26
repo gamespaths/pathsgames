@@ -1,4 +1,6 @@
 """Step 19 — match read-side service."""
+import base64
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from app.core.models.match.match_models import (
@@ -6,9 +8,11 @@ from app.core.models.match.match_models import (
     LocationInfo,
     LocationNeighborInfo,
     MatchDetail,
+    MatchListFilter,
     MatchLocationState,
     MatchRegistryEntry,
     MatchSummary,
+    MatchSummaryPage,
 )
 from app.core.ports.match.match_ports import (
     CharacterReadPort,
@@ -46,6 +50,44 @@ class MatchQueryService(MatchQueryPort):
     def list_all_matches(self) -> List[MatchSummary]:
         rows = self.match_persistence_port.find_all_matches()
         return [self._summary_with_story(r, None) for r in rows]
+
+    def list_matches_page(self, filter: MatchListFilter) -> MatchSummaryPage:
+        # v0.28.1 — paginated, filterable admin list. Resolve creator/story uuids
+        # to ids first; an unknown uuid yields an empty page rather than silently
+        # dropping the filter (which would leak unrelated matches).
+        f = filter or MatchListFilter()
+        limit = _clamp_limit(f.limit)
+
+        id_user = None
+        if f.user_uuid and f.user_uuid.strip():
+            user = self.user_access_port.find_by_uuid(f.user_uuid)
+            if user is None:
+                return MatchSummaryPage(items=[], next_cursor=None, limit=limit)
+            id_user = user["id"]
+
+        id_story = None
+        if f.story_uuid and f.story_uuid.strip():
+            story = self.story_read_port.find_story_by_uuid(f.story_uuid)
+            if story is None:
+                return MatchSummaryPage(items=[], next_cursor=None, limit=limit)
+            id_story = story["id"]
+
+        ts_from = _since_days_to_ts(f.since_days)
+        status = f.status if (f.status and f.status.strip()) else None
+        ts_cursor, id_cursor = _decode_cursor(f.cursor)
+
+        # Over-fetch one row to learn whether a further page exists.
+        rows = self.match_persistence_port.find_matches_page(
+            status, id_user, id_story, ts_from, ts_cursor, id_cursor, limit + 1
+        )
+        has_more = len(rows) > limit
+        page_rows = rows[:limit] if has_more else rows
+        items = [self._summary_with_story(r, None) for r in page_rows]
+        next_cursor = None
+        if has_more and page_rows:
+            last = page_rows[-1]
+            next_cursor = _encode_cursor(last.get("ts_insert"), last.get("id"))
+        return MatchSummaryPage(items=items, next_cursor=next_cursor, limit=limit)
 
     def _summary_with_story(self, row, user_uuid) -> MatchSummary:
         # Resolve the match's story so the list summary carries storyUuid/difficultyUuid,
@@ -294,3 +336,62 @@ class MatchQueryService(MatchQueryPort):
             class_uuid=row.get("class_uuid"),
             trait_uuids=row.get("trait_uuids") or [],
         )
+
+
+# ── v0.28.1 admin-list pagination helpers ────────────────────────────────────
+
+DEFAULT_PAGE_LIMIT = 50
+MAX_PAGE_LIMIT = 200
+
+
+def _clamp_limit(requested) -> int:
+    """Clamp the requested page size to [1, MAX_PAGE_LIMIT]; default when unset."""
+    if requested is None:
+        return DEFAULT_PAGE_LIMIT
+    try:
+        value = int(requested)
+    except (TypeError, ValueError):
+        return DEFAULT_PAGE_LIMIT
+    return max(1, min(value, MAX_PAGE_LIMIT))
+
+
+def _since_days_to_ts(since_days) -> Optional[str]:
+    """sinceDays → ISO-8601 lower bound on ts_insert; None when unset/≤0."""
+    if since_days is None:
+        return None
+    try:
+        days = int(since_days)
+    except (TypeError, ValueError):
+        return None
+    if days <= 0:
+        return None
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+
+def _encode_cursor(ts_insert: Optional[str], row_id: Optional[int]) -> Optional[str]:
+    """Encode the keyset position (ts_insert|id) as an opaque base64 token."""
+    if ts_insert is None or row_id is None:
+        return None
+    raw = f"{ts_insert}|{row_id}"
+    return base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii")
+
+
+def _decode_cursor(cursor: Optional[str]):
+    """Decode an opaque cursor into (ts_cursor, id_cursor).
+
+    Returns ``(None, None)`` for a missing or malformed token, so the query
+    simply starts from the first page instead of failing."""
+    if not cursor:
+        return None, None
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode("ascii")).decode("utf-8")
+    except (ValueError, TypeError):
+        return None, None
+    sep = raw.rfind("|")
+    if sep <= 0 or sep == len(raw) - 1:
+        return None, None
+    try:
+        id_cursor = int(raw[sep + 1:])
+    except ValueError:
+        return None, None
+    return raw[:sep], id_cursor

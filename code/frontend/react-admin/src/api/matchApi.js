@@ -9,9 +9,11 @@ import { apiClient } from './client'
  * Requests carry the admin bearer token configured on the login screen.
  */
 
-// GET /api/admin/matches — every match in the platform (admin view, newest first)
-export const listMatches = () =>
-  apiClient().get('/api/admin/matches').then(r => r.data)
+// GET /api/admin/matches — paginated, filterable list of matches (v0.28.1).
+// Returns the envelope { items, nextCursor, limit }. `params` may carry
+// { limit, cursor, status, userUuid, storyUuid, sinceDays } — all optional.
+export const listMatches = (params = {}) =>
+  apiClient().get('/api/admin/matches', { params }).then(r => r.data)
 
 // GET /api/admin/matches/:uuid/info — full runtime state of a single match.
 // The admin console uses the admin-scoped endpoint (not the per-user

@@ -237,4 +237,34 @@ class MatchPersistenceAdapterTest {
                 .thenReturn(List.of(new GamingStateRegistryEntity()));
         assertEquals(1, readAdapter.findRegistryByMatchId(1L).size());
     }
+
+    @Test
+    void readAdapter_findMatchesPage_delegatesWithLimitAndCriteria() {
+        var criteria = new games.paths.core.port.match.MatchReadPort.MatchPageCriteria(
+                "RUNNING", 7L, 2L, "2024-01-01T00:00:00Z", "2024-02-02T00:00:00Z", 9L, 25);
+        when(matchRepository.findMatchesPage(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(new GamingMatchEntity()));
+
+        assertEquals(1, readAdapter.findMatchesPage(criteria).size());
+
+        var pageCaptor = org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(matchRepository).findMatchesPage(eq("RUNNING"), eq(7L), eq(2L),
+                eq("2024-01-01T00:00:00Z"), eq("2024-02-02T00:00:00Z"), eq(9L), pageCaptor.capture());
+        assertEquals(25, pageCaptor.getValue().getPageSize());
+        assertEquals(0, pageCaptor.getValue().getPageNumber());
+    }
+
+    @Test
+    void readAdapter_findMatchesPage_clampsNonPositiveLimit() {
+        var criteria = new games.paths.core.port.match.MatchReadPort.MatchPageCriteria(
+                null, null, null, null, null, null, 0);
+        when(matchRepository.findMatchesPage(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        readAdapter.findMatchesPage(criteria);
+
+        var pageCaptor = org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(matchRepository).findMatchesPage(any(), any(), any(), any(), any(), any(), pageCaptor.capture());
+        assertEquals(1, pageCaptor.getValue().getPageSize()); // PageRequest rejects size < 1
+    }
 }

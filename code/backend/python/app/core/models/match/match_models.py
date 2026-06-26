@@ -39,6 +39,36 @@ class MatchSummary:
 
 
 @dataclass
+class MatchListFilter:
+    """v0.28.1 — raw request inputs for the paginated admin match list.
+
+    Carries the *unresolved* values from the query string; the query service
+    turns ``user_uuid``/``story_uuid`` into ids, ``since_days`` into an ISO
+    lower bound and ``cursor`` into a keyset position. ``None``/blank ⇒ no filter.
+    """
+
+    status: Optional[str] = None
+    user_uuid: Optional[str] = None
+    story_uuid: Optional[str] = None
+    since_days: Optional[int] = None
+    cursor: Optional[str] = None
+    limit: Optional[int] = None
+
+
+@dataclass
+class MatchSummaryPage:
+    """v0.28.1 — one page of the admin match list (newest first).
+
+    ``next_cursor`` is ``None`` on the last page; pass it back as ``?cursor=`` to
+    fetch the following page. ``limit`` is the effective (clamped) page size.
+    """
+
+    items: List[MatchSummary]
+    next_cursor: Optional[str]
+    limit: int
+
+
+@dataclass
 class MatchLocationState:
     id_location: int
     uuid: str

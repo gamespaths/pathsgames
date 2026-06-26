@@ -5,9 +5,12 @@ import games.paths.adapters.rest.dto.MatchInfoResponse;
 import games.paths.adapters.rest.dto.MatchLocationsResponse;
 import games.paths.adapters.rest.dto.MatchSummaryResponse;
 import games.paths.adapters.rest.dto.MatchUpdateRequest;
+import games.paths.adapters.rest.dto.PagedMatchesResponse;
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchListFilter;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
@@ -61,14 +64,35 @@ public class MatchAdminController {
         this.movementPort = movementPort;
     }
 
-    /** GET /api/admin/matches — lists every match in the platform (admin view). */
+    /**
+     * GET /api/admin/matches — paginated, filterable list of matches (v0.28.1).
+     *
+     * <p>Returns a {@link PagedMatchesResponse} envelope instead of a bare array,
+     * so the console never reads the whole table. All query parameters are
+     * optional:</p>
+     * <ul>
+     *   <li>{@code limit} — page size (default 50, max 200);</li>
+     *   <li>{@code cursor} — opaque token from a previous {@code nextCursor};</li>
+     *   <li>{@code status} — exact status filter;</li>
+     *   <li>{@code userUuid} — creator filter;</li>
+     *   <li>{@code storyUuid} — story filter;</li>
+     *   <li>{@code sinceDays} — only matches created within the last N days.</li>
+     * </ul>
+     */
     @GetMapping
-    public ResponseEntity<Object> listAllMatches() {
-        List<MatchSummary> models = matchQueryPort.listAllMatches();
-        List<MatchSummaryResponse> result = models.stream()
+    public ResponseEntity<Object> listAllMatches(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String userUuid,
+            @RequestParam(required = false) String storyUuid,
+            @RequestParam(required = false) Integer sinceDays) {
+        MatchSummaryPage page = matchQueryPort.listMatchesPage(
+                new MatchListFilter(status, userUuid, storyUuid, sinceDays, cursor, limit));
+        List<MatchSummaryResponse> items = page.items().stream()
                 .map(MatchSummaryResponse::fromModel)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new PagedMatchesResponse(items, page.nextCursor(), page.limit()));
     }
 
     /**

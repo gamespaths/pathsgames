@@ -79,6 +79,10 @@ Resources:
           AttributeType: S
         - AttributeName: GSI1_SK
           AttributeType: S
+        - AttributeName: GSI2_PK
+          AttributeType: S
+        - AttributeName: GSI2_SK
+          AttributeType: S
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
@@ -91,6 +95,18 @@ Resources:
             - AttributeName: GSI1_PK
               KeyType: HASH
             - AttributeName: GSI1_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # v0.28.1 — "by type" index. Every match METADATA item carries
+        # GSI2_PK="MATCH" and GSI2_SK="{tsInsert:020d}#{uuid}". The admin list
+        # (GET /api/admin/matches) becomes a single paginated Query on this index
+        # (newest-first, sinceDays as an SK range) instead of a full-table Scan.
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2_PK
+              KeyType: HASH
+            - AttributeName: GSI2_SK
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
