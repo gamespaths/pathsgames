@@ -180,7 +180,9 @@ export default function CardsFastEditPage() {
   }
 
   /** Returns the distinct entity types referencing this card via idCard
-   *  (plus 'story' when the story itself points at the card). */
+   *  (plus 'story' when the story itself points at the card). A card used as a
+   *  location-neighbor return card (idCardBack) also counts as a reference, so
+   *  it is treated like any other location-neighbors link. */
   const getCardEntityTypes = (idCard) => {
     const types = []
     if (story?.idCard != null && Number(story.idCard) === Number(idCard)) types.push('story')
@@ -188,6 +190,14 @@ export default function CardsFastEditPage() {
       const list = refEntitiesByType[type] || []
       if (list.some(e => e.idCard != null && Number(e.idCard) === Number(idCard))) types.push(type)
     })
+    // location-neighbors also reference a card through idCardBack (return card);
+    // include the type even when only idCardBack matches, avoiding duplicates.
+    if (!types.includes('location-neighbors')) {
+      const neighbors = refEntitiesByType['location-neighbors'] || []
+      if (neighbors.some(e => e.idCardBack != null && Number(e.idCardBack) === Number(idCard))) {
+        types.push('location-neighbors')
+      }
+    }
     return types
   }
 
@@ -540,24 +550,22 @@ export default function CardsFastEditPage() {
                   <th style={{ width: 56, textAlign: 'center' }}>ID</th>
                   <th style={{ minWidth: 130 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span>Entity</span>
                       <select
                         value={entityFilter}
                         onChange={e => setEntityFilter(e.target.value)}
-                        aria-label="Filter by entity type"
+                        aria-label="Filter by entity type" className="pg-input"
                         style={{
                           background: 'rgba(0,0,0,0.35)',
                           border: '1px solid rgba(200,150,10,0.3)',
                           borderRadius: 3,
                           color: 'var(--color-parchment)',
-                          fontSize: '0.68rem',
                           padding: '0.1rem 0.2rem',
                           fontFamily: 'Crimson Text, Georgia, serif',
                           outline: 'none',
                         }}
                       >
-                        <option value="">Tutti</option>
-                        <option value="__none__">Non collegate</option>
+                        <option value="">All entity</option>
+                        <option value="__none__">Unlinked</option>
                         {presentEntityTypes.map(t => (
                           <option key={t} value={t}>{prettyEntityType(t)}</option>
                         ))}
@@ -567,8 +575,8 @@ export default function CardsFastEditPage() {
                   <th style={{ minWidth: 160 }}>Title Text</th>
                   <th style={{ minWidth: 160 }}>Desc Text</th>
                   <th style={{ minWidth: 160 }}>Copyright Text</th>
-                  <th style={{ width: 90 }}>Copyright Link</th>
-                  <th style={{ width: 90 }}>Image URL</th>
+                  <th style={{ width: 90 }}>(c) Link</th>
+                  <th style={{ width: 90 }}>ImgURL</th>
                   <th style={{ width: 70 }}>Creator</th>
                   <th style={{ width: 52 }}></th>
                 </tr>

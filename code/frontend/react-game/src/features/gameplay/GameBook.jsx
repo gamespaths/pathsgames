@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../i18n/context'
 import LocationCard from './cards/LocationCard'
 import PlayerStats from './cards/PlayerStats'
@@ -22,6 +22,7 @@ import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
+import { buildWeatherCard } from '@/utils/loadoutCards'
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t } = useTranslation()
@@ -43,6 +44,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // weather), loaded from /locations. The neighbor list itself is the /info
   // adapter's `locations`; this only supplies the weather-resolved move cost.
   const [locationCosts, setLocationCosts] = useState({})
+  const prevWeatherUuidRef = useRef(null)
   // The `story` prop is the lean summary (no classes/characters/traits/difficulties).
   // The full detail (with content lists) arrives via the `storyDetail` prop, loaded
   // by GamePage; `storyFull` falls back to the summary until the detail arrives.
@@ -83,6 +85,24 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       .catch(() => {})
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
+
+  // Show the new weather card in the previewModal when the weather UUID changes
+  // (skips the initial load where prevWeatherUuidRef is still null).
+  useEffect(() => {
+    if (!weather) return
+    const prevUuid = prevWeatherUuidRef.current
+    prevWeatherUuidRef.current = weather.uuid
+    if (prevUuid === null || weather.uuid === prevUuid) return
+    const card = weather.card ? { ...weather.card } : buildWeatherCard(weather, t)
+    if (!card.title) card.title = t('game.weather.title')
+    const costItems = weather.costMoveSafeLocation > 0
+      ? [{ key: 'energy', value: '+' + weather.costMoveSafeLocation, label: t('game.movement.moveCost') }]
+      : []
+    setPreviewModal({ card, type: 'weather', statItemsToPageContent: costItems, additionalProps: {} })
+    const el = document.getElementById('cardPreviewModal')
+    const Modal = window.bootstrap?.Modal
+    if (el && Modal) Modal.getOrCreateInstance(el).show()
+  }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Step 28 — load the per-neighbor total energy cost; the weather can change it,
   // so it is refreshed together with the clock/weather after a board reload.

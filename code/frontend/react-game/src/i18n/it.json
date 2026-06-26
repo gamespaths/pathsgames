@@ -92,7 +92,7 @@
         "dexterity": "Destrezza",
         "intelligence": "Intelligenza",
         "constitution": "Fisico",
-        "weight": "Trasporto",
+        "weight": "Peso",
         "exp": "EXP"
       }
     }
@@ -144,7 +144,7 @@
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
-      "weight": "Trasporto",
+      "weight": "Peso",
       "items": "Oggetti"
     },
     "move": "Vai Qui",

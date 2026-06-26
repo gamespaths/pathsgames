@@ -881,6 +881,17 @@ html, body {
   color: var(--color-gold-super-deep);
 }
 
+.book-page-desc a {
+  cursor: pointer;
+  color: var(--color-gold-shine);
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+}
+.book-page-desc a:hover {
+  color: var(--color-gold-light);
+  text-decoration-color: var(--color-gold);
+}
+
 /* BookPageContent desc: badges inline, large as text */
 .book-page-desc .bonus-badge {
   color: var(--color-parchment); /*quiqui todo check*/
@@ -2435,9 +2446,24 @@ html, body {
   position: relative;
   background: transparent;
   border: none;
+  pointer-events: auto;
 }
 .card-preview-modal-body {
   padding: 0;
+  height: min(88vh, 680px);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+.card-preview-modal-body .book-page-content {
+  flex: 1;
+  min-height: 0;
+  pointer-events: auto;
+}
+.card-preview-modal-body a,
+.card-preview-modal-body .gc-credits__link {
+  cursor: pointer;
+  pointer-events: auto;
 }
 .card-preview-modal-close {
   position: absolute;

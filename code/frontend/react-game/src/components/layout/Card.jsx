@@ -136,7 +136,6 @@ export default function Card({
           <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={bonusBadgeListLittleTitle} />
         }
       </div>}
-      
       { isPage && <h2 className="book-page-title">
           { onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
           <i className="fas fa-arrow-left me-1" />

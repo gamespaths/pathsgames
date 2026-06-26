@@ -218,9 +218,25 @@ i18n keys (EN + IT): `modals.guestUser.title`, `modals.guestUser.anonymous`, `mo
 
 ## 5. Internationalisation (i18n)
 
-`src/i18n/context.jsx` provides a `LanguageContext` with a `lang` state (default: `'it'`). The `useTranslation()` hook returns a `t(key)` function that resolves dot-notation keys from `en.json` / `it.json`.
+`src/i18n/context.jsx` provides a `LanguageContext` with a `lang` state and a `setLang` function. The `useTranslation()` hook returns a `t(key)` function that resolves dot-notation keys from `en.json` / `it.json`.
 
 The language switcher in the Navbar toggles the context. All UI labels use `t()` — no hardcoded strings in components.
+
+### 5.0a Language persistence (localStorage)
+
+`LanguageProvider` persists the selected language to `localStorage` under the key `pathsgames.lang`. On mount the initial language is resolved in the following priority order:
+
+| Priority | Source | Condition |
+|----------|--------|-----------|
+| 1 | `localStorage['pathsgames.lang']` | If a value was saved by the user |
+| 2 | `navigator.language` (browser) | Only if the detected language is supported (`en` or `it`); e.g. `it-IT` → `it` |
+| 3 | `'en'` | Hard fallback |
+
+An explicit user choice always wins over the browser language. The storage key is `STORAGE_KEY = 'pathsgames.lang'` (defined at the top of `context.jsx`).
+
+**GDPR / cookie disclosure:** `pathsgames.lang` is a `localStorage` item (not a cookie), but it is disclosed in the strictly-necessary / functional section of the consent table in `src/consent/cookieConsent.js` (en + it rows, expiration "Persistent (until cleared)"). It does not require blocking consent because it is a functional preference set on an explicit user action.
+
+**Tests:** `src/test/i18nContext.test.jsx` covers 14 cases (persistence on change, restore from storage, browser-language detection, unsupported language fallback, user-choice priority over browser language); coverage of `context.jsx` > 95%.
 
 ### 5.0 Backend language propagation (v0.19.13)
 
@@ -462,7 +478,7 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     > - **Button alignment**: `config-change-btn` and `config-coming-soon-btn` are `width: auto`, font-size reduced to `0.65rem`, footer aligned right (`align-items: flex-end`) so buttons sit in the bottom-right corner of cover cards.
     > - **Mobile top clipping fix**: `book-overlay` padding-top raised to `56px` on mobile so the first card in the vertical list is not hidden under the navbar.
 
-- **Document Version**: 0.19.13
+- **Document Version**: 0.28.2
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.18.0 | First web main frontend project | May 05, 2026 |
@@ -473,8 +489,9 @@ All Unsplash images are free-license. All SVG icons are from [game-icons.net](ht
     | 0.19.8 | Guest identity: GuestUserProvider, paths.games.user cookie, api/auth.js, GuestUserModal, Navbar modal trigger | May 19, 2026 |
     | 0.19.13 | `?lang=` forwarded to /api/stories, /api/stories/{uuid}, /api/match/{uuid}/info; bug fix: story catalog and END_GAME card now translated correctly | Jun 23, 2026 |
     | 0.20.3 | GTM section updated: Consent Mode v2 defaults inline + GTM loaded via `src/consent/gtm.js`; inline GTM snippet removed | May 28, 2026 |
+    | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
 
-- **Last Updated**: Jun 23, 2026
+- **Last Updated**: Jun 26, 2026
 - **Status**: Active development
 
 

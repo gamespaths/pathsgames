@@ -126,6 +126,23 @@ The consent banner/modal is themed with the site design tokens (dark background 
 - Website: all 5 consent assets (`consent-init.js`, `cookieconsent.css`, `cookieconsent.umd.js`, `cookieconsent-config.js`, `index.html`) served at HTTP 200 when static-hosting locally.
 - No functional CookieYes references remain in `code/` (only descriptive "replaces CookieYes" comments).
 
+### Cookie table — how to add or change entries
+
+The list of cookies/storage keys shown to users is maintained in **two places** — keep them in sync:
+
+1. **react-game** — `src/consent/cookieConsent.js`, in `TRANSLATIONS.en` / `TRANSLATIONS.it` → `preferencesModal.sections[].cookieTable.body`. Necessary items go under `linkedCategory: 'necessary'`; analytics items under `linkedCategory: 'analytics'`. **Bump `REVISION`** whenever the policy changes materially so returning users are re-prompted.
+2. **website** — `code/website/html/assets/cookieconsent-config.js`, same `cookieTable.body` structure.
+
+Currently disclosed items in the `necessary` category (react-game):
+
+| Name | Description | Expiration |
+|------|-------------|------------|
+| `pathsgames.guestcookie` | Backend HttpOnly session cookie | 30 days |
+| `pathsgames.refreshToken` | Backend HttpOnly refresh cookie | 7 days |
+| `pathsgames.cookiesConsent` | Stores consent choice | 6 months |
+| `pathsgames.turnstilePass` | Antibot pass cache | 30 minutes |
+| `pathsgames.lang` | Remembers chosen interface language (localStorage) | Persistent (until cleared) |
+
 
 ## 0.20.4 — Turnstile antibot expanded to three surfaces
 
@@ -1329,7 +1346,7 @@ curl http://<EC2-IP>:8044/api/admin/matches
 
 
 
-- **Document Version**: 0.24.1
+- **Document Version**: 0.28.2
 
     | Version | Description | Date |
     |---------|-------------|------|
@@ -1344,8 +1361,9 @@ curl http://<EC2-IP>:8044/api/admin/matches
     | 0.20.6 | Advanced start-match interface | June 03, 2026 |
     | 0.20.7 | EC2 Docker deploy — Java backend on server2 (`aws_ec2_with_java_docker/`, tag `:test`) | June 05, 2026 |
     | 0.24.2 | EC2 Docker deploy — Python backend on server3 (`aws_ec2_with_python_docker/`, tag `:test-python`); server naming convention table; Dockerfile dual-port (8042+8044); HOST env var; optional story seed via `scripts/seed_stories.py` | June 14, 2026 |
+    | 0.28.2 | i18n: `LanguageProvider` persists lang to `localStorage['pathsgames.lang']`; initial lang resolves from saved choice → browser lang → `'en'`; `pathsgames.lang` added to strictly-necessary consent table in `cookieConsent.js`; 14 tests in `i18nContext.test.jsx` | Jun 26, 2026 |
 
-- **Last Updated**: June 14, 2026
+- **Last Updated**: June 26, 2026
 - **Status**: Complete
 
 # < Paths Games />

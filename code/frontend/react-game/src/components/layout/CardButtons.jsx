@@ -69,7 +69,17 @@ export default function CardButtons({
     return (<div className={divStyle}><div className="gc-actions">
       {flagInformationCard && getPreviewButton(!previewOpened, " me-1", previewOpened)}
       {(!actionOnlyIfPreview || previewOpened) && !actionStarted &&
-        <button className="gc-footer__btn" onClick={() => { setActionStarted(true); onAction(); }}>
+        <button className="gc-footer__btn" onClick={async () => {
+          // Show the in-progress spinner, then clear it once the action settles
+          // so a card that stays mounted (e.g. GoToSleepCard while energy is
+          // still <= 1) returns to its actionable state instead of spinning
+          // forever. Cards that unmount on success (movement, end-game) simply
+          // never run the reset — which is harmless.
+          setActionStarted(true)
+          // The action handler (handleSleep/handleMove/…) surfaces its own
+          // errors; here we only guarantee the spinner is cleared either way.
+          try { await onAction() } catch { /* handled by the action */ } finally { setActionStarted(false) }
+        }}>
           <i className={`fas ${actionIcon} me-1`} />
           <span className="gc-footer__btn-label">{actionLabel}</span>
         </button>}

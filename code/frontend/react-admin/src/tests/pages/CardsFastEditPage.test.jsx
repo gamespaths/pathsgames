@@ -357,6 +357,40 @@ describe('CardsFastEditPage', () => {
     expect(screen.getByTitle('Linked to Locations')).toBeInTheDocument()
   })
 
+  it('treats a card used as a location-neighbor return card (idCardBack) as referenced', async () => {
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')    return Promise.resolve(mockCards)
+      if (type === 'texts')    return Promise.resolve(mockTexts)
+      if (type === 'creators') return Promise.resolve(mockCreators)
+      // Card 2 is referenced only via idCardBack on a neighbor (not idCard)
+      if (type === 'location-neighbors') return Promise.resolve([{ uuid: 'n1', idCard: 99, idCardBack: 2 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    // Card 2 must show the Location Neighbors badge, not the "unused" delete button
+    expect(screen.getByTitle('Linked to Location Neighbors')).toBeInTheDocument()
+    // Only card 1 stays unused
+    expect(screen.getAllByTitle('Delete unused card').length).toBe(1)
+  })
+
+  it('does not duplicate the neighbor badge when a card matches both idCard and idCardBack', async () => {
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')    return Promise.resolve(mockCards)
+      if (type === 'texts')    return Promise.resolve(mockTexts)
+      if (type === 'creators') return Promise.resolve(mockCreators)
+      // Card 1 referenced via idCard, card 1 also as idCardBack on another neighbor
+      if (type === 'location-neighbors') return Promise.resolve([
+        { uuid: 'n1', idCard: 1, idCardBack: 5 },
+        { uuid: 'n2', idCard: 7, idCardBack: 1 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    expect(screen.getAllByTitle('Linked to Location Neighbors').length).toBe(1)
+  })
+
   it('shows delete button in Entity column for unreferenced cards', async () => {
     renderPage()
     await waitFor(() => screen.getByText(/Cards Fast Edit/i))
