@@ -39,11 +39,11 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
   return (
     <>
       <Card card={classEntity?.card} entityType="class" story={storyFull} flagInformationCard={true}
-        statistics={classItems} flagShowFullStatistics={false}
+        statistics={classItems} flagShowFullStatistics={true}
         onPreview={() => onPreview(classEntity?.card, 'class', null, classItems, true)}
       />
       <Card card={characterEntity?.card} entityType="character" story={storyFull} flagInformationCard={true}
-        statistics={characterItems} flagShowFullStatistics={false}
+        statistics={characterItems} flagShowFullStatistics={true}
         onPreview={() => onPreview(characterEntity?.card, 'character', null, characterItems, true)}
       />
       {playerStats?.traitUuids?.map((trait, index) => {
@@ -51,13 +51,13 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         const traitItems = statItems(traitEntity, 'trait')
         return (
           <Card key={traitEntity?.uuid ?? trait?.uuid ?? index} card={traitEntity?.card} entityType="trait" story={storyFull} flagInformationCard={true}
-            statistics={traitItems} flagShowFullStatistics={false}
+            statistics={traitItems} flagShowFullStatistics={true}
             onPreview={() => onPreview(traitEntity?.card, 'trait', null, traitItems, true)}
           />
         )
       })}
       <Card card={difficultyEntity?.card} entityType="difficulty" story={storyFull} flagInformationCard={true}
-        statistics={difficultyItems} flagShowFullStatistics={false}
+        statistics={difficultyItems} flagShowFullStatistics={true}
         onPreview={() => onPreview(difficultyEntity?.card, 'difficulty', null, difficultyItemsLong, true)}
       />
       <Card card={story.card} entityType="story" story={story} flagInformationCard={true}

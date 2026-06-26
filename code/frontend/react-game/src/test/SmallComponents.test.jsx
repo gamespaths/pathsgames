@@ -26,7 +26,7 @@ describe('UserLanguageSelector', () => {
 })
 
 describe('CookieConsentManager', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear() })
 
   it('boots the consent banner with the current language and renders nothing', () => {
     const { container } = wrap(<CookieConsentManager />)
