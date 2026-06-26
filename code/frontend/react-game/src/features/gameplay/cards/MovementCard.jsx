@@ -37,15 +37,15 @@ export default function MovementCard({
       onError?.(e)
     } finally {
       setMoving(false)
-    }
+    } 
   }
 
   const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
   const costBadge = (
-    <BonusBadgeList items={costItems} 
+    <BonusBadgeList items={costItems.map(item => ({ ...item, label: null }))} 
       className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
   ) 
-  /* const moveInfo = (
+    /* const moveInfo = (
     <div className="movement-info">
       <span>
         { location?.direction ? `${location.direction} · ` : '' }
@@ -79,6 +79,8 @@ export default function MovementCard({
       actionOnlyIfPreview={true}
       actionWithInfo={true}
       childrenIntoImage={costBadge}
+      //flagShowFullStatistics={false}
+      //statistics={costItems}
     />
   )
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
-import mockMatchInfo from '../mock/matchInfo.json'
+import mockMatchInfo from './fixtures/matchInfo.json'
 
 describe('matchInfoToGameData', () => {
   it('returns empty board for null info', () => {

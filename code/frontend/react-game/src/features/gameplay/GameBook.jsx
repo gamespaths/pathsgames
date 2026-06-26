@@ -12,7 +12,6 @@ import Card from '../../components/layout/Card'
 import {
   buildCardCharacteristics,
   buildCardCharacteristicsRight,
-  resolveSelectionEntity,
   storySelectionCount,
   selectedTraitCount,
 } from '@/utils/gamebook'
@@ -21,6 +20,8 @@ import GoToSleepCard from './cards/GoToSleepCard'
 import MovementCard from './cards/MovementCard'
 import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
+import PlayerCards from './cards/PlayerCards'
+import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t } = useTranslation()
@@ -228,18 +229,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} />
-          {/*
-            TODO add others card  objects and special actions!
-          */}
-          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card} entityType="class" story={storyFull} flagInformationCard={true} 
-            onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'class')?.card, 'class', null, null ,true)} />
-          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card} entityType="character" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'character')?.card, 'character', null, null , true)} story={storyFull} flagInformationCard={true} />
-          {playerStats?.traitUuids?.map((trait, index) => (
-            <Card key={trait.uuid} card={resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card} entityType="trait" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)?.card, 'trait', null, null , true)} story={storyFull} flagInformationCard={true} />
-          ))}
-          <Card card={resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card} entityType="difficulty" onPreview={() => handleSelectionPreviewFull(resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty')?.card, 'difficulty', null, 
-            [{key:'energy',label:t('game.energyEverySleep'),value:resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty').energy}] , true)} story={storyFull} flagInformationCard={true} />
-          <Card card={story.card} entityType="story" onPreview={() => handleSelectionPreviewFull(story.card, 'story', null, null , true)} story={story} flagInformationCard={true} />
+
+          <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
+            gameData={gameData} onPreview={handleSelectionPreviewFull} />
         </div>
       </div>
     : <>

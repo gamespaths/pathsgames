@@ -16,15 +16,13 @@ vi.mock('../i18n/context', () => ({
 
 vi.mock('../context/ServerContext', () => ({
   useServer: () => ({
-    server: 'mock',
+    server: 'http://localhost:8042',
     servers: [
-      { label: 'Mock (offline)', url: 'mock' },
       { label: 'Local (8042)', url: 'http://localhost:8042' },
     ],
     probing: false,
     changeServer: mockChangeServer,
   }),
-  MOCK_SERVER: 'mock',
 }))
 
 const mockOpenGuestModal = vi.fn()

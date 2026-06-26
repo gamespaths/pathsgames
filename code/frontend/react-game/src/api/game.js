@@ -1,4 +1,3 @@
-import mockMatchInfo from '../mock/matchInfo.json'
 import { getMatchInfo as fetchMatchInfo } from './matches'
 
 export class MatchNotRunningError extends Error {
@@ -16,24 +15,17 @@ export class MatchNotRunningError extends Error {
  * (MatchInfoResponse). It delegates to {@link fetchMatchInfo} so the call
  * carries the guest JWT and hits the real, match-scoped endpoint.
  *
+ * Returns `null` when no match uuid is given or the backend returns no data.
  * Throws {@link MatchNotRunningError} if the match exists but its status is
- * not RUNNING (e.g. ENDED, GAMEOVER). Network failures and mock-server null
- * responses still fall back to `mock/matchInfo.json` so local dev works.
+ * not RUNNING (e.g. ENDED, GAMEOVER). Network/backend errors propagate to the
+ * caller.
  */
 export async function getMatchInfo(matchUuid, accessToken, lang) {
-  if (matchUuid) {
-    let data = null
-    try {
-      data = await fetchMatchInfo(matchUuid, accessToken, lang)
-    } catch {
-      // network / server errors fall through to the mock payload
-    }
-    if (data) {
-      if (data.match?.status !== 'RUNNING') {
-        throw new MatchNotRunningError(data.match?.status)
-      }
-      return data
-    }
+  if (!matchUuid) return null
+  const data = await fetchMatchInfo(matchUuid, accessToken, lang)
+  if (!data) return null
+  if (data.match?.status !== 'RUNNING') {
+    throw new MatchNotRunningError(data.match?.status)
   }
-  return mockMatchInfo
+  return data
 }

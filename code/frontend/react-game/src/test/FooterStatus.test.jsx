@@ -7,12 +7,11 @@ vi.mock('../i18n/context', () => ({
 
 const mockChangeServer = vi.fn()
 vi.mock('../context/ServerContext', () => ({
-  MOCK_SERVER: 'mock',
   useServer: () => ({
     server: 'http://api.test',
     servers: [
-      { label: 'Mock (offline)', url: 'mock' },
       { label: 'Local', url: 'http://api.test' },
+      { label: 'Remote', url: 'http://api.remote' },
     ],
     probing: false,
     changeServer: mockChangeServer,
@@ -50,7 +49,7 @@ describe('Footer — real-server status', () => {
   it('invokes changeServer when a different server is selected', async () => {
     getServerStatus.mockResolvedValue({})
     render(<Footer />)
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'mock' } })
-    expect(mockChangeServer).toHaveBeenCalledWith('mock')
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'http://api.remote' } })
+    expect(mockChangeServer).toHaveBeenCalledWith('http://api.remote')
   })
 })

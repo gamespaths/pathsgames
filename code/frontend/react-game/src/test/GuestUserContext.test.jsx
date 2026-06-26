@@ -4,9 +4,8 @@ import { GuestUserProvider, useGuestUser } from '@/features/guest-user/GuestUser
 import * as authApi from '../api/auth'
 
 vi.mock('../context/ServerContext', () => {
-  let current = 'mock'
+  let current = 'http://api.test'
   return {
-    MOCK_SERVER: 'mock',
     useServer: () => ({ server: current }),
     __setServer: (url) => { current = url },
   }
@@ -41,25 +40,17 @@ function Probe() {
 describe('GuestUserContext', () => {
   beforeEach(async () => {
     vi.restoreAllMocks()
-    await setServer('mock')
-  })
-
-  it('synthesizes a mock guest when server is mock without calling the API', async () => {
-    const createSpy = vi.spyOn(authApi, 'createGuestSession')
-    const resumeSpy = vi.spyOn(authApi, 'resumeGuestSession')
-
-    render(<GuestUserProvider><Probe /></GuestUserProvider>)
-
-    await waitFor(() => expect(screen.getByTestId('username').textContent).toMatch(/^guest_/))
-    expect(createSpy).not.toHaveBeenCalled()
-    expect(resumeSpy).not.toHaveBeenCalled()
-  })
-
-  it('uses resumeGuestSession when the backend still has a session', async () => {
     await setServer('http://api.test')
+    // Default happy-path so mounting populates a guest unless a test overrides.
     vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({
       userUuid: 'resumed-uuid', username: 'guest_resumed',
     })
+    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({
+      userUuid: 'new-uuid', username: 'guest_new', accessToken: 'jwt-tok',
+    })
+  })
+
+  it('uses resumeGuestSession when the backend still has a session', async () => {
     const createSpy = vi.spyOn(authApi, 'createGuestSession')
 
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
@@ -71,11 +62,7 @@ describe('GuestUserContext', () => {
   })
 
   it('falls back to createGuestSession when resume fails', async () => {
-    await setServer('http://api.test')
     vi.spyOn(authApi, 'resumeGuestSession').mockRejectedValue(new Error('401'))
-    vi.spyOn(authApi, 'createGuestSession').mockResolvedValue({
-      userUuid: 'new-uuid', username: 'guest_new', accessToken: 'jwt-tok',
-    })
 
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
 
@@ -84,7 +71,6 @@ describe('GuestUserContext', () => {
   })
 
   it('sets an error when both resume and create fail on mount', async () => {
-    await setServer('http://api.test')
     vi.spyOn(authApi, 'resumeGuestSession').mockRejectedValue(new Error('401'))
     vi.spyOn(authApi, 'createGuestSession').mockRejectedValue(new Error('backend-down'))
 
@@ -94,22 +80,12 @@ describe('GuestUserContext', () => {
     await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('no'))
   })
 
-  it('refreshGuest mints a fresh mock guest on the mock server', async () => {
-    render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('username').textContent).toMatch(/^guest_/))
-    const before = screen.getByTestId('uuid').textContent
-    fireEvent.click(screen.getByText('refresh'))
-    await waitFor(() => expect(screen.getByTestId('uuid').textContent).not.toBe(before))
-  })
-
   it('refreshGuest creates a guest via the API on a real server', async () => {
-    await setServer('http://api.test')
-    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({ userUuid: 'r', username: 'guest_r' })
     const createSpy = vi.spyOn(authApi, 'createGuestSession')
       .mockResolvedValue({ userUuid: 'c', username: 'guest_c', accessToken: 'tok' })
 
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_r'))
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_resumed'))
 
     fireEvent.click(screen.getByText('refresh'))
     await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_c'))
@@ -117,12 +93,10 @@ describe('GuestUserContext', () => {
   })
 
   it('refreshGuest records an error when create fails on a real server', async () => {
-    await setServer('http://api.test')
-    vi.spyOn(authApi, 'resumeGuestSession').mockResolvedValue({ userUuid: 'r', username: 'guest_r' })
     vi.spyOn(authApi, 'createGuestSession').mockRejectedValue(new Error('refresh-boom'))
 
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_r'))
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_resumed'))
 
     fireEvent.click(screen.getByText('refresh'))
     await waitFor(() => expect(screen.getByTestId('error').textContent).toBe('refresh-boom'))
@@ -130,7 +104,7 @@ describe('GuestUserContext', () => {
 
   it('clearGuest resets the user to none', async () => {
     render(<GuestUserProvider><Probe /></GuestUserProvider>)
-    await waitFor(() => expect(screen.getByTestId('username').textContent).toMatch(/^guest_/))
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('guest_resumed'))
     fireEvent.click(screen.getByText('clear'))
     expect(screen.getByTestId('username').textContent).toBe('none')
   })

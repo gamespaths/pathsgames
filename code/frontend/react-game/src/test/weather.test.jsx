@@ -10,11 +10,6 @@ vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
 describe('getMatchWeather', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns null in mock mode (no backend)', async () => {
-    apiClient.mockReturnValue(null)
-    expect(await getMatchWeather('m1')).toBeNull()
-  })
-
   it('gets /api/matches/{uuid}/weather and returns the payload', async () => {
     const get = vi.fn().mockResolvedValue({ data: { idWeather: 2, deltaEnergy: -2 } })
     apiClient.mockReturnValue({ get })

@@ -57,7 +57,8 @@ export default function Card({
   childrenIntoImage,
   children,
 
-  statistics, flagShowFullStatistics=false,
+  statistics, flagShowFullStatistics=false, 
+  bonusBadgeListLittleTitle=true, bonusBadgeListLittleChildren=false, bonusBadgeListLittleDesc=false,
   flagInformationCard=false,
 
   /* page variant (variant="page" — the book reading page) */
@@ -120,6 +121,7 @@ export default function Card({
     //isDisabled ? 'config-card-disabled' : '',
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')
+  
   return (
     <div className={cardClasses}>
       {isPage && loading && (
@@ -131,7 +133,7 @@ export default function Card({
       {!isPage && <div className="gc-title">
         <div className="gc-title__text">{name}</div>
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
-          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={true} />
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={bonusBadgeListLittleTitle} />
         }
       </div>}
       
@@ -149,7 +151,7 @@ export default function Card({
             {childrenIntoImage}
           </div>}
           {flagShowFullStatistics && statistics && statistics.length > 0 &&
-            <BonusBadgeList className="gc-img__overlay config-total-bonus" items={statistics} littleVersion={false} />
+            <BonusBadgeList className="gc-img__overlay config-total-bonus" items={statistics} littleVersion={bonusBadgeListLittleChildren} />
           }
         </div>
       )}
@@ -169,7 +171,7 @@ export default function Card({
       {/* pageDesc */ }
       {isPage && (pageDesc || statItemsReal) && (
         <div className="book-page-desc">
-          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason}  />
+          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
           <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
         </div>
       )}

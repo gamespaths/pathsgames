@@ -1,11 +1,11 @@
 import { useTranslation } from '../../i18n/context'
 import Card from '../layout/Card'
-import images from '../../mock/images.json'
+import images from '../../data/images.json'
 
 /**
  * CreditsModal — image-credits modal.
  *
- * Renders every entry from `src/mock/images.json` as a Card inside a
+ * Renders every entry from `src/data/images.json` as a Card inside a
  * responsive grid (3 columns on desktop, 2 on tablet, 1 on phone).
  * `images.json` mixes two shapes — `{urlImage, copyrightText, linkCopyright,
  * description}` and `{url, author, authorLink}` — so each entry is normalised

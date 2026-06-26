@@ -12,13 +12,14 @@ vi.mock('../i18n/context', () => ({
 
 vi.mock('../context/ServerContext', () => ({
   useServer: () => ({
-    server: 'mock',
-    servers: [{ label: 'Mock (offline)', url: 'mock' }],
+    server: 'http://localhost:8042',
+    servers: [{ label: 'Local', url: 'http://localhost:8042' }],
     probing: false,
     changeServer: vi.fn(),
   }),
-  MOCK_SERVER: 'mock',
 }))
+
+vi.mock('../api/echoApi', () => ({ getServerStatus: vi.fn().mockResolvedValue({}) }))
 
 describe('Footer', () => {
   it('renders Paths Games brand', () => {

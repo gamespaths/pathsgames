@@ -188,7 +188,8 @@
     "movement": {
       "action": "Muovi",
       "cost": "Costo",
-      "noEnergy": "Energia"
+      "noEnergy": "Energia",
+      "moveCost": "Movimento"
     }
   },
   "footer": {

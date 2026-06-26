@@ -8,9 +8,11 @@ vi.mock('axios', () => ({
 }))
 
 import axios from 'axios'
-import { apiClient, fetchWithFallback, MOCK_SERVER } from '../api/client'
+import { apiClient, fetchJson } from '../api/client'
 
 const STORAGE_KEY = 'pg_game_server'
+// Default server resolved from VITE_DEFAULT_SERVERS in .env.test.
+const DEFAULT_SERVER = 'https://api-test-server2.paths.games'
 
 describe('api/client', () => {
   beforeEach(() => {
@@ -19,20 +21,27 @@ describe('api/client', () => {
   })
 
   describe('apiClient', () => {
-    it('returns null in mock mode (default / explicit mock)', () => {
-      expect(apiClient()).toBeNull()
-      localStorage.setItem(STORAGE_KEY, MOCK_SERVER)
-      expect(apiClient()).toBeNull()
+    it('uses the default server when nothing is stored', () => {
+      apiClient()
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: DEFAULT_SERVER, timeout: 5000 }),
+      )
     })
 
-    it('returns null when the stored server is an invalid URL', () => {
+    it('falls back to the default server when the stored server is an invalid URL', () => {
       localStorage.setItem(STORAGE_KEY, 'not a url')
-      expect(apiClient()).toBeNull()
+      apiClient()
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: DEFAULT_SERVER, timeout: 5000 }),
+      )
     })
 
-    it('returns null when the protocol is not http(s)', () => {
+    it('falls back to the default server when the protocol is not http(s)', () => {
       localStorage.setItem(STORAGE_KEY, 'ftp://example.com')
-      expect(apiClient()).toBeNull()
+      apiClient()
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: DEFAULT_SERVER, timeout: 5000 }),
+      )
     })
 
     it('creates an axios instance for a valid http server (trailing slash trimmed)', () => {
@@ -45,26 +54,25 @@ describe('api/client', () => {
     })
   })
 
-  describe('fetchWithFallback', () => {
-    it('returns the mock data in mock mode without hitting the network', async () => {
-      const mock = [{ id: 1 }]
-      expect(await fetchWithFallback('/api/stories', mock)).toBe(mock)
-      expect(axios.get).not.toHaveBeenCalled()
-    })
-
+  describe('fetchJson', () => {
     it('returns response data when the request succeeds', async () => {
       localStorage.setItem(STORAGE_KEY, 'http://localhost:8042')
       axios.get.mockResolvedValue({ data: { ok: true } })
-      const out = await fetchWithFallback('/api/stories', { fallback: true })
+      const out = await fetchJson('/api/stories')
       expect(out).toEqual({ ok: true })
       expect(axios.get).toHaveBeenCalledWith('http://localhost:8042/api/stories', { timeout: 5000 })
     })
 
-    it('falls back to the mock data when the request fails', async () => {
+    it('hits the default server when nothing is stored', async () => {
+      axios.get.mockResolvedValue({ data: [] })
+      await fetchJson('/api/stories')
+      expect(axios.get).toHaveBeenCalledWith(`${DEFAULT_SERVER}/api/stories`, { timeout: 5000 })
+    })
+
+    it('propagates the error when the request fails', async () => {
       localStorage.setItem(STORAGE_KEY, 'http://localhost:8042')
       axios.get.mockRejectedValue(new Error('boom'))
-      const mock = { fallback: true }
-      expect(await fetchWithFallback('/api/stories', mock)).toBe(mock)
+      await expect(fetchJson('/api/stories')).rejects.toThrow('boom')
     })
   })
 })

@@ -201,7 +201,8 @@
     "movement": {
       "action": "Move",
       "cost": "Cost",
-      "noEnergy": "Energy"
+      "noEnergy": "Energy",
+      "moveCost": "Moving"
     }
   },
   "footer": {

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('axios', () => ({ default: { post: vi.fn() } }))
-vi.mock('../context/ServerContext', () => ({ MOCK_SERVER: 'mock' }))
 
 import axios from 'axios'
 import { createGuestSession, resumeGuestSession } from '../api/auth'
@@ -9,9 +8,8 @@ import { createGuestSession, resumeGuestSession } from '../api/auth'
 describe('api/auth', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('createGuestSession returns null without a server or in mock mode', async () => {
+  it('createGuestSession returns null without a server', async () => {
     expect(await createGuestSession()).toBeNull()
-    expect(await createGuestSession('mock')).toBeNull()
     expect(axios.post).not.toHaveBeenCalled()
   })
 
@@ -26,9 +24,9 @@ describe('api/auth', () => {
     )
   })
 
-  it('resumeGuestSession returns null without a server or in mock mode', async () => {
+  it('resumeGuestSession returns null without a server', async () => {
     expect(await resumeGuestSession()).toBeNull()
-    expect(await resumeGuestSession('mock')).toBeNull()
+    expect(axios.post).not.toHaveBeenCalled()
   })
 
   it('resumeGuestSession posts to /api/auth/guest/resume', async () => {

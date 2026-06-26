@@ -1,6 +1,7 @@
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { buildWeatherCard } from '@/utils/loadoutCards'
+import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 /**
  * Step 27 — WeatherCard renders the match's current weather right after the
@@ -20,10 +21,18 @@ export default function WeatherCard({ weather, story, onPreview }) {
     ? { ...weather.card }
     : buildWeatherCard(weather, t)
   if (!card.title) card.title = t('game.weather.title')
-  const delta = weather.deltaEnergy ?? 0
-  const statItems = delta
-    ? [{ key: 'energy', value: `${delta > 0 ? '+' : ''}${delta}`, label: t('game.weather.energyDelta') }]
+  //const delta = weather.deltaEnergy ?? 0
+  //const statItems = delta
+  //  ? [{ key: 'energy', value: `${delta > 0 ? '+' : ''}${delta}`, label: t('game.weather.energyDelta') }]
+  //  : []
+  const costItems = weather.costMoveSafeLocation>0 ?
+    [{ key: 'energy', value: '+' + weather.costMoveSafeLocation, label: t('game.movement.moveCost') }]
     : []
+  const costBadge = (
+    <BonusBadgeList items={costItems} 
+      className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
+  ) 
+  //console.log("WeatherCard", weather, card, costItems, costItems, costBadge);
 
   return (
     <Card
@@ -31,7 +40,8 @@ export default function WeatherCard({ weather, story, onPreview }) {
       entityType="weather"
       story={story}
       flagInformationCard={true}
-      onPreview={() => onPreview?.(card, 'weather', null, statItems, true)}
+      childrenIntoImage={costBadge}
+      onPreview={() => onPreview?.(card, 'weather', null, costItems, true)}
     />
   )
 }

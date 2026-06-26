@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../api/matches', () => ({ getMatchInfo: vi.fn() }))
-vi.mock('../mock/matchInfo.json', () => ({ default: { __mock: true } }))
 
 import { getMatchInfo as fetchMatchInfo } from '../api/matches'
 import { getMatchInfo, MatchNotRunningError } from '../api/game'
@@ -27,18 +26,18 @@ describe('api/game — getMatchInfo', () => {
     expect(err.status).toBe('GAMEOVER')
   })
 
-  it('falls back to the mock payload when there is no match uuid', async () => {
-    expect(await getMatchInfo()).toEqual({ __mock: true })
+  it('returns null when there is no match uuid', async () => {
+    expect(await getMatchInfo()).toBeNull()
     expect(fetchMatchInfo).not.toHaveBeenCalled()
   })
 
-  it('falls back to the mock payload when fetchMatchInfo returns null (mock server)', async () => {
+  it('returns null when fetchMatchInfo returns no data', async () => {
     fetchMatchInfo.mockResolvedValue(null)
-    expect(await getMatchInfo('m1')).toEqual({ __mock: true })
+    expect(await getMatchInfo('m1')).toBeNull()
   })
 
-  it('falls back to the mock payload when fetchMatchInfo throws (network error)', async () => {
+  it('propagates the error when fetchMatchInfo throws (network error)', async () => {
     fetchMatchInfo.mockRejectedValue(new Error('network'))
-    expect(await getMatchInfo('m1', 'tok')).toEqual({ __mock: true })
+    await expect(getMatchInfo('m1', 'tok')).rejects.toThrow('network')
   })
 })

@@ -1,4 +1,4 @@
-import images from '@/mock/images.json'
+import images from '@/data/images.json'
 
 /**
  * Builders for the two non-selectable loadout cards shown in the start book —
@@ -9,7 +9,7 @@ import images from '@/mock/images.json'
 
 const imgById = id => images.find(x => x.id === id)
 
-/** Map an entry of mock/images.json onto the `card` shape Card expects. *//** Map an entry of mock/images.json onto the `card` shape GameCard expects. */
+/** Map an entry of data/images.json onto the `card` shape Card expects. */
 function metaCard(imgId , title=null, description=null) {  
   const img = imgById(imgId)
   if (!img) return {}
