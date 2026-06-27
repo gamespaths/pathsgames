@@ -74,6 +74,26 @@ describe('Card', () => {
     expect(screen.getByTestId('overlay')).toBeInTheDocument()
   })
 
+  it('renders the entityType badge in the title bar on non-page cards', () => {
+    const { container } = render(<Card card={{ title: 'Mage' }} entityType="character" />)
+    const badge = container.querySelector('.gc-type-badge')
+    expect(badge).toBeTruthy()
+    // missing translation key falls back to the raw entityType
+    expect(badge.textContent).toBe('character')
+  })
+
+  it('does not render the entityType badge when entityType is absent', () => {
+    const { container } = render(<Card card={{ title: 'Mage' }} />)
+    expect(container.querySelector('.gc-type-badge')).toBeFalsy()
+  })
+
+  it('does not render the entityType badge on page variant', () => {
+    const { container } = render(
+      <Card variant="page" card={{ title: 'Cave' }} entityType="story" />,
+    )
+    expect(container.querySelector('.gc-type-badge')).toBeFalsy()
+  })
+
   describe('variant="page"', () => {
     it('renders the book page body with title, image and description', () => {
       const card = { title: 'Cave', description: '<b>Dark</b>', urlImage: 'http://x/c.png' }

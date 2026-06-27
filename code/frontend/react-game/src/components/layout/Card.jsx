@@ -115,6 +115,11 @@ export default function Card({
     </a>
   )
 
+  /* ── entityType badge (shown on hover, non-page cards) ── */
+  const typeBadgeLabel = entityType
+    ? (() => { const k = `book.${entityType}`; const tr = t(k); return tr === k ? entityType : tr })()
+    : null
+
   const cardClasses = isPage? " book-page-content " : [
     'pg-card',
     isBig ? 'card-big' : isSmall ? 'pg-card--small' : 'pg-card--grid',
@@ -135,6 +140,7 @@ export default function Card({
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
           <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={bonusBadgeListLittleTitle} />
         }
+        {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
       { isPage && <h2 className="book-page-title">
           { onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
@@ -191,7 +197,7 @@ export default function Card({
       {viewLink}
 
       {isPage && card?.linkCopyright && (
-        <CardCreditsBar card={card} story={story} />
+        <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />
       )}
     </div>
   )

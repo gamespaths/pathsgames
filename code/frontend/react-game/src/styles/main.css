@@ -40,6 +40,50 @@
   position: relative;
 }
 
+/* entityType badge — small pill shown in the title bar / credits bar */
+.gc-type-badge {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--color-gold-dark);
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(232,184,48,0.5);
+  transition: opacity 0.2s ease;
+}
+.gc-type-badge-credits{
+  color: var(--color-gold-light);
+  font-size: 0.7rem !important;
+  /*font-weight: 900;*/
+}
+/* inside the title bar: float the badge over the title text, pinned top-right,
+   so a long title never pushes it out of view */
+.gc-title .gc-type-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 3;
+  font-size:0.7rem;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(0,0,0,0.78);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+/* on the small grid cards the title is tiny: reveal the badge only on hover
+   (opacity keeps its layout slot, so the title doesn't jump) */
+.pg-card--small .gc-type-badge,
+.pg-card--grid  .gc-type-badge { opacity: 0; }
+.pg-card--small:hover .gc-type-badge,
+.pg-card--grid:hover  .gc-type-badge { opacity: 1; }
+
 /* Shared inner fragments (used across card types) */
 .pg-card__img {
   width: 100%;
@@ -1494,6 +1538,7 @@ html, body {
    ═══════════════════════════════════════════ */
 
 .gc-title {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -1671,7 +1716,7 @@ html, body {
   background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
   /* border-top: 1px solid var(--color-gold-dark); */ 
   font-family: var(--font-heading);
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   color: var(--color-parchment-light);
   letter-spacing: 0.3px;
   border-radius: 0 0 8px 8px;

@@ -48,8 +48,22 @@ describe('CardCreditsBar', () => {
     expect(link).toHaveAttribute('href', 'https://photos.example.com')
   })
 
+  it('renders the entityType badge before the Credits label when provided', () => {
+    const { container } = render(
+      <CardCreditsBar card={{ copyrightText: 'Bob' }} story={{}} typeBadgeLabel="Personaggio" />
+    )
+    const badge = container.querySelector('.gc-type-badge-credits')
+    expect(badge).toBeTruthy()
+    expect(badge.textContent).toBe('Personaggio')
+  })
+
+  it('omits the entityType badge when no label is provided', () => {
+    const { container } = render(<CardCreditsBar card={{ copyrightText: 'Bob' }} story={{}} />)
+    expect(container.querySelector('.gc-type-badge-credits')).toBeFalsy()
+  })
+
   it('renders both story author and image credit together', () => {
-    render(
+    const { container } = render(
       <CardCreditsBar
         card={{ copyrightText: 'Unsplash', linkCopyright: 'https://unsplash.com' }}
         story={{ author: 'Tolkien', card: { linkCopyright: 'https://tolkien.com' } }}
@@ -57,6 +71,6 @@ describe('CardCreditsBar', () => {
     )
     expect(screen.getByText('Tolkien')).toBeInTheDocument()
     expect(screen.getByText('Unsplash')).toBeInTheDocument()
-    expect(screen.getByText('Credits:')).toBeInTheDocument()
+    expect(container.querySelector('.gc-credits__label')).toBeTruthy()
   })
 })

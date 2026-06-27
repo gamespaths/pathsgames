@@ -28,7 +28,7 @@ export default function LocationCard({ location , card , story , locationsActive
     <div className="game-location-card-wrap">
       <Card variant="page"
         entity="location"
-        card={card}
+        card={card} entityType="location"
         icon={card?.awesomeIcon ?? 'fas fa-map-marker-alt'}
         story={story}
         imageAlt={location.name}

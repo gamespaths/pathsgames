@@ -253,5 +253,15 @@
     background: var(--book-page-background);
     font-size: 1rem !important;
   }
+
+  .credit-author, .credit-credit{
+    display:none;
+  }
+  .card-preview-modal-content{
+    width: 100%;
+  }
+  .gc-title .player-stats-bar{
+    display:contents !important;
+  }
 }
 

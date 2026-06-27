@@ -257,8 +257,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : <>
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
-          <Card card={cardCharacteristics} entityType="story"  story={story} flagInformationCard={true}
-            onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'story', null, [], false); setStatisticsCards(true) } }
+          <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true}
+            onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
           {playerStats?.energy <= 1 && /* to Sleep if enery <=1 */

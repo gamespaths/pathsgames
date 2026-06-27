@@ -106,7 +106,7 @@ describe('GameBook', () => {
     const onReload = vi.fn()
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onReload={onReload} onClose={vi.fn()} />)
     // Enter the statistics view via the characteristics card preview.
-    fireEvent.click(screen.getAllByTestId('preview-story')[0])
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
     fireEvent.click(await screen.findByTestId('action-sleep'))
     await waitFor(() => {
       expect(onReload).toHaveBeenCalled()
@@ -166,8 +166,8 @@ describe('GameBook', () => {
 
   it('enters statistics view and shows entity cards when characteristics preview is clicked', async () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    // The characteristics card has entityType="story" and onPreview that also sets statisticsCards=true
-    fireEvent.click(screen.getAllByTestId('preview-story')[0])
+    // The characteristics card has entityType="information" and onPreview that also sets statisticsCards=true
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
     // After entering statistics view, the GoToSleepCard should be present
     await waitFor(() => {
       expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument()
@@ -200,7 +200,7 @@ describe('GameBook', () => {
 
   it('closes the statistics view on back when inside the statistics view', async () => {
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getAllByTestId('preview-story')[0])
+    fireEvent.click(screen.getAllByTestId('preview-information')[0])
     await waitFor(() => expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument())
     // Clicking the left-page close (onClose) calls handleBackOrClose which resets statisticsCards
     // The left-page Card is rendered with onClose=handleBackOrClose when preview is set
