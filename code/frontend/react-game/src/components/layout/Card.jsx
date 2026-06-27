@@ -58,7 +58,7 @@ export default function Card({
   children,
 
   statistics, flagShowFullStatistics=false, 
-  bonusBadgeListLittleTitle=true, bonusBadgeListLittleChildren=false, bonusBadgeListLittleDesc=false,
+  bonusBadgeListLittleTitle=true, bonusBadgeListLittleIntoImage=false, bonusBadgeListLittleDesc=false,
   flagInformationCard=false,
 
   /* page variant (variant="page" — the book reading page) */
@@ -150,7 +150,8 @@ export default function Card({
             {childrenIntoImage}
           </div>}
           {flagShowFullStatistics && statistics && statistics.length > 0 &&
-            <BonusBadgeList className="gc-img__overlay config-total-bonus" items={statistics} littleVersion={bonusBadgeListLittleChildren} />
+            <BonusBadgeList className={"gc-img__overlay config-total-bonus" + (bonusBadgeListLittleIntoImage ? " config-total-bonus-little" : "")}
+              items={statistics} littleVersion={bonusBadgeListLittleIntoImage} />
           }
         </div>
       )}

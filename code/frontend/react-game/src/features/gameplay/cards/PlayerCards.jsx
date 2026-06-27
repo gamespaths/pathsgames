@@ -39,11 +39,11 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
   return (
     <>
       <Card card={classEntity?.card} entityType="class" story={storyFull} flagInformationCard={true}
-        statistics={classItems} flagShowFullStatistics={true}
+        statistics={classItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
         onPreview={() => onPreview(classEntity?.card, 'class', null, classItems, true)}
       />
       <Card card={characterEntity?.card} entityType="character" story={storyFull} flagInformationCard={true}
-        statistics={characterItems} flagShowFullStatistics={true}
+        statistics={characterItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
         onPreview={() => onPreview(characterEntity?.card, 'character', null, characterItems, true)}
       />
       {playerStats?.traitUuids?.map((trait, index) => {
@@ -51,13 +51,13 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         const traitItems = statItems(traitEntity, 'trait')
         return (
           <Card key={traitEntity?.uuid ?? trait?.uuid ?? index} card={traitEntity?.card} entityType="trait" story={storyFull} flagInformationCard={true}
-            statistics={traitItems} flagShowFullStatistics={true}
+            statistics={traitItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
             onPreview={() => onPreview(traitEntity?.card, 'trait', null, traitItems, true)}
           />
         )
       })}
       <Card card={difficultyEntity?.card} entityType="difficulty" story={storyFull} flagInformationCard={true}
-        statistics={difficultyItems} flagShowFullStatistics={true}
+        statistics={difficultyItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
         onPreview={() => onPreview(difficultyEntity?.card, 'difficulty', null, difficultyItemsLong, true)}
       />
       <Card card={story.card} entityType="story" story={story} flagInformationCard={true}

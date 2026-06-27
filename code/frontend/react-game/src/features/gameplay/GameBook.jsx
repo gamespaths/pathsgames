@@ -262,7 +262,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
           {playerStats?.energy <= 1 && /* to Sleep if enery <=1 */
-            <GoToSleepCard story={story} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
+            <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
               matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           }
           {/* Step 27 — current weather card (in both render points). }
