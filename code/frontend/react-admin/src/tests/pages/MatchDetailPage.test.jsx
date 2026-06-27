@@ -540,20 +540,24 @@ describe('MatchDetailPage', () => {
 
   it('triggers keyboard navigation on UuidLink with Enter key', async () => {
     renderPage()
-    await screen.findByTestId('match-status-label')
+    const matchStatus = await screen.findByTestId('match-status-label')
+    expect(matchStatus).toBeInTheDocument()
     // UuidLink is the clickable uuid span — trigger Enter key
     const uuidLinks = document.querySelectorAll('.uuid-link')
     if (uuidLinks.length > 0) {
       fireEvent.keyDown(uuidLinks[0], { key: 'Enter' })
+      expect(uuidLinks[0]).toBeInTheDocument()
     }
   })
 
   it('triggers keyboard navigation on UuidLink with Space key', async () => {
     renderPage()
-    await screen.findByTestId('match-status-label')
+    const matchStatus = await screen.findByTestId('match-status-label')
+    expect(matchStatus).toBeInTheDocument()
     const uuidLinks = document.querySelectorAll('.uuid-link')
     if (uuidLinks.length > 0) {
       fireEvent.keyDown(uuidLinks[0], { key: ' ' })
+      expect(uuidLinks[0]).toBeInTheDocument()
     }
   })
 })

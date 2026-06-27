@@ -11,6 +11,8 @@ Main file documentation is
 
 Take your time. I prefer an accurate and thorough response over a quick one.
 
+You are never autorized to do commit and push into repository!
+
 Never create a new version without specific indication, the current version is from pom (code/backend/java/pom.xml) without SNAPSHOT indication. Use a new version only if indicated into the prompt. 
 
 You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 

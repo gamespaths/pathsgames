@@ -50,6 +50,9 @@ _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 _BANNED_STATES = {3, 4}
 _MAINTENANCE_VALUE = "MAINTENANCE"
+_MATCH_NOT_RUNNING_MSG = "Match is not RUNNING"
+_API_MATCHES_PATH = "/api/matches/"
+_API_GAMEPLAY_PATH = "/api/gameplay/"
 
 # Lifecycle statuses of a match. A match is "stopped" (terminal) when it is
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
@@ -1066,7 +1069,7 @@ def _pass_turn(user, match_uuid):
     if err:
         return err
     if match.get('status') != 'RUNNING':
-        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
 
     characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
     rows = sorted(_turn_items(match_uuid), key=lambda r: _nz(r.get('priority')), reverse=True)
@@ -1477,7 +1480,7 @@ def _sleep(user, match_uuid):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
     if match.get('status') != 'RUNNING':
-        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
 
     # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
     caller['isSleeping'] = 1
@@ -1606,7 +1609,7 @@ def _start_movement(user, match_uuid, body):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
     if match.get('status') != 'RUNNING':
-        return _err(409, 'MATCH_NOT_RUNNING', 'Match is not RUNNING')
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
     if _nz(caller.get('isSleeping')) == 1 or _nz(caller.get('isComa')) == 1:
         return _err(409, 'CHARACTER_CANNOT_ACT', 'Character cannot move while sleeping or in coma')
     if caller.get('idLocation') is None:
@@ -1863,7 +1866,7 @@ def lambda_handler(event, context):
         return _list_user_matches(user)
 
     # Step 27 — GET /api/matches/{uuidMatch}/weather
-    if (path.startswith('/api/matches/') and path.endswith('/weather') and method == 'GET'):
+    if (path.startswith(_API_MATCHES_PATH) and path.endswith('/weather') and method == 'GET'):
         params = (event.get('pathParameters') or {})
         match_uuid = params.get('uuidMatch')
         if not match_uuid:
@@ -1897,7 +1900,7 @@ def lambda_handler(event, context):
         return _end_match(user, match_uuid, event_uuid)
 
     # ── Step 21 — character template & class selection ──
-    if (path.startswith('/api/matches/') and path.endswith('/join') and method == 'POST'):
+    if (path.startswith(_API_MATCHES_PATH) and path.endswith('/join') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
         if not match_uuid:
@@ -1929,7 +1932,7 @@ def lambda_handler(event, context):
         return _get_character(user, match_uuid, char_uuid)
 
     # ── Step 24 — single-player turn cycle ──
-    if (path.startswith('/api/matches/') and path.endswith('/start') and method == 'POST'):
+    if (path.startswith(_API_MATCHES_PATH) and path.endswith('/start') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
         if not match_uuid:
@@ -1937,7 +1940,7 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _start_match(user, match_uuid)
 
-    if (path.startswith('/api/gameplay/') and path.endswith('/action/pass') and method == 'POST'):
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/pass') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
         if not match_uuid:
@@ -1954,7 +1957,7 @@ def lambda_handler(event, context):
         return _get_turn_sequence(user, match_uuid)
 
     # ── Step 25 — time advancement & clock cycle ──
-    if (path.startswith('/api/gameplay/') and path.endswith('/action/sleep') and method == 'POST'):
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/sleep') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
         if not match_uuid:
@@ -1971,7 +1974,7 @@ def lambda_handler(event, context):
         return _get_clock(user, match_uuid)
 
     # ── Step 28 — movement system ──
-    if (path.startswith('/api/gameplay/') and path.endswith('/movements/start') and method == 'POST'):
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/movements/start') and method == 'POST'):
         params = event.get('pathParameters') or {}
         match_uuid = params.get('uuidMatch') or ''
         if not match_uuid:

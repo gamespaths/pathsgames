@@ -32,6 +32,8 @@ import java.util.Optional;
  */
 public class MatchCommandService implements MatchCommandPort {
 
+    private static final java.security.SecureRandom SECURE_RNG = new java.security.SecureRandom();
+
     private final StoryReadPort storyReadPort;
     private final MatchPersistencePort persistencePort;
     private final UserAccessPort userAccessPort;
@@ -124,7 +126,7 @@ public class MatchCommandService implements MatchCommandPort {
         // (Robot tests pass 42), otherwise generate a fresh random one.
         match.setRngSeed(command.getRngSeed() != null
                 ? command.getRngSeed()
-                : new java.util.Random().nextLong());
+                : SECURE_RNG.nextLong());
 
         GamingMatchEntity saved = persistencePort.saveMatch(match);
 

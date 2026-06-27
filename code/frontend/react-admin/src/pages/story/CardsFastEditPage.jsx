@@ -454,7 +454,7 @@ export default function CardsFastEditPage() {
   // Entity types actually present among the loaded cards (for the dropdown).
   const presentEntityTypes = [...new Set(
     rows.flatMap(r => getCardEntityTypes(r.idCard))
-  )].sort()
+  )].sort((a, b) => a.localeCompare(b))
 
   const matchesEntityFilter = (row) => {
     if (!entityFilter) return true
