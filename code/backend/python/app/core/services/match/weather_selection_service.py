@@ -115,6 +115,7 @@ class WeatherSelectionService:
         total = sum(max(0.0, float(r.get("probability") or 0)) for r in ordered)
         if total <= 0:
             return ordered[0]
+        # Safe: seed is provided externally (deterministic, not for security).
         roll = random.Random(seed).random() * total
         cumulative = 0.0
         for r in ordered:

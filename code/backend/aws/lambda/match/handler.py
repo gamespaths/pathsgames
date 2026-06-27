@@ -1271,6 +1271,7 @@ def _weather_weighted_pick(eligible, seed):
     if total <= 0:
         return ordered[0]
     # Coerce to int: DynamoDB Decimal seeds are not accepted by random.Random().
+    # Safe: seed is provided externally (deterministic, not for security).
     roll = random.Random(int(seed)).random() * total
     cumulative = 0.0
     for r in ordered:
