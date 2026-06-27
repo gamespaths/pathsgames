@@ -122,7 +122,7 @@ class MatchCommandService(MatchCommandPort):
             "trait_uuids": command.trait_uuids,
             # Step 27 — deterministic per-match RNG seed (explicit or random).
             "rng_seed": command.rng_seed if command.rng_seed is not None
-            else secrets.getrandbits(63),
+            else secrets.randbits(63),
         })
 
         location_rows: List[Dict[str, Any]] = []

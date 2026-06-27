@@ -513,7 +513,7 @@ def _create_match(user, body):
 
     # Step 27 — deterministic per-match RNG seed (explicit or random).
     raw_seed = (body or {}).get('rngSeed')
-    rng_seed = int(raw_seed) if raw_seed is not None else secrets.getrandbits(63)
+    rng_seed = int(raw_seed) if raw_seed is not None else secrets.randbits(63)
 
     location_states = []
     for loc in locations:
