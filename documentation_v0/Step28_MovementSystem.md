@@ -380,6 +380,7 @@ state machine (including `flag_already_actived` for entry events) belongs to Ste
 | `id_location_to` | INTEGER | Target location FK |
 | `energy_cost` | INTEGER | Base edge traversal cost |
 | `direction` | VARCHAR | Direction label (e.g., "NORTH") |
+| `flag_back` | INTEGER | One-way link control: `1` = two-way (destination B lists source A as a neighbor); `0` = one-way (B does NOT list A as a neighbor). Forward travel A→B is always permitted regardless of this flag. See §v0.28.3. |
 | `condition_registry_key` | VARCHAR (nullable) | Registry key to check; null = no condition |
 | `condition_registry_value` | VARCHAR (nullable) | Expected registry value |
 
@@ -1065,17 +1066,158 @@ runs pick it up immediately.
 
 
 
+---
+
+# Paths Games V0 - Step 0.28.3: One-Way Neighbor Links (flagBack)
+
+This section documents the **v0.28.3 bugfix** that enforces one-way neighbor link semantics
+via the `flag_back` column of `list_locations_neighbors` across all backends.
+
+---
+
+## Overview
+
+Before v0.28.3 every backend treated all neighbor edges as bidirectional: if an edge
+A→B existed in `list_locations_neighbors`, the gameplay APIs always returned A as a neighbor
+of B, regardless of the `flag_back` value. The `flag_back` column was stored but never
+read by any backend's neighbor-filtering logic.
+
+v0.28.3 enforces the following contract, which was already documented in the data model
+(Step 09) but had not been implemented in the movement engine:
+
+| `flag_back` value | Meaning | Effect on "standing on B" |
+|---|---|---|
+| `1` (YES) | Two-way link | A **is** returned in B's neighbor list by `/info` and `/locations` |
+| `0` (NO) | One-way link | A is **not** returned in B's neighbor list; the forward link A→B remains fully traversable |
+
+Forward travel (A→B) is always allowed regardless of `flag_back`. Only the reverse view
+(what neighbors are visible from B) is gated.
+
+---
+
+## Affected APIs
+
+All three gameplay read-points that produce a neighbor list now honour `flag_back`:
+
+| Endpoint | Read-point |
+|----------|-----------|
+| `GET /api/match/{uuid}/info` | `locationsActive[].neighbors` |
+| `GET /api/match/{uuid}/locations` | `locations[].neighbors` |
+| `POST /api/gameplay/{uuid}/movements/start` | Neighbor lookup used in `NOT_A_NEIGHBOR` validation (step 4 in §3) |
+
+A `POST /movements/start` request that targets location A while the character stands on B,
+where the A→B edge has `flag_back=0`, returns **409 `NOT_A_NEIGHBOR`** because A is not
+visible in B's neighbor list.
+
+---
+
+## Per-Backend Changes
+
+### Java
+
+- `MovementStorePort.NeighborEdge` gained a `flagBack` field and a helper method
+  `traversableFrom(locId)` that returns `true` when `locId == idLocationFrom` (forward
+  direction is always open) or when `flagBack == 1` (two-way edge).
+- `MovementStoreAdapter` maps the `flag_back` column into `NeighborEdge`.
+- `MovementService.buildLocations` (GET /locations neighbor list) and `findEdge`
+  (POST /movements/start adjacency check) filter using `traversableFrom`.
+- `MatchQueryService` (GET /api/match/{uuid}/info) filters `locationsActive` neighbor
+  lists using the same `traversableFrom` predicate.
+- Postgres dev seed: neighbor rows now set `flag_back=1` to restore expected bidirectional
+  behaviour for existing tests.
+
+### Python
+
+- `flag_back` column was entirely absent from the `LocationNeighborEntity` ORM model; it
+  has been added and mapped in the read adapters.
+- `match_query_service` and `movement_service` filter neighbors using `flag_back`.
+- `seed_dev_data` neighbor rows updated to `flag_back=1`.
+- The generic admin CRUD path already persists `flagBack` automatically through the shared
+  entity dict — no additional change required there.
+
+### AWS Lambda
+
+- `handler.py` gained a `_neighbor_traversable_from(neighbor, loc_id)` helper.
+- Applied at three filter points: `_build_active_locations` (match-info),
+  `neighbor_costs` (locations), and `_find_edge` (movement validation).
+- Seed data already carried `flagBack=1` on all test edges.
+
+### React-admin (Story Editor)
+
+- The "Flag Back" select in the Loc Neighbors form now correctly saves the value `0` (NO).
+  Previously the form submitted the empty string for the NO option, which was interpreted
+  as a truthy value by some backends.
+- The "Card Back ID" field is now hidden in the neighbor form unless Flag Back = YES,
+  preventing confusion about card-back display on one-way edges.
+- The entity table column previously labelled "flagBack" now renders the value as a
+  human-readable "YES" / "NO" badge (column header: "Back").
+
+---
+
+## New Robot E2E Suite — `neighbor_flag_back.robot`
+
+**File:** `code/tests/robot/tests/28_movement/neighbor_flag_back.robot`
+
+**Tags:** `match-info`, `movement-back`, `flag-back`, `step28`, `regression`
+
+### Purpose
+
+End-to-end regression covering the full `flagBack` contract end-to-end: admin sets the
+flag, a player moves to the destination B, and both `/info` and `/locations` are asserted
+for the presence or absence of the backward link.
+
+### Backend agnosticism
+
+The suite discovers the forward edge A→B at runtime (no hard-coded IDs), so it runs
+identically on Java (SQLite/PostgreSQL), Python, and AWS.
+
+### Test flow
+
+| Phase | Actions |
+|-------|---------|
+| **Suite Setup** | Admin + guest sessions; pick a joinable story loadout; find a forward edge leaving the start location A; set `flagBack=1` on that edge; start a match and perform the forward move A→B |
+| **Test 1 — Flag Back YES** | Admin sets `flagBack=1`; asserts A appears in B's neighbors in both `/info` and `/locations` |
+| **Test 2 — Flag Back NO** | Admin sets `flagBack=0`; asserts A is absent from B's neighbors in both `/info` and `/locations` |
+| **Suite Teardown** | Restores the edge's original `flagBack` value via admin PUT |
+
+### Test cases
+
+| Test case | Assertion |
+|-----------|-----------|
+| `Flag Back YES Returns The Backward Neighbor` | `locationsActive[B].neighbors` contains the A→B edge in `/info`; location B's neighbor list in `/locations` contains A |
+| `Flag Back NO Hides The Backward Neighbor` | A→B edge absent from `/info` and `/locations` for location B; B's own forward neighbors remain intact |
+
+---
+
+## Notes
+
+1. **Forward travel is never blocked by `flag_back`.** `POST /movements/start` with
+   `targetLocationUuid = B` while standing on A always succeeds (subject to energy and
+   other conditions). Only the reverse view from B is affected.
+
+2. **`flag_back=1` is the expected default for tutorial seed data.** All seed neighbor
+   rows in Java (SQLite + PostgreSQL), Python, and AWS carry `flag_back=1`, ensuring
+   existing Robot suites (which depend on bidirectional traversal) continue to pass without
+   change.
+
+3. **The admin form fix (React-admin) is the trigger, not an afterthought.** Before
+   v0.28.3 the form could not reliably save `flagBack=0`; the backend fix is only fully
+   usable now that the editor correctly persists the NO value.
+
+---
+
 # Version Control
 
-- **Document Version**: 0.28.2
+- **Document Version**: 0.28.3
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.28.0 | Initial Step 28 documentation: movement system (adjacency validation, energy cost formula, 8-code ordered validation, existing log_movements table reused from V0.10.9, V0.28.0 Flyway no-ops, visited-locations derivation), new POST movements/start + GET locations + GET admin/locations endpoints, MovementCard in react-game, movement card in react-admin MatchDetailPage, Robot suite 28_movement 10/10 (399/399 total) | June 25, 2026 |
   | 0.28.2 | Initial documentation: AWS neighbor cardBack desync bugfix (`_story_neighbors` helper applied at 3 gameplay read-points); new Robot suite 29 backend-agnostic regression | June 26, 2026 |
   | 0.28.2 | Initial document — cross-backend bugfix for event-to-location binding | June 26, 2026 |
+  | 0.28.3 | One-way neighbor links: `flag_back` enforcement across all backends; `flag_back` column added to §6.4 schema table; new Robot regression suite `neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression); react-admin Flag Back form fix and YES/NO badge in entity table | June 28, 2026 |
 
-- **Last Updated**: June 25, 2026
+- **Last Updated**: June 28, 2026
 - **Status**: Complete
 
 

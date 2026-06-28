@@ -36,6 +36,7 @@
 .of-c{object-fit: contain !important;}
 .of-f{object-fit: fill !important;}
 
+.ob-b{ object-position: bottom !important;}
 .ob-c-10{object-position: center 10%;}
 .ob-c-20{object-position: center 20%;}  .ob-c-25{object-position: center 25%;}
 .ob-c-30{object-position: center 30%;}  .ob-c-33{object-position: center 33%;}

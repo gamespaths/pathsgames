@@ -62,7 +62,7 @@ class MovementServiceTest {
     }
 
     private NeighborEdge edge(long from, long to, int energyCost) {
-        return new NeighborEdge(from, to, "NORTH", energyCost, null, null);
+        return new NeighborEdge(from, to, "NORTH", energyCost, null, null, 1);
     }
 
     /** Wire a runnable match where the caller is at location 1 and 2 is a valid neighbor. */
@@ -200,6 +200,39 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("one-way link (flagBack=0): backward move A←B blocked → NOT_A_NEIGHBOR")
+        void oneWayBackwardBlocked() {
+            // Edge A(1)→B(2) with flagBack=0. Caller stands on B(2), tries to move to A(1).
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(10, 2L)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-1"))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 2L))
+                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, null, null, 0)));
+            MovementException ex = assertThrows(MovementException.class,
+                    () -> service.startMovement(MATCH, USER, "loc-1"));
+            assertEquals(MovementException.Code.NOT_A_NEIGHBOR, ex.getCode());
+        }
+
+        @Test
+        @DisplayName("one-way link (flagBack=0): forward move A→B still allowed")
+        void oneWayForwardAllowed() {
+            // Edge A(1)→B(2) with flagBack=0. Caller stands on A(1), moves forward to B(2).
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(10, 1L)));
+            when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L))
+                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, null, null, 0)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.countCharactersAtLocation(MATCH_ID, 2L)).thenReturn(0);
+            MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+            assertEquals(2L, r.toLocationId());
+        }
+
+        @Test
         @DisplayName("registry condition unmet → MOVEMENT_CONDITION_NOT_MET")
         void conditionUnmet() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
@@ -208,7 +241,7 @@ class MovementServiceTest {
             when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
-                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN")));
+                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
             when(store.findRegistryValue(MATCH_ID, "DOOR")).thenReturn(Optional.of("CLOSED"));
             MovementException ex = assertThrows(MovementException.class,
                     () -> service.startMovement(MATCH, USER, "loc-2"));
@@ -224,7 +257,7 @@ class MovementServiceTest {
             when(store.findLocationByStoryAndUuid(STORY_ID, "loc-2"))
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
             when(store.findNeighborsOfLocation(STORY_ID, 1L))
-                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN")));
+                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, "DOOR", "OPEN", 1)));
             when(store.findRegistryValue(MATCH_ID, "DOOR")).thenReturn(Optional.of("OPEN"));
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
             when(store.countCharactersAtLocation(MATCH_ID, 2L)).thenReturn(0);
@@ -323,6 +356,25 @@ class MovementServiceTest {
             assertEquals(2, loc.neighbors().get(0).weatherEnergyCost());
             assertEquals(6, loc.neighbors().get(0).totalEnergyCost());
             assertEquals("loc-2", loc.neighbors().get(0).uuid());
+        }
+
+        @Test
+        @DisplayName("one-way link (flagBack=0) is hidden when standing on the destination")
+        void oneWayBackwardHidden() {
+            // Edge A(1)→B(2), flagBack=0. Standing on B(2) → A must NOT be a neighbor.
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(2L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(character(10, 2L)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 2L))
+                    .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, null, null, 0)));
+
+            List<VisitedLocation> result = service.listLocations(MATCH, USER);
+
+            assertEquals(1, result.size());
+            assertTrue(result.get(0).neighbors().isEmpty());
         }
 
         @Test

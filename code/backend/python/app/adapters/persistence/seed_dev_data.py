@@ -191,22 +191,22 @@ INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_te
 (90008, 9001, 90001, 107, 107, 1, 10);
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90001, 9001, 90001, 90002, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90002, 9001, 90002, 90003, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90003, 9001, 90003, 90004, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90004, 9001, 90004, 90005, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90005, 9001, 90005, 90006, 'NORTH', 1);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90006, 9001, 90006, 90007, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90007, 9001, 90007, 90008, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90008, 9001, 90001, 90008, 'EAST', 1);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90001, 9001, 90001, 90002, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90002, 9001, 90002, 90003, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90003, 9001, 90003, 90004, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90004, 9001, 90004, 90005, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90005, 9001, 90005, 90006, 'NORTH', 1, 1);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90006, 9001, 90006, 90007, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90007, 9001, 90007, 90008, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90008, 9001, 90001, 90008, 'EAST', 1, 1);
 -- Step 0.28.2 — optional return card on the Welcome↔Movement edge (catalog card 90003).
 UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 

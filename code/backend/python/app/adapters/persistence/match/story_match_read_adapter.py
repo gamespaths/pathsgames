@@ -110,6 +110,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_location_from": r.id_location_from,
                     "id_location_to": r.id_location_to,
                     "direction": r.direction,
+                    "flag_back": r.flag_back,
                     "energy_cost": r.energy_cost,
                     "id_card": r.id_card,
                     "id_card_back": r.id_card_back,

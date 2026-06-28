@@ -117,6 +117,46 @@ describe('EntityForm', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 
+  // ── flagBack select + conditional idCardBack visibility (Loc Neighbors) ───────
+
+  const FLAG_BACK_FIELDS = [
+    { key: 'flagBack', label: 'Flag Back', type: 'select', valueType: 'number',
+      options: [{ value: 1, label: 'YES' }, { value: 0, label: 'NO' }] },
+    { key: 'idCardBack', label: 'Card Back ID', type: 'number', showIf: (d) => Number(d.flagBack) === 1 },
+  ]
+
+  it('shows an existing flagBack=0 (NO) value in the select instead of blank', () => {
+    render(<EntityForm entity={{ uuid: 'n1', flagBack: 0 }}
+                       fields={FLAG_BACK_FIELDS} onSave={() => {}} onCancel={() => {}} />)
+    expect(screen.getByLabelText('Flag Back')).toHaveValue('0')
+  })
+
+  it('saves flagBack=0 when NO is selected', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ uuid: 'n1', flagBack: 1 }}
+                       fields={FLAG_BACK_FIELDS} onSave={onSave} onCancel={() => {}} />)
+    await userEvent.selectOptions(screen.getByLabelText('Flag Back'), '0')
+    await userEvent.click(screen.getByText('Save'))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ flagBack: 0 }))
+  })
+
+  it('hides Card Back when flagBack is not YES and shows it when YES', async () => {
+    render(<EntityForm entity={{ uuid: 'n1', flagBack: 1, idCardBack: 3 }}
+                       fields={FLAG_BACK_FIELDS} onSave={() => {}} onCancel={() => {}} />)
+    expect(screen.getByLabelText('Card Back ID')).toBeInTheDocument()
+    await userEvent.selectOptions(screen.getByLabelText('Flag Back'), '0')
+    expect(screen.queryByLabelText('Card Back ID')).toBeNull()
+  })
+
+  it('clears idCardBack when flagBack is set to NO', async () => {
+    const onSave = vi.fn()
+    render(<EntityForm entity={{ uuid: 'n1', flagBack: 1, idCardBack: 3 }}
+                       fields={FLAG_BACK_FIELDS} onSave={onSave} onCancel={() => {}} />)
+    await userEvent.selectOptions(screen.getByLabelText('Flag Back'), '0')
+    await userEvent.click(screen.getByText('Save'))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ flagBack: 0, idCardBack: '' }))
+  })
+
   // ── Step 0.28.2 — idCard must differ from idCardBack (neighbor return card) ───
 
   const CARD_BACK_FIELDS = [

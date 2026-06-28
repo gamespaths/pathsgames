@@ -232,6 +232,10 @@ class MatchQueryService(MatchQueryPort):
                 other_id = self._neighbor_other_endpoint(n, loc_id)
                 if other_id is None:
                     continue
+                # One-way link (flag_back=NO): hide it when standing on the
+                # destination (id_location_to), since you cannot go back.
+                if not self._neighbor_traversable_from(n, loc_id):
+                    continue
                 other = loc_by_id.get(other_id)
                 neighbor_card_id = n.get("id_card")
                 if neighbor_card_id is None and other is not None:
@@ -274,6 +278,15 @@ class MatchQueryService(MatchQueryPort):
                 secure_param=loc.get("secure_param"),
             ))
         return result
+
+    @staticmethod
+    def _neighbor_traversable_from(neighbor, loc_id):
+        """Whether the link can be traversed from ``loc_id``. Forward
+        (loc_id == id_location_from) is always allowed; backward (loc_id ==
+        id_location_to) only when ``flag_back == 1`` (a two-way link)."""
+        if neighbor.get("id_location_from") == loc_id:
+            return True
+        return neighbor.get("id_location_to") == loc_id and (neighbor.get("flag_back") or 0) == 1
 
     @staticmethod
     def _neighbor_other_endpoint(neighbor, loc_id):

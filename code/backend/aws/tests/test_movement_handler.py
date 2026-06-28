@@ -190,7 +190,44 @@ def test_move_condition_not_met():
     assert _body(result)['error'] == 'MOVEMENT_CONDITION_NOT_MET'
 
 
+def test_move_one_way_backward_blocked():
+    # Edge 1->2 is one-way (flagBack=0). Character on 2 cannot go back to 1.
+    story = _story()
+    story['neighbors'][0]['flagBack'] = 0
+    items = [PLAYER, story, _match(), _char('m1', 1, 'c1', location=2)]
+    with _env(items):
+        result = h.lambda_handler(
+            _event('POST', '/api/gameplay/m1/movements/start',
+                   body={'targetLocationUuid': 'loc-1'}), None)
+    assert _body(result)['error'] == 'NOT_A_NEIGHBOR'
+
+
+def test_move_two_way_backward_allowed():
+    # Edge 1->2 is two-way (flagBack=1). Character on 2 can go back to 1.
+    story = _story()
+    story['neighbors'][0]['flagBack'] = 1
+    items = [PLAYER, story, _match(), _char('m1', 1, 'c1', energy=20, location=2)]
+    with _env(items):
+        result = h.lambda_handler(
+            _event('POST', '/api/gameplay/m1/movements/start',
+                   body={'targetLocationUuid': 'loc-1'}), None)
+    assert result['statusCode'] == 200
+    assert _body(result)['toLocationUuid'] == 'loc-1'
+
+
 # ── locations ──────────────────────────────────────────────────────────────────
+
+def test_locations_one_way_backward_hidden():
+    # Edge 1->2 one-way: standing on 2, location 1 must not appear as a neighbor.
+    story = _story()
+    story['neighbors'][0]['flagBack'] = 0
+    items = [PLAYER, story, _match(), _char('m1', 1, 'c1', location=2)]
+    with _env(items):
+        result = h.lambda_handler(_event('GET', '/api/match/m1/locations'), None)
+    assert result['statusCode'] == 200
+    loc = next(l for l in _body(result)['locations'] if l['idLocation'] == 2)
+    assert loc['neighbors'] == []
+
 
 def test_locations_lists_visited_with_total_cost():
     items = [PLAYER, _story(), _match(weather=9), _char('m1', 1, 'c1', location=1)]

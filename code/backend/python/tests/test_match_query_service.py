@@ -427,9 +427,9 @@ def _build_enriched(player_loc=10):
     # enrichment lookups
     story_read.find_location_neighbors_by_story_id.return_value = [
         {"id_location_from": 10, "id_location_to": 12, "direction": "N",
-         "energy_cost": 2, "id_card": 200},
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
         {"id_location_from": 11, "id_location_to": 10, "direction": "S",
-         "energy_cost": 1, "id_card": 210},
+         "flag_back": 1, "energy_cost": 1, "id_card": 210},
     ]
     story_read.find_events_by_story_id.return_value = [
         {"id": 1, "uuid": "evt-1", "type": "NORMAL", "id_specific_location": 10, "id_card": 300},
@@ -480,6 +480,21 @@ def test_locations_active_carries_card_neighbors_events():
     assert active.events[0].uuid == "evt-1"
     assert active.events[0].end_game is True  # evt-1 (id 1) == story id_event_end_game
     assert active.events[0].card["title"] == "Stranger"
+
+
+def test_one_way_neighbor_hidden_when_standing_on_destination():
+    service = _build_enriched(player_loc=10)
+    # Link 11->10 is one-way (flag_back=0): standing on 10 (the destination) it
+    # must NOT be exposed. Link 10->12 stays (forward from 10).
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
+        {"id_location_from": 11, "id_location_to": 10, "direction": "S",
+         "flag_back": 0, "energy_cost": 1, "id_card": 210},
+    ]
+    detail = service.get_match_info("m", "u")
+    others = {n.id_location for n in detail.locations_active[0].neighbors}
+    assert others == {12}
 
 
 def test_neighbor_resolves_dedicated_return_card_when_id_card_back_set():

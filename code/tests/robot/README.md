@@ -39,8 +39,16 @@ robot/
     │   └── content_text.robot
     ├── 17_admin_crud/
     │   └── admin_crud.robot       Admin CRUD for all story entity types
-    └── 19_match/
-        └── match_creation.robot   POST /api/matches happy path, missing fields, no token, full loadout round-trip (v0.19.9)
+    ├── 19_match/
+    │   └── match_creation.robot   POST /api/matches happy path, missing fields, no token, full loadout round-trip (v0.19.9)
+    ├── 28_movement/
+    │   ├── movement.robot              POST movements/start + GET locations: energy cost, adjacency, error codes, admin locations (10 tests)
+    │   ├── neighbor_card_back.robot    Covered by suite 29_neighbor_card_back
+    │   └── neighbor_flag_back.robot    One-way links: flagBack=YES returns backward neighbor; flagBack=NO hides it in /info + /locations (2 tests, v0.28.3)
+    ├── 29_neighbor_card_back/
+    │   └── neighbor_card_back.robot   Admin-set idCardBack reflected in match-info neighbors; guards AWS locationNeighbors desync (v0.28.2)
+    └── 30_event_location/
+        └── event_location.robot       Admin-set idSpecificLocation reflected in locationsActive[].events; guards AWS stale-alias + Python column bugs (v0.28.2)
 ```
 
 ## Setup
@@ -117,16 +125,22 @@ robot --variablefile variables/dev.yaml --outputdir reports/ tests/
 
 ## Tags Reference
 
-| Tag       | Test suites                          |
-|-----------|--------------------------------------|
-| `smoke`   | 01_smoke/smoke.robot                 |
-| `auth`    | 12_auth/guest_auth.robot             |
-| `stories` | 14_stories/story_list.robot, story_detail.robot, difficulty_stat_fields.robot |
-| `admin`   | 14_admin/story_import.robot, guest_admin.robot |
-| `step12`  | Auth and guest management tests      |
-| `step14`  | Story list, story detail, difficulty stat fields (seven integer columns on `list_stories_difficulty`) |
-| `step15`  | Story content: categories, groups, enriched detail, class bonuses, character template class fields, trait stat-delta fields |
-| `guests`  | Guest admin management tests         |
+| Tag            | Test suites |
+|----------------|-------------|
+| `smoke`        | 01_smoke/smoke.robot |
+| `auth`         | 12_auth/guest_auth.robot |
+| `stories`      | 14_stories/story_list.robot, story_detail.robot, difficulty_stat_fields.robot |
+| `admin`        | 14_admin/story_import.robot, guest_admin.robot |
+| `step12`       | Auth and guest management tests |
+| `step14`       | Story list, story detail, difficulty stat fields |
+| `step15`       | Story content: categories, groups, enriched detail, class bonuses, character template class fields, trait stat-delta fields |
+| `guests`       | Guest admin management tests |
+| `movement`     | 28_movement/movement.robot — adjacency, energy cost, error codes, admin locations |
+| `step28`       | 28_movement/movement.robot, neighbor_flag_back.robot; 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot |
+| `flag-back`    | 28_movement/neighbor_flag_back.robot — one-way link enforcement (v0.28.3) |
+| `movement-back`| 28_movement/neighbor_flag_back.robot; 29_neighbor_card_back/neighbor_card_back.robot |
+| `match-info`   | 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot; 28_movement/neighbor_flag_back.robot |
+| `regression`   | 28_movement/neighbor_flag_back.robot; 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot |
 
 ## Seed Data
 

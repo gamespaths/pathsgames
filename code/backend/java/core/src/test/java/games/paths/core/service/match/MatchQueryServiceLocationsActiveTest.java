@@ -84,10 +84,16 @@ class MatchQueryServiceLocationsActiveTest {
         n.setIdLocationFrom(from);
         n.setIdLocationTo(to);
         n.setDirection(dir);
-        n.setFlagBack(0);
+        n.setFlagBack(1); // two-way link by default (backward traversal allowed)
         n.setEnergyCost(2);
         n.setIdCard(idCard);
         n.setIdCardBack(idCardBack);
+        return n;
+    }
+
+    private LocationNeighborEntity oneWayNeighbor(int from, int to, String dir, Integer idCard) {
+        LocationNeighborEntity n = neighbor(from, to, dir, idCard);
+        n.setFlagBack(0); // one-way: backward traversal (from the `to` endpoint) is forbidden
         return n;
     }
 
@@ -198,6 +204,23 @@ class MatchQueryServiceLocationsActiveTest {
         assertEquals("evt-1", active.getEvents().get(0).getUuid());
         assertTrue(active.getEvents().get(0).isEndGame());
         assertEquals("evt1", active.getEvents().get(0).getCard().title());
+    }
+
+    @Test
+    void oneWayNeighborHiddenWhenStandingOnDestination() {
+        wire(10L);
+        // Edge 11->10 is one-way (flagBack=0): standing on 10 (the destination) the
+        // link back to 11 must NOT be exposed. Edge 10->12 stays (forward from 10).
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 12, "N", 200),
+                        oneWayNeighbor(11, 10, "S", 210)));
+
+        MatchDetail detail = service.getMatchInfoForAdmin("match-uuid");
+        LocationInfo active = detail.getLocationsActive().get(0);
+
+        assertEquals(1, active.getNeighbors().size());
+        assertTrue(active.getNeighbors().stream().anyMatch(n -> n.getIdLocation() == 12L));
+        assertTrue(active.getNeighbors().stream().noneMatch(n -> n.getIdLocation() == 11L));
     }
 
     @Test

@@ -84,7 +84,20 @@ public interface MovementStorePort {
                         String direction,
                         int energyCost,
                         String conditionKey,
-                        String conditionValue) {
+                        String conditionValue,
+                        int flagBack) {
+
+        /**
+         * Whether this edge can be traversed when standing on {@code locId}.
+         * Forward (locId == from) is always allowed; backward (locId == to,
+         * i.e. returning to the source) only when {@code flagBack == 1}.
+         */
+        public boolean traversableFrom(long locId) {
+            if (idLocationFrom == locId) {
+                return true;
+            }
+            return idLocationTo == locId && flagBack == 1;
+        }
     }
 
     record WeatherMoveCost(int costSafe, int costNotSafe) {

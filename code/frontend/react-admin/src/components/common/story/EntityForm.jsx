@@ -98,15 +98,18 @@ export default function EntityForm({
   }
 
   const setFieldValue = (field, value) => {
-    if (field.type === 'number' || field.valueType === 'number') {
-      setData({
-        ...data,
-        [field.key]: value === '' ? '' : Number(value),
-      })
+    const normalized = (field.type === 'number' || field.valueType === 'number')
+      ? (value === '' ? '' : Number(value))
+      : value
+
+    // A neighbor's return card (idCardBack) is only meaningful when flagBack = YES (1);
+    // clear it when going back is disabled so a stale value is not persisted.
+    if (field.key === 'flagBack' && Number(normalized) !== 1) {
+      setData({ ...data, [field.key]: normalized, idCardBack: '' })
       return
     }
 
-    setData({ ...data, [field.key]: value })
+    setData({ ...data, [field.key]: normalized })
   }
 
   const applyTextSelection = (fieldKey, idText) => {
@@ -182,7 +185,7 @@ export default function EntityForm({
               alignItems: 'start',
             }}
           >
-            {fields.map(field => (
+            {fields.filter(field => !field.showIf || field.showIf(data)).map(field => (
               <div
                 key={field.key}
                 style={
@@ -246,7 +249,7 @@ export default function EntityForm({
                     id={`field-${field.key}`}
                     className="pg-input"
                     style={{ fontSize: '0.8rem', padding: '4px 8px', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
-                    value={data[field.key] || ''}
+                    value={data[field.key] ?? ''}
                     onChange={e => setFieldValue(field, e.target.value)}
                   >
                     <option value="">Select...</option>

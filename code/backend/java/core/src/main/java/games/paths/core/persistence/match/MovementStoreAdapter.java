@@ -99,7 +99,8 @@ public class MovementStoreAdapter implements MovementStorePort {
             long to = n.getIdLocationTo() == null ? -1 : n.getIdLocationTo();
             if (from == idLocation || to == idLocation) {
                 out.add(new NeighborEdge(from, to, n.getDirection(),
-                        nz(n.getEnergyCost()), n.getConditionRegistryKey(), n.getConditionRegistryValue()));
+                        nz(n.getEnergyCost()), n.getConditionRegistryKey(), n.getConditionRegistryValue(),
+                        nz(n.getFlagBack())));
             }
         }
         return out;

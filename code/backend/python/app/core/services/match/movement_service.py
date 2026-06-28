@@ -107,6 +107,10 @@ class MovementService(MovementPort):
             count = sum(1 for c in characters if c.get("id_location") == loc["id"])
             neighbors: List[NeighborCost] = []
             for edge in self.store.find_neighbors_of_location(match["id_story"], loc["id"]):
+                # One-way link (flag_back=NO): not offered as a way back when
+                # standing on the destination endpoint.
+                if not self._traversable_from(edge, loc["id"]):
+                    continue
                 other_id = self._other_endpoint(edge, loc["id"])
                 other = self.store.find_location_by_id(match["id_story"], other_id)
                 if other is None:
@@ -134,13 +138,22 @@ class MovementService(MovementPort):
     def _find_edge(self, id_story: int, from_location: int,
                    to_location: int) -> Optional[Dict[str, Any]]:
         for e in self.store.find_neighbors_of_location(id_story, from_location):
-            if self._touches(e, from_location, to_location):
+            # Block backward traversal of a one-way link (flag_back=NO).
+            if self._touches(e, from_location, to_location) and self._traversable_from(e, from_location):
                 return e
         return None
 
     @staticmethod
     def _touches(e: Dict[str, Any], a: int, b: int) -> bool:
         return (e["id_from"] == a and e["id_to"] == b) or (e["id_from"] == b and e["id_to"] == a)
+
+    @staticmethod
+    def _traversable_from(e: Dict[str, Any], loc_id: int) -> bool:
+        """Forward (loc_id == id_from) always allowed; backward (loc_id == id_to)
+        only when ``flag_back == 1`` (a two-way link)."""
+        if e["id_from"] == loc_id:
+            return True
+        return e["id_to"] == loc_id and (e.get("flag_back") or 0) == 1
 
     @staticmethod
     def _other_endpoint(e: Dict[str, Any], loc_id: int) -> int:

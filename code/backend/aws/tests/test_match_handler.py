@@ -626,6 +626,57 @@ def test_get_match_info_locations_active(mock_jwt):
 
 
 @patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_one_way_neighbor_hidden_on_destination(mock_jwt):
+    # Edge 1->2 is one-way (flagBack=0). The player stands on location 2 (the
+    # destination), so the link back to 1 must NOT be exposed as a neighbor.
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    match_item = {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'locations': [], 'registry': [],
+    }
+    story_item = {
+        'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'locations': [
+            {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1},
+            {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'idCard': 2},
+        ],
+        'neighbors': [
+            {'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
+             'flagBack': 0, 'energyCost': 1, 'idCard': 3},
+        ],
+        'events': [], 'raw_cards': [], 'raw_texts': [],
+    }
+    character = {
+        'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+        'userUuid': 'player-uuid-001', 'idLocation': 2, 'locationName': 'Yard',
+    }
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return story_item
+        return None
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    la = _body(result)['locationsActive']
+    assert len(la) == 1
+    assert la[0]['idLocation'] == 2
+    # the one-way link back to location 1 is filtered out
+    assert la[0]['neighbors'] == []
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
 def test_get_match_info_resolves_cards_in_requested_lang(mock_jwt):
     mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 

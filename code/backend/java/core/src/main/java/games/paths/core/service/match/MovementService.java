@@ -146,6 +146,11 @@ public class MovementService implements MovementPort {
             }
             List<NeighborCost> neighborCosts = new ArrayList<>();
             for (NeighborEdge edge : store.findNeighborsOfLocation(match.idStory(), loc.id())) {
+                // One-way links (flagBack=NO) must not be offered as a way back
+                // when standing on the destination endpoint.
+                if (!edge.traversableFrom(loc.id())) {
+                    continue;
+                }
                 long otherId = otherEndpoint(edge, loc.id());
                 MoveLocationView other = store.findLocationByStoryAndId(match.idStory(), otherId).orElse(null);
                 if (other == null) {
@@ -179,7 +184,8 @@ public class MovementService implements MovementPort {
 
     private Optional<NeighborEdge> findEdge(long idStory, long fromLocation, long toLocation) {
         for (NeighborEdge e : store.findNeighborsOfLocation(idStory, fromLocation)) {
-            if (touches(e, fromLocation, toLocation)) {
+            // Block backward traversal of a one-way link (flagBack=NO).
+            if (touches(e, fromLocation, toLocation) && e.traversableFrom(fromLocation)) {
                 return Optional.of(e);
             }
         }

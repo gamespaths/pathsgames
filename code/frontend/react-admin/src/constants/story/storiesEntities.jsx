@@ -88,13 +88,14 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idLocationFrom', label: 'Location From ID', type: 'number' },
       { key: 'idLocationTo', label: 'Location To ID', type: 'number' },
       { key: 'direction', label: 'Direction', type: 'select', options: LOCATION_NEIGHBOR_DIRECTION_OPTIONS },
-      { key: 'flagBack', label: 'Flag Back', type: 'select', valueType: 'number', options: LOCATION_NEIGHBOR_FLAG_BACK_OPTIONS },
       { key: 'conditionRegistryKey', label: 'Condition Registry Key', type: 'text' },
       { key: 'conditionRegistryValue', label: 'Condition Registry Value', type: 'text' },
       { key: 'idTextGo', label: 'Text Go ID', type: 'number' },
       { key: 'idTextBack', label: 'Text Back ID', type: 'number' },
       { key: 'energyCost', label: 'Energy Cost', type: 'number' },
-      { key: 'idCardBack', label: 'Card Back ID', type: 'number' },
+      { key: 'flagBack', label: 'Flag Back', type: 'select', valueType: 'number', options: LOCATION_NEIGHBOR_FLAG_BACK_OPTIONS },
+      // Card Back is only meaningful when the neighbor allows going back (flagBack = YES).
+      { key: 'idCardBack', label: 'Card Back ID', type: 'number', showIf: (d) => Number(d.flagBack) === 1 },
     ],
     events: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -195,9 +196,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'cardType', label: 'Card Type', type: 'select', options: CARD_TYPE_OPTIONS },
       { key: 'idTextTitle', label: 'Title Text ID', type: 'number' },
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
-      { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
-      { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
       { key: 'idCreator', label: 'Creator ID', type: 'number' },
+      { key: 'linkCopyright', label: 'Copyright Link', type: 'text' },
+      { key: 'idTextCopyright', label: 'Copyright Text ID', type: 'number' },
       { key: 'urlImage', label: 'Image URL', type: 'text' },
       { key: 'alternativeImage', label: 'Alternative Image', type: 'text' },
       { key: 'awesomeIcon', label: 'Awesome Icon', type: 'text' },
@@ -330,11 +331,11 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'maxCharacters', label: 'Max Chars' },
     ],
     'location-neighbors': [
-
+      { key: 'flagBack', label: 'Back', render: (ent) => (Number(ent.flagBack) === 1 ? 'YES' : 'NO') },
       { key: 'idLocationFrom', label: 'From' },
       { key: 'idLocationTo', label: 'To' },
+      
       { key: 'direction', label: 'Direction' },
-      { key: 'flagBack', label: 'Back' },
     ],
     events: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },

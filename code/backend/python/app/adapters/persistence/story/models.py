@@ -191,6 +191,7 @@ class LocationNeighborEntity(Base):
     id_location_from = Column(Integer)
     id_location_to = Column(Integer)
     direction = Column(String(20))
+    flag_back = Column(Integer, nullable=False, default=0)
     energy_cost = Column(Integer, default=1)
     condition_key = Column(String(255))
     condition_value = Column(String(255))

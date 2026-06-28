@@ -1,21 +1,5 @@
 {
   "author": "Paths Games Team",
-  "card": {
-    "alternativeImage": null,
-    "awesomeIcon": "fas fa-chess-rook",
-    "cardType": null,
-    "copyrightText": "Lili Popper on Unsplash",
-    "description": "Welcome to the Paths Alpha tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges. Step inside and discover how every choice shapes your destiny.",
-    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
-    "styleDetail": null,
-    "styleImageLarge": null,
-    "styleImageLittle": null,
-    "styleImageMedium": null,
-    "styleMain": null,
-    "title": "Paths Tutorial",
-    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
-    "uuid": "52b424e5-945a-4b50-b16c-c9b83ae957fb"
-  },
   "cards": [
     {
       "alternativeImage": null,
@@ -703,6 +687,47 @@
       "linkCopyright": "https://unsplash.com/photos/black-and-white-i-love-you-print-wall-PoO-pMjrP-0",
       "urlImage": "https://images.unsplash.com/photo-1604151364473-02e3e26124a6?q=80&w=1229&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "8c6f657c-94ba-41e4-8510-98dd00e8b994"
+    },
+    {
+      "id": 59,
+      "idCard": 59,
+      "idCreator": 1,
+      "idTextCopyright": 173,
+      "idTextDescription": 168,
+      "idTextName": 168,
+      "idTextTitle": 168,
+      "id_card": 59,
+      "linkCopyright": "https://unsplash.com/photos/a-bench-in-the-middle-of-a-wooded-area-UethYJnyb2U",
+      "styleImageLarge": "ob-c ob-c-80",
+      "styleImageLittle": "ob-c ob-c-80",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1730109312391-7a69eb997be0?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "841fd536-3a7f-41dc-99ad-fb35bac6caf5"
+    },
+    {
+      "id": 60,
+      "idCard": 60,
+      "idCreator": 1,
+      "idTextCopyright": 171,
+      "idTextDescription": 169,
+      "idTextName": 169,
+      "idTextTitle": 169,
+      "id_card": 60,
+      "linkCopyright": "https://unsplash.com/photos/a-path-in-the-middle-of-a-wooded-area-yxG7zc8aFco",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1667405554326-b0852f17014a?q=80&w=688&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "598a2662-c330-4806-b07c-00b5d551873b"
+    },
+    {
+      "id": 61,
+      "idCard": 61,
+      "idCreator": 1,
+      "idTextCopyright": 172,
+      "idTextDescription": 170,
+      "idTextName": 170,
+      "idTextTitle": 170,
+      "id_card": 61,
+      "linkCopyright": "https://unsplash.com/photos/a-path-through-a-forest-with-lots-of-trees-9NJOJ37Ea4k",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1729776368906-2b0235734a99?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "66e83911-800c-430f-b481-ea151fb1c5a1"
     }
   ],
   "category": "adventure",
@@ -1259,6 +1284,28 @@
       "idTextName": 143,
       "id_card": 54,
       "uuid": "0d53dec4-723b-4cdc-a5eb-9a95330d26d9"
+    },
+    {
+      "direction": "WEST",
+      "flagBack": 0,
+      "id": 4,
+      "idCard": 60,
+      "idLocationFrom": 4,
+      "idLocationTo": 5,
+      "idTextName": 169,
+      "id_card": 60,
+      "uuid": "fc814cad-fd41-4cf7-bc3c-e35fc13b569a"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 0,
+      "id": 5,
+      "idCard": 61,
+      "idLocationFrom": 5,
+      "idLocationTo": 1,
+      "idTextName": 170,
+      "id_card": 61,
+      "uuid": "6ccc765a-6fb7-471e-81f6-64fc2f41107d"
     }
   ],
   "locations": [
@@ -1384,8 +1431,20 @@
       "idTextDescription": 153,
       "idTextName": 142,
       "id_card": 53,
+      "isSafe": true,
       "secureParam": 1,
       "uuid": "4549aaff-e89f-4711-8b71-32af58391503"
+    },
+    {
+      "costEnergyEnter": 3,
+      "id": 5,
+      "idCard": 59,
+      "idTextDescription": 168,
+      "idTextName": 168,
+      "id_card": 59,
+      "isSafe": true,
+      "secureParam": 1,
+      "uuid": "7b740f34-61b8-4c77-ab4c-5f8f0f7b76f2"
     }
   ],
   "missionSteps": [],
@@ -4356,6 +4415,66 @@
       "longText": "Giorno bellissimo",
       "shortText": "Giorno bellissimo",
       "uuid": "ca484677-fa49-4697-9d20-d7bcd35fd877"
+    },
+    {
+      "id": 168,
+      "idCreator": 1,
+      "idText": 168,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Secret location",
+      "shortText": "Secret location",
+      "uuid": "242ba1e8-8e2d-4a8e-bd0d-4e2c88403692"
+    },
+    {
+      "id": 169,
+      "idCreator": 1,
+      "idText": 169,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Strange path",
+      "shortText": "Strange path",
+      "uuid": "cc814c48-7d45-4aa1-b580-f7c443a419ea"
+    },
+    {
+      "id": 170,
+      "idCreator": 1,
+      "idText": 170,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Back start location",
+      "shortText": "Back start location",
+      "uuid": "5b36f1c3-bbcf-4b48-8bf5-3aa46ba1f3d9"
+    },
+    {
+      "id": 171,
+      "idCreator": 1,
+      "idText": 171,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Cphotos",
+      "shortText": "Cphotos",
+      "uuid": "c2ef2cab-08c5-425e-92ea-520805fcd20d"
+    },
+    {
+      "id": 172,
+      "idCreator": 1,
+      "idText": 172,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Joshua Earle",
+      "shortText": "Joshua Earle",
+      "uuid": "76e766d2-04c5-4a78-a67e-60e1813b0d9b"
+    },
+    {
+      "id": 173,
+      "idCreator": 1,
+      "idText": 173,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Joshua Earle",
+      "shortText": "Joshua Earle",
+      "uuid": "f69dba1d-ea21-444f-b005-d55bf95fa6a4"
     }
   ],
   "title": "Paths Tutorial",

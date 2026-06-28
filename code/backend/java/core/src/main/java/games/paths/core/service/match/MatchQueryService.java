@@ -417,6 +417,11 @@ public class MatchQueryService implements MatchQueryPort {
                 if (otherId == null) {
                     continue;
                 }
+                // One-way link (flagBack=NO): hide it when standing on the
+                // destination (idLocationTo), since you cannot go back.
+                if (!neighborTraversableFrom(n, locId)) {
+                    continue;
+                }
                 LocationEntity other = locationsById.get(otherId);
                 Integer neighborCardId = n.getIdCard() != null
                         ? n.getIdCard()
@@ -462,6 +467,20 @@ public class MatchQueryService implements MatchQueryPort {
      * when the link does not touch {@code locId}. Direction is preserved by the
      * caller via {@link LocationNeighborInfo#getDirection()}.
      */
+    /**
+     * Whether the neighbor link can be traversed from {@code locId}. Forward
+     * (locId == idLocationFrom) is always allowed; backward (locId ==
+     * idLocationTo) only when {@code flagBack == 1} (a two-way link).
+     */
+    private static boolean neighborTraversableFrom(LocationNeighborEntity n, Long locId) {
+        Long from = n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null;
+        Long to = n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null;
+        if (locId.equals(from)) {
+            return true;
+        }
+        return locId.equals(to) && n.getFlagBack() != null && n.getFlagBack() == 1;
+    }
+
     private static Long neighborOtherEndpoint(LocationNeighborEntity n, Long locId) {
         Long from = n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null;
         Long to = n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null;

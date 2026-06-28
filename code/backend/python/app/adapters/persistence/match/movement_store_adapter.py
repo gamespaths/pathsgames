@@ -94,6 +94,7 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                         "energy_cost": n.energy_cost or 0,
                         "condition_key": n.condition_key,
                         "condition_value": n.condition_value,
+                        "flag_back": n.flag_back or 0,
                     })
             return out
 

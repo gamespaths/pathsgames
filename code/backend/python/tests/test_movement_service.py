@@ -26,7 +26,8 @@ class FakeMovementStore:
                 "cost_energy_enter": 1, "max_characters": 0},
         }
         self.neighbors = {1: [{"id_from": 1, "id_to": 2, "direction": "NORTH",
-                               "energy_cost": 2, "condition_key": None, "condition_value": None}]}
+                               "energy_cost": 2, "condition_key": None, "condition_value": None,
+                               "flag_back": 1}]}
         self.weather = (3, 9)
         self.registry = {}
         self.visited = [1]
@@ -157,6 +158,26 @@ def test_unknown_target(service, store):
     with pytest.raises(MovementError) as e:
         service.start_movement(MATCH_UUID, "user-uuid", "loc-x")
     assert e.value.code == MovementError.NOT_A_NEIGHBOR
+
+
+def test_one_way_backward_blocked(service, store):
+    # Edge 1->2 is one-way (flag_back=0). Character stands on 2 and tries to go back to 1.
+    store.neighbors[1][0]["flag_back"] = 0
+    store.character["id_location"] = 2
+    with pytest.raises(MovementError) as e:
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-1")
+    assert e.value.code == MovementError.NOT_A_NEIGHBOR
+
+
+def test_one_way_backward_hidden_in_locations(service, store):
+    # Edge 1->2 one-way: standing on 2, location 1 must not appear as a neighbor.
+    store.neighbors[1][0]["flag_back"] = 0
+    store.character["id_location"] = 2
+    store.characters = [dict(store.character)]
+    store.visited = [2]
+    result = service.list_locations(MATCH_UUID, "user-uuid")
+    assert len(result) == 1
+    assert result[0].neighbors == []
 
 
 def test_not_adjacent(service, store):

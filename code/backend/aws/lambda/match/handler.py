@@ -282,6 +282,10 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
             if n.get("idLocationFrom") == loc_id:
                 other_id = n.get("idLocationTo")
             elif n.get("idLocationTo") == loc_id:
+                # One-way link (flagBack=NO): hide it when standing on the
+                # destination, since you cannot go back.
+                if not _neighbor_traversable_from(n, loc_id):
+                    continue
                 other_id = n.get("idLocationFrom")
             else:
                 continue
@@ -1586,10 +1590,19 @@ def _movement_total_cost(edge, target, weather_rule):
     return total, breakdown
 
 
+def _neighbor_traversable_from(n, loc_id):
+    """Forward (loc_id == idLocationFrom) is always allowed; backward (loc_id ==
+    idLocationTo) only when flagBack == 1 (a two-way link)."""
+    if n.get('idLocationFrom') == loc_id:
+        return True
+    return n.get('idLocationTo') == loc_id and _nz(n.get('flagBack')) == 1
+
+
 def _find_edge(neighbors, from_id, to_id):
     for n in (neighbors or []):
         a, b = n.get('idLocationFrom'), n.get('idLocationTo')
-        if (a == from_id and b == to_id) or (a == to_id and b == from_id):
+        if ((a == from_id and b == to_id) or (a == to_id and b == from_id)) \
+                and _neighbor_traversable_from(n, from_id):
             return n
     return None
 
@@ -1725,6 +1738,9 @@ def _visited_locations_payload(match, match_uuid):
             if a == loc_id:
                 other_id = b
             elif b == loc_id:
+                # One-way link (flagBack=NO): not offered as a way back.
+                if not _neighbor_traversable_from(n, loc_id):
+                    continue
                 other_id = a
             else:
                 continue
