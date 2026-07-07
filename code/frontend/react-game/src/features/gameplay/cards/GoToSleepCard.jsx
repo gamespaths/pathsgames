@@ -8,7 +8,7 @@ import { resolveSelectionEntity } from '@/utils/gamebook'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 
-export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, matchUuid, accessToken, onSlept}) {
+export default function GoToSleepCard({ story, storyFull,gameData,playerStats, onPreview, previewSide='left', matchUuid, accessToken, onSlept}) {
   const { t } = useTranslation()
   const [sleeping, setSleeping] = useState(false)
   //console.log("GoToSleepCard gameData",gameData);
@@ -78,7 +78,7 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
       true,
       {onAction: handleSleep, actionLabel: t('game.sleep.action'), actionIcon: 'fa-bed' ,
           extraContent:sleepSecureContent, extraContentClassName:''
-      } );
+      }, previewSide );
     }}
     story={story}
     flagInformationCard={true}

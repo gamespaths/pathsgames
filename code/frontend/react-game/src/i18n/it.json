@@ -126,6 +126,7 @@
   },
   "card": {
     "info": "Info",
+    "gameStatus": "Status",
     "viewOriginal": "Vedi originale",
     "actionInProgress": "Esecuzione"
   },

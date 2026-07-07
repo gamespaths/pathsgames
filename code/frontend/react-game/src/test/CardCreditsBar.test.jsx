@@ -71,6 +71,8 @@ describe('CardCreditsBar', () => {
     )
     expect(screen.getByText('Tolkien')).toBeInTheDocument()
     expect(screen.getByText('Unsplash')).toBeInTheDocument()
-    expect(container.querySelector('.gc-credits__label')).toBeTruthy()
+    // Both credit parts render together (author + image).
+    expect(container.querySelector('.credit-author')).toBeTruthy()
+    expect(container.querySelector('.credit-image')).toBeTruthy()
   })
 })

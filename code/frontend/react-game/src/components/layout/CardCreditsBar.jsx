@@ -36,7 +36,7 @@ export default function CardCreditsBar({ card, story, typeBadgeLabel = null }) {
   return (
     <div className="gc-credits">
       {typeBadgeLabel && <span className="gc-type-badge-credits">{typeBadgeLabel}</span>} 
-      { <span className="gc-credits__label credit-credit"> - </span>  }
+      {typeBadgeLabel && <span className="gc-credits__label credit-credit"> - </span>  }
       {parts.map((p, i) => (
         <span key={i}>{i > 0 ? ' - ' : ' '}{p}</span>
       ))}

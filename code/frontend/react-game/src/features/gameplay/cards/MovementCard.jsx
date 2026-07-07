@@ -16,7 +16,7 @@ import { startMovement } from '@/api/matches'
  * `label` prop — see the no-label-prop-in-card convention).
  */
 export default function MovementCard({
-  location, totalEnergyCost, playerStats, story, onPreview, matchUuid, accessToken, onMoved, onError,
+  location, totalEnergyCost, playerStats, story, onPreview, previewSide='left', matchUuid, accessToken, onMoved, onError,
 }) {
   const { t } = useTranslation()
   const [moving, setMoving] = useState(false)
@@ -72,7 +72,7 @@ export default function MovementCard({
             ? { onAction: handleMove, actionLabel: t('game.movement.action'),
                 actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
                 , /* extraContent: moveInfo, extraContentClassName: '' */ }
-            : { /* extraContent: moveInfo, extraContentClassName: ''*/ })
+            : { /* extraContent: moveInfo, extraContentClassName: ''*/ }, previewSide)
       }}
       story={story}
       flagInformationCard={true}

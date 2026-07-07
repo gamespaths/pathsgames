@@ -86,24 +86,25 @@ describe('PlayerCards', () => {
   it('forwards each entity card and its stat items to onPreview', () => {
     const onPreview = vi.fn()
     renderCards(onPreview)
+    // onPreview signature: (card, type, lockReason, statItems, showModal, additionalProps, previewSide)
     fireEvent.click(screen.getByTestId('preview-class'))
     expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.classes[0].card, 'class', null, expect.any(Array), true,
+      STORY_FULL.classes[0].card, 'class', null, expect.any(Array), true, null, 'left',
     )
     fireEvent.click(screen.getByTestId('preview-character'))
     expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.characterTemplates[0].card, 'character', null, expect.any(Array), true,
+      STORY_FULL.characterTemplates[0].card, 'character', null, expect.any(Array), true, null, 'left',
     )
     fireEvent.click(screen.getAllByTestId('preview-trait')[1])
     expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.traits[1].card, 'trait', null, expect.any(Array), true,
+      STORY_FULL.traits[1].card, 'trait', null, expect.any(Array), true, null, 'left',
     )
     fireEvent.click(screen.getByTestId('preview-difficulty'))
     expect(onPreview).toHaveBeenCalledWith(
-      STORY_FULL.difficulties[0].card, 'difficulty', null, expect.any(Array), true,
+      STORY_FULL.difficulties[0].card, 'difficulty', null, expect.any(Array), true, null, 'left',
     )
     fireEvent.click(screen.getByTestId('preview-story'))
-    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, true)
+    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, true, null, 'left')
   })
 
   it('omits the overlay when the entity has no non-zero stats', () => {

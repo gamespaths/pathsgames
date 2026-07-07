@@ -9,8 +9,12 @@ import BonusBadgeList from '@/components/ui/BonusBadgeList'
  * when no weather is set yet, e.g. before the match starts); in that case the
  * component renders nothing. Informational only: it opens the big card on the
  * left page / modal via `onPreview`.
+ *
+ * When `onBack` is passed the card is rendered as a full book reading page
+ * (variant="page") with the back arrow top-left — the weather-change overlay
+ * shown on the book's right page (see GameBook). `onBack` closes it.
  */
-export default function WeatherCard({ weather, story, onPreview }) {
+export default function WeatherCard({ weather, story, onPreview, onBack = null , previewSide='left' }) {
   const { t } = useTranslation()
   if (!weather) return null
 
@@ -28,6 +32,23 @@ export default function WeatherCard({ weather, story, onPreview }) {
   const costItems = weather.costMoveSafeLocation>0 ?
     [{ key: 'energy', value: '+' + weather.costMoveSafeLocation, label: t('game.movement.moveCost') }]
     : []
+
+  // Page (overlay) mode: full reading page with the back arrow, no (i) lens.
+  if (onBack) {
+    return (
+      <Card
+        variant="page"
+        card={card}
+        entityType="weather"
+        story={story}
+        loading={false}
+        onClose={onBack}
+        statItemsToPageContent={costItems}
+        hidePreview
+      />
+    )
+  }
+
   const costBadge = (
     <BonusBadgeList items={costItems} 
       className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
@@ -41,7 +62,7 @@ export default function WeatherCard({ weather, story, onPreview }) {
       story={story}
       flagInformationCard={true}
       childrenIntoImage={costBadge}
-      onPreview={() => onPreview?.(card, 'weather', null, costItems, true)}
+      onPreview={() => onPreview?.(card, 'weather', null, costItems, true, null, previewSide)}
     />
   )
 }

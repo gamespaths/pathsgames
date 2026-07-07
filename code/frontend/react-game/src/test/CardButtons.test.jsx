@@ -37,3 +37,39 @@ describe('CardButtons action spinner', () => {
     expect(screen.queryByText('card.actionInProgress')).not.toBeInTheDocument()
   })
 })
+
+describe('CardButtons preview (i) button overrides', () => {
+  it('defaults to the fa-info icon and card.info label', () => {
+    render(<CardButtons name="Stats" flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()} />)
+    const btn = screen.getByRole('button', { name: 'card.info' })
+    expect(btn.textContent).toContain('card.info')
+    expect(btn.querySelector('i')?.className).toContain('fas fa-info')
+  })
+
+  it('uses infoLabel, infoIconClassName and infoLabelClassName overrides in the preview button', () => {
+    render(
+      <CardButtons name="Stats" flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()}
+        infoLabel="Status" infoIconClassName="fas fa-info-circle font-size-medium"
+        infoLabelClassName="font-size-medium" />
+    )
+    const btn = screen.getByRole('button', { name: 'Status' })
+    expect(btn.textContent).toContain('Status')
+    expect(btn.textContent).not.toContain('card.info')
+    const iconClass = btn.querySelector('i')?.className
+    expect(iconClass).toContain('fas fa-info-circle')
+    expect(iconClass).toContain('font-size-medium')
+    expect(iconClass).not.toMatch(/fas fa-info(?!-)/)
+    const label = btn.querySelector('.gc-footer__btn-label')
+    expect(label?.className).toContain('font-size-medium')
+  })
+
+  it('fires onPreviewClick when the overridden preview button is clicked', () => {
+    const onPreviewClick = vi.fn()
+    render(
+      <CardButtons name="Stats" flagInformationCard onPreview={vi.fn()} onPreviewClick={onPreviewClick}
+        infoLabel="Game Status" infoIconClassName="fas fa-info-circle" />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Game Status' }))
+    expect(onPreviewClick).toHaveBeenCalled()
+  })
+})

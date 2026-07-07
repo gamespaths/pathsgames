@@ -12,7 +12,7 @@ import { getNonZeroStats, STAT_CATEGORY_ORDER } from '@/utils/bonusStats'
  * (with `flagShowFullStatistics`) so Card renders the BonusBadgeList overlaid on
  * the image itself.
  */
-export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview }) {
+export default function PlayerCards({ storyFull, story, playerStats, gameData, onPreview, previewSide='left' }) {
   const { t } = useTranslation()
 
   // Build the {key, label, value} badge items for a resolved selection entity.
@@ -40,11 +40,11 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
     <>
       <Card card={classEntity?.card} entityType="class" story={storyFull} flagInformationCard={true}
         statistics={classItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(classEntity?.card, 'class', null, classItems, true)}
+        onPreview={() => onPreview(classEntity?.card, 'class', null, classItems, true,null,previewSide)}
       />
       <Card card={characterEntity?.card} entityType="character" story={storyFull} flagInformationCard={true}
         statistics={characterItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(characterEntity?.card, 'character', null, characterItems, true)}
+        onPreview={() => onPreview(characterEntity?.card, 'character', null, characterItems, true,null,previewSide)}
       />
       {playerStats?.traitUuids?.map((trait, index) => {
         const traitEntity = resolveSelectionEntity(storyFull, playerStats, gameData, 'trait', index)
@@ -52,16 +52,16 @@ export default function PlayerCards({ storyFull, story, playerStats, gameData, o
         return (
           <Card key={traitEntity?.uuid ?? trait?.uuid ?? index} card={traitEntity?.card} entityType="trait" story={storyFull} flagInformationCard={true}
             statistics={traitItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-            onPreview={() => onPreview(traitEntity?.card, 'trait', null, traitItems, true)}
+            onPreview={() => onPreview(traitEntity?.card, 'trait', null, traitItems, true,null,previewSide)}
           />
         )
       })}
       <Card card={difficultyEntity?.card} entityType="difficulty" story={storyFull} flagInformationCard={true}
         statistics={difficultyItems} flagShowFullStatistics={true} bonusBadgeListLittleIntoImage={true}
-        onPreview={() => onPreview(difficultyEntity?.card, 'difficulty', null, difficultyItemsLong, true)}
+        onPreview={() => onPreview(difficultyEntity?.card, 'difficulty', null, difficultyItemsLong, true,null,previewSide)}
       />
       <Card card={story.card} entityType="story" story={story} flagInformationCard={true}
-        onPreview={() => onPreview(story.card, 'story', null, null, true)}
+        onPreview={() => onPreview(story.card, 'story', null, null, true,null,previewSide)}
       />
     </>
   )

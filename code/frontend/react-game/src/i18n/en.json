@@ -130,6 +130,7 @@
   },
   "card": {
     "info": "Info",
+    "gameStatus": "Status",
     "viewOriginal": "View original",
     "actionInProgress": "Executing"
   },

@@ -52,6 +52,7 @@ export default function Card({
   actionIcon = 'fa-sync-alt',
   actionOnlyIfPreview = false, actionWithInfo=false,
   onPreview, hidePreview = false,
+  infoLabel, infoIconClassName, infoLabelClassName,
 
   /* extra overlay content */
   childrenIntoImage,
@@ -192,7 +193,8 @@ export default function Card({
             onSelect={onSelect} selected={selected} selectLabel={selectLabel}
             onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview}
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
-            flagInformationCard={flagInformationCard} />
+            flagInformationCard={flagInformationCard}
+            infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} />
 
       {viewLink}
 

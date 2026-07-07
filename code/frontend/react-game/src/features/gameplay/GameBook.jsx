@@ -14,15 +14,36 @@ import {
   buildCardCharacteristicsRight,
   storySelectionCount,
   selectedTraitCount,
+  checkShowToSleepCard,
 } from '@/utils/gamebook'
 import CloseGameCard from './cards/CloseGameCard'
 import GoToSleepCard from './cards/GoToSleepCard'
 import MovementCard from './cards/MovementCard'
+import ActionCard from './cards/ActionCard'
 import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
-import { buildWeatherCard } from '@/utils/loadoutCards'
+
+// Mobile is a single stacked column (left on top, right below) that scrolls as a
+// whole inside `.book-overlay`. These helpers move a card into view there; on
+// desktop the `.book-mobile-*` wrappers are display:none so they are no-ops.
+const MOBILE_MQ = '(max-width: 767px)'
+function isMobileViewport() {
+  return typeof window !== 'undefined' && !!window.matchMedia?.(MOBILE_MQ).matches
+}
+function scrollMobileIntoView(selector) {
+  if (!isMobileViewport()) return
+  requestAnimationFrame(() => {
+    document.querySelector(selector)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  })
+}
+function scrollBookToTop() {
+  requestAnimationFrame(() => {
+    document.querySelector('.book-overlay')?.scrollTo?.({ top: 0, behavior: 'smooth' })
+    document.querySelector('.book-mobile-left')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  })
+}
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t } = useTranslation()
@@ -32,22 +53,26 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const storyCard = story?.card ?? null
 
   const [gameEnded, setGameEnded] = useState(false)
-  const [closePrompt, setClosePrompt] = useState(false)
+  // Desktop dual-page preview. `previewLeft` fills the book's LEFT reading page
+  // (the location card and its (i) lens live here); `previewRight` fills the
+  // RIGHT page. Each card decides its side via a `previewSide` prop that flows
+  // into handleSelectionPreviewFull as the last argument. `previewRight` also
+  // hosts the dedicated event pages via a discriminating `kind`
+  // (weather | close | endgame); a plain right preview uses kind: 'preview'.
+  const [previewLeft, setPreviewLeft] = useState(null)   // { card, type, ... } | null
+  const [previewRight, setPreviewRight] = useState(null) // { kind, ... } | null
   const [statisticsCards, setStatisticsCards] = useState(false)
   const [ending, setEnding] = useState(false)
   const [endError, setEndError] = useState(null)
-  const [preview, setPreview] = useState(null) // { entity, type } or null
   const [clock, setClock] = useState(null)
   const [weather, setWeather] = useState(null)
   const [previewModal, setPreviewModal] = useState(null)
-  // Step 28 — map of neighbor location uuid → totalEnergyCost (edge + entry +
-  // weather), loaded from /locations. The neighbor list itself is the /info
-  // adapter's `locations`; this only supplies the weather-resolved move cost.
   const [locationCosts, setLocationCosts] = useState({})
   const prevWeatherUuidRef = useRef(null)
-  // The `story` prop is the lean summary (no classes/characters/traits/difficulties).
-  // The full detail (with content lists) arrives via the `storyDetail` prop, loaded
-  // by GamePage; `storyFull` falls back to the summary until the detail arrives.
+  const [activeAction, setActiveAction] = useState(null)//used into endGame overlay and in future: action overlay
+  // Set right before a sleep/movement reload so the effect below scrolls the
+  // freshly-loaded board (the new card) back to the top on mobile.
+  const scrollTopAfterReloadRef = useRef(false)
 
   // Load the clock cycle state once the match is known, and after each sleep.
   async function refreshClock() {
@@ -86,23 +111,32 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
 
-  // Show the new weather card in the previewModal when the weather UUID changes
-  // (skips the initial load where prevWeatherUuidRef is still null).
+  // Show the new weather as a right-page reading page (WeatherCard with a back
+  // arrow) when the weather UUID changes (skips the initial load where
+  // prevWeatherUuidRef is still null).
   useEffect(() => {
     if (!weather) return
     const prevUuid = prevWeatherUuidRef.current
     prevWeatherUuidRef.current = weather.uuid
     if (prevUuid === null || weather.uuid === prevUuid) return
-    const card = weather.card ? { ...weather.card } : buildWeatherCard(weather, t)
-    if (!card.title) card.title = t('game.weather.title')
-    const costItems = weather.costMoveSafeLocation > 0
-      ? [{ key: 'energy', value: '+' + weather.costMoveSafeLocation, label: t('game.movement.moveCost') }]
-      : []
-    setPreviewModal({ card, type: 'weather', statItemsToPageContent: costItems, additionalProps: {} })
-    const el = document.getElementById('cardPreviewModal')
-    const Modal = window.bootstrap?.Modal
-    if (el && Modal) Modal.getOrCreateInstance(el).show()
+    setPreviewRight({ kind: 'weather' })
   }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mobile: when the player opens a right-page preview (the close prompt, an
+  // endgame or a right-routed card (i)), bring it into view — it renders at the
+  // bottom of the stacked column. Weather is event-driven (it may fire together
+  // with a sleep reload) so it is excluded here to not fight the scroll-to-top.
+  useEffect(() => {
+    if (previewRight && previewRight.kind !== 'weather') scrollMobileIntoView('.book-mobile-right')
+  }, [previewRight])
+
+  // Mobile: after a sleep/movement reload lands (new gameData), scroll the board
+  // back to the top so the new card is in view instead of the old action button.
+  useEffect(() => {
+    if (!scrollTopAfterReloadRef.current) return
+    scrollTopAfterReloadRef.current = false
+    scrollBookToTop()
+  }, [gameData])
 
   // Step 28 — load the per-neighbor total energy cost; the weather can change it,
   // so it is refreshed together with the clock/weather after a board reload.
@@ -133,11 +167,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }, [matchUuid, user?.accessToken])
 
   function refreshComponents(){
-    setPreview(null)
+    setPreviewLeft(null)
     setPreviewModal(null)
+    setPreviewRight(null)
     const el = document.getElementById('cardPreviewModal')
     const Modal = window.bootstrap?.Modal
-    if (el && Modal) Modal.getOrCreateInstance(el).hide()  
+    if (el && Modal) Modal.getOrCreateInstance(el).hide()
   }
   function handleReloadClockWeatherAndMatchData() {
     // Sleep may advance the clock (when all characters are done): refresh the
@@ -147,39 +182,50 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     refreshWeather()
     // Step 28 — weather/position changed: refresh the per-neighbor move costs.
     refreshLocations()
+    // Ask the post-reload effect to scroll the new board to the top (mobile).
+    scrollTopAfterReloadRef.current = true
     onReload?.()
     handleBackOrClose()
     refreshComponents();
   }
-  function handleSelectionPreview(card, type) {
-    handleSelectionPreviewFull(card, type, null, null , true);
-  }
-  function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={}) {
+  // `side` ('left' | 'right') is supplied by each card's `previewSide` prop.
+  // A right preview always renders inline on the right page (desktop) / bottom
+  // of the stack (mobile). A left/default preview keeps its behaviour: the (i)
+  // lens opens a Bootstrap modal on mobile, or the left reading page on desktop.
+  function handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={}, side='left') {
     //console.log("handleSelectionPreviewFull",  statistics);
     const previewData = card ? { card, type, lockedReason: lockReason, statItemsToPageContent: statistics, additionalProps } : null
-    // Mobile has no left page, so the (i) lens opens the big card in a modal
-    // (same pattern as StartBookModal). Desktop keeps the left-page preview.
-    if (!card){ 
-      setPreview(null)
+    if (!card){
+      setPreviewLeft(null)
+      setPreviewRight(null)
       setPreviewModal(null)
       return; //ingore null preview, just close the modal if open
     }
-    if (showModal && typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches) {
-      setPreviewModal(previewData)  
+    if (side === 'right') {
+      // Right previews are inline on both desktop and mobile (the mobile scroll
+      // effect brings them into view); they never use the (i) modal.
+      setPreviewModal(null)
+      setPreviewRight({ kind: 'preview', ...previewData })
+    } else if (showModal && typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches) {
+      setPreviewModal(previewData)
       const el = document.getElementById('cardPreviewModal')
       const Modal = window.bootstrap?.Modal
-      if (el && Modal) Modal.getOrCreateInstance(el).show()      
-    }else{
+      if (el && Modal) Modal.getOrCreateInstance(el).show()
+    } else {
       setPreviewModal(null);
-      setPreview(previewData)
-      const el = document.querySelector('.book-left')
-      if (el) {
-        el.scrollTo({ top: 0, behavior: 'smooth' })
-      }      
+      setPreviewLeft(previewData)
+      // The left reading page scrolls its own content back to the top.
+      document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
     }
   }
+  function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
+    //setEndGameCard(card);
+    //setActiveAction(action);
+    handleSelectionPreviewFull(card, 'action', lockReason, statistics , showModal , additionalProps, 'right');
+    //setPreviewRight({ kind: 'endgame' });
+  }
   function handleBackOrClose() {
-    setPreview(null);
+    setPreviewLeft(null);
     setStatisticsCards(false);
   }
 
@@ -189,7 +235,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     setEndError(null)
     try {
       const eventUuid = action?.uuidEvent ?? action?.uuid
-      console.log('Ending game with action:', action , user, { eventUuid, matchUuid })
+      //console.log('Ending game with action:', action , user, { eventUuid, matchUuid })
       await endMatch(matchUuid, eventUuid, user?.accessToken)
       setGameEnded(true)
     } catch (e) {
@@ -209,20 +255,51 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // The base (non-preview) left content: the current location, or the story
   // card as fallback. On mobile this is what the stacked left shows — the (i)
   // preview opens in a modal instead (see handleSelectionPreviewFull).
-  //console.log("preview", preview, "actualLocationCard", actualLocationCard, "storyCard", storyCard);
-  const leftContent = preview ? (
-      <Card variant="page" 
-        card={preview.card} 
-        entity={preview.entity}
-        entityType={preview.type}
+  //console.log("previewLeft", previewLeft, "actualLocationCard", actualLocationCard, "storyCard", storyCard);
+  // The RIGHT reading page. Dedicated event pages (weather / close / endgame)
+  // render their own card component in page mode; a plain right preview
+  // (kind: 'preview') renders the same page Card the left page uses. Each has a
+  // back arrow that clears previewRight.
+  const closeRight = () => setPreviewRight(null)
+  const previewRightContent =
+    previewRight?.kind === 'weather'
+      ? <WeatherCard weather={weather} story={story} onBack={closeRight} />
+      : previewRight?.kind === 'close'
+        ? <CloseGameCard story={story} onExit={onClose} onBack={closeRight} />
+      : previewRight?.kind === 'endgame'
+        ? <EndGameCard story={story} action={activeAction} 
+            handleEndGamePreviewFull={handleEndGamePreviewFull}
+            handleEndGame={handleEndGame} onBack={closeRight} variant="page" />
+      : previewRight?.kind === 'preview'
+        ? <Card variant="page"
+            card={previewRight.card}
+            entity={previewRight.entity}
+            entityType={previewRight.type}
+            loading={false}
+            story={story}
+            onClose={closeRight}
+            lockedReason={previewRight.lockedReason}
+            statItemsToPageContent={previewRight.statItemsToPageContent}
+            {...previewRight.additionalProps}
+          />
+        : null
+  // The LEFT reading page: a left preview, else the current location, else the
+  // story card. On mobile this is what the stacked left shows — the (i) preview
+  // opens in a modal instead (see handleSelectionPreviewFull).
+  const leftContent =
+    previewLeft ? (
+      <Card variant="page"
+        card={previewLeft.card}
+        entity={previewLeft.entity}
+        entityType={previewLeft.type}
         loading={false}
         story={story}
         onClose={handleBackOrClose}
-        lockedReason={preview.lockedReason}
-        statItemsToPageContent={preview.statItemsToPageContent}
-        {...preview.additionalProps}
+        lockedReason={previewLeft.lockedReason}
+        statItemsToPageContent={previewLeft.statItemsToPageContent}
+        {...previewLeft.additionalProps}
       />
-    ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive} 
+    ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive}
         location={actualLocationCard} card={actualLocationCard} story={story} />
     : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
@@ -243,27 +320,30 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   //console.log("playerStats",playerStats);
   //console.log("a",resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty'));
   
-  const rightContent = 
-    statisticsCards ? <div className="config-view-wrap config-view--config">
+  const rightContent =
+    previewRight ? previewRightContent
+    : statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
+          <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-            matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
-          <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} />
-
+            previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
-            gameData={gameData} onPreview={handleSelectionPreviewFull} />
+            gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right" />
         </div>
       </div>
     : <>
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
-          <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true}
+          <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true} previewSide="right"
+            infoLabel={t('card.gameStatus')} infoIconClassName="fas fa-info-circle font-size-medium" infoLabelClassName="font-size-medium"
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />
-          {playerStats?.energy <= 1 && /* to Sleep if enery <=1 */
+          {/* Show the sleep card only when the player is energy-stuck: every
+              available movement and action costs more energy than they have. */}
+          {checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) &&
             <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-              matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
+              previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           }
           {/* Step 27 — current weather card (in both render points). }
           <WeatherCard weather={weather} story={story} onPreview={handleSelectionPreviewFull} /> {  
@@ -274,7 +354,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             <MovementCard key={loc.uuid ?? loc.idLocation} location={loc}
               totalEnergyCost={loc.uuid != null ? locationCosts[loc.uuid] : undefined}
               playerStats={playerStats} story={story} onPreview={handleSelectionPreviewFull}
-              matchUuid={matchUuid} accessToken={user?.accessToken}
+              previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken}
               onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
           )) }
 
@@ -282,11 +362,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           { (actions ?? []).map( action => {
             if (action.endGame) {
               return <EndGameCard key={action.uuid} story={story} action={action} 
-                handleSelectionPreview={handleSelectionPreviewFull} handleEndGame={handleEndGame} />
-            } else { /*TODO action card */
-              return <Card key={action.uuid} card={action.card} entityType="action" 
-                onPreview={() => handleSelectionPreview(action.card, 'action')}
-                story={story} flagInformationCard={true} />
+                handleEndGamePreviewFull={handleEndGamePreviewFull} handleEndGame={handleEndGame} />
+            } else {
+              return <ActionCard key={action.uuid} action={action} story={story}
+                onPreview={handleSelectionPreviewFull} previewSide="right"
+                playerStats={playerStats} matchUuid={matchUuid} accessToken={user?.accessToken}
+                onDone={handleReloadClockWeatherAndMatchData} onError={onError} />
             }
           }) }
           <div className="sleep-action-row">
@@ -304,7 +385,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   return (
     <>
       <Book
-        onClose={() => setClosePrompt(true)}
+        onClose={() => setPreviewRight({ kind: 'close' })}
         closeLabel={`${t('game.closeBook')}${story?.title ?? story?.card?.title ? ' ' + (story?.title ?? story?.card?.title) : ''}`}
         left={leftContent}
         right={rightContent}
@@ -315,11 +396,6 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
       <CardPreviewModal preview={ previewModal} story={story}
       />
-      {/* Close confirmation: the player paused (did not finish) the match. The
-          story card carries the message and a button back to the home page. */}
-      {closePrompt && (
-        <CloseGameCard story={story} onExit={onClose} onDismiss={() => setClosePrompt(false)} />
-      )}
     </>
   )
 }

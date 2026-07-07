@@ -121,6 +121,23 @@ describe('MovementCard', () => {
     expect(onPreview).toHaveBeenCalled()
   })
 
+  // The `previewSide` prop is forwarded to onPreview as the 7th argument so the
+  // GameBook can route the preview to the left or right book page. Defaults left.
+  it('forwards previewSide to onPreview (7th arg), defaulting to left', () => {
+    const onPreview = vi.fn()
+    const { rerender } = render(<MovementCard location={LOCATION} totalEnergyCost={4}
+      playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][6]).toBe('left')
+    onPreview.mockClear()
+    rerender(<MovementCard location={LOCATION} totalEnergyCost={4} previewSide="right"
+      playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
+      matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][6]).toBe('right')
+  })
+
   it('handles a movement error gracefully', async () => {
     startMovement.mockRejectedValueOnce(new Error('boom'))
     const onMoved = vi.fn()

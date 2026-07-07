@@ -101,3 +101,43 @@ export function resolveSelectionEntity(story, playerStats, gameData, type, index
 export function selectedTraitCount(playerStats) {
   return Array.isArray(playerStats?.traitUuids) ? playerStats.traitUuids.length : 0
 }
+
+/**
+ * The weather-resolved energy cost the player must pay to reach one neighbor:
+ * the /locations `totalEnergyCost` (keyed by neighbor uuid) when known, else the
+ * base edge cost carried on the location. Kept as a named helper so the sleep
+ * gate and MovementCard stay in agreement on how a move's cost is computed.
+ */
+export function movementEnergyCost(location, locationCosts = {}) {
+  const resolved = location?.uuid != null ? locationCosts[location.uuid] : undefined
+  return resolved ?? location?.energyCost ?? 0
+}
+
+/**
+ * Whether to surface the "go to sleep" card on the board.
+ *
+ * Rule: show it only when the player is energy-stuck — they have some energy X
+ * but every available movement AND every available action costs more than X, so
+ * there is nothing left to do but rest. If any move or action is still
+ * affordable the card stays hidden.
+ *
+ * This is intentionally a small, dedicated pure function so the rule can evolve
+ * (e.g. once actions carry their own energy cost, or extra "must sleep"
+ * conditions appear) without touching GameBook's render. Only actions with a
+ * positive `energyCost` count: an action with `energyCost` 0 or absent (the
+ * current API contract, which does not expose it yet) is ignored — otherwise
+ * `energy >= 0` would always hold and the card could never show. End-game
+ * actions are escape hatches (no energy cost, they end the match), so they too
+ * never count as "something the player can still do" and are excluded.
+ */
+export function checkShowToSleepCard({ playerStats, locations = [], actions = [], locationCosts = {} } = {}) {
+  const energy = playerStats?.energy ?? 0
+  const moves = Array.isArray(locations) ? locations : []
+  // Only energy-costing, non-end-game actions gate the sleep card.
+  const acts = (Array.isArray(actions) ? actions : [])
+    .filter(action => !action?.endGame && (action?.energyCost ?? 0) > 0)
+  const affordableMovement = moves.some(loc => energy >= movementEnergyCost(loc, locationCosts))
+  const affordableAction = acts.some(action => energy >= action.energyCost)
+  // Stuck ⇔ no affordable movement and no affordable costed action.
+  return !affordableMovement && !affordableAction
+}

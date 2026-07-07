@@ -47,15 +47,15 @@ export default function EndGameBook({ story, endGameCard , onClose}) {
 
   const leftPage = <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
   const rightPage = <Card variant="page" card={endGameCard} loading={endGameCard===undefined} story={story} 
-    onAction={() => goToHome()} actionLabel={t('game.endGameClose')} actionIcon='fa-home'
+    onAction={() => goToHome()} actionLabel={t('game.endGameClose')} actionIcon='fa-home'  entityType="exit"
   />
 
 
   const mobileStack = (
     <div className="book-mobile-layout end-game-mobile">
-      {storyCard && <Card variant="page" card={storyCard} story={story} />}
-      {endGameCard && <Card variant="page" card={endGameCard} story={story} />}
+      {endGameCard && <Card variant="page" card={endGameCard} story={story} entityType="exit" />}
       {closeBtn}
+      {storyCard && <Card variant="page" card={storyCard} story={story} />}            
     </div>
   )
 

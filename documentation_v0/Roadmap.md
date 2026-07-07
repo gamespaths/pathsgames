@@ -69,30 +69,48 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-28. Movement system — adjacency, energy cost, validation
-    - Implement POST /gameplay/{uuid_match}/movements/start endpoint accepting target location for character movement (backend)
-    - Implement GET /match/{uuid_match}/locations endpoint returning list of already visited locations (backend)
-    - Validate movement: target is neighbor, character has sufficient energy, weight does not exceed capacity (backend)
-    - Check movement conditions: registry key/value requirements from list_locations_neighbors (backend)
-    - Calculate total energy cost: base cost + location entry cost + weather modifier (safe/unsafe different costs) (backend)
-        note: locations api must have this values (total_energy_cost) on response
-    - Deduct energy from character, update gaming_character_instance.id_location, check location capacity limits (backend)
-    - Write backend unit tests for movement validation, energy calculation, registry conditions, capacity limits, and weight checks (backend tests)
-    - Frontend react-game on gameBook after GoToSleepCard add locations cards if neighbor (only where there is "TODO for every neighbor-location" comment) and action button to movements/start API calls 
-        note: location neighbor list is from "info" api, locations api should be used for total_energy_cost and others files not in info api response. 
-    - Frontend react-admin: into match detail page add informations
-        - number of character inside the location
-        - total_energy_cost information for every location with character (sub list with neighbors list)
-    - Capacity check is first-come-first-served; concurrent movement locking deferred to Step 67
-
-29. Optional events — player-triggered actions
-    - List available optional events at current location via GET /match/{uuid_match}/info response (backend)
-    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate optional event (backend)
-    - Validate event activation: character has sufficient energy, coin cost, and is not sleeping or comatose (backend)
-    - Deduct energy and coins, apply event effects to character and match state (backend)
-    - Apply stat modifications respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
+29. Normal events — player-triggered actions
+    - change tables
+        - move "key_to_add, key_value_to_add" "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add to table "list_events_effects"
+        - add "registry_key_condition", "registry_value_condition" "id_class_condition" e "id_item_condition" to table "list_events"
+        - add "id_weather" to table list_events_effects (to set weather)
+        - add TYPE=ONCE into list_events values
+        - change all backend projects (aws, lambda, python) and all frontends (on editor)
+            - "update import/validator/CRUD/seed in all backend e frontends".
+        - nota: doen't matter "list_events_conditions" logic because all conditions are always in AND! Add it to final documentation.
+        - upgrade openAPI documents after changes 
+    - Create an unique "check procedure" tecnical point on backend to check if an event is possibile:
+        type=NORMAL or ONCE . ONCE if event is not on log_events table!
+        id_specific_location: if_specific_location=location of character 
+        cost_enery: character has enough energy 
+        registry: registry_key_condition, registry_value_condition
+        coin_cost : character has enough coin
+        id_weather: actual weather
+        id_item_condition: character has specific item
+        id_class_condition: character has specific class
+    - List available Normal events at current location via GET /match/{uuid_match}/info response (backend)
+        on info response add field "available" (flag to write into response if an event is possibile)
+        example ONCE just done -> available=false (ONCE is for match , write it on documentation)
+        example: if characher is_sleeping/coma -> available=false always!
+        nota: normal event with list_choices: after effects and after get choises!
+    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate normal event (backend)
+        - Validate event activation: use check procedure 
+        - execute-event 
+            - with "has turn" -> new turn 
+            - execute-event if OK return event, card, flags fields for every fiedlds (turnConsumed, timeEndend, itemRemoved, itemAdded, registryChanges, weatherApplied , forcedSleep, comaTriggered, gameOver, statChanges ...), list_events_effects with cards (narrative component is card of list_events_effects), pendingChoices & refreshRecommended to return to frontend if reload "match-info API" (true if one or more flag are changes)! 
+            - if KO return reason (ONCE_ALREADY_CONSUMED, WRONG_LOCATION, NOT_ENOUGH_ENERGY,... )
+    - Deduct energy and coins cost, apply event effects to character and match state (backend)
+        - run id_event_next if present (don't mind about loop event: validator into Step22 )
+        - execute-event should have lang for cards
+    - Apply stat modifications 
+        - respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
+        - add/remove item (item_action), add/remove trait, scrittura registry (key_to_add), exp, target ALL/ONLY_ONE/target_class (INV-27: all location)
+        - if after event life ≤ 0 -> coma! Step 29 only set flag is_coma=true, is_sleeping=true and only return (clamp + flag)
     - Handle flag_end_time: if event causes time end, force all characters to sleep and advance time (backend)
     - Write backend unit tests for optional event activation, cost validation, effect application, and time-end trigger (backend tests)
+    - Write log into log_events table!
+    - update step09 md file! 
+    - write new robot test for ever fields and conditions (for every branches code and conditions!)
 30. Choice engine — conditions, validation, presentation
     - Return currently available choices within GET /match/{uuid_match}/info response for active character (backend)
     - Load choice options from list_choices for current event or location, ordered by priority (backend)

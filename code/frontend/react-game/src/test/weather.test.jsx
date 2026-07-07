@@ -39,14 +39,17 @@ vi.mock('@/utils/loadoutCards', () => ({
 }))
 let capturedOnPreview = null
 let capturedCard = null
+let capturedStatItems = null
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ card, onPreview, entityType }) => {
+  default: ({ card, onPreview, onClose, entityType, variant, statItemsToPageContent }) => {
     capturedOnPreview = onPreview
     capturedCard = card
+    capturedStatItems = statItemsToPageContent
     return (
-      <div data-testid="weather-card" data-entity={entityType}>
+      <div data-testid="weather-card" data-entity={entityType} data-variant={variant}>
         <span data-testid="title">{card?.title}</span>
         {onPreview && <button data-testid="preview" onClick={onPreview}>preview</button>}
+        {onClose && <button data-testid="back-btn" onClick={onClose}>back</button>}
       </div>
     )
   },
@@ -79,7 +82,36 @@ describe('WeatherCard', () => {
     const onPreview = vi.fn()
     render(<WeatherCard weather={{ idWeather: 2, deltaEnergy: -2 }} onPreview={onPreview} />)
     fireEvent.click(screen.getByTestId('preview'))
+    // onPreview signature: (card, type, lockReason, statItems, showModal, additionalProps, previewSide)
     expect(onPreview).toHaveBeenCalledWith(
-      expect.any(Object), 'weather', null, expect.any(Array), true)
+      expect.any(Object), 'weather', null, expect.any(Array), true, null, 'left')
+  })
+
+  // Page (overlay) mode — rendered on the book's right page with a back arrow.
+  describe('page mode (onBack)', () => {
+    beforeEach(() => { capturedOnPreview = null; capturedStatItems = null })
+
+    it('renders a page-variant card with no (i) preview and passes the move cost', () => {
+      render(
+        <WeatherCard
+          weather={{ idWeather: 2, costMoveSafeLocation: 3 }}
+          story={{}}
+          onBack={vi.fn()}
+        />,
+      )
+      expect(screen.getByTestId('weather-card').dataset.variant).toBe('page')
+      expect(screen.queryByTestId('preview')).not.toBeInTheDocument()
+      // costMoveSafeLocation > 0 → a move-cost stat item is passed to the page.
+      expect(capturedStatItems).toEqual([
+        expect.objectContaining({ key: 'energy', value: '+3' }),
+      ])
+    })
+
+    it('calls onBack when the back arrow is clicked', () => {
+      const onBack = vi.fn()
+      render(<WeatherCard weather={{ idWeather: 2 }} story={{}} onBack={onBack} />)
+      fireEvent.click(screen.getByTestId('back-btn'))
+      expect(onBack).toHaveBeenCalledOnce()
+    })
   })
 })

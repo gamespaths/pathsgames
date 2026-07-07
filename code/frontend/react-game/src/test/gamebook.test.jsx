@@ -11,6 +11,8 @@ import {
   resolveSelectionEntity,
   storySelectionCount,
   selectedTraitCount,
+  movementEnergyCost,
+  checkShowToSleepCard,
 } from '../utils/gamebook'
 
 const STORY = {
@@ -88,5 +90,85 @@ describe('utils/gamebook — card builders', () => {
     const card = buildCardCharacteristicsRight(STORY, PLAYER, null, WEATHER, { matchUuid: 'm1' })
     expect(card.urlImage).toBe('http://x/storm.png')
     expect(card.descriptionTag).toBe(true)
+  })
+})
+
+describe('utils/gamebook — movementEnergyCost', () => {
+  it('prefers the weather-resolved cost keyed by uuid', () => {
+    expect(movementEnergyCost({ uuid: 'l1', energyCost: 5 }, { l1: 3 })).toBe(3)
+  })
+  it('falls back to the base edge cost, then to 0', () => {
+    expect(movementEnergyCost({ uuid: 'l1', energyCost: 5 }, {})).toBe(5)
+    expect(movementEnergyCost({ uuid: 'l1' }, {})).toBe(0)
+    expect(movementEnergyCost(null)).toBe(0)
+  })
+})
+
+describe('utils/gamebook — checkShowToSleepCard', () => {
+  it('hides the sleep card when a movement is still affordable', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 4 },
+      locations: [{ uuid: 'l1' }], // resolved cost 4 → affordable
+      actions: [],
+      locationCosts: { l1: 4 },
+    })
+    expect(show).toBe(false)
+  })
+
+  it('shows the sleep card when every movement costs more than the current energy', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 2 },
+      locations: [{ uuid: 'l1' }, { uuid: 'l2', energyCost: 5 }],
+      actions: [],
+      locationCosts: { l1: 3 }, // l1 costs 3, l2 costs 5 — both > 2
+    })
+    expect(show).toBe(true)
+  })
+
+  it('ignores actions with no positive energy cost (0 or absent); they never suppress the sleep card', () => {
+    // Move l1 costs 5 (unaffordable at energy 0); the two actions have no
+    // positive cost → ignored → still stuck.
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 0 },
+      locations: [{ uuid: 'l1' }],
+      actions: [{ uuid: 'a1' }, { uuid: 'a2', energyCost: 0 }],
+      locationCosts: { l1: 5 },
+    })
+    expect(show).toBe(true)
+  })
+
+  it('hides the sleep card when a costed action is affordable', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 5 },
+      locations: [{ uuid: 'l1', energyCost: 9 }], // move unaffordable (9 > 5)
+      actions: [{ uuid: 'a1', energyCost: 3 }],   // action affordable (5 >= 3)
+      locationCosts: {},
+    })
+    expect(show).toBe(false)
+  })
+
+  it('shows the sleep card when a costed action is present but unaffordable', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 1 },
+      locations: [{ uuid: 'l1' }],
+      actions: [{ uuid: 'a1', energyCost: 3 }], // needs 3, has 1 → unaffordable
+      locationCosts: { l1: 5 },
+    })
+    expect(show).toBe(true)
+  })
+
+  it('ignores end-game actions (escape hatches never suppress the sleep card)', () => {
+    const show = checkShowToSleepCard({
+      playerStats: { energy: 1 },
+      locations: [{ uuid: 'l1', energyCost: 5 }],
+      actions: [{ uuid: 'a1', endGame: true }], // excluded → still stuck
+      locationCosts: {},
+    })
+    expect(show).toBe(true)
+  })
+
+  it('shows the sleep card when there is nothing to do at all', () => {
+    expect(checkShowToSleepCard({ playerStats: { energy: 10 } })).toBe(true)
+    expect(checkShowToSleepCard()).toBe(true)
   })
 })
