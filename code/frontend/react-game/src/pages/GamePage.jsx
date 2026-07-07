@@ -95,7 +95,7 @@ export default function GamePage() {
         <div className="game-page-loading">
           <i className="fas fa-spinner fa-spin me-4" />Loading…
         </div>
-      ) : (!matchError || matchError.transient) && (
+      ) : (!matchError || matchError.transient) && ( 
         <GameBook gameData={gameData} matchUuid={matchUuid} story={story} storyDetail={storyDetail}
           onReload={reloadGameData} onClose={() => gotoHomePage(null)} onError={handleGameError} />
       )}

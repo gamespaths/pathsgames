@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Load .env from repository root if present
-PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 echo "Project root folder: $PROJECT_ROOT"
 ENV_FILE="$PROJECT_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
@@ -112,8 +112,42 @@ run_react_admin() {
     echo "React Admin Sonar Scanner completed."
 }
 
+run_react_game() {
+    echo "==========================================="
+    echo "Running Sonar Scanner for React Game..."
+    echo "==========================================="
+    if [ -z "${SONAR_LOGIN_TOKEN:-}" ]; then
+        echo "Error: SONAR_LOGIN_TOKEN must be set in the environment or .env file."
+        return 1
+    fi
+    cd "$PROJECT_ROOT/code/frontend/react-game"
+
+    set +e
+    npm run test:coverage
+    set -e
+
+    # Cleanup previous scanner work to avoid lock issues
+    rm -rf .scannerwork
+
+    npx -y sonarqube-scanner \
+        -Dsonar.token="$SONAR_LOGIN_TOKEN" \
+        -Dsonar.host.url="$SONAR_HOST_URL" \
+        -Dsonar.organization="$SONAR_ORGANIZATION" \
+        -Dsonar.projectKey=gamespaths_frontend-react-game \
+        -Dsonar.projectName="Frontend React Game" \
+        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+        -Dsonar.sources=src \
+        -Dsonar.tests=src/test \
+        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,src/test/**" \
+        -Dsonar.test.inclusions="src/test/**/*.test.jsx,src/test/**/*.test.js" \
+        -Dsonar.js.security.sensor.skip=true \
+        -Dsonar.security.analysis.skip=true \
+        -Dsonar.main.js.security.skip=true
+    echo "React Game Sonar Scanner completed."
+}
+
 usage() {
-    echo "Usage: $0 [all|java|python|react-admin]"
+    echo "Usage: $0 [all|java|python|react-admin|react-game]"
     echo "If no arguments are provided, all scanners will be run."
 }
 
@@ -124,6 +158,7 @@ case "$TARGET" in
         run_java
         run_python
         run_react_admin
+        run_react_game
         ;;
     java)
         run_java
@@ -133,6 +168,9 @@ case "$TARGET" in
         ;;
     react-admin)
         run_react_admin
+        ;;
+    react-game)
+        run_react_game
         ;;
     *)
         usage
