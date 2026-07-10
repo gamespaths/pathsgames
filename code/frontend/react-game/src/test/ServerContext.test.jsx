@@ -1,13 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import axios from 'axios'
-import { ServerProvider, useServer } from '../context/ServerContext'
 
 vi.mock('axios', () => ({ default: { get: vi.fn() } }))
 
 const STORAGE_KEY = 'pg_game_server'
-// Default server resolved from VITE_DEFAULT_SERVERS in .env.test.
+// ServerContext reads VITE_DEFAULT_SERVERS once at module load, so the env must
+// be stubbed BEFORE the module is imported. vi.hoisted runs above all imports,
+// making the test independent of any .env file (e.g. the gitignored .env.test,
+// which is absent in CI).
 const DEFAULT_SERVER = 'https://api-test-server2.paths.games'
+vi.hoisted(() => {
+  import.meta.env.VITE_DEFAULT_SERVERS = JSON.stringify([
+    { label: 'Server test 2', url: 'https://api-test-server2.paths.games' },
+    { label: 'Server test', url: 'https://api-test.paths.games' },
+  ])
+})
+
+const { ServerProvider, useServer } = await import('../context/ServerContext')
 
 function Probe() {
   const { server, servers, probing, changeServer } = useServer()

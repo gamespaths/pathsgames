@@ -1,3 +1,49 @@
+/* added mannualy by developer for card grid into GamePage and GameBook!  */
+@media (max-width: 991px)and (min-width: 768px) {
+  .stat-badge{
+    font-size: 0.8rem !important;
+  }
+}
+@media (max-width: 991px) {
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+@media (max-width: 550px) {
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 1120px) {
+  .credit-author, .credit-credit { display:none;}
+  .selection-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .btn-start-game{
+    font-size: 1rem !important;
+  }
+}
+@media (max-width: 350px) {
+  .stat-badge{
+    font-size: 0.6rem !important;
+    padding: 2px 6px !important;
+  }
+}
+@media (max-width: 330px) {
+  .stat-badge{
+    font-size: 1rem !important;
+  }
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(1, 1fr) !important;
+  }
+  .start-match-actions {
+    display: grid !important;
+  }
+
+}
+
+
+
 /* ═══════════════════════════════════════════════════════════
    MOBILE STYLES  — breakpoint ≤ 767px
    Modifica qui font, colori e dimensioni per il layout mobile.

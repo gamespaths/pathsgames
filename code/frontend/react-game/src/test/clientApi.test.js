@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('axios', () => ({
   default: {
@@ -11,13 +11,24 @@ import axios from 'axios'
 import { apiClient, fetchJson } from '../api/client'
 
 const STORAGE_KEY = 'pg_game_server'
-// Default server resolved from VITE_DEFAULT_SERVERS in .env.test.
+// Default server is stubbed here so the test does not depend on any .env file
+// (e.g. the gitignored .env.test, which is absent in CI). client.js reads
+// VITE_DEFAULT_SERVERS at call time, so a stub in beforeEach is enough.
 const DEFAULT_SERVER = 'https://api-test-server2.paths.games'
+const TEST_SERVERS = JSON.stringify([
+  { label: 'Server test 2', url: DEFAULT_SERVER },
+  { label: 'Server test', url: 'https://api-test.paths.games' },
+])
 
 describe('api/client', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    vi.stubEnv('VITE_DEFAULT_SERVERS', TEST_SERVERS)
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   describe('apiClient', () => {

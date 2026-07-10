@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Paths Games — World Map Mobile v0.28.5</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cinzel+Decorative:wght@700&family=Crimson+Text:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- react-game mobile pattern: no book, a sticky navbar and a single
+       dark column of gold-bordered cards scrolling top-to-bottom -->
+  <nav class="navbar"><span class="brand">⚔ Paths Games</span></nav>
+
+  <div class="stats-bar">
+    <span class="stat-badge">❤️ Life 20</span>
+    <span class="stat-badge">⚡ Energy 14</span>
+    <span class="stat-badge">😊 Happiness 9</span>
+  </div>
+
+  <main class="book-mobile-layout">
+
+    <!-- MAP CARD -->
+    <section class="m-card">
+      <h2 class="m-card-title">The Northern Realms</h2>
+      <div class="map-canvas" id="mapCanvas">
+        <div class="map-world" id="mapWorld">
+          <svg class="map-svg" id="mapSvg">
+            <defs>
+              <marker id="arrGold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6f08"/>
+              </marker>
+              <!-- bigger arrow: possible movement direction from the current location -->
+              <marker id="arrGoldBig" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a4e00"/>
+              </marker>
+            </defs>
+            <g id="edgeLayer"></g>
+          </svg>
+          <!-- nodes injected by JS -->
+        </div>
+        <div class="map-ctrl">
+          <button id="zoomIn"  title="Zoom in">+</button>
+          <button id="zoomOut" title="Zoom out">−</button>
+          <button id="zoomHere" title="Center on current location">◎</button>
+        </div>
+        <div class="map-hint">drag to pan · pinch to zoom</div>
+      </div>
+      <div class="map-legend">
+        <span><i class="leg-line"></i> Two-way</span>
+        <span><i class="leg-line oneway"></i> One-way</span>
+        <span><i class="leg-dot"></i> Here</span>
+        <span><b>?</b> Unexplored</span>
+      </div>
+    </section>
+
+    <!-- LOCATION CARD -->
+    <section class="m-card" id="locCard">
+      <img class="loc-img" id="locImg" alt="Location photo">
+      <div class="loc-body">
+        <h3 class="loc-title" id="locTitle">—</h3>
+        <p class="loc-desc" id="locDesc"></p>
+        <div class="loc-badges" id="locBadges"></div>
+      </div>
+      <div class="loc-copy" id="locCopy"></div>
+    </section>
+
+    <!-- MOVEMENT CARD -->
+    <section class="m-card">
+      <h2 class="m-card-title">Movement — Available Exits</h2>
+      <div class="exit-list" id="exitList"></div>
+    </section>
+
+    <p class="foot">Mobile prototype · react-game mobile pattern · palette from variables.css</p>
+  </main>
+
+  <script>
+  /* ============================================================
+     DATA — same world as v0.28.5 Map: tutorial locations from
+     tutorial_story.json + invented Northern Realms.
+     flagBack drives one-way links; fog of war hides 10,13,14,16,17.
+     ============================================================ */
+  const LOCS = {
+    1:  { name: 'Tutorial start location', safe: false, costEnter: 0,
+          img: 'https://plus.unsplash.com/premium_photo-1764425842148-aa6992a33268?q=80&w=1470&auto=format&fit=crop',
+          copy: 'Daniel J. Schwarz',
+          desc: 'Welcome to the introduction match of paths.games.<br><br>Check your vital statistics, examine the movement card to discover which adjacent locations are ready to be explored.' },
+    3:  { name: 'Center location', safe: false, costEnter: 0,
+          img: 'https://plus.unsplash.com/premium_photo-1742561620384-f76310e32a5c?q=80&w=687&auto=format&fit=crop',
+          copy: 'Annie Spratt',
+          desc: 'This is the center location of the tutorial story.<br><br>The road forks here: a safe shelter lies to the west, and the wild Northern Realms open up beyond the crossroads.' },
+    4:  { name: 'Safe location', safe: true, costEnter: 0,
+          img: 'https://plus.unsplash.com/premium_photo-1676648534483-98f7e98fb734?q=80&w=687&auto=format&fit=crop',
+          copy: 'Frank van Hulst',
+          desc: 'You are in a protected shelter.<br><br>Resting here regenerates your statistics: Energy based on Dexterity, Life based on Constitution.' },
+    5:  { name: 'Secret location', safe: true, costEnter: 3,
+          img: 'https://plus.unsplash.com/premium_photo-1730109312391-7a69eb997be0?q=80&w=687&auto=format&fit=crop',
+          copy: 'Unsplash',
+          desc: 'A hidden place off the beaten path.<br><br>Few travellers ever find it — and the only way out leads somewhere unexpected.' },
+    6:  { name: 'Crossroads', safe: false, costEnter: 0,
+          img: 'https://picsum.photos/id/17/900/600', copy: 'Picsum',
+          desc: 'A weathered signpost marks the parting of four roads.<br><br>Only the boldest go north.' },
+    7:  { name: 'Riverbank', safe: false, costEnter: 0,
+          img: 'https://picsum.photos/id/15/900/600', copy: 'Picsum',
+          desc: 'The river runs cold and fast. Smooth stones make a treacherous footing, but fish glimmer below the surface.' },
+    8:  { name: 'Old Bridge', safe: false, costEnter: 0,
+          img: 'https://picsum.photos/id/12/900/600', copy: 'Picsum',
+          desc: 'A crumbling stone arch spans the gorge. It leads nowhere anymore — but it is a fine place to sit and think.' },
+    9:  { name: 'Dark Forest', safe: false, costEnter: 1,
+          img: 'https://picsum.photos/id/18/900/600', copy: 'Picsum',
+          desc: 'Ancient trunks blot out the sun. Something always seems to move just beyond your sight.' },
+    10: { name: "Hunter's Camp", safe: true, costEnter: 0,
+          img: 'https://picsum.photos/id/10/900/600', copy: 'Picsum',
+          desc: 'A ring of tents around a smoking fire. The hunters speak of a hidden trail that climbs straight to the cliffs.' },
+    11: { name: 'Waterfall', safe: false, costEnter: 1,
+          img: 'https://picsum.photos/id/16/900/600', copy: 'Picsum',
+          desc: 'A curtain of thundering water hides the rock face.<br><br>Behind the mist, a narrow ledge disappears northward — once you take it, there is no coming back.' },
+    12: { name: 'Village', safe: true, costEnter: 0,
+          img: 'https://picsum.photos/id/28/900/600', copy: 'Picsum',
+          desc: 'Timber houses, warm bread, and wary but kind faces.<br><br>A safe place to rest before the long climb to the stones.' },
+    13: { name: 'Watchtower', safe: false, costEnter: 2,
+          img: 'https://picsum.photos/id/13/900/600', copy: 'Picsum',
+          desc: 'From the top of the old tower the whole realm unfolds beneath you.<br><br>To the north, a cliff path snakes up the mountainside.' },
+    14: { name: 'Misty Marsh', safe: false, costEnter: 0,
+          img: 'https://picsum.photos/id/11/900/600', copy: 'Picsum',
+          desc: 'The mist swallowed the path behind you.<br><br>Pale lights drift over the black water. Keep moving east.' },
+    15: { name: 'Stone Circle', safe: false, costEnter: 1,
+          img: 'https://picsum.photos/id/14/900/600', copy: 'Picsum',
+          desc: 'Megaliths older than any kingdom hum faintly when you pass between them.<br><br>The final ascent begins here.' },
+    16: { name: 'Cliff Path', safe: false, costEnter: 2,
+          img: 'https://picsum.photos/id/29/900/600', copy: 'Picsum',
+          desc: 'A ribbon of rock above the clouds.<br><br>Across the ridge you can see the sanctuary — a single desperate leap away.' },
+    17: { name: 'Mountain Sanctuary', safe: true, costEnter: 2, ending: true,
+          img: 'https://picsum.photos/id/98/900/600', copy: 'Picsum',
+          desc: 'The journey ends above the clouds. Bells ring softly in the thin air.<br><br>Execute the ending action to complete the story.' }
+  };
+
+  /* neighbor links: back=1 → bidirectional, back=0 → ONE-WAY (flagBack property) */
+  const NEIGHBORS = [
+    { from:1,  to:3,  dir:'NORTH', back:1, energy:0, name:'Move to the main location' },
+    { from:3,  to:4,  dir:'WEST',  back:1, energy:0, name:'Safe place' },
+    { from:4,  to:5,  dir:'WEST',  back:0, energy:0, name:'Strange path' },
+    { from:5,  to:1,  dir:'NORTH', back:0, energy:0, name:'Back to start location' },
+    { from:3,  to:6,  dir:'NORTH', back:1, energy:0, name:'Head north to the crossroads' },
+    { from:6,  to:7,  dir:'WEST',  back:1, energy:0, name:'Follow the riverbank' },
+    { from:7,  to:8,  dir:'WEST',  back:1, energy:0, name:'Cross to the old bridge' },
+    { from:6,  to:9,  dir:'EAST',  back:1, energy:1, name:'Enter the dark forest' },
+    { from:9,  to:10, dir:'EAST',  back:1, energy:0, name:"Reach the hunter's camp" },
+    { from:7,  to:11, dir:'NORTH', back:1, energy:1, name:'Climb beside the waterfall' },
+    { from:6,  to:12, dir:'NORTH', back:1, energy:0, name:'Walk to the village' },
+    { from:9,  to:13, dir:'NORTH', back:1, energy:2, name:'Climb to the watchtower' },
+    { from:11, to:14, dir:'NORTH', back:0, energy:0, name:'Slip through the mist' },
+    { from:12, to:15, dir:'NORTH', back:1, energy:1, name:'Ascend to the stone circle' },
+    { from:13, to:16, dir:'NORTH', back:1, energy:2, name:'Take the cliff path' },
+    { from:14, to:15, dir:'EAST',  back:1, energy:0, name:'Follow the standing stones' },
+    { from:15, to:17, dir:'NORTH', back:1, energy:3, name:'Climb to the sanctuary' },
+    { from:16, to:17, dir:'WEST',  back:0, energy:0, name:'Leap across the ridge' },
+    { from:10, to:16, dir:'NORTH', back:0, energy:1, name:'Hidden hunter trail' }
+  ];
+  const OPP = { NORTH:'SOUTH', SOUTH:'NORTH', EAST:'WEST', WEST:'EAST' };
+  const DIR_LETTER = { NORTH:'N', SOUTH:'S', EAST:'E', WEST:'W' };
+  const START = 1;
+
+  /* fog of war: 10, 13, 14, 16, 17 not visited yet; travelling reveals */
+  const visited = new Set([1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 15]);
+
+  /* world layout (px) — same grid as the desktop concept */
+  const PAD = 30, CELL = 110, COLS = 5, ROWS = 7;
+  const W = PAD*2 + COLS*CELL, H = PAD*2 + ROWS*CELL;
+  const g = (c, r) => ({ x: PAD + (c+.5)*CELL, y: PAD + (r+.5)*CELL });
+  const POS = {
+    1:  g(2,6), 3: g(2,5), 4: g(1,5), 5: g(0,5),
+    6:  g(2,4), 7: g(1,4), 8: g(0,4), 9: g(3,4), 10: g(4,4),
+    11: g(1,3), 12: g(2,3), 13: g(3,3),
+    14: g(1,2), 15: g(2,2), 16: g(3,2),
+    17: g(2,1)
+  };
+  const NODE_R = 30;
+
+  let current = START;
+
+  function exitsOf(id) {
+    const out = [];
+    NEIGHBORS.forEach(n => {
+      if (n.from === id)
+        out.push({ dir: n.dir, to: n.to, name: n.name, energy: n.energy,
+                   oneWay: !n.back, unknown: !visited.has(n.to) });
+      else if (n.to === id && n.back)
+        out.push({ dir: OPP[n.dir], to: n.from, energy: n.energy, oneWay: false,
+                   unknown: !visited.has(n.from),
+                   name: visited.has(n.from)
+                     ? 'Back to ' + LOCS[n.from].name.toLowerCase()
+                     : 'Unexplored path' });
+    });
+    return out;
+  }
+
+  /* ---------------- map card ---------------- */
+  const canvas = document.getElementById('mapCanvas');
+  const world  = document.getElementById('mapWorld');
+  const svg    = document.getElementById('mapSvg');
+  world.style.width  = W + 'px';
+  world.style.height = H + 'px';
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  function shorten(a, b, r) {
+    const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+    return { x1: a.x + dx/len*r, y1: a.y + dy/len*r, x2: b.x - dx/len*r, y2: b.y - dy/len*r };
+  }
+
+  function drawEdges() {
+    const layer = document.getElementById('edgeLayer');
+    layer.innerHTML = '';
+    NEIGHBORS.forEach(n => {
+      /* fog of war: arrows leaving an unexplored location are hidden;
+         arrows from a visited location INTO an unexplored one stay */
+      const fwd = visited.has(n.from);
+      const bwd = !!n.back && visited.has(n.to);
+      if (!fwd && !bwd) return;
+
+      const a = POS[n.from], b = POS[n.to];
+      const isExit = n.from === current || (n.to === current && n.back);
+      const hot = (n.from === current || n.to === current);
+      const cls = 'edge' + (n.back ? '' : ' oneway') + (hot ? ' hot' : '');
+      let d, ends;
+      if (n.from === 5 && n.to === 1) {
+        d = `M ${a.x} ${a.y + NODE_R} Q ${a.x + 10} ${H - 20} ${b.x - NODE_R - 4} ${b.y + 8}`;
+        ends = `marker-end="url(#${isExit ? 'arrGoldBig' : 'arrGold'})"`;
+      } else if (fwd && bwd && isExit) {
+        const from = n.from === current ? a : b;
+        const to   = n.from === current ? b : a;
+        const s = shorten(from, to, NODE_R);
+        d = `M ${s.x1} ${s.y1} L ${s.x2} ${s.y2}`;
+        ends = 'marker-end="url(#arrGoldBig)"';
+      } else if (fwd && bwd) {
+        const s = shorten(a, b, NODE_R);
+        d = `M ${s.x1} ${s.y1} L ${s.x2} ${s.y2}`;
+        ends = 'marker-start="url(#arrGold)" marker-end="url(#arrGold)"';
+      } else {
+        const from = fwd ? a : b, to = fwd ? b : a;
+        const s = shorten(from, to, NODE_R);
+        d = `M ${s.x1} ${s.y1} L ${s.x2} ${s.y2}`;
+        const big = (fwd ? n.from : n.to) === current;
+        ends = `marker-end="url(#${big ? 'arrGoldBig' : 'arrGold'})"`;
+      }
+      layer.insertAdjacentHTML('beforeend', `<path class="${cls}" d="${d}" ${ends}/>`);
+    });
+  }
+
+  function drawNodes() {
+    world.querySelectorAll('.node').forEach(n => n.remove());
+    const reachable = new Set(exitsOf(current).map(e => e.to));
+    Object.entries(POS).forEach(([id, p]) => {
+      id = Number(id);
+      const l = LOCS[id];
+      const known = visited.has(id);
+      const el = document.createElement('div');
+      el.className = 'node'
+        + (id === current ? ' current' : '')
+        + (reachable.has(id) ? ' reachable' : '')
+        + (known ? '' : ' unknown');
+      el.style.left = p.x + 'px';
+      el.style.top  = p.y + 'px';
+      if (known) {
+        el.style.backgroundImage = `url("${l.img}")`;
+        el.title = l.name;
+        if (l.safe) el.insertAdjacentHTML('beforeend', '<span class="safe-flag" title="Safe location">🛡</span>');
+        el.addEventListener('click', () => { if (!dragMoved) select(id); });
+      } else {
+        el.title = 'Unexplored';
+      }
+      world.appendChild(el);
+    });
+  }
+
+  /* ---------- pan, pinch & zoom (touch-first) ---------- */
+  let tx = 0, ty = 0, scale = 0.7;
+  let dragMoved = false;
+  const pts = new Map();               /* active pointers */
+  let pinchDist = 0, pinchScale = 1;
+  let sx = 0, sy = 0, stx = 0, sty = 0;
+
+  function applyT(animate) {
+    world.classList.toggle('anim', !!animate);
+    world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  function clampT() {
+    const vw = canvas.clientWidth, vh = canvas.clientHeight;
+    const M = 90;
+    const loX = Math.min(M, vw - W*scale - M), hiX = Math.max(M, vw - W*scale - M);
+    const loY = Math.min(M, vh - H*scale - M), hiY = Math.max(M, vh - H*scale - M);
+    tx = Math.max(loX, Math.min(hiX, tx));
+    ty = Math.max(loY, Math.min(hiY, ty));
+  }
+  function centerOn(id, animate) {
+    tx = canvas.clientWidth/2 - POS[id].x*scale;
+    ty = canvas.clientHeight/2 - POS[id].y*scale;
+    clampT(); applyT(animate);
+  }
+  function zoomAt(cx, cy, factor) {
+    const ns = Math.max(0.4, Math.min(1.7, scale*factor));
+    tx = cx - (cx - tx)*(ns/scale);
+    ty = cy - (cy - ty)*(ns/scale);
+    scale = ns;
+    clampT(); applyT(false);
+  }
+  const mid = () => {
+    const [a, b] = [...pts.values()];
+    const r = canvas.getBoundingClientRect();
+    return { x: (a.x+b.x)/2 - r.left, y: (a.y+b.y)/2 - r.top,
+             d: Math.hypot(a.x-b.x, a.y-b.y) };
+  };
+
+  /* no setPointerCapture: it would swallow the click on the nodes */
+  canvas.addEventListener('pointerdown', e => {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) {
+      dragMoved = false;
+      sx = e.clientX; sy = e.clientY; stx = tx; sty = ty;
+      canvas.classList.add('dragging');
+    } else if (pts.size === 2) {
+      const m = mid(); pinchDist = m.d; pinchScale = scale;
+    }
+  });
+  window.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {                    /* pinch zoom */
+      dragMoved = true;
+      const m = mid();
+      zoomAt(m.x, m.y, (pinchScale * m.d / pinchDist) / scale);
+    } else if (pts.size === 1) {             /* drag pan */
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.hypot(dx, dy) > 5) dragMoved = true;
+      tx = stx + dx; ty = sty + dy;
+      clampT(); applyT(false);
+    }
+  });
+  const lift = e => {
+    pts.delete(e.pointerId);
+    if (pts.size === 0) canvas.classList.remove('dragging');
+    if (pts.size === 1) {                    /* pinch → drag handoff */
+      const p = [...pts.values()][0];
+      sx = p.x; sy = p.y; stx = tx; sty = ty;
+    }
+  };
+  window.addEventListener('pointerup', lift);
+  window.addEventListener('pointercancel', lift);
+  canvas.addEventListener('wheel', e => {   /* desktop testing */
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.12 : 1/1.12);
+  }, { passive: false });
+
+  document.getElementById('zoomIn').onclick  = () => zoomAt(canvas.clientWidth/2, canvas.clientHeight/2, 1.25);
+  document.getElementById('zoomOut').onclick = () => zoomAt(canvas.clientWidth/2, canvas.clientHeight/2, 1/1.25);
+  document.getElementById('zoomHere').onclick = () => centerOn(current, true);
+
+  /* ---------------- location + movement cards ---------------- */
+  function renderCard() {
+    const l = LOCS[current];
+    document.getElementById('locTitle').textContent = l.name;
+    const img = document.getElementById('locImg');
+    img.style.opacity = 0;
+    img.onload = () => { img.style.opacity = 1; };
+    img.src = l.img;
+    document.getElementById('locDesc').innerHTML = l.desc;
+    document.getElementById('locCopy').textContent = 'Photo: ' + l.copy;
+
+    const badges = [];
+    if (l.ending) badges.push('<span class="bonus-badge">🏁 Ending</span>');
+    if (l.safe) badges.push('<span class="bonus-badge">🛡 Safe</span>');
+    if (l.costEnter > 0) badges.push(`<span class="bonus-badge">⚡ Enter ${l.costEnter}</span>`);
+    document.getElementById('locBadges').innerHTML = badges.join(' ');
+
+    const list = document.getElementById('exitList');
+    list.innerHTML = '';
+    exitsOf(current).forEach(e => {
+      const btn = document.createElement('button');
+      btn.className = 'exit-btn';
+      btn.innerHTML =
+        `<span class="dir-badge">${DIR_LETTER[e.dir]}</span>` +
+        `<span class="exit-name">${e.name}</span>` +
+        (e.unknown ? `<span class="cost">❓</span>` : '') +
+        (e.energy > 0 ? `<span class="cost">⚡ ${e.energy}</span>` : '') +
+        (e.oneWay ? `<span class="oneway-tag">ONE-WAY</span>` : '');
+      btn.onclick = () => select(e.to);
+      list.appendChild(btn);
+    });
+  }
+
+  function select(id) {
+    current = id;
+    visited.add(id); /* travelling reveals the location */
+    drawEdges();
+    drawNodes();
+    renderCard();
+    centerOn(id, true);
+    /* bring the location card into view under the map */
+    document.getElementById('locCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  drawEdges();
+  drawNodes();
+  renderCard();
+  requestAnimationFrame(() => centerOn(current, false));
+  </script>
+</body>
+</html>
