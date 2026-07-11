@@ -56,6 +56,11 @@ export function buildWeatherCard(weather, t) {
   return card;
 }
 
+/** Step 0.28.5 — world-map card (MapCard). `t` is the i18n translate function. */
+export function buildMapCard(t) {
+  return metaCard('map', t('game.map.title'), null)
+}
+
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
   return metaCard('gems', t('book.guest'), t('book.guestDesc'));

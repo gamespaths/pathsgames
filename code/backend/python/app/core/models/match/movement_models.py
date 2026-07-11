@@ -6,7 +6,8 @@ from typing import List, Optional
 @dataclass
 class NeighborCost:
     """A neighbor edge with the resolved energy-cost breakdown for the current weather:
-    base_energy_cost (edge) + entry_energy_cost (target entry) + weather_energy_cost = total."""
+    base_energy_cost (edge) + entry_energy_cost (target entry) + weather_energy_cost = total.
+    ``id_card``/``card`` are the neighbor LOCATION's card (camelCase dict, may be None)."""
     id_location: int
     uuid: Optional[str]
     direction: Optional[str]
@@ -15,17 +16,21 @@ class NeighborCost:
     weather_energy_cost: int
     total_energy_cost: int
     condition_met: bool
+    id_card: Optional[int] = None
+    card: Optional[dict] = None
 
 
 @dataclass
 class VisitedLocation:
-    """A visited location with its current character count and move-cost neighbors."""
+    """A visited location with its current character count and move-cost neighbors.
+    ``card`` is the location's resolved card (camelCase dict, may be None)."""
     id_location: int
     uuid: Optional[str]
     id_card: Optional[int]
     safe: bool
     character_count: int
     neighbors: List[NeighborCost] = field(default_factory=list)
+    card: Optional[dict] = None
 
 
 @dataclass

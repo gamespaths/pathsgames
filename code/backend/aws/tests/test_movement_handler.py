@@ -47,6 +47,19 @@ def _story(uuid='s1'):
         'weatherRules': [
             {'id': 9, 'uuid': 'w-9', 'costMoveSafeLocation': 1, 'costMoveNotSafeLocation': 5},
         ],
+        # Step 0.28.5 — cards resolved from idCard against raw_cards/raw_texts.
+        'raw_cards': [
+            {'id': 2, 'uuid': 'card-2', 'urlImage': 'http://img/2.jpg', 'awesomeIcon': 'fa-x',
+             'idTextTitle': 20, 'idTextDescription': 21},
+            {'id': 3, 'uuid': 'card-3', 'urlImage': 'http://img/3.jpg', 'awesomeIcon': 'fa-y',
+             'idTextTitle': 30},
+        ],
+        'raw_texts': [
+            {'idText': 20, 'lang': 'en', 'shortText': 'Start hall'},
+            {'idText': 20, 'lang': 'it', 'shortText': 'Sala iniziale'},
+            {'idText': 21, 'lang': 'en', 'shortText': 'The start'},
+            {'idText': 30, 'lang': 'en', 'shortText': 'Center'},
+        ],
     }
 
 
@@ -85,10 +98,10 @@ def _env(items):
         yield table
 
 
-def _event(method, path, body=None, uuid_match='m1', role='PLAYER'):
+def _event(method, path, body=None, uuid_match='m1', role='PLAYER', qs=None):
     headers = {'Authorization': 'Bearer MOCK_ACCESS_player-uuid-001'}
     return make_event(method, path, body=body, headers=headers,
-                      path_params={'uuidMatch': uuid_match})
+                      path_params={'uuidMatch': uuid_match}, qs=qs)
 
 
 # ── movements/start ────────────────────────────────────────────────────────────
@@ -248,6 +261,31 @@ def test_locations_lists_visited_with_total_cost():
     assert nb['uuid'] == 'loc-2'
 
 
+def test_locations_resolves_location_and_neighbor_cards():
+    items = [PLAYER, _story(), _match(), _char('m1', 1, 'c1', location=1)]
+    with _env(items):
+        result = h.lambda_handler(_event('GET', '/api/match/m1/locations'), None)
+    loc = next(l for l in _body(result)['locations'] if l['idLocation'] == 1)
+    assert loc['card']['uuid'] == 'card-2'
+    assert loc['card']['title'] == 'Start hall'
+    assert loc['card']['urlImage'] == 'http://img/2.jpg'
+    assert loc['card']['description'] == 'The start'
+    nb = loc['neighbors'][0]
+    assert nb['idCard'] == 3
+    assert nb['card']['uuid'] == 'card-3'
+    assert nb['card']['title'] == 'Center'
+
+
+def test_locations_cards_localized_with_english_fallback():
+    items = [PLAYER, _story(), _match(), _char('m1', 1, 'c1', location=1)]
+    with _env(items):
+        result = h.lambda_handler(
+            _event('GET', '/api/match/m1/locations', qs={'lang': 'it'}), None)
+    loc = next(l for l in _body(result)['locations'] if l['idLocation'] == 1)
+    assert loc['card']['title'] == 'Sala iniziale'   # it text exists
+    assert loc['card']['description'] == 'The start'  # falls back to en
+
+
 def test_admin_locations():
     admin = {**PLAYER, 'role': 'ADMIN'}
     items = [admin, _story(), _match(), _char('m1', 1, 'c1', location=1)]
@@ -257,4 +295,7 @@ def test_admin_locations():
                        headers={'Authorization': 'Bearer MOCK'},
                        path_params={'uuidMatch': 'm1'}), None)
     assert result['statusCode'] == 200
-    assert _body(result)['locations'][0]['idLocation'] == 1
+    loc = _body(result)['locations'][0]
+    assert loc['idLocation'] == 1
+    assert loc['card']['uuid'] == 'card-2'
+    assert loc['neighbors'][0]['card']['uuid'] == 'card-3'

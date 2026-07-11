@@ -199,10 +199,12 @@ export async function startMovement(uuidMatch, targetLocationUuid, accessToken) 
  * neighbor list itself comes from /info; this endpoint carries the resolved
  * cost). Returns `{ matchUuid, locations: [] }`.
  */
-export async function getMatchLocations(uuidMatch, accessToken) {
+export async function getMatchLocations(uuidMatch, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { ...(config.params ?? {}), lang }
   const res = await apiClient().get(
     `/api/match/${uuidMatch}/locations`,
-    authConfig(accessToken),
+    config,
   )
   return res.data
 }

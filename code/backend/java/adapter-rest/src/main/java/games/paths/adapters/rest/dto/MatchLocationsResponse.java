@@ -30,11 +30,12 @@ public class MatchLocationsResponse {
     public String getMatchUuid() { return matchUuid; }
     public List<LocationView> getLocations() { return locations; }
 
-    /** A visited location with character count and move-cost neighbors. */
+    /** A visited location with character count, its resolved card and move-cost neighbors. */
     public static class LocationView {
         private long idLocation;
         private String uuid;
         private Integer idCard;
+        private CardInfoResponse card;
         private boolean safe;
         private int characterCount;
         private List<NeighborView> neighbors = new ArrayList<>();
@@ -44,6 +45,7 @@ public class MatchLocationsResponse {
             v.idLocation = l.idLocation();
             v.uuid = l.uuid();
             v.idCard = l.idCard();
+            v.card = CardInfoResponse.fromModel(l.card());
             v.safe = l.safe();
             v.characterCount = l.characterCount();
             if (l.neighbors() != null) {
@@ -57,6 +59,7 @@ public class MatchLocationsResponse {
         public long getIdLocation() { return idLocation; }
         public String getUuid() { return uuid; }
         public Integer getIdCard() { return idCard; }
+        public CardInfoResponse getCard() { return card; }
         public boolean isSafe() { return safe; }
         public int getCharacterCount() { return characterCount; }
         public List<NeighborView> getNeighbors() { return neighbors; }
@@ -70,6 +73,8 @@ public class MatchLocationsResponse {
         private long idLocation;
         private String uuid;
         private String direction;
+        private Integer idCard;
+        private CardInfoResponse card;
         private int baseEnergyCost;
         private int entryEnergyCost;
         private int weatherEnergyCost;
@@ -81,6 +86,8 @@ public class MatchLocationsResponse {
             v.idLocation = n.idLocation();
             v.uuid = n.uuid();
             v.direction = n.direction();
+            v.idCard = n.idCard();
+            v.card = CardInfoResponse.fromModel(n.card());
             v.baseEnergyCost = n.baseEnergyCost();
             v.entryEnergyCost = n.entryEnergyCost();
             v.weatherEnergyCost = n.weatherEnergyCost();
@@ -92,6 +99,8 @@ public class MatchLocationsResponse {
         public long getIdLocation() { return idLocation; }
         public String getUuid() { return uuid; }
         public String getDirection() { return direction; }
+        public Integer getIdCard() { return idCard; }
+        public CardInfoResponse getCard() { return card; }
         public int getBaseEnergyCost() { return baseEnergyCost; }
         public int getEntryEnergyCost() { return entryEnergyCost; }
         public int getWeatherEnergyCost() { return weatherEnergyCost; }

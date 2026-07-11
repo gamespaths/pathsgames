@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.controller.match;
 
+import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
@@ -86,12 +87,20 @@ class MovementControllerTest {
 
     @Test
     void locations_returns200() throws Exception {
-        NeighborCost n = new NeighborCost(2L, "loc-2", "NORTH", 1, 1, 2, 4, true);
-        VisitedLocation loc = new VisitedLocation(1L, "loc-1", 7, true, 1, List.of(n));
-        when(movementPort.listLocations("m1", "user-uuid")).thenReturn(List.of(loc));
+        CardInfo locCard = new CardInfo("card-loc", "location", "http://img/loc.jpg", null,
+                null, null, null, null, null, null, "Start", "desc", null, null, null);
+        CardInfo nbCard = new CardInfo("card-nb", "location", "http://img/nb.jpg", null,
+                null, null, null, null, null, null, "Center", "desc", null, null, null);
+        NeighborCost n = new NeighborCost(2L, "loc-2", "NORTH", 9, nbCard, 1, 1, 2, 4, true);
+        VisitedLocation loc = new VisitedLocation(1L, "loc-1", 7, locCard, true, 1, List.of(n));
+        when(movementPort.listLocations("m1", "user-uuid", null)).thenReturn(List.of(loc));
         mockMvc.perform(authed(get("/api/match/m1/locations")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.locations[0].characterCount").value(1))
+                .andExpect(jsonPath("$.locations[0].card.title").value("Start"))
+                .andExpect(jsonPath("$.locations[0].card.urlImage").value("http://img/loc.jpg"))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].idCard").value(9))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].card.title").value("Center"))
                 .andExpect(jsonPath("$.locations[0].neighbors[0].totalEnergyCost").value(4));
     }
 
@@ -103,7 +112,7 @@ class MovementControllerTest {
 
     @Test
     void locations_notFound() throws Exception {
-        when(movementPort.listLocations(eq("m1"), any())).thenThrow(
+        when(movementPort.listLocations(eq("m1"), any(), any())).thenThrow(
                 new MovementException(MovementException.Code.MATCH_NOT_FOUND, "no"));
         mockMvc.perform(authed(get("/api/match/m1/locations")))
                 .andExpect(status().isNotFound());

@@ -110,8 +110,31 @@ describe('Card', () => {
         <Card variant="page" card={{ title: 'T' }} loading onClose={onClose} />
       )
       expect(container.querySelector('.fa-spinner')).toBeTruthy()
-      fireEvent.click(screen.getByLabelText('Close preview'))
+      fireEvent.click(screen.getByLabelText('card.back'))
       expect(onClose).toHaveBeenCalled()
+    })
+
+    it('renders the back button (left arrow) with the card.back aria-label', () => {
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} onClose={vi.fn()} />)
+      const btn = container.querySelector('.book-page-nav--back')
+      expect(btn).toBeTruthy()
+      expect(btn.querySelector('i.fa-arrow-left')).toBeTruthy()
+      expect(btn.getAttribute('aria-label')).toBe('card.back')
+    })
+
+    it('renders the forward button (right arrow) and fires onForward', () => {
+      const onForward = vi.fn()
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} onForward={onForward} />)
+      const btn = container.querySelector('.book-page-nav--forward')
+      expect(btn).toBeTruthy()
+      expect(btn.querySelector('i.fa-arrow-right')).toBeTruthy()
+      fireEvent.click(screen.getByLabelText('card.forward'))
+      expect(onForward).toHaveBeenCalled()
+    })
+
+    it('omits the forward button when onForward is absent', () => {
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} />)
+      expect(container.querySelector('.book-page-nav--forward')).toBeNull()
     })
   })
 })

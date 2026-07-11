@@ -9,8 +9,10 @@ import games.paths.core.port.match.MovementStorePort.MoveCharacterView;
 import games.paths.core.port.match.MovementStorePort.MoveLocationView;
 import games.paths.core.port.match.MovementStorePort.NeighborEdge;
 import games.paths.core.port.match.MovementStorePort.WeatherMoveCost;
+import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.match.UserAccessPort.UserView;
+import games.paths.core.port.story.ContentQueryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,13 +37,15 @@ class MovementServiceTest {
 
     private MovementStorePort store;
     private UserAccessPort userAccessPort;
+    private ContentQueryPort contentQueryPort;
     private MovementService service;
 
     @BeforeEach
     void setUp() {
         store = mock(MovementStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
-        service = new MovementService(store, userAccessPort);
+        contentQueryPort = mock(ContentQueryPort.class);
+        service = new MovementService(store, userAccessPort, contentQueryPort);
         when(userAccessPort.findByUuid(USER))
                 .thenReturn(Optional.of(new UserView(USER_ID, USER, "name", "GUEST", 2)));
     }
@@ -342,7 +346,7 @@ class MovementServiceTest {
             when(store.findLocationByStoryAndId(STORY_ID, 2L))
                     .thenReturn(Optional.of(location(2L, "loc-2", 1, 1, 100))); // safe → +2
 
-            List<VisitedLocation> result = service.listLocations(MATCH, USER);
+            List<VisitedLocation> result = service.listLocations(MATCH, USER, null);
 
             assertEquals(1, result.size());
             VisitedLocation loc = result.get(0);
@@ -359,6 +363,84 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("resolves the location card and the neighbor's LOCATION card")
+        void resolvesCards() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(new MoveLocationView(1L, "loc-1", 10, 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 0)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(new MoveLocationView(2L, "loc-2", 20, 1, 0, 100)));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 10, "en"))
+                    .thenReturn(card("start"));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 20, "en"))
+                    .thenReturn(card("center"));
+
+            VisitedLocation loc = service.listLocations(MATCH, USER, null).get(0);
+
+            assertEquals("card-start", loc.card().uuid());
+            assertEquals("start", loc.card().title());
+            assertEquals(20, loc.neighbors().get(0).idCard());
+            assertEquals("card-center", loc.neighbors().get(0).card().uuid());
+        }
+
+        @Test
+        @DisplayName("lang parameter is forwarded to the card resolution")
+        void langForwarded() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(new MoveLocationView(1L, "loc-1", 10, 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of());
+
+            service.listLocations(MATCH, USER, "it");
+
+            verify(contentQueryPort).getCardByStoryIdAndCardId(STORY_ID, 10, "it");
+        }
+
+        @Test
+        @DisplayName("null idCard → null card, resolver never called")
+        void nullIdCard() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(new MoveLocationView(1L, "loc-1", null, 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of());
+
+            VisitedLocation loc = service.listLocations(MATCH, USER, null).get(0);
+
+            assertNull(loc.card());
+            verify(contentQueryPort, never()).getCardByStoryIdAndCardId(anyLong(), anyInt(), anyString());
+        }
+
+        @Test
+        @DisplayName("legacy 2-arg constructor (no content port) → null cards")
+        void legacyConstructorNullCards() {
+            MovementService legacy = new MovementService(store, userAccessPort);
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(new MoveLocationView(1L, "loc-1", 10, 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of());
+
+            assertNull(legacy.listLocations(MATCH, USER, null).get(0).card());
+        }
+
+        private CardInfo card(String title) {
+            return new CardInfo("card-" + title, "location", null, null, "fa-x",
+                    null, null, null, null, null, title, "desc-" + title, null, null, null);
+        }
+
+        @Test
         @DisplayName("one-way link (flagBack=0) is hidden when standing on the destination")
         void oneWayBackwardHidden() {
             // Edge A(1)→B(2), flagBack=0. Standing on B(2) → A must NOT be a neighbor.
@@ -371,7 +453,7 @@ class MovementServiceTest {
             when(store.findNeighborsOfLocation(STORY_ID, 2L))
                     .thenReturn(List.of(new NeighborEdge(1L, 2L, "N", 1, null, null, 0)));
 
-            List<VisitedLocation> result = service.listLocations(MATCH, USER);
+            List<VisitedLocation> result = service.listLocations(MATCH, USER, null);
 
             assertEquals(1, result.size());
             assertTrue(result.get(0).neighbors().isEmpty());
@@ -385,7 +467,7 @@ class MovementServiceTest {
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
             when(store.findLocationByStoryAndId(STORY_ID, 7L)).thenReturn(Optional.empty());
-            assertTrue(service.listLocations(MATCH, USER).isEmpty());
+            assertTrue(service.listLocations(MATCH, USER, null).isEmpty());
         }
 
         @Test
@@ -394,7 +476,7 @@ class MovementServiceTest {
             when(store.findMatchByUuid(MATCH))
                     .thenReturn(Optional.of(new MatchMovementView(MATCH_ID, MATCH, "RUNNING", 0, STORY_ID, 999L)));
             MovementException ex = assertThrows(MovementException.class,
-                    () -> service.listLocations(MATCH, USER));
+                    () -> service.listLocations(MATCH, USER, null));
             assertEquals(MovementException.Code.MATCH_NOT_FOUND, ex.getCode());
         }
 
@@ -406,14 +488,14 @@ class MovementServiceTest {
             when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of());
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
-            assertTrue(service.listLocationsForAdmin(MATCH).isEmpty());
+            assertTrue(service.listLocationsForAdmin(MATCH, null).isEmpty());
         }
 
         @Test
         @DisplayName("admin variant on missing match → MATCH_NOT_FOUND")
         void adminMissing() {
             when(store.findMatchByUuid("missing")).thenReturn(Optional.empty());
-            assertThrows(MovementException.class, () -> service.listLocationsForAdmin("missing"));
+            assertThrows(MovementException.class, () -> service.listLocationsForAdmin("missing", null));
         }
     }
 

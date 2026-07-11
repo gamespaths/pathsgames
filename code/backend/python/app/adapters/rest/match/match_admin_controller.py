@@ -145,10 +145,11 @@ class MatchAdminController:
                           "Only stopped matches (ENDED or GAMEOVER) can be deleted", 409)
         return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
 
-    def get_admin_match_locations(self, uuid_match: str):
+    def get_admin_match_locations(self, uuid_match: str, lang: str = "en"):
         """GET /api/admin/matches/{uuid}/locations — visited locations with the
-        per-neighbor totalEnergyCost and character counts (Step 28). No ownership
-        check; mirrors the player endpoint GET /api/match/{uuid}/locations."""
+        per-neighbor totalEnergyCost, character counts and resolved cards
+        (Step 28). No ownership check; mirrors the player endpoint
+        GET /api/match/{uuid}/locations."""
         from app.core.models.match.movement_models import MovementError
         from app.adapters.rest.match.movement_controller import _locations_to_camel
         if not uuid_match or not uuid_match.strip():
@@ -156,7 +157,7 @@ class MatchAdminController:
         if self.movement_service is None:
             return _error("NOT_IMPLEMENTED", "Movement service not wired", 501)
         try:
-            locations = self.movement_service.list_locations_for_admin(uuid_match)
+            locations = self.movement_service.list_locations_for_admin(uuid_match, lang)
         except MovementError as exc:
             return _error(exc.code, exc.message, 404)
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))

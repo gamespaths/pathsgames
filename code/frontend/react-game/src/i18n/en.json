@@ -99,7 +99,8 @@
         "weight": "Carry",
         "exp": "XP"
       }
-    }
+    },
+    "map": "Map"
   },
   "startMatch": {
     "starting": "Starting match…",
@@ -132,7 +133,9 @@
     "info": "Info",
     "gameStatus": "Status",
     "viewOriginal": "View original",
-    "actionInProgress": "Executing"
+    "actionInProgress": "Executing",
+    "back": "Back",
+    "forward": "Go"
   },
   "game": {
     "currentLocation": "Current Location",
@@ -204,6 +207,16 @@
       "cost": "Cost",
       "noEnergy": "Energy",
       "moveCost": "Moving"
+    },
+    "map": {
+      "title": "Map",
+      "here": "Selected",
+      "unexplored": "Unexplored",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "center": "Center on current location",
+      "youAreHere": "You are here",
+      "open": "Open map"
     }
   },
   "footer": {

@@ -816,6 +816,27 @@ html, body {
   border-radius: 8px 8px 0 0;
   flex-shrink: 0;
 }
+/* Title-bar nav buttons (back / forward): icon-only; on hover the button
+   lights up (gold fill + glow). Shared by Card's page variant and MapPage. */
+.book-page-nav {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  color: var(--color-gold-light);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color .18s, background .18s, border-color .18s, box-shadow .18s;
+}
+.book-page-nav i { font-size: 1.7rem; }
+.book-page-nav:hover {
+  color: var(--color-brown-deep);
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  border-color: var(--color-gold-deep);
+  box-shadow: 0 0 12px rgba(200,150,10,.6);
+}
 .book-page-buttons{
   /* display: flex; justify-content: center; */
   gap: 14px;
@@ -2524,4 +2545,156 @@ html, body {
   top: 10px;
   right: 10px;
   z-index: 5;
+}
+
+/* ═══════════════════════════════════
+   GAME MAP (Step 0.28.5) — MapPage on the left book page
+   (v0.28.5 Map concept graphics: white plane, gold arrows,
+   photo nodes, "?" fog nodes, legend footer)
+   ═══════════════════════════════════ */
+.game-map-page { display: flex; flex-direction: column; }
+
+.game-map-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  background: var(--color-parchment-light);
+  box-shadow: inset 0 0 18px rgba(46,21,8,.12);
+}
+.game-map-canvas:active { cursor: grabbing; }
+
+.game-map-world {
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.game-map-world--anim { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+/* paths paint ABOVE the node circles so the arrows are never hidden; the layer
+   ignores pointer events so the nodes underneath stay clickable. */
+.game-map-svg { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+
+/* paths: all gold; one-way = dashed; hot = touching the current location */
+.game-map-edge { stroke: var(--color-gold-dark); stroke-width: 3; fill: none; opacity: 1; }
+.game-map-edge--oneway { stroke-dasharray: 7 6; }
+.game-map-edge--hot {
+  stroke: var(--color-gold-deep);
+  stroke-width: 4;
+  opacity: 1;
+  filter: drop-shadow(0 0 3px var(--color-gold));
+}
+
+.game-map-node {
+  position: absolute;
+  width: 74px; height: 74px;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  border: 3px solid var(--color-brown-mid);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-parchment-dark);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+}
+.game-map-node__icon { font-size: 1.6rem; color: var(--color-brown-mid); }
+/* explored locations are clickable (they open their card on the right page) */
+.game-map-node:not(.game-map-node--unknown) { cursor: pointer; }
+.game-map-node--current {
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65);
+  z-index: 2;
+}
+.game-map-node--unknown {
+  background-image: none !important;
+  background: radial-gradient(circle at 40% 35%, var(--color-brown-mid), var(--color-brown-dark) 75%);
+  border-style: dashed;
+  border-color: var(--color-brown-warm);
+  box-shadow: inset 0 0 14px rgba(0,0,0,.55);
+}
+.game-map-node--unknown::after {
+  content: '?';
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  color: var(--color-parchment-dark);
+  text-shadow: 0 2px 6px rgba(0,0,0,.8);
+  opacity: .85;
+}
+
+/* "you are here" marker: the character's location */
+.game-map-node__here {
+  position: absolute;
+  top: -8px; right: -8px;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  font-size: .8rem;
+  color: var(--color-brown-deep);
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  border: 1px solid var(--color-gold-deep);
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(0,0,0,.5);
+  z-index: 3;
+}
+
+/* zoom / center controls over the map */
+.game-map-ctrl {
+  position: absolute;
+  top: 8px; right: 8px;
+  display: flex; flex-direction: column; gap: 5px;
+  z-index: 3;
+}
+.game-map-ctrl button {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  font-size: 1rem;
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+  background: rgba(26,10,2,.82);
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.game-map-ctrl button:hover {
+  background: var(--color-gold);
+  color: var(--color-brown-deep);
+  box-shadow: 0 0 10px rgba(200,150,10,.6);
+}
+
+/* legend footer (dark bar, like the movement section) */
+.game-map-legend {
+  flex-shrink: 0;
+  display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+  padding: 7px 10px;
+  background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
+  border-top: 2px solid var(--color-gold-dark);
+  border-radius: 0 0 8px 8px;
+  font-size: .78rem;
+  color: var(--color-parchment-dark);
+}
+.game-map-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.game-map-legend__dot {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--color-gold-shine);
+  box-shadow: 0 0 5px rgba(200,150,10,.8);
+}
+
+/* the little MapCard in the statistics list: whole card clickable, no footer */
+.game-map-card { cursor: pointer; }
+
+/* Mobile: the stacked column gives .book-page-content height:auto, which
+   collapses the flex:1 map canvas (its children are absolutely positioned) to
+   zero — the map was invisible. Pin an explicit height so it shows and stays
+   pannable (drag + the +/−/◎ buttons; no wheel on touch). */
+@media (max-width: 767px) {
+  .book-mobile-layout .game-map-page { height: auto; }
+  .book-mobile-layout .game-map-canvas {
+    flex: none;
+    height: clamp(300px, 55vh, 460px);
+  }
 }

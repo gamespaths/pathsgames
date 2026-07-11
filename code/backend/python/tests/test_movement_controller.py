@@ -82,20 +82,37 @@ def test_locations_unauthenticated(env):
 
 def test_locations_success(env):
     client, port = env
+    loc_card = {"uuid": "card-1", "title": "Start", "urlImage": "http://img/1.jpg"}
+    nb_card = {"uuid": "card-2", "title": "Center", "urlImage": "http://img/2.jpg"}
     port.list_locations.return_value = [
         VisitedLocation(1, "loc-1", 7, True, 1,
-                        [NeighborCost(2, "loc-2", "NORTH", 1, 1, 2, 4, True)])
+                        [NeighborCost(2, "loc-2", "NORTH", 1, 1, 2, 4, True,
+                                      id_card=8, card=nb_card)],
+                        card=loc_card)
     ]
     r = client.get("/api/match/m1/locations", headers=AUTH)
     assert r.status_code == 200
     body = r.json()
-    assert body["locations"][0]["characterCount"] == 1
-    nb = body["locations"][0]["neighbors"][0]
+    loc = body["locations"][0]
+    assert loc["characterCount"] == 1
+    assert loc["card"]["title"] == "Start"
+    assert loc["card"]["urlImage"] == "http://img/1.jpg"
+    nb = loc["neighbors"][0]
     # breakdown exposed: base 1 + entry 1 + weather 2 = total 4
     assert nb["baseEnergyCost"] == 1
     assert nb["entryEnergyCost"] == 1
     assert nb["weatherEnergyCost"] == 2
     assert nb["totalEnergyCost"] == 4
+    assert nb["idCard"] == 8
+    assert nb["card"]["title"] == "Center"
+
+
+def test_locations_forwards_lang_param(env):
+    client, port = env
+    port.list_locations.return_value = []
+    client.get("/api/match/m1/locations?lang=it", headers=AUTH)
+    # controller passes lang through to the port
+    assert port.list_locations.call_args.args[2] == "it"
 
 
 def test_locations_not_found(env):

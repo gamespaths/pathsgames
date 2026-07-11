@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
+import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementStorePort;
 import games.paths.core.port.match.MovementStorePort.MatchMovementView;
@@ -9,6 +10,7 @@ import games.paths.core.port.match.MovementStorePort.MoveLocationView;
 import games.paths.core.port.match.MovementStorePort.NeighborEdge;
 import games.paths.core.port.match.MovementStorePort.WeatherMoveCost;
 import games.paths.core.port.match.UserAccessPort;
+import games.paths.core.port.story.ContentQueryPort;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,12 +42,22 @@ import java.util.Optional;
  */
 public class MovementService implements MovementPort {
 
+    private static final String DEFAULT_LANG = "en";
+
     private final MovementStorePort store;
     private final UserAccessPort userAccessPort;
+    private final ContentQueryPort contentQueryPort;
 
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort) {
+        this(store, userAccessPort, null);
+    }
+
+    /** Full constructor: {@code contentQueryPort} resolves the location cards (nullable). */
+    public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
+                           ContentQueryPort contentQueryPort) {
         this.store = store;
         this.userAccessPort = userAccessPort;
+        this.contentQueryPort = contentQueryPort;
     }
 
     @Override
@@ -111,23 +123,23 @@ public class MovementService implements MovementPort {
     }
 
     @Override
-    public List<VisitedLocation> listLocations(String matchUuid, String userUuid) {
+    public List<VisitedLocation> listLocations(String matchUuid, String userUuid, String lang) {
         long userId = requireUser(userUuid);
         MatchMovementView match = requireMatch(matchUuid);
         if (match.idUserCreator() != userId) {
             throw notFound();
         }
-        return buildLocations(match);
+        return buildLocations(match, resolveLang(lang));
     }
 
     @Override
-    public List<VisitedLocation> listLocationsForAdmin(String matchUuid) {
-        return buildLocations(requireMatch(matchUuid));
+    public List<VisitedLocation> listLocationsForAdmin(String matchUuid, String lang) {
+        return buildLocations(requireMatch(matchUuid), resolveLang(lang));
     }
 
     // ── visited locations payload ───────────────────────────────────────────
 
-    private List<VisitedLocation> buildLocations(MatchMovementView match) {
+    private List<VisitedLocation> buildLocations(MatchMovementView match, String lang) {
         List<Long> visited = store.findVisitedLocationIds(match.id());
         List<MoveCharacterView> characters = store.findCharactersByMatchId(match.id());
         WeatherMoveCost weather = weatherCost(match.id());
@@ -160,13 +172,27 @@ public class MovementService implements MovementPort {
                 int entry = other.costEnergyEnter();
                 int weatherMod = other.secureParam() > 0 ? weather.costSafe() : weather.costNotSafe();
                 neighborCosts.add(new NeighborCost(other.id(), other.uuid(), edge.direction(),
+                        other.idCard(), resolveCard(match.idStory(), other.idCard(), lang),
                         base, entry, weatherMod, base + entry + weatherMod,
                         conditionMet(match.id(), edge)));
             }
             result.add(new VisitedLocation(loc.id(), loc.uuid(), loc.idCard(),
+                    resolveCard(match.idStory(), loc.idCard(), lang),
                     loc.secureParam() > 0, count, neighborCosts));
         }
         return result;
+    }
+
+    /** The LOCATION's card (from its idCard), localized; null-safe on port and id. */
+    private CardInfo resolveCard(Long storyId, Integer idCard, String lang) {
+        if (contentQueryPort == null || idCard == null) {
+            return null;
+        }
+        return contentQueryPort.getCardByStoryIdAndCardId(storyId, idCard, lang);
+    }
+
+    private static String resolveLang(String lang) {
+        return (lang == null || lang.isBlank()) ? DEFAULT_LANG : lang;
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

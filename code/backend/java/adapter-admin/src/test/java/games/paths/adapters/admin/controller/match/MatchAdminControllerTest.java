@@ -55,21 +55,27 @@ class MatchAdminControllerTest {
 
     @Test
     void getAdminMatchLocations_returnsLocationsWithTotalEnergyCost() throws Exception {
-        MovementPort.NeighborCost n = new MovementPort.NeighborCost(2L, "loc-2", "NORTH", 1, 1, 2, 4, true);
+        games.paths.core.model.story.CardInfo card = new games.paths.core.model.story.CardInfo(
+                "card-uuid", "location", "http://img/a.jpg", null, null,
+                null, null, null, null, null, "Hall", "desc", null, null, null);
+        MovementPort.NeighborCost n = new MovementPort.NeighborCost(
+                2L, "loc-2", "NORTH", 9, card, 1, 1, 2, 4, true);
         MovementPort.VisitedLocation loc = new MovementPort.VisitedLocation(
-                1L, "loc-1", 10, true, 2, List.of(n));
-        when(movementPort.listLocationsForAdmin("match-uuid")).thenReturn(List.of(loc));
+                1L, "loc-1", 10, card, true, 2, List.of(n));
+        when(movementPort.listLocationsForAdmin("match-uuid", null)).thenReturn(List.of(loc));
 
         mockMvc.perform(get("/api/admin/matches/match-uuid/locations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.locations[0].characterCount").value(2))
                 .andExpect(jsonPath("$.locations[0].neighbors[0].totalEnergyCost").value(4))
-                .andExpect(jsonPath("$.locations[0].neighbors[0].uuid").value("loc-2"));
+                .andExpect(jsonPath("$.locations[0].neighbors[0].uuid").value("loc-2"))
+                .andExpect(jsonPath("$.locations[0].card.title").value("Hall"))
+                .andExpect(jsonPath("$.locations[0].neighbors[0].card.uuid").value("card-uuid"));
     }
 
     @Test
     void getAdminMatchLocations_notFound() throws Exception {
-        when(movementPort.listLocationsForAdmin("missing")).thenThrow(
+        when(movementPort.listLocationsForAdmin(org.mockito.ArgumentMatchers.eq("missing"), org.mockito.ArgumentMatchers.any())).thenThrow(
                 new MovementPort.MovementException(
                         MovementPort.MovementException.Code.MATCH_NOT_FOUND, "no"));
         mockMvc.perform(get("/api/admin/matches/missing/locations"))

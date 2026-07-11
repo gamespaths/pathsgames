@@ -25,8 +25,11 @@ from app.core.ports.match.movement_ports import MovementPort, MovementStorePort
 
 
 class MovementService(MovementPort):
-    def __init__(self, store: MovementStorePort) -> None:
+    def __init__(self, store: MovementStorePort, story_read_port=None) -> None:
+        # ``story_read_port`` (StoryMatchReadPort) resolves the location cards;
+        # optional so legacy wiring keeps working (cards stay None without it).
         self.store = store
+        self.story_read_port = story_read_port
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -82,19 +85,22 @@ class MovementService(MovementPort):
                               target["id"], target.get("uuid"), total_cost, new_energy,
                               match["current_clock"])
 
-    def list_locations(self, match_uuid: str, user_uuid: str) -> List[VisitedLocation]:
+    def list_locations(self, match_uuid: str, user_uuid: str,
+                       lang: str = "en") -> List[VisitedLocation]:
         user_id = self._require_user(user_uuid)
         match = self._require_match(match_uuid)
         if match["id_user_creator"] != user_id:
             raise MovementError(MovementError.MATCH_NOT_FOUND, "Match not found or not accessible")
-        return self._build_locations(match)
+        return self._build_locations(match, lang)
 
-    def list_locations_for_admin(self, match_uuid: str) -> List[VisitedLocation]:
-        return self._build_locations(self._require_match(match_uuid))
+    def list_locations_for_admin(self, match_uuid: str,
+                                 lang: str = "en") -> List[VisitedLocation]:
+        return self._build_locations(self._require_match(match_uuid), lang)
 
     # ── visited locations payload ─────────────────────────────────────────────
 
-    def _build_locations(self, match: Dict[str, Any]) -> List[VisitedLocation]:
+    def _build_locations(self, match: Dict[str, Any],
+                         lang: str = "en") -> List[VisitedLocation]:
         visited = self.store.find_visited_location_ids(match["id"])
         characters = self.store.find_characters_for_movement(match["id"])
         weather = self.store.find_current_weather_move_cost(match["id"])
@@ -122,10 +128,57 @@ class MovementService(MovementPort):
                 neighbors.append(NeighborCost(other["id"], other.get("uuid"),
                                               edge.get("direction"), base, entry, weather_mod,
                                               base + entry + weather_mod,
-                                              self._condition_met(match["id"], edge)))
+                                              self._condition_met(match["id"], edge),
+                                              id_card=other.get("id_card"),
+                                              card=self._resolve_card(match["id_story"],
+                                                                      other.get("id_card"), lang)))
             result.append(VisitedLocation(loc["id"], loc.get("uuid"), loc.get("id_card"),
-                                          (loc.get("secure_param") or 0) > 0, count, neighbors))
+                                          (loc.get("secure_param") or 0) > 0, count, neighbors,
+                                          card=self._resolve_card(match["id_story"],
+                                                                  loc.get("id_card"), lang)))
         return result
+
+    # ── card resolution (mirrors MatchQueryService._resolve_card) ────────────
+
+    def _resolve_card(self, story_id, id_card, lang="en"):
+        """Resolve an ``id_card`` reference to a camelCase card dict mirroring
+        CardInfoResponse, or None. Card text falls back to English."""
+        if id_card is None or self.story_read_port is None:
+            return None
+        card = self.story_read_port.find_card_by_story_id_and_card_id(story_id, id_card)
+        if card is None:
+            return None
+        title_id = card.get("id_text_title") or card.get("id_text_name")
+        return {
+            "uuid": card.get("uuid"),
+            "cardType": card.get("card_type"),
+            "urlImage": card.get("url_image"),
+            "alternativeImage": card.get("alternative_image"),
+            "awesomeIcon": card.get("awesome_icon"),
+            "styleMain": card.get("style_main"),
+            "styleDetail": card.get("style_detail"),
+            "styleImageLittle": card.get("style_image_little"),
+            "styleImageMedium": card.get("style_image_medium"),
+            "styleImageLarge": card.get("style_image_large"),
+            "title": self._resolve_card_text(story_id, title_id, lang),
+            "description": self._resolve_card_text(story_id, card.get("id_text_description"), lang),
+            "copyrightText": self._resolve_card_text(story_id, card.get("id_text_copyright"), lang),
+            "linkCopyright": card.get("link_copyright"),
+        }
+
+    def _resolve_card_text(self, story_id, id_text, lang):
+        """Resolve a localized text by id_text, falling back to English."""
+        if id_text is None:
+            return None
+        effective = lang if lang and lang.strip() else "en"
+        text = self.story_read_port.find_text_by_story_id_text_and_lang(story_id, id_text, effective)
+        if text:
+            return text.get("short_text")
+        if effective != "en":
+            fallback = self.story_read_port.find_text_by_story_id_text_and_lang(story_id, id_text, "en")
+            if fallback:
+                return fallback.get("short_text")
+        return None
 
     # ── helpers ───────────────────────────────────────────────────────────────
 

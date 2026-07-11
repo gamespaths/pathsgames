@@ -50,6 +50,7 @@ def _location_to_camel(loc: VisitedLocation) -> dict:
         "idLocation": loc.id_location,
         "uuid": loc.uuid,
         "idCard": loc.id_card,
+        "card": loc.card,
         "safe": loc.safe,
         "characterCount": loc.character_count,
         "neighbors": [
@@ -57,6 +58,8 @@ def _location_to_camel(loc: VisitedLocation) -> dict:
                 "idLocation": n.id_location,
                 "uuid": n.uuid,
                 "direction": n.direction,
+                "idCard": n.id_card,
+                "card": n.card,
                 "baseEnergyCost": n.base_energy_cost,
                 "entryEnergyCost": n.entry_energy_cost,
                 "weatherEnergyCost": n.weather_energy_cost,
@@ -100,12 +103,12 @@ class MovementController:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 400))
         return JSONResponse(status_code=200, content=_movement_to_camel(result))
 
-    def locations(self, uuid_match: str, request: Request):
+    def locations(self, uuid_match: str, request: Request, lang: str = "en"):
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
         try:
-            result = self.movement_port.list_locations(uuid_match, user_uuid)
+            result = self.movement_port.list_locations(uuid_match, user_uuid, lang)
         except MovementError as exc:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 400))
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, result))

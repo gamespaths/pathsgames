@@ -168,6 +168,24 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.28.5 — Location cards on `GET /locations`
+
+- **`lambda/match/handler.py`**: `_visited_locations_payload(match, match_uuid, lang='en')`
+  now resolves a full `card` object (not just `idCard`) for every visited location and
+  every neighbor, reusing the existing `resolve_card_from_raw` helper against the story's
+  `raw_cards`/`raw_texts` — the same resolution path already used by `GET /api/match/{uuid}/info`.
+  `_get_locations` and `_get_admin_locations` now read the optional `lang` query-string
+  parameter (default `en`) and pass it through. No change to the visited-locations/neighbor
+  lookup logic itself.
+- **Unit tests**: 414 Lambda unit tests pass.
+- **Robot**: new test file `code/tests/robot/tests/28_movement/location_cards.robot`
+  (backend-agnostic, 5 tests: card per location, card per neighbor, full `CardInfo`
+  fields, `?lang=` param, admin view matches player view).
+- **Frontend**: this enrichment feeds the new interactive world map in react-game
+  (`Map.jsx`/`mapGraph.js`/`MapCard.jsx`), which renders a photo for every visited
+  location without a second round-trip per node. See
+  `documentation_v0/Step28_MovementSystem.md` §12–13.
+
 ### v0.28.2 — AWS bugfix: neighbor `cardBack` desync
 
 - **`lambda/match/handler.py`**: Added `_story_neighbors(story)` helper that returns

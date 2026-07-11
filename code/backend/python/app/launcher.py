@@ -155,8 +155,9 @@ weather_selection_service = WeatherSelectionService(weather_store_adapter)
 weather_controller = WeatherController(weather_selection_service, content_query_service)
 
 # Step 28 — movement system store + service (shared by player and admin controllers).
+# story_match_read_adapter resolves the location cards on GET /locations.
 movement_store_adapter = MovementStoreAdapter(SessionLocal)
-movement_service = MovementService(movement_store_adapter)
+movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
                                                character_command_service,

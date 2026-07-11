@@ -274,3 +274,72 @@ def test_list_locations_admin_missing(service, store):
     store.match = None
     with pytest.raises(MovementError):
         service.list_locations_for_admin(MATCH_UUID)
+
+
+# ─── location/neighbor card resolution (Step 0.28.5) ─────────────────────────
+
+class FakeStoryReadPort:
+    """Cards by (story, id_card) and localized texts by (story, id_text, lang)."""
+
+    def __init__(self):
+        self.cards = {
+            (STORY_ID, 7): {"uuid": "card-7", "card_type": "location",
+                            "url_image": "http://img/7.jpg", "id_text_title": 100,
+                            "id_text_description": 101, "link_copyright": "http://c/7"},
+            (STORY_ID, 8): {"uuid": "card-8", "card_type": "location",
+                            "url_image": "http://img/8.jpg", "id_text_title": 200},
+        }
+        self.texts = {
+            (STORY_ID, 100, "en"): {"short_text": "Start hall"},
+            (STORY_ID, 100, "it"): {"short_text": "Sala iniziale"},
+            (STORY_ID, 101, "en"): {"short_text": "The start"},
+            (STORY_ID, 200, "en"): {"short_text": "Center"},
+        }
+
+    def find_card_by_story_id_and_card_id(self, story_id, id_card):
+        return self.cards.get((story_id, id_card))
+
+    def find_text_by_story_id_text_and_lang(self, story_id, id_text, lang):
+        return self.texts.get((story_id, id_text, lang))
+
+
+@pytest.fixture()
+def service_with_cards(store):
+    return MovementService(store, FakeStoryReadPort())
+
+
+def test_list_locations_resolves_location_and_neighbor_cards(service_with_cards):
+    loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid")[0]
+    assert loc.card["uuid"] == "card-7"
+    assert loc.card["title"] == "Start hall"
+    assert loc.card["urlImage"] == "http://img/7.jpg"
+    assert loc.card["description"] == "The start"
+    nb = loc.neighbors[0]
+    assert nb.id_card == 8
+    assert nb.card["uuid"] == "card-8"
+    assert nb.card["title"] == "Center"
+
+
+def test_list_locations_cards_localized_with_english_fallback(service_with_cards):
+    loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid", lang="it")[0]
+    assert loc.card["title"] == "Sala iniziale"        # it text exists
+    assert loc.card["description"] == "The start"      # falls back to en
+    assert loc.neighbors[0].card["title"] == "Center"  # falls back to en
+
+
+def test_list_locations_admin_resolves_cards(service_with_cards, store):
+    store.match["id_user_creator"] = 999
+    loc = service_with_cards.list_locations_for_admin(MATCH_UUID)[0]
+    assert loc.card["uuid"] == "card-7"
+
+
+def test_list_locations_card_none_when_id_card_missing(service_with_cards, store):
+    store.locations[1]["id_card"] = None
+    loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid")[0]
+    assert loc.card is None
+
+
+def test_list_locations_card_none_without_story_read_port(service):
+    loc = service.list_locations(MATCH_UUID, "user-uuid")[0]
+    assert loc.card is None
+    assert loc.neighbors[0].card is None

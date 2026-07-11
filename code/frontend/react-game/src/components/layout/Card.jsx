@@ -63,7 +63,7 @@ export default function Card({
   flagInformationCard=false,
 
   /* page variant (variant="page" — the book reading page) */
-  loading, onClose, entity, entityType,
+  loading, onClose, onForward, entity, entityType,
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
@@ -144,10 +144,13 @@ export default function Card({
         {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
       { isPage && <h2 className="book-page-title">
-          { onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
-          <i className="fas fa-arrow-left me-1" />
+          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')}>
+          <i className="fas fa-arrow-left" />
         </button>}
         <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
+        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')}>
+          <i className="fas fa-arrow-right" />
+        </button>}
       </h2>}
 
       {/* ── children Into Image ── */}

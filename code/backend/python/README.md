@@ -217,7 +217,7 @@ PYTHONPATH=. pytest -v tests/
 
     > add into readme file a "test" section with all curl calls
 
-- **Document Version**: 0.24.1
+- **Document Version**: 0.28.5
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.12.3 | First version of this document | March 31, 2026 |
@@ -228,7 +228,8 @@ PYTHONPATH=. pytest -v tests/
     | 0.19.10 | GET /api/admin/matches: MatchController.list_all_matches, MatchQueryService.list_all_matches, MatchPersistenceAdapter.find_all_matches; 341 unit tests pass | May 20, 2026 |
     | 0.24.1 | Dockerfile rewritten to expose both ports 8042+8044 and run a single `python -m app.launcher` process. `app/config.py` gains `host` setting (default `127.0.0.1`, overridden to `0.0.0.0` by `HOST` env var in Docker). `launcher.py` uses `settings.host` for both uvicorn servers. New `tests/test_config_host.py`. New `code/scripts/test/build_docker_python_test_and_push.sh` and EC2 lifecycle scripts under `aws_ec2_with_python_docker/` (server3, tag `:test-python`). 524 unit tests pass | June 14, 2026 |
     | 0.28.1 | GET /api/admin/matches pagination & filtering: `MatchAdminController.list_all_matches` accepts query params (`limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`); `MatchQueryService.list_matches_page` with helpers `_clamp_limit`, `_since_days_to_ts`, `_encode_cursor`, `_decode_cursor`; `MatchPersistenceAdapter.find_matches_page` (SQLAlchemy keyset on `ts_insert DESC, id DESC`); new dataclasses `MatchListFilter`, `MatchSummaryPage` in core models; response envelope `{items, nextCursor, limit}`; 699 unit tests pass | Jun 26, 2026 |
-- **Last Updated**: Jun 26, 2026
+    | 0.28.5 | `GET /api/match/{uuid}/locations` and the admin variant now resolve a full `card` object per location/neighbor plus `?lang=` (default `en`). `MovementService.__init__` gained an optional `story_read_port` (backward-compatible); new `_resolve_card`/`_resolve_card_text` helpers; `movement_controller.py` and `match_admin_controller.py` accept `lang`; `launcher.py` wires the story read port into `MovementService`; `scripts/seed_stories.py` adds `idCard` to the tutorial locations for parity with Java/AWS. No change to location/neighbor lookup logic. 711 unit tests pass | Jul 11, 2026 |
+- **Last Updated**: Jul 11, 2026
 - **Status**: In progress
 
 

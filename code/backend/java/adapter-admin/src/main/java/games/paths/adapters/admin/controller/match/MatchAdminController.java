@@ -199,13 +199,14 @@ public class MatchAdminController {
      * player endpoint GET /api/match/{uuidMatch}/locations but skips the ownership check.
      */
     @GetMapping("/{uuidMatch}/locations")
-    public ResponseEntity<Object> getAdminMatchLocations(@PathVariable String uuidMatch) {
+    public ResponseEntity<Object> getAdminMatchLocations(@PathVariable String uuidMatch,
+                                                         @RequestParam(required = false) String lang) {
         if (isBlank(uuidMatch)) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
         }
         try {
             return ResponseEntity.ok(MatchLocationsResponse.fromModel(
-                    uuidMatch, movementPort.listLocationsForAdmin(uuidMatch)));
+                    uuidMatch, movementPort.listLocationsForAdmin(uuidMatch, lang)));
         } catch (MovementPort.MovementException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }

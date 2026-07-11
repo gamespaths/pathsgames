@@ -14,8 +14,13 @@ import { useTranslation } from '@/i18n/context'
  *
  * Renders nothing when no location is available — the parent (GameBook) is
  * responsible for falling back to the story big card in that case.
+ *
+ * `onEnterLocation` (optional) — when supplied, a right-edge arrow button is
+ * shown that leaves the map view and enters the play view of this location
+ * (used on the map's right page when the selected location is the character's
+ * own current location).
  */
-export default function LocationCard({ location , card , story , locationsActive }) {
+export default function LocationCard({ location , card , story , locationsActive , onEnterLocation }) {
   const { t } = useTranslation()
   if (!location) return null
 
@@ -33,10 +38,8 @@ export default function LocationCard({ location , card , story , locationsActive
         story={story}
         imageAlt={location.name}
         statItemsToPageContent={statItems}
+        onForward={onEnterLocation}
       />
-      {/*location.description && (
-        <p className="game-loc-desc">{location.description}</p>
-      )*/}
     </div>
   )
 }

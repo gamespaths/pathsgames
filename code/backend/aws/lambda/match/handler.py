@@ -1701,13 +1701,17 @@ def _start_movement(user, match_uuid, body):
     })
 
 
-def _visited_locations_payload(match, match_uuid):
-    """Build the visited-locations payload with character counts and per-neighbor
-    totalEnergyCost resolved for the current weather (Step 28)."""
+def _visited_locations_payload(match, match_uuid, lang='en'):
+    """Build the visited-locations payload with character counts, per-neighbor
+    totalEnergyCost resolved for the current weather and the resolved location
+    cards (Step 28). Cards are resolved from idCard against the story's
+    raw_cards/raw_texts, exactly like ``_build_locations_active``."""
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     locations = story.get('locations') or []
     neighbors = _story_neighbors(story)
     loc_by_id = {l.get('id'): l for l in locations}
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
     weather_rule = _current_weather_rule(match, story)
     characters = _match_characters(match_uuid)
 
@@ -1763,6 +1767,8 @@ def _visited_locations_payload(match, match_uuid):
                 "idLocation": other_id,
                 "uuid": other.get('uuid'),
                 "direction": n.get('direction'),
+                "idCard": other.get('idCard'),
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, other.get('idCard'), lang),
                 "baseEnergyCost": base,
                 "entryEnergyCost": entry,
                 "weatherEnergyCost": weather_mod,
@@ -1773,6 +1779,7 @@ def _visited_locations_payload(match, match_uuid):
             "idLocation": loc_id,
             "uuid": loc.get('uuid'),
             "idCard": loc.get('idCard'),
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, loc.get('idCard'), lang),
             "safe": _nz(loc.get('secureParam')) > 0,
             "characterCount": count,
             "neighbors": neighbor_costs,
@@ -1780,20 +1787,20 @@ def _visited_locations_payload(match, match_uuid):
     return {"matchUuid": match_uuid, "locations": result}
 
 
-def _get_locations(user, match_uuid):
+def _get_locations(user, match_uuid, lang='en'):
     match, err = _require_owned_match(user, match_uuid)
     if err:
         return err
-    return _ok(_visited_locations_payload(match, match_uuid))
+    return _ok(_visited_locations_payload(match, match_uuid, lang))
 
 
-def _get_admin_locations(match_uuid):
+def _get_admin_locations(match_uuid, lang='en'):
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_visited_locations_payload(match, match_uuid))
+    return _ok(_visited_locations_payload(match, match_uuid, lang))
 
 
 # ─── router ──────────────────────────────────────────────────────────────────
@@ -1837,7 +1844,8 @@ def lambda_handler(event, context):
         if path.endswith('/weather') and method == 'GET':
             return _get_admin_match_weather(match_uuid)
         if path.endswith('/locations') and method == 'GET':
-            return _get_admin_locations(match_uuid)
+            lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+            return _get_admin_locations(match_uuid, lang)
         if path.endswith('/stop') and method == 'POST':
             return _update_match(match_uuid, 'ENDED', None)
         if path.endswith('/pause') and method == 'POST':
@@ -2010,6 +2018,7 @@ def lambda_handler(event, context):
         if not match_uuid:
             segments = path.split('/')  # /api/match/{uuidMatch}/locations
             match_uuid = segments[3] if len(segments) > 4 else ''
-        return _get_locations(user, match_uuid)
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _get_locations(user, match_uuid, lang)
 
     return _err(404, 'NOT_FOUND', f'Unknown route {method} {path}')

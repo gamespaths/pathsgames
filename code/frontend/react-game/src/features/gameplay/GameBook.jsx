@@ -23,6 +23,8 @@ import ActionCard from './cards/ActionCard'
 import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
+import MapCard from './cards/MapCard'
+import MapPage from '@/components/layout/Map'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 // Mobile is a single stacked column (left on top, right below) that scrolls as a
@@ -46,11 +48,13 @@ function scrollBookToTop() {
 }
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const { user } = useGuestUser()
 
   const { actualLocationCard, playerStats, locations, actions, endGameCard } = gameData ?? {}
   const storyCard = story?.card ?? null
+  // The location the character currently stands on (for the map's "enter" arrow).
+  const hereLocationId = gameData?.info?.players?.[0]?.idLocation ?? null
 
   const [gameEnded, setGameEnded] = useState(false)
   // Desktop dual-page preview. `previewLeft` fills the book's LEFT reading page
@@ -62,12 +66,21 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const [previewLeft, setPreviewLeft] = useState(null)   // { card, type, ... } | null
   const [previewRight, setPreviewRight] = useState(null) // { kind, ... } | null
   const [statisticsCards, setStatisticsCards] = useState(false)
+  // Step 0.28.5 — the world map view: MapPage on the LEFT page, the current
+  // location on the RIGHT page. Opened by MapCard in the statistics list.
+  const [mapView, setMapView] = useState(false)
+  // The explored location clicked on the map: its card fills the right page
+  // (null → the current location) and the map marks it as selected.
+  const [mapSelected, setMapSelected] = useState(null)
   const [ending, setEnding] = useState(false)
   const [endError, setEndError] = useState(null)
   const [clock, setClock] = useState(null)
   const [weather, setWeather] = useState(null)
   const [previewModal, setPreviewModal] = useState(null)
   const [locationCosts, setLocationCosts] = useState({})
+  // Step 0.28.5 — the full GET /match/{uuid}/locations payload (the visited
+  // locations with their directional neighbors), consumed by MapPage.
+  const [matchLocations, setMatchLocations] = useState(null)
   const prevWeatherUuidRef = useRef(null)
   const [activeAction, setActiveAction] = useState(null)//used into endGame overlay and in future: action overlay
   // Set right before a sleep/movement reload so the effect below scrolls the
@@ -152,7 +165,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   async function refreshLocations() {
     if (!matchUuid) return
     try {
-      setLocationCosts(buildLocationCosts(await getMatchLocations(matchUuid, user?.accessToken)))
+      const payload = await getMatchLocations(matchUuid, user?.accessToken, lang)
+      setMatchLocations(payload)
+      setLocationCosts(buildLocationCosts(payload))
     } catch {
       // Move costs are non-critical chrome; leave the previous map on failure.
     }
@@ -160,16 +175,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   useEffect(() => {
     let cancelled = false
     if (!matchUuid) return undefined
-    getMatchLocations(matchUuid, user?.accessToken)
-      .then(p => { if (!cancelled) setLocationCosts(buildLocationCosts(p)) })
+    getMatchLocations(matchUuid, user?.accessToken, lang)
+      .then(p => { if (!cancelled) { setMatchLocations(p); setLocationCosts(buildLocationCosts(p)) } })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [matchUuid, user?.accessToken])
+  }, [matchUuid, user?.accessToken, lang])
 
   function refreshComponents(){
     setPreviewLeft(null)
     setPreviewModal(null)
     setPreviewRight(null)
+    setMapView(false)
+    setMapSelected(null)
     const el = document.getElementById('cardPreviewModal')
     const Modal = window.bootstrap?.Modal
     if (el && Modal) Modal.getOrCreateInstance(el).hide()
@@ -227,6 +244,16 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   function handleBackOrClose() {
     setPreviewLeft(null);
     setStatisticsCards(false);
+  }
+  // Step 0.28.5 — from the map's right-page location card (when it is the
+  // character's own location), enter the play view: left = current location,
+  // right = the movement/actions board (the base non-statistics view).
+  function enterCurrentLocationView() {
+    setMapView(false);
+    setMapSelected(null);
+    setStatisticsCards(false);
+    setPreviewLeft(null);
+    setPreviewRight(null);
   }
 
   const handleEndGame = async (action) => {
@@ -287,7 +314,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // story card. On mobile this is what the stacked left shows — the (i) preview
   // opens in a modal instead (see handleSelectionPreviewFull).
   const leftContent =
-    previewLeft ? (
+    mapView ? (
+      // Step 0.28.5 — the world map takes over the left page; its back arrow
+      // returns to the previous view (previewLeft/statistics stay untouched).
+      <MapPage gameData={gameData} matchLocations={matchLocations}
+        selectedId={mapSelected?.id ?? null}
+        onSelectNode={setMapSelected}
+        onClose={() => { setMapView(false); setMapSelected(null) }} />
+    ) : previewLeft ? (
       <Card variant="page"
         card={previewLeft.card}
         entity={previewLeft.entity}
@@ -322,11 +356,32 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   
   const rightContent =
     previewRight ? previewRightContent
+    // Step 0.28.5 — while the map fills the left page, the right page shows
+    // the location selected on the map, else the current location.
+    : mapView ? (mapSelected
+        ? <LocationCard location={{ name: mapSelected.name }}
+            card={mapSelected.card ?? {
+              title: mapSelected.name,
+              urlImage: mapSelected.urlImage,
+              awesomeIcon: 'fas fa-map-marker-alt',
+            }}
+            story={story}
+            onEnterLocation={mapSelected.id === hereLocationId ? enterCurrentLocationView : undefined} />
+        : <LocationCard locationsActive={gameData?.info?.locationsActive}
+            location={actualLocationCard} card={actualLocationCard} story={story}
+            onEnterLocation={enterCurrentLocationView} />)
     : statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
+          <MapCard onOpen={() => {
+            setMapView(true)
+            // Mobile only (no-op on desktop): the map opens on the LEFT (top of
+            // the stacked column), so scroll up to it instead of staying on the
+            // right card where the "open map" button lives.
+            scrollMobileIntoView('.book-mobile-left')
+          }} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
             gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right" />
         </div>

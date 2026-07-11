@@ -226,8 +226,10 @@ public class CoreConfig {
     @Bean
     public games.paths.core.port.match.MovementPort movementPort(
             games.paths.core.port.match.MovementStorePort movementStorePort,
-            UserAccessPort userAccessPort) {
-        return new games.paths.core.service.match.MovementService(movementStorePort, userAccessPort);
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.MovementService(
+                movementStorePort, userAccessPort, contentQueryPort);
     }
 
     // ───── Step 21: Character template & class selection ─────

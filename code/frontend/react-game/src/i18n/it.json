@@ -95,7 +95,8 @@
         "weight": "Peso",
         "exp": "EXP"
       }
-    }
+    },
+    "map": "Mappa"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -128,7 +129,9 @@
     "info": "Info",
     "gameStatus": "Status",
     "viewOriginal": "Vedi originale",
-    "actionInProgress": "Esecuzione"
+    "actionInProgress": "Esecuzione",
+    "back": "Indietro",
+    "forward": "Vai"
   },
   "game": {
     "currentLocation": "Posizione Attuale",
@@ -191,6 +194,16 @@
       "cost": "Costo",
       "noEnergy": "Energia",
       "moveCost": "Movimento"
+    },
+    "map": {
+      "title": "Mappa",
+      "here": "Selezionata",
+      "unexplored": "Inesplorata",
+      "zoomIn": "Ingrandisci",
+      "zoomOut": "Riduci",
+      "center": "Centra sulla posizione attuale",
+      "youAreHere": "Sei qui",
+      "open": "Apri mappa"
     }
   },
   "footer": {

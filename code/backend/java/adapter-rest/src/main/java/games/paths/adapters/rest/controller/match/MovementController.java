@@ -55,14 +55,16 @@ public class MovementController {
     }
 
     @GetMapping("/api/match/{uuidMatch}/locations")
-    public ResponseEntity<Object> locations(@PathVariable String uuidMatch, HttpServletRequest request) {
+    public ResponseEntity<Object> locations(@PathVariable String uuidMatch,
+                                            @RequestParam(required = false) String lang,
+                                            HttpServletRequest request) {
         String userUuid = userUuid(request);
         if (userUuid == null) {
             return error(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "User identity is missing");
         }
         try {
             return ResponseEntity.ok(MatchLocationsResponse.fromModel(
-                    uuidMatch, movementPort.listLocations(uuidMatch, userUuid)));
+                    uuidMatch, movementPort.listLocations(uuidMatch, userUuid, lang)));
         } catch (MovementException ex) {
             return error(mapStatus(ex.getCode()), ex.getCode().name(), ex.getMessage());
         }

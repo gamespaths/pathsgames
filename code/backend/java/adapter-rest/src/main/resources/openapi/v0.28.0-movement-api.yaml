@@ -82,6 +82,11 @@ paths:
           in: path
           required: true
           schema: { type: string }
+        - name: lang
+          in: query
+          required: false
+          description: Card texts language (defaults to en, falls back to en)
+          schema: { type: string }
       responses:
         '200':
           description: Visited locations
@@ -98,6 +103,11 @@ paths:
         - name: uuidMatch
           in: path
           required: true
+          schema: { type: string }
+        - name: lang
+          in: query
+          required: false
+          description: Card texts language (defaults to en, falls back to en)
           schema: { type: string }
       responses:
         '200':
@@ -138,6 +148,11 @@ components:
         idLocation: { type: integer }
         uuid: { type: string }
         idCard: { type: integer, nullable: true }
+        card:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          description: The location's resolved card (null when idCard is null)
+          nullable: true
         safe: { type: boolean }
         characterCount: { type: integer }
         neighbors:
@@ -152,8 +167,60 @@ components:
         idLocation: { type: integer }
         uuid: { type: string }
         direction: { type: string }
+        idCard: { type: integer, nullable: true }
+        card:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          description: The neighbor LOCATION's resolved card (null when idCard is null)
+          nullable: true
         baseEnergyCost: { type: integer }
         entryEnergyCost: { type: integer }
         weatherEnergyCost: { type: integer }
         totalEnergyCost: { type: integer }
         conditionMet: { type: boolean }
+    CardInfo:
+      type: object
+      nullable: true
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        cardType:
+          type: string
+          nullable: true
+        urlImage:
+          type: string
+          nullable: true
+        alternativeImage:
+          type: string
+          nullable: true
+        awesomeIcon:
+          type: string
+          nullable: true
+        styleMain:
+          type: string
+          nullable: true
+        styleDetail:
+          type: string
+          nullable: true
+        styleImageLittle:
+          type: string
+          nullable: true
+        styleImageMedium:
+          type: string
+          nullable: true
+        styleImageLarge:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        copyrightText:
+          type: string
+          nullable: true
+        linkCopyright:
+          type: string
+          nullable: true

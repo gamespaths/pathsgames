@@ -78,11 +78,13 @@ def seed():
             # counter so the location-counter decrement/zero path is exercised.
             # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
             {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
-             "counterTime": 2, "idEventIfCounterZero": 1,
+             "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 1,
              "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2,
                             "idCardBack": 1}]},
             # Step 28: a second location to move into.
-            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1}
+            # Step 0.28.5: both locations carry idCard so GET /locations resolves
+            # a full `card` for each location and neighbor (as Java/AWS seeds do).
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",

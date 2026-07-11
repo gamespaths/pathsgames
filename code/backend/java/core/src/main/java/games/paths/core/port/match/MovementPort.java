@@ -1,5 +1,7 @@
 package games.paths.core.port.match;
 
+import games.paths.core.model.story.CardInfo;
+
 import java.util.List;
 
 /**
@@ -22,11 +24,14 @@ public interface MovementPort {
     /** Move the caller's character to {@code targetLocationUuid} and deduct energy. */
     MovementResult startMovement(String matchUuid, String userUuid, String targetLocationUuid);
 
-    /** Visited locations of the match (player-scoped: caller must own a character). */
-    List<VisitedLocation> listLocations(String matchUuid, String userUuid);
+    /**
+     * Visited locations of the match (player-scoped: caller must own a character).
+     * {@code lang} localizes the resolved cards (null → "en").
+     */
+    List<VisitedLocation> listLocations(String matchUuid, String userUuid, String lang);
 
     /** Visited locations of the match (admin-scoped: only MATCH_NOT_FOUND is thrown). */
-    List<VisitedLocation> listLocationsForAdmin(String matchUuid);
+    List<VisitedLocation> listLocationsForAdmin(String matchUuid, String lang);
 
     record MovementResult(String matchUuid,
                           String characterUuid,
@@ -43,6 +48,7 @@ public interface MovementPort {
     record VisitedLocation(long idLocation,
                            String uuid,
                            Integer idCard,
+                           CardInfo card,
                            boolean safe,
                            int characterCount,
                            List<NeighborCost> neighbors) {
@@ -56,6 +62,8 @@ public interface MovementPort {
     record NeighborCost(long idLocation,
                         String uuid,
                         String direction,
+                        Integer idCard,
+                        CardInfo card,
                         int baseEnergyCost,
                         int entryEnergyCost,
                         int weatherEnergyCost,

@@ -1206,9 +1206,299 @@ identically on Java (SQLite/PostgreSQL), Python, and AWS.
 
 ---
 
+# Paths Games V0 - Step 0.28.5: Location Cards on `GET /locations`
+
+This section documents a **v0.28.5 feature** shipped across all three backends: the
+locations endpoints now resolve a **full card object** for every visited location and
+every neighbor, instead of exposing only the raw `idCard` foreign key.
+
+## 12.1 Motivation
+
+The new interactive world map (§13) needs a location photo/title/description to render
+each node without issuing a second round-trip per location. Before v0.28.5, the client
+had to resolve `idCard` → card details itself (or not render an image at all for
+locations outside `/info`'s `locationsActive`, e.g. distant/unvisited nodes reachable via
+`GET /locations`).
+
+## 12.2 API changes
+
+Both `GET /api/match/{uuid}/locations` and `GET /api/admin/matches/{uuid}/locations`
+(admin port 8044) gain:
+
+- A `card` field (nullable, `CardInfo` shape — same as the `card`/`cardBack` objects
+  already returned by `GET /api/match/{uuid}/info`) on every entry of `locations[]`,
+  resolved from that location's `idCard`.
+- An `idCard` + `card` field on every entry of `locations[].neighbors[]`, resolved from
+  the **neighbor location's** `idCard` (not the edge itself — the neighbor sub-list
+  already returns `idLocation`/`uuid` for the target location, so `card` mirrors that
+  same target).
+- An optional query parameter `lang` (default `en`, falls back to `en` when the
+  requested language has no text), following the same pattern already used by
+  `GET /api/match/{uuid}/info` and `GET /api/stories`/`GET /api/stories/{uuid}`
+  (see the `v0.19.13` lang-propagation note in Step 21).
+
+No existing field is removed or renamed. The location/neighbor **lookup logic itself is
+unchanged** — this is a pure enrichment of the existing response with resolved card data.
+
+**Example (`locations[]` entry, abridged):**
+
+```json
+{
+  "idLocation": 1,
+  "uuid": "loc-001",
+  "idCard": 5,
+  "card": {
+    "uuid": "card-uuid-v4",
+    "cardType": "location",
+    "urlImage": "https://...",
+    "title": "The Old Mill",
+    "description": "..."
+  },
+  "safe": true,
+  "characterCount": 1,
+  "neighbors": [
+    {
+      "idLocation": 2,
+      "uuid": "loc-002",
+      "direction": "NORTH",
+      "idCard": 8,
+      "card": { "uuid": "card-uuid-v4-2", "title": "Riverbank", "...": "..." },
+      "baseEnergyCost": 2,
+      "entryEnergyCost": 0,
+      "weatherEnergyCost": 1,
+      "totalEnergyCost": 3,
+      "conditionMet": true
+    }
+  ]
+}
+```
+
+## 12.3 Per-backend implementation
+
+### Java
+
+- `core/.../port/match/MovementPort.java`: `VisitedLocation` gained a `card` field;
+  `NeighborCost` gained `idCard` + `card`; the `listLocations`/`listLocationsForAdmin`
+  port method signatures gained a `lang` parameter.
+- `core/.../service/match/MovementService.java`: now takes a `ContentQueryPort`
+  dependency (in addition to `MovementStorePort`); a private `resolveCard(storyId,
+  idCard, lang)` helper resolves each location/neighbor card. **The legacy 2-argument
+  constructor is preserved** (delegates to a no-op content resolver) so any existing
+  direct instantiation keeps compiling.
+- `adapter-rest/.../dto/MatchLocationsResponse.java`: builds `card` via
+  `CardInfoResponse.fromModel(...)`.
+- `adapter-rest/.../controller/match/MovementController.java` and
+  `adapter-admin/.../controller/match/MatchAdminController.java`: both locations
+  endpoints accept `@RequestParam(required = false, defaultValue = "en") String lang`.
+- `ms-launcher/.../config/CoreConfig.java`: `movementPort` bean now also wires the
+  `ContentQueryPort` bean.
+- OpenAPI `adapter-rest/src/main/resources/openapi/v0.28.0-movement-api.yaml`: new
+  `CardInfo` schema (uuid, cardType, urlImage, alternativeImage, awesomeIcon, styleMain,
+  styleDetail, styleImageLittle/Medium/Large, title, description, copyrightText,
+  linkCopyright); `card` added to the location and neighbor schemas; `lang` query param
+  added to both endpoints.
+
+`mvn clean test` → **BUILD SUCCESS**.
+
+### Python
+
+- `app/core/models/match/movement_models.py`: `LocationWithNeighbors` and `NeighborCost`
+  dataclasses gained `card` (and `idCard` on the neighbor).
+- `app/core/services/match/movement_service.py`: `MovementService.__init__` gained an
+  optional `story_read_port=None` parameter (backward-compatible — existing call sites
+  that don't need card resolution keep working); `_resolve_card(story_id, id_card, lang)`
+  and `_resolve_card_text(story_id, id_text, lang)` helpers resolve the card and its
+  localized texts through `StoryMatchReadPort`.
+- `app/adapters/rest/match/movement_controller.py` and `match_admin_controller.py`: both
+  routes accept a `lang` query parameter (default `"en"`).
+- `app/launcher.py`: `MovementService` construction wires the story read port.
+- `scripts/seed_stories.py`: the tutorial story's locations now carry `idCard` (already
+  present on Java/AWS seed data; Python seed previously omitted it).
+
+Python suite: **711 tests pass**.
+
+### AWS Serverless
+
+- `lambda/match/handler.py`: `_visited_locations_payload(match, match_uuid, lang='en')`
+  resolves each location/neighbor `card` from the story's `raw_cards`/`raw_texts` arrays,
+  reusing the existing `resolve_card_from_raw` helper (`common.data_utils`) — the same
+  function already used to resolve `card`/`cardBack` in `GET /api/match/{uuid}/info`, so
+  card resolution stays consistent across endpoints.
+- `_get_locations(user, match_uuid, lang='en')` and `_get_admin_locations(match_uuid,
+  lang='en')` extract the `lang` query-string parameter and pass it through.
+
+AWS suite: **414 tests pass**.
+
+## 12.4 New Robot suite file
+
+**File:** `code/tests/robot/tests/28_movement/location_cards.robot`
+**Tags:** `movement`, `locations`, `location-card`, `step28`
+
+Added to the existing `28_movement` folder (not a new numbered suite) since it exercises
+the same `GET /locations` endpoints as `movement.robot`. Backend-agnostic — discovers a
+joinable story/difficulty/character/class/trait loadout at runtime.
+
+| Test case | Assertion |
+|-----------|-----------|
+| `Locations Endpoint Returns A Card For Every Visited Location` | Every entry in `locations[]` has a `card` key; when `idCard` is set, the card's `uuid` resolves via the content API |
+| `Locations Endpoint Returns A Card For Every Neighbor` | Every neighbor has both `idCard` and `card`; the card resolves the same way |
+| `Location Card Has All Required Fields` | The resolved card carries the full `CardInfoResponse` shape |
+| `Locations Endpoint Accepts The Lang Parameter` | `?lang=en` is honored; the resolved card's `uuid` is non-empty |
+| `Admin Locations Returns The Same Cards As The Player View` | The admin variant (port 8044) resolves the same card `uuid` as the player view for the first location |
+
+## 12.5 Files changed
+
+| Backend | File(s) |
+|---------|---------|
+| Java | `core/.../port/match/MovementPort.java`, `core/.../service/match/MovementService.java`, `adapter-rest/.../dto/MatchLocationsResponse.java`, `adapter-rest/.../controller/match/MovementController.java`, `adapter-admin/.../controller/match/MatchAdminController.java`, `ms-launcher/.../config/CoreConfig.java`, `adapter-rest/src/main/resources/openapi/v0.28.0-movement-api.yaml` |
+| Java tests | `MovementServiceTest`, `MovementControllerTest`, `MatchAdminControllerTest` |
+| Python | `app/core/models/match/movement_models.py`, `app/core/services/match/movement_service.py`, `app/adapters/rest/match/movement_controller.py`, `app/adapters/rest/match/match_admin_controller.py`, `app/launcher.py`, `scripts/seed_stories.py` |
+| Python tests | `tests/test_movement_service.py` |
+| AWS | `lambda/match/handler.py` |
+| AWS tests | `tests/test_movement_handler.py` |
+| Robot | `code/tests/robot/tests/28_movement/location_cards.robot` (new) |
+
+## 12.6 Notes
+
+1. **No change to location/neighbor lookup logic.** This is a read-time enrichment —
+   the set of visited locations and the neighbor adjacency computation (§6–7 above) are
+   untouched.
+2. **Java's legacy 2-arg `MovementService` constructor is intentionally kept** so any
+   caller that does not need card resolution (or predates this change) still compiles;
+   it wires a no-op content resolver internally.
+3. **AWS reuses `resolve_card_from_raw`**, the same helper already used for `card`/
+   `cardBack` in `GET /api/match/{uuid}/info` — no new card-resolution code path was
+   introduced, only extended to the locations endpoints.
+
+---
+
+# Paths Games V0 - Step 0.28.5: Interactive World Map (react-game)
+
+This section documents the **v0.28.5 frontend feature**: an interactive, pannable/
+zoomable map of the visited world, consumed from the enriched `GET /locations` response
+(§12). No backend change is required beyond §12 — this section is react-game only.
+
+## 13.1 Overview
+
+The map is rendered as the **LEFT page of the game book**, in the same
+`book-page-content` card style used elsewhere (gold title bar, back-arrow navigation),
+with a parchment-light background. It replaces the current-location card while open;
+the RIGHT page shows the `LocationCard` of whichever node is selected (defaulting to the
+character's current location).
+
+## 13.2 New files
+
+| File | Role |
+|------|------|
+| `src/components/layout/Map.jsx` (exports `MapPage`) | The map page component: pan/zoom SVG canvas, node rendering, arrow rendering, zoom controls |
+| `src/utils/mapGraph.js` (`buildMapGraph`, `edgeVisibility`) | Pure graph-building utility: turns the `/locations` payload + match-info into a `{ nodes, edges, currentId, width, height }` layout |
+| `src/features/gameplay/cards/MapCard.jsx` | Small stats-view card (image from `data/images.json`, id `"map"`) whose footer button opens the map |
+| `src/test/Map.test.jsx`, `src/test/mapGraph.test.js`, `src/test/MapCard.test.jsx` | Unit tests for the three new modules |
+
+## 13.3 Graph construction (`mapGraph.js`)
+
+`buildMapGraph(info, matchLocations)` combines two data sources:
+
+- `GET /api/match/{uuid}/locations` (§12) — **authoritative** for which locations have
+  been visited and for each location/neighbor's resolved `card`.
+- The match-info payload (`/info`) — authoritative for the **authored edge
+  orientation** (`idLocationFrom`/`idLocationTo`, `flagBack`) so two-way pairs collapse
+  into a single edge instead of being drawn twice.
+
+Layout algorithm: a breadth-first walk over the four cardinal directions
+(NORTH/SOUTH/EAST/WEST) starting from the character's current location, placing each
+node on a grid cell (`MAP_CELL` spacing) with lateral probing to avoid collisions when
+the authored graph is not a perfect grid. `edgeVisibility(edge, isVisited)` hides the
+outgoing arrow from any location that has not been visited yet (fog-of-war — the player
+should not see exits from a place they have never been).
+
+## 13.4 Rendering (`Map.jsx` / `MapPage`)
+
+- **Nodes**: the location's card image when available; unvisited locations render as a
+  plain circle with a `"?"` glyph instead of a photo.
+- **"You are here" marker**: a `fa-street-view` icon pinned to the character's current
+  location node.
+- **Arrows**: small double-headed gold arrows for standard two-way edges; a larger arrow
+  for the exits leaving the character's current location; dashed arrows for edges that
+  are one-way from the viewer's perspective (`flagBack=0`, see §"One-Way Neighbor Links"
+  above).
+- **Pan & zoom**: drag-to-pan; mouse-wheel zoom (non-passive listener, `preventDefault`s
+  page scroll); zoom in/out/center buttons (`+`/`−`/`◎`). Initial zoom `1.6`×, clamped to
+  `[0.4, 2.6]`.
+- **Selection**: clicking a visited node calls back to `GameBook` with the selected
+  location; unvisited nodes are not clickable.
+- **Responsive**: the map is visible on both desktop and mobile. The `.game-map-canvas`
+  container needed a fixed-height override under `@media (max-width: 767px)` in
+  `src/styles/main.css`, because the flex-column mobile layout otherwise collapsed
+  `flex: 1` to zero height.
+
+## 13.5 `GameBook.jsx` integration
+
+- New state: `mapView` (boolean, map open/closed) and `mapSelected` (the currently
+  selected map node, or `null` for "use the character's current location").
+- New state `matchLocations`, populated from `getMatchLocations(matchUuid,
+  user?.accessToken, lang)` — fetched on load and refreshed after each successful move
+  (same refresh point already used for the movement/weather cards). The current UI
+  `lang` is now forwarded to this call.
+- When `mapView` is true: LEFT page = `<MapPage>`, RIGHT page = the `LocationCard` of
+  `mapSelected` (or the character's current location if nothing is selected).
+- **Re-entering gameplay from the map**: `Card.jsx` gained a new optional `onForward`
+  prop — a right-side arrow button in the page title bar (mirrors the existing back
+  arrow). `LocationCard.jsx` gained a matching `onEnterLocation` prop, passed through to
+  `Card`'s `onForward`. When the location selected on the map is the character's actual
+  current location, `LocationCard` receives `onEnterLocation`, and clicking the forward
+  arrow closes the map and returns to the normal gameplay view (LEFT = current-location
+  card, RIGHT = movement/actions board).
+- On mobile, opening the map scrolls the view to `.book-mobile-left` (mobile-only, and
+  only triggered by the `MapCard` open action).
+
+## 13.6 i18n
+
+New keys added to `src/i18n/en.json` and `it.json`:
+
+- `game.map.title`, `game.map.here` ("Selected" / "Selezionata"), `game.map.youAreHere`,
+  `game.map.unexplored`, `game.map.zoomIn`, `game.map.zoomOut`, `game.map.center`,
+  `game.map.open`.
+- `card.back` / `card.forward` — labels for the new back/forward navigation arrows
+  shared by every `Card` instance (aria-labels).
+
+## 13.7 Testing
+
+- `src/test/Map.test.jsx` — renders visited/unvisited nodes, "you are here" marker,
+  selection callback, zoom controls.
+- `src/test/mapGraph.test.js` — `buildMapGraph` layout correctness, edge collapsing for
+  two-way pairs, `edgeVisibility` fog-of-war behavior.
+- `src/test/MapCard.test.jsx` — renders the map-entry card and calls `onOpen` on click.
+
+react-game suite: **477 tests pass** (1 pre-existing unrelated turnstile-TTL failure).
+
+## 13.8 Prototypes
+
+Static HTML/CSS concept mockups (desktop and mobile) live under
+`documentation_v0/website_concepts_v0/v0.28.5 Map/` and
+`documentation_v0/website_concepts_v0/v0.28.5-Map-mobile/`.
+
+## 13.9 Files changed
+
+| File | Change |
+|------|--------|
+| `src/components/layout/Map.jsx` | New — `MapPage` component |
+| `src/utils/mapGraph.js` | New — `buildMapGraph`, `edgeVisibility` |
+| `src/features/gameplay/cards/MapCard.jsx` | New — map-entry stats card |
+| `src/test/Map.test.jsx`, `src/test/mapGraph.test.js`, `src/test/MapCard.test.jsx` | New tests |
+| `src/features/gameplay/GameBook.jsx` | Map view state, `matchLocations` fetch (with `lang`), left/right page switch when map is open |
+| `src/components/layout/Card.jsx` | New `onForward` prop (forward arrow in the page title bar) |
+| `src/features/gameplay/cards/LocationCard.jsx` | New `onEnterLocation` prop, wired to `Card`'s `onForward` |
+| `src/api/matches.js` | `getMatchLocations` now forwards `lang` |
+| `src/data/images.json` | New `"map"` image entry |
+| `src/i18n/en.json`, `src/i18n/it.json` | New `game.map.*`, `card.back`, `card.forward` keys |
+| `src/styles/main.css` | `.game-map-canvas` mobile fixed-height override |
+
+---
+
 # Version Control
 
-- **Document Version**: 0.28.3
+- **Document Version**: 0.28.5
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1216,8 +1506,9 @@ identically on Java (SQLite/PostgreSQL), Python, and AWS.
   | 0.28.2 | Initial documentation: AWS neighbor cardBack desync bugfix (`_story_neighbors` helper applied at 3 gameplay read-points); new Robot suite 29 backend-agnostic regression | June 26, 2026 |
   | 0.28.2 | Initial document — cross-backend bugfix for event-to-location binding | June 26, 2026 |
   | 0.28.3 | One-way neighbor links: `flag_back` enforcement across all backends; `flag_back` column added to §6.4 schema table; new Robot regression suite `neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression); react-admin Flag Back form fix and YES/NO badge in entity table | June 28, 2026 |
+  | 0.28.5 | `GET /locations` (player + admin) now resolves a full `card` object per location/neighbor plus `?lang=`, across Java/Python/AWS, no lookup-logic change; new Robot test file `28_movement/location_cards.robot` (5 tests). §13: new interactive world map in react-game (`MapPage`/`Map.jsx`, `mapGraph.js`, `MapCard.jsx`), pan/zoom SVG graph with fog-of-war, opened from the stats card list or closed via a new `onForward` arrow on `Card.jsx`/`LocationCard.jsx`. Test counts: Java BUILD SUCCESS, Python 711 pass, AWS 414 pass, react-game 477 pass, Robot green on all 4 environments | July 11, 2026 |
 
-- **Last Updated**: June 28, 2026
+- **Last Updated**: July 11, 2026
 - **Status**: Complete
 
 
