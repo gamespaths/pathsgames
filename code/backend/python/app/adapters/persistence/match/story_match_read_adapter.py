@@ -65,6 +65,9 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id": r.id,
                     "uuid": r.uuid,
                     "counter_time": r.counter_time,
+                    "id_card": r.id_card,
+                    # Python schema: is_safe doubles as secure_param (no dedicated column).
+                    "secure_param": r.is_safe or 0,
                 }
                 for r in rows
             ]

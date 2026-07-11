@@ -79,6 +79,8 @@ export default function MovementCard({
       actionOnlyIfPreview={true}
       actionWithInfo={true}
       childrenIntoImage={costBadge}
+      infoIconClassName={!canMove ? null : location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fas fa-location-arrow"}
+      infoLabel={t('game.movement.action')}
       //flagShowFullStatistics={false}
       //statistics={costItems}
     />

@@ -352,4 +352,67 @@ class MatchQueryServiceLocationsActiveTest {
         assertNotNull(n.getCard());
         assertEquals("loc11", n.getCard().title());
     }
+
+    // ── v0.28.6 — cardLocationFrom / cardLocationTo ────────────────────────
+    // The LOCATION card of each endpoint of the edge, gated on that endpoint's
+    // OWN visited flag (independently of where the player stands).
+
+    @Test
+    void neighborCarriesLocationCardOfVisitedEndpointOnly() {
+        wire(10L);
+        // Edge 10 -> 11. The player stands on 10 (always visited); 11 is not.
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", 200)));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(10L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 11L).findFirst().orElseThrow();
+
+        assertNotNull(n.getCardLocationFrom());
+        assertEquals("loc10", n.getCardLocationFrom().title());
+        assertNull(n.getCardLocationTo()); // destination still under fog
+    }
+
+    @Test
+    void neighborCarriesBothLocationCardsWhenBothVisited() {
+        wire(10L);
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", 200)));
+        when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(110), eq("en")))
+                .thenReturn(card("loc11"));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(10L, 11L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 11L).findFirst().orElseThrow();
+
+        assertEquals("loc10", n.getCardLocationFrom().title());
+        assertEquals("loc11", n.getCardLocationTo().title());
+        // The LINK card stays the authored one — the location cards are separate.
+        assertEquals("toCave", n.getCard().title());
+    }
+
+    @Test
+    void neighborLocationCardResolvedForActiveEndpointWhenStandingOnTo() {
+        // Player stands on the edge's `to` endpoint (11): the move is a RETURN
+        // toward `from` (10). cardLocationTo is the location the player is on;
+        // cardLocationFrom is the destination, hidden while 10 is unvisited.
+        wire(11L);
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", 200)));
+        when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(110), eq("en")))
+                .thenReturn(card("loc11"));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(11L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 10L).findFirst().orElseThrow();
+
+        assertNull(n.getCardLocationFrom());
+        assertEquals("loc11", n.getCardLocationTo().title());
+    }
 }

@@ -188,7 +188,11 @@ def _summary_from_item(item):
     }
 
 
-def _detail_from_item(item, players=None, lang='en'):
+def _detail_from_item(item, players=None, lang='en', all_locations=False):
+    """Build the match-info payload.
+
+    ``all_locations`` keeps EVERY story location in ``locations`` instead of only
+    the visited ones. Set by the admin endpoint, which needs the full runtime table."""
     players = players or []
     lang = lang if lang and lang.strip() else 'en'
     # Locations currently occupied by one or more players (insertion-ordered).
@@ -215,20 +219,27 @@ def _detail_from_item(item, players=None, lang='en'):
     # value stored on the match (the story start location set at creation).
     current_id = active_loc_ids[0] if active_loc_ids else item.get("currentLocationId")
     current_uuid = item.get("currentLocationUuid")
-    current_name = item.get("currentLocationName")
     if active_loc_ids:
         loc = next((l for l in (story.get("locations") or [])
                     if l.get("id") == current_id), None)
         if loc:
             current_uuid = loc.get("uuid")
-            current_name = loc.get("name")
+
+    # v0.28.6 — the player endpoint projects only the VISITED locations; the admin
+    # endpoint keeps them all. The synthetic `name` is stripped here rather than only
+    # at write time, because matches created before this version already persisted it
+    # on the MATCH item.
+    location_states = [
+        {k: v for k, v in l.items() if k != "name"}
+        for l in (item.get("locations") or [])
+        if all_locations or l.get("idLocation") in visited_loc_ids
+    ]
 
     return {
         "match": _summary_from_item(item),
         "currentLocationId": current_id,
         "currentLocationUuid": current_uuid,
-        "currentLocationName": current_name,
-        "locations": item.get("locations", []),
+        "locations": location_states,
         "registry": item.get("registry", []),
         "events": [],
         "choices": [],
@@ -316,6 +327,18 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
             neighbor_card_back_id = n.get("idCardBack")
             if neighbor_card_back_id is None:
                 neighbor_card_back_id = neighbor_card_id
+            # v0.28.6 — the card of the LOCATION at each endpoint of the edge,
+            # gated on that endpoint's OWN visited flag.
+            def _loc_card(loc_id_):
+                if loc_id_ is None or (visited_loc_ids is not None
+                                       and loc_id_ not in visited_loc_ids):
+                    return None
+                endpoint = loc_by_id.get(loc_id_)
+                if endpoint is None:
+                    return None
+                return _resolve_card_from_raw(
+                    raw_cards, raw_texts, endpoint.get("idCard"), lang)
+
             neighbor_infos.append({
                 "idLocation": other_id,
                 "uuid": other.get("uuid") if other else None,
@@ -327,6 +350,8 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "idLocationFrom": n.get("idLocationFrom"),
                 "idLocationTo": n.get("idLocationTo"),
                 "cardBack": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_back_id, lang),
+                "cardLocationFrom": _loc_card(n.get("idLocationFrom")),
+                "cardLocationTo": _loc_card(n.get("idLocationTo")),
             })
 
         event_infos = [
@@ -371,7 +396,6 @@ def _character_summary(item):
         "weight": 0,
         "items": [],
         "idLocation": item.get("idLocation"),
-        "locationName": item.get("locationName"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
         "classUuid": item.get("classUuid"),
@@ -403,7 +427,6 @@ def _character_full(item):
         "items": [],
         "idLocation": item.get("idLocation"),
         "locationUuid": item.get("locationUuid"),
-        "locationName": item.get("locationName"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
         "traitUuids": item.get("traitUuids") or [],
@@ -542,7 +565,6 @@ def _create_match(user, body):
             "uuid": str(uuid_lib.uuid4()),
             "flagAlreadyActived": 0,
             "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
-            "name": loc.get('name'),
         })
 
     registry = []
@@ -583,7 +605,6 @@ def _create_match(user, body):
         "tsInsert": now_ms,
         "currentLocationId": int(start_id) if start_id is not None else None,
         "currentLocationUuid": (start_loc or {}).get('uuid'),
-        "currentLocationName": (start_loc or {}).get('name'),
         "locations": location_states,
         "registry": registry,
         # GSI to list all matches owned by the user, newest first
@@ -832,7 +853,6 @@ def _join_match(user, match_uuid, body):
         "weightMax": weight_max,
         "idLocation": match.get('currentLocationId'),
         "locationUuid": match.get('currentLocationUuid'),
-        "locationName": match.get('currentLocationName'),
         "isSleeping": 0,
         "isComa": 0,
         "traitUuids": [t.get('uuid') for t in traits],
@@ -944,7 +964,7 @@ def _get_admin_match_info(match_uuid):
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid)))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid), all_locations=True))
 
 
 def _list_match_statuses():

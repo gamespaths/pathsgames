@@ -199,13 +199,11 @@ class CharacterCommandService(CharacterCommandPort):
 
     def _to_info(self, saved, match, story, user_uuid, template_uuid, class_uuid, trait_uuids):
         location_uuid = None
-        location_name = None
         loc_id = saved.get("id_location")
         if loc_id is not None and story is not None:
             for loc in self.story_read_port.find_locations_by_story_id(story["id"]):
                 if loc["id"] == loc_id:
                     location_uuid = loc["uuid"]
-                    location_name = f"location-{loc['id']}"
                     break
         return CharacterInstanceInfo(
             uuid=saved["uuid"],
@@ -226,7 +224,6 @@ class CharacterCommandService(CharacterCommandPort):
             weight=0,  # fresh character carries no items
             id_location=loc_id,
             location_uuid=location_uuid,
-            location_name=location_name,
             is_sleeping=saved["is_sleeping"],
             is_coma=saved["is_coma"],
             trait_uuids=list(trait_uuids),

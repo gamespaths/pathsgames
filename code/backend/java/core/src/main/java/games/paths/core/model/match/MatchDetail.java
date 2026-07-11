@@ -14,7 +14,6 @@ public class MatchDetail {
     private MatchSummary match;
     private Long currentLocationId;
     private String currentLocationUuid;
-    private String currentLocationName;
     private List<MatchLocationState> locations = new ArrayList<>();
     private List<MatchRegistryEntry> registry = new ArrayList<>();
     private List<MatchEventOption> events = new ArrayList<>();
@@ -34,8 +33,6 @@ public class MatchDetail {
     public String getCurrentLocationUuid() { return currentLocationUuid; }
     public void setCurrentLocationUuid(String currentLocationUuid) { this.currentLocationUuid = currentLocationUuid; }
 
-    public String getCurrentLocationName() { return currentLocationName; }
-    public void setCurrentLocationName(String currentLocationName) { this.currentLocationName = currentLocationName; }
 
     public List<MatchLocationState> getLocations() { return locations; }
     public void setLocations(List<MatchLocationState> locations) {

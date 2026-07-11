@@ -5,7 +5,7 @@ import { UuidCopy, StateBadges } from './matchDetailShared'
  * PlayersCard — the "Players & characters" table: per-character stats, class,
  * traits, items, position, runtime state and an Edit-statistics action.
  */
-export default function PlayersCard({ players, templateName, className, traitName, onEditStats }) {
+export default function PlayersCard({ players, templateName, className, traitName, locationName20, onEditStats }) {
   return (
     <div className="pg-card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
       <p className="pg-card-title" style={{ padding: '0.75rem 1rem 0' }}>
@@ -79,7 +79,7 @@ export default function PlayersCard({ players, templateName, className, traitNam
                     )
                     : '—'}
                 </td>
-                <td>{p.locationName || (p.idLocation != null ? `#${p.idLocation}` : '—')}</td>
+                <td>{locationName20?.(p.idLocation) || (p.idLocation != null ? `#${p.idLocation}` : '—')}</td>
                 <td><StateBadges player={p} /></td>
                 <td>
                   <button

@@ -35,7 +35,6 @@ public class CharacterInstanceInfo {
 
     private Long idLocation;
     private String locationUuid;
-    private String locationName;
 
     private Boolean isSleeping;
     private Boolean isComa;
@@ -105,8 +104,6 @@ public class CharacterInstanceInfo {
     public String getLocationUuid() { return locationUuid; }
     public void setLocationUuid(String locationUuid) { this.locationUuid = locationUuid; }
 
-    public String getLocationName() { return locationName; }
-    public void setLocationName(String locationName) { this.locationName = locationName; }
 
     public Boolean getIsSleeping() { return isSleeping; }
     public void setIsSleeping(Boolean isSleeping) { this.isSleeping = isSleeping; }

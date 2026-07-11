@@ -2,15 +2,16 @@ import { describe, it, expect } from 'vitest'
 import { buildMapGraph, edgeVisibility, MAP_PAD, MAP_CELL } from '@/utils/mapGraph'
 
 /* /info fixture: player on location 1; 1 is active with neighbors to 3 (NORTH,
-   two-way) and to 5 (one-way INTO 1, authored 5→1); 3 is visited (already
-   activated) but not active; 5 was never visited; 9 is visited but disconnected. */
+   two-way) and to 5 (one-way INTO 1, authored 5→1); 3 is visited but not active;
+   5 was never visited (so it is ABSENT from locations[] and only appears as an
+   edge endpoint); 9 is visited but disconnected.
+   v0.28.6 — locations[] is the VISITED set and carries no `name`. */
 const INFO = {
   players: [{ idLocation: 1 }],
   locations: [
-    { idLocation: 1, uuid: 'l1', flagAlreadyActived: 1, name: 'Start' },
-    { idLocation: 3, uuid: 'l3', flagAlreadyActived: 1, name: 'Center' },
-    { idLocation: 5, uuid: 'l5', flagAlreadyActived: 0, name: 'Secret' },
-    { idLocation: 9, uuid: 'l9', flagAlreadyActived: 1, name: 'Faraway' },
+    { idLocation: 1, uuid: 'l1', flagAlreadyActived: 1, clockCounter: 0 },
+    { idLocation: 3, uuid: 'l3', flagAlreadyActived: 1, clockCounter: 0 },
+    { idLocation: 9, uuid: 'l9', flagAlreadyActived: 1, clockCounter: 0 },
   ],
   locationsActive: [
     {
@@ -40,12 +41,34 @@ describe('buildMapGraph', () => {
     expect(byId[1].current).toBe(true)
     expect(byId[1].visited).toBe(true)
     expect(byId[1].urlImage).toBe('http://img/start.jpg')
-    expect(byId[3].visited).toBe(true)      // flagAlreadyActived
+    expect(byId[3].visited).toBe(true)      // present in info.locations (= visited)
     // Step 0.28.5 — the /info neighbor-LINK card must NOT feed the node photo;
-    // a location photo comes only from a location card (active or /locations).
+    // a location photo comes only from a location card (active, /locations, or —
+    // since v0.28.6 — the neighbor's cardLocationFrom/cardLocationTo).
     expect(byId[3].urlImage).toBe(null)
-    expect(byId[5].visited).toBe(false)     // never visited → "?" node
+    expect(byId[5].visited).toBe(false)     // absent from locations[] → "?" node
     expect(byId[9].visited).toBe(true)
+  })
+
+  it('takes the neighbor node photo from cardLocationTo/From (fog-gated) — v0.28.6', () => {
+    // The /info neighbor now carries the LOCATION card of each edge endpoint,
+    // already null while unvisited. It feeds the node photo even before the
+    // /locations payload arrives (the adapter runs without it in GamePage).
+    const info = JSON.parse(JSON.stringify(INFO))
+    const nbs = info.locationsActive[0].neighbors
+    // 1 → 3: destination 3 is visited, so its LOCATION card is resolved.
+    nbs[0].cardLocationTo = { title: 'Center', urlImage: 'http://loc/3.jpg' }
+    nbs[0].cardLocationFrom = { title: 'Start location', urlImage: 'http://img/start.jpg' }
+    // 5 → 1: endpoint 5 is unvisited → the backend sends null (fog of war).
+    nbs[1].cardLocationFrom = null
+    nbs[1].cardLocationTo = { title: 'Start location', urlImage: 'http://img/start.jpg' }
+
+    const g = buildMapGraph(info)
+    const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
+    expect(byId[3].urlImage).toBe('http://loc/3.jpg')   // visited → real photo
+    expect(byId[3].name).toBe('Center')
+    expect(byId[5].urlImage).toBe(null)                 // unvisited → stays "?"
+    expect(byId[5].name).toBe('')
   })
 
   it('takes the location photo/card from the /locations payload entries', () => {
@@ -109,19 +132,36 @@ describe('buildMapGraph', () => {
     expect(buildMapGraph({})).toMatchObject({ nodes: [], edges: [] })
   })
 
-  it('prefers the /locations payload as the visited source', () => {
+  it('unions the visited sets of /locations and /info (v0.28.6)', () => {
+    // Both payloads now project the SAME visited set (character positions ∪
+    // movement log), so /info.locations is no longer a weaker proxy to be
+    // overridden — it is authoritative too. They can only disagree while one of
+    // them is momentarily stale, and a union never hides a node that either
+    // payload reports as visited.
     const matchLocations = {
       locations: [
         { idLocation: 1, uuid: 'l1', neighbors: [
           { idLocation: 3, uuid: 'l3', direction: 'NORTH', totalEnergyCost: 4 }] },
+        { idLocation: 7, uuid: 'l7', neighbors: [] }, // known only to /locations
       ],
     }
-    // the lean flags say 3 and 9 are visited, but the /locations payload
-    // (the authority) only lists 1 → 3 and 9 must be unexplored.
     const g = buildMapGraph(INFO, matchLocations)
     const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
     expect(byId[1].visited).toBe(true)
+    expect(byId[3].visited).toBe(true)  // from /info.locations
+    expect(byId[7].visited).toBe(true)  // from the /locations payload
+    expect(byId[9].visited).toBe(true)  // from /info.locations (disconnected)
+    expect(byId[5].visited).toBe(false) // in neither → still unexplored
+  })
+
+  it('leaves a location unexplored when it is in neither visited payload', () => {
+    const bare = { ...INFO, locations: [] }
+    const g = buildMapGraph(bare, { locations: [] })
+    const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
+    // 1 is still visited: a character stands on it (locationsActive).
+    expect(byId[1].visited).toBe(true)
     expect(byId[3].visited).toBe(false)
+    expect(byId[5].visited).toBe(false)
     expect(byId[9]).toBeUndefined() // not visited, not referenced → not on the map
   })
 
@@ -208,6 +248,10 @@ describe('buildMapGraph', () => {
       ],
     }
     const g = buildMapGraph(info, matchLocations)
+    const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
+    expect(byId[5].safe).toBe(true)
+    expect(byId[4].safe).toBe(true)
+    expect(byId[1].safe).toBe(false)
     // the main location (3) has THREE links: 1↔3, 3→2, 3↔4
     const incident3 = g.edges.filter(e => e.from === 3 || e.to === 3)
     expect(incident3).toHaveLength(3)
@@ -218,7 +262,7 @@ describe('buildMapGraph', () => {
     expect(cells.size).toBe(g.nodes.length)
     // no edge segment may pass through a third node (the bug that visually
     // hid the 1↔3 link under another node)
-    const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
+    const byIdPos = Object.fromEntries(g.nodes.map(n => [n.id, n]))
     const onSegment = (p, a, b) => {
       const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
       if (cross !== 0) return false
@@ -227,7 +271,7 @@ describe('buildMapGraph', () => {
       return dot > 0 && dot < len2
     }
     g.edges.forEach(e => {
-      const a = byId[e.from], b = byId[e.to]
+      const a = byIdPos[e.from], b = byIdPos[e.to]
       g.nodes.forEach(n => {
         if (n.id === e.from || n.id === e.to) return
         expect(onSegment(n, a, b)).toBe(false)

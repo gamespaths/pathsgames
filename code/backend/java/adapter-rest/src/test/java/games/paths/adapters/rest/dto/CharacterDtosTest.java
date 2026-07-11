@@ -27,7 +27,6 @@ class CharacterDtosTest {
         i.setSad(0);
         i.setIdLocation(90001L);
         i.setLocationUuid("loc");
-        i.setLocationName("location-90001");
         i.setIsSleeping(false);
         i.setIsComa(false);
         i.setTraitUuids(List.of("t1", "t2"));
@@ -58,7 +57,6 @@ class CharacterDtosTest {
         assertEquals(0, r.getSad());
         assertEquals(90001L, r.getIdLocation());
         assertEquals("loc", r.getLocationUuid());
-        assertEquals("location-90001", r.getLocationName());
         assertFalse(r.getIsSleeping());
         assertFalse(r.getIsComa());
         assertEquals(List.of("t1", "t2"), r.getTraitUuids());
@@ -83,7 +81,6 @@ class CharacterDtosTest {
         r.setSad(6);
         r.setIdLocation(7L);
         r.setLocationUuid("l");
-        r.setLocationName("ln");
         r.setIsSleeping(true);
         r.setIsComa(true);
         r.setTraitUuids(List.of("x"));
@@ -111,7 +108,6 @@ class CharacterDtosTest {
         assertEquals(19, r.getDexterity());
         assertEquals(137, r.getLife());
         assertEquals(90001L, r.getIdLocation());
-        assertEquals("location-90001", r.getLocationName());
         assertFalse(r.getIsSleeping());
         assertFalse(r.getIsComa());
         assertEquals("cls", r.getClassUuid());
@@ -131,14 +127,12 @@ class CharacterDtosTest {
         r.setLife(5);
         r.setSad(6);
         r.setIdLocation(7L);
-        r.setLocationName("ln");
         r.setIsSleeping(true);
         r.setIsComa(true);
         r.setClassUuid("cls");
         r.setTraitUuids(List.of("t1"));
         assertEquals("u", r.getUuid());
         assertEquals(2, r.getIntelligence());
-        assertEquals("ln", r.getLocationName());
         assertEquals("cls", r.getClassUuid());
         assertEquals(List.of("t1"), r.getTraitUuids());
     }

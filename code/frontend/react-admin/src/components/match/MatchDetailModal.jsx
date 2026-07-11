@@ -177,7 +177,7 @@ export default function MatchDetailModal({ detail, onClose }) {
 
             <p className="pg-card-title mb-2">
               <i className="fas fa-map-marker-alt me-1" />
-              Current location: {info.currentLocationName || '—'}
+              Current location: {locationTitle(info.currentLocationUuid) || '—'}
             </p>
 
             <p className="pg-card-title mb-1"><i className="fas fa-map me-1" />Locations ({info.locations?.length ?? 0})</p>

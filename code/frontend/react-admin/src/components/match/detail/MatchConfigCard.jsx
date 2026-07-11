@@ -7,7 +7,7 @@ import { UuidCopy } from './matchDetailShared'
  */
 export default function MatchConfigCard({
   match, info, status, colors, isTerminalStatus, actionLoading, actionError,
-  difficultyName, rngSeed, onPause, onResume, onStop, onDelete,
+  difficultyName, rngSeed, locationName20, onPause, onResume, onStop, onDelete,
 }) {
   return (
     <div className="pg-card mb-4">
@@ -91,7 +91,7 @@ export default function MatchConfigCard({
             <th scope="row">Created</th>
             <td>{fmtDate(match?.tsInsert)}</td>
             <th scope="row">Current location</th>
-            <td>{info.currentLocationName || '—'}</td>
+            <td>{locationName20?.(info.currentLocationId, info.currentLocationUuid) || '—'}</td>
           </tr>
           <tr>
             {/* Step 27 — per-match deterministic RNG seed (weather rolls). */}

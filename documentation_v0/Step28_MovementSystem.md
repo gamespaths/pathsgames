@@ -1630,6 +1630,155 @@ runtime, no hard-coded IDs:
 
 ---
 
+# Paths Games V0 - Step 0.28.6: Visited-Only Match-Info Locations & Endpoint Location Cards
+
+This section completes the fog-of-war work of §14 on the **match-info** payload. No new
+endpoint is added; `GET /api/match/{uuid}/info` changes shape.
+
+## 15.1 Problem
+
+Three defects in the `locations` block of `/info`:
+
+1. **`locations[]` returned every story location**, not only the visited ones — the raw
+   projection of `gaming_state_locations`. It handed the client the full map, contradicting
+   the fog-of-war already enforced on `/locations` and on the neighbor cards (§14).
+2. **The `name` field was useless.** It was the synthetic string `"location-{id}"`
+   (Java/Python) or `null` (AWS, on imported stories). The same synthetic name also appeared
+   as `currentLocationName` (root) and `players[].locationName`. No consumer used it:
+   react-admin resolves names from the story context, react-game used it only as a fallback
+   after `card.title`.
+3. **Neighbors did not expose the destination's LOCATION card.** A client saw only `card`
+   (the authored LINK/movement card) and `cardBack` (the return LINK card), so it could not
+   show the photo/title of the place an edge leads to without cross-referencing `/locations`
+   — a payload that, in react-game, is fetched in `GameBook` while the adapter runs in
+   `GamePage`.
+
+## 15.2 Contract change
+
+| Field | Before | After |
+|-------|--------|-------|
+| `locations[]` | every story location | **only the already-visited ones** (player endpoint) |
+| `locations[].name` | `"location-{id}"` / null | **removed** |
+| `currentLocationName` | `"location-{id}"` / null | **removed** |
+| `players[].locationName` | `"location-{id}"` / null | **removed** (also from `/players`, `/characters/{uuid}` and the join response) |
+| `locationsActive[].neighbors[].cardLocationFrom` | — | **new**: card of the LOCATION at `idLocationFrom` |
+| `locationsActive[].neighbors[].cardLocationTo` | — | **new**: card of the LOCATION at `idLocationTo` |
+
+"Visited" is the same movement-derived set as §14.2 — the very set `GET /locations` returns
+as its `locations[]`, so the two payloads now agree id-for-id.
+
+**Where a name is still needed, it comes from a card title** (`LocationInfo.card`,
+`cardLocationFrom` / `cardLocationTo`, or the `/locations` payload), or stays null when no
+location card is available at that point.
+
+## 15.3 Fog semantics of the two new cards
+
+Each endpoint is gated on **its own** visited flag, independently of where the player stands:
+
+```
+cardLocationFrom = card(locations[idLocationFrom].idCard)  if idLocationFrom ∈ visited  else null
+cardLocationTo   = card(locations[idLocationTo].idCard)    if idLocationTo   ∈ visited  else null
+```
+
+This is self-consistent because **the active location is always visited** (a character stands
+on it), so the endpoint matching it always resolves. It follows that:
+
+> **The move destination's card is `cardLocationFrom` when the player stands on
+> `idLocationTo`, and `cardLocationTo` otherwise.**
+
+They are distinct from `card` (authored LINK card) and `cardBack` (return LINK card). A null
+visited set (legacy wiring) disables the gating, exactly as in §14.
+
+## 15.4 The admin exception
+
+`GET /api/admin/matches/{uuid}/info` keeps **every** location in `locations[]` — no visited
+filter — because the react-admin console renders the full `gaming_state_locations` runtime
+table (`LocationStateCard.jsx`). The **fog gating on the neighbor cards is unchanged and
+identical** to the player view: only the list differs. A single `allLocations` flag is
+threaded through the shared builder in each backend.
+
+## 15.5 Per-backend implementation
+
+| Backend | Change |
+|---------|--------|
+| Java | `MatchQueryService.buildDetail` gains a `boolean allLocations` param; the visited-set computation is hoisted above the state-row loop, which now skips unvisited rows. New private `resolveLocationCard(...)` resolves an endpoint's card behind the visited check. `resolveCard` gained a per-request memo (`Map<Integer, CardInfo>`): a location card is reachable from every edge touching it, so without it the same card was re-read from the content port once per edge. `MatchLocationState.name`, `MatchDetail.currentLocationName`, `CharacterInstanceInfo.locationName` removed; `LocationNeighborInfo` ctor 10 → 12 args. |
+| Python | Mirrors Java. **Plus a real bugfix** (see §15.6). `MatchLocationState.name`, `MatchDetail.current_location_name`, `CharacterInstanceInfo.location_name` removed; `LocationNeighborInfo` gains `card_location_from` / `card_location_to`. |
+| AWS | `_detail_from_item` gains `all_locations`; it filters on the already-computed `visited_loc_ids` **and strips the persisted `name` key on READ** — matches created before v0.28.6 already carry it on the `MATCH#{uuid}/METADATA` item, so stopping the write alone would leave old matches leaking it. `_create_match` / `_join_match` also stop writing `name` / `currentLocationName` / `locationName`. This incidentally moots the pre-existing bug where `_start_movement` never refreshed a character's stale `locationName`. |
+
+## 15.6 Python bugfix: the truncated location projection
+
+`StoryMatchReadAdapter.find_locations_by_story_id` projected only
+`{id, uuid, counter_time}`, but `_build_locations_active` reads `id_card` and `secure_param`
+off those very dicts. **In production the Python `/info` therefore always returned
+`locationsActive[].card = null`, `.secureParam = null`, and a dead neighbor location-card
+fallback.** The unit fixture mocked `id_card`, which hid it.
+
+The projection now also carries `id_card` and `secure_param` (in the Python schema `is_safe`
+doubles as `secure_param` — the same mapping `MovementStoreAdapter._location_dict` already
+used). Without this fix `cardLocationFrom` / `cardLocationTo` would have been born broken on
+Python. **Side effect:** `locationsActive[].secureParam` now returns `0|1` instead of `null`,
+finally matching Java.
+
+## 15.7 Frontend
+
+| App | Change |
+|-----|--------|
+| react-game | `matchInfoAdapter.js`: the neighbor's display card now falls back to the destination's LOCATION card (`playerAtTo ? cardLocationFrom : cardLocationTo`) before the generic direction card, and the destination NAME comes from that card's title. The generic "Move to …" card therefore appears only when no card exists anywhere — in which case the destination is by definition unexplored. `mapGraph.js`: `info.locations[]` is now an exact visited set (the old `flagAlreadyActived` fallback would have left the map with **zero** visited nodes and is removed); node names come from card titles; `cardLocationFrom`/`cardLocationTo` feed node photos, so the map shows real photos **before** the `/locations` payload arrives. The two visited sets are **unioned**, not overridden: both payloads derive from the same query, so a union can never hide a genuinely visited node. |
+| react-admin | `MatchConfigCard` / `PlayersCard` resolve the location name via the existing `locationName20` (story context: `list_locations.id_text_name` → `list_texts`); `MatchDetailModal` uses its existing `locationTitle(uuid)`. `LocationStateCard` is untouched — it is precisely why the admin keeps all locations (§15.4). |
+
+## 15.8 OpenAPI
+
+- `v0.19.0-match-creation-api.yaml` — `LocationState`: `name` removed, visited-only contract
+  + admin exception documented. `MatchInfo`: `currentLocationName` removed.
+  `LocationNeighborInfo`: `cardLocationFrom` / `cardLocationTo` added.
+- `v0.21.0-character-selection-api.yaml` — `locationName` removed from `CharacterSummary`
+  and `CharacterInstance`.
+- `v0.19.12-admin-match-control-api.yaml` — `getAdminMatchInfo` documents the "all locations,
+  no visited filter" exception.
+
+## 15.9 New Robot suite
+
+`code/tests/robot/tests/28_movement/match_info_visited_locations.robot` (5 tests) — no suite
+previously asserted on `/info locations[]`, on any `name` field, or on the visited filter.
+
+| Test | Asserts |
+|------|---------|
+| `Info Locations Contains Only Visited Locations` | The ids of `/info locations[]` equal the visited ids from `/locations`, and are strictly fewer than the admin list (proving the filter ran) |
+| `Info Carries No Synthetic Location Name` | No `name` on any `locations[]` entry, no `currentLocationName`, no `players[].locationName`; `idLocation`/`uuid`/`flagAlreadyActived`/`clockCounter` all still present |
+| `Neighbor Location Cards Follow The Visited Gating` | Per edge endpoint: `cardLocationFrom`/`cardLocationTo` resolved when that endpoint is visited, null when it is not |
+| `Moving Reveals The Destination In Locations And Its Card` | Before the move the destination is absent from `locations[]` and its endpoint card is null; after it, it appears, the two payloads stay in sync, and the revealed card resolves via `GET /api/content/.../cards` |
+| `Admin Info Returns All Locations With The Same Fog Gating` | Admin `locations[]` ⊃ player's and larger; still no `name`; neighbor cards gated identically |
+
+## 15.10 Files changed
+
+| Area | File(s) |
+|------|---------|
+| Java | `core/.../model/match/{MatchLocationState,MatchDetail,CharacterInstanceInfo,LocationNeighborInfo}.java`, `core/.../service/match/{MatchQueryService,CharacterMapper,CharacterCommandService}.java`, `adapter-rest/.../dto/{MatchInfoResponse,AbstractCharacterStatsResponse}.java` |
+| Java tests | `MatchQueryServiceTest` (+1), `MatchQueryServiceLocationsActiveTest` (+3), `MatchDtosTest`, `CharacterDtosTest`, `MatchControllerTest`, `LocationInfoTest`, `MatchModelsTest` |
+| Python | `app/adapters/persistence/match/story_match_read_adapter.py` (**bugfix**), `app/core/models/match/match_models.py`, `app/core/services/match/{match_query_service,character_query_service,character_command_service}.py`, `app/adapters/rest/match/match_controller.py` |
+| Python tests | `test_match_query_service.py` (+4), `test_match_persistence_adapter.py`, `test_match_controller.py`, `test_match_admin_controller.py`, `test_match_models.py`, `test_character_controller.py` |
+| AWS | `lambda/match/handler.py` |
+| AWS tests | `tests/test_match_handler.py` (+3) |
+| OpenAPI | `v0.19.0-match-creation-api.yaml`, `v0.21.0-character-selection-api.yaml`, `v0.19.12-admin-match-control-api.yaml` |
+| react-game | `src/api/matchInfoAdapter.js`, `src/utils/mapGraph.js`, `src/test/fixtures/matchInfo.json`, `src/test/{matchInfoAdapter,mapGraph}.test.js`, `src/test/Map.test.jsx` |
+| react-admin | `src/pages/MatchDetailPage.jsx`, `src/components/match/detail/{MatchConfigCard,PlayersCard}.jsx`, `src/components/match/MatchDetailModal.jsx` + 3 test files |
+| Robot | `code/tests/robot/tests/28_movement/match_info_visited_locations.robot` (new) |
+
+## 15.11 Notes
+
+1. **A match with no character has an empty `locations[]`.** Nothing is visited until
+   somebody joins. The key is still present, so
+   `19_match/match_creation.robot`'s `Dictionary Should Contain Key` still passes.
+2. **The test fixtures were lying.** `react-game`'s `matchInfo.json` populated real names
+   where the API returned `location-{id}`, and listed every location — which is why the
+   "destination name only when visited" comment in the adapter had never actually been true.
+   The fixture now mirrors the real payload.
+3. **`flagAlreadyActived` is still not a visited flag** (§14.7.1). `mapGraph.js` had been
+   using it as a visited fallback; since it is ~always 0, that fallback was near-dead and is
+   now replaced by `info.locations[]`, which *is* the visited set.
+
+---
+
 # Version Control
 
 - **Document Version**: 0.28.6
@@ -1642,6 +1791,7 @@ runtime, no hard-coded IDs:
   | 0.28.3 | One-way neighbor links: `flag_back` enforcement across all backends; `flag_back` column added to §6.4 schema table; new Robot regression suite `neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression); react-admin Flag Back form fix and YES/NO badge in entity table | June 28, 2026 |
   | 0.28.5 | `GET /locations` (player + admin) now resolves a full `card` object per location/neighbor plus `?lang=`, across Java/Python/AWS, no lookup-logic change; new Robot test file `28_movement/location_cards.robot` (5 tests). §13: new interactive world map in react-game (`MapPage`/`Map.jsx`, `mapGraph.js`, `MapCard.jsx`), pan/zoom SVG graph with fog-of-war, opened from the stats card list or closed via a new `onForward` arrow on `Card.jsx`/`LocationCard.jsx`. Test counts: Java BUILD SUCCESS, Python 711 pass, AWS 414 pass, react-game 477 pass, Robot green on all 4 environments | July 11, 2026 |
   | 0.28.6 | §14: bugfix — v0.28.5's neighbor card enrichment leaked the card of never-visited locations. Neighbor `card`/`idCard` on `GET /locations` now null for unvisited destinations; `/info` keeps the authored LINK card but hides only the LOCATION-card fallback. Java: `MatchQueryService` gained an optional `MovementStorePort` 6th constructor arg; `MovementService.buildLocations` gates on `findVisitedLocationIds`. Python: `match_query_service` gained an optional `movement_store` param; `movement_service._build_locations` gates on `find_visited_location_ids`; `launcher.py` shares one `movement_store_adapter` instance between both services. AWS: `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog`) passed into `_build_locations_active`; `_visited_locations_payload` gates on its existing `seen` set. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). Test counts: Java BUILD SUCCESS (+4 tests), Python 715 pass, AWS 416 pass, Robot dry-run 4/4 | July 11, 2026 |
+  | 0.28.6 | §15: `/info` `locations[]` is now VISITED-ONLY on the player endpoint (the admin endpoint keeps every location for the console's runtime table); the synthetic `name` / `currentLocationName` / `players[].locationName` are removed from all three backends and titles now come from card titles; `locationsActive[].neighbors[]` gains `cardLocationFrom` / `cardLocationTo` — the LOCATION card of each edge endpoint, gated on that endpoint's own visited flag (so the move destination's card is `cardLocationFrom` when the player stands on `idLocationTo`, `cardLocationTo` otherwise). Java: `buildDetail` gains an `allLocations` flag, new `resolveLocationCard`, and a per-request card memo; `LocationNeighborInfo` ctor 10 → 12 args. **Python bugfix**: `find_locations_by_story_id` did not project `id_card`/`secure_param`, so `/info` `locationsActive[].card` and `.secureParam` were ALWAYS null in production (`secureParam` now returns `0|1`). AWS: the persisted `name`/`locationName` are stripped on READ (old matches already carry them) and no longer written. react-game: the adapter's neighbor card now falls back to the destination's LOCATION card and `mapGraph` feeds node photos from the new fields (real photos before `/locations` lands); its `flagAlreadyActived` visited fallback — which was near-dead — is replaced by `info.locations[]`. react-admin resolves names via the existing story-context resolvers. New Robot suite `28_movement/match_info_visited_locations.robot` (5 tests). Test counts: Java BUILD SUCCESS, Python 719 pass (92% cov), AWS 419 pass, react-game 484 pass, react-admin 429 pass | July 11, 2026 |
 
 - **Last Updated**: July 11, 2026
 - **Status**: Complete

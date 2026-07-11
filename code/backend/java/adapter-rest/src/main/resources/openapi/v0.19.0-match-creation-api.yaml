@@ -383,6 +383,15 @@ components:
       required: [items, limit]
 
     LocationState:
+      description: >
+        One row of gaming_state_locations. v0.28.6 — on the PLAYER endpoint only
+        ALREADY-VISITED locations are returned (visited = character positions ∪
+        movement log, the same set GET /api/match/{uuidMatch}/locations returns);
+        the list is empty until a character joins the match. The ADMIN endpoint
+        (GET /api/admin/matches/{uuidMatch}/info) is the exception: it returns
+        every story location so the console can render the full runtime table.
+        `flagAlreadyActived` is NOT a visited flag — it tracks the location's
+        entry-event state.
       type: object
       properties:
         idLocation:
@@ -397,9 +406,6 @@ components:
         clockCounter:
           type: integer
           format: int32
-        name:
-          type: string
-          nullable: true
 
     RegistryEntry:
       type: object
@@ -442,10 +448,13 @@ components:
           type: string
           format: uuid
           nullable: true
-        currentLocationName:
-          type: string
-          nullable: true
         locations:
+          description: >
+            v0.28.6 — the ALREADY-VISITED locations of the match only. The admin
+            info endpoint returns every story location instead (no visited filter).
+            The synthetic `name` field was removed: resolve a location's title from
+            its card (LocationInfo.card, LocationNeighborInfo.cardLocationFrom /
+            cardLocationTo, or GET /locations).
           type: array
           items:
             $ref: '#/components/schemas/LocationState'
@@ -567,6 +576,25 @@ components:
           description: "Optional resolved \"return\" card, shown when the player traverses the edge from the locationTo side. Falls back to `card` when the link defines no idCardBack."
           allOf:
             - $ref: '#/components/schemas/CardInfo'
+        cardLocationFrom:
+          description: >
+            v0.28.6 — resolved card of the LOCATION at `idLocationFrom`. Distinct
+            from `card` (the authored LINK/movement card) and `cardBack` (the
+            return LINK card). Fog of war: null until that location has been
+            visited; the gating applies identically on the admin endpoint. The
+            active location is always visited, so the endpoint matching it always
+            resolves — the move DESTINATION is `cardLocationFrom` when the player
+            stands on `idLocationTo`, and `cardLocationTo` otherwise.
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+        cardLocationTo:
+          description: >
+            v0.28.6 — resolved card of the LOCATION at `idLocationTo`, gated on
+            that location's own visited flag. See `cardLocationFrom`.
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
 
     EventInfo:
       type: object

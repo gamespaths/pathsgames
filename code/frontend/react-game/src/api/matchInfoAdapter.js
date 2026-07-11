@@ -11,11 +11,17 @@
  * action cards are derived from the active location matching `players[0].idLocation`.
  * `story` is still passed in for end-game card and graceful fallbacks.
  *
+ * Step 0.28.6 — `locations` now lists ONLY the already-visited locations, and the
+ * synthetic `name` fields are gone (locations[].name, currentLocationName,
+ * players[].locationName). A location's title comes from its card. Neighbors gained
+ * `cardLocationFrom`/`cardLocationTo`: the card of the LOCATION at each endpoint of
+ * the edge, null while that endpoint is still under fog of war.
+ *
  * API shape (consumed):
  *   {
  *     match: { uuid, name, status, currentClock, ... },
- *     currentLocationId, currentLocationUuid, currentLocationName,
- *     locations: [{ idLocation, uuid, flagAlreadyActived, clockCounter, name }],
+ *     currentLocationId, currentLocationUuid,
+ *     locations: [{ idLocation, uuid, flagAlreadyActived, clockCounter }],  // visited only
  *     registry:  [{ uuid, key, stringValue, intValue }],
  *     events:    [{ uuid, name, type }],
  *     choices:   [{ uuid, name, type }],
@@ -23,7 +29,8 @@
  *     locationsActive: [{
  *       idLocation, uuid, card,
  *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card,
- *                     idLocationFrom, idLocationTo, cardBack }],
+ *                     idLocationFrom, idLocationTo, cardBack,
+ *                     cardLocationFrom, cardLocationTo }],
  *       events:    [{ uuid, type, endGame, card }],
  *     }]
  *   }
@@ -96,19 +103,12 @@ export function matchInfoToGameData(info, story = null,t) {
   const active = activeList.find(l => l.idLocation === playerLoc) ?? activeList[0] ?? null
   //console.log("active location", active,playerLoc, activeList);
   const activeCard = active?.card ?? null
-  //console.log("activeCard", activeCard, "active", active, "playerLoc", playerLoc, "activeList", activeList);
   const actualLocationCard = activeCard
-    ? activeCard /*{
-      uuid: active.uuid ?? info.currentLocationUuid ?? null,
-      name: activeCard.title ?? info.currentLocationName ?? '',
-      description: activeCard.description ?? '',
-      urlImage: activeCard.urlImage ?? story?.card?.urlImage ?? null,
-      awesomeIcon: activeCard.awesomeIcon ?? story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
-    }*/
-    : (info.currentLocationUuid || info.currentLocationName)
+    ? activeCard
+    : info.currentLocationUuid
       ? {
-        uuid: info.currentLocationUuid ?? null,
-        name: info.currentLocationName ?? '',
+        uuid: info.currentLocationUuid,
+        name: '',
         description: '',
         urlImage: story?.card?.urlImage ?? null,
         awesomeIcon: story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
@@ -128,22 +128,31 @@ export function matchInfoToGameData(info, story = null,t) {
   // Step 0.28.2 — when the player stands on the edge's `to` location, prefer the
   // optional return card (cardBack); otherwise show the forward card.
   const locations = (active?.neighbors ?? []).map(n => {
+    // When the character stands on the edge's `to` endpoint, the neighbor is a
+    // RETURN move: the destination is the `from` endpoint, and From/To swap.
     const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
-    // Step 0.28.5 — when a neighbor has NO card (neither forward nor return),
-    // fall back to the fixed "neighbor" card from data/images.json, titled by the
-    // move direction and described with the current + destination location names.
-    // The destination name is only shown when it is already visited (present in
-    // the /info locations list).
-    const destState = (info.locations ?? []).find(l => l.idLocation === n.idLocation) ?? null
-    // When the character stands on the destination (playerAtTo), the neighbor is
-    // a RETURN move: title "Back to …" and From/To swapped.
-    const currentTitle = actualLocationCard?.title ?? null
-    const destName = destState?.name ?? null
+    // Step 0.28.6 — the LOCATION cards of the two endpoints, each null while that
+    // endpoint is unvisited. The active location is always visited, so the origin
+    // card resolves; the destination card appears only once explored.
+    const destLocationCard = (playerAtTo ? n.cardLocationFrom : n.cardLocationTo) ?? null
+    const originLocationCard = (playerAtTo ? n.cardLocationTo : n.cardLocationFrom) ?? null
+
+    // Step 0.28.5 — when a neighbor has NO card at all, fall back to the fixed
+    // "neighbor" card from data/images.json, titled by the move direction and
+    // described with the current + destination location names. The destination
+    // name stays null (→ "Unexplored location") until it has been visited.
+    const currentTitle = actualLocationCard?.title ?? originLocationCard?.title ?? null
+    const destName = destLocationCard?.title ?? null
     const fromName = playerAtTo ? destName : currentTitle
     const toName = playerAtTo ? currentTitle : destName
-    const displayCard = (n.card == null && n.cardBack == null)
-      ? buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
-      : ((playerAtTo && n.cardBack) ? n.cardBack : n.card)
+    const genericNeighborCard = buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
+
+    // Precedence: the return LINK card when moving back, then the forward LINK
+    // card, then the destination's own LOCATION card, then the generic fallback.
+    const displayCard = ((playerAtTo && n.cardBack) ? n.cardBack : n.card)
+      ?? destLocationCard
+      ?? genericNeighborCard
+
     return {
       uuid: n.uuid ?? null,
       idLocation: n.idLocation ?? null,

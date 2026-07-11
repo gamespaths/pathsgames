@@ -239,13 +239,11 @@ class MatchControllerTest {
         detail.setMatch(summary());
         detail.setCurrentLocationId(10L);
         detail.setCurrentLocationUuid("loc-uuid");
-        detail.setCurrentLocationName("loc");
         MatchLocationState s = new MatchLocationState();
         s.setIdLocation(10L);
         s.setUuid("ls");
         s.setFlagAlreadyActived(0);
         s.setClockCounter(2);
-        s.setName("ls-name");
         detail.setLocations(List.of(s));
         MatchRegistryEntry r = new MatchRegistryEntry();
         r.setUuid("r");
@@ -263,7 +261,10 @@ class MatchControllerTest {
                 .andExpect(jsonPath("$.locations[0].uuid").value("ls"))
                 .andExpect(jsonPath("$.registry[0].key").value("k"))
                 .andExpect(jsonPath("$.events[0].uuid").value("ev"))
-                .andExpect(jsonPath("$.choices[0].uuid").value("ch"));
+                .andExpect(jsonPath("$.choices[0].uuid").value("ch"))
+                // v0.28.6 — the synthetic location names are gone from the contract.
+                .andExpect(jsonPath("$.currentLocationName").doesNotExist())
+                .andExpect(jsonPath("$.locations[0].name").doesNotExist());
     }
 
     @Test

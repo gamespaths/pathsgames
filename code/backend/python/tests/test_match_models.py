@@ -70,7 +70,7 @@ def test_match_detail_defaults():
 
 def test_match_detail_with_collections():
     summary = MatchSummary("u", "s", "d", "n", "CREATED", 0, 5, "uc", "ts")
-    loc = MatchLocationState(1, "lu", 0, 5, "loc")
+    loc = MatchLocationState(1, "lu", 0, 5)
     reg = MatchRegistryEntry("ru", "k", "v", 1)
     evt = MatchEventOption("e", "n", "EVENT")
     choice = MatchEventOption("c", "n", "CHOICE")
@@ -78,7 +78,6 @@ def test_match_detail_with_collections():
         match=summary,
         current_location_id=1,
         current_location_uuid="lu",
-        current_location_name="loc-1",
         locations=[loc],
         registry=[reg],
         events=[evt],

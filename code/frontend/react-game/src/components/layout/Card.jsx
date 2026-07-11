@@ -54,6 +54,8 @@ export default function Card({
   onPreview, hidePreview = false,
   infoLabel, infoIconClassName, infoLabelClassName,
 
+  action2Label=null, action2Icon=null, onAction2=null,
+
   /* extra overlay content */
   childrenIntoImage,
   children,
@@ -197,7 +199,9 @@ export default function Card({
             onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview}
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
-            infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} />
+            infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
+            action2Label={action2Label} action2Icon={action2Icon} onAction2={onAction2}
+          />
 
       {viewLink}
 

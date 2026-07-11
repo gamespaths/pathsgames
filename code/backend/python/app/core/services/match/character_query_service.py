@@ -80,7 +80,6 @@ def build_character_infos(
             weight=weight,
             id_location=c.get("id_location"),
             location_uuid=loc["uuid"] if loc else None,
-            location_name=f"location-{loc['id']}" if loc else None,
             is_sleeping=c["is_sleeping"],
             is_coma=c["is_coma"],
             trait_uuids=trait_uuids,

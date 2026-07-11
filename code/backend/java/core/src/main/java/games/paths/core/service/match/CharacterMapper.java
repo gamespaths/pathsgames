@@ -165,7 +165,6 @@ final class CharacterMapper {
         }
         if (location != null) {
             info.setLocationUuid(location.getUuid());
-            info.setLocationName("location-" + location.getId());
         }
         return info;
     }

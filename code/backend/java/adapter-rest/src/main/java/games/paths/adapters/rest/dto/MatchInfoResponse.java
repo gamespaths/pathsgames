@@ -21,7 +21,6 @@ public class MatchInfoResponse {
     private MatchSummaryResponse match;
     private Long currentLocationId;
     private String currentLocationUuid;
-    private String currentLocationName;
     private List<LocationStateDto> locations = new ArrayList<>();
     private List<RegistryEntryDto> registry = new ArrayList<>();
     private List<EventOptionDto> events = new ArrayList<>();
@@ -38,7 +37,6 @@ public class MatchInfoResponse {
         r.match = MatchSummaryResponse.fromModel(d.getMatch());
         r.currentLocationId = d.getCurrentLocationId();
         r.currentLocationUuid = d.getCurrentLocationUuid();
-        r.currentLocationName = d.getCurrentLocationName();
         for (MatchLocationState s : d.getLocations()) {
             r.locations.add(LocationStateDto.fromModel(s));
         }
@@ -69,9 +67,6 @@ public class MatchInfoResponse {
     public String getCurrentLocationUuid() { return currentLocationUuid; }
     public void setCurrentLocationUuid(String currentLocationUuid) { this.currentLocationUuid = currentLocationUuid; }
 
-    public String getCurrentLocationName() { return currentLocationName; }
-    public void setCurrentLocationName(String currentLocationName) { this.currentLocationName = currentLocationName; }
-
     public List<LocationStateDto> getLocations() { return locations; }
     public void setLocations(List<LocationStateDto> locations) { this.locations = locations; }
 
@@ -95,7 +90,6 @@ public class MatchInfoResponse {
         private String uuid;
         private Integer flagAlreadyActived;
         private Integer clockCounter;
-        private String name;
 
         public static LocationStateDto fromModel(MatchLocationState m) {
             LocationStateDto d = new LocationStateDto();
@@ -103,7 +97,6 @@ public class MatchInfoResponse {
             d.uuid = m.getUuid();
             d.flagAlreadyActived = m.getFlagAlreadyActived();
             d.clockCounter = m.getClockCounter();
-            d.name = m.getName();
             return d;
         }
 
@@ -115,8 +108,6 @@ public class MatchInfoResponse {
         public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
         public Integer getClockCounter() { return clockCounter; }
         public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
     }
 
     public static class RegistryEntryDto {
@@ -212,6 +203,8 @@ public class MatchInfoResponse {
         private Long idLocationFrom;
         private Long idLocationTo;
         private CardInfoResponse cardBack;
+        private CardInfoResponse cardLocationFrom;
+        private CardInfoResponse cardLocationTo;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -225,6 +218,8 @@ public class MatchInfoResponse {
             d.idLocationFrom = m.getIdLocationFrom();
             d.idLocationTo = m.getIdLocationTo();
             d.cardBack = CardInfoResponse.fromModel(m.getCardBack());
+            d.cardLocationFrom = CardInfoResponse.fromModel(m.getCardLocationFrom());
+            d.cardLocationTo = CardInfoResponse.fromModel(m.getCardLocationTo());
             return d;
         }
 
@@ -248,6 +243,10 @@ public class MatchInfoResponse {
         public void setIdLocationTo(Long idLocationTo) { this.idLocationTo = idLocationTo; }
         public CardInfoResponse getCardBack() { return cardBack; }
         public void setCardBack(CardInfoResponse cardBack) { this.cardBack = cardBack; }
+        public CardInfoResponse getCardLocationFrom() { return cardLocationFrom; }
+        public void setCardLocationFrom(CardInfoResponse cardLocationFrom) { this.cardLocationFrom = cardLocationFrom; }
+        public CardInfoResponse getCardLocationTo() { return cardLocationTo; }
+        public void setCardLocationTo(CardInfoResponse cardLocationTo) { this.cardLocationTo = cardLocationTo; }
     }
 
     /** An event available at a player-occupied location, with its card. */

@@ -137,6 +137,7 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
   const nodeEls = nodes.map(n => {
     const cls = 'game-map-node'
       + (n.id === ringId ? ' game-map-node--current' : '')
+      + (n.safe ? ' game-map-node--safe' : '')
       + (n.visited ? '' : ' game-map-node--unknown')
     const style = { left: `${n.x}px`, top: `${n.y}px` }
     if (n.visited && n.urlImage) style.backgroundImage = `url("${n.urlImage}")`
@@ -208,6 +209,7 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
       <div className="game-map-legend">
         <span><i className="game-map-legend__dot" /> {t('game.map.here')}</span>
         <span><i className="fas fa-street-view" /> {t('game.map.youAreHere')}</span>
+        <span><i className="game-map-legend__safe" /> {t('game.map.safe')}</span>
         <span><b>?</b> {t('game.map.unexplored')}</span>
       </div>
     </div>

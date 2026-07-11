@@ -516,7 +516,6 @@ def test_get_match_info_success(mock_jwt, mock_get, mock_query):
                 'status': 'CREATED', 'currentClock': 0, 'expCost': 5,
                 'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
                 'currentLocationId': 1, 'currentLocationUuid': 'loc-1',
-                'currentLocationName': 'Hall',
                 'locations': [{'idLocation': 1, 'uuid': 'l', 'flagAlreadyActived': 0, 'clockCounter': 0}],
                 'registry': [{'uuid': 'r', 'key': 'k', 'stringValue': None, 'intValue': 1}],
             }
@@ -529,10 +528,14 @@ def test_get_match_info_success(mock_jwt, mock_get, mock_query):
     assert result['statusCode'] == 200
     body = _body(result)
     assert body['match']['uuid'] == 'm1'
-    assert len(body['locations']) == 1
+    # v0.28.6 — locations[] is visited-only. No character has joined this CREATED
+    # match, so nothing is visited yet and the list is empty (the key still exists).
+    assert body['locations'] == []
     assert len(body['registry']) == 1
     assert body['events'] == []
     assert body['choices'] == []
+    # the synthetic location names are gone from the contract
+    assert 'currentLocationName' not in body
 
 
 @patch('match.handler.jwt_utils.verify_access_token')
@@ -619,6 +622,10 @@ def test_get_match_info_locations_active(mock_jwt):
     assert la[0]['neighbors'][0]['idLocationFrom'] == 1
     assert la[0]['neighbors'][0]['idLocationTo'] == 2
     assert la[0]['neighbors'][0]['cardBack']['title'] == 'Yard'
+    # v0.28.6 — the LOCATION card of each endpoint, gated on its own visited flag.
+    # The character stands on 1 (visited); 2 was never reached (no movementLog).
+    assert la[0]['neighbors'][0]['cardLocationFrom']['title'] == 'Hall'
+    assert la[0]['neighbors'][0]['cardLocationTo'] is None
     # only the event specific to location 1, flagged as the end-game event
     assert [e['uuid'] for e in la[0]['events']] == ['evt-1']
     assert la[0]['events'][0]['endGame'] is True
@@ -1374,3 +1381,134 @@ def test_end_match_no_auth_returns_401(mock_jwt, mock_get):
                        path_params={'uuidMatch': 'm1', 'uuidEvent': 'e1'})
     result = lambda_handler(event, {})
     assert result['statusCode'] == 401
+
+
+# ── v0.28.6 — visited-only locations[] + cardLocationFrom / cardLocationTo ──
+
+_V287_STORY = {
+    'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+    'locations': [
+        {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1},
+        {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'idCard': 2},
+        {'id': 3, 'uuid': 'loc-3', 'name': 'Attic', 'idCard': 3},
+    ],
+    'neighbors': [
+        {'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
+         'flagBack': 1, 'energyCost': 1},
+    ],
+    'events': [],
+    'raw_cards': [
+        {'id': 1, 'uuid': 'card-1', 'idTextTitle': 10},
+        {'id': 2, 'uuid': 'card-2', 'idTextTitle': 11},
+        {'id': 3, 'uuid': 'card-3', 'idTextTitle': 12},
+    ],
+    'raw_texts': [
+        {'idText': 10, 'lang': 'en', 'shortText': 'Hall'},
+        {'idText': 11, 'lang': 'en', 'shortText': 'Yard'},
+        {'idText': 12, 'lang': 'en', 'shortText': 'Attic'},
+    ],
+}
+
+
+def _v287_match(movement_log=None):
+    """A match whose stored locations[] still carries the legacy `name` key, to
+    prove the read path strips it even for matches created before v0.28.6."""
+    return {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'currentLocationName': 'Hall',
+        'locations': [
+            {'idLocation': 1, 'uuid': 'ls-1', 'flagAlreadyActived': 0, 'clockCounter': 0, 'name': 'Hall'},
+            {'idLocation': 2, 'uuid': 'ls-2', 'flagAlreadyActived': 0, 'clockCounter': 0, 'name': 'Yard'},
+            {'idLocation': 3, 'uuid': 'ls-3', 'flagAlreadyActived': 0, 'clockCounter': 0, 'name': 'Attic'},
+        ],
+        'registry': [],
+        'movementLog': movement_log or [],
+    }
+
+
+def _v287_get_side(match_item):
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return _V287_STORY
+        return None
+    return get_side
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_locations_only_visited_and_name_stripped(mock_jwt):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    match_item = _v287_match()
+    character = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+                 'userUuid': 'player-uuid-001', 'idLocation': 1}
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=_v287_get_side(match_item)), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    body = _body(result)
+    # only location 1 is visited (the character stands there, no movement log)
+    assert [l['idLocation'] for l in body['locations']] == [1]
+    # the legacy persisted `name` is stripped on read, on every entry
+    assert all('name' not in l for l in body['locations'])
+    assert 'currentLocationName' not in body
+    assert all('locationName' not in p for p in body['players'])
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_movement_log_reveals_location_and_its_card(mock_jwt):
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    # The character moved 1 -> 2, so BOTH endpoints are visited.
+    match_item = _v287_match(movement_log=[{'idLocationFrom': 1, 'idLocationTo': 2}])
+    character = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+                 'userUuid': 'player-uuid-001', 'idLocation': 2}
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=_v287_get_side(match_item)), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    body = _body(result)
+    assert sorted(l['idLocation'] for l in body['locations']) == [1, 2]  # 3 never reached
+    nb = body['locationsActive'][0]['neighbors'][0]
+    assert nb['cardLocationFrom']['title'] == 'Hall'
+    assert nb['cardLocationTo']['title'] == 'Yard'
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
+def test_admin_match_info_keeps_all_locations_but_same_fog(mock_jwt):
+    mock_jwt.return_value = {'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'}
+    match_item = _v287_match()
+    character = {'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+                 'userUuid': 'player-uuid-001', 'idLocation': 1}
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#admin-uuid-001':
+            return ADMIN_USER
+        return _v287_get_side(match_item)(pk, sk)
+
+    from match.handler import lambda_handler
+    event = make_event('GET', '/api/admin/matches/m1/info',
+                       headers={'Authorization': 'Bearer MOCK_ACCESS_admin'},
+                       path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    body = _body(result)
+    # the admin console needs the full gaming_state_locations table
+    assert sorted(l['idLocation'] for l in body['locations']) == [1, 2, 3]
+    assert all('name' not in l for l in body['locations'])
+    # ...but the fog-of-war gating on the neighbor cards is unchanged
+    nb = body['locationsActive'][0]['neighbors'][0]
+    assert nb['cardLocationFrom']['title'] == 'Hall'
+    assert nb['cardLocationTo'] is None

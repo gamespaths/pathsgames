@@ -65,12 +65,10 @@ class MatchModelsTest {
         m.setUuid("u");
         m.setFlagAlreadyActived(1);
         m.setClockCounter(2);
-        m.setName("n");
         assertEquals(1L, m.getIdLocation());
         assertEquals("u", m.getUuid());
         assertEquals(1, m.getFlagAlreadyActived());
         assertEquals(2, m.getClockCounter());
-        assertEquals("n", m.getName());
     }
 
     @Test
@@ -108,7 +106,6 @@ class MatchModelsTest {
         d.setMatch(new MatchSummary());
         d.setCurrentLocationId(10L);
         d.setCurrentLocationUuid("loc");
-        d.setCurrentLocationName("Loc");
         d.setLocations(List.of(new MatchLocationState()));
         d.setRegistry(List.of(new MatchRegistryEntry()));
         d.setEvents(List.of(new MatchEventOption()));
@@ -116,7 +113,6 @@ class MatchModelsTest {
         assertNotNull(d.getMatch());
         assertEquals(10L, d.getCurrentLocationId());
         assertEquals("loc", d.getCurrentLocationUuid());
-        assertEquals("Loc", d.getCurrentLocationName());
         assertEquals(1, d.getLocations().size());
         assertEquals(1, d.getRegistry().size());
         assertEquals(1, d.getEvents().size());

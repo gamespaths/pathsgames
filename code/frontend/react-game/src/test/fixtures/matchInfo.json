@@ -15,22 +15,46 @@
   },
   "currentLocationId": 1001,
   "currentLocationUuid": "loc-001",
-  "currentLocationName": "The Old Tavern",
   "locations": [
-    { "idLocation": 1001, "uuid": "loc-001", "flagAlreadyActived": 1, "clockCounter": 0, "name": "The Old Tavern" },
-    { "idLocation": 1002, "uuid": "loc-002", "flagAlreadyActived": 0, "clockCounter": 0, "name": "Dark Cave" },
-    { "idLocation": 1003, "uuid": "loc-003", "flagAlreadyActived": 0, "clockCounter": 0, "name": "Ancient Forest" },
-    { "idLocation": 1004, "uuid": "loc-004", "flagAlreadyActived": 0, "clockCounter": 0, "name": "Castle Gate" }
+    {
+      "idLocation": 1001,
+      "uuid": "loc-001",
+      "flagAlreadyActived": 1,
+      "clockCounter": 0
+    },
+    {
+      "idLocation": 1002,
+      "uuid": "loc-002",
+      "flagAlreadyActived": 0,
+      "clockCounter": 0
+    }
   ],
   "registry": [
-    { "uuid": "reg-1", "key": "chapter", "stringValue": null, "intValue": 1 }
+    {
+      "uuid": "reg-1",
+      "key": "chapter",
+      "stringValue": null,
+      "intValue": 1
+    }
   ],
   "events": [
-    { "uuid": "end-event-uuid", "name": "Complete the story", "type": "END_GAME" }
+    {
+      "uuid": "end-event-uuid",
+      "name": "Complete the story",
+      "type": "END_GAME"
+    }
   ],
   "choices": [
-    { "uuid": "choice-002", "name": "Search for Clues", "type": "OPTIONAL" },
-    { "uuid": "choice-003", "name": "Rest & Recover", "type": "OPTIONAL" }
+    {
+      "uuid": "choice-002",
+      "name": "Search for Clues",
+      "type": "OPTIONAL"
+    },
+    {
+      "uuid": "choice-003",
+      "name": "Rest & Recover",
+      "type": "OPTIONAL"
+    }
   ],
   "players": [
     {
@@ -50,12 +74,18 @@
       "weightMax": 24,
       "weight": 4,
       "idLocation": 1001,
-      "locationName": "The Old Tavern",
       "isSleeping": false,
       "isComa": false,
       "traitUuids": [],
       "items": [
-        { "uuid": "inv-1", "itemUuid": "item-1", "name": "Training Potion", "weight": 2, "amount": 2, "state": "ACTIVE" }
+        {
+          "uuid": "inv-1",
+          "itemUuid": "item-1",
+          "name": "Training Potion",
+          "weight": 2,
+          "amount": 2,
+          "state": "ACTIVE"
+        }
       ]
     }
   ],
@@ -89,6 +119,18 @@
             "description": "Retrace your steps into the dark.",
             "urlImage": null,
             "awesomeIcon": "fas fa-arrow-left"
+          },
+          "cardLocationFrom": {
+            "title": "Dark Cave",
+            "description": "A cold draught seeps from the cave mouth.",
+            "urlImage": "cave.png",
+            "awesomeIcon": "fas fa-mountain"
+          },
+          "cardLocationTo": {
+            "title": "The Old Tavern",
+            "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-beer"
           }
         },
         {
@@ -110,7 +152,14 @@
             "description": "Towering trees swallow the light.",
             "urlImage": null,
             "awesomeIcon": "fas fa-tree"
-          }
+          },
+          "cardLocationFrom": {
+            "title": "The Old Tavern",
+            "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-beer"
+          },
+          "cardLocationTo": null
         }
       ],
       "events": [

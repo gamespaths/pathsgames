@@ -101,7 +101,6 @@ def _character_summary_to_camel(p):
         "weight": p.weight,
         "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
-        "locationName": p.location_name,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
     }
@@ -130,7 +129,6 @@ def _character_full_to_camel(p):
         "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
         "locationUuid": p.location_uuid,
-        "locationName": p.location_name,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
         "traitUuids": list(p.trait_uuids),
@@ -160,6 +158,8 @@ def _location_info_to_camel(l):
                 "idLocationFrom": n.id_location_from,
                 "idLocationTo": n.id_location_to,
                 "cardBack": n.card_back,
+                "cardLocationFrom": n.card_location_from,
+                "cardLocationTo": n.card_location_to,
             }
             for n in l.neighbors
         ],
@@ -175,14 +175,12 @@ def _detail_to_camel(detail):
         "match": _summary_to_camel(detail.match),
         "currentLocationId": detail.current_location_id,
         "currentLocationUuid": detail.current_location_uuid,
-        "currentLocationName": detail.current_location_name,
         "locations": [
             {
                 "idLocation": l.id_location,
                 "uuid": l.uuid,
                 "flagAlreadyActived": l.flag_already_actived,
                 "clockCounter": l.clock_counter,
-                "name": l.name,
             }
             for l in detail.locations
         ],

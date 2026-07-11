@@ -287,7 +287,7 @@ public class MatchQueryService implements MatchQueryPort {
         if (!match.getIdUserCreator().equals(user.id())) {
             return null;
         }
-        return buildDetail(match, user.uuid(), resolveLang(lang));
+        return buildDetail(match, user.uuid(), resolveLang(lang), false);
     }
 
     @Override
@@ -300,8 +300,11 @@ public class MatchQueryService implements MatchQueryPort {
             return null;
         }
         // Admin view — no per-user ownership check. userCreatorUuid is left
-        // null, consistent with the admin list (listAllMatches).
-        return buildDetail(matchOpt.get(), null, DEFAULT_LANG);
+        // null, consistent with the admin list (listAllMatches). The admin also
+        // keeps EVERY location (no visited filter) so the console can render the
+        // full gaming_state_locations runtime table; the fog-of-war gating on the
+        // neighbor cards stays identical to the player view.
+        return buildDetail(matchOpt.get(), null, DEFAULT_LANG, true);
     }
 
     /** Falls back to {@link #DEFAULT_LANG} when no/blank lang requested. */
@@ -312,8 +315,13 @@ public class MatchQueryService implements MatchQueryPort {
     /**
      * Builds the full {@link MatchDetail} for a match. Shared by the per-user
      * and the admin info endpoints.
+     *
+     * @param allLocations when true the {@code locations} list keeps EVERY story
+     *                     location instead of only the visited ones. Set by the
+     *                     admin endpoint, which needs the full runtime table.
      */
-    private MatchDetail buildDetail(GamingMatchEntity match, String userCreatorUuid, String lang) {
+    private MatchDetail buildDetail(GamingMatchEntity match, String userCreatorUuid, String lang,
+                                    boolean allLocations) {
         Optional<StoryEntity> storyOpt = storyReadPort.findAllStories().stream()
                 .filter(s -> s.getId().equals(match.getIdStory()))
                 .findFirst();
@@ -329,18 +337,26 @@ public class MatchQueryService implements MatchQueryPort {
             locationsById.put(l.getId(), l);
         }
 
+        // v0.28.6 — the visited-location set (character positions ∪ movement log),
+        // the same set GET /locations returns. It gates the neighbor location cards
+        // below and, on the player endpoint, filters the locations list itself.
+        // Null (legacy constructor, no movement store) disables both.
+        Set<Long> visitedLocIds = movementStorePort != null
+                ? new HashSet<>(movementStorePort.findVisitedLocationIds(match.getId()))
+                : null;
+
         List<GamingStateLocationsEntity> states = matchReadPort.findLocationsByMatchId(match.getId());
         List<MatchLocationState> stateModels = new ArrayList<>();
         for (GamingStateLocationsEntity sl : states) {
+            if (!allLocations && visitedLocIds != null
+                    && !visitedLocIds.contains(sl.getIdLocation())) {
+                continue;
+            }
             MatchLocationState m = new MatchLocationState();
             m.setIdLocation(sl.getIdLocation());
             m.setUuid(sl.getUuid());
             m.setFlagAlreadyActived(sl.getFlagAlreadyActived());
             m.setClockCounter(sl.getClockCounter());
-            LocationEntity le = locationsById.get(sl.getIdLocation());
-            if (le != null) {
-                m.setName("location-" + le.getId());
-            }
             stateModels.add(m);
         }
         detail.setLocations(stateModels);
@@ -388,7 +404,6 @@ public class MatchQueryService implements MatchQueryPort {
             detail.setCurrentLocationId(currentLocId);
             if (current != null) {
                 detail.setCurrentLocationUuid(current.getUuid());
-                detail.setCurrentLocationName("location-" + current.getId());
             }
         }
 
@@ -400,11 +415,6 @@ public class MatchQueryService implements MatchQueryPort {
         // Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
         Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
-        // v0.28.6 — the visited-location set (positions ∪ movement log) hides the
-        // neighbor's location-card fallback for never-visited destinations.
-        Set<Long> visitedLocIds = movementStorePort != null
-                ? new HashSet<>(movementStorePort.findVisitedLocationIds(match.getId()))
-                : null;
         detail.setLocationsActive(
                 buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds));
 
@@ -415,6 +425,11 @@ public class MatchQueryService implements MatchQueryPort {
      * Builds the {@code locationsActive} list: for each location occupied by at
      * least one player, its resolved card plus the neighbor links touching it
      * (both directions) and the events specific to it — each with its own card.
+     *
+     * <p>Cards are memoized for the duration of the call: a location card is
+     * reachable from every edge touching it (and from the location itself), so
+     * without the cache the same card would be re-read from the content port
+     * once per edge.</p>
      */
     private List<LocationInfo> buildLocationsActive(Long storyId,
                                                     Integer endEventId,
@@ -429,13 +444,14 @@ public class MatchQueryService implements MatchQueryPort {
 
         List<LocationNeighborEntity> neighbors = storyReadPort.findLocationNeighborsByStoryId(storyId);
         List<EventEntity> events = storyReadPort.findEventsByStoryId(storyId);
+        Map<Integer, CardInfo> cardCache = new HashMap<>();
 
         for (Long locId : activeLocIds) {
             LocationEntity loc = locationsById.get(locId);
             if (loc == null) {
                 continue;
             }
-            CardInfo locCard = resolveCard(storyId, loc.getIdCard(), lang);
+            CardInfo locCard = resolveCard(storyId, loc.getIdCard(), lang, cardCache);
 
             List<LocationNeighborInfo> neighborInfos = new ArrayList<>();
             for (LocationNeighborEntity n : neighbors) {
@@ -461,17 +477,21 @@ public class MatchQueryService implements MatchQueryPort {
                 Integer neighborCardBackId = n.getIdCardBack() != null
                         ? n.getIdCardBack()
                         : neighborCardId;
+                Long fromId = n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null;
+                Long toId = n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null;
                 neighborInfos.add(new LocationNeighborInfo(
                         otherId,
                         other != null ? other.getUuid() : null,
                         n.getDirection(),
                         n.getFlagBack(),
                         n.getEnergyCost(),
-                        resolveCard(storyId, neighborCardId, lang),
+                        resolveCard(storyId, neighborCardId, lang, cardCache),
                         other != null ? other.getSecureParam() : null,
-                        n.getIdLocationFrom() != null ? n.getIdLocationFrom().longValue() : null,
-                        n.getIdLocationTo() != null ? n.getIdLocationTo().longValue() : null,
-                        resolveCard(storyId, neighborCardBackId, lang)));
+                        fromId,
+                        toId,
+                        resolveCard(storyId, neighborCardBackId, lang, cardCache),
+                        resolveLocationCard(storyId, fromId, locationsById, lang, visitedLocIds, cardCache),
+                        resolveLocationCard(storyId, toId, locationsById, lang, visitedLocIds, cardCache)));
             }
 
             List<EventInfo> eventInfos = new ArrayList<>();
@@ -481,7 +501,8 @@ public class MatchQueryService implements MatchQueryPort {
                     boolean endGame = endEventId != null && e.getId() != null
                             && endEventId.longValue() == e.getId();
                     eventInfos.add(new EventInfo(
-                            e.getUuid(), e.getType(), endGame, resolveCard(storyId, e.getIdCard(), lang)));
+                            e.getUuid(), e.getType(), endGame,
+                            resolveCard(storyId, e.getIdCard(), lang, cardCache)));
                 }
             }
 
@@ -523,12 +544,39 @@ public class MatchQueryService implements MatchQueryPort {
         return null;
     }
 
-    /** Resolves a card via the content port, or null when no port/idCard. */
-    private CardInfo resolveCard(Long storyId, Integer idCard, String lang) {
+    /**
+     * Resolves a card via the content port, or null when no port/idCard.
+     * {@code cache} memoizes the lookup for the duration of one request (storyId
+     * and lang are fixed there, so idCard alone is a sufficient key); it also
+     * caches the null result of a card the story does not define.
+     */
+    private CardInfo resolveCard(Long storyId, Integer idCard, String lang,
+                                 Map<Integer, CardInfo> cache) {
         if (contentQueryPort == null || idCard == null) {
             return null;
         }
-        return contentQueryPort.getCardByStoryIdAndCardId(storyId, idCard, lang);
+        if (cache.containsKey(idCard)) {
+            return cache.get(idCard);
+        }
+        CardInfo resolved = contentQueryPort.getCardByStoryIdAndCardId(storyId, idCard, lang);
+        cache.put(idCard, resolved);
+        return resolved;
+    }
+
+    /**
+     * Resolves the card of the LOCATION sitting at one endpoint of a neighbor
+     * link, gated on that location's own fog-of-war flag: null until it has been
+     * visited. A null {@code visitedLocIds} disables the gating (legacy wiring).
+     */
+    private CardInfo resolveLocationCard(Long storyId, Long locId,
+                                         Map<Long, LocationEntity> locationsById,
+                                         String lang, Set<Long> visitedLocIds,
+                                         Map<Integer, CardInfo> cache) {
+        if (locId == null || (visitedLocIds != null && !visitedLocIds.contains(locId))) {
+            return null;
+        }
+        LocationEntity loc = locationsById.get(locId);
+        return loc != null ? resolveCard(storyId, loc.getIdCard(), lang, cache) : null;
     }
 
     private MatchSummary toSummary(GamingMatchEntity match, String userUuid,

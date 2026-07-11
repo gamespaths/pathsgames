@@ -304,7 +304,6 @@ public class CharacterCommandService implements CharacterCommandPort {
             for (LocationEntity l : storyReadPort.findLocationsByStoryId(story.getId())) {
                 if (saved.getIdLocation().equals(l.getId())) {
                     info.setLocationUuid(l.getUuid());
-                    info.setLocationName("location-" + l.getId());
                     break;
                 }
             }

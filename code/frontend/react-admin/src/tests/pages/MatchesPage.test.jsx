@@ -48,7 +48,7 @@ const MOCK_STATUSES = [
 
 const MOCK_INFO = {
   match: MOCK_MATCHES[0],
-  currentLocationId: 10, currentLocationUuid: 'loc-1', currentLocationName: 'Tavern',
+  currentLocationId: 10, currentLocationUuid: 'loc-1',
   locations: [{ idLocation: 10, uuid: 'loc-1', flagAlreadyActived: 0, clockCounter: 3 }],
   registry: [{ uuid: 'r1', key: 'act_1_done', intValue: 0, stringValue: null }],
   events: [], choices: [],
@@ -74,7 +74,13 @@ describe('MatchesPage', () => {
     stopMatch.mockResolvedValue({ status: 'UPDATED' })
     deleteMatch.mockResolvedValue({ status: 'DELETED' })
     getStory.mockResolvedValue({ uuid: 'story-1-uuid', title: 'The Lost Kingdom', author: 'Admin' })
-    listEntities.mockResolvedValue([])
+    // v0.28.6 — currentLocationName is gone from /info; the console resolves the
+    // location title from the story context (list_locations.idTextName → texts).
+    listEntities.mockImplementation((_uuid, kind) => {
+      if (kind === 'locations') return Promise.resolve([{ uuid: 'loc-1', id: 10, idTextName: 500 }])
+      if (kind === 'texts') return Promise.resolve([{ idText: 500, lang: 'en', shortText: 'Tavern' }])
+      return Promise.resolve([])
+    })
   })
 
   it('shows loading spinner initially', () => {
@@ -162,7 +168,7 @@ describe('MatchesPage', () => {
     await screen.findByText('Saturday run')
     await userEvent.click(screen.getAllByTitle('View detail')[0])
     await waitFor(() => expect(getMatchInfo).toHaveBeenCalledWith('m1-uuid-aaaa'))
-    expect(await screen.findByText(/Tavern/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Tavern/)).length).toBeGreaterThan(0)
     expect(screen.getByText('act_1_done')).toBeInTheDocument()
     expect(screen.getByText('The Lost Kingdom')).toBeInTheDocument()
     expect(screen.getByText('Admin')).toBeInTheDocument()
@@ -178,7 +184,7 @@ describe('MatchesPage', () => {
     renderPage()
     await screen.findByText('Saturday run')
     await userEvent.click(screen.getAllByTitle('View detail')[0])
-    await screen.findByText(/Tavern/)
+    await screen.findAllByText(/Tavern/)
     await userEvent.click(screen.getByText('Close'))
     await waitFor(() => expect(screen.queryByText('Close')).toBeNull())
   })

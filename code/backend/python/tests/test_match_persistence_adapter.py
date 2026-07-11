@@ -238,6 +238,11 @@ def test_story_match_read_adapter(session_factory):
 
     locs = read.find_locations_by_story_id(s_by_uuid["id"])
     assert locs[0]["counter_time"] == 3
+    # v0.28.6 — the projection must carry id_card and secure_param: the match-info
+    # enrichment reads them off these dicts (locationsActive[].card/.secureParam and
+    # the neighbor location cards). They were missing, so those fields were always null.
+    assert "id_card" in locs[0]
+    assert "secure_param" in locs[0]
     keys = read.find_keys_by_story_id(s_by_uuid["id"])
     assert keys[0]["key_value"] == "1"
 

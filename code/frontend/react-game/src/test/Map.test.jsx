@@ -7,20 +7,22 @@ vi.mock('@/i18n/context', () => ({
 
 import MapPage from '../components/layout/Map'
 
-/* Board fixture: player on 1 (active, photo); 3 visited via flag (link photo);
+/* Board fixture: player on 1 (active, photo); 3 visited (link photo);
    5 never visited (one-way 5→1: fully hidden); 6 never visited (one-way 1→6:
-   visible arrow into the unknown); 1→3 two-way (big exit arrow). */
+   visible arrow into the unknown); 1→3 two-way (big exit arrow).
+   v0.28.6 — locations[] is the VISITED set (no `name`), so 5 and 6 are absent
+   from it and reach the map only as edge endpoints. */
 const GAME_DATA = {
   info: {
     players: [{ idLocation: 1 }],
     locations: [
-      { idLocation: 1, flagAlreadyActived: 1, name: 'Start' },
-      { idLocation: 3, flagAlreadyActived: 1, name: 'Center' },
-      { idLocation: 5, flagAlreadyActived: 0, name: 'Secret' },
+      { idLocation: 1, flagAlreadyActived: 1, clockCounter: 0 },
+      { idLocation: 3, flagAlreadyActived: 1, clockCounter: 0 },
     ],
     locationsActive: [
       {
         idLocation: 1, uuid: 'l1',
+        safe: true,
         card: { title: 'Start location', urlImage: 'http://img/start.jpg' },
         neighbors: [
           { uuid: 'n1', idLocationFrom: 1, idLocationTo: 3, direction: 'NORTH', flagBack: 1,
@@ -41,6 +43,7 @@ describe('MapPage', () => {
     expect(screen.getByText('game.map.title')).toBeInTheDocument()
     expect(screen.getByText('game.map.here')).toBeInTheDocument()
     expect(screen.getByText('game.map.youAreHere')).toBeInTheDocument()
+    expect(screen.getByText('game.map.safe')).toBeInTheDocument()
     expect(screen.getByText('game.map.unexplored')).toBeInTheDocument()
     expect(screen.queryByText('game.map.twoWay')).toBeNull()
     expect(screen.queryByText('game.map.oneWay')).toBeNull()
@@ -83,17 +86,32 @@ describe('MapPage', () => {
     expect(screen.getByTestId('map-node-1').contains(marker)).toBe(true)
   })
 
-  it('takes the visited set from the /locations payload when provided', () => {
-    // the payload (the authority) lists only location 1 as visited → 3 becomes
-    // an unexplored "?" node even though flagAlreadyActived says otherwise
+  it('adds green-border safe class only on locations flagged as safe', () => {
+    const matchLocations = {
+      locations: [
+        { idLocation: 1, safe: true, neighbors: [{ idLocation: 3, direction: 'NORTH', totalEnergyCost: 4 }] },
+        { idLocation: 3, safe: false, neighbors: [] },
+      ],
+    }
+    render(<MapPage gameData={GAME_DATA} matchLocations={matchLocations} onClose={vi.fn()} />)
+    expect(screen.getByTestId('map-node-1').className).toContain('game-map-node--safe')
+    expect(screen.getByTestId('map-node-3').className).not.toContain('game-map-node--safe')
+  })
+
+  it('unions the visited sets of the /locations payload and /info (v0.28.6)', () => {
+    // Both payloads project the same visited set, so /info.locations is
+    // authoritative too: 3 stays explored even though this (stale) /locations
+    // payload has not caught up with it yet.
     const matchLocations = {
       locations: [
         { idLocation: 1, neighbors: [{ idLocation: 3, direction: 'NORTH', totalEnergyCost: 4 }] },
       ],
     }
     render(<MapPage gameData={GAME_DATA} matchLocations={matchLocations} onClose={vi.fn()} />)
-    expect(screen.getByTestId('map-node-3').className).toContain('game-map-node--unknown')
+    expect(screen.getByTestId('map-node-3').className).not.toContain('game-map-node--unknown')
     expect(screen.getByTestId('map-node-1').className).not.toContain('game-map-node--unknown')
+    // 5 is in neither visited payload → still an unexplored "?" node
+    expect(screen.getByTestId('map-node-5').className).toContain('game-map-node--unknown')
   })
 
   it('renders one node per location with current/unknown modifiers', () => {

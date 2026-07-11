@@ -11,7 +11,8 @@ class LocationInfoTest {
 
     @Test
     void constructorAndGetters() {
-        LocationNeighborInfo neighbor = new LocationNeighborInfo(2L, "n-uuid", "NORTH", 0, 1, null, 5, 1L, 2L, null);
+        LocationNeighborInfo neighbor = new LocationNeighborInfo(2L, "n-uuid", "NORTH", 0, 1, null, 5, 1L, 2L, null,
+                null, null);
         LocationInfo loc = new LocationInfo(1L, "loc-uuid", 10, null, List.of(neighbor), List.of(), 7);
 
         assertEquals(1L, loc.getIdLocation());
@@ -36,7 +37,10 @@ class LocationInfoTest {
     void locationNeighborInfoGetters() {
         CardInfo back = new CardInfo("c-back", "location", null, null, "fa-b",
                 null, null, null, null, null, "Back", "return", null, null, null);
-        LocationNeighborInfo n = new LocationNeighborInfo(3L, "n-uuid", "SOUTH", 1, 2, null, 4, 30L, 31L, back);
+        CardInfo locFrom = new CardInfo("c-from", "location", null, null, null,
+                null, null, null, null, null, "From", "origin", null, null, null);
+        LocationNeighborInfo n = new LocationNeighborInfo(3L, "n-uuid", "SOUTH", 1, 2, null, 4, 30L, 31L, back,
+                locFrom, null);
         assertEquals(3L, n.getIdLocation());
         assertEquals("n-uuid", n.getUuid());
         assertEquals("SOUTH", n.getDirection());
@@ -47,5 +51,9 @@ class LocationInfoTest {
         assertEquals(30L, n.getIdLocationFrom());
         assertEquals(31L, n.getIdLocationTo());
         assertEquals("Back", n.getCardBack().title());
+        // v0.28.6 — the LOCATION cards of the edge endpoints: resolved for a
+        // visited endpoint, null for one still under fog of war.
+        assertEquals("From", n.getCardLocationFrom().title());
+        assertNull(n.getCardLocationTo());
     }
 }

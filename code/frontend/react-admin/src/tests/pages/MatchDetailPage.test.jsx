@@ -26,7 +26,7 @@ const PLAYER = {
   // Step 27 — max statistics, carried weight and items
   lifeMax: 137, energyMax: 127, sadMax: 8, weightMax: 24, weight: 4,
   items: [{ uuid: 'inv-1', itemUuid: 'item-1', name: 'Training Potion', weight: 2, amount: 2, state: 'ACTIVE' }],
-  idLocation: 90001, locationName: 'location-90001', isSleeping: false, isComa: false,
+  idLocation: 90001, isSleeping: false, isComa: false,
 }
 
 function mockInfo(status = 'RUNNING', extra = {}) {
@@ -35,7 +35,7 @@ function mockInfo(status = 'RUNNING', extra = {}) {
       uuid: 'm1', name: 'Saturday run', storyUuid: 'story-1', difficultyUuid: 'd1',
       status, singlePlayer: 1, currentClock: 4, expCost: 5, tsInsert: '2026-05-20T10:00:00Z',
     },
-    currentLocationId: 90001, currentLocationName: 'location-90001',
+    currentLocationId: 90001, currentLocationUuid: 'loc-1-story',
     locations: [{ idLocation: 90001, uuid: 'loc-1', flagAlreadyActived: 1, clockCounter: 3 }],
     registry: [{ uuid: 'r1', key: 'act_1_done', intValue: 0, stringValue: null }],
     events: [], choices: [],
@@ -147,7 +147,9 @@ describe('MatchDetailPage', () => {
     expect(screen.getByText('0/8')).toBeInTheDocument()      // sad
     expect(screen.getByText('4/24')).toBeInTheDocument()     // weight
     expect(screen.getByText(/Training Potion ×2/)).toBeInTheDocument()
-    expect(screen.getAllByText('location-90001').length).toBeGreaterThan(0)
+    // v0.28.6 — the synthetic locationName is gone: the console resolves the
+    // player's position from the story context (idTextName 250, name20-truncated).
+    expect(screen.getAllByText(/Welcome Hall of the/).length).toBeGreaterThan(0)
     expect(screen.getByText('active')).toBeInTheDocument()
     expect(matchApi.getMatchInfo).toHaveBeenCalledWith('m1')
   })

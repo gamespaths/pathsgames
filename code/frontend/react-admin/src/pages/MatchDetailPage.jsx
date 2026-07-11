@@ -190,6 +190,7 @@ export default function MatchDetailPage() {
                 actionError={actionError}
                 difficultyName={difficultyName}
                 rngSeed={rngSeed}
+                locationName20={locationName20}
                 onPause={handlePause}
                 onResume={handleResume}
                 onStop={handleStop}
@@ -205,6 +206,7 @@ export default function MatchDetailPage() {
               templateName={templateName}
               className={className}
               traitName={traitName}
+              locationName20={locationName20}
               onEditStats={setStatsModal}
             />
           )}

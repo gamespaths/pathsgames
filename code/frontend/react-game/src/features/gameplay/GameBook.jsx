@@ -375,13 +375,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
-          <MapCard onOpen={() => {
-            setMapView(true)
-            // Mobile only (no-op on desktop): the map opens on the LEFT (top of
-            // the stacked column), so scroll up to it instead of staying on the
-            // right card where the "open map" button lives.
-            scrollMobileIntoView('.book-mobile-left')
-          }} />
+          <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
             gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right" />
         </div>
@@ -390,7 +384,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
           <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true} previewSide="right"
-            infoLabel={t('card.gameStatus')} infoIconClassName="fas fa-info-circle font-size-medium" infoLabelClassName="font-size-medium"
+            infoLabel={''/*t('card.gameStatus')*/} infoIconClassName="fas fa-info-circle font-size-medium m-1" 
+            infoLabelClassName="font-size-medium display-none"
+    
+            actionLabel={''}    actionIcon= 'fa-map m-1' onAction={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} 
+            action2Label={''}   action2Icon= 'fa-suitcase m-1' onAction2={ () => {alert('Coming soon!')} }
+
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
           />

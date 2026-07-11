@@ -198,6 +198,7 @@
     "map": {
       "title": "Mappa",
       "here": "Selezionata",
+      "safe": "Sicura",
       "unexplored": "Inesplorata",
       "zoomIn": "Ingrandisci",
       "zoomOut": "Riduci",

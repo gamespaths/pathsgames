@@ -9,6 +9,7 @@ import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchReadPort;
+import games.paths.core.port.match.MovementStorePort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
 
@@ -457,12 +458,40 @@ class MatchQueryServiceTest {
             assertEquals("diff-uuid", detail.getMatch().getDifficultyUuid());
             assertEquals(10L, detail.getCurrentLocationId());
             assertEquals("loc-10", detail.getCurrentLocationUuid());
-            assertNotNull(detail.getCurrentLocationName());
             assertEquals(2, detail.getLocations().size());
             assertEquals(1, detail.getRegistry().size());
             assertEquals("k", detail.getRegistry().get(0).getKey());
             assertTrue(detail.getEvents().isEmpty());
             assertTrue(detail.getChoices().isEmpty());
+        }
+
+        @Test
+        @DisplayName("v0.28.6 — player info keeps only VISITED locations, admin keeps all")
+        void visitedFilterAppliesToPlayerNotAdmin() {
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(user(7L, "u")));
+            GamingMatchEntity m = match(1L, "m", 7L, 2L, 3L);
+            when(matchReadPort.findMatchByUuid("m")).thenReturn(Optional.of(m));
+            when(storyReadPort.findAllStories()).thenReturn(List.of(story(2L, "story-uuid", 10)));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc-10"), location(11L, "loc-11")));
+            when(storyReadPort.findDifficultiesByStoryId(2L)).thenReturn(List.of());
+            when(matchReadPort.findLocationsByMatchId(1L))
+                    .thenReturn(List.of(locState(1L, 10L), locState(1L, 11L)));
+            when(matchReadPort.findRegistryByMatchId(1L)).thenReturn(List.of());
+
+            // Only location 10 has been visited.
+            MovementStorePort movementStorePort = mock(MovementStorePort.class);
+            when(movementStorePort.findVisitedLocationIds(1L)).thenReturn(List.of(10L));
+            MatchQueryService svc = new MatchQueryService(matchReadPort, storyReadPort,
+                    userAccessPort, null, null, movementStorePort);
+
+            MatchDetail player = svc.getMatchInfo("m", "u", "en");
+            assertEquals(1, player.getLocations().size());
+            assertEquals(10L, player.getLocations().get(0).getIdLocation());
+
+            // The admin console needs the full gaming_state_locations table.
+            MatchDetail admin = svc.getMatchInfoForAdmin("m");
+            assertEquals(2, admin.getLocations().size());
         }
 
         @Test

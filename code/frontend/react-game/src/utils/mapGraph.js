@@ -8,9 +8,11 @@
  *    its directional neighbors[] (direction, totalEnergyCost). This is the
  *    authority on which locations were visited.
  *  - info.locationsActive[] — occupied locations WITH card (photo) + enriched
- *    neighbors[] (flagBack, link cards) — photos and back-flag enrichment.
- *  - info.locations[] — lean list: names + flagAlreadyActived (visited
- *    fallback when the /locations payload is not loaded yet).
+ *    neighbors[] (flagBack, link cards, and — v0.28.6 — cardLocationFrom /
+ *    cardLocationTo: the LOCATION card of each edge endpoint, fog-gated).
+ *  - info.locations[] — v0.28.6: the VISITED locations of the match (idLocation,
+ *    uuid, flagAlreadyActived, clockCounter). Used as the visited set before the
+ *    /locations payload lands. Location names come from cards, not from this list.
  *  - info.players[0].idLocation → where the character stands.
  *
  * Output: { nodes, edges, currentId, width, height }
@@ -53,15 +55,13 @@ export function buildMapGraph(info, matchLocations = null) {
   const mlList = Array.isArray(matchLocations?.locations) ? matchLocations.locations : []
   const currentId = info?.players?.[0]?.idLocation ?? activeList[0]?.idLocation ?? null
 
-  // visited = the /locations payload entries (visited-only by contract);
-  // fallback to flagAlreadyActived while that payload is not loaded yet.
+  // visited = the /locations payload entries (visited-only by contract). Before
+  // that payload lands, info.locations[] carries the same set (v0.28.6), so it is
+  // an exact fallback rather than an approximation. NOTE: flagAlreadyActived is NOT
+  // a visited flag — it tracks the location's entry-event state.
   const visitedIds = new Set(mlList.map(l => l.idLocation))
-  if (!mlList.length) {
-    leanList.filter(l => !!l.flagAlreadyActived).forEach(l => visitedIds.add(l.idLocation))
-  }
+  leanList.forEach(l => { if (l.idLocation != null) visitedIds.add(l.idLocation) })
   activeList.forEach(l => { if (l.idLocation != null) visitedIds.add(l.idLocation) })
-
-  const leanById = new Map(leanList.map(l => [l.idLocation, l]))
 
   // ── nodes ──────────────────────────────────────────────────────────
   const nodeById = new Map()
@@ -69,10 +69,16 @@ export function buildMapGraph(info, matchLocations = null) {
     if (id == null) return null
     const prev = nodeById.get(id) ?? {
       id, uuid: null, name: '', card: null, urlImage: null,
+      safe: false,
       visited: visitedIds.has(id), current: id === currentId,
     }
     const next = { ...prev }
     for (const [k, v] of Object.entries(patch ?? {})) {
+      if (k === 'safe') {
+        // any source saying safe=true marks the node as safe
+        if (v === true) next.safe = true
+        continue
+      }
       if (v != null && (next[k] == null || next[k] === '')) next[k] = v
     }
     nodeById.set(id, next)
@@ -84,18 +90,20 @@ export function buildMapGraph(info, matchLocations = null) {
   // nodes render the location photo, not the neighbor-link card.
   mlList.forEach(l => upsertNode(l.idLocation, {
     uuid: l.uuid,
+    safe: l.safe,
     card: l.card,
     urlImage: l.card?.urlImage,
-    name: l.card?.title ?? leanById.get(l.idLocation)?.name,
+    name: l.card?.title,
   }))
 
   // active locations also carry their own card (same shape) — belt and braces
   // for the current location before /locations lands.
   activeList.forEach(l => upsertNode(l.idLocation, {
     uuid: l.uuid,
+    safe: l.safe,
     card: l.card,
     urlImage: l.card?.urlImage,
-    name: l.card?.title ?? leanById.get(l.idLocation)?.name,
+    name: l.card?.title,
   }))
 
   // ── directed edge set ──────────────────────────────────────────────
@@ -120,16 +128,20 @@ export function buildMapGraph(info, matchLocations = null) {
       // so a not-yet-active neighbor node still gets its real photo.
       upsertNode(n.idLocation, {
         uuid: n.uuid,
+        safe: n.safe,
         card: n.card,
         urlImage: n.card?.urlImage,
-        name: n.card?.title ?? leanById.get(n.idLocation)?.name,
+        name: n.card?.title,
       })
     })
   })
   // active-location neighbors enrich ONLY the authored orientation (flagBack,
   // idLocationFrom/To). NOTE: in /info the neighbor `card` is the movement
   // (neighbor-LINK) card, not the location card, so it must NOT feed the node
-  // photo — the location photo comes solely from the /locations payload above.
+  // photo. Its `cardLocationFrom`/`cardLocationTo` (v0.28.6) ARE the location
+  // cards of the two endpoints and DO feed it — they are already fog-gated by the
+  // backend (null while unvisited), so an unexplored node stays photo-less. This
+  // is what gives the map real photos before the /locations payload arrives.
   activeList.forEach(l => {
     (l.neighbors ?? []).forEach(n => {
       const from = n.idLocationFrom ?? l.idLocation
@@ -143,14 +155,22 @@ export function buildMapGraph(info, matchLocations = null) {
         addDirected(to, from, OPPOSITE[n.direction] ?? null, n.energyCost)
       }
       const farId = from === l.idLocation ? to : from
-      upsertNode(farId, { uuid: n.uuid, name: leanById.get(farId)?.name })
+      const farCard = (farId === to ? n.cardLocationTo : n.cardLocationFrom) ?? null
+      upsertNode(farId, {
+        uuid: n.uuid,
+        card: farCard,
+        urlImage: farCard?.urlImage,
+        name: farCard?.title,
+      })
     })
   })
 
-  // every other visited location (lean fallback only — no neighbors known)
+  // every other visited location (lean fallback only — no neighbors known). The
+  // lean entry carries no card, so the node stays photo-less and name-less until
+  // /locations (or an active-location neighbor) supplies one.
   leanList.forEach(l => {
     if (visitedIds.has(l.idLocation) && !nodeById.has(l.idLocation)) {
-      upsertNode(l.idLocation, { uuid: l.uuid, name: l.name })
+      upsertNode(l.idLocation, { uuid: l.uuid, safe: l.safe })
     }
   })
 

@@ -108,13 +108,11 @@ class MatchDtosTest {
         d.setMatch(new MatchSummary());
         d.setCurrentLocationId(1L);
         d.setCurrentLocationUuid("u");
-        d.setCurrentLocationName("loc");
         MatchLocationState s = new MatchLocationState();
         s.setIdLocation(2L);
         s.setUuid("ls");
         s.setFlagAlreadyActived(1);
         s.setClockCounter(3);
-        s.setName("ls-name");
         d.setLocations(List.of(s));
         MatchRegistryEntry e = new MatchRegistryEntry();
         e.setUuid("r");
@@ -129,14 +127,12 @@ class MatchDtosTest {
         assertNotNull(r.getMatch());
         assertEquals(1L, r.getCurrentLocationId());
         assertEquals("u", r.getCurrentLocationUuid());
-        assertEquals("loc", r.getCurrentLocationName());
 
         MatchInfoResponse.LocationStateDto ls = r.getLocations().get(0);
         assertEquals(2L, ls.getIdLocation());
         assertEquals("ls", ls.getUuid());
         assertEquals(1, ls.getFlagAlreadyActived());
         assertEquals(3, ls.getClockCounter());
-        assertEquals("ls-name", ls.getName());
 
         MatchInfoResponse.RegistryEntryDto re = r.getRegistry().get(0);
         assertEquals("r", re.getUuid());
@@ -161,7 +157,10 @@ class MatchDtosTest {
         CardInfo nbBackCard = new CardInfo("c-nb-back", "location", null, null, "fa-yb",
                 null, null, null, null, null, "Cave Return", "back", null, null, null);
 
-        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard);
+        // v0.28.6 — the LOCATION card of idLocationFrom (visited: the player stands
+        // there); idLocationTo is still under fog of war, hence null.
+        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard,
+                locCard, null);
         EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
         LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
@@ -187,6 +186,8 @@ class MatchDtosTest {
         assertEquals(1L, nbDto.getIdLocationFrom());
         assertEquals(2L, nbDto.getIdLocationTo());
         assertEquals("Cave Return", nbDto.getCardBack().getTitle());
+        assertEquals("Tavern", nbDto.getCardLocationFrom().getTitle());
+        assertNull(nbDto.getCardLocationTo());
 
         assertEquals(1, dto.getEvents().size());
         MatchInfoResponse.EventInfoDto evDto = dto.getEvents().get(0);
@@ -202,7 +203,6 @@ class MatchDtosTest {
         r.setMatch(new MatchSummaryResponse());
         r.setCurrentLocationId(9L);
         r.setCurrentLocationUuid("u");
-        r.setCurrentLocationName("n");
         r.setLocations(List.of());
         r.setRegistry(List.of());
         r.setEvents(List.of());
@@ -210,7 +210,6 @@ class MatchDtosTest {
         assertNotNull(r.getMatch());
         assertEquals(9L, r.getCurrentLocationId());
         assertEquals("u", r.getCurrentLocationUuid());
-        assertEquals("n", r.getCurrentLocationName());
         assertNotNull(r.getLocations());
         assertNotNull(r.getRegistry());
         assertNotNull(r.getEvents());
@@ -224,12 +223,10 @@ class MatchDtosTest {
         ls.setUuid("u");
         ls.setFlagAlreadyActived(1);
         ls.setClockCounter(2);
-        ls.setName("n");
         assertEquals(1L, ls.getIdLocation());
         assertEquals("u", ls.getUuid());
         assertEquals(1, ls.getFlagAlreadyActived());
         assertEquals(2, ls.getClockCounter());
-        assertEquals("n", ls.getName());
 
         MatchInfoResponse.RegistryEntryDto re = new MatchInfoResponse.RegistryEntryDto();
         re.setUuid("u");

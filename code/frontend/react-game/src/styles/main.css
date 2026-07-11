@@ -2626,6 +2626,10 @@ html, body {
   opacity: .85;
 }
 
+.game-map-node--safe {
+  border-color: #1f9f53;
+}
+
 /* "you are here" marker: the character's location */
 .game-map-node__here {
   position: absolute;
@@ -2682,6 +2686,10 @@ html, body {
   display: inline-block; width: 13px; height: 13px; border-radius: 50%;
   border: 2px solid var(--color-gold-shine);
   box-shadow: 0 0 5px rgba(200,150,10,.8);
+}
+.game-map-legend__safe {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid #1f9f53;
 }
 
 /* the little MapCard in the statistics list: whole card clickable, no footer */

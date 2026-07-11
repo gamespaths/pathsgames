@@ -59,8 +59,7 @@ def _detail():
         match=_summary(),
         current_location_id=10,
         current_location_uuid="loc-uuid",
-        current_location_name="loc",
-        locations=[MatchLocationState(10, "ls", 0, 5, "loc")],
+        locations=[MatchLocationState(10, "ls", 0, 5)],
         registry=[MatchRegistryEntry("r", "k", "v", 1)],
         events=[MatchEventOption("e", "n", "EVENT")],
         choices=[MatchEventOption("c", "n", "CHOICE")],
@@ -229,7 +228,9 @@ def test_get_match_info_serializes_locations_active(env):
                 flag_back=0, energy_cost=2,
                 card={"title": "Cave"},
                 id_location_from=10, id_location_to=12,
-                card_back={"title": "Cave Return"})],
+                card_back={"title": "Cave Return"},
+                card_location_from={"title": "Tavern"},
+                card_location_to=None)],
             events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
         )
     ]
@@ -247,6 +248,13 @@ def test_get_match_info_serializes_locations_active(env):
     assert la[0]["neighbors"][0]["idLocationFrom"] == 10
     assert la[0]["neighbors"][0]["idLocationTo"] == 12
     assert la[0]["neighbors"][0]["cardBack"]["title"] == "Cave Return"
+    # v0.28.6 — the LOCATION card of each endpoint, fog-gated per endpoint.
+    assert la[0]["neighbors"][0]["cardLocationFrom"]["title"] == "Tavern"
+    assert la[0]["neighbors"][0]["cardLocationTo"] is None
+    # the synthetic names are gone from the contract
+    assert "currentLocationName" not in body
+    assert "name" not in body["locations"][0]
+    assert "locationName" not in body["players"][0] if body.get("players") else True
     assert la[0]["events"][0]["uuid"] == "evt-1"
     assert la[0]["events"][0]["endGame"] is True
     assert la[0]["events"][0]["card"]["title"] == "Stranger"

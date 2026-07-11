@@ -86,6 +86,9 @@ export default function GoToSleepCard({ story, storyFull,gameData,playerStats, o
     actionWithInfo={true}
     childrenIntoImage={<PlayerStats stats={energyObject} plainFlag={false} showZeros={false} 
       className="m-1 pl-2 display-inline-grid flex-direction-column" />}
+    infoIconClassName={location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fas fa-bed"}
+    infoLabel={t('game.sleep.action')}
     />
+
 
 }

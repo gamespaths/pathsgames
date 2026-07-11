@@ -3,6 +3,7 @@
 .display-inline{ display: inline !important; }
 .display-inline-flex{ display: inline-flex !important; }
 .display-ruby{ display: ruby !important; }
+.display-none{ display: none !important; }
 
 .top--10{top:-10px !important;}
 .top--20{top:-20px !important;}

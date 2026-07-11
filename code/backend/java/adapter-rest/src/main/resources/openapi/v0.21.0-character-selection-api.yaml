@@ -209,9 +209,6 @@ components:
           type: integer
           format: int64
           nullable: true
-        locationName:
-          type: string
-          nullable: true
         isSleeping:
           type: integer
         isComa:
@@ -273,9 +270,6 @@ components:
           format: int64
           nullable: true
         locationUuid:
-          type: string
-          nullable: true
-        locationName:
           type: string
           nullable: true
         isSleeping:

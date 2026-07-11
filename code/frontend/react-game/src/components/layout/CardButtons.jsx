@@ -12,6 +12,7 @@ export default function CardButtons({
   onSelect, selected, selectLabel,
   onAction, actionLabel, actionIcon, actionOnlyIfPreview,
   onPreview, onPreviewClick, previewOpened, hidePreview,
+  action2Label=null, action2Icon=null, onAction2=null,
   flagInformationCard,
   // Optional overrides for the (i) preview button. `infoLabel` replaces the
   // default `card.info` text; `infoIconClassName` replaces the default
@@ -90,6 +91,14 @@ export default function CardButtons({
         }}>
           <i className={`fas ${actionIcon} me-1`} />
           <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{actionLabel}</span>
+        </button>}
+      {onAction2 && !actionStarted &&
+        <button className="gc-footer__btn" onClick={async () => {
+          setActionStarted(true)
+          try { await onAction2() } catch { /* handled by the action */ } finally { setActionStarted(false) }
+        }}>
+          <i className={`fas ${action2Icon} me-1`} />
+          <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{action2Label}</span>
         </button>}
     </div></div>)
   }

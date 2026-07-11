@@ -310,9 +310,7 @@ def test_get_match_info_full():
     assert detail.match.difficulty_uuid == "diff-uuid"
     assert detail.current_location_id == 10
     assert detail.current_location_uuid == "loc-10"
-    assert detail.current_location_name == "location-10"
     assert len(detail.locations) == 2
-    assert detail.locations[0].name == "location-10"
     assert len(detail.registry) == 1
     assert detail.events == []
     assert detail.choices == []
@@ -595,3 +593,85 @@ def test_locations_active_empty_without_players_falls_back_to_start():
     detail = service.get_match_info("m", "u")
     assert detail.locations_active == []
     assert detail.current_location_id == 11  # story start fallback
+
+
+# ── v0.28.6 — visited-only locations[] + cardLocationFrom / cardLocationTo ──
+
+
+def test_info_locations_only_visited_admin_keeps_all():
+    """The player endpoint projects only the visited locations; the admin endpoint
+    keeps every one so the console can render the full runtime table."""
+    service = _build_enriched(player_loc=10)
+    service.match_persistence_port.find_locations_by_match_id.return_value = [
+        {"id_location": 10, "uuid": "ls-10", "flag_already_actived": 0, "clock_counter": 5},
+        {"id_location": 11, "uuid": "ls-11", "flag_already_actived": 0, "clock_counter": 5},
+        {"id_location": 12, "uuid": "ls-12", "flag_already_actived": 0, "clock_counter": 5},
+    ]
+    _with_fog(service, visited=[10])
+
+    player = service.get_match_info("m", "u")
+    assert [l.id_location for l in player.locations] == [10]
+
+    admin = service.get_match_info_for_admin("m")
+    assert [l.id_location for l in admin.locations] == [10, 11, 12]
+
+
+def test_neighbor_carries_location_card_of_visited_endpoint_only():
+    """Each endpoint's LOCATION card is gated on its OWN visited flag."""
+    service = _with_fog(_build_enriched(player_loc=10), visited=[10])  # 12 unvisited
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
+    ]
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card_location_from["title"] == "Tavern"  # loc 10 — the player stands there
+    assert n.card_location_to is None                 # loc 12 still under fog
+
+
+def test_neighbor_carries_both_location_cards_when_both_visited():
+    service = _with_fog(_build_enriched(player_loc=10), visited=[10, 12])
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
+    ]
+    cards = {
+        100: {"uuid": "c100", "card_type": "location", "id_text_title": 1000},
+        120: {"uuid": "c120", "card_type": "location", "id_text_title": 1200},
+        200: {"uuid": "c200", "card_type": "location", "id_text_title": 2000},
+    }
+    texts = {1000: "Tavern", 1200: "Forest", 2000: "Cave"}
+    service.story_read_port.find_card_by_story_id_and_card_id.side_effect = (
+        lambda sid, cid: cards.get(cid)
+    )
+    service.story_read_port.find_text_by_story_id_text_and_lang.side_effect = (
+        lambda sid, tid, lang: {"short_text": texts.get(tid)} if tid in texts else None
+    )
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card_location_from["title"] == "Tavern"
+    assert n.card_location_to["title"] == "Forest"
+    # The LINK card stays the authored one — the location cards are separate.
+    assert n.card["title"] == "Cave"
+
+
+def test_neighbor_location_card_when_standing_on_to_endpoint():
+    """Player on the edge's `to` endpoint: the move is a RETURN toward `from`, so
+    card_location_to is the current location and card_location_from is the (still
+    hidden) destination."""
+    service = _with_fog(_build_enriched(player_loc=11), visited=[11])
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 11, "direction": "N",
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
+    ]
+    cards = {110: {"uuid": "c110", "card_type": "location", "id_text_title": 1100}}
+    service.story_read_port.find_card_by_story_id_and_card_id.side_effect = (
+        lambda sid, cid: cards.get(cid)
+    )
+    service.story_read_port.find_text_by_story_id_text_and_lang.side_effect = (
+        lambda sid, tid, lang: {"short_text": "Cellar"} if tid == 1100 else None
+    )
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 10)
+    assert n.card_location_from is None            # destination still under fog
+    assert n.card_location_to["title"] == "Cellar"  # where the player stands
