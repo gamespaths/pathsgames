@@ -84,7 +84,7 @@ function LinkFieldCell({ value, onChange, ariaLabel }) {
   )
 }
 
-function TextFieldCell({ value, textShort, onOpenSelector, onOpenCreator, onAlert, onAlignAlert }) {
+function TextFieldCell({ value, textShort, onOpenSelector, onOpenCreator, onAlert, onAlignAlert, onCreateNew, maxWidth = 140 }) {
   const label = value ? `#${value}${textShort}` : '—'
   const onClick = value ? onOpenCreator : onOpenSelector
   return (
@@ -92,12 +92,23 @@ function TextFieldCell({ value, textShort, onOpenSelector, onOpenCreator, onAler
       <button
         type="button"
         className="pg-btn pg-btn-ghost pg-btn-sm"
-        style={{ fontSize: '0.7rem', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        style={{ fontSize: '0.7rem', maxWidth, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
         onClick={onClick}
         title={label}
       >
         {label}
       </button>
+      {onCreateNew && (
+        <button
+          type="button"
+          className="pg-btn pg-btn-sm"
+          style={{ padding: '0.1rem 0.3rem', fontSize: '0.62rem', color: 'var(--color-gold-light)', background: 'transparent', border: '1px solid var(--color-gold-dark)', borderRadius: 3, flexShrink: 0 }}
+          onClick={onCreateNew}
+          title="Create a new text and use it as this Copyright Text"
+        >
+          <i className="fas fa-plus" />
+        </button>
+      )}
       {onAlert && (
         <button
           type="button"
@@ -153,6 +164,8 @@ export default function CardsFastEditPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   // { cardUuid } | null  — create new separate desc text
   const [splitDescCreator, setSplitDescCreator] = useState(null)
+  // { cardUuid } | null  — create a new text to replace the Copyright Text
+  const [copyrightCreator, setCopyrightCreator] = useState(null)
   const [filter, setFilter] = useState('')
   // '' = tutti | '__none__' = non collegate | <entity-type>
   const [entityFilter, setEntityFilter] = useState('')
@@ -164,10 +177,10 @@ export default function CardsFastEditPage() {
     texts,
   }), [creators, texts])
 
-  const getTextShort = (idText) => {
+  const getTextShort = (idText, maxLen = 22) => {
     if (!idText) return ''
     const found = texts.find(t => Number(t.idText) === Number(idText) && t.lang === 'en')
-    return found?.shortText ? ` ${found.shortText.slice(0, 22)}` : ''
+    return found?.shortText ? ` ${found.shortText.slice(0, maxLen)}` : ''
   }
 
   const getTextValues = (idText) => {
@@ -483,6 +496,7 @@ export default function CardsFastEditPage() {
     : 1
 
   const splitDescRow      = splitDescCreator  ? rows.find(r => r.uuid === splitDescCreator.cardUuid) : null
+  const copyrightRow      = copyrightCreator  ? rows.find(r => r.uuid === copyrightCreator.cardUuid) : null
   const activeRow         = activeTextSel     ? rows.find(r => r.uuid === activeTextSel.cardUuid)     : null
   const activeCreatorRow  = activeCreatorSel   ? rows.find(r => r.uuid === activeCreatorSel.cardUuid)  : null
   const activeCreatorRowT = activeTextCreator  ? rows.find(r => r.uuid === activeTextCreator.cardUuid) : null
@@ -574,7 +588,7 @@ export default function CardsFastEditPage() {
                   </th>
                   <th style={{ minWidth: 160 }}>Title Text</th>
                   <th style={{ minWidth: 160 }}>Desc Text</th>
-                  <th style={{ minWidth: 160 }}>Copyright Text</th>
+                  <th style={{ minWidth: 100 }}>Copyright Text</th>
                   <th style={{ width: 90 }}>(c) Link</th>
                   <th style={{ width: 90 }}>ImgURL</th>
                   <th style={{ width: 70 }}>Creator</th>
@@ -677,9 +691,11 @@ export default function CardsFastEditPage() {
                       <td style={CELL}>
                         <TextFieldCell
                           value={row.idTextCopyright}
-                          textShort={getTextShort(row.idTextCopyright)}
+                          textShort={getTextShort(row.idTextCopyright, 11)}
+                          maxWidth={80}
                           onOpenSelector={() => setActiveTextSel({ cardUuid: row.uuid, field: 'idTextCopyright', startMode: 'list' })}
                           onOpenCreator={() => setActiveTextCreator({ cardUuid: row.uuid, field: 'idTextCopyright' })}
+                          onCreateNew={() => setCopyrightCreator({ cardUuid: row.uuid })}
                         />
                       </td>
 
@@ -802,6 +818,34 @@ export default function CardsFastEditPage() {
           initialStoryUuid={uuid}
           initialTextId={nextTextId}
           initialValues={splitDescRow ? getTextValues(splitDescRow.idTextDescription) : undefined}
+          mode="create"
+          onSave={async ({ uuidStory, idText, translations }) =>
+            handleSaveFastText({ uuidStory, idText, translations, mode: 'edit' })
+          }
+        />
+      )}
+
+      {copyrightCreator && (
+        <FastTextCreatorModal
+          open
+          onClose={async (result) => {
+            if (result?.idText && copyrightRow) {
+              updateRow(copyrightRow.uuid, 'idTextCopyright', result.idText)
+              const updatedRow = { ...copyrightRow, idTextCopyright: result.idText }
+              try {
+                await doSave(updatedRow)
+                setSuccess(`Card #${copyrightRow.idCard} saved with new Copyright Text #${result.idText}`)
+                setTimeout(() => setSuccess(''), 3000)
+              } catch (e) {
+                setError(e.message)
+              }
+            }
+            setCopyrightCreator(null)
+          }}
+          storyOptions={storyOptions}
+          initialStoryUuid={uuid}
+          initialTextId={nextTextId}
+          initialValues={copyrightRow ? getTextValues(copyrightRow.idTextCopyright) : undefined}
           mode="create"
           onSave={async ({ uuidStory, idText, translations }) =>
             handleSaveFastText({ uuidStory, idText, translations, mode: 'edit' })

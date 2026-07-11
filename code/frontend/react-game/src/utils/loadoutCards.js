@@ -61,6 +61,39 @@ export function buildMapCard(t) {
   return metaCard('map', t('game.map.title'), null)
 }
 
+/**
+ * Fallback movement card for a neighbor that carries NO card (neither the
+ * forward `card` nor the return `cardBack`). Uses the fixed "neighbor" image
+ * from data/images.json.
+ *
+ * @param {Function} t - i18n translate function
+ * @param {string|null} direction - the neighbor direction (e.g. "NORTH"); the
+ *   title reads "Move to North" (forward) or "Back to North" (return).
+ * @param {string|null} fromName - the "From" location name.
+ * @param {string|null} toName - the "To" location name; falls back to
+ *   "Unexplored location" when null (destination not yet visited).
+ * @param {boolean} isBack - true when the character stands on the destination
+ *   and the move is a return: the title uses "Back to" and the caller has
+ *   already swapped From/To.
+ */
+export function buildNeighborCard(t, direction = null, fromName = null, toName = null, isBack = false) {
+  const dir = direction && typeof direction === 'string'
+    ? direction.charAt(0).toUpperCase() + direction.slice(1).toLowerCase()
+    : null
+  const prefix = isBack ? t('game.backTo') : t('game.moveToDirection')
+  const title = dir ? `${prefix} ${dir}` : (isBack ? t('game.backTo') : t('game.moveTo'))
+  // Description = the title, then From / To on their own lines, spaced apart:
+  //   Move to North        (or "Back to North")
+  //   From <from>
+  //   To   <to>
+  let description = title
+  if (fromName) description += `<br/><br/>${t('game.from')}: ${fromName}`
+  // Always show the "To" line; when the destination is not yet visited (no name)
+  // fall back to an "Unexplored location" label.
+  description += `<br/><br/>${t('game.to')}: ${toName ?? t('game.map.unexploredLocation')}`
+  return metaCard('neighbor', title, description)
+}
+
 /** "Guest" login card. `t` is the i18n translate function. */
 export function buildLoginCard(t) {
   return metaCard('gems', t('book.guest'), t('book.guestDesc'));

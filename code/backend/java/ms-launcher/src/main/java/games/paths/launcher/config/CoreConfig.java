@@ -174,9 +174,10 @@ public class CoreConfig {
                                          StoryReadPort storyReadPort,
                                          UserAccessPort userAccessPort,
                                          CharacterReadPort characterReadPort,
-                                         ContentQueryPort contentQueryPort) {
+                                         ContentQueryPort contentQueryPort,
+                                         games.paths.core.port.match.MovementStorePort movementStorePort) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort);
+                characterReadPort, contentQueryPort, movementStorePort);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────

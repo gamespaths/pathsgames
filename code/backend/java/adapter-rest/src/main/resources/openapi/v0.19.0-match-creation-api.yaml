@@ -541,7 +541,14 @@ components:
           format: int32
           nullable: true
         card:
-          $ref: '#/components/schemas/CardInfo'
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          description: >
+            Resolved neighbor card: the authored LINK (movement) card when set,
+            otherwise a fallback to the destination LOCATION's card. Fog of war
+            (v0.28.6): the LOCATION fallback is null until the destination has
+            been visited; an authored link card is always shown.
+          nullable: true
         secureParam:
           type: integer
           nullable: true

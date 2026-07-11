@@ -218,6 +218,16 @@ describe('CardsFastEditPage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /Save Text/i })).toBeInTheDocument())
   })
 
+  it('opens the creator modal from the Copyright (+) button to create a replacing text', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    // The Copyright Text cell exposes a (+) button (one per card row)
+    const plusBtns = screen.getAllByTitle('Create a new text and use it as this Copyright Text')
+    fireEvent.click(plusBtns[0])
+    // FastTextCreatorModal opens in create mode
+    await waitFor(() => expect(screen.getByRole('button', { name: /Save Text/i })).toBeInTheDocument())
+  })
+
   it('opens FastTextSelectorModal and selects a text (covers onSelect callback)', async () => {
     storyApi.listEntities.mockImplementation((uuid, type) => {
       if (type === 'cards') return Promise.resolve([

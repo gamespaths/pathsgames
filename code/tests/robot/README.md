@@ -45,7 +45,8 @@ robot/
     │   ├── movement.robot              POST movements/start + GET locations: energy cost, adjacency, error codes, admin locations (10 tests)
     │   ├── neighbor_card_back.robot    Covered by suite 29_neighbor_card_back
     │   ├── neighbor_flag_back.robot    One-way links: flagBack=YES returns backward neighbor; flagBack=NO hides it in /info + /locations (2 tests, v0.28.3)
-    │   └── location_cards.robot        GET /locations returns a full `card` per location + neighbor, ?lang= param, admin==player view (5 tests, v0.28.5)
+    │   ├── location_cards.robot        GET /locations returns a full `card` per location + neighbor, ?lang= param, admin==player view (5 tests, v0.28.5)
+    │   └── location_fog_of_war.robot   Neighbor card/idCard hidden for unvisited destinations on /locations + /info; card reappears after visiting; admin view matches player view (4 tests, v0.28.6)
     ├── 29_neighbor_card_back/
     │   └── neighbor_card_back.robot   Admin-set idCardBack reflected in match-info neighbors; guards AWS locationNeighbors desync (v0.28.2)
     └── 30_event_location/
@@ -136,14 +137,15 @@ robot --variablefile variables/dev.yaml --outputdir reports/ tests/
 | `step14`       | Story list, story detail, difficulty stat fields |
 | `step15`       | Story content: categories, groups, enriched detail, class bonuses, character template class fields, trait stat-delta fields |
 | `guests`       | Guest admin management tests |
-| `movement`     | 28_movement/movement.robot — adjacency, energy cost, error codes, admin locations; 28_movement/location_cards.robot |
-| `step28`       | 28_movement/movement.robot, neighbor_flag_back.robot, location_cards.robot; 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot |
+| `movement`     | 28_movement/movement.robot — adjacency, energy cost, error codes, admin locations; 28_movement/location_cards.robot; 28_movement/location_fog_of_war.robot |
+| `step28`       | 28_movement/movement.robot, neighbor_flag_back.robot, location_cards.robot, location_fog_of_war.robot; 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot |
 | `flag-back`    | 28_movement/neighbor_flag_back.robot — one-way link enforcement (v0.28.3) |
 | `movement-back`| 28_movement/neighbor_flag_back.robot; 29_neighbor_card_back/neighbor_card_back.robot |
-| `match-info`   | 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot; 28_movement/neighbor_flag_back.robot |
+| `match-info`   | 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot; 28_movement/neighbor_flag_back.robot; 28_movement/location_fog_of_war.robot (one test) |
 | `regression`   | 28_movement/neighbor_flag_back.robot; 29_neighbor_card_back/neighbor_card_back.robot; 30_event_location/event_location.robot |
-| `locations`    | 28_movement/location_cards.robot — full `card` resolution on GET /locations (v0.28.5) |
+| `locations`    | 28_movement/location_cards.robot — full `card` resolution on GET /locations (v0.28.5); 28_movement/location_fog_of_war.robot |
 | `location-card`| 28_movement/location_cards.robot (5 tests, v0.28.5) |
+| `fog-of-war`   | 28_movement/location_fog_of_war.robot — neighbor card hidden until destination visited (4 tests, v0.28.6) |
 
 ## Seed Data
 

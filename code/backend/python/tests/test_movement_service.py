@@ -308,7 +308,8 @@ def service_with_cards(store):
     return MovementService(store, FakeStoryReadPort())
 
 
-def test_list_locations_resolves_location_and_neighbor_cards(service_with_cards):
+def test_list_locations_resolves_location_and_neighbor_cards(service_with_cards, store):
+    store.visited = [1, 2]  # neighbor 2 visited → its location card is exposed
     loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid")[0]
     assert loc.card["uuid"] == "card-7"
     assert loc.card["title"] == "Start hall"
@@ -320,7 +321,19 @@ def test_list_locations_resolves_location_and_neighbor_cards(service_with_cards)
     assert nb.card["title"] == "Center"
 
 
-def test_list_locations_cards_localized_with_english_fallback(service_with_cards):
+def test_list_locations_hides_unvisited_neighbor_card(service_with_cards, store):
+    # Fog of war: neighbor 2 has never been visited (visited = [1]) → its
+    # location card and idCard must be hidden.
+    store.visited = [1]
+    loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid")[0]
+    nb = loc.neighbors[0]
+    assert nb.id_card is None
+    assert nb.card is None
+    assert loc.card["uuid"] == "card-7"  # the visited location keeps its card
+
+
+def test_list_locations_cards_localized_with_english_fallback(service_with_cards, store):
+    store.visited = [1, 2]
     loc = service_with_cards.list_locations(MATCH_UUID, "user-uuid", lang="it")[0]
     assert loc.card["title"] == "Sala iniziale"        # it text exists
     assert loc.card["description"] == "The start"      # falls back to en

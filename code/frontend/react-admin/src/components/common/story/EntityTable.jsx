@@ -9,14 +9,15 @@ import { useState } from 'react'
  * @param {Array} props.texts - List of story texts to resolve idText references
  * @param {Object} props.relationOptionsByField - Map fieldKey -> { options: [{ value, label }] }
  * @param {Function} props.onOpenIdCardForm - Callback when idCard is clicked
+ * @param {number} props.maxColumns - How many definition columns to show (default 3)
  * @param {Function} props.onEdit - Callback when edit is clicked
  * @param {Function} props.onDelete - Callback when delete is clicked
  */
-export default function EntityTable({ entities, columns, texts = [], relationOptionsByField = {}, onOpenIdCardForm, onDuplicateCardBack, showCardBackColumn = false, onEdit, onDelete }) {
+export default function EntityTable({ entities, columns, texts = [], relationOptionsByField = {}, onOpenIdCardForm, onDuplicateCardBack, showCardBackColumn = false, maxColumns = 3, onEdit, onDelete }) {
   const [search, setSearch] = useState('')
 
-  // Show max 3 columns from the definition
-  const visibleColumns = columns.slice(0, 3)
+  // Show the first `maxColumns` columns from the definition (compact table).
+  const visibleColumns = columns.slice(0, maxColumns)
 
   // Helper to resolve short_text for a given idText
   const resolveText = (idText) => {

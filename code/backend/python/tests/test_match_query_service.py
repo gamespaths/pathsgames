@@ -512,6 +512,56 @@ def test_neighbor_resolves_dedicated_return_card_when_id_card_back_set():
     assert n.id_location_to == 12
 
 
+def _with_fog(service, visited):
+    """Wire a movement store on the service so fog-of-war gating is active."""
+    service.movement_store = MagicMock()
+    service.movement_store.find_visited_location_ids.return_value = list(visited)
+    return service
+
+
+def test_info_hides_location_card_fallback_for_unvisited_neighbor():
+    service = _with_fog(_build_enriched(player_loc=10), visited=[10])  # 12 unvisited
+    # Neighbor 10->12 has NO authored link card → would fall back to location 12's card.
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2},
+    ]
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card is None       # location-card fallback hidden
+    assert n.card_back is None
+
+
+def test_info_keeps_authored_link_card_for_unvisited_neighbor():
+    service = _with_fog(_build_enriched(player_loc=10), visited=[10])  # 12 unvisited
+    # Neighbor 10->12 HAS an authored link card (200) → shown regardless.
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2, "id_card": 200},
+    ]
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card["title"] == "Cave"   # authored link card (200)
+
+
+def test_info_reveals_location_card_fallback_for_visited_neighbor():
+    service = _with_fog(_build_enriched(player_loc=10), visited=[10, 12])  # 12 visited
+    service.story_read_port.find_location_neighbors_by_story_id.return_value = [
+        {"id_location_from": 10, "id_location_to": 12, "direction": "N",
+         "flag_back": 1, "energy_cost": 2},  # no link card → fallback to loc 12 (id_card 120)
+    ]
+    cards = {120: {"uuid": "c120", "card_type": "location", "id_text_title": 1200}}
+    service.story_read_port.find_card_by_story_id_and_card_id.side_effect = (
+        lambda sid, cid: cards.get(cid)
+    )
+    service.story_read_port.find_text_by_story_id_text_and_lang.side_effect = (
+        lambda sid, tid, lang: {"short_text": "Forest"} if tid == 1200 else None
+    )
+    detail = service.get_match_info("m", "u")
+    n = next(x for x in detail.locations_active[0].neighbors if x.id_location == 12)
+    assert n.card["title"] == "Forest"  # location 12's card revealed once visited
+
+
 def test_get_match_info_resolves_cards_in_requested_lang():
     service = _build_enriched(player_loc=10)
     # Make the text lookup lang-aware: Italian variant for the active card title.

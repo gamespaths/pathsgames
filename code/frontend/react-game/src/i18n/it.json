@@ -203,8 +203,13 @@
       "zoomOut": "Riduci",
       "center": "Centra sulla posizione attuale",
       "youAreHere": "Sei qui",
-      "open": "Apri mappa"
-    }
+      "open": "Apri mappa",
+      "unexploredLocation": "Location inesplorata"
+    },
+    "moveToDirection": "Vai verso",
+    "from": "Da",
+    "to": "A",
+    "backTo": "Torna a"
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",

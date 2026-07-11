@@ -175,7 +175,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
 - Starting from 0.5.0 version, code is created with AI prompt:
     > Paths Games V1 - Step 05: Define backend module structure
 
-- **Document Version**: 0.28.5
+- **Document Version**: 0.28.6
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.5.0 | Step 05: Define backend module structure | Feb 26, 2026 |
@@ -190,6 +190,7 @@ Both profiles use **Flyway** for automatic schema migration. Migrations run on e
     | 0.19.10 | GET /api/admin/matches: MatchController.listAllMatches, MatchQueryService.listAllMatches, MatchReadPort.findAllMatches, GamingMatchRepository.findAllByOrderByTsInsertDesc; OpenAPI bumped to 0.19.10; 154 adapter-rest unit tests pass | May 20, 2026 |
     | 0.28.1 | GET /api/admin/matches pagination & filtering: `MatchAdminController.listAllMatches` now reads query params (`limit`, `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`); `MatchQueryService.listMatchesPage`; new port method `MatchReadPort.findMatchesPage(MatchPageCriteria)`; new JPQL `GamingMatchRepository.findMatchesPage` with optional filters and keyset pagination on `(ts_insert DESC, id DESC)`; new core domain types `MatchListFilter`, `MatchSummaryPage`, record `MatchPageCriteria`; new REST DTO `PagedMatchesResponse`; cursor = base64 of `"{tsInsert}|{id}"`; OpenAPI `v0.19.0-match-creation-api.yaml` extended with `PagedMatches` schema and query params; full Java test suite 1079+ pass | Jun 26, 2026 |
     | 0.28.5 | `GET /api/match/{uuid}/locations` and `GET /api/admin/matches/{uuid}/locations` now resolve a full `card` object (CardInfoResponse shape) for every visited location and every neighbor, plus an optional `?lang=` param (default `en`). `MovementPort`/`MovementService` gained a `ContentQueryPort` dependency and a `resolveCard(storyId, idCard, lang)` helper (legacy 2-arg constructor preserved); `MatchLocationsResponse` builds `card` via `CardInfoResponse.fromModel`; `MovementController`/`MatchAdminController` accept `@RequestParam lang`; `CoreConfig` wires `ContentQueryPort` into the movement bean; OpenAPI `v0.28.0-movement-api.yaml` gained the `CardInfo` schema plus `card`/`lang`. No change to location/neighbor lookup logic. `mvn clean test` BUILD SUCCESS | Jul 11, 2026 |
+    | 0.28.6 | Bugfix — fog-of-war leak on neighbor location cards: v0.28.5's card enrichment exposed the card of locations never visited by the match. `MovementService.buildLocations` now nulls a neighbor's `idCard`/`card` when its destination is outside `findVisitedLocationIds`. `MatchQueryService` gained an optional 6th constructor arg `MovementStorePort` (legacy 5-arg constructor preserved, delegates with `null` = no gating); `buildLocationsActive` gained a `visitedLocIds` param and only nulls the **fallback** to the destination location's card, never an authored `idCard` link card set on the neighbor edge itself. `CoreConfig` wires `MovementStorePort` into the `matchQueryPort` bean. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). `mvn clean test` BUILD SUCCESS (+1 `MovementServiceTest`, +3 `MatchQueryServiceLocationsActiveTest`) | Jul 11, 2026 |
 - **Last Updated**: Jul 11, 2026
 - **Status**: In progress
 

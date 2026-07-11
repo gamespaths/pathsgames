@@ -572,13 +572,13 @@
       "idTextCopyright": 145,
       "idTextDescription": 165,
       "idTextTitle": 140,
-      "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-in-a-grassy-field-with-a-sky-background-ktiBz2DIC4E",
+      "linkCopyright": "https://unsplash.com/photos/text-KNZGAIBfYnI",
       "styleDetail": null,
       "styleImageLarge": null,
       "styleImageLittle": null,
       "styleImageMedium": null,
       "styleMain": null,
-      "urlImage": "https://plus.unsplash.com/premium_photo-1668972578985-9e9eafdb9609?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1609375457088-84cb07bc8021?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "9bb9f466-8cf0-47ed-bb31-2f97f77da0bd"
     },
     {
@@ -728,6 +728,146 @@
       "linkCopyright": "https://unsplash.com/photos/a-path-through-a-forest-with-lots-of-trees-9NJOJ37Ea4k",
       "urlImage": "https://plus.unsplash.com/premium_photo-1729776368906-2b0235734a99?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "66e83911-800c-430f-b481-ea151fb1c5a1"
+    },
+    {
+      "id": 62,
+      "idCard": 62,
+      "idCreator": 1,
+      "idTextCopyright": 176,
+      "idTextDescription": 174,
+      "idTextName": 174,
+      "idTextTitle": 174,
+      "linkCopyright": "https://unsplash.com/photos/mountain-covered-with-green-grass-ZVbv1akA-l4",
+      "urlImage": "https://images.unsplash.com/photo-1438786657495-640937046d18?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "ef200061-b473-41a3-b557-dcb865d900d7"
+    },
+    {
+      "id": 63,
+      "idCard": 63,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 175,
+      "idTextName": 175,
+      "idTextTitle": 175,
+      "uuid": "8ff86fc1-afd2-46b6-9376-a19188c9a71b"
+    },
+    {
+      "id": 64,
+      "idCard": 64,
+      "idCreator": 1,
+      "idTextCopyright": 179,
+      "idTextDescription": 177,
+      "idTextName": 177,
+      "idTextTitle": 177,
+      "linkCopyright": "https://unsplash.com/photos/landscape-around-the-mirador-solar-de-tristaina-ordino-arcalis-andorra-T0lM3c_VDsw",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1754251237542-2ea93c514310?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f60b9237-64c4-4497-a43b-1dddb9dbb646"
+    },
+    {
+      "id": 65,
+      "idCard": 65,
+      "idCreator": 1,
+      "idTextCopyright": 182,
+      "idTextDescription": 180,
+      "idTextName": 180,
+      "idTextTitle": 180,
+      "linkCopyright": "https://unsplash.com/photos/snow-capped-mountain-range-under-a-clear-blue-sky-Megbu9PGW18",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1764408579620-d2006149e6c5?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "61f0765d-6098-4db0-a79f-5ce3a52380a7"
+    },
+    {
+      "id": 66,
+      "idCard": 66,
+      "idCreator": 1,
+      "idTextCopyright": 185,
+      "idTextDescription": 183,
+      "idTextName": 183,
+      "idTextTitle": 183,
+      "linkCopyright": "https://unsplash.com/photos/a-scenic-view-of-a-canyon-with-mountains-in-the-background-uzZC9B_UToI",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1669048780078-e852a2eb7409?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "49a83f84-73de-45f6-be17-338ece143460"
+    },
+    {
+      "id": 67,
+      "idCard": 67,
+      "idCreator": 1,
+      "idTextCopyright": 186,
+      "idTextDescription": 184,
+      "idTextName": 184,
+      "idTextTitle": 184,
+      "linkCopyright": "https://unsplash.com/photos/a-rocky-and-grassy-area-J9GVtfElX0I",
+      "urlImage": "https://images.unsplash.com/photo-1663528887329-5beb44ff41ea?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "e9df844f-b50f-4932-8a99-b1f68b6f6395"
+    },
+    {
+      "id": 68,
+      "idCard": 68,
+      "idCreator": 1,
+      "idTextCopyright": 191,
+      "idTextDescription": 189,
+      "idTextName": 189,
+      "idTextTitle": 189,
+      "linkCopyright": "https://unsplash.com/photos/aerial-view-of-phang-nga-bay-with-mountains-at-sunrise-in-thailand-I3DSUNY61XY",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1664300792059-863ccfe55932?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "4f0ceea1-af50-4138-9a5d-fd4d7210f880"
+    },
+    {
+      "id": 69,
+      "idCard": 69,
+      "idCreator": 1,
+      "idTextCopyright": 193,
+      "idTextDescription": 192,
+      "idTextName": 192,
+      "idTextTitle": 192,
+      "linkCopyright": "https://unsplash.com/photos/beautiful-mountainous-landscape-hills-new-zealand-summer-green-yellow-vast-view-scenery-otago-stunning-paradise-GA0HYsYYUfA",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1754269389888-dcc14ffb3208?q=80&w=1192&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "2952abad-b668-4231-a543-f58e8a44a270"
+    },
+    {
+      "id": 70,
+      "idCard": 70,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 195,
+      "idTextName": 195,
+      "idTextTitle": 195,
+      "uuid": "07ebee66-01e7-403f-a662-0ad9c69f2a02"
+    },
+    {
+      "id": 71,
+      "idCard": 71,
+      "idCreator": 1,
+      "idTextCopyright": 200,
+      "idTextDescription": 195,
+      "idTextName": 195,
+      "idTextTitle": 195,
+      "linkCopyright": "https://unsplash.com/photos/a-river-running-through-a-lush-green-forest-O_1yMiPYtX0",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1661866193149-4cb5997e111e?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "09f66631-277b-4138-b88c-145790c8a0b8"
+    },
+    {
+      "id": 72,
+      "idCard": 72,
+      "idCreator": 1,
+      "idTextCopyright": 201,
+      "idTextDescription": 198,
+      "idTextName": 198,
+      "idTextTitle": 198,
+      "linkCopyright": "https://unsplash.com/photos/braies-lake-in-dolomites-mountains-seekofel-in-background-sudtirol-italy-lake-braies-is-also-known-as-lago-di-braies-the-lake-is-surrounded-by-the-mountains-which-are-reflected-in-the-water-dnDfOOL0dmI",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1661914399349-feb0d755c411?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a8bbbcdb-d460-46d5-8c4c-1f3b9b4f465b"
+    },
+    {
+      "id": 73,
+      "idCard": 73,
+      "idCreator": 1,
+      "idTextCopyright": 202,
+      "idTextDescription": 199,
+      "idTextName": 199,
+      "idTextTitle": 199,
+      "linkCopyright": "https://unsplash.com/photos/aerial-view-of-a-coastal-river-delta-with-mangrove-forests-ijhhIWPLBwI",
+      "urlImage": "https://images.unsplash.com/photo-1770764171390-c174aa0cf6fc?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "112b5e2e-7913-4f2d-99cb-724e90f44950"
     }
   ],
   "category": "adventure",
@@ -1260,13 +1400,13 @@
       "uuid": "fcfd4cb6-9a2a-453e-9881-daeb228d2ab8"
     },
     {
-      "direction": "NORTH",
+      "direction": "WEST",
       "energyCost": 2,
       "flagBack": 1,
       "id": 2,
       "idCard": 52,
       "idCardBack": 56,
-      "idLocationFrom": 3,
+      "idLocationFrom": 15,
       "idLocationTo": 2,
       "idTextName": 140,
       "id_card": 52,
@@ -1286,7 +1426,7 @@
       "uuid": "0d53dec4-723b-4cdc-a5eb-9a95330d26d9"
     },
     {
-      "direction": "WEST",
+      "direction": "SOUTH",
       "flagBack": 0,
       "id": 4,
       "idCard": 60,
@@ -1297,7 +1437,7 @@
       "uuid": "fc814cad-fd41-4cf7-bc3c-e35fc13b569a"
     },
     {
-      "direction": "NORTH",
+      "direction": "EAST",
       "flagBack": 0,
       "id": 5,
       "idCard": 61,
@@ -1306,6 +1446,107 @@
       "idTextName": 170,
       "id_card": 61,
       "uuid": "6ccc765a-6fb7-471e-81f6-64fc2f41107d"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 6,
+      "idCard": "",
+      "idLocationFrom": 3,
+      "idLocationTo": 6,
+      "idTextName": 175,
+      "id_card": null,
+      "uuid": "90fffd81-ec7d-4362-9a55-81be065fe457"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 7,
+      "idLocationFrom": 6,
+      "idLocationTo": 7,
+      "idTextName": 178,
+      "uuid": "7314acdc-ecdf-45b5-ad81-4245e2cb6ce7"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 8,
+      "idLocationFrom": 7,
+      "idLocationTo": 8,
+      "idTextName": 181,
+      "uuid": "47853fa7-b6db-4b74-ad6a-04330557f441"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 9,
+      "idLocationFrom": 8,
+      "idLocationTo": 9,
+      "idTextName": 187,
+      "uuid": "6ec42bb6-761d-45af-aae1-95b2670e0b20"
+    },
+    {
+      "direction": "NORTH",
+      "flagBack": 1,
+      "id": 10,
+      "idLocationFrom": 9,
+      "idLocationTo": 10,
+      "idTextName": 188,
+      "uuid": "40adfcc0-c705-4128-b80d-dcdd334ef566"
+    },
+    {
+      "direction": "WEST",
+      "flagBack": 1,
+      "id": 11,
+      "idLocationFrom": 10,
+      "idLocationTo": 11,
+      "idTextName": 190,
+      "uuid": "f1b1554f-e756-403b-9ea4-5237769d6781"
+    },
+    {
+      "direction": "SOUTH",
+      "flagBack": 1,
+      "id": 12,
+      "idLocationFrom": 11,
+      "idLocationTo": 12,
+      "idTextName": 194,
+      "uuid": "f15ec6b5-e13f-41bf-8698-aee0b11d8f9b"
+    },
+    {
+      "direction": "WEST",
+      "flagBack": 1,
+      "id": 13,
+      "idLocationFrom": 6,
+      "idLocationTo": 13,
+      "idTextName": 196,
+      "uuid": "c30d5ed6-fce8-45b6-bb89-6463e6965af5"
+    },
+    {
+      "direction": "SOUTH",
+      "flagBack": 1,
+      "id": 14,
+      "idLocationFrom": 12,
+      "idLocationTo": 13,
+      "idTextName": 197,
+      "uuid": "69a92101-f9ef-486d-98a3-b4b4f6859664"
+    },
+    {
+      "direction": "EAST",
+      "flagBack": 1,
+      "id": 15,
+      "idLocationFrom": 12,
+      "idLocationTo": 14,
+      "idTextName": 203,
+      "uuid": "a9242c9b-6aa6-42a3-b5ea-c33eafc5a8d9"
+    },
+    {
+      "direction": "WEST",
+      "flagBack": 1,
+      "id": 16,
+      "idLocationFrom": 13,
+      "idLocationTo": 15,
+      "idTextName": 204,
+      "uuid": "ce25f6b5-7320-40c4-a1cc-395b38d85681"
     }
   ],
   "locations": [
@@ -1445,6 +1686,100 @@
       "isSafe": true,
       "secureParam": 1,
       "uuid": "7b740f34-61b8-4c77-ab4c-5f8f0f7b76f2"
+    },
+    {
+      "costEnergyEnter": 1,
+      "counterTime": 5,
+      "id": 6,
+      "idCard": 62,
+      "idTextDescription": 174,
+      "idTextName": 174,
+      "id_card": 62,
+      "isSafe": true,
+      "uuid": "d9eda609-69af-4575-ba23-6e97536d1792"
+    },
+    {
+      "costEnergyEnter": 2,
+      "id": 7,
+      "idCard": 64,
+      "idTextDescription": 177,
+      "idTextName": 177,
+      "id_card": 64,
+      "uuid": "80a8b231-e74e-4843-8d7e-42028eb07ee5"
+    },
+    {
+      "costEnergyEnter": 3,
+      "id": 8,
+      "idCard": 65,
+      "idTextDescription": 180,
+      "idTextName": 180,
+      "id_card": 65,
+      "uuid": "6dd29155-a4f9-4e36-bda2-edefddcebffb"
+    },
+    {
+      "costEnergyEnter": 1,
+      "id": 9,
+      "idCard": 66,
+      "idTextDescription": 183,
+      "idTextName": 183,
+      "id_card": 66,
+      "uuid": "27bdfc64-0ffb-48b0-8ac7-8e4d5a0263cd"
+    },
+    {
+      "costEnergyEnter": 2,
+      "id": 10,
+      "idCard": 67,
+      "idTextDescription": 184,
+      "idTextName": 184,
+      "id_card": 67,
+      "uuid": "fbbb5744-1d8a-49be-8f7b-b4ae27e65915"
+    },
+    {
+      "costEnergyEnter": 1,
+      "id": 11,
+      "idCard": 68,
+      "idTextDescription": 189,
+      "idTextName": 189,
+      "id_card": 68,
+      "uuid": "a3887dd8-f690-41fc-bf52-cb139dadcc35"
+    },
+    {
+      "costEnergyEnter": 0,
+      "id": 12,
+      "idCard": 69,
+      "idTextDescription": 192,
+      "idTextName": 192,
+      "id_card": 69,
+      "uuid": "88511e91-54ea-48c4-b8a8-64c6960e2a26"
+    },
+    {
+      "costEnergyEnter": 0,
+      "id": 13,
+      "idCard": 71,
+      "idTextDescription": 195,
+      "idTextName": 195,
+      "id_card": 71,
+      "uuid": "39793f5e-f800-41ce-b9af-3f8002aa97d2"
+    },
+    {
+      "costEnergyEnter": 0,
+      "id": 14,
+      "idCard": 72,
+      "idTextDescription": 198,
+      "idTextName": 198,
+      "id_card": 72,
+      "isSafe": true,
+      "secureParam": 1,
+      "uuid": "4e1bee59-29f4-45fe-9110-bbb1b8cb768f"
+    },
+    {
+      "costEnergyEnter": 1,
+      "id": 15,
+      "idCard": 73,
+      "idTextDescription": 199,
+      "idTextName": 199,
+      "id_card": 73,
+      "uuid": "f282dbaa-ed98-4b69-9746-9e397e3996a5"
     }
   ],
   "missionSteps": [],
@@ -4032,8 +4367,8 @@
       "idText": 145,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Ricardo Resende",
-      "shortText": "Ricardo Resende",
+      "longText": "Shelter",
+      "shortText": "Shelter",
       "uuid": "905fc63d-b8df-41cd-a23c-facb1057966a"
     },
     {
@@ -4475,6 +4810,426 @@
       "longText": "Joshua Earle",
       "shortText": "Joshua Earle",
       "uuid": "f69dba1d-ea21-444f-b005-d55bf95fa6a4"
+    },
+    {
+      "id": 174,
+      "idCreator": 1,
+      "idText": 174,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hills",
+      "shortText": "Hills",
+      "uuid": "cefba75d-4cb8-4595-b730-16924a6c4cf9"
+    },
+    {
+      "id": 175,
+      "idCreator": 1,
+      "idText": 175,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Go to hills",
+      "shortText": "Go to hills",
+      "uuid": "053e2921-9d2c-44d2-b9e0-b794059dfbf5"
+    },
+    {
+      "id": 145,
+      "idCreator": 1,
+      "idText": 145,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "a86eabff-33c2-4ed9-b6d1-709faf7e5821"
+    },
+    {
+      "id": 176,
+      "idCreator": 1,
+      "idText": 176,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Claudel Rheault",
+      "shortText": "Claudel Rheault",
+      "uuid": "4efcfa29-e409-4b79-a289-0eb9b0defb06"
+    },
+    {
+      "id": 176,
+      "idCreator": 1,
+      "idText": 176,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "f3be5dcb-1b32-44e9-958d-581e36d2be30"
+    },
+    {
+      "id": 177,
+      "idCreator": 1,
+      "idText": 177,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Montains",
+      "shortText": "Montains",
+      "uuid": "a8eebf4c-3c58-469c-a490-2dba94da051b"
+    },
+    {
+      "id": 178,
+      "idCreator": 1,
+      "idText": 178,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hills-Montain",
+      "shortText": "Hills-Montain",
+      "uuid": "83b54895-d6f8-4404-8128-ca3e97e74c40"
+    },
+    {
+      "id": 179,
+      "idCreator": 1,
+      "idText": 179,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "d8d334c5-65c9-4cfe-adaf-39fb65b7fcd3"
+    },
+    {
+      "id": 179,
+      "idCreator": 1,
+      "idText": 179,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "229ec3c7-b1d3-4679-bc0a-fec347eeabf4"
+    },
+    {
+      "id": 180,
+      "idCreator": 1,
+      "idText": 180,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "mountain peak",
+      "shortText": "mountain peak",
+      "uuid": "63018d26-c908-49eb-b2ea-1aaecd181feb"
+    },
+    {
+      "id": 181,
+      "idCreator": 1,
+      "idText": 181,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "from montain to mountain peak",
+      "shortText": "from montain to mountain peak",
+      "uuid": "806ff74e-5d2a-4efe-bb3d-5c3ccf2597a8"
+    },
+    {
+      "id": 182,
+      "idCreator": 1,
+      "idText": 182,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Andrej Lišakov",
+      "shortText": "Andrej Lišakov",
+      "uuid": "dc809eb2-2286-4b86-969d-e75a1cf5f193"
+    },
+    {
+      "id": 182,
+      "idCreator": 1,
+      "idText": 182,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "538f80f1-091e-45b2-b00c-0cd4c3400df1"
+    },
+    {
+      "id": 183,
+      "idCreator": 1,
+      "idText": 183,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Montain canyon",
+      "shortText": "Montain canyon",
+      "uuid": "8f9d4763-df3e-42f2-97e3-8549c4d8b301"
+    },
+    {
+      "id": 184,
+      "idCreator": 1,
+      "idText": 184,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Badlands Landscape",
+      "shortText": "Badlands Landscape",
+      "uuid": "a1775e45-e63d-436d-acf2-bc355e83c229"
+    },
+    {
+      "id": 185,
+      "idCreator": 1,
+      "idText": 185,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Colin + Meg",
+      "shortText": "Colin + Meg",
+      "uuid": "879895a8-22d7-4218-bd3c-5550d3493dde"
+    },
+    {
+      "id": 185,
+      "idCreator": 1,
+      "idText": 185,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c98e8417-2e68-43ad-a003-5b39045c2d4e"
+    },
+    {
+      "id": 186,
+      "idCreator": 1,
+      "idText": 186,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jake Warren",
+      "shortText": "Jake Warren",
+      "uuid": "dbd25fd5-7ff1-4b9e-b8b8-d28d9b5ee9ef"
+    },
+    {
+      "id": 186,
+      "idCreator": 1,
+      "idText": 186,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "34f0e2ad-312d-47bd-ac29-65c3d3762931"
+    },
+    {
+      "id": 187,
+      "idCreator": 1,
+      "idText": 187,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "peak to canyon",
+      "shortText": "peak to canyon",
+      "uuid": "87f10675-2dd6-48cb-b421-b3663455d8bd"
+    },
+    {
+      "id": 188,
+      "idCreator": 1,
+      "idText": 188,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "canyon to Badlands",
+      "shortText": "canyon to Badlands",
+      "uuid": "611d51db-9b79-4981-b809-50f3367f9128"
+    },
+    {
+      "id": 189,
+      "idCreator": 1,
+      "idText": 189,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "forest",
+      "shortText": "forest",
+      "uuid": "5f3290f8-1a9a-44e4-8ac0-c161a2946993"
+    },
+    {
+      "id": 190,
+      "idCreator": 1,
+      "idText": 190,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "land to forest",
+      "shortText": "land to forest",
+      "uuid": "ac9799c8-d8bb-4aa2-8e20-b53f1ab6dd48"
+    },
+    {
+      "id": 191,
+      "idCreator": 1,
+      "idText": 191,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "5f495cdc-94b6-47cf-87fd-84aa67d48525"
+    },
+    {
+      "id": 191,
+      "idCreator": 1,
+      "idText": 191,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "065d61a9-24c6-417e-a0ff-5a86f112d28d"
+    },
+    {
+      "id": 192,
+      "idCreator": 1,
+      "idText": 192,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "River",
+      "shortText": "River",
+      "uuid": "0ac43e5c-1d68-497e-8f5a-436ec1b03022"
+    },
+    {
+      "id": 193,
+      "idCreator": 1,
+      "idText": 193,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "0bf5a88e-8b01-4a09-ab46-d49b2cde0f6c"
+    },
+    {
+      "id": 193,
+      "idCreator": 1,
+      "idText": 193,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "f8073776-057a-4198-82cd-91730e5a4178"
+    },
+    {
+      "id": 194,
+      "idCreator": 1,
+      "idText": 194,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "forest to river",
+      "shortText": "forest to river",
+      "uuid": "d5e30c9b-5215-4f80-82a2-1df2a65ec1e0"
+    },
+    {
+      "id": 195,
+      "idCreator": 1,
+      "idText": 195,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Large river",
+      "shortText": "Large river",
+      "uuid": "46cfec88-7ef0-45c1-aaf9-50279dd77168"
+    },
+    {
+      "id": 196,
+      "idCreator": 1,
+      "idText": 196,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "hills to large river",
+      "shortText": "hills to large river",
+      "uuid": "e1fee678-d5ca-47a2-b25f-bb341444ccbb"
+    },
+    {
+      "id": 197,
+      "idCreator": 1,
+      "idText": 197,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "river to river",
+      "shortText": "river to river",
+      "uuid": "2018ab60-3ec9-4651-aa41-991165d73153"
+    },
+    {
+      "id": 198,
+      "idCreator": 1,
+      "idText": 198,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Lake home",
+      "shortText": "Lake home",
+      "uuid": "4c9d6815-f05c-41b8-b196-ffdfcc66ea27"
+    },
+    {
+      "id": 199,
+      "idCreator": 1,
+      "idText": 199,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Delta river",
+      "shortText": "Delta river",
+      "uuid": "215d46e8-58e4-4d74-9e00-6fcd04a5df14"
+    },
+    {
+      "id": 200,
+      "idCreator": 1,
+      "idText": 200,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "45b1e361-287a-40e7-b56e-ee1b086b8640"
+    },
+    {
+      "id": 200,
+      "idCreator": 1,
+      "idText": 200,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "4b049ebc-1c78-49c5-8d2b-529dc8574ed2"
+    },
+    {
+      "id": 201,
+      "idCreator": 1,
+      "idText": 201,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "346caab5-13c8-47f8-8e2c-0182c4c84ff3"
+    },
+    {
+      "id": 201,
+      "idCreator": 1,
+      "idText": 201,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "50acc67b-f607-493e-ae74-32f3b3aa4298"
+    },
+    {
+      "id": 202,
+      "idCreator": 1,
+      "idText": 202,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Collins Lesulie",
+      "shortText": "Collins Lesulie",
+      "uuid": "9a29d7db-4338-4825-bbb4-10093c68c40d"
+    },
+    {
+      "id": 202,
+      "idCreator": 1,
+      "idText": 202,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "a4d68d0a-1eea-4bf6-89bd-cddcc1839f00"
+    },
+    {
+      "id": 203,
+      "idCreator": 1,
+      "idText": 203,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "to lake",
+      "shortText": "to lake",
+      "uuid": "abb552bd-43c8-4f38-ba6b-e4763472cc21"
+    },
+    {
+      "id": 204,
+      "idCreator": 1,
+      "idText": 204,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "delta",
+      "shortText": "delta",
+      "uuid": "0b0970cc-d3db-4079-a111-6358cba52406"
     }
   ],
   "title": "Paths Tutorial",

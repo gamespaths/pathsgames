@@ -31,12 +31,17 @@ class MatchQueryService(MatchQueryPort):
         story_read_port: StoryMatchReadPort,
         user_access_port: UserAccessPort,
         character_read_port: Optional[CharacterReadPort] = None,
+        movement_store=None,
     ) -> None:
         self.match_persistence_port = match_persistence_port
         self.story_read_port = story_read_port
         self.user_access_port = user_access_port
         # Step 21 — optional; when set, _build_detail populates the players list.
         self.character_read_port = character_read_port
+        # v0.28.6 — optional movement store (has find_visited_location_ids); used
+        # to hide a neighbor's location-card fallback for never-visited
+        # destinations (fog of war). When None, no gating is applied.
+        self.movement_store = movement_store
 
     def list_user_matches(self, user_uuid: str) -> List[MatchSummary]:
         if not user_uuid:
@@ -194,8 +199,14 @@ class MatchQueryService(MatchQueryPort):
 
         story_id = story.get("id") if story else None
         end_event_id = story.get("id_event_end_game") if story else None
+        # v0.28.6 — visited set (positions ∪ movement log) hides the neighbor
+        # location-card fallback for never-visited destinations. None → no gating.
+        visited_loc_ids = (
+            set(self.movement_store.find_visited_location_ids(match["id"]))
+            if self.movement_store is not None else None
+        )
         locations_active = self._build_locations_active(
-            story_id, end_event_id, active_loc_ids, loc_by_id, lang
+            story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids
         )
 
         return MatchDetail(
@@ -211,7 +222,7 @@ class MatchQueryService(MatchQueryPort):
             locations_active=locations_active,
         )
 
-    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en") -> List[LocationInfo]:
+    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en", visited_loc_ids=None) -> List[LocationInfo]:
         """Build the enriched ``locations_active`` list: each player-occupied
         location with its card, the neighbor links touching it (both directions)
         and the events specific to it — each with a resolved card."""
@@ -237,8 +248,12 @@ class MatchQueryService(MatchQueryPort):
                 if not self._neighbor_traversable_from(n, loc_id):
                     continue
                 other = loc_by_id.get(other_id)
+                # v0.28.6 fog of war — keep the authored LINK card, but only fall
+                # back to the destination LOCATION's card when it has been visited
+                # (or when gating is unavailable).
+                other_visited = visited_loc_ids is None or other_id in visited_loc_ids
                 neighbor_card_id = n.get("id_card")
-                if neighbor_card_id is None and other is not None:
+                if neighbor_card_id is None and other is not None and other_visited:
                     neighbor_card_id = other.get("id_card")
                 # Optional "return" card: falls back to the forward card (id_card)
                 # when the link defines no id_card_back.

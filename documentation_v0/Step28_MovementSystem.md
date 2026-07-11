@@ -1496,9 +1496,143 @@ Static HTML/CSS concept mockups (desktop and mobile) live under
 
 ---
 
+# Paths Games V0 - Step 0.28.6: Fog-of-War on Neighbor Location Cards
+
+This section documents a **v0.28.6 bugfix** for the card enrichment shipped in v0.28.5
+(§12). No new endpoint is added; the fix only tightens what the existing endpoints are
+allowed to reveal.
+
+## 14.1 Problem
+
+v0.28.5 added a full `card` object (photo, title, description) to every entry of
+`GET /api/match/{uuid}/locations` and to the neighbor fallback used by
+`GET /api/match/{uuid}/info`. A subsequent review found that this leaked the card of
+locations the match had **never visited**: any neighbor of a visited/active location
+exposed its destination's card regardless of whether the player had actually been there —
+defeating the fog-of-war intent of the interactive map (§13).
+
+## 14.2 Fix
+
+For a neighbor whose destination location is **not in the visited set**, the card must not
+be returned (null). "Visited" is defined exactly as in §6.3 — the same set
+`findVisitedLocationIds` already computes:
+
+```
+visitedLocationIds = { character.id_location for all characters in the match }
+                   ∪ { move.id_location_from for all log_movements rows for the match }
+                   ∪ { move.id_location_to   for all log_movements rows for the match }
+```
+
+This is **not** `flagAlreadyActived` — that flag tracks the location's entry-event state
+(Step 32), a different concept.
+
+| Endpoint | Behaviour |
+|----------|-----------|
+| `GET /api/match/{uuid}/locations` | The neighbor's card **is** the destination location's card by definition (§5.3 `NeighborCostDto`). Both `idCard` and `card` are set to null when the destination is unvisited. |
+| `GET /api/match/{uuid}/info` | The neighbor's card is the authored **LINK** card (`n.idCard`) when set, with a fallback to the destination LOCATION's card. The authored link card is always kept; only the **fallback** to the location card is hidden for an unvisited destination. `cardBack` is unaffected directly — it already falls back to the (now-gated) neighbor `card`, so it inherits the same gating without separate logic. |
+
+## 14.3 Per-backend implementation
+
+No change to location/neighbor lookup logic — the fix only gates which card is attached
+to an already-computed neighbor entry.
+
+### Java
+
+- `core/.../service/match/MovementService.java` — `buildLocations` builds a `Set<Long>`
+  from `store.findVisitedLocationIds(...)` and nulls both `idCard` and the resolved `card`
+  on `NeighborCost` when the neighbor's destination is not in that set.
+- `core/.../service/match/MatchQueryService.java` — gained a 6th constructor argument,
+  `MovementStorePort movementStorePort` (nullable; a legacy 5-arg constructor delegates
+  with `null` so existing callers keep compiling and simply skip gating). `buildLocationsActive`
+  now takes a `visitedLocIds` set and only nulls the **fallback** to `other.getIdCard()` —
+  an authored `n.getIdCard()` link card is never touched.
+- `ms-launcher/.../config/CoreConfig.java` — the `matchQueryPort` bean now also wires
+  `MovementStorePort` into the new constructor argument.
+
+### Python
+
+- `app/core/services/match/movement_service.py` — `_build_locations` builds a
+  `visited_set` from `store.find_visited_location_ids(...)`; the neighbor's `id_card`
+  (and the `card` resolved from it) is nulled when the destination is not visited.
+- `app/core/services/match/match_query_service.py` — `__init__` gained an optional
+  `movement_store=None` parameter; `_build_locations_active` gained a `visited_loc_ids`
+  parameter and only skips the **fallback** to `other.get("id_card")` for an unvisited
+  destination — an explicit `n.get("id_card")` link card is always kept.
+- `app/launcher.py` — `movement_store_adapter` is now instantiated once, before
+  `match_query_service` is built, and passed into both `MatchQueryService` (for fog-of-war
+  gating) and `MovementService` (its original Step 28 purpose), replacing the previous
+  ordering where the adapter was created only for `MovementService`.
+
+### AWS Serverless
+
+- `lambda/match/handler.py`:
+  - `_visited_locations_payload` already computed a `seen` set of visited location ids;
+    it now nulls the neighbor's `idCard`/`card` when the destination is not in `seen`.
+  - `_detail_from_item` computes `visited_loc_ids` (character positions ∪ the
+    `movementLog` entries' `idLocationFrom`/`idLocationTo`) and passes it into
+    `_build_locations_active(..., visited_loc_ids)`, which now only skips the **fallback**
+    to `other.get("idCard")` for an unvisited destination, keeping any authored
+    `n.get("idCard")` link card untouched.
+
+## 14.4 OpenAPI
+
+- `adapter-rest/src/main/resources/openapi/v0.28.0-movement-api.yaml` — `NeighborCost`
+  description and the `card` field description note that `idCard`/`card` are null when
+  the neighbor's destination location has never been visited by the match.
+- `adapter-rest/src/main/resources/openapi/v0.19.0-match-creation-api.yaml` —
+  `LocationNeighborInfo.card` description clarifies that the authored LINK card is always
+  shown, while the LOCATION-card fallback stays null until the destination is visited
+  (fog of war).
+
+## 14.5 New Robot suite
+
+**File:** `code/tests/robot/tests/28_movement/location_fog_of_war.robot`
+**Tags:** `movement`, `locations`, `fog-of-war`, `step28` (third test also tagged `match-info`)
+
+Backend-agnostic — discovers a joinable story/difficulty/character/class/trait loadout at
+runtime, no hard-coded IDs:
+
+| Test case | Assertion |
+|-----------|-----------|
+| `Locations Hides The Card Of Unvisited Neighbor Locations` | Every neighbor in `GET /locations` whose destination is not in the visited set has `card == null` and `idCard == null` |
+| `Moving Into A Neighbor Reveals Its Card And It Resolves Via Content` | Cross-check that the hidden card exists rather than being absent: after moving into a previously-unvisited neighbor, its location entry in `/locations` carries a non-null `card`, and that card's `uuid` resolves via `GET /api/content/.../cards` |
+| `Info Never Exposes The Location Card Of An Unvisited Neighbor` | Before moving, the neighbor card returned by `/info` (if any) is never equal to the destination's own location card once visited — i.e. `/info` never leaked the LOCATION card ahead of the visit |
+| `Admin Locations Applies The Same Fog Gating` | `GET /api/admin/matches/{uuid}/locations` hides `card` for unvisited neighbor destinations exactly like the player view |
+
+## 14.6 Files changed
+
+| Backend | File(s) |
+|---------|---------|
+| Java | `core/.../service/match/MovementService.java`, `core/.../service/match/MatchQueryService.java`, `ms-launcher/.../config/CoreConfig.java`, OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` |
+| Java tests | `MovementServiceTest` (+1), `MatchQueryServiceLocationsActiveTest` (+3) |
+| Python | `app/core/services/match/movement_service.py`, `app/core/services/match/match_query_service.py`, `app/launcher.py` |
+| Python tests | `tests/test_movement_service.py`, `tests/test_match_query_service.py` |
+| AWS | `lambda/match/handler.py` |
+| AWS tests | `tests/test_match_handler.py`, `tests/test_movement_handler.py` |
+| Robot | `code/tests/robot/tests/28_movement/location_fog_of_war.robot` (new) |
+
+## 14.7 Notes
+
+1. **"Visited" is the movement-derived set, not `flagAlreadyActived`.** The location
+   entry-event flag (`gaming_state_locations.flag_already_actived`, Step 32) is a
+   different concept and is not used for this gating.
+2. **`cardBack` needed no separate gating logic.** In all three backends, `cardBack`
+   already falls back to the (now-gated) neighbor `card` when no explicit `idCardBack` is
+   set, so hiding the location-card fallback on `card` automatically hides it on
+   `cardBack` too.
+3. **Authored LINK cards are never hidden.** Only the fallback path — resolving the
+   destination LOCATION's own card when the edge itself defines no card — is subject to
+   fog-of-war gating. An admin who explicitly sets `idCard` on a neighbor edge always sees
+   that card, visited or not.
+4. **Backward-compatible constructor changes.** Java's new `MatchQueryService` argument
+   and Python's new `movement_store` parameter are both optional/nullable; any caller that
+   does not pass them gets the pre-v0.28.6 behaviour (no gating) rather than an error.
+
+---
+
 # Version Control
 
-- **Document Version**: 0.28.5
+- **Document Version**: 0.28.6
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1507,6 +1641,7 @@ Static HTML/CSS concept mockups (desktop and mobile) live under
   | 0.28.2 | Initial document — cross-backend bugfix for event-to-location binding | June 26, 2026 |
   | 0.28.3 | One-way neighbor links: `flag_back` enforcement across all backends; `flag_back` column added to §6.4 schema table; new Robot regression suite `neighbor_flag_back.robot` (2 tests, tags: match-info/movement-back/flag-back/step28/regression); react-admin Flag Back form fix and YES/NO badge in entity table | June 28, 2026 |
   | 0.28.5 | `GET /locations` (player + admin) now resolves a full `card` object per location/neighbor plus `?lang=`, across Java/Python/AWS, no lookup-logic change; new Robot test file `28_movement/location_cards.robot` (5 tests). §13: new interactive world map in react-game (`MapPage`/`Map.jsx`, `mapGraph.js`, `MapCard.jsx`), pan/zoom SVG graph with fog-of-war, opened from the stats card list or closed via a new `onForward` arrow on `Card.jsx`/`LocationCard.jsx`. Test counts: Java BUILD SUCCESS, Python 711 pass, AWS 414 pass, react-game 477 pass, Robot green on all 4 environments | July 11, 2026 |
+  | 0.28.6 | §14: bugfix — v0.28.5's neighbor card enrichment leaked the card of never-visited locations. Neighbor `card`/`idCard` on `GET /locations` now null for unvisited destinations; `/info` keeps the authored LINK card but hides only the LOCATION-card fallback. Java: `MatchQueryService` gained an optional `MovementStorePort` 6th constructor arg; `MovementService.buildLocations` gates on `findVisitedLocationIds`. Python: `match_query_service` gained an optional `movement_store` param; `movement_service._build_locations` gates on `find_visited_location_ids`; `launcher.py` shares one `movement_store_adapter` instance between both services. AWS: `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog`) passed into `_build_locations_active`; `_visited_locations_payload` gates on its existing `seen` set. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). Test counts: Java BUILD SUCCESS (+4 tests), Python 715 pass, AWS 416 pass, Robot dry-run 4/4 | July 11, 2026 |
 
 - **Last Updated**: July 11, 2026
 - **Status**: Complete

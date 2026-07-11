@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
 import mockMatchInfo from './fixtures/matchInfo.json'
+import images from '../data/images.json'
+
+const NEIGHBOR_IMG = images.find(i => i.id === 'neighbor')?.urlImage
 
 describe('matchInfoToGameData', () => {
   it('returns empty board for null info', () => {
@@ -69,6 +72,67 @@ describe('matchInfoToGameData', () => {
     nb.cardBack = null
     const gd = matchInfoToGameData(info)
     expect(gd.locations.find(l => l.idLocation === 1002).name).toBe('Dark Cave')
+  })
+
+  it('falls back to the fixed "neighbor" card when a neighbor has no card nor cardBack', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.direction = 'NORTH'
+    // make the destination visited so its name is added to the description
+    info.locations = [{ idLocation: 1003, flagAlreadyActived: 1, name: 'Ancient Forest' }]
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    // uses the fixed neighbor image from data/images.json
+    expect(forest.urlImage).toBe(NEIGHBOR_IMG)
+    expect(forest.card.urlImage).toBe(NEIGHBOR_IMG)
+    // title = "Move to North" (identity translator → game.moveToDirection + dir)
+    expect(forest.card.title).toBe('game.moveToDirection North')
+    // description repeats the title, then From/To on separate lines
+    expect(forest.card.description).toContain('game.moveToDirection North')
+    expect(forest.card.description).toContain('game.from: The Old Tavern')   // current location
+    expect(forest.card.description).toContain('game.to: Ancient Forest')     // visited destination
+  })
+
+  it('uses "Back to" and swaps From/To for a return neighbor (player at destination)', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    // Cave neighbor 1002: from=1002, to=1001; player stands on 1001 (=to) → return.
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.card = null
+    nb.cardBack = null
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    // title = "Back to N" (fixture direction is 'N')
+    expect(cave.card.title).toBe('game.backTo N')
+    // From/To swapped: From = the move target (Dark Cave), To = current (The Old Tavern)
+    expect(cave.card.description).toContain('game.from: Dark Cave')
+    expect(cave.card.description).toContain('game.to: The Old Tavern')
+  })
+
+  it('omits the destination name in the neighbor fallback when it is not visited', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.direction = 'EAST'
+    info.locations = [] // destination not in the /info locations list → not visited
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.card.title).toBe('game.moveToDirection East')
+    expect(forest.card.description).toContain('game.from: The Old Tavern')
+    // destination not visited → "To: Unexplored location" fallback
+    expect(forest.card.description).toContain('game.to: game.map.unexploredLocation')
+  })
+
+  it('keeps the real card when only cardBack is missing (no fallback)', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.cardBack = null // card still present → no neighbor fallback
+    const gd = matchInfoToGameData(info)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.name).toBe('Ancient Forest')
+    expect(forest.urlImage).not.toBe(NEIGHBOR_IMG)
   })
 
   it('falls back to a currentLocation* card (with story image) when locationsActive is absent', () => {

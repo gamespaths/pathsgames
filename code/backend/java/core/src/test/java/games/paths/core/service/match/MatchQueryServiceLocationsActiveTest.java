@@ -13,6 +13,7 @@ import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchReadPort;
+import games.paths.core.port.match.MovementStorePort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
@@ -284,5 +285,71 @@ class MatchQueryServiceLocationsActiveTest {
         assertNotNull(detail);
         assertTrue(detail.getLocationsActive().isEmpty());
         assertEquals(11L, detail.getCurrentLocationId()); // story start fallback
+    }
+
+    // ── v0.28.6 fog of war ───────────────────────────────────────────────────
+    // With the MovementStorePort wired, the neighbor's location-card FALLBACK is
+    // hidden until the destination has been visited; authored LINK cards stay.
+
+    private MatchQueryService fogService(MovementStorePort movementStorePort) {
+        return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
+                characterReadPort, contentQueryPort, movementStorePort);
+    }
+
+    @Test
+    void fogHidesLocationCardFallbackForUnvisitedNeighbor() {
+        wire(10L);
+        // Neighbor 10->11 has NO authored link card → it would fall back to
+        // location 11's card (110). Location 11 is NOT visited (only 10 is).
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", null)));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(10L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 11L).findFirst().orElseThrow();
+
+        assertNull(n.getCard());       // location-card fallback hidden
+        assertNull(n.getCardBack());
+        // the hidden destination card (110) is never resolved
+        verify(contentQueryPort, never()).getCardByStoryIdAndCardId(STORY_ID, 110, "en");
+    }
+
+    @Test
+    void fogKeepsAuthoredLinkCardEvenForUnvisitedNeighbor() {
+        wire(10L);
+        // Neighbor 10->11 HAS an authored link card (200) → shown regardless of
+        // whether location 11 has been visited.
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", 200)));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(10L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 11L).findFirst().orElseThrow();
+
+        assertNotNull(n.getCard());
+        assertEquals("toCave", n.getCard().title()); // authored link card (200)
+    }
+
+    @Test
+    void fogRevealsLocationCardFallbackForVisitedNeighbor() {
+        wire(10L);
+        when(storyReadPort.findLocationNeighborsByStoryId(STORY_ID))
+                .thenReturn(List.of(neighbor(10, 11, "N", null)));
+        when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), eq(110), eq("en")))
+                .thenReturn(card("loc11"));
+        MovementStorePort movementStorePort = mock(MovementStorePort.class);
+        // location 11 IS visited now → its card is exposed via the fallback
+        when(movementStorePort.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(10L, 11L));
+
+        MatchDetail detail = fogService(movementStorePort).getMatchInfoForAdmin("match-uuid");
+        LocationNeighborInfo n = detail.getLocationsActive().get(0).getNeighbors().stream()
+                .filter(x -> x.getIdLocation() == 11L).findFirst().orElseThrow();
+
+        assertNotNull(n.getCard());
+        assertEquals("loc11", n.getCard().title());
     }
 }

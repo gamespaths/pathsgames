@@ -24,12 +24,14 @@ import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
+import games.paths.core.port.match.MovementStorePort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,7 @@ public class MatchQueryService implements MatchQueryPort {
     private final UserAccessPort userAccessPort;
     private final CharacterReadPort characterReadPort;
     private final ContentQueryPort contentQueryPort;
+    private final MovementStorePort movementStorePort;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
@@ -81,11 +84,28 @@ public class MatchQueryService implements MatchQueryPort {
                              UserAccessPort userAccessPort,
                              CharacterReadPort characterReadPort,
                              ContentQueryPort contentQueryPort) {
+        this(matchReadPort, storyReadPort, userAccessPort, characterReadPort, contentQueryPort, null);
+    }
+
+    /**
+     * v0.28.6 — the {@code movementStorePort} provides the visited-location set
+     * ({@link MovementStorePort#findVisitedLocationIds}), used to hide the card
+     * of a neighbor whose destination location has never been visited (fog of
+     * war). When {@code null} no gating is applied (neighbor cards fall back to
+     * the location card as before).
+     */
+    public MatchQueryService(MatchReadPort matchReadPort,
+                             StoryReadPort storyReadPort,
+                             UserAccessPort userAccessPort,
+                             CharacterReadPort characterReadPort,
+                             ContentQueryPort contentQueryPort,
+                             MovementStorePort movementStorePort) {
         this.matchReadPort = matchReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
         this.characterReadPort = characterReadPort;
         this.contentQueryPort = contentQueryPort;
+        this.movementStorePort = movementStorePort;
     }
 
     @Override
@@ -380,8 +400,13 @@ public class MatchQueryService implements MatchQueryPort {
         // Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
         Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
+        // v0.28.6 — the visited-location set (positions ∪ movement log) hides the
+        // neighbor's location-card fallback for never-visited destinations.
+        Set<Long> visitedLocIds = movementStorePort != null
+                ? new HashSet<>(movementStorePort.findVisitedLocationIds(match.getId()))
+                : null;
         detail.setLocationsActive(
-                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang));
+                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds));
 
         return detail;
     }
@@ -395,7 +420,8 @@ public class MatchQueryService implements MatchQueryPort {
                                                     Integer endEventId,
                                                     Set<Long> activeLocIds,
                                                     Map<Long, LocationEntity> locationsById,
-                                                    String lang) {
+                                                    String lang,
+                                                    Set<Long> visitedLocIds) {
         List<LocationInfo> result = new ArrayList<>();
         if (storyId == null || activeLocIds.isEmpty()) {
             return result;
@@ -423,9 +449,13 @@ public class MatchQueryService implements MatchQueryPort {
                     continue;
                 }
                 LocationEntity other = locationsById.get(otherId);
+                // v0.28.6 fog of war — keep the authored LINK card (n.getIdCard),
+                // but only fall back to the destination LOCATION's card when that
+                // location has been visited (or when gating is unavailable).
+                boolean otherVisited = visitedLocIds == null || visitedLocIds.contains(otherId);
                 Integer neighborCardId = n.getIdCard() != null
                         ? n.getIdCard()
-                        : (other != null ? other.getIdCard() : null);
+                        : (otherVisited && other != null ? other.getIdCard() : null);
                 // Optional "return" card: when the link defines no idCardBack it
                 // falls back to the forward card (idCard).
                 Integer neighborCardBackId = n.getIdCardBack() != null

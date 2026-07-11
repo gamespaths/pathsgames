@@ -626,6 +626,66 @@ def test_get_match_info_locations_active(mock_jwt):
 
 
 @patch('match.handler.jwt_utils.verify_access_token')
+def test_match_info_hides_location_card_fallback_for_unvisited_neighbor(mock_jwt):
+    # v0.28.6 fog of war: a neighbor with NO authored link card falls back to the
+    # destination location's card, which must stay hidden until it is visited.
+    mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
+    match_item = {
+        'uuid': 'm1', 'storyUuid': 'story-uuid-1', 'difficultyUuid': 'd', 'name': 'name',
+        'status': 'RUNNING', 'currentClock': 0, 'expCost': 5,
+        'userCreatorUuid': 'player-uuid-001', 'tsInsert': 100,
+        'locations': [], 'registry': [],
+        # no movement log → location 2 has never been visited
+    }
+    story_item = {
+        'PK': 'STORY#story-uuid-1', 'SK': 'METADATA', 'uuid': 'story-uuid-1',
+        'locations': [
+            {'id': 1, 'uuid': 'loc-1', 'name': 'Hall', 'idCard': 1},
+            {'id': 2, 'uuid': 'loc-2', 'name': 'Yard', 'idCard': 2},
+        ],
+        # neighbor 1->2 has NO idCard / idCardBack → would fall back to location 2's card
+        'neighbors': [
+            {'idLocationFrom': 1, 'idLocationTo': 2, 'direction': 'N',
+             'flagBack': 1, 'energyCost': 1},
+        ],
+        'events': [],
+        'raw_cards': [
+            {'id': 1, 'uuid': 'card-1', 'awesomeIcon': 'fa-x', 'idTextTitle': 10},
+            {'id': 2, 'uuid': 'card-2', 'awesomeIcon': 'fa-y', 'idTextTitle': 11},
+        ],
+        'raw_texts': [
+            {'idText': 10, 'lang': 'en', 'shortText': 'Hall'},
+            {'idText': 11, 'lang': 'en', 'shortText': 'Yard'},
+        ],
+    }
+    character = {
+        'PK': 'MATCH#m1', 'SK': 'CHARACTER#c1', 'uuid': 'c1',
+        'userUuid': 'player-uuid-001', 'idLocation': 1, 'locationName': 'Hall',
+    }
+
+    def get_side(pk, sk='METADATA'):
+        if pk == 'USER#player-uuid-001':
+            return PLAYER_USER
+        if pk == 'MATCH#m1':
+            return match_item
+        if pk == 'STORY#story-uuid-1':
+            return story_item
+        return None
+
+    from match.handler import lambda_handler
+    event = _player_event('GET', '/api/match/m1/info', path_params={'uuidMatch': 'm1'})
+    with patch('match.handler.db_utils.get_item', side_effect=get_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]):
+        result = lambda_handler(event, {})
+
+    assert result['statusCode'] == 200
+    nb = _body(result)['locationsActive'][0]['neighbors'][0]
+    assert nb['idLocation'] == 2
+    assert nb['card'] is None       # location-card fallback hidden (unvisited)
+    assert nb['cardBack'] is None
+
+
+@patch('match.handler.jwt_utils.verify_access_token')
 def test_match_info_one_way_neighbor_hidden_on_destination(mock_jwt):
     # Edge 1->2 is one-way (flagBack=0). The player stands on location 2 (the
     # destination), so the link back to 1 must NOT be exposed as a neighbor.

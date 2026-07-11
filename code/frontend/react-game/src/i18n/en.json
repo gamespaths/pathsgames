@@ -216,8 +216,13 @@
       "zoomOut": "Zoom out",
       "center": "Center on current location",
       "youAreHere": "You are here",
-      "open": "Open map"
-    }
+      "open": "Open map",
+      "unexploredLocation": "Unexplored location"
+    },
+    "moveToDirection": "Move to",
+    "from": "From",
+    "to": "To",
+    "backTo": "Back to"
   },
   "footer": {
     "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",

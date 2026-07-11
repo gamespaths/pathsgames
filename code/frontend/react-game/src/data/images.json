@@ -93,7 +93,7 @@
     "awesomeIcon": "fa-cloud-sun-rain"
   },
   {
-    "id": "map",
+    "id": "map-alternative",
     "urlImage": "https://plus.unsplash.com/premium_photo-1663040525221-c607b4333b76?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "copyrightText": "Getty Images",
     "linkCopyright": "https://unsplash.com/photos/compass-travel-in-front-of-water-ocean-landscape-concept-of-lost-and-destination-wanderlust-leisure-outdoors-activity-people-78XlMMYp278",
@@ -102,6 +102,38 @@
     "styleImageLittle": "of-b ob-c-90",
     "awesomeIcon": "fa-map"
   },
+  {
+    "id": "map-alternative-2",
+    "urlImage": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAwLDAuMDApIHNjYWxlKDEuMDAwMCkiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0yMjcuNCAzNC43Yy0xMC4xIDAtMjAuMi4yLTMwLjIuNWw2LjEgNjUuNi02MS4xLTYyLjVjLTMxLjMgMi41LTYyLjUgNi42LTkzLjggMTIuNWwzNC4yIDI4LjQtNDgtLjZjMzUuMSAxMDAuMiA2LjkgMTgyLjYtLjMgMjkyLjFMMTMwIDQ3Ni41YzEwLTEuMyAxOS45LTIuNCAyOS42LTMuM2wyMS41LTQyLjIgMTguNiAyOC44IDQxLjUtMzMuNS44IDQzYzgyLjktLjIgMTU3LjcgOS4xIDIzNS43IDcuOS0yOC4yLTczLTMxLjItMTQzLjYtMzEuOS0yMDkuMmwtMzMuMy0xOS4xIDMyLjctMzMuOWMtLjQtMjEuMy0xLjMtNDItMy42LTYxLjlsLTU3LjQuNyA1MC4yLTQxLjdjLTMuOC0xNS41LTktMzAuNC0xNi4xLTQ0LjdsLTI5LjUtMjMuOUMzMzUgMzggMjgxLjIgMzQuNiAyMjcuNCAzNC43em01OC43IDM3YzEwLjYgMjQuNzUgMjEuMSA0OS41IDMxLjcgNzQuMyA3LjUtMTAuNSAxNC45LTIxIDIyLjQtMzEuNSAxNiAyNy4yIDMyIDU0LjMgNDggODEuNWwtMTYuMiA5LjUtMzMuMy01Ni43LTQyLjUgNTkuNC0xNS4yLTEwLjkgMjQtMzMuNS0yMS45LTUxLjUtMjQuNiA0MC4xIDEyIDIyLjYtMTYuNSA4LjgtMTguMy0zNC41LTI0LjggNTguMi0xNy4yLTcuNCAzMi41LTc2LjIgNy43LTE4YzQuOCA5LjIgOS42IDE4LjMgMTQuNSAyNy40IDEyLjUtMjAuNiAyNS4xLTQxLjExIDM3LjctNjEuNnpNOTEuMiAxMjhjNi43MiAxLjYgMTMuNCAzLjQgMTkuMiA1LjMtMi4xIDUuOS00LjEgMTEuOC02LjIgMTcuNi01Ljc5LTEuNi0xMS43Mi0zLjQtMTYuOS00LjcgMS4zOS02IDIuNjItMTIuMSAzLjktMTguMnptMzcuOSAxMy40YzYuMyAzLjggMTIgNy4yIDE3IDEyLjhMMTMyLjYgMTY3Yy00LTMuNy04LjYtNy0xMi44LTkuNHptMjguNyAzMi4zYzIuMSA3LjQgMi4xIDE1LjcgMS42IDIyLjVsLTE4LjUtMi40Yy4xLTUuMS4zLTEwLTEtMTQuNXptLTIxLjIgMzUuN2wxNy4yIDcuMWMtMy4zIDYuNi01LjEgMTIuNy04LjYgMTcuOGwtMTYuMy05YzIuNi01LjQgNS42LTEwLjggNy43LTE1Ljl6bS0xNi41IDM0LjFsMTcuNyA2LjFjLTEuNSA1LjQtMyAxMS4yLTMuNiAxNi4ybC0xOC42LTJjMS4zLTcuNSAyLjEtMTQgNC41LTIwLjN6bTIwNy44IDE3LjRjOC41IDEgMTQuNiAzIDIxLjcgNy4xbC05LjggMTZjLTQuMS0yLjgtOS40LTMuOC0xMy41LTQuNXptLTIxLjIgMS41YzEuMSA2LjEgMi41IDEyLjIgMy45IDE4LjMtNS45IDEuMy0xMS43IDMuMy0xNi41IDUuMWwtNi44LTE3LjRjNi43LTIuNCAxMy41LTQuNyAxOS40LTZ6bS0zNy45IDE1LjlsMTEgMTUuMWMtNS42IDQtMTEuOCA3LjgtMTYuOCAxMC42bC04LjktMTYuNGM1LjEtMi45IDEwLjYtNi4zIDE0LjctOS4zek0xMzUuMyAyODFjMS41IDQuNyA0LjIgOS4yIDYuOSAxMi4xbC0xMy44IDEyLjZjLTUuNS01LjctOS41LTEzLjUtMTEuMi0yMC4xem0yMzAuMyAzLjNjMy41IDYuNCA2LjggMTIuNyA4LjcgMTkuMWwtMTcuOCA1LjZjLTItNS40LTQuMy0xMC44LTYuOC0xNC44em0tMTI3LjQgMTAuOWw2LjkgMTcuM2MtNi40IDIuNy0xMi45IDQuOC0xOC42IDYuNWwtNS0xOGM1LjktMS42IDExLjMtMy44IDE2LjctNS44em0tODMuOCA2LjJjNS4zIDEuNyAxMC44IDMuNCAxNS43IDQuMi0xLjIgNi4xLTIgMTIuMy0yLjggMTguNS03LTEtMTQuNS0zLjMtMjAuNS01Ljd6bTUwIDMuNWwyLjggMTguNWMtNy4yIDEuMy0xMy40IDEuNi0xOS44IDEuOWwtLjQtMTguN2M1LjktLjIgMTEuNi0uOCAxNy40LTEuN3ptMTc0LjUgMThjMSA2LjQgMS42IDEyLjkgMi4yIDE5LjNsLTE4LjcgMS41Yy0uNC02LS45LTExLjktMi0xNy44em0tNjcuNiAzMC44YzE4LjkgMy41IDQ0LjkgMTYuMiA2OC45IDMzLjkgNy40LTkuOSAxNC40LTIwLjQgMjEuMy0zMS4xbDMwLjEgMTIuOWMtNC43IDEyLjMtMTUgMjUuNi0yOC42IDM3LjIgMTcgMTYuMiAzMC45IDM0LjUgMzcgNTMtMTMuOC0xOC4xLTMxLjEtMzEuOC01MC4zLTQyLjgtMjMuNCAxNS44LTUyLjcgMjUuOS03OS42IDIwLjQgMjIuOS00LjQgNDAuNi0xNi42IDU1LjgtMzIuNi0xNi41LTcuNS0zMy44LTEzLjktNTEuMy0yMC4xeiIgLz48L2c+PC9zdmc+",
+    "copyrightText": "by Lorc on Getty Images",
+    "linkCopyright": "https://game-icons.net/1x1/lorc/treasure-map.html",
+    "description": "Lorc on Getty Images",
+    "styleImageLarge": "",
+    "styleImageLittle": "of-b ob-c-90",
+    "awesomeIcon": "fa-map"
+  },
+  {
+    "id": "map",
+    "urlImage": "https://images.unsplash.com/photo-1608924066819-930edc42986a?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "Nadjib Bouarar",
+    "linkCopyright": "https://unsplash.com/photos/brown-and-beige-ceiling-lamp-51Ms-0PbCHo",
+    "description": "Nadjib Bouarar on Unsplash",
+    "styleImageLarge": "",
+    "styleImageLittle": "of-b ob-c-90",
+    "awesomeIcon": "fa-map"
+  },
+  {
+    "id": "neighbor",
+    "urlImage": "https://images.unsplash.com/photo-1594883624354-ed95dcd4d844?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    "copyrightText": "damien dufour",
+    "linkCopyright": "https://unsplash.com/photos/brown-and-black-street-sign-l4b9wMyn7iU",
+    "description": "Damien Dufour on Unsplash",
+    "styleImageLarge": "",
+    "styleImageLittle": "of-b ob-c-90",
+    "awesomeIcon": "fa-map"
+  },
+
+
 
 
 

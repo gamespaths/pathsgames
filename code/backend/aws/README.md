@@ -168,6 +168,29 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
+
+- **`lambda/match/handler.py`**: The v0.28.5 card enrichment below leaked the card of
+  locations the match had **never visited**, via the neighbor sub-lists it added. Fixed
+  by gating the neighbor's location-card resolution on the visited set:
+  - `_detail_from_item` now computes `visited_loc_ids` (character positions ∪ every
+    `movementLog` entry's `idLocationFrom`/`idLocationTo`) and passes it into
+    `_build_locations_active(..., visited_loc_ids)`, which nulls only the **fallback**
+    to `other.get("idCard")` when the destination is unvisited — an authored
+    `n.get("idCard")` link card on the neighbor edge itself is always kept.
+  - `_visited_locations_payload` already tracked visited ids in its `seen` set; it now
+    nulls a neighbor's `idCard`/`card` when the destination is not in `seen`.
+- **Unit tests**: `tests/test_match_handler.py` and `tests/test_movement_handler.py` gain
+  regression tests for both the hide-when-unvisited and keep-authored-link-card cases.
+  416 Lambda unit tests pass.
+- **Robot**: new backend-agnostic test file
+  `code/tests/robot/tests/28_movement/location_fog_of_war.robot` (4 tests): hides
+  `card`/`idCard` on unvisited neighbors in `GET /locations`; the card reappears (and
+  resolves via `/content`) after moving into that location; `GET /info` never leaks the
+  location card ahead of the visit; the admin locations view applies the same gating.
+- No API contract change — nullability only. See
+  `documentation_v0/Step28_MovementSystem.md` §14.
+
 ### v0.28.5 — Location cards on `GET /locations`
 
 - **`lambda/match/handler.py`**: `_visited_locations_payload(match, match_uuid, lang='en')`

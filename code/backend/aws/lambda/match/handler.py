@@ -198,6 +198,16 @@ def _detail_from_item(item, players=None, lang='en'):
         if loc is not None and loc not in active_loc_ids:
             active_loc_ids.append(loc)
 
+    # v0.28.6 fog of war — visited set (positions ∪ movement log), same as
+    # _visited_locations_payload; hides the neighbor location-card fallback for
+    # never-visited destinations.
+    visited_loc_ids = set(active_loc_ids)
+    for m in (item.get('movementLog') or []):
+        if m.get('idLocationFrom') is not None:
+            visited_loc_ids.add(m.get('idLocationFrom'))
+        if m.get('idLocationTo') is not None:
+            visited_loc_ids.add(m.get('idLocationTo'))
+
     # The STORY item carries the enriched locations/neighbors/events (with cards).
     story = db_utils.get_item(f'STORY#{item.get("storyUuid")}') or {}
 
@@ -225,7 +235,7 @@ def _detail_from_item(item, players=None, lang='en'):
         # Step 21 — the players/characters of the match (summary rows).
         "players": [_character_summary(c) for c in players],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
-        "locationsActive": _build_locations_active(story, active_loc_ids, lang),
+        "locationsActive": _build_locations_active(story, active_loc_ids, lang, visited_loc_ids),
     }
 
 
@@ -253,14 +263,18 @@ def _event_location(event):
     return e.get('idSpecificLocation') if e.get('idSpecificLocation') is not None else e.get('idLocation')
 
 
-def _build_locations_active(story, active_loc_ids, lang='en'):
+def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
     directions) and the events specific to it.
 
     Cards are ALWAYS resolved from idCard against the story's raw_cards/raw_texts
     at read time — any stale `card` object embedded on the stored item is ignored,
-    matching the Java/Python backends (which resolve from id_card via list_cards)."""
+    matching the Java/Python backends (which resolve from id_card via list_cards).
+
+    v0.28.6 fog of war — a neighbor's authored LINK card is always shown, but the
+    fallback to the destination LOCATION's card is hidden until that location has
+    been visited (``visited_loc_ids``). ``None`` disables the gating."""
     if not active_loc_ids:
         return []
     locations = story.get("locations") or []
@@ -291,9 +305,11 @@ def _build_locations_active(story, active_loc_ids, lang='en'):
                 continue
             other = loc_by_id.get(other_id)
             # idCard is the source of truth; fall back to the destination
-            # location's idCard when the link itself carries none.
+            # location's idCard when the link itself carries none — but only when
+            # that location has been visited (v0.28.6 fog of war).
+            other_visited = visited_loc_ids is None or other_id in visited_loc_ids
             neighbor_card_id = n.get("idCard")
-            if neighbor_card_id is None and other is not None:
+            if neighbor_card_id is None and other is not None and other_visited:
                 neighbor_card_id = other.get("idCard")
             # Step 0.28.2 — optional "return" card: falls back to the forward card
             # (idCard) when the link defines no idCardBack.
@@ -1763,12 +1779,16 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
                                   else weather_rule.get('costMoveNotSafeLocation'))
             base = _nz(n.get('energyCost'))
             entry = _nz(other.get('costEnergyEnter'))
+            # Fog of war (v0.28.6): hide the neighbor's LOCATION card (idCard +
+            # card) until that location has been visited.
+            other_visited = other_id in seen
+            neighbor_id_card = other.get('idCard') if other_visited else None
             neighbor_costs.append({
                 "idLocation": other_id,
                 "uuid": other.get('uuid'),
                 "direction": n.get('direction'),
-                "idCard": other.get('idCard'),
-                "card": _resolve_card_from_raw(raw_cards, raw_texts, other.get('idCard'), lang),
+                "idCard": neighbor_id_card,
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_id_card, lang),
                 "baseEnergyCost": base,
                 "entryEnergyCost": entry,
                 "weatherEnergyCost": weather_mod,

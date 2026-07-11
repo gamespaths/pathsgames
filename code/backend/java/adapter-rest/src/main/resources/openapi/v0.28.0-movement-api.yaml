@@ -163,6 +163,8 @@ components:
       description: >
         Energy-cost breakdown: baseEnergyCost (edge) + entryEnergyCost (target
         location entry) + weatherEnergyCost (weather modifier) = totalEnergyCost.
+        Fog of war (v0.28.6): idCard and card are null when the neighbor's
+        destination location has never been visited by the match.
       properties:
         idLocation: { type: integer }
         uuid: { type: string }
@@ -171,7 +173,9 @@ components:
         card:
           allOf:
             - $ref: '#/components/schemas/CardInfo'
-          description: The neighbor LOCATION's resolved card (null when idCard is null)
+          description: >
+            The neighbor LOCATION's resolved card. Null when idCard is null OR
+            when the destination location has never been visited (fog of war).
           nullable: true
         baseEnergyCost: { type: integer }
         entryEnergyCost: { type: integer }

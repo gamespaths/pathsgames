@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
+import games.paths.core.port.match.MovementPort.NeighborCost;
 import games.paths.core.port.match.MovementPort.VisitedLocation;
 import games.paths.core.port.match.MovementStorePort;
 import games.paths.core.port.match.MovementStorePort.MatchMovementView;
@@ -363,10 +364,11 @@ class MovementServiceTest {
         }
 
         @Test
-        @DisplayName("resolves the location card and the neighbor's LOCATION card")
+        @DisplayName("resolves the location card and the neighbor's LOCATION card (visited)")
         void resolvesCards() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
-            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            // both 1 and 2 visited → the neighbor's location card is exposed
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L, 2L));
             when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
             when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
             when(store.findLocationByStoryAndId(STORY_ID, 1L))
@@ -385,6 +387,33 @@ class MovementServiceTest {
             assertEquals("start", loc.card().title());
             assertEquals(20, loc.neighbors().get(0).idCard());
             assertEquals("card-center", loc.neighbors().get(0).card().uuid());
+        }
+
+        @Test
+        @DisplayName("fog of war: a never-visited neighbor exposes no card (idCard + card null)")
+        void hidesUnvisitedNeighborCard() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            // only 1 visited; neighbor 2 was never visited → its card must be hidden
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(new MoveLocationView(1L, "loc-1", 10, 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 0)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(new MoveLocationView(2L, "loc-2", 20, 1, 0, 100)));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 10, "en"))
+                    .thenReturn(card("start"));
+
+            VisitedLocation loc = service.listLocations(MATCH, USER, null).get(0);
+
+            NeighborCost nb = loc.neighbors().get(0);
+            assertNull(nb.idCard());
+            assertNull(nb.card());
+            // the visited location itself still exposes its card
+            assertEquals("card-start", loc.card().uuid());
+            // the hidden neighbor card is never resolved
+            verify(contentQueryPort, never()).getCardByStoryIdAndCardId(STORY_ID, 20, "en");
         }
 
         @Test

@@ -187,4 +187,26 @@ describe('EntityTable', () => {
     expect(screen.getByText(/Short name/)).toBeInTheDocument()
     expect(screen.queryByText(/…/)).toBeNull()
   })
+
+  it('shows only the first 3 definition columns by default', () => {
+    const cols = [
+      { key: 'a', label: 'ColA' }, { key: 'b', label: 'ColB' },
+      { key: 'c', label: 'ColC' }, { key: 'd', label: 'ColD' },
+    ]
+    const ents = [{ uuid: '1', id: 1, a: 1, b: 2, c: 3, d: 4 }]
+    render(<EntityTable columns={cols} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('ColC')).toBeInTheDocument()
+    expect(screen.queryByText('ColD')).toBeNull()
+  })
+
+  it('shows a 4th column when maxColumns is raised (Loc Neighbors Direction)', () => {
+    const cols = [
+      { key: 'flagBack', label: 'Back' }, { key: 'idLocationFrom', label: 'From' },
+      { key: 'idLocationTo', label: 'To' }, { key: 'direction', label: 'Direction' },
+    ]
+    const ents = [{ uuid: '1', id: 1, flagBack: 1, idLocationFrom: 1, idLocationTo: 2, direction: 'NORTH' }]
+    render(<EntityTable columns={cols} entities={ents} maxColumns={4} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Direction')).toBeInTheDocument()
+    expect(screen.getByText('NORTH')).toBeInTheDocument()
+  })
 })

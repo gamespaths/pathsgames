@@ -238,7 +238,7 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 | `25_time_clock` | Active location seeding and time clock |
 | `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
 | `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
-| `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations; full location/neighbor `card` resolution + `?lang=` on `GET /locations` (`location_cards.robot`, v0.28.5) |
+| `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations; full location/neighbor `card` resolution + `?lang=` on `GET /locations` (`location_cards.robot`, v0.28.5); fog-of-war gating hides neighbor `card`/`idCard` for never-visited destinations on `/locations` and `/info` (`location_fog_of_war.robot`, v0.28.6) |
 | `29_neighbor_card_back` | Neighbor return card (idCardBack): admin-set idCardBack reflected in match-info; guards gameplay/admin desync on AWS |
 | `30_event_location` | Event-to-location binding (idSpecificLocation): admin-set location reflected in locationsActive[].events; guards AWS stale-alias + Python column-name bugs |
 

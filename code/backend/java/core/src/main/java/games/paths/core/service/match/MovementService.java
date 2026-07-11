@@ -13,8 +13,10 @@ import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * MovementService - single-player movement system (Step 28).
@@ -141,6 +143,9 @@ public class MovementService implements MovementPort {
 
     private List<VisitedLocation> buildLocations(MatchMovementView match, String lang) {
         List<Long> visited = store.findVisitedLocationIds(match.id());
+        // Fog of war (v0.28.6): a neighbor pointing at a never-visited location
+        // must not expose that location's card. Fast lookup by id.
+        Set<Long> visitedSet = new HashSet<>(visited);
         List<MoveCharacterView> characters = store.findCharactersByMatchId(match.id());
         WeatherMoveCost weather = weatherCost(match.id());
 
@@ -171,8 +176,12 @@ public class MovementService implements MovementPort {
                 int base = edge.energyCost();
                 int entry = other.costEnergyEnter();
                 int weatherMod = other.secureParam() > 0 ? weather.costSafe() : weather.costNotSafe();
+                // The neighbor card is the destination LOCATION's card: hide it
+                // (idCard + card null) until that location has been visited.
+                boolean otherVisited = visitedSet.contains(other.id());
+                Integer neighborIdCard = otherVisited ? other.idCard() : null;
                 neighborCosts.add(new NeighborCost(other.id(), other.uuid(), edge.direction(),
-                        other.idCard(), resolveCard(match.idStory(), other.idCard(), lang),
+                        neighborIdCard, resolveCard(match.idStory(), neighborIdCard, lang),
                         base, entry, weatherMod, base + entry + weatherMod,
                         conditionMet(match.id(), edge)));
             }

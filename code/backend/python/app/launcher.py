@@ -127,11 +127,15 @@ character_query_service = CharacterQueryService(
     story_match_read_adapter,
     user_access_adapter,
 )
+# Step 28 — movement store (also gives MatchQueryService the visited-location set
+# for fog of war on GET /info neighbor cards, v0.28.6).
+movement_store_adapter = MovementStoreAdapter(SessionLocal)
 match_query_service = MatchQueryService(
     match_persistence_adapter,
     story_match_read_adapter,
     user_access_adapter,
     character_persistence_adapter,
+    movement_store_adapter,
 )
 
 # Dev-only test-data cleanup service
@@ -154,9 +158,9 @@ weather_store_adapter = WeatherStoreAdapter(SessionLocal)
 weather_selection_service = WeatherSelectionService(weather_store_adapter)
 weather_controller = WeatherController(weather_selection_service, content_query_service)
 
-# Step 28 — movement system store + service (shared by player and admin controllers).
-# story_match_read_adapter resolves the location cards on GET /locations.
-movement_store_adapter = MovementStoreAdapter(SessionLocal)
+# Step 28 — movement system service (shared by player and admin controllers).
+# story_match_read_adapter resolves the location cards on GET /locations;
+# movement_store_adapter was created above (reused here).
 movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,

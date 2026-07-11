@@ -102,6 +102,9 @@ class MovementService(MovementPort):
     def _build_locations(self, match: Dict[str, Any],
                          lang: str = "en") -> List[VisitedLocation]:
         visited = self.store.find_visited_location_ids(match["id"])
+        # Fog of war (v0.28.6): a neighbor pointing at a never-visited location
+        # must not expose that location's card.
+        visited_set = set(visited)
         characters = self.store.find_characters_for_movement(match["id"])
         weather = self.store.find_current_weather_move_cost(match["id"])
 
@@ -125,13 +128,17 @@ class MovementService(MovementPort):
                 base = edge["energy_cost"] or 0
                 entry = other.get("cost_energy_enter") or 0
                 weather_mod = cost_safe if (other.get("secure_param") or 0) > 0 else cost_not_safe
+                # Hide the neighbor's LOCATION card (idCard + card) until that
+                # location has been visited.
+                other_visited = other["id"] in visited_set
+                neighbor_id_card = other.get("id_card") if other_visited else None
                 neighbors.append(NeighborCost(other["id"], other.get("uuid"),
                                               edge.get("direction"), base, entry, weather_mod,
                                               base + entry + weather_mod,
                                               self._condition_met(match["id"], edge),
-                                              id_card=other.get("id_card"),
+                                              id_card=neighbor_id_card,
                                               card=self._resolve_card(match["id_story"],
-                                                                      other.get("id_card"), lang)))
+                                                                      neighbor_id_card, lang)))
             result.append(VisitedLocation(loc["id"], loc.get("uuid"), loc.get("id_card"),
                                           (loc.get("secure_param") or 0) > 0, count, neighbors,
                                           card=self._resolve_card(match["id_story"],

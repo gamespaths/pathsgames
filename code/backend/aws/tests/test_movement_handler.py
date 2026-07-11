@@ -261,8 +261,16 @@ def test_locations_lists_visited_with_total_cost():
     assert nb['uuid'] == 'loc-2'
 
 
+def _match_visited_2():
+    # A match whose movement log records a move 1→2, so location 2 counts as visited.
+    m = _match()
+    m['movementLog'] = [{'idLocationFrom': 1, 'idLocationTo': 2}]
+    return m
+
+
 def test_locations_resolves_location_and_neighbor_cards():
-    items = [PLAYER, _story(), _match(), _char('m1', 1, 'c1', location=1)]
+    # location 2 visited (movement log) → its neighbor card is exposed
+    items = [PLAYER, _story(), _match_visited_2(), _char('m1', 1, 'c1', location=1)]
     with _env(items):
         result = h.lambda_handler(_event('GET', '/api/match/m1/locations'), None)
     loc = next(l for l in _body(result)['locations'] if l['idLocation'] == 1)
@@ -274,6 +282,18 @@ def test_locations_resolves_location_and_neighbor_cards():
     assert nb['idCard'] == 3
     assert nb['card']['uuid'] == 'card-3'
     assert nb['card']['title'] == 'Center'
+
+
+def test_locations_hides_unvisited_neighbor_card():
+    # Fog of war: character at 1, location 2 never visited → neighbor card hidden.
+    items = [PLAYER, _story(), _match(), _char('m1', 1, 'c1', location=1)]
+    with _env(items):
+        result = h.lambda_handler(_event('GET', '/api/match/m1/locations'), None)
+    loc = next(l for l in _body(result)['locations'] if l['idLocation'] == 1)
+    nb = loc['neighbors'][0]
+    assert nb['idCard'] is None
+    assert nb['card'] is None
+    assert loc['card']['uuid'] == 'card-2'  # the visited location keeps its card
 
 
 def test_locations_cards_localized_with_english_fallback():
@@ -288,7 +308,7 @@ def test_locations_cards_localized_with_english_fallback():
 
 def test_admin_locations():
     admin = {**PLAYER, 'role': 'ADMIN'}
-    items = [admin, _story(), _match(), _char('m1', 1, 'c1', location=1)]
+    items = [admin, _story(), _match_visited_2(), _char('m1', 1, 'c1', location=1)]
     with _env(items):
         result = h.lambda_handler(
             make_event('GET', '/api/admin/matches/m1/locations',

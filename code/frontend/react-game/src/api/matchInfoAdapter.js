@@ -29,7 +29,7 @@
  *   }
  */
 
-import { buildEndGameCard } from "@/utils/loadoutCards"
+import { buildEndGameCard, buildNeighborCard } from "@/utils/loadoutCards"
 
 const EMPTY_STATS = {
   life: 0, energy: 0, sadness: 0, experience: 0, food: 0, magic: 0, coins: 0, weight: 0,
@@ -85,6 +85,10 @@ export function matchInfoToGameData(info, story = null,t) {
 
   const playerStats = toPlayerStats(info.players?.[0])
 
+  // `t` is the i18n translate fn (passed by GamePage). Guard against callers /
+  // tests that omit it so the adapter never throws on a missing translator.
+  const tr = typeof t === 'function' ? t : (k) => k
+
   // The active location is the one the player currently stands on. Prefer the
   // entry matching players[0].idLocation, falling back to the first active one.
   const playerLoc = info.players?.[0]?.idLocation ?? null
@@ -125,7 +129,21 @@ export function matchInfoToGameData(info, story = null,t) {
   // optional return card (cardBack); otherwise show the forward card.
   const locations = (active?.neighbors ?? []).map(n => {
     const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
-    const displayCard = (playerAtTo && n.cardBack) ? n.cardBack : n.card
+    // Step 0.28.5 — when a neighbor has NO card (neither forward nor return),
+    // fall back to the fixed "neighbor" card from data/images.json, titled by the
+    // move direction and described with the current + destination location names.
+    // The destination name is only shown when it is already visited (present in
+    // the /info locations list).
+    const destState = (info.locations ?? []).find(l => l.idLocation === n.idLocation) ?? null
+    // When the character stands on the destination (playerAtTo), the neighbor is
+    // a RETURN move: title "Back to …" and From/To swapped.
+    const currentTitle = actualLocationCard?.title ?? null
+    const destName = destState?.name ?? null
+    const fromName = playerAtTo ? destName : currentTitle
+    const toName = playerAtTo ? currentTitle : destName
+    const displayCard = (n.card == null && n.cardBack == null)
+      ? buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
+      : ((playerAtTo && n.cardBack) ? n.cardBack : n.card)
     return {
       uuid: n.uuid ?? null,
       idLocation: n.idLocation ?? null,
@@ -164,9 +182,6 @@ export function matchInfoToGameData(info, story = null,t) {
   }))
   const actions = [...leanActions, ...eventActions]
 
-  // `t` is the i18n translate fn (passed by GamePage). Guard against callers /
-  // tests that omit it so the adapter never throws on a missing translator.
-  const tr = typeof t === 'function' ? t : (k) => k
   const endGameCard = buildEndGameCard(tr);// story?.endGameCard ?? story?.card ?? null
 
   return { info: info, actualLocationCard: actualLocationCardWithCounter, 

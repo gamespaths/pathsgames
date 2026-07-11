@@ -1162,6 +1162,8 @@ export default function StoryEditorPage() {
             onOpenIdCardForm={handleOpenCardFromEntityTable}
             onDuplicateCardBack={handleDuplicateCardBack}
             showCardBackColumn={activeTab === 'location-neighbors'}
+            // Loc Neighbors shows a 4th column (Direction); other tabs keep 3.
+            maxColumns={activeTab === 'location-neighbors' ? 4 : 3}
             onEdit={(ent) => setModal({ type: 'form', entity: normalizeEntityForForm(ent, activeTab), entityTab: activeTab })}
             onDelete={(ent) => setModal({ type: 'delete', entity: ent, entityTab: activeTab })}
           />
