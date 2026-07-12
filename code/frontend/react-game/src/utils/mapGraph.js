@@ -132,6 +132,7 @@ export function buildMapGraph(info, matchLocations = null) {
         card: n.card,
         urlImage: n.card?.urlImage,
         name: n.card?.title,
+
       })
     })
   })
@@ -161,6 +162,7 @@ export function buildMapGraph(info, matchLocations = null) {
         card: farCard,
         urlImage: farCard?.urlImage,
         name: farCard?.title,
+        isNeighbor: (( n.idLocationFrom == currentId) || (n.idLocationTo == currentId  )) ,
       })
     })
   })

@@ -206,6 +206,7 @@
       "action": "Move",
       "cost": "Cost",
       "noEnergy": "Energy",
+      "notNeighbor": "Not a neighbor",
       "moveCost": "Moving"
     },
     "map": {

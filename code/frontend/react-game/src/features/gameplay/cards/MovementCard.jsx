@@ -15,15 +15,17 @@ import { startMovement } from '@/api/matches'
  * character lacks the energy the card renders locked with a `lockInfo` hint (no
  * `label` prop — see the no-label-prop-in-card convention).
  */
-export default function MovementCard({
-  location, totalEnergyCost, playerStats, story, onPreview, previewSide='left', matchUuid, accessToken, onMoved, onError,
+export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=false,
+  location, totalEnergyCost, playerStats, story, onPreview, previewSide='left', matchUuid, accessToken, onMoved, onError
 }) {
   const { t } = useTranslation()
   const [moving, setMoving] = useState(false)
 
   const cost = totalEnergyCost ?? location?.energyCost ?? 0
   const energy = playerStats?.energy ?? 0
-  const canMove = energy >= cost
+  const canMoveEnergy = energy >= cost
+  const canMove = canMoveEnergy && isNeighbor
+  const locked = (!canMove && !viewFromMap) || (!canMoveEnergy && isNeighbor)
 
   async function handleMove() {
     if (moving || !matchUuid || !location?.uuid) return
@@ -55,16 +57,16 @@ export default function MovementCard({
   )*/
 
   return (
-    <Card
+    <Card variant={variant }
       card={location?.card ?? { title: location?.name, description: location?.description,
         urlImage: location?.urlImage, awesomeIcon: location?.awesomeIcon }}
       entityType="movement"
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
       actionIcon={location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"}
-      locked={!canMove}
-      lockInfo={!canMove ? t('game.movement.noEnergy') : undefined}
-      lockedIcon="fas fa-bed"
+      locked={ locked }
+      lockInfo={!canMove ? (isNeighbor ? t('game.movement.noEnergy') : t('game.movement.notNeighbor')) : undefined}
+      lockedIcon={isNeighbor ? "fas fa-bed" : "fas fa-ban"}
       onPreview={() => {
         //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
         onPreview(location?.card ?? null, 'movement', null, costItems, true,
@@ -73,10 +75,10 @@ export default function MovementCard({
                 actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
                 , /* extraContent: moveInfo, extraContentClassName: '' */ }
             : { /* extraContent: moveInfo, extraContentClassName: ''*/ }, previewSide)
-      }}
+      }} hidePreview={!isNeighbor  }
       story={story}
-      flagInformationCard={true}
-      actionOnlyIfPreview={true}
+      flagInformationCard={!viewFromMap  }
+      actionOnlyIfPreview={!viewFromMap}
       actionWithInfo={true}
       childrenIntoImage={costBadge}
       infoIconClassName={!canMove ? null : location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fas fa-location-arrow"}

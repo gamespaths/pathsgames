@@ -109,7 +109,7 @@ export default function CardButtons({
     </div></div>)
   }
   //console.log("onPreview",onPreview);
-  if (onPreview){ 
+  if (onPreview && !hidePreview) { 
     return (<div className={divStyle}><div className="gc-actions">
         {getPreviewButton(true, "my-1", true) }
     </div></div>)

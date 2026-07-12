@@ -353,20 +353,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   //console.log("locations",locations , "actions", actions);
   //console.log("playerStats",playerStats);
   //console.log("a",resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty'));
-  
+  console.log("mapSelected",mapSelected, "hereLocationId", hereLocationId, "locationCosts", locationCosts);
   const rightContent =
     previewRight ? previewRightContent
     // Step 0.28.5 — while the map fills the left page, the right page shows
     // the location selected on the map, else the current location.
     : mapView ? (mapSelected
-        ? <LocationCard location={{ name: mapSelected.name }}
-            card={mapSelected.card ?? {
-              title: mapSelected.name,
-              urlImage: mapSelected.urlImage,
-              awesomeIcon: 'fas fa-map-marker-alt',
-            }}
-            story={story}
-            onEnterLocation={mapSelected.id === hereLocationId ? enterCurrentLocationView : undefined} />
+        ? <MovementCard variant="page" location={mapSelected} viewFromMap={true}
+            isNeighbor={mapSelected.isNeighbor ?? false}
+            totalEnergyCost={mapSelected.uuid != null ? locationCosts[mapSelected.uuid] : undefined}
+            playerStats={playerStats} story={story}
+            matchUuid={matchUuid} accessToken={user?.accessToken}
+            onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
         : <LocationCard locationsActive={gameData?.info?.locationsActive}
             location={actualLocationCard} card={actualLocationCard} story={story}
             onEnterLocation={enterCurrentLocationView} />)
