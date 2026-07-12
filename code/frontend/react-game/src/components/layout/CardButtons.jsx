@@ -10,7 +10,7 @@ export default function CardButtons({
   isPage, name,
   locked, lockedReason, lockInfo, lockedIcon,
   onSelect, selected, selectLabel,
-  onAction, actionLabel, actionIcon, actionOnlyIfPreview,
+  onAction, actionLabel, actionIcon, actionOnlyIfPreview, actionLabelChildren=null,
   onPreview, onPreviewClick, previewOpened, hidePreview,
   action2Label=null, action2Icon=null, onAction2=null,
   flagInformationCard,
@@ -91,6 +91,7 @@ export default function CardButtons({
         }}>
           <i className={`fas ${actionIcon} me-1`} />
           <span className={`gc-footer__btn-label font-size-medium ${infoLabelClassName}`}>{actionLabel}</span>
+          {actionLabelChildren}
         </button>}
       {onAction2 && !actionStarted &&
         <button className="gc-footer__btn" onClick={async () => {

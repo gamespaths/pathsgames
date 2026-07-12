@@ -42,6 +42,10 @@ public class LogEventsEntity {
     @Column(name = "log_message")
     private String logMessage;
 
+    /** Step 28.7 — clock value at the time of the event (null for pre-28.7 rows). */
+    @Column(name = "clock")
+    private Integer clock;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -85,6 +89,9 @@ public class LogEventsEntity {
 
     public String getLogMessage() { return logMessage; }
     public void setLogMessage(String logMessage) { this.logMessage = logMessage; }
+
+    public Integer getClock() { return clock; }
+    public void setClock(Integer clock) { this.clock = clock; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

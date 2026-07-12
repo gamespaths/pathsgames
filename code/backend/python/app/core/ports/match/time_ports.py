@@ -96,3 +96,7 @@ class TimeStorePort(TurnCycleStorePort):
     @abstractmethod
     def mark_state_location_activated(self, id_match: int, id_location: int) -> None:
         """Set gaming_state_locations.flag_already_actived = 1 when the counter reaches zero."""
+
+    @abstractmethod
+    def log_sleep(self, id_match: int, id_character: int, clock: int) -> None:
+        """Write a log_events row for a voluntary sleep action (Step 28.7)."""

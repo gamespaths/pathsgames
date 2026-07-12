@@ -303,7 +303,13 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
         self._insert_log_event(id_match, id_character_match=None,
                                id_event=id_event_if_counter_zero, message=message)
 
-    def _insert_log_event(self, id_match: int, id_character_match, id_event, message: str) -> None:
+    def log_sleep(self, id_match: int, id_character: int, clock: int) -> None:
+        """Write ACTION_SLEEP to log_events with the current clock (Step 28.7)."""
+        self._insert_log_event(id_match, id_character_match=id_character,
+                               id_event=None, message="ACTION_SLEEP", clock=clock)
+
+    def _insert_log_event(self, id_match: int, id_character_match, id_event,
+                          message: str, clock: int = None) -> None:
         with self.session_factory() as session:
             max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
             now = _now_iso()
@@ -314,6 +320,7 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 id_character_match=id_character_match,
                 timestamp=now,
                 id_event=id_event,
+                clock=clock,
                 log_message=message,
                 ts_insert=now,
                 ts_update=now,

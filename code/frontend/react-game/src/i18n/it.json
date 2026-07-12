@@ -125,6 +125,24 @@
       "GAMEOVER": "Game Over"
     }
   },
+  "matchLog": {
+    "title": "Storia della partita",
+    "loading": "Caricamento della storia…",
+    "empty": "In questa partita non è ancora successo nulla.",
+    "error": "Impossibile caricare la storia della partita",
+    "loadMore": "Carica altri",
+    "when": "Data",
+    "type": "Evento",
+    "card": "Carta",
+    "character": "Personaggio",
+    "types": {
+      "WEATHER": "Meteo",
+      "MOVEMENT": "Movimento",
+      "SLEEP": "Riposo",
+      "CLOCK_ADVANCE": "Scorre il tempo",
+      "RECOVERY": "Recupero"
+    }
+  },
   "card": {
     "info": "Info",
     "gameStatus": "Status",

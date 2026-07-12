@@ -33,8 +33,8 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
   const dragRef = useRef(null) // { sx, sy, stx, sty, moved }
   // survives past pointerup so the click handler can tell a drag from a tap
   const movedRef = useRef(false)
-  // Start zoomed in 2× (0.8 → 1.6) so the current area fills the map on open.
-  const [view, setView] = useState({ tx: 0, ty: 0, scale: 1.6, anim: false })
+  // Start zoomed in 2× (0.8 → 1.2) so the current area fills the map on open.
+  const [view, setView] = useState({ tx: 0, ty: 0, scale: 1.2, anim: false })
 
   function clamp(tx, ty, scale) {
     const el = canvasRef.current
@@ -181,15 +181,15 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
           <svg className="game-map-svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
             <defs>
               <marker id="gameMapArr" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                markerWidth="3" markerHeight="3" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6f08" />
               </marker>
               <marker id="gameMapArrSmall" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="2.6" markerHeight="2.6" orient="auto-start-reverse">
+                markerWidth="3" markerHeight="3" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6f08" />
               </marker>
               <marker id="gameMapArrBig" viewBox="0 0 10 10" refX="8" refY="5"
-                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                markerWidth="4" markerHeight="4" orient="auto-start-reverse">
                 <path d="M 0 0 L 10 5 L 0 10 z" fill="#7a4e00" />
               </marker>
             </defs>

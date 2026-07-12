@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import MatchDetailPage from '../../pages/MatchDetailPage'
 
@@ -8,6 +8,7 @@ vi.mock('../../api/matchApi', () => ({
   getMatchClock: vi.fn(),
   getMatchWeather: vi.fn(),
   getMatchLocations: vi.fn(),
+  getMatchLogs: vi.fn(),
   stopMatch:     vi.fn(),
   pauseMatch:    vi.fn(),
   resumeMatch:   vi.fn(),
@@ -103,6 +104,23 @@ describe('MatchDetailPage', () => {
     matchApi.pauseMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.resumeMatch.mockResolvedValue({ status: 'UPDATED' })
     matchApi.deleteMatch.mockResolvedValue({ status: 'DELETED' })
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, nextCursor: null, limit: 50, total: 5,
+      logs: [
+        { type: 'WEATHER',       clock: 0, timestamp: '2026-07-12T10:00:00Z', idWeather: 2,
+          idCard: 300, card: { title: 'Thunderstorm', urlImage: 'http://img/storm.png' } },
+        { type: 'MOVEMENT',      clock: null, timestamp: '2026-07-12T10:01:00Z',
+          idCharacterMatch: 1, characterUuid: 'char-1', characterName: 'Ranger',
+          idLocationFrom: 90001, idLocationTo: 90002, energyCost: 7,
+          idCard: 400, card: { title: 'Dark Forest', awesomeIcon: 'fa-tree' } },
+        { type: 'SLEEP',         clock: 0, timestamp: '2026-07-12T10:02:00Z',
+          idCharacterMatch: 1, characterUuid: 'char-1', characterName: 'Ranger' },
+        { type: 'CLOCK_ADVANCE', clock: 1, timestamp: '2026-07-12T10:02:01Z' },
+        { type: 'RECOVERY',      clock: null, timestamp: '2026-07-12T10:03:00Z',
+          idCharacterMatch: 1, characterUuid: 'char-1', characterName: 'Ranger',
+          message: 'recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1' },
+      ],
+    })
     getStory.mockResolvedValue({ uuid: 'story-1', title: 'The Lost Kingdom' })
     listEntities.mockImplementation((_uuid, type) => {
       if (type === 'character-templates') return Promise.resolve([{ uuid: 'ct-w', idTextName: 210 }])
@@ -202,6 +220,7 @@ describe('MatchDetailPage', () => {
     // other sections are not mounted until their tab is selected
     expect(screen.queryByText('Players & characters (1)')).not.toBeInTheDocument()
     expect(screen.queryByTestId('weather-panel')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('match-logs-panel')).not.toBeInTheDocument()
   })
 
   it('switches the visible section when a tab is clicked', async () => {
@@ -212,6 +231,159 @@ describe('MatchDetailPage', () => {
     expect(await screen.findByText('Players & characters (1)')).toBeInTheDocument()
     // leaving the config tab unmounts its content (status label is gone)
     expect(screen.queryByTestId('match-status-label')).not.toBeInTheDocument()
+  })
+
+  // ── Logs tab (Step 28.7) ─────────────────────────────────────────────────
+
+  it('renders the Logs tab with all entry types', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    // panel is visible
+    expect(await screen.findByTestId('match-logs-panel')).toBeInTheDocument()
+    // header shows entry count and current clock
+    expect(screen.getByText(/5 entries/i)).toBeInTheDocument()
+    expect(screen.getByText(/clock 4/i)).toBeInTheDocument()
+    // all five entry types appear
+    expect(screen.getAllByText('WEATHER').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('MOVEMENT').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('SLEEP').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('CLOCK_ADVANCE').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('RECOVERY').length).toBeGreaterThan(0)
+    // movement detail shows from → to
+    expect(screen.getByText(/#90001 → #90002/)).toBeInTheDocument()
+    // recovery detail shows the message (truncated)
+    expect(screen.getByText(/recovery safe=true/)).toBeInTheDocument()
+    expect(matchApi.getMatchLogs).toHaveBeenCalledWith('m1', { limit: 50 })
+  })
+
+  it('shows the card title and image for weather and movement entries', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    // WEATHER card: title + thumbnail image
+    expect(screen.getByText('Thunderstorm')).toBeInTheDocument()
+    expect(screen.getByAltText('Thunderstorm')).toHaveAttribute('src', 'http://img/storm.png')
+    // MOVEMENT card: title of the destination location (no image → icon fallback)
+    expect(screen.getByText('Dark Forest')).toBeInTheDocument()
+    expect(screen.queryByAltText('Dark Forest')).not.toBeInTheDocument()
+  })
+
+  it('names the character that performed each character-scoped action', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+    // MOVEMENT, SLEEP and RECOVERY all carry the character
+    expect(screen.getAllByText('Ranger')).toHaveLength(3)
+  })
+
+  it('loads the next page of logs when Load more is clicked', async () => {
+    matchApi.getMatchLogs
+      .mockResolvedValueOnce({
+        matchUuid: 'm1', currentClock: 4, limit: 50, total: 2, nextCursor: 'cur-2',
+        logs: [{ type: 'CLOCK_ADVANCE', clock: 0, timestamp: '2026-07-12T10:00:00Z' }],
+      })
+      .mockResolvedValueOnce({
+        matchUuid: 'm1', currentClock: 4, limit: 50, total: 2, nextCursor: null,
+        logs: [{ type: 'CLOCK_ADVANCE', clock: 1, timestamp: '2026-07-12T11:00:00Z' }],
+      })
+
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+    expect(screen.getByText(/Showing 1 of 2 — more available/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Load more/i }))
+
+    // the second page is appended, not replaced
+    expect(await screen.findByText(/Showing 2 of 2 — all loaded/)).toBeInTheDocument()
+    expect(screen.getAllByText('CLOCK_ADVANCE')).toHaveLength(2)
+    expect(matchApi.getMatchLogs).toHaveBeenLastCalledWith('m1', { limit: 50, cursor: 'cur-2' })
+    expect(screen.getByRole('button', { name: /No more pages/i })).toBeDisabled()
+  })
+
+  it('disables Load more when the first page is already the whole timeline', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+    expect(screen.getByRole('button', { name: /No more pages/i })).toBeDisabled()
+  })
+
+  it('filters the log table by type when a count badge is clicked', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    // all five entries are listed to begin with
+    expect(screen.getAllByText('MOVEMENT')).toHaveLength(1)
+    expect(screen.getAllByText('SLEEP')).toHaveLength(1)
+
+    // the MOVEMENT count badge filters the table down to that type
+    const filters = within(screen.getByTestId('match-logs-filters')).getAllByRole('button')
+    const movementChip = filters.find(b => b.getAttribute('title') === 'MOVEMENT')
+    fireEvent.click(movementChip)
+
+    expect(screen.getByText('MOVEMENT')).toBeInTheDocument()
+    expect(screen.queryByText('SLEEP')).not.toBeInTheDocument()
+    expect(screen.queryByText('WEATHER')).not.toBeInTheDocument()
+    expect(movementChip).toHaveAttribute('aria-pressed', 'true')
+
+    // the "All" chip brings every type back
+    fireEvent.click(screen.getByRole('button', { name: /All 5/ }))
+    expect(screen.getByText('SLEEP')).toBeInTheDocument()
+    expect(screen.getByText('WEATHER')).toBeInTheDocument()
+  })
+
+  it('clears the filter when the active badge is clicked again', async () => {
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    const chipFor = (type) => within(screen.getByTestId('match-logs-filters'))
+      .getAllByRole('button').find(b => b.getAttribute('title') === type)
+
+    fireEvent.click(chipFor('SLEEP'))
+    expect(screen.queryByText('WEATHER')).not.toBeInTheDocument()
+
+    fireEvent.click(chipFor('SLEEP'))  // same badge again → back to all
+    expect(screen.getByText('WEATHER')).toBeInTheDocument()
+    expect(screen.getByText('MOVEMENT')).toBeInTheDocument()
+  })
+
+  it('renders empty-state message when log list is empty', async () => {
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 0, logs: [], nextCursor: null, limit: 50, total: 0,
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    expect(await screen.findByText(/No log entries yet/i)).toBeInTheDocument()
+  })
+
+  it('shows an error instead of the panel when the logs API fails', async () => {
+    matchApi.getMatchLogs.mockRejectedValue(new Error('not available'))
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    expect(screen.queryByTestId('match-logs-panel')).not.toBeInTheDocument()
+    expect(await screen.findByText('not available')).toBeInTheDocument()
+  })
+
+  it('surfaces the backend error message when the logs API returns an error body', async () => {
+    matchApi.getMatchLogs.mockRejectedValue({
+      response: { data: { error: 'MATCH_NOT_FOUND', message: 'Match not found' } },
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    expect(await screen.findByText('Match not found')).toBeInTheDocument()
   })
 
   // ── clock status panel (Step 26) ──────────────────────────────────────────

@@ -131,3 +131,33 @@ describe('PlayerCards', () => {
     expect(screen.queryByTestId('card-trait')).toBeNull()
   })
 })
+
+// ── Step 28.7 — the story card opens the match history on the right page ──────
+
+describe('PlayerCards — story card and match log', () => {
+  beforeEach(() => { capturedCards.length = 0 })
+
+  it('opens the story card on the LEFT and the match log on the RIGHT', () => {
+    const onPreview = vi.fn()
+    const onPreviewMatchLog = vi.fn()
+    render(<PlayerCards storyFull={STORY_FULL} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA}
+      onPreview={onPreview} previewSide="right" onPreviewMatchLog={onPreviewMatchLog} />)
+
+    fireEvent.click(screen.getByTestId('preview-story'))
+
+    // the story card is forced to the left page (not `previewSide`), no modal
+    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, false, null, 'left')
+    expect(onPreviewMatchLog).toHaveBeenCalled()
+  })
+
+  it('keeps the previous behaviour when no match log handler is passed', () => {
+    const onPreview = vi.fn()
+    render(<PlayerCards storyFull={STORY_FULL} story={STORY}
+      playerStats={PLAYER_STATS} gameData={GAME_DATA}
+      onPreview={onPreview} previewSide="right" />)
+
+    fireEvent.click(screen.getByTestId('preview-story'))
+    expect(onPreview).toHaveBeenCalledWith(STORY.card, 'story', null, null, true, null, 'right')
+  })
+})

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getMatchInfo, getMatchClock, getMatchWeather, getMatchLocations, stopMatch, pauseMatch, resumeMatch, deleteMatch } from '../api/matchApi'
+import { getMatchInfo, getMatchClock, getMatchWeather, getMatchLocations, getMatchLogs, stopMatch, pauseMatch, resumeMatch, deleteMatch } from '../api/matchApi'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorAlert from '../components/common/ErrorAlert'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -13,6 +13,7 @@ import PlayersCard from '../components/match/detail/PlayersCard'
 import WeatherCard from '../components/match/detail/WeatherCard'
 import LocationStateCard from '../components/match/detail/LocationStateCard'
 import RegistryCard from '../components/match/detail/RegistryCard'
+import MatchLogsCard from '../components/match/detail/MatchLogsCard'
 import EditStatsModal from '../components/match/detail/EditStatsModal'
 import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '../components/match/detail/matchDetailShared'
 
@@ -25,8 +26,12 @@ import { TERMINAL, STATUS_COLOR, findByUuid, resolveEntityName, name20 } from '.
  * loads the data, owns the resolvers/handlers, and renders the active tab.
  */
 
+// Page size for the cursor-paginated log timeline (v0.28.7).
+const LOGS_PAGE_LIMIT = 50
+
 const DETAIL_TABS = [
   { id: 'config',    label: 'Match configuration', icon: 'fa-sliders-h' },
+  { id: 'logs',      label: 'Logs',               icon: 'fa-scroll' },
   { id: 'players',   label: 'Players',             icon: 'fa-users' },
   { id: 'weather',   label: 'Weather',             icon: 'fa-cloud-sun-rain' },
   { id: 'locations', label: 'Locations',           icon: 'fa-map' },
@@ -45,6 +50,11 @@ export default function MatchDetailPage() {
   const [clock, setClock]             = useState(null)
   const [weather, setWeather]         = useState(null)
   const [movement, setMovement]       = useState(null) // Step 28 — visited locations + move costs
+  // Step 28.7 — consolidated log timeline; v0.28.7 cursor-paginated, so `logs`
+  // accumulates the pages loaded so far.
+  const [logs, setLogs]               = useState(null)  // { entries, currentClock, total, nextCursor }
+  const [logsError, setLogsError]     = useState('')
+  const [logsLoadingMore, setLogsLoadingMore] = useState(false)
 
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError]     = useState('')
@@ -68,9 +78,38 @@ export default function MatchDetailPage() {
     getMatchClock(uuid).then(setClock).catch(() => setClock(null))
     getMatchWeather(uuid).then(setWeather).catch(() => setWeather(null))
     getMatchLocations(uuid).then(setMovement).catch(() => setMovement(null))
+    // The logs tab is a section of its own, so surface a failure there instead of
+    // silently rendering an empty panel.
+    setLogsError('')
+    getMatchLogs(uuid, { limit: LOGS_PAGE_LIMIT })
+      .then(page => setLogs({
+        entries: page?.logs ?? [],
+        currentClock: page?.currentClock ?? 0,
+        total: page?.total ?? 0,
+        nextCursor: page?.nextCursor ?? null,
+      }))
+      .catch(e => {
+        setLogs(null)
+        setLogsError(e.response?.data?.message || e.message || 'Failed to load match logs')
+      })
   }, [uuid])
 
   useEffect(() => { loadInfo() }, [loadInfo])
+
+  // Fetches the next page of the log timeline and appends it to the entries shown.
+  const loadMoreLogs = useCallback(() => {
+    if (!logs?.nextCursor || logsLoadingMore) return
+    setLogsLoadingMore(true)
+    getMatchLogs(uuid, { limit: LOGS_PAGE_LIMIT, cursor: logs.nextCursor })
+      .then(page => setLogs(prev => ({
+        entries: [...(prev?.entries ?? []), ...(page?.logs ?? [])],
+        currentClock: page?.currentClock ?? prev?.currentClock ?? 0,
+        total: page?.total ?? prev?.total ?? 0,
+        nextCursor: page?.nextCursor ?? null,
+      })))
+      .catch(e => setLogsError(e.response?.data?.message || e.message || 'Failed to load match logs'))
+      .finally(() => setLogsLoadingMore(false))
+  }, [uuid, logs, logsLoadingMore])
 
   const match   = info?.match
   const status  = match?.status ?? ''
@@ -198,6 +237,18 @@ export default function MatchDetailPage() {
               />
               <ClockStatusCard clock={clock} clockLabel={clockLabel} clockCharName={clockCharName} />
             </>
+          )}
+
+          {tab === 'logs' && (
+            <MatchLogsCard
+              entries={logs?.entries ?? null}
+              currentClock={logs?.currentClock}
+              total={logs?.total}
+              nextCursor={logs?.nextCursor}
+              loadingMore={logsLoadingMore}
+              onLoadMore={loadMoreLogs}
+              error={logsError}
+            />
           )}
 
           {tab === 'players' && (

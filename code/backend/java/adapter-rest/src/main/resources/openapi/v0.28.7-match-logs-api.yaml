@@ -1,0 +1,235 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Match Logs API
+  description: |
+    Step 28.7 — consolidated match log endpoint.
+
+    Returns a unified timeline of all logged events for a match, ordered by
+    timestamp ascending. Log types included in v0.28.7:
+
+    - **WEATHER**: weather selected at every time-start (from `log_weather`)
+    - **MOVEMENT**: character movements (from `log_movements`)
+    - **SLEEP**: voluntary sleep actions (from `log_events` where `log_message='ACTION_SLEEP'`,
+      written when `POST /api/gameplay/{uuid}/action/sleep` is called)
+    - **CLOCK_ADVANCE**: clock increments / time-end triggers (from `log_clock_history`)
+    - **RECOVERY**: per-character stat recovery at time-start (from `log_events`
+      where `log_message` starts with `recovery` or `counter`)
+
+    Future additions (out of scope for v0.28.7): CHOICE_EXECUTED, ITEM_USED,
+    EVENT_TRIGGERED, REGISTRY_CHANGE.
+
+    **Public endpoint** (owner-only): `GET /api/matches/{uuidMatch}/logs`
+    **Admin endpoint** (no ownership check, admin port 8044):
+    `GET /api/admin/matches/{uuidMatch}/logs`
+
+    ## v0.28.7 — pagination and enrichment
+
+    Both endpoints are **cursor-paginated**, using the same envelope convention as
+    the paginated admin match list: pass `?limit=` (default 50, max 200) and the
+    `nextCursor` of the previous response as `?cursor=`. `nextCursor` is `null` on
+    the last page; `total` is the size of the whole timeline.
+
+    Entries on the returned page are **enriched** (cards resolved in `?lang=`,
+    default `en`):
+
+    - **WEATHER** entries carry `idCard` + `card` — the weather's own card.
+    - **MOVEMENT** entries carry `idCard` + `card` of the **destination location**,
+      plus `characterUuid` / `characterName` of the character that moved.
+    - **SLEEP** and **RECOVERY** entries carry `characterUuid` / `characterName`.
+
+    Note: on the AWS backend `idCharacterMatch` is always `null` (characters are
+    keyed by uuid there) and RECOVERY entries are not produced.
+  version: 0.28.7
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+  - url: http://localhost:8044
+    description: Local development (admin API)
+tags:
+  - name: match-logs
+    description: Match log timeline
+security:
+  - bearerAuth: []
+paths:
+  /api/matches/{uuidMatch}/logs:
+    get:
+      tags: [match-logs]
+      summary: Consolidated match log timeline (owner-only)
+      description: |
+        Returns the full log timeline for the given match. Only the match
+        creator can access this endpoint (returns 404 for other users).
+        Entries are sorted by timestamp ascending.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          description: Page size, clamped to [1, 200]. Defaults to 50.
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque token from the previous response's `nextCursor`.
+          schema: { type: string }
+        - name: lang
+          in: query
+          required: false
+          description: Language used to resolve the entry cards.
+          schema: { type: string, default: en }
+      responses:
+        '200':
+          description: One page of the log timeline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchLogsResponse' }
+        '401': { description: UNAUTHENTICATED — missing or invalid bearer token }
+        '404': { description: MATCH_NOT_FOUND — unknown match or caller is not the creator }
+  /api/admin/matches/{uuidMatch}/logs:
+    get:
+      tags: [match-logs]
+      summary: Admin consolidated match log (no ownership check, admin port 8044)
+      description: |
+        Admin-only (served on admin port 8044). Same payload as the public endpoint
+        but without the ownership check. Useful for the admin replay viewer.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          description: Page size, clamped to [1, 200]. Defaults to 50.
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque token from the previous response's `nextCursor`.
+          schema: { type: string }
+        - name: lang
+          in: query
+          required: false
+          description: Language used to resolve the entry cards.
+          schema: { type: string, default: en }
+      responses:
+        '200':
+          description: One page of the log timeline
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchLogsResponse' }
+        '400': { description: INVALID_INPUT — match uuid is required }
+        '404': { description: MATCH_NOT_FOUND — unknown match }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    MatchLogsResponse:
+      type: object
+      properties:
+        matchUuid:
+          type: string
+          description: UUID of the match
+        currentClock:
+          type: integer
+          description: Current clock value of the match
+        logs:
+          type: array
+          description: Timeline entries on this page, sorted by timestamp ascending
+          items: { $ref: '#/components/schemas/LogEntry' }
+        nextCursor:
+          type: string
+          nullable: true
+          description: Token for the next page; null on the last page
+        limit:
+          type: integer
+          description: Effective (clamped) page size that produced this page
+        total:
+          type: integer
+          description: Total number of entries in the whole timeline
+    LogEntry:
+      type: object
+      required: [type, timestamp]
+      properties:
+        type:
+          type: string
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY]
+          description: Log entry type
+        clock:
+          type: integer
+          nullable: true
+          description: Match clock value at the time of the event (null for MOVEMENT entries)
+        timestamp:
+          type: string
+          nullable: true
+          description: ISO-8601 UTC timestamp of the event
+        idWeather:
+          type: integer
+          format: int64
+          nullable: true
+          description: "(WEATHER only) ID of the selected weather rule"
+        idCharacterMatch:
+          type: integer
+          format: int64
+          nullable: true
+          description: "(MOVEMENT, SLEEP, RECOVERY only) ID of the character instance. Always null on AWS."
+        characterUuid:
+          type: string
+          nullable: true
+          description: "(v0.28.7; MOVEMENT, SLEEP, RECOVERY) UUID of the character that acted"
+        characterName:
+          type: string
+          nullable: true
+          description: "(v0.28.7) Title of the character template's card, i.e. the character's name"
+        idLocationFrom:
+          type: integer
+          format: int64
+          nullable: true
+          description: "(MOVEMENT only) Starting location ID"
+        idLocationTo:
+          type: integer
+          format: int64
+          nullable: true
+          description: "(MOVEMENT only) Destination location ID"
+        energyCost:
+          type: integer
+          nullable: true
+          description: "(MOVEMENT only) Total energy cost paid for the move"
+        message:
+          type: string
+          nullable: true
+          description: "(RECOVERY only) Recovery summary message"
+        idCard:
+          type: integer
+          nullable: true
+          description: >-
+            (v0.28.7; WEATHER, MOVEMENT) Story-scoped card id — the weather's own card
+            for WEATHER, the destination location's card for MOVEMENT.
+        card:
+          nullable: true
+          description: "(v0.28.7) The resolved card for idCard, localized via ?lang="
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+    CardInfo:
+      type: object
+      description: A visual card with its resolved, localized texts.
+      properties:
+        uuid: { type: string }
+        cardType: { type: string, nullable: true }
+        urlImage: { type: string, nullable: true }
+        alternativeImage: { type: string, nullable: true }
+        awesomeIcon: { type: string, nullable: true }
+        styleMain: { type: string, nullable: true }
+        styleDetail: { type: string, nullable: true }
+        styleImageLittle: { type: string, nullable: true }
+        styleImageMedium: { type: string, nullable: true }
+        styleImageLarge: { type: string, nullable: true }
+        title: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        copyrightText: { type: string, nullable: true }
+        linkCopyright: { type: string, nullable: true }

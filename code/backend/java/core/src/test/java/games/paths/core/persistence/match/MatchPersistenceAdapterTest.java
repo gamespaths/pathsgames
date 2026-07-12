@@ -11,6 +11,7 @@ import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogMovementRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ class MatchPersistenceAdapterTest {
     private GamingCharacterTraitsRepository characterTraitsRepository;
     private GamingInventoryItemsRepository inventoryRepository;
     private LogEventsRepository logEventsRepository;
+    private LogMovementRepository logMovementRepository;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -45,9 +47,10 @@ class MatchPersistenceAdapterTest {
         characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
+        logMovementRepository = mock(LogMovementRepository.class);
         adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
                 characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
-                logEventsRepository);
+                logEventsRepository, logMovementRepository);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
     }
 
@@ -122,6 +125,8 @@ class MatchPersistenceAdapterTest {
         verify(inventoryRepository).deleteByMatchIdIn(ids);
         verify(backpackRepository).deleteByMatchIdIn(ids);
         verify(logEventsRepository).deleteByMatchIdIn(ids);
+        // log_movements references gaming_character_instance (FK enforced on PostgreSQL)
+        verify(logMovementRepository).deleteByMatchIdIn(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryRepository).deleteByMatchIdIn(ids);

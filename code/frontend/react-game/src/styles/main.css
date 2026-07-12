@@ -2609,8 +2609,8 @@ html, body {
   z-index: 2;
 }
 .game-map-node--unknown {
-  background-image: none !important;
-  background: radial-gradient(circle at 40% 35%, var(--color-brown-mid), var(--color-brown-dark) 75%);
+  /* !important: hides the inline background-image of a never-visited location */
+  background-image: radial-gradient(circle at 40% 35%, var(--color-brown--extra-tan), var(--color-brown-dark) 75%) !important;
   border-style: dashed;
   border-color: var(--color-brown-warm);
   box-shadow: inset 0 0 14px rgba(0,0,0,.55);
@@ -2620,10 +2620,10 @@ html, body {
   position: absolute; inset: 0;
   display: grid; place-items: center;
   font-family: var(--font-display);
-  font-size: 1.9rem;
-  color: var(--color-parchment-dark);
-  text-shadow: 0 2px 6px rgba(0,0,0,.8);
-  opacity: .85;
+  font-size: 2rem;
+  color: var(--color-brown-mid);
+  text-shadow: 0 3px 8px rgba(0,0,0,.8);
+  font-weight:700;
 }
 
 .game-map-node--safe {
@@ -2705,4 +2705,98 @@ html, body {
     flex: none;
     height: clamp(300px, 55vh, 460px);
   }
+}
+
+/* ── Match history (Step 28.7 logs API) ──────────────────────────────────────
+   MatchLogCard: the match timeline shown on the book's right page as a grid of
+   little Cards (one per log entry), inside Card's `extraContent` slot. */
+
+.match-log-extra {
+  width: 100%;
+}
+
+.match-log-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.match-log-state {
+  padding: 0.75rem 0.25rem;
+  font-family: var(--font-heading);
+  color: var(--color-gold-deep);
+  font-size: 2rem;
+}
+
+.match-log-error {
+  color: var(--color-blood, #8b1a1a);
+}
+
+/* The entry tiles reuse the same grid the other card lists use. */
+.match-log-list {
+  width: 100%;
+}
+
+/* Event type, overlaid on the entry card's image. */
+.match-log-type {
+  display: block;
+  align-items: center;
+  white-space: nowrap;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgba(26, 10, 2, 0.75);
+}
+
+.match-log-type--WEATHER       { color: #eab308; }
+.match-log-type--MOVEMENT      { color: #22c55e; }
+.match-log-type--SLEEP         { color: #60a5fa; }
+.match-log-type--CLOCK_ADVANCE { color: #c084fc; }
+.match-log-type--RECOVERY      { color: #2dd4bf; }
+
+/* Date (and actor) under each entry card. */
+.match-log-entry-extra {
+  padding: 0.15rem 0.35rem;
+}
+
+.match-log-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-parchment-light);
+  font-size: 0.8rem;
+}
+
+.match-log-character {
+  color: var(--color-parchment-dark);
+}
+
+/* Load more: full-width, centered, at the end of the entry list. Reuses
+   CardButtons' gc-footer__btn look so it reads as the same control. */
+.match-log-more-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0.35rem 0;
+}
+
+.match-log-more {
+  min-width: 60%;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.match-log-more:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.match-log-count {
+  margin: 0;
+  color: var(--color-ash);
+  font-size: 0.72rem;
 }

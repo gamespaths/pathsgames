@@ -272,6 +272,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
 		- ✅ GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
 	- Matches
+		- ✅ GET  `/matches`: Matches list of the user
+		- ✅ GET `/matches/{uuid_match}/logs`: Consolidated match log timeline — WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE (+ RECOVERY on Java/Python only, not yet on AWS); choices/items/registry logging is a future addition (v0.28.7, see `Step28_MovementSystem.md`)
 		- GET  `/matches/active`: Matches list in status "wait for others players"
 		- GET  `/matches/list/{uuid_user}/{status}`: Matches list filtered by status and by user
 		- POST `/matches/{uuid_match}/leave`: Leave a matches if not started
@@ -284,7 +286,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/matches/{uuid}/characters/traits`
 		- ✅ GET `/matches/{uuid}/weather`
 		- GET `/matches/{uuid}/characters/{uuid}/resources `
-		- ?? GET `/match/{uuid_match}/locations`: Location list (only already visited)		
+		- ✅ GET `/match/{uuid_match}/locations`: Location list (only already visited with all information!)		
 	- Match
 		- ✅ GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
 			- Note: The method *info* returns so many informations (location, events, choices, registry), in future if the frontend is making too many REST calls to compose a single view, you could consider GraphQL for future versions. 
@@ -297,7 +299,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/match/{uuid_match}/events/history/{page}`: Get event list with pagining system
 		- PATCH `/match/{uuid_match}/end/{uuid_event}`: To complete a match
 	- Gameplay movements
-		- POST `/gameplay/{uuid_match}/movements/start`: To move characters 
+		✅ POST `/gameplay/{uuid_match}/movements/start`: To move characters 
 		- GET  `/gameplay/{uuid_match}/movements/pending`: Pending invitations list
 		- POST `/gameplay/{uuid_match}/movements/confirm-movement-invite`: To confirm a movement invitation 
 	- Gameplay actions
@@ -305,7 +307,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- POST `/gameplay/{uuid_match}/action/help-player`: To help a player in same location
 		- POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
 		- POST `/gameplay/{uuid_match}/action/select-choice`: Send an choice option selected 
-		- POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
+		✅ POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
 		- POST `/gameplay/{uuid_match}/action/pass`: Send a pass *action* (could run gameover)
 		- POST `/gameplay/{uuid_match}/action/use-exp`: To use exp to upgrade a character
 	- Gameplay inventory action

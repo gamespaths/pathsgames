@@ -531,17 +531,18 @@
       "awesomeIcon": null,
       "cardType": null,
       "id": 50,
+      "idCard": 50,
       "idCreator": 1,
-      "idTextCopyright": 157,
+      "idTextCopyright": 205,
       "idTextDescription": 154,
       "idTextTitle": 138,
-      "linkCopyright": "https://unsplash.com/photos/wooden-post-on-a-sandy-beach-landscape-RSITeuLLalk",
+      "linkCopyright": "https://unsplash.com/photos/an-aerial-view-of-a-wooden-walkway-in-the-woods-gYgDcCYob_s",
       "styleDetail": null,
       "styleImageLarge": null,
       "styleImageLittle": null,
       "styleImageMedium": null,
       "styleMain": null,
-      "urlImage": "https://plus.unsplash.com/premium_photo-1742561620384-f76310e32a5c?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "urlImage": "https://images.unsplash.com/photo-1722475996685-53184f6f038f?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "22713807-b0d5-4ae5-b59a-9a68f833db1e"
     },
     {
@@ -583,9 +584,10 @@
     },
     {
       "alternativeImage": null,
-      "awesomeIcon": "fa-walking",
+      "awesomeIcon": "",
       "cardType": null,
       "id": 53,
+      "idCard": 53,
       "idCreator": 1,
       "idTextCopyright": 156,
       "idTextDescription": 153,
@@ -601,7 +603,7 @@
     },
     {
       "alternativeImage": null,
-      "awesomeIcon": "fa-walking",
+      "awesomeIcon": "",
       "cardType": null,
       "id": 54,
       "idCard": 54,
@@ -609,6 +611,7 @@
       "idTextCopyright": 146,
       "idTextDescription": 166,
       "idTextTitle": 143,
+      "id_card": 54,
       "linkCopyright": "https://unsplash.com/photos/a-wooden-bridge-over-water-GzTGEQ1Dq9k",
       "styleDetail": null,
       "styleImageLarge": null,
@@ -657,7 +660,7 @@
     },
     {
       "alternativeImage": null,
-      "awesomeIcon": "fa-walking",
+      "awesomeIcon": "fas fa-walking",
       "cardType": null,
       "id": 57,
       "idCard": 57,
@@ -1417,12 +1420,12 @@
       "energyCost": "",
       "flagBack": 1,
       "id": 3,
-      "idCard": 54,
+      "idCard": "",
       "idCardBack": 57,
       "idLocationFrom": 3,
       "idLocationTo": 4,
       "idTextName": 143,
-      "id_card": 54,
+      "id_card": null,
       "uuid": "0d53dec4-723b-4cdc-a5eb-9a95330d26d9"
     },
     {
@@ -4267,8 +4270,8 @@
       "idText": 138,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Main location",
-      "shortText": "Main location",
+      "longText": "Location",
+      "shortText": "Location",
       "uuid": "fa007a86-01e7-47b5-b5d4-9c14f77dac91"
     },
     {
@@ -4277,8 +4280,8 @@
       "idText": 139,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Move to main location",
-      "shortText": "Move to main location",
+      "longText": "Move to location",
+      "shortText": "Move to location",
       "uuid": "93c1f297-9698-4cd3-b26a-6c1f01623e54"
     },
     {
@@ -4307,8 +4310,8 @@
       "idText": 138,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Luogo principale",
-      "shortText": "Luogo principale",
+      "longText": "Luogo",
+      "shortText": "Luogo",
       "uuid": "8f408c29-bc42-4f71-ab54-18199f6a3127"
     },
     {
@@ -4567,8 +4570,8 @@
       "idText": 139,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Muoviti al luogo principale",
-      "shortText": "Muoviti al luogo principale",
+      "longText": "Muoviti al luogo",
+      "shortText": "Muoviti al luogo",
       "uuid": "7a63cea5-1360-4744-b381-64f6610fafdd"
     },
     {
@@ -5230,6 +5233,26 @@
       "longText": "delta",
       "shortText": "delta",
       "uuid": "0b0970cc-d3db-4079-a111-6358cba52406"
+    },
+    {
+      "id": 205,
+      "idCreator": 1,
+      "idText": 205,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Marcus Urbenz",
+      "shortText": "Marcus Urbenz",
+      "uuid": "c39f38b8-832d-4f87-bb57-d76ad00a91d5"
+    },
+    {
+      "id": 205,
+      "idCreator": 1,
+      "idText": 205,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "0d032ee9-c223-44ab-ae00-2146d8bb8013"
     }
   ],
   "title": "Paths Tutorial",

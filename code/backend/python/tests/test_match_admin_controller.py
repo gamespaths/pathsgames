@@ -191,3 +191,54 @@ def test_get_admin_match_info_returns_404(env):
     resp = client.get('/api/admin/matches/m1/info')
     assert resp.status_code == 404
     assert resp.json()['error'] == 'MATCH_NOT_FOUND'
+
+
+# ── Step 28.7 — GET /api/admin/matches/{uuid}/logs ──────────────────────────
+
+@pytest.fixture()
+def logs_env():
+    """Same admin app as ``env`` but with a match-logs service wired in."""
+    logs_service = MagicMock()
+    controller = MatchAdminController(MagicMock(), MagicMock(),
+                                      match_logs_service=logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    return TestClient(app), logs_service
+
+
+def test_get_admin_match_logs_returns_200(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = {
+        "matchUuid": "m1", "currentClock": 0, "logs": [],
+    }
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 200
+    assert resp.json()["matchUuid"] == "m1"
+    logs_service.get_match_logs_for_admin.assert_called_once_with("m1", "en", None, None)
+
+
+def test_get_admin_match_logs_passes_lang_limit_and_cursor(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = {
+        "matchUuid": "m1", "currentClock": 0, "logs": [],
+        "nextCursor": "next", "limit": 10, "total": 42,
+    }
+    resp = client.get("/api/admin/matches/m1/logs?lang=it&limit=10&cursor=cur")
+    assert resp.status_code == 200
+    assert resp.json()["nextCursor"] == "next"
+    logs_service.get_match_logs_for_admin.assert_called_once_with("m1", "it", 10, "cur")
+
+
+def test_get_admin_match_logs_unknown_match_returns_404(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = None
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_get_admin_match_logs_without_service_returns_501(env):
+    client, _, _ = env
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 501
+    assert resp.json()["error"] == "NOT_IMPLEMENTED"

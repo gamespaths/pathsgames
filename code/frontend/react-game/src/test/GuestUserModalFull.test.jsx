@@ -28,7 +28,20 @@ vi.mock('../components/layout/Card', () => ({
 }))
 vi.mock('@/features/guest-user/UserMatchesList', () => ({
   default: ({ onPreviewCard }) => (
-    <button onClick={() => onPreviewCard({ card: { title: 'Prev' }, story: { title: 'S' } })}>preview</button>
+    <>
+      <button onClick={() => onPreviewCard({ card: { title: 'Prev' }, story: { title: 'S' } })}>preview</button>
+      <button onClick={() => onPreviewCard({
+        card: { title: 'Prev' }, story: { title: 'S' }, match: { uuid: 'm1' },
+      })}>preview-match</button>
+    </>
+  ),
+}))
+vi.mock('@/features/matches/MatchLogCard', () => ({
+  default: ({ matchUuid, onBack }) => (
+    <div data-testid="match-log-card">
+      log:{matchUuid}
+      <button onClick={onBack}>log-back</button>
+    </div>
   ),
 }))
 vi.mock('@/features/guest-user/UserLanguageSelector', () => ({ default: () => <div /> }))
@@ -55,6 +68,27 @@ describe('GuestUserModal (antibot + preview)', () => {
     fireEvent.click(screen.getByText('startMatch.retry'))
     // retry → back to checking
     expect(screen.getByText('antibot.verifying')).toBeInTheDocument()
+  })
+
+  // Step 28.7 — (i) on a match: story card left, match history right.
+  it('opens the match history on the right page when a match is previewed', () => {
+    render(<GuestUserModal />)
+    fireEvent.click(screen.getByText('ts-success'))
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('preview-match'))
+
+    // right page: the log for that match, in place of the matches list
+    expect(screen.getByTestId('match-log-card')).toBeInTheDocument()
+    expect(screen.getByText('log:m1')).toBeInTheDocument()
+    expect(screen.queryByText('preview-match')).not.toBeInTheDocument()
+    // left page: the story card (unchanged behaviour)
+    expect(screen.getAllByText('Prev').length).toBeGreaterThan(0)
+
+    // the log's back arrow restores the matches list
+    fireEvent.click(screen.getByText('log-back'))
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
+    expect(screen.getByText('preview-match')).toBeInTheDocument()
   })
 
   it('passes Turnstile then shows matches; previewing swaps + closes the left page', () => {

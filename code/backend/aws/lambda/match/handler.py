@@ -600,6 +600,8 @@ def _create_match(user, body):
         "rngSeed": rng_seed,
         "currentWeatherId": None,
         "weatherLog": [],
+        "movementLog": [],
+        "sleepLog": [],
         "expCost": int(matched_diff.get('expCost') or 5),
         "userCreatorUuid": user['uuid'],
         "tsInsert": now_ms,
@@ -1408,6 +1410,188 @@ def _get_weather(match_uuid, lang='en'):
     return _ok(payload)
 
 
+def _ms_to_iso(ts_ms):
+    """Convert millisecond timestamp to ISO string; return None if ts_ms is None."""
+    if ts_ms is None:
+        return None
+    try:
+        import datetime
+        moment = datetime.datetime.fromtimestamp(int(ts_ms) / 1000, datetime.timezone.utc)
+        return moment.strftime('%Y-%m-%dT%H:%M:%S.') + f'{int(ts_ms) % 1000:03d}Z'
+    except Exception:
+        return str(ts_ms)
+
+
+LOGS_DEFAULT_LIMIT = 50
+LOGS_MAX_LIMIT = 200
+_CURSOR_PREFIX = 'offset:'
+
+
+def _clamp_logs_limit(limit):
+    """Clamps the requested page size into [1, LOGS_MAX_LIMIT]; None → default."""
+    if limit is None or str(limit).strip() == '':
+        return LOGS_DEFAULT_LIMIT
+    try:
+        return max(1, min(int(limit), LOGS_MAX_LIMIT))
+    except (TypeError, ValueError):
+        return LOGS_DEFAULT_LIMIT
+
+
+def _encode_logs_cursor(offset):
+    """Encodes the offset of the next page into an opaque url-safe token."""
+    import base64
+    raw = f'{_CURSOR_PREFIX}{offset}'.encode('utf-8')
+    return base64.urlsafe_b64encode(raw).decode('ascii').rstrip('=')
+
+
+def _decode_logs_cursor(cursor):
+    """Decodes an opaque cursor into an offset. Unreadable cursors restart from 0."""
+    import base64
+    if not cursor or not str(cursor).strip():
+        return 0
+    try:
+        padded = cursor + '=' * (-len(cursor) % 4)
+        raw = base64.urlsafe_b64decode(padded.encode('ascii')).decode('utf-8')
+        if not raw.startswith(_CURSOR_PREFIX):
+            return 0
+        return max(0, int(raw[len(_CURSOR_PREFIX):]))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _assemble_match_logs(match, match_uuid):
+    """The whole timeline, sorted by timestamp ascending, with no enrichment yet."""
+    entries = []
+
+    # WEATHER from weatherLog
+    for w in (match.get('weatherLog') or []):
+        entries.append({
+            "type": "WEATHER",
+            "clock": w.get('clock'),
+            "timestamp": _ms_to_iso(w.get('timestampStart')),
+            "idWeather": w.get('idWeather'),
+        })
+
+    # MOVEMENT from movementLog
+    for m in (match.get('movementLog') or []):
+        entries.append({
+            "type": "MOVEMENT",
+            "clock": None,
+            "timestamp": _ms_to_iso(m.get('timestampStart')),
+            "characterUuid": m.get('characterUuid'),
+            "idLocationFrom": m.get('idLocationFrom'),
+            "idLocationTo": m.get('idLocationTo'),
+            "energyCost": m.get('energyCost'),
+        })
+
+    # SLEEP from sleepLog
+    for s in (match.get('sleepLog') or []):
+        entries.append({
+            "type": "SLEEP",
+            "clock": s.get('clock'),
+            "timestamp": _ms_to_iso(s.get('timestamp')),
+            "characterUuid": s.get('characterUuid'),
+        })
+
+    # CLOCK_ADVANCE from the CLOCK#<n> items written by _advance_time under the
+    # match partition (they are separate items, not embedded in the match).
+    for c in (db_utils.query_by_pk(f'MATCH#{match_uuid}') or []):
+        if not str(c.get('SK') or '').startswith('CLOCK#'):
+            continue
+        entries.append({
+            "type": "CLOCK_ADVANCE",
+            "clock": _nz(c.get('clock')),
+            "timestamp": _ms_to_iso(c.get('timestampStart')),
+        })
+
+    # Sort by timestamp ascending; None timestamps sort last
+    entries.sort(key=lambda x: x.get('timestamp') or '9999')
+    return entries
+
+
+def _enrich_match_logs(page, match, match_uuid, lang):
+    """v0.28.7 — adds the card of every WEATHER (its own) and MOVEMENT entry (the
+    destination location's), plus the name of the character behind character-scoped
+    entries. The story and character lookups run once per page, not per entry."""
+    if not page:
+        return []
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    weather_cards = {_nz(w.get('id')): w.get('idCard')
+                     for w in (story.get('weatherRules') or [])}
+    location_cards = {_nz(loc.get('id')): loc.get('idCard')
+                      for loc in (story.get('locations') or [])}
+    template_cards = {t.get('uuid'): t.get('idCard')
+                      for t in (story.get('characterTemplates') or [])}
+    characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
+
+    out = []
+    for e in page:
+        entry = dict(e)
+
+        id_card = None
+        if entry['type'] == 'WEATHER' and entry.get('idWeather') is not None:
+            id_card = weather_cards.get(_nz(entry['idWeather']))
+        elif entry['type'] == 'MOVEMENT' and entry.get('idLocationTo') is not None:
+            id_card = location_cards.get(_nz(entry['idLocationTo']))
+        entry['idCard'] = id_card
+        entry['card'] = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
+
+        character = characters.get(entry.get('characterUuid'))
+        if character is not None:
+            template_card = _resolve_card_from_raw(
+                raw_cards, raw_texts,
+                template_cards.get(character.get('characterTemplateUuid')), lang)
+            entry['characterName'] = (template_card or {}).get('title')
+
+        out.append(entry)
+    return out
+
+
+def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None):
+    """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7)."""
+    entries = _assemble_match_logs(match, match_uuid)
+
+    effective_limit = _clamp_logs_limit(limit)
+    offset = min(_decode_logs_cursor(cursor), len(entries))
+    end = min(offset + effective_limit, len(entries))
+    page = _enrich_match_logs(entries[offset:end], match, match_uuid, lang or 'en')
+
+    return {
+        "matchUuid": match_uuid,
+        "currentClock": _nz(match.get('currentClock')),
+        "logs": page,
+        "nextCursor": _encode_logs_cursor(end) if end < len(entries) else None,
+        "limit": effective_limit,
+        "total": len(entries),
+    }
+
+
+def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None):
+    """GET /api/matches/{uuid}/logs — consolidated log timeline, owner-only (Step 28.7)."""
+    if not match_uuid or not match_uuid.strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    # Owner check
+    if user is None or match.get('userCreatorUuid') != user.get('uuid'):
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+
+
+def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None):
+    """GET /api/admin/matches/{uuid}/logs — admin log timeline, no ownership check (Step 28.7)."""
+    if not match_uuid or not match_uuid.strip():
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+
+
 def _get_admin_match_weather(match_uuid):
     """GET /api/admin/matches/{uuid}/weather — rng_seed + current + log_weather."""
     if not match_uuid or not match_uuid.strip():
@@ -1527,6 +1711,16 @@ def _sleep(user, match_uuid):
     # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
     caller['isSleeping'] = 1
     db_utils.put_item(caller)
+
+    # Step 28.7 — log the sleep action for the match logs timeline.
+    sleep_log = match.get('sleepLog') or []
+    sleep_log.append({
+        "characterUuid": caller.get('uuid'),
+        "clock": _nz(match.get('currentClock')),
+        "timestamp": _ts_ms(),
+    })
+    match['sleepLog'] = sleep_log
+    db_utils.put_item(match)
 
     # Re-read so the trigger sees the just-applied sleep flag.
     characters = _match_characters(match_uuid)
@@ -1883,6 +2077,10 @@ def lambda_handler(event, context):
             return _get_admin_match_info(match_uuid)
         if path.endswith('/weather') and method == 'GET':
             return _get_admin_match_weather(match_uuid)
+        if path.endswith('/logs') and method == 'GET':
+            qs = (event.get('queryStringParameters') or {})
+            return _get_admin_match_logs(match_uuid, qs.get('lang') or 'en',
+                                         qs.get('limit'), qs.get('cursor'))
         if path.endswith('/locations') and method == 'GET':
             lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
             return _get_admin_locations(match_uuid, lang)
@@ -1940,6 +2138,17 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
         return _get_weather(match_uuid, lang)
+
+    # Step 28.7 — GET /api/matches/{uuidMatch}/logs
+    if (path.startswith(_API_MATCHES_PATH) and path.endswith('/logs') and method == 'GET'):
+        params = (event.get('pathParameters') or {})
+        match_uuid = params.get('uuidMatch')
+        if not match_uuid:
+            segments = path.split('/')
+            match_uuid = segments[3] if len(segments) > 4 else ''
+        qs = (event.get('queryStringParameters') or {})
+        return _get_match_logs(user, match_uuid, qs.get('lang') or 'en',
+                               qs.get('limit'), qs.get('cursor'))
 
     if path.startswith('/api/match/') and path.endswith('/info') and method == 'GET':
         params = (event.get('pathParameters') or {})

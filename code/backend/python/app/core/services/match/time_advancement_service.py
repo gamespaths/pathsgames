@@ -51,6 +51,8 @@ class TimeAdvancementService(TimeAdvancementPort):
 
         # Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
         self.store.set_character_sleeping(match["id"], caller["id"], True)
+        # Step 28.7 — log the sleep action for the match logs timeline.
+        self.store.log_sleep(match["id"], caller["id"], match.get("current_clock") or 0)
 
         # Re-read so the trigger sees the just-applied sleep flag.
         characters = self.store.find_characters_by_match_id(match["id"]) or []

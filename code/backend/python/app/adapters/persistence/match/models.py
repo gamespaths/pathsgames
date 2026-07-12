@@ -206,6 +206,8 @@ class LogEventsEntity(Base):
     id_event = Column(Integer)
     id_choise = Column(Integer)
     log_message = Column(String(2000))
+    # Step 28.7 — clock at time of event; None for pre-28.7 rows.
+    clock = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

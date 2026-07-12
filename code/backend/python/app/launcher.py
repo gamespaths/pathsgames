@@ -53,6 +53,7 @@ from app.adapters.persistence.match.movement_store_adapter import MovementStoreA
 from app.core.services.match.movement_service import MovementService
 from app.adapters.rest.match.movement_controller import MovementController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
+from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
 from app.adapters.rest.match.weather_controller import WeatherController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
@@ -150,7 +151,11 @@ story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
-match_controller = MatchController(match_command_service, match_query_service)
+# Step 28.7 — consolidated match logs timeline (player + admin endpoints).
+# content_query_service resolves the weather / location / character cards on the page.
+match_logs_service = MatchLogsService(SessionLocal, content_query_service)
+match_controller = MatchController(match_command_service, match_query_service,
+                                   match_logs_service)
 character_controller = CharacterController(character_command_service, character_query_service)
 
 # Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
@@ -166,7 +171,8 @@ movement_service = MovementService(movement_store_adapter, story_match_read_adap
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
                                                character_command_service,
                                                weather_selection_service,
-                                               movement_service)
+                                               movement_service,
+                                               match_logs_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
 turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)

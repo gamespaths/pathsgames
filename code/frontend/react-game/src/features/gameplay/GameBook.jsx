@@ -24,6 +24,7 @@ import WeatherCard from './cards/WeatherCard'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import MapCard from './cards/MapCard'
+import MatchLogCard from '@/features/matches/MatchLogCard'
 import MapPage from '@/components/layout/Map'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
@@ -297,6 +298,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         ? <EndGameCard story={story} action={activeAction} 
             handleEndGamePreviewFull={handleEndGamePreviewFull}
             handleEndGame={handleEndGame} onBack={closeRight} variant="page" />
+      : previewRight?.kind === 'matchlog'
+        ? <MatchLogCard matchUuid={matchUuid} accessToken={user?.accessToken}
+            story={story} onBack={closeRight} />
       : previewRight?.kind === 'preview'
         ? <Card variant="page"
             card={previewRight.card}
@@ -375,7 +379,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
-            gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right" />
+            gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right"
+            onPreviewMatchLog={() => setPreviewRight({ kind: 'matchlog' })} />
         </div>
       </div>
     : <>

@@ -201,15 +201,20 @@ def _detail_to_camel(detail):
 
 
 class MatchController:
-    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort):
+    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
+                 match_logs_service=None):
         self.command_port = command_port
         self.query_port = query_port
+        self.match_logs_service = match_logs_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches", self.create_match, methods=["POST"]
         )
         self.router.add_api_route(
             "/api/matches", self.list_matches, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/matches/{uuid_match}/logs", self.get_match_logs, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
@@ -279,3 +284,19 @@ class MatchController:
             return _error("EVENT_NOT_END_GAME",
                           "The supplied event is not the end-game event for this match", 406)
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+
+    def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
+                       limit: Optional[int] = None, cursor: Optional[str] = None):
+        """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if self.match_logs_service is None:
+            return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit, cursor)
+        if result is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(status_code=200, content=result)

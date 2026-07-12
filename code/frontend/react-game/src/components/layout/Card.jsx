@@ -50,7 +50,7 @@ export default function Card({
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
-  actionOnlyIfPreview = false, actionWithInfo=false,
+  actionOnlyIfPreview = false, actionLabelChildren=null,
   onPreview, hidePreview = false,
   infoLabel, infoIconClassName, infoLabelClassName,
 
@@ -103,7 +103,6 @@ export default function Card({
       : t(`book.stats.${s.key}`) ,
     value: s.value,
   }))
-  //console.log("card statItemsReal" ,statItemsToPageContent , statItemsReal , entity, entityType);
 
   /* ── copyright view link (CreditsModal) ── */
   const viewLink = linkCopyright && showLinkCopyright && !isDisabled && (
@@ -181,7 +180,7 @@ export default function Card({
       {children}
       
       {/* pageDesc */ }
-      {isPage && (pageDesc || statItemsReal) && (
+      {isPage && (pageDesc || (statItemsReal!=null && statItemsReal.length > 0)) && (
         <div className="book-page-desc">
           <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
           <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
@@ -196,7 +195,7 @@ export default function Card({
       <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
             locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
             onSelect={onSelect} selected={selected} selectLabel={selectLabel}
-            onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview}
+            onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview} actionLabelChildren={actionLabelChildren}
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
             infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 

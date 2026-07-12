@@ -14,6 +14,8 @@ import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchQueryPort;
+import games.paths.adapters.rest.dto.MatchLogsResponse;
+import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort;
@@ -49,19 +51,22 @@ public class MatchAdminController {
     private final CharacterCommandPort characterCommandPort;
     private final games.paths.core.service.match.WeatherSelectionService weatherService;
     private final MovementPort movementPort;
+    private final MatchLogsPort matchLogsPort;
 
     public MatchAdminController(MatchCommandPort matchCommandPort,
                                 MatchQueryPort matchQueryPort,
                                 TimeAdvancementPort timeAdvancementPort,
                                 CharacterCommandPort characterCommandPort,
                                 games.paths.core.service.match.WeatherSelectionService weatherService,
-                                MovementPort movementPort) {
+                                MovementPort movementPort,
+                                MatchLogsPort matchLogsPort) {
         this.matchCommandPort = matchCommandPort;
         this.matchQueryPort = matchQueryPort;
         this.timeAdvancementPort = timeAdvancementPort;
         this.characterCommandPort = characterCommandPort;
         this.weatherService = weatherService;
         this.movementPort = movementPort;
+        this.matchLogsPort = matchLogsPort;
     }
 
     /**
@@ -208,6 +213,28 @@ public class MatchAdminController {
             return ResponseEntity.ok(MatchLocationsResponse.fromModel(
                     uuidMatch, movementPort.listLocationsForAdmin(uuidMatch, lang)));
         } catch (MovementPort.MovementException ex) {
+            return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
+        }
+    }
+
+    /**
+     * GET /api/admin/matches/{uuidMatch}/logs — admin consolidated log timeline
+     * (Step 28.7): weather selections, movements, sleep actions, clock advances and
+     * recovery summaries, ordered by timestamp ascending. No ownership check.
+     * Served on admin port 8044.
+     */
+    @GetMapping("/{uuidMatch}/logs")
+    public ResponseEntity<Object> getAdminMatchLogs(@PathVariable String uuidMatch,
+                                                    @RequestParam(required = false) String lang,
+                                                    @RequestParam(required = false) Integer limit,
+                                                    @RequestParam(required = false) String cursor) {
+        if (isBlank(uuidMatch)) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
+        }
+        try {
+            return ResponseEntity.ok(MatchLogsResponse.fromModel(
+                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor)));
+        } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }
     }

@@ -194,6 +194,25 @@ export async function startMovement(uuidMatch, targetLocationUuid, accessToken) 
 }
 
 /**
+ * Step 28.7 — read the consolidated log timeline of a match owned by the caller
+ * (GET /api/matches/{uuid}/logs). Cursor-paginated: pass `cursor` (the previous
+ * response's `nextCursor`) to fetch the following page. WEATHER and MOVEMENT
+ * entries carry their resolved `card`; character-scoped entries carry
+ * `characterUuid` / `characterName`. Returns
+ * `{ matchUuid, currentClock, logs, nextCursor, limit, total }`.
+ */
+export async function getMatchLogs(uuidMatch, accessToken, { limit, cursor, lang } = {}) {
+  const config = authConfig(accessToken)
+  const params = {}
+  if (limit != null) params.limit = limit
+  if (cursor) params.cursor = cursor
+  if (lang) params.lang = lang
+  if (Object.keys(params).length) config.params = params
+  const res = await apiClient().get(`/api/matches/${uuidMatch}/logs`, config)
+  return res.data
+}
+
+/**
  * Step 28 — read the visited locations of a match, each with its character count
  * and the per-neighbor `totalEnergyCost` resolved for the current weather (the
  * neighbor list itself comes from /info; this endpoint carries the resolved

@@ -20,7 +20,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +41,7 @@ class MatchAdminControllerTest {
     private CharacterCommandPort characterCommandPort;
     private games.paths.core.service.match.WeatherSelectionService weatherService;
     private MovementPort movementPort;
+    private games.paths.core.port.match.MatchLogsPort matchLogsPort;
 
     @BeforeEach
     void setUp() {
@@ -48,9 +51,10 @@ class MatchAdminControllerTest {
         characterCommandPort = mock(CharacterCommandPort.class);
         weatherService = mock(games.paths.core.service.match.WeatherSelectionService.class);
         movementPort = mock(MovementPort.class);
+        matchLogsPort = mock(games.paths.core.port.match.MatchLogsPort.class);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new MatchAdminController(commandPort, queryPort, timeAdvancementPort,
-                        characterCommandPort, weatherService, movementPort)).build();
+                        characterCommandPort, weatherService, movementPort, matchLogsPort)).build();
     }
 
     @Test
@@ -320,5 +324,243 @@ class MatchAdminControllerTest {
         mockMvc.perform(get("/api/admin/matches/m1/info"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    // ── Step 28.7 — GET /api/admin/matches/{uuidMatch}/logs ──────────────────
+
+    @Test
+    void getAdminMatchLogs_returns200WithTheTimeline() throws Exception {
+        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null)).thenReturn(
+                new games.paths.core.port.match.MatchLogsPort.MatchLogsResult("m1", 2, List.of(
+                        new games.paths.core.port.match.MatchLogsPort.LogEntry(
+                                "SLEEP", 1, "2024-01-01T10:00:00Z", null, 10L,
+                                "char-uuid", "Ranger", null, null, null, null, null, null)),
+                        null, 50, 1));
+
+        mockMvc.perform(get("/api/admin/matches/m1/logs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.matchUuid").value("m1"))
+                .andExpect(jsonPath("$.currentClock").value(2))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.logs[0].type").value("SLEEP"))
+                .andExpect(jsonPath("$.logs[0].idCharacterMatch").value(10))
+                .andExpect(jsonPath("$.logs[0].characterName").value("Ranger"));
+    }
+
+    @Test
+    void getAdminMatchLogs_passesLangLimitAndCursorThroughToThePort() throws Exception {
+        when(matchLogsPort.getMatchLogsForAdmin("m1", "it", 10, "cur")).thenReturn(
+                new games.paths.core.port.match.MatchLogsPort.MatchLogsResult(
+                        "m1", 2, List.of(), "next", 10, 42));
+
+        mockMvc.perform(get("/api/admin/matches/m1/logs?lang=it&limit=10&cursor=cur"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nextCursor").value("next"))
+                .andExpect(jsonPath("$.limit").value(10))
+                .andExpect(jsonPath("$.total").value(42));
+    }
+
+    @Test
+    void getAdminMatchLogs_returns404WhenTheMatchIsUnknown() throws Exception {
+        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null)).thenThrow(
+                new games.paths.core.port.match.TurnCyclePort.TurnCycleException(
+                        games.paths.core.port.match.TurnCyclePort.TurnCycleException.Code.MATCH_NOT_FOUND,
+                        "Match not found"));
+
+        mockMvc.perform(get("/api/admin/matches/m1/logs"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void getAdminMatchLogs_returns400WhenTheUuidIsBlank() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/ /logs"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(matchLogsPort);
+    }
+
+    // ── POST /api/admin/matches/{m}/player/{p}/changeStatistics ───────────────
+
+    @Test
+    void changeStatistics_returns200AndForwardsEveryProvidedField() throws Exception {
+        when(characterCommandPort.changeStatistics(eq("m1"), eq("p1"), any()))
+                .thenReturn(CharacterCommandPort.ChangeStatsOutcome.UPDATED);
+
+        mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dex\":11,\"intel\":12,\"con\":13,\"energy\":60,\"life\":70,"
+                                + "\"sad\":8,\"coin\":5,\"food\":3,\"magic\":4}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UPDATED"))
+                .andExpect(jsonPath("$.matchUuid").value("m1"))
+                .andExpect(jsonPath("$.playerUuid").value("p1"));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CharacterCommandPort.ChangeStatsCommand.class);
+        verify(characterCommandPort).changeStatistics(eq("m1"), eq("p1"), captor.capture());
+        CharacterCommandPort.ChangeStatsCommand c = captor.getValue();
+        assertEquals(11, c.getDex());
+        assertEquals(12, c.getIntel());
+        assertEquals(13, c.getCon());
+        assertEquals(60, c.getEnergy());
+        assertEquals(70, c.getLife());
+        assertEquals(8, c.getSad());
+        assertEquals(5, c.getCoin());
+        assertEquals(3, c.getFood());
+        assertEquals(4, c.getMagic());
+    }
+
+    @Test
+    void changeStatistics_dropsFieldsSetToMinusOne() throws Exception {
+        when(characterCommandPort.changeStatistics(eq("m1"), eq("p1"), any()))
+                .thenReturn(CharacterCommandPort.ChangeStatsOutcome.UPDATED);
+
+        mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dex\":-1,\"intel\":-1,\"con\":-1,\"energy\":-1,\"life\":-1,"
+                                + "\"sad\":-1,\"coin\":-1,\"food\":-1,\"magic\":9}"))
+                .andExpect(status().isOk());
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CharacterCommandPort.ChangeStatsCommand.class);
+        verify(characterCommandPort).changeStatistics(eq("m1"), eq("p1"), captor.capture());
+        CharacterCommandPort.ChangeStatsCommand c = captor.getValue();
+        assertNull(c.getDex());
+        assertNull(c.getIntel());
+        assertNull(c.getCon());
+        assertNull(c.getEnergy());
+        assertNull(c.getLife());
+        assertNull(c.getSad());
+        assertNull(c.getCoin());
+        assertNull(c.getFood());
+        assertEquals(9, c.getMagic());
+    }
+
+    @Test
+    void changeStatistics_acceptsAnEmptyBody() throws Exception {
+        when(characterCommandPort.changeStatistics(eq("m1"), eq("p1"), any()))
+                .thenReturn(CharacterCommandPort.ChangeStatsOutcome.UPDATED);
+
+        mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UPDATED"));
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CharacterCommandPort.ChangeStatsCommand.class);
+        verify(characterCommandPort).changeStatistics(eq("m1"), eq("p1"), captor.capture());
+        assertNull(captor.getValue().getDex());
+    }
+
+    @Test
+    void changeStatistics_returns400WhenThePlayerUuidIsBlank() throws Exception {
+        mockMvc.perform(post("/api/admin/matches/m1/player/ /changeStatistics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dex\":3}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(characterCommandPort);
+    }
+
+    @Test
+    void changeStatistics_returns404WhenTheMatchIsUnknown() throws Exception {
+        when(characterCommandPort.changeStatistics(eq("m1"), eq("p1"), any()))
+                .thenReturn(CharacterCommandPort.ChangeStatsOutcome.MATCH_NOT_FOUND);
+
+        mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dex\":3}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("MATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void changeStatistics_returns404WhenThePlayerIsUnknown() throws Exception {
+        when(characterCommandPort.changeStatistics(eq("m1"), eq("p1"), any()))
+                .thenReturn(CharacterCommandPort.ChangeStatsOutcome.PLAYER_NOT_FOUND);
+
+        mockMvc.perform(post("/api/admin/matches/m1/player/p1/changeStatistics")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dex\":3}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("PLAYER_NOT_FOUND"));
+    }
+
+    @Test
+    void changeStatisticsRequest_gettersAndSetters() {
+        MatchAdminController.ChangeStatisticsRequest r = new MatchAdminController.ChangeStatisticsRequest();
+        r.setDex(1);
+        r.setIntel(2);
+        r.setCon(3);
+        r.setEnergy(4);
+        r.setLife(5);
+        r.setSad(6);
+        r.setCoin(7);
+        r.setFood(8);
+        r.setMagic(9);
+
+        assertEquals(1, r.getDex());
+        assertEquals(2, r.getIntel());
+        assertEquals(3, r.getCon());
+        assertEquals(4, r.getEnergy());
+        assertEquals(5, r.getLife());
+        assertEquals(6, r.getSad());
+        assertEquals(7, r.getCoin());
+        assertEquals(8, r.getFood());
+        assertEquals(9, r.getMagic());
+    }
+
+    // ── remaining admin-read branches ────────────────────────────────────────
+
+    @Test
+    void getAdminMatchWeather_returnsNullCurrentWhenNoWeatherWasEverRolled() throws Exception {
+        when(weatherService.weatherAdmin("m1")).thenReturn(
+                new games.paths.core.service.match.WeatherSelectionService.WeatherAdminView(
+                        null, null, List.of(), List.of()));
+
+        mockMvc.perform(get("/api/admin/matches/m1/weather"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rngSeed").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.current").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.rules").isEmpty())
+                .andExpect(jsonPath("$.log").isEmpty());
+    }
+
+    @Test
+    void getAdminMatchLocations_forwardsTheLangParameter() throws Exception {
+        when(movementPort.listLocationsForAdmin("m1", "it")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/matches/m1/locations?lang=it"))
+                .andExpect(status().isOk());
+        verify(movementPort).listLocationsForAdmin("m1", "it");
+    }
+
+    @Test
+    void getAdminMatchLocations_returns400WhenTheUuidIsBlank() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/ /locations"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(movementPort);
+    }
+
+    @Test
+    void getAdminMatchInfo_returns400WhenTheUuidIsBlank() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/ /info"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(queryPort);
+    }
+
+    @Test
+    void getAdminMatchClock_returns400WhenTheUuidIsBlank() throws Exception {
+        mockMvc.perform(get("/api/admin/matches/ /clock"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(timeAdvancementPort);
+    }
+
+    @Test
+    void updateMatch_returns400WhenTheBodyIsAbsent() throws Exception {
+        mockMvc.perform(put("/api/admin/matches/m1"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_INPUT"));
+        verifyNoInteractions(commandPort);
     }
 }

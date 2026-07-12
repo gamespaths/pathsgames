@@ -254,6 +254,17 @@ public class CoreConfig {
                 storyReadPort, userAccessPort);
     }
 
+    // ───── Step 28.7: Match logs API ─────
+
+    @Bean
+    public games.paths.core.port.match.MatchLogsPort matchLogsPort(
+            games.paths.core.port.match.MatchLogsStorePort matchLogsStorePort,
+            UserAccessPort userAccessPort,
+            games.paths.core.port.story.ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.MatchLogsService(
+                matchLogsStorePort, userAccessPort, contentQueryPort);
+    }
+
     // ───── Dev-only test-data cleanup ─────
 
     @Bean

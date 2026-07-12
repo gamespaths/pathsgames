@@ -12,6 +12,8 @@ from app.adapters.persistence.match.models import (
     GamingMatchEntity,
     GamingStateLocationEntity,
     GamingStateRegistryEntity,
+    LogEventsEntity,
+    LogMovementEntity,
 )
 from app.core.ports.match.match_ports import MatchPersistencePort
 
@@ -271,6 +273,14 @@ class MatchPersistenceAdapter(MatchPersistencePort):
         ).delete(synchronize_session=False)
         session.query(GamingBackpackResourcesEntity).filter(
             GamingBackpackResourcesEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        # log_events and log_movements reference gaming_character_instance(id, id_match):
+        # the FK is enforced on PostgreSQL, so they must go before the instances.
+        session.query(LogEventsEntity).filter(
+            LogEventsEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        session.query(LogMovementEntity).filter(
+            LogMovementEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
         session.query(GamingCharacterInstanceEntity).filter(
             GamingCharacterInstanceEntity.id_match.in_(match_ids)

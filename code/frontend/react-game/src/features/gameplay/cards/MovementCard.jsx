@@ -69,10 +69,11 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       lockedIcon={isNeighbor ? "fas fa-bed" : "fas fa-ban"}
       onPreview={() => {
         //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
-        onPreview(location?.card ?? null, 'movement', null, costItems, true,
+        onPreview(location?.card ?? null, 'movement', null, null, true,
           canMove
             ? { onAction: handleMove, actionLabel: t('game.movement.action'),
                 actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
+                , actionLabelChildren: costBadge
                 , /* extraContent: moveInfo, extraContentClassName: '' */ }
             : { /* extraContent: moveInfo, extraContentClassName: ''*/ }, previewSide)
       }} hidePreview={!isNeighbor  }
@@ -80,7 +81,8 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       flagInformationCard={!viewFromMap  }
       actionOnlyIfPreview={!viewFromMap}
       actionWithInfo={true}
-      childrenIntoImage={costBadge}
+      childrenIntoImage={!viewFromMap  ? costBadge : null}
+      actionLabelChildren={viewFromMap ? costBadge : null}
       infoIconClassName={!canMove ? null : location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fas fa-location-arrow"}
       infoLabel={t('game.movement.action')}
       //flagShowFullStatistics={false}

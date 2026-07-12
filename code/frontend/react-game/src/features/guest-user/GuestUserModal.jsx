@@ -4,6 +4,7 @@ import { useGuestUser } from './GuestUserContext'
 import Book from '@/components/book/Book'
 import Card from '@/components/layout/Card'
 import UserMatchesList from './UserMatchesList'
+import MatchLogCard from '@/features/matches/MatchLogCard'
 import UserLanguageSelector from './UserLanguageSelector'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
 import { CF_KEY, TURNSTILE_APPEARANCE, isTurnstilePassValid, recordTurnstilePass } from '@/utils/turnstile'
@@ -48,8 +49,18 @@ export default function GuestUserModal() {
     )
     : <Card variant="page" card={userCard} loading={loading} extraContent={<UserLanguageSelector />} />
 
-  const rightPage = <>
-    
+  // (i) on a MatchCard: the story card takes the left page and the match history
+  // (Step 28.7 logs API) takes the right one, in place of the matches list. The
+  // back arrow on either card clears the preview and brings the list back.
+  const rightPage = previewInfo?.match?.uuid ? (
+    <MatchLogCard
+      matchUuid={previewInfo.match.uuid}
+      accessToken={user?.accessToken}
+      story={previewInfo.story}
+      onBack={() => setPreviewInfo(null)}
+    />
+  ) : <>
+
     {status === 'error' ? (
       <div className="turnstile-checking">
         <p><i className="fas fa-exclamation-triangle me-2" />{t('antibot.error')}</p>

@@ -129,6 +129,24 @@
       "GAMEOVER": "Game Over"
     }
   },
+  "matchLog": {
+    "title": "Match history",
+    "loading": "Loading history…",
+    "empty": "Nothing has happened in this match yet.",
+    "error": "Could not load the match history",
+    "loadMore": "Load more",
+    "when": "Date",
+    "type": "Event",
+    "card": "Card",
+    "character": "Character",
+    "types": {
+      "WEATHER": "Weather",
+      "MOVEMENT": "Movement",
+      "SLEEP": "Sleep",
+      "CLOCK_ADVANCE": "Time passes",
+      "RECOVERY": "Recovery"
+    }
+  },
   "card": {
     "info": "Info",
     "gameStatus": "Status",

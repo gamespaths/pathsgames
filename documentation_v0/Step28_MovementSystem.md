@@ -1777,11 +1777,206 @@ previously asserted on `/info locations[]`, on any `name` field, or on the visit
    using it as a visited fallback; since it is ~always 0, that fallback was near-dead and is
    now replaced by `info.locations[]`, which *is* the visited set.
 
+
+
+# Paths Games V0 - Step 0.28.7: Match Logs API
+
+## Overview
+
+Step 28.7 adds a **consolidated log timeline endpoint** that surfaces the content of the
+four existing append-only log tables in a single, chronologically-ordered response. This
+provides the foundation for the match replay viewer in the admin console and the game
+log viewer in the frontend.
+
+Both endpoints are **cursor-paginated** and their entries are **enriched with cards and
+character names**, using the same envelope convention as the paginated admin match list
+(Step 20 / `GET /api/admin/matches`).
+
+## Endpoints
+
+| Port | Method | Path | Auth | Description |
+|------|--------|------|------|-------------|
+| 8042 | GET | `/api/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Bearer (owner-only) | Match log timeline, one page |
+| 8044 | GET | `/api/admin/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Admin token | Admin log timeline, one page (no ownership check) |
+
+Query params (all optional, both endpoints):
+- `limit` — page size, default `50`, clamped to `[1, 200]`.
+- `cursor` — opaque token taken from the previous response's `nextCursor`; omitted → first
+  page. An unreadable cursor silently restarts from the first page; a cursor past the end
+  of the timeline returns an empty page (never an error).
+- `lang` — language used to resolve entry cards, default `en`.
+
+## Response Shape
+
+```json
+{
+  "matchUuid": "...",
+  "currentClock": 2,
+  "logs": [
+    { "type": "WEATHER",       "clock": 0, "timestamp": "...", "idWeather": 5,
+      "idCard": 90002, "card": { "title": "The Academy of Paths", "urlImage": "...", "...": "..." } },
+    { "type": "MOVEMENT",      "clock": null, "timestamp": "...",
+      "idCharacterMatch": 1, "characterUuid": "...", "characterName": "Scout",
+      "idLocationFrom": 1, "idLocationTo": 2, "energyCost": 5,
+      "idCard": 90003, "card": { "title": "Training Hall", "...": "..." } },
+    { "type": "SLEEP",         "clock": 0, "timestamp": "...",
+      "idCharacterMatch": 1, "characterUuid": "...", "characterName": "Scout" },
+    { "type": "CLOCK_ADVANCE", "clock": 1, "timestamp": "..." },
+    { "type": "RECOVERY",      "clock": null, "timestamp": "...",
+      "idCharacterMatch": 1, "characterUuid": "...", "characterName": "Scout",
+      "message": "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1" }
+  ],
+  "nextCursor": "b2Zmc2V0OjUw",
+  "limit": 50,
+  "total": 73
+}
+```
+
+All entries are sorted by `timestamp` ascending. `nextCursor` is `null` on the last page.
+`total` is the size of the whole timeline (not just the returned page); `limit` is the
+effective (clamped) page size that produced the page. Together they let the caller show
+progress ("Showing N of `total`").
+
+### Card and character enrichment (v0.28.7)
+
+Enrichment lookups run **once per page** (never once per entry):
+- `WEATHER` entries carry `idCard` / `card` — the **weather rule's own card**.
+- `MOVEMENT` entries carry `idCard` / `card` of the **destination location**
+  (`idLocationTo`), plus `characterUuid` / `characterName` of the character that moved.
+- `SLEEP` and `RECOVERY` entries carry `characterUuid` / `characterName`.
+- `CLOCK_ADVANCE` entries carry neither (no single character or card applies).
+- `characterName` is the `title` of the character template's card, resolved in `lang`.
+- Any field an entry type doesn't apply to stays `null`/absent (unchanged from the first
+  cut of this feature).
+
+## Log Data Sources
+
+| Type | Source table | When written |
+|------|-------------|--------------|
+| `WEATHER` | `log_weather` | Every time-start (match start + every clock advance) |
+| `MOVEMENT` | `log_movements` | Every successful `POST /gameplay/{uuid}/movements/start` |
+| `SLEEP` | `log_events` (`log_message='ACTION_SLEEP'`) | Every `POST /gameplay/{uuid}/action/sleep` call |
+| `CLOCK_ADVANCE` | `log_clock_history` | When all characters sleep and time-end triggers |
+| `RECOVERY` | `log_events` (`log_message LIKE 'recovery%'` or `'counter%'`) | At every time-start per character (Step 26) |
+
+> **AWS gap (known, narrowed but not closed):** the AWS Lambda `_assemble_match_logs` still
+> only builds `WEATHER` / `MOVEMENT` / `SLEEP` / `CLOCK_ADVANCE` from the match item's
+> embedded `weatherLog` / `movementLog` / `sleepLog` arrays plus `CLOCK#<n>` items — there
+> is no `recoveryLog` and **no `RECOVERY` entries are ever returned on AWS**.
+> `idCharacterMatch` is also always `null` on AWS (characters there are keyed by uuid, not
+> by a numeric instance id). As of this pagination/enrichment extension the gap is
+> narrower than before: AWS now exposes the same `characterUuid` / `characterName` /
+> `idCard` / `card` enrichment as Java and Python via `_enrich_match_logs` — only the
+> `RECOVERY` entry type and the numeric `idCharacterMatch` remain AWS-only omissions. This
+> has not been closed because the AWS backend has not yet been verified end-to-end for
+> this feature (unit tests pass; deploy + live verification pending — see the v0.28.7 row
+> in "Version Control" below).
+
+## New: Sleep Logging (v0.28.7)
+
+Sleep actions were not previously logged. This version adds:
+
+1. **DB migration** `V0.28.7__add_log_events_clock.sql` (postgres + sqlite):
+   ```sql
+   ALTER TABLE log_events ADD COLUMN clock INTEGER;
+   ```
+   Existing rows get `clock = NULL` (backward-compatible).
+
+2. **`TurnCycleStorePort.logSleep(idMatch, idCharacter, clock)`** — new method.
+3. **`TurnCycleStoreAdapter.logSleep()`** — writes `log_events` with:
+   - `log_message = 'ACTION_SLEEP'`
+   - `id_character_match = idCharacter`
+   - `clock = currentClock`
+4. **`TimeAdvancementService.sleep()`** — calls `store.logSleep()` immediately after
+   `store.setCharacterSleeping()`.
+
+## Implementation Files
+
+| Area | File |
+|------|------|
+| Java DB | `adapter-postgres/.../V0.28.7__add_log_events_clock.sql` |
+| Java DB | `adapter-sqlite/.../V0.28.7__add_log_events_clock.sql` |
+| Java Core | `LogEventsEntity` — `clock` field added |
+| Java Core | `TurnCycleStorePort` — `logSleep()` method added |
+| Java Core | `TurnCycleStoreAdapter` — `logSleep()` impl + `LogEventsRepository` injected |
+| Java Core | `TimeAdvancementService` — `store.logSleep()` call in `sleep()` |
+| Java Core | `MatchLogsStorePort` — outbound port; v0.28.7 extended with `findWeatherIdCards`, `findLocationIdCards`, `findCharacterTemplateIdCards`, `findCharactersByMatch` lookups + `idStory` on `MatchSummary` |
+| Java Core | `MatchLogsStoreAdapter` — JPA adapter; v0.28.7 implements the four lookup methods above (character template PK is `id_tipo` / `idTipo`, not `id`) |
+| Java Core | `MatchLogsPort` — inbound port; v0.28.7 `getMatchLogs`/`getMatchLogsForAdmin` gain `limit`/`cursor` params, `DEFAULT_LIMIT=50`/`MAX_LIMIT=200` constants, `MatchLogsResult` gains `nextCursor`/`limit`/`total`, `LogEntry` gains `characterUuid`/`characterName`/`idCard`/`card` |
+| Java Core | `MatchLogsService` — v0.28.7 adds `assembleTimeline`/`enrich` split, opaque base64 `offset:<n>` cursor codec (`encodeCursor`/`decodeCursor`), `clampLimit`; now depends on `ContentQueryPort` to resolve cards |
+| Java REST | `MatchLogsResponse` — DTO; v0.28.7 carries the pagination envelope + enriched entry fields |
+| Java REST | `MatchLogsController` — `GET /api/matches/{uuid}/logs`; v0.28.7 forwards `limit`/`cursor`/`lang` query params |
+| Java Admin | `MatchAdminController` — `GET /{uuid}/logs`; v0.28.7 forwards `limit`/`cursor`/`lang` |
+| Java Config | `CoreConfig` — `matchLogsPort` bean; v0.28.7 wires `ContentQueryPort` into `MatchLogsService` |
+| Python | `models.py` — `clock` column on `LogEventsEntity` |
+| Python | `time_ports.py` — `log_sleep()` abstract method |
+| Python | `time_store_adapter.py` — `log_sleep()` implementation |
+| Python | `time_advancement_service.py` — `log_sleep()` call in `sleep()` |
+| Python | `match_logs_service.py` — v0.28.7 adds `clamp_limit`/`encode_cursor`/`decode_cursor` module-level helpers and takes a `content_query_service` dependency for card resolution |
+| Python | `launcher.py` — `match_logs_service` now wired with `content_query_service` |
+| Python | `match_controller.py` — `GET /api/matches/{uuid}/logs`; v0.28.7 accepts `limit`/`cursor`/`lang` |
+| Python | `match_admin_controller.py` — `GET /api/admin/matches/{uuid}/logs`; v0.28.7 accepts `limit`/`cursor`/`lang` |
+| AWS | `template/match.yaml` — `GetMatchLogsRoute` (`GET /api/matches/{uuidMatch}/logs`, public API) + `AdminMatchLogsRoute` (`GET /api/admin/matches/{uuidMatch}/logs`, admin API + CUSTOM IP authorizer) |
+| AWS | `lambda/match/handler.py` — v0.28.7 splits `_build_match_logs` into `_assemble_match_logs` (unpaginated timeline) + `_enrich_match_logs` (per-page card/character lookups) + `_clamp_logs_limit`/`_encode_logs_cursor`/`_decode_logs_cursor` (mirrors the Java/Python cursor codec); `_get_match_logs`/`_get_admin_match_logs` and `lambda_handler` now pass through `limit`/`cursor`/`lang` |
+| react-admin | `src/components/match/detail/MatchLogsCard.jsx` — timeline table, colour-coded type badges (WEATHER/MOVEMENT/SLEEP/CLOCK_ADVANCE/RECOVERY); v0.28.7 adds a **Card** column (thumbnail or awesome-icon fallback + title) and a **Character** column, a "Load more" button that appends the next page, and a "Showing N of `total`" header |
+| react-admin | `src/api/matchApi.js` — `getMatchLogs(uuid, params)`; v0.28.7 accepts `{ limit, cursor, lang }` |
+| react-admin | `src/pages/MatchDetailPage.jsx` — `logs` entry in `DETAIL_TABS`; `logs`/`logsError` state; v0.28.7 accumulates pages and tracks `nextCursor`/`total` for "Load more" |
+| react-admin | `src/components/layout/FooterBar.jsx` — version stays at 0.28.7 (no version bump for this extension) |
+| OpenAPI | `v0.28.7-match-logs-api.yaml` — updated with `limit`/`cursor`/`lang` query params, the pagination envelope (`nextCursor`/`limit`/`total`), the `CardInfo` schema, and `characterUuid`/`characterName`/`idCard`/`card` on `LogEntry` |
+| Robot | `tests/29_match_logs/match_logs.robot` — 16 test cases (was 11); the 5 new ones cover: weather entry card+title, movement entry card+destination+character, `limit` is respected, `nextCursor` walks the timeline without repeating entries, and pagination on the admin endpoint. Defines its own `First Neighbor Uuid` keyword (mirrors the one in `28_movement`) |
+| Robot | `resources/matches.resource` — `Get Match Logs` / `Get Admin Match Logs` keywords now accept `limit`/`cursor`/`lang` via a new `Build Logs Params` keyword |
+| Unit Test | `MatchLogsServiceTest.java` (Java core, 16 test cases incl. new `Pagination`/`Enrichment` nested groups), `MatchLogsControllerTest.java` (Java adapter-rest, 4 tests), 3 tests in `MatchAdminControllerTest.java`, `logSleep_savesEventWithNextIdAndClock` in `TurnCycleStoreAdapterTest.java` |
+| Unit Test | `test_match_logs_service.py` (Python) + matching controller/admin-controller test additions, extended for pagination/enrichment |
+| Unit Test | `test_match_handler_logs.py` (AWS), extended for pagination/enrichment |
+| Unit Test | `MatchDetailPage.test.jsx` (react-admin) — coverage for "Load more", Card/Character columns, error state |
+| Java DB (seed) | `adapter-postgres/.../dev/R__insert_dev_test_data.sql` — collateral fix, see below |
+
+## Collateral fix: PostgreSQL seed weather/location cards had no title
+
+Independent of the pagination/enrichment work, testing the new WEATHER/MOVEMENT card
+enrichment on PostgreSQL surfaced a pre-existing seed-data bug in
+`R__insert_dev_test_data.sql`: the weather cards (`90010`-`90012` for story `9001`,
+`91010`-`91012` for story `9002`) pointed `id_text_title`/`id_text_description`/`id_text_name`
+at `list_texts` id `800`/`801`/`802`, but no `list_texts` rows with those ids existed for
+either story — and the tutorial location cards `90002`/`90003` were inserted without any
+`id_text_title`/`id_text_name` at all. Both resolved with `title: null`, which affected not
+only the new log entries but the pre-existing weather and locations APIs on PostgreSQL too
+(the SQLite seed did not have the problem). Fixed by adding the missing `en`/`it`
+`list_texts` rows (id `800`/`801`/`802` per story) and giving the location cards their
+titles.
+
+## Collateral fix: `POST /api/dev/cleanup` FK failure on PostgreSQL (pre-existing, Step 28)
+
+Independent of the logs feature, test-data cleanup was failing on PostgreSQL: `log_movements`
+has a foreign key to `gaming_character_instance(id, id_match)`, but character instances were
+being deleted before their `log_movements` rows, so the delete violated the FK.
+
+- **Java**: new `LogMovementRepository.deleteByMatchIdIn(matchIds)`, called from
+  `MatchPersistenceAdapter` before `characterRepository.deleteByMatchIdIn(...)` (alongside the
+  pre-existing `logEventsRepository.deleteByMatchIdIn(...)`).
+- **Python**: `MatchPersistenceAdapter._delete_character_state` now also deletes
+  `LogMovementEntity` rows (filtered by `id_match`) before the character-instance rows. The
+  bug was latent on SQLite because SQLite does not enforce the FK by default, so it only
+  surfaced against PostgreSQL.
+
+## Future Additions (out of scope v0.28.7)
+
+- `CHOICE_EXECUTED` — from `log_choices_executed` (Step 30)
+- `ITEM_USED` — from `log_item_usage` (Step 37)
+- `EVENT_TRIGGERED` — from `log_events` (Step 29+, when event logging is added)
+- AWS `RECOVERY` entries and a numeric-id-free (`characterUuid`) field alignment with
+  Java/Python — see the AWS gap note in §"Log Data Sources"
+- `REGISTRY_CHANGE` — from `gaming_state_registry` (future step)
+- Pagination support for long matches
+
+---
+
+
 ---
 
 # Version Control
 
-- **Document Version**: 0.28.6
+- **Document Version**: 0.28.7
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -1793,10 +1988,11 @@ previously asserted on `/info locations[]`, on any `name` field, or on the visit
   | 0.28.6 | §14: bugfix — v0.28.5's neighbor card enrichment leaked the card of never-visited locations. Neighbor `card`/`idCard` on `GET /locations` now null for unvisited destinations; `/info` keeps the authored LINK card but hides only the LOCATION-card fallback. Java: `MatchQueryService` gained an optional `MovementStorePort` 6th constructor arg; `MovementService.buildLocations` gates on `findVisitedLocationIds`. Python: `match_query_service` gained an optional `movement_store` param; `movement_service._build_locations` gates on `find_visited_location_ids`; `launcher.py` shares one `movement_store_adapter` instance between both services. AWS: `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog`) passed into `_build_locations_active`; `_visited_locations_payload` gates on its existing `seen` set. OpenAPI `v0.28.0-movement-api.yaml` + `v0.19.0-match-creation-api.yaml` document the nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 tests). Test counts: Java BUILD SUCCESS (+4 tests), Python 715 pass, AWS 416 pass, Robot dry-run 4/4 | July 11, 2026 |
   | 0.28.6 | §15: `/info` `locations[]` is now VISITED-ONLY on the player endpoint (the admin endpoint keeps every location for the console's runtime table); the synthetic `name` / `currentLocationName` / `players[].locationName` are removed from all three backends and titles now come from card titles; `locationsActive[].neighbors[]` gains `cardLocationFrom` / `cardLocationTo` — the LOCATION card of each edge endpoint, gated on that endpoint's own visited flag (so the move destination's card is `cardLocationFrom` when the player stands on `idLocationTo`, `cardLocationTo` otherwise). Java: `buildDetail` gains an `allLocations` flag, new `resolveLocationCard`, and a per-request card memo; `LocationNeighborInfo` ctor 10 → 12 args. **Python bugfix**: `find_locations_by_story_id` did not project `id_card`/`secure_param`, so `/info` `locationsActive[].card` and `.secureParam` were ALWAYS null in production (`secureParam` now returns `0|1`). AWS: the persisted `name`/`locationName` are stripped on READ (old matches already carry them) and no longer written. react-game: the adapter's neighbor card now falls back to the destination's LOCATION card and `mapGraph` feeds node photos from the new fields (real photos before `/locations` lands); its `flagAlreadyActived` visited fallback — which was near-dead — is replaced by `info.locations[]`. react-admin resolves names via the existing story-context resolvers. New Robot suite `28_movement/match_info_visited_locations.robot` (5 tests). Test counts: Java BUILD SUCCESS, Python 719 pass (92% cov), AWS 419 pass, react-game 484 pass, react-admin 429 pass | July 11, 2026 |
 
-- **Last Updated**: July 11, 2026
+  | 0.28.7 | Match Logs API: new `GET /api/matches/{uuid}/logs` (owner-only, public port 8042) and `GET /api/admin/matches/{uuid}/logs` (no ownership check, admin port 8044) returning a chronologically-ordered timeline of WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE log entries (+ RECOVERY on Java/Python; **not yet on AWS**, see gap note). Sleep actions are now logged: new `clock INTEGER` column added to `log_events` via Flyway `V0.28.7__add_log_events_clock.sql` (postgres + sqlite); `TurnCycleStorePort.logSleep()` + adapter write added; `TimeAdvancementService.sleep()` calls `logSleep()` after `setCharacterSleeping()`. New Java classes: `MatchLogsStorePort`, `MatchLogsStoreAdapter`, `MatchLogsPort`, `MatchLogsService`, `MatchLogsController`, `MatchLogsResponse`. `MatchAdminController` gains admin endpoint + `MatchLogsPort` dependency. Unused `spring-boot-starter-actuator` dependency removed from `core/pom.xml`. Python: same changes mirrored in `time_ports.py`, `time_store_adapter.py`, `time_advancement_service.py`, new `match_logs_service.py`, route added to `match_controller.py` + `match_admin_controller.py`. AWS: new `GetMatchLogsRoute` / `AdminMatchLogsRoute` added to `template/match.yaml` (the API Gateway routes did not exist and the endpoints were unreachable without them); `sleepLog` field added to match item, written in `_sleep()`; new `_get_match_logs`, `_get_admin_match_logs`, `_build_match_logs`, `_ms_to_iso` helpers reading `db_utils.query_by_pk` (not `query_by_sk_prefix`, which does not exist); routes in `lambda_handler`. react-admin: new "Logs" detail tab (`MatchLogsCard.jsx`, `getMatchLogs` in `matchApi.js`, `logs`/`logsError` state in `MatchDetailPage.jsx`), `FooterBar.jsx` version bump. Collateral PostgreSQL bugfix (pre-existing, Step 28): `POST /api/dev/cleanup` violated the `log_movements → gaming_character_instance` FK; fixed via `LogMovementRepository.deleteByMatchIdIn()` (Java) and an equivalent delete in `MatchPersistenceAdapter._delete_character_state` (Python, latent because SQLite doesn't enforce the FK). OpenAPI: `v0.28.7-match-logs-api.yaml`. Robot: new suite `29_match_logs/match_logs.robot` (11 tests), `Get Match Logs` + `Get Admin Match Logs` keywords added to `matches.resource`. Unit tests: `MatchLogsServiceTest` (16 cases, Java core), `MatchLogsControllerTest` (4, Java adapter-rest, new), 3 new admin-controller tests, `TurnCycleStoreAdapterTest.logSleep_savesEventWithNextIdAndClock`, `test_match_logs_service.py` (9, Python) + controller tests, `test_match_handler_logs.py` (9, AWS), `MatchDetailPage.test.jsx` error-state additions (react-admin). Test status: `mvn test` BUILD SUCCESS, Python 736 pass, AWS (unit) 428 pass, react-admin (vitest) 432 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 432/432; **AWS end-to-end not yet verified** — requires a deploy. | July 12, 2026 |
+  | 0.28.7 | Match Logs API **extended** (still v0.28.7, no version bump): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, same opaque `offset:<n>` base64 token and `{nextCursor, limit, total}` envelope as `GET /api/admin/matches`) and their entries are **enriched** — WEATHER carries its own `idCard`/`card`, MOVEMENT carries the destination location's `idCard`/`card` plus `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java: `MatchLogsPort`/`MatchLogsStorePort`/`MatchLogsService`/`CoreConfig` gain the pagination + lookup surface (`MatchLogsService` now depends on `ContentQueryPort`; character template PK is `id_tipo`). Python: `match_logs_service.py` gains `clamp_limit`/`encode_cursor`/`decode_cursor` and a `content_query_service` dependency, wired in `launcher.py`. AWS: `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs` + `_clamp_logs_limit`/`_encode_logs_cursor`/`_decode_logs_cursor`; AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin: `MatchLogsCard.jsx` gains **Card** and **Character** columns plus a "Load more" button (same accumulate-pages pattern as `MatchesPage`); `getMatchLogs(uuid, params)` takes `{ limit, cursor, lang }`. Collateral PostgreSQL seed fix: weather cards `90010`-`90012`/`91010`-`91012` and tutorial location cards `90002`/`90003` resolved with a null title (missing `list_texts` rows `800`-`802` and missing `id_text_title` on the location cards) — fixed in `R__insert_dev_test_data.sql`; this also fixed pre-existing null titles on the weather and locations APIs on PostgreSQL. OpenAPI `v0.28.7-match-logs-api.yaml` updated. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests (card/character/pagination coverage); `Get Match Logs`/`Get Admin Match Logs` keywords gain `limit`/`cursor`/`lang` via `Build Logs Params`. Test status: `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. | July 12, 2026 |
+
+- **Last Updated**: July 12, 2026
 - **Status**: Complete
-
-
 
 # < Paths Games />
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

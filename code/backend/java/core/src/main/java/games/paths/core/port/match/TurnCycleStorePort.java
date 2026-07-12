@@ -44,6 +44,12 @@ public interface TurnCycleStorePort {
     /** Insert a {@code log_clock_history} row for the given (new) clock. */
     void insertClockHistory(long idMatch, int clock);
 
+    /**
+     * Insert a {@code log_events} row recording a voluntary sleep action (Step 28.7).
+     * The {@code clock} column stores the match clock at the time of the sleep.
+     */
+    void logSleep(long idMatch, long idCharacter, int clock);
+
     /** Resolve the story's singular/plural clock labels for the match's story. */
     ClockLabels findStoryClockLabels(long idMatch, String lang);
 

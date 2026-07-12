@@ -11,7 +11,9 @@ import games.paths.core.port.match.TurnCycleStorePort;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingTurnQueueRepository;
+import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.repository.match.LogClockHistoryRepository;
+import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.story.StoryRepository;
 import games.paths.core.repository.story.TextRepository;
 import org.springframework.stereotype.Repository;
@@ -33,6 +35,7 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     private final GamingCharacterInstanceRepository characterRepository;
     private final GamingTurnQueueRepository turnQueueRepository;
     private final LogClockHistoryRepository logClockHistoryRepository;
+    private final LogEventsRepository logEventsRepository;
     private final StoryRepository storyRepository;
     private final TextRepository textRepository;
 
@@ -40,12 +43,14 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
                                  GamingCharacterInstanceRepository characterRepository,
                                  GamingTurnQueueRepository turnQueueRepository,
                                  LogClockHistoryRepository logClockHistoryRepository,
+                                 LogEventsRepository logEventsRepository,
                                  StoryRepository storyRepository,
                                  TextRepository textRepository) {
         this.matchRepository = matchRepository;
         this.characterRepository = characterRepository;
         this.turnQueueRepository = turnQueueRepository;
         this.logClockHistoryRepository = logClockHistoryRepository;
+        this.logEventsRepository = logEventsRepository;
         this.storyRepository = storyRepository;
         this.textRepository = textRepository;
     }
@@ -180,6 +185,17 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
         String now = java.time.Instant.now().toString();
         e.setTimestampStart(now);
         logClockHistoryRepository.save(e);
+    }
+
+    @Override
+    public void logSleep(long idMatch, long idCharacter, int clock) {
+        LogEventsEntity e = new LogEventsEntity();
+        e.setId(logEventsRepository.findMaxId() + 1);
+        e.setIdMatch(idMatch);
+        e.setIdCharacterMatch(idCharacter);
+        e.setClock(clock);
+        e.setLogMessage("ACTION_SLEEP");
+        logEventsRepository.save(e);
     }
 
     @Override

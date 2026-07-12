@@ -310,3 +310,72 @@ def test_end_match_not_found_returns_404(env):
     resp = client.patch("/api/match/m1/end/e1", headers={"x-user": "u"})
     assert resp.status_code == 404
     assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+# ── Step 28.7 — GET /api/matches/{uuid}/logs ────────────────────────────────
+
+@pytest.fixture()
+def logs_env():
+    """Same app as ``env`` but with a match-logs service wired in."""
+    command_port = MagicMock()
+    query_port = MagicMock()
+    logs_service = MagicMock()
+    controller = MatchController(command_port, query_port, logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+
+    @app.middleware("http")
+    async def inject_user(request, call_next):
+        if request.headers.get("x-user"):
+            request.state.user_uuid = request.headers["x-user"]
+        return await call_next(request)
+
+    return TestClient(app), logs_service
+
+
+def _logs_payload():
+    return {
+        "matchUuid": "m1",
+        "currentClock": 2,
+        "logs": [{"type": "SLEEP", "clock": 1, "timestamp": "2024-01-01T00:00:00"}],
+    }
+
+
+def test_get_match_logs_requires_authentication(logs_env):
+    client, _ = logs_env
+    resp = client.get("/api/matches/m1/logs")
+    assert resp.status_code == 401
+    assert resp.json()["error"] == "UNAUTHENTICATED"
+
+
+def test_get_match_logs_returns_200(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = _logs_payload()
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 200
+    assert resp.json()["logs"][0]["type"] == "SLEEP"
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "en", None, None)
+
+
+def test_get_match_logs_passes_lang_limit_and_cursor(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = _logs_payload()
+    resp = client.get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur",
+                      headers={"x-user": "u"})
+    assert resp.status_code == 200
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "it", 10, "cur")
+
+
+def test_get_match_logs_unknown_match_returns_404(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = None
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_get_match_logs_without_service_returns_501(env):
+    client, _, _ = env
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 501
+    assert resp.json()["error"] == "NOT_IMPLEMENTED"

@@ -1,6 +1,7 @@
 package games.paths.adapters.rest.dto;
 
 import games.paths.core.model.match.CharacterInstanceInfo;
+import games.paths.core.model.match.ItemInstanceInfo;
 import games.paths.core.model.match.MatchDetail;
 import games.paths.core.model.match.MatchSummary;
 
@@ -135,6 +136,74 @@ class CharacterDtosTest {
         assertEquals(2, r.getIntelligence());
         assertEquals("cls", r.getClassUuid());
         assertEquals(List.of("t1"), r.getTraitUuids());
+    }
+
+    @Test
+    void statsResponse_fromModel_mapsMaxWeightAndItems() {
+        ItemInstanceInfo item = new ItemInstanceInfo();
+        item.setUuid("inv-1");
+        item.setItemUuid("item-1");
+        item.setName("Rope");
+        item.setWeight(3);
+        item.setAmount(2);
+        item.setState("ACTIVE");
+
+        CharacterInstanceInfo i = info();
+        i.setLifeMax(140);
+        i.setEnergyMax(130);
+        i.setSadMax(50);
+        i.setWeightMax(60);
+        i.setWeight(6);
+        i.setItems(List.of(item));
+
+        CharacterInstanceResponse r = CharacterInstanceResponse.fromModel(i);
+        assertEquals(140, r.getLifeMax());
+        assertEquals(130, r.getEnergyMax());
+        assertEquals(50, r.getSadMax());
+        assertEquals(60, r.getWeightMax());
+        assertEquals(6, r.getWeight());
+        assertEquals(1, r.getItems().size());
+        assertEquals("inv-1", r.getItems().get(0).getUuid());
+        assertEquals("Rope", r.getItems().get(0).getName());
+        assertEquals(2, r.getItems().get(0).getAmount());
+    }
+
+    @Test
+    void statsResponse_fromModel_nullTraitsAndItemsBecomeEmptyLists() {
+        CharacterInstanceInfo i = info();
+        i.setTraitUuids(null);
+        i.setItems(null);
+
+        CharacterSummaryResponse r = CharacterSummaryResponse.fromModel(i);
+        assertNotNull(r.getTraitUuids());
+        assertTrue(r.getTraitUuids().isEmpty());
+        assertNotNull(r.getItems());
+        assertTrue(r.getItems().isEmpty());
+    }
+
+    @Test
+    void statsResponse_nullSettersFallBackToEmptyLists() {
+        CharacterInstanceResponse r = new CharacterInstanceResponse();
+        r.setTraitUuids(null);
+        r.setItems(null);
+        assertTrue(r.getTraitUuids().isEmpty());
+        assertTrue(r.getItems().isEmpty());
+
+        ItemInstanceResponse item = new ItemInstanceResponse();
+        item.setUuid("inv-2");
+        r.setItems(List.of(item));
+        r.setLifeMax(1);
+        r.setEnergyMax(2);
+        r.setSadMax(3);
+        r.setWeightMax(4);
+        r.setWeight(5);
+
+        assertEquals("inv-2", r.getItems().get(0).getUuid());
+        assertEquals(1, r.getLifeMax());
+        assertEquals(2, r.getEnergyMax());
+        assertEquals(3, r.getSadMax());
+        assertEquals(4, r.getWeightMax());
+        assertEquals(5, r.getWeight());
     }
 
     @Test

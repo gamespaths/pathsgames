@@ -46,7 +46,7 @@ class ChangeStatisticsRequestBody(BaseModel):
 class MatchAdminController:
     def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
                  character_command_port: Optional[CharacterCommandPort] = None,
-                 weather_service=None, movement_service=None):
+                 weather_service=None, movement_service=None, match_logs_service=None):
         self.command_port = command_port
         self.query_port = query_port
         self.character_command_port = character_command_port
@@ -54,12 +54,17 @@ class MatchAdminController:
         self.weather_service = weather_service
         # Step 28 — movement admin view (visited locations + total energy cost).
         self.movement_service = movement_service
+        # Step 28.7 — match logs timeline.
+        self.match_logs_service = match_logs_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/admin/matches", self.list_all_matches, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/admin/matches/{uuid_match}/weather", self.get_admin_match_weather, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/admin/matches/{uuid_match}/logs", self.get_admin_match_logs, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/admin/matches/{uuid_match}/locations", self.get_admin_match_locations, methods=["GET"]
@@ -161,6 +166,20 @@ class MatchAdminController:
         except MovementError as exc:
             return _error(exc.code, exc.message, 404)
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))
+
+    def get_admin_match_logs(self, uuid_match: str, lang: str = "en",
+                             limit: Optional[int] = None, cursor: Optional[str] = None):
+        """GET /api/admin/matches/{uuid}/logs — consolidated log timeline (Step 28.7).
+        No ownership check; served on admin port 8044.
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if self.match_logs_service is None:
+            return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
+        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit, cursor)
+        if result is None:
+            return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
+        return JSONResponse(status_code=200, content=result)
 
     def get_admin_match_weather(self, uuid_match: str):
         """GET /api/admin/matches/{uuid}/weather — rng_seed + current weather +

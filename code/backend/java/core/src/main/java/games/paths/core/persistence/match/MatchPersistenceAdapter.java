@@ -12,6 +12,7 @@ import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogMovementRepository;
 
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final GamingCharacterTraitsRepository characterTraitsRepository;
     private final GamingInventoryItemsRepository inventoryRepository;
     private final LogEventsRepository logEventsRepository;
+    private final LogMovementRepository logMovementRepository;
 
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
                                    GamingStateLocationsRepository locationsRepository,
@@ -47,7 +49,8 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
                                    GamingBackpackResourcesRepository backpackRepository,
                                    GamingCharacterTraitsRepository characterTraitsRepository,
                                    GamingInventoryItemsRepository inventoryRepository,
-                                   LogEventsRepository logEventsRepository) {
+                                   LogEventsRepository logEventsRepository,
+                                   LogMovementRepository logMovementRepository) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
         this.registryRepository = registryRepository;
@@ -56,6 +59,7 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         this.characterTraitsRepository = characterTraitsRepository;
         this.inventoryRepository = inventoryRepository;
         this.logEventsRepository = logEventsRepository;
+        this.logMovementRepository = logMovementRepository;
     }
 
     /** Removes the per-match character rows (traits, inventory, backpack, instance) for the given match ids. */
@@ -63,9 +67,10 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         characterTraitsRepository.deleteByMatchIdIn(matchIds);
         inventoryRepository.deleteByMatchIdIn(matchIds);
         backpackRepository.deleteByMatchIdIn(matchIds);
-        // log_events references the character instances (FK enforced on PostgreSQL),
-        // so it must be cleared before the instances themselves are deleted.
+        // log_events and log_movements reference the character instances (FK enforced on
+        // PostgreSQL), so they must be cleared before the instances themselves are deleted.
         logEventsRepository.deleteByMatchIdIn(matchIds);
+        logMovementRepository.deleteByMatchIdIn(matchIds);
         characterRepository.deleteByMatchIdIn(matchIds);
     }
 

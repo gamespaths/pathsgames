@@ -74,6 +74,8 @@ public class TimeAdvancementService implements TimeAdvancementPort {
 
         // Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
         store.setCharacterSleeping(match.id(), caller.id(), true);
+        // Step 28.7 — log the sleep action for the match logs timeline.
+        store.logSleep(match.id(), caller.id(), match.currentClock());
 
         // Re-read the characters so the trigger sees the just-applied sleep flag.
         List<CharacterTurnView> characters = store.findCharactersByMatchId(match.id());

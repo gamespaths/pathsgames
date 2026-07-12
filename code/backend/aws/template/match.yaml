@@ -227,6 +227,14 @@ Resources:
       RouteKey: "GET /api/match/{uuidMatch}/locations"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 28.7 — consolidated match log timeline (player API, owner-only)
+  GetMatchLogsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "GET /api/matches/{uuidMatch}/logs"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   # ── admin match control (modify / stop / delete) — admin API + IP authorizer ──
   ListMatchStatusesRoute:
     Type: AWS::ApiGatewayV2::Route
@@ -262,6 +270,16 @@ Resources:
     Properties:
       ApiId: !Ref AdminApiId
       RouteKey: "GET /api/admin/matches/{uuidMatch}/locations"
+      Target: !Sub "integrations/${MatchAdminIntegration}"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AdminAuthorizerId
+
+  # Step 28.7 — admin log timeline (no ownership check)
+  AdminMatchLogsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AdminApiId
+      RouteKey: "GET /api/admin/matches/{uuidMatch}/logs"
       Target: !Sub "integrations/${MatchAdminIntegration}"
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AdminAuthorizerId
