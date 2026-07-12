@@ -154,7 +154,7 @@ Until now Cloudflare Turnstile ran in a single place — inside `ConfigView`, wh
 
 | File | What |
 |------|------|
-| NEW [src/utils/turnstile.js](code/frontend/react-game/src/utils/turnstile.js) | Shared config: exports `CF_KEY` (falsy ⇒ widget disabled / dev bypass), `TURNSTILE_APPEARANCE` (`{ home, config, guest }`, each env-resolved to `'always'` / `'interaction-only'`, default `'always'`), and the pass-cache helpers `isTurnstilePassValid()` / `recordTurnstilePass()` backed by the first-party `pathsgames.turnstilePass` cookie (TTL from `VITE_TURNSTILE_PASS_TTL_MINUTES`, default 30). |
+| NEW [src/utils/turnstile.js](code/frontend/react-game/src/utils/turnstile.js) | Shared config: exports `CF_KEY` (falsy ⇒ widget disabled / dev bypass), `TURNSTILE_APPEARANCE` (`{ home, config, guest }`, each env-resolved to `'always'` / `'interaction-only'`, default `'always'`), and the pass-cache helpers `isTurnstilePassValid()` / `recordTurnstilePass()` backed by the first-party `pathsgames.turnstilePass` cookie (TTL from `VITE_TURNSTILE_PASS_TTL_MINUTES`, default 3000). |
 | NEW [src/components/common/TurnstileWidget.jsx](code/frontend/react-game/src/components/common/TurnstileWidget.jsx) | Thin wrapper over `@marsidev/react-turnstile` with the shared dark theme; renders nothing when no site key is set. Props: `appearance`, `size`, `onSuccess`, `onError`, `onExpire`. |
 | NEW [src/components/common/AntibotMessage.jsx](code/frontend/react-game/src/components/common/AntibotMessage.jsx) | The funny block shown when a visitor is flagged as a bot (`t('antibot.blocked')`). |
 | [src/pages/HomePage.jsx](code/frontend/react-game/src/pages/HomePage.jsx) | **Change 1 — gate first.** On load a `gate` state starts `'checking'`; `getStories()` is called **only** when Turnstile passes (`gate === 'human'`). Bot/error ⇒ `gate === 'bot'`, the stories API is never called and the antibot message replaces the catalog. **A valid `pathsgames.turnstilePass` cookie skips the widget entirely** (gate starts `'human'`) so a confirmed human is not re-verified for 30 min; a fresh pass refreshes the cookie. |
@@ -178,14 +178,14 @@ Each surface reads its own var; value is `always` (visible widget, **default**) 
 VITE_TURNSTILE_APPEARANCE_HOME=always       # HomePage antibot gate
 VITE_TURNSTILE_APPEARANCE_START=always      # start-game button (ConfigView + mobile)
 VITE_TURNSTILE_APPEARANCE_GUEST=always      # guest user modal (matches list)
-VITE_TURNSTILE_PASS_TTL_MINUTES=30          # how long a HomePage pass is remembered
+VITE_TURNSTILE_PASS_TTL_MINUTES=3000        # how long a HomePage pass is remembered
 ```
 
 ### Remembering a pass for 30 min (why no native Turnstile cookie)
 
 The embedded Turnstile widget does **not** set a reusable first-party cookie. `cf_clearance` only exists when **Pre-Clearance** is enabled on the widget in the Cloudflare dashboard *and* the domain is proxied (orange-cloud) through Cloudflare; otherwise the widget loads from `challenges.cloudflare.com`, sets cookies only on that third-party domain, and each render yields a fresh **single-use token** (~300 s, consumed on server verify). So there is nothing on our domain to reuse and the check would re-run on every visit (invisible but still executing under `interaction-only`).
 
-To stop re-verifying every load, after a successful pass on either pure gate (**HomePage** or **GuestUserModal**) we set our **own** first-party cookie `pathsgames.turnstilePass` (`max-age` = `VITE_TURNSTILE_PASS_TTL_MINUTES` × 60, default 30 min, `SameSite=Lax`). While that cookie is live, both surfaces start in the `'human'` state and never mount the widget. **This is UX only, not a security control** — a client could forge the cookie; the authoritative protection remains the server-side `turnstileToken` validation on match creation, which always uses a fresh token from `ConfigView` (never cached).
+To stop re-verifying every load, after a successful pass on either pure gate (**HomePage** or **GuestUserModal**) we set our **own** first-party cookie `pathsgames.turnstilePass` (`max-age` = `VITE_TURNSTILE_PASS_TTL_MINUTES` × 60, default 3000 min, `SameSite=Lax`). While that cookie is live, both surfaces start in the `'human'` state and never mount the widget. **This is UX only, not a security control** — a client could forge the cookie; the authoritative protection remains the server-side `turnstileToken` validation on match creation, which always uses a fresh token from `ConfigView` (never cached).
 
 ### Does Turnstile use cookies? Where the cookie list is and how to change it
 

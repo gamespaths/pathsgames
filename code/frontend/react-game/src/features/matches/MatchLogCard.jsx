@@ -78,16 +78,10 @@ function LogEntryCard({ entry, lang, t, onPreview }) {
           {typeLabel}
         </span>
       }
-      locked={true} lockedIcon="" 
-      lockInfo={formatLogDate(entry.timestamp, lang) }
-      
-      no_extraContent={
-        <span className="match-log-when">
-          {formatLogDate(entry.timestamp, lang)}
-          {actor && <span className="match-log-character"> · {actor}</span>}
-        </span>
-      }
-      no_extraContentClassName="match-log-entry-extra"
+      locked={true} lockedIcon=""
+      lockInfo={actor
+        ? `${formatLogDate(entry.timestamp, lang)} · ${actor}`
+        : formatLogDate(entry.timestamp, lang)}
     />
   )
 }
