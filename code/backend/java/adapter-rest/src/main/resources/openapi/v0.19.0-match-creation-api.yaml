@@ -595,6 +595,29 @@ components:
           allOf:
             - $ref: '#/components/schemas/CardInfo'
           nullable: true
+        available:
+          description: >
+            Whether the reference character can take this path right now. Same verdict
+            POST /api/gameplay/{id_game}/action/move enforces, from the same check
+            procedure — the board can grey out the path instead of letting the player
+            discover it by being rejected.
+          type: boolean
+        reason:
+          description: >
+            When `available` is false, the error code the move endpoint would answer with;
+            null otherwise. Mirrors EventInfo.reason for actions.
+          type: string
+          nullable: true
+          enum:
+            - CHARACTER_CANNOT_ACT
+            - MATCH_NOT_RUNNING
+            - COMA
+            - SLEEPING
+            - NOT_A_NEIGHBOR
+            - MOVEMENT_CONDITION_NOT_MET
+            - OVERWEIGHT
+            - INSUFFICIENT_ENERGY
+            - LOCATION_FULL
 
     EventInfo:
       type: object

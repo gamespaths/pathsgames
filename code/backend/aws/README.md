@@ -168,6 +168,22 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 
 ## 📝 Changelog
 
+### v0.29.1 — Movement availability verdict on `/info`
+
+- Every `neighbors[]` entry under `locationsActive[]` on `GET /api/match/{uuid}/info` now
+  carries `available`/`reason`, mirroring the `available`/`reason` flag already published
+  for events (Step 29). New pure checker `lambda/match/movements.py`, sharing the same
+  8-code order used by the movement-start handler: `CHARACTER_CANNOT_ACT` →
+  `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → `NOT_A_NEIGHBOR` →
+  `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` → `LOCATION_FULL`.
+- `handler.py`'s `_start_movement` refactored to call the checker instead of its own
+  if-chain — same logic, same codes, one source of truth with the `/info` verdict loop.
+- The check context (character state, weather, per-location character counts, registry) is
+  loaded once per request; no per-neighbor query.
+- No DynamoDB item shape change. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo`
+  schema updated. See `documentation_v0/Step28_MovementSystem.md` — "Step 0.29.0 (addendum):
+  Movement Availability Verdict on /info".
+
 ### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
 
 - **`lambda/match/handler.py`**: The v0.28.5 card enrichment below leaked the card of

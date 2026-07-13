@@ -163,6 +163,12 @@ export function matchInfoToGameData(info, story = null,t) {
       direction: n.direction ?? null,
       energyCost: n.energyCost ?? null,
       card: displayCard ?? null,
+      // The backend's own move verdict: `available` is what action/move would answer, and
+      // `reason` the code it would refuse with (COMA, SLEEPING, INSUFFICIENT_ENERGY, …).
+      // An older backend sends neither: treat the move as allowed, as before, and let the
+      // card fall back to its local energy check.
+      available: n.available ?? null,
+      reason: n.reason ?? null,
     }
   })
 

@@ -50,6 +50,7 @@ export default function CardButtons({
         aria-label={lockedReason || undefined}
       >
         <i className={`${lockedIcon} me-1`} />{lockInfo?.className ?? lockInfo ?? name}
+        {actionLabelChildren}
       </span>
     </div></div>)
   }

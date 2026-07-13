@@ -77,7 +77,7 @@ theme with `pg-*` classes; JWT admin token pasted at login; dev proxy `/api/*` â
 
 ## Output
 
-End every message with one line: token usage, token limit, % used.
+End every message with one line: token usage, token limit, % used. Ask me if i wanna call "paths-games-doc" agent!
 
 If the prompt contains **"log all command"**: for each command you run, append to
 `.agents/logs/YYYYMMDD.log` the date, the full prompt, and two lines describing what you did,

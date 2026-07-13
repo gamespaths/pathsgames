@@ -382,7 +382,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   //console.log("locations",locations , "actions", actions);
   //console.log("playerStats",playerStats);
   //console.log("a",resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty'));
-  console.log("mapSelected",mapSelected, "hereLocationId", hereLocationId, "locationCosts", locationCosts);
+  //console.log("mapSelected",mapSelected, "hereLocationId", hereLocationId, "locationCosts", locationCosts);
+  
   const rightContent =
     previewRight ? previewRightContent
     // Step 0.28.5 — while the map fills the left page, the right page shows

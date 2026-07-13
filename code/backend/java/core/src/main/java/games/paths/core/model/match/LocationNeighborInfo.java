@@ -41,12 +41,27 @@ public class LocationNeighborInfo {
     private final CardInfo cardBack;
     private final CardInfo cardLocationFrom;
     private final CardInfo cardLocationTo;
+    private final boolean available;
+    private final String reason;
 
+    /** Backwards-compatible: a neighbor with no verdict reads as available. */
     public LocationNeighborInfo(Long idLocation, String uuid, String direction,
                                 Integer flagBack, Integer energyCost, CardInfo card,
                                 Integer secureParam, Long idLocationFrom, Long idLocationTo,
                                 CardInfo cardBack, CardInfo cardLocationFrom,
                                 CardInfo cardLocationTo) {
+        this(idLocation, uuid, direction, flagBack, energyCost, card, secureParam,
+                idLocationFrom, idLocationTo, cardBack, cardLocationFrom, cardLocationTo,
+                true, null);
+    }
+
+    @SuppressWarnings("java:S107")
+    public LocationNeighborInfo(Long idLocation, String uuid, String direction,
+                                Integer flagBack, Integer energyCost, CardInfo card,
+                                Integer secureParam, Long idLocationFrom, Long idLocationTo,
+                                CardInfo cardBack, CardInfo cardLocationFrom,
+                                CardInfo cardLocationTo,
+                                boolean available, String reason) {
         this.idLocation = idLocation;
         this.uuid = uuid;
         this.direction = direction;
@@ -59,6 +74,8 @@ public class LocationNeighborInfo {
         this.cardBack = cardBack;
         this.cardLocationFrom = cardLocationFrom;
         this.cardLocationTo = cardLocationTo;
+        this.available = available;
+        this.reason = reason;
     }
 
     public Long getIdLocation() { return idLocation; }
@@ -73,4 +90,13 @@ public class LocationNeighborInfo {
     public CardInfo getCardBack() { return cardBack; }
     public CardInfo getCardLocationFrom() { return cardLocationFrom; }
     public CardInfo getCardLocationTo() { return cardLocationTo; }
+
+    /**
+     * Whether the reference character can take this path right now, and — when it cannot —
+     * the {@code MovementPort.MovementException.Code} the move endpoint would answer with
+     * (COMA, SLEEPING, INSUFFICIENT_ENERGY, …). Same verdict, same code, one source:
+     * {@code MovementAvailabilityChecker}. Null reason when the move is allowed.
+     */
+    public boolean isAvailable() { return available; }
+    public String getReason() { return reason; }
 }

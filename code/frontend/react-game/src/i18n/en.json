@@ -225,25 +225,64 @@
       "cost": "Cost",
       "noEnergy": "Energy",
       "notNeighbor": "Not a neighbor",
-      "moveCost": "Moving"
+      "moveCost": "Moving",
+      "blocked": "Blocked",
+      "blockedFull": "You cannot go there right now.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Blocked",
+        "MATCH_NOT_RUNNING": "Paused",
+        "COMA": "Coma",
+        "SLEEPING": "Sleeping",
+        "NOT_A_NEIGHBOR": "Far",
+        "MOVEMENT_CONDITION_NOT_MET": "Barred",
+        "OVERWEIGHT": "Overweight",
+        "INSUFFICIENT_ENERGY": "Energy",
+        "LOCATION_FULL": "Full"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "You cannot move right now.",
+        "MATCH_NOT_RUNNING": "The match is not running, so you cannot move.",
+        "COMA": "You are in a coma: you cannot move until someone helps you.",
+        "SLEEPING": "You are asleep and cannot move.",
+        "NOT_A_NEIGHBOR": "This location is not next to the one you are standing on.",
+        "MOVEMENT_CONDITION_NOT_MET": "The way is barred: something is still missing to open it.",
+        "OVERWEIGHT": "You are carrying too much to set off.",
+        "INSUFFICIENT_ENERGY": "You do not have enough energy for this move.",
+        "LOCATION_FULL": "There is no room left in that location."
+      }
     },
     "event": {
       "action": "Do",
       "cost": "Cost",
-      "blocked": "Not available",
+      "blocked": "Blocked",
+      "blockedFull": "This action is not available right now.",
       "reason": {
-        "CHARACTER_CANNOT_ACT": "You cannot act now",
-        "SLEEPING": "You are asleep",
-        "COMA": "You are in a coma",
-        "EVENT_NOT_EXECUTABLE_TYPE": "Not your move",
-        "ONCE_ALREADY_CONSUMED": "Already done",
-        "WRONG_LOCATION": "Not here",
-        "NOT_ENOUGH_ENERGY": "Not enough energy",
-        "NOT_ENOUGH_COINS": "Not enough coins",
+        "CHARACTER_CANNOT_ACT": "Blocked",
+        "SLEEPING": "Sleeping",
+        "COMA": "Coma",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Blocked",
+        "ONCE_ALREADY_CONSUMED": "Done",
+        "WRONG_LOCATION": "Elsewhere",
+        "NOT_ENOUGH_ENERGY": "Energy",
+        "NOT_ENOUGH_COINS": "Coins",
         "REGISTRY_CONDITION_NOT_MET": "Not yet",
-        "WEATHER_CONDITION_NOT_MET": "Wrong weather",
-        "ITEM_CONDITION_NOT_MET": "You lack an item",
-        "CLASS_CONDITION_NOT_MET": "Not for your class"
+        "WEATHER_CONDITION_NOT_MET": "Weather",
+        "ITEM_CONDITION_NOT_MET": "Item",
+        "CLASS_CONDITION_NOT_MET": "Class"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "You cannot act right now.",
+        "SLEEPING": "You are asleep and cannot act.",
+        "COMA": "You are in a coma: you cannot act until someone helps you.",
+        "EVENT_NOT_EXECUTABLE_TYPE": "This action is not yours to take.",
+        "ONCE_ALREADY_CONSUMED": "You have already done this, and it cannot be repeated.",
+        "WRONG_LOCATION": "This action belongs to another location.",
+        "NOT_ENOUGH_ENERGY": "You do not have enough energy for this action.",
+        "NOT_ENOUGH_COINS": "You do not have enough coins for this action.",
+        "REGISTRY_CONDITION_NOT_MET": "You are not ready for this yet.",
+        "WEATHER_CONDITION_NOT_MET": "The weather is wrong for this action.",
+        "ITEM_CONDITION_NOT_MET": "You lack the item this action needs.",
+        "CLASS_CONDITION_NOT_MET": "Your class cannot take this action."
       }
     },
     "map": {

@@ -52,6 +52,18 @@ _SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 _BANNED_STATES = {3, 4}
 _MAINTENANCE_VALUE = "MAINTENANCE"
 _MATCH_NOT_RUNNING_MSG = "Match is not RUNNING"
+
+# The player-facing message for a refused move; the CODE is what clients switch on.
+# INSUFFICIENT_ENERGY is spelled out at the refusal site, with the cost breakdown.
+_MOVE_REASON_MESSAGES = {
+    'MATCH_NOT_RUNNING': _MATCH_NOT_RUNNING_MSG,
+    'COMA': 'Character cannot move while in coma',
+    'SLEEPING': 'Character cannot move while sleeping',
+    'MOVEMENT_CONDITION_NOT_MET': 'Movement condition not met',
+    'OVERWEIGHT': 'Carried weight exceeds capacity',
+    'LOCATION_FULL': 'Target location is at capacity',
+    'CHARACTER_CANNOT_ACT': 'Character cannot act',
+}
 _API_MATCHES_PATH = "/api/matches/"
 _API_GAMEPLAY_PATH = "/api/gameplay/"
 
@@ -248,14 +260,60 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False):
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         # Step 29 — ONE context for every event of the payload: the checker is a pure
         # function over it, so a story with many events costs no more than one with few.
+        # The move verdict on every neighbor works the same way, from its own context.
         "locationsActive": _build_locations_active(
             story, active_loc_ids, lang, visited_loc_ids,
-            _events.build_context(item, story, _reference_character(players, item))),
+            _events.build_context(item, story, _reference_character(players, item)),
+            _move_judge(item, story, players)),
     }
+
+
+def _move_judge(match, story, players):
+    """Everything the move verdict needs, loaded once per request: the mover's state, the
+    weather rule in force and how many characters stand on each location (for LOCATION_FULL).
+
+    The mover is the same reference character the event verdict speaks about, so the two
+    cannot describe different players.
+    """
+    caller = _reference_character(players, match)
+    counts = {}
+    for c in (players or []):
+        if c.get('idLocation') is not None:
+            counts[c['idLocation']] = counts.get(c['idLocation'], 0) + 1
+    return {
+        'ctx': _movements.move_check_context(match, caller),
+        'weatherRule': _current_weather_rule(match, story),
+        'countsByLocation': counts,
+        'registry': (match or {}).get('registry'),
+    }
+
+
+def _judge_neighbor(judge, edge, target):
+    """The verdict on one neighbor edge, from the pre-loaded ``_move_judge``.
+
+    The cost is the movement system's own formula (edge + target entry + weather modifier,
+    safe or not), so match-info greys out exactly the paths ``action/move`` would refuse.
+    """
+    if not judge:
+        return False, 'CHARACTER_CANNOT_ACT'
+    if target is None:
+        return False, 'NOT_A_NEIGHBOR'
+    total_cost, _ = _movement_total_cost(edge, target, judge.get('weatherRule'))
+    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    condition_met = True
+    if cond_key:
+        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+        condition_met = _registry_value(judge.get('registry'), cond_key) == cond_value
+    return _movements.check(judge.get('ctx'), _movements.edge_check(
+        condition_met,
+        total_cost,
+        target.get('maxCharacters'),
+        (judge.get('countsByLocation') or {}).get(target.get('id'), 0)))
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
 from match import events as _events
+from match import movements as _movements
 
 
 def _story_neighbors(story):
@@ -293,7 +351,7 @@ def _reference_character(players, match):
 
 
 def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None,
-                            check_ctx=None):
+                            check_ctx=None, move_judge=None):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
     directions) and the events specific to it.
@@ -358,6 +416,8 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 return _resolve_card_from_raw(
                     raw_cards, raw_texts, endpoint.get("idCard"), lang)
 
+            # No lookup in this loop either: the move context was loaded once.
+            available, reason = _judge_neighbor(move_judge, n, other)
             neighbor_infos.append({
                 "idLocation": other_id,
                 "uuid": other.get("uuid") if other else None,
@@ -371,6 +431,9 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "cardBack": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_card_back_id, lang),
                 "cardLocationFrom": _loc_card(n.get("idLocationFrom")),
                 "cardLocationTo": _loc_card(n.get("idLocationTo")),
+                # The verdict action/move would give this path, and its code when refused.
+                "available": available,
+                "reason": reason,
             })
 
         event_infos = []
@@ -1905,12 +1968,14 @@ def _start_movement(user, match_uuid, body):
     if caller is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
-    if match.get('status') != 'RUNNING':
-        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
-    if _nz(caller.get('isComa')) == 1:
-        return _err(409, 'COMA', 'Character cannot move while in coma')
-    if _nz(caller.get('isSleeping')) == 1:
-        return _err(409, 'SLEEPING', 'Character cannot move while sleeping')
+    # The mover's own state (match RUNNING, coma, sleep) is judged before the target is even
+    # resolved, so an asleep player is told they are asleep rather than that their destination
+    # is not a neighbor. Passing no edge asks the checker for exactly that prefix of the
+    # verdict; NOT_A_NEIGHBOR is its way of saying "so far so good, now give me an edge".
+    ctx = _movements.move_check_context(match, caller)
+    available, reason = _movements.check(ctx, None)
+    if not available and reason != 'NOT_A_NEIGHBOR':
+        return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
     if caller.get('idLocation') is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Character has no current location')
 
@@ -1925,34 +1990,37 @@ def _start_movement(user, match_uuid, body):
     if edge is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Target location is not a neighbor')
 
-    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
-    if cond_key:
-        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
-        if _registry_value(match.get('registry'), cond_key) != cond_value:
-            return _err(409, 'MOVEMENT_CONDITION_NOT_MET', 'Movement condition not met')
-
     total_cost, cost_breakdown = _movement_total_cost(
         edge, target, _current_weather_rule(match, story))
     energy = _nz(caller.get('energy'))
 
-    # Step 34 owns the weight formula; carried weight is 0 until inventory exists.
-    if 0 > _nz(caller.get('weightMax')):
-        return _err(409, 'OVERWEIGHT', 'Carried weight exceeds capacity')
-    if energy < total_cost:
-        return _err(
-            409, 'INSUFFICIENT_ENERGY',
-            "Not enough energy: have {have}, need {need} "
-            "(edge {edge} + entry {entry} + weather {weather}; target {safety})".format(
-                have=energy, need=total_cost,
-                edge=cost_breakdown['edge'], entry=cost_breakdown['entry'],
-                weather=cost_breakdown['weather'],
-                safety='safe' if cost_breakdown['safe'] else 'unsafe'))
-
     max_chars = _nz(target.get('maxCharacters'))
+    characters_at_target = 0
     if max_chars > 0:
-        count = sum(1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
-        if count >= max_chars:
-            return _err(409, 'LOCATION_FULL', 'Target location is at capacity')
+        characters_at_target = sum(
+            1 for c in _match_characters(match_uuid) if c.get('idLocation') == target.get('id'))
+
+    cond_key = edge.get('conditionKey') or edge.get('conditionRegistryKey')
+    condition_met = True
+    if cond_key:
+        cond_value = edge.get('conditionValue') or edge.get('conditionRegistryValue')
+        condition_met = _registry_value(match.get('registry'), cond_key) == cond_value
+
+    available, reason = _movements.check(ctx, _movements.edge_check(
+        condition_met, total_cost, max_chars, characters_at_target))
+    if not available:
+        # Energy is the one refusal worth explaining in prose: the player wants to know what
+        # the trip would have cost, and why.
+        if reason == 'INSUFFICIENT_ENERGY':
+            return _err(
+                409, reason,
+                "Not enough energy: have {have}, need {need} "
+                "(edge {edge} + entry {entry} + weather {weather}; target {safety})".format(
+                    have=energy, need=total_cost,
+                    edge=cost_breakdown['edge'], entry=cost_breakdown['entry'],
+                    weather=cost_breakdown['weather'],
+                    safety='safe' if cost_breakdown['safe'] else 'unsafe'))
+        return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
 
     new_energy = energy - total_cost
     caller['idLocation'] = target.get('id')

@@ -3,6 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { startMovement } from '@/api/matches'
+import { lockedIconFor } from '@/constants/lockReasons'
 
 /**
  * MovementCard — Step 28. A move-target card for one neighbor of the active
@@ -11,9 +12,17 @@ import { startMovement } from '@/api/matches'
  * cost from the /locations endpoint and falls back to the base edge cost.
  *
  * Pressing the action button calls POST /gameplay/{match}/movements/start with
- * the neighbor's location uuid; on success the parent reloads the board. When the
- * character lacks the energy the card renders locked with a `lockInfo` hint (no
- * `label` prop — see the no-label-prop-in-card convention).
+ * the neighbor's location uuid; on success the parent reloads the board.
+ *
+ * Whether the move is possible at all is the backend's call, not this card's: match-info
+ * ships every neighbor with `available` and, when false, with the `reason` — the very code
+ * action/move would return as its error (COMA, SLEEPING, MOVEMENT_CONDITION_NOT_MET,
+ * LOCATION_FULL, …). So the card never guesses a cause it cannot know; it renders locked with
+ * the translated reason. The local energy check survives only as the fallback for a backend
+ * old enough to send no verdict.
+ *
+ * The locked state goes through `lockInfo`, never a `label` prop: CardButtons falls back to
+ * the name and the hint would be lost (the no-label-prop-in-card convention).
  */
 export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=false,
   location, totalEnergyCost, playerStats, story, onPreview, previewSide='left', matchUuid, accessToken, onMoved, onError
@@ -23,9 +32,36 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
 
   const cost = totalEnergyCost ?? location?.energyCost ?? 0
   const energy = playerStats?.energy ?? 0
-  const canMoveEnergy = energy >= cost
-  const canMove = canMoveEnergy && isNeighbor
-  const locked = (!canMove && !viewFromMap) || (!canMoveEnergy && isNeighbor)
+  // The backend now ships its own verdict on every neighbor of match-info: `available` is what
+  // action/move would answer, and `reason` the code it would refuse with (COMA, SLEEPING,
+  // MOVEMENT_CONDITION_NOT_MET, LOCATION_FULL, …) — causes the board cannot compute on its own.
+  // An older payload carries neither: `available` is then null and the local energy check below
+  // remains the only gate, exactly as before.
+  const blockedByBackend = location?.available === false
+  const backendReason = blockedByBackend ? (location?.reason ?? null) : null
+  const affordable = energy >= cost
+  const canMove = isNeighbor && affordable && !blockedByBackend
+  const locked = (!canMove && !viewFromMap) || (!canMove && isNeighbor)
+
+  // Two registers for the same refusal: the card has room for one word (it sits in a badge
+  // next to the lock icon), the preview has room for the sentence that actually explains it.
+  const lockInfo = canMove ? undefined
+    : !isNeighbor ? t('game.movement.notNeighbor')
+    : backendReason ? t(`game.movement.reason.${backendReason}`)
+    // Refused, but by a backend too old to say why: state the refusal, do not invent a cause.
+    : blockedByBackend ? t('game.movement.blocked')
+    : t('game.movement.noEnergy')
+
+  const lockInfoFull = canMove ? undefined
+    : !isNeighbor ? t('game.movement.notNeighbor')
+    : backendReason ? t(`game.movement.reasonFull.${backendReason}`)
+    : blockedByBackend ? t('game.movement.blockedFull')
+    : t('game.movement.reasonFull.INSUFFICIENT_ENERGY')
+
+  // One table for every refusal icon (see constants/lockReasons). Without a backend verdict the
+  // only cause the card can name on its own is the energy, so it asks for that code's icon.
+  const lockedIcon = lockedIconFor(
+    backendReason ?? (isNeighbor && !affordable ? 'INSUFFICIENT_ENERGY' : null))
 
   async function handleMove() {
     if (moving || !matchUuid || !location?.uuid) return
@@ -64,18 +100,19 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
       actionIcon={location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"}
-      locked={ locked }
-      lockInfo={!canMove ? (isNeighbor ? t('game.movement.noEnergy') : t('game.movement.notNeighbor')) : undefined}
-      lockedIcon={isNeighbor ? "fas fa-bed" : "fas fa-ban"}
+      locked={locked}
+      lockInfo={lockInfo}
+      lockedIcon={lockedIcon}
       onPreview={() => {
         //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
-        onPreview(location?.card ?? null, 'movement', null, null, true,
+        onPreview(location?.card ?? null, 'movement', lockInfoFull ?? null, null, true,
           canMove
             ? { onAction: handleMove, actionLabel: t('game.movement.action'),
                 actionIcon: location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"
                 , actionLabelChildren: costBadge
                 , /* extraContent: moveInfo, extraContentClassName: '' */ }
-            : { /* extraContent: moveInfo, extraContentClassName: ''*/ }, previewSide)
+            : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) 
+                , actionLabelChildren: costBadge }, previewSide)
       }} hidePreview={!isNeighbor  }
       story={story}
       flagInformationCard={!viewFromMap  }
@@ -83,7 +120,10 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       actionWithInfo={true}
       childrenIntoImage={!viewFromMap  ? costBadge : null}
       actionLabelChildren={viewFromMap ? costBadge : null}
-      infoIconClassName={!canMove ? null : location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fas fa-location-arrow"}
+      infoIconClassName={!canMove ? null 
+        : (location?.awesomeIcon!=null && location?.awesomeIcon !== '') ? location?.awesomeIcon 
+        : (location?.card?.awesomeIcon != null && location?.card?.awesomeIcon !== '') ? location?.card?.awesomeIcon 
+        : "fas fa-location-arrow"}
       infoLabel={t('game.movement.action')}
       //flagShowFullStatistics={false}
       //statistics={costItems}

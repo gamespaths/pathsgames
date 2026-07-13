@@ -191,7 +191,16 @@ public class MatchInfoResponse {
         public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
     }
 
-    /** A neighbor location reachable from a player-occupied location. */
+    /**
+     * A neighbor location reachable from a player-occupied location.
+     *
+     * <p>{@code available} is the verdict of the same check procedure that
+     * {@code POST /api/gameplay/{uuid}/action/move} enforces, and {@code reason} is the error
+     * code that endpoint would return (COMA, SLEEPING, INSUFFICIENT_ENERGY, OVERWEIGHT,
+     * MOVEMENT_CONDITION_NOT_MET, LOCATION_FULL, MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT).
+     * The board can therefore grey out a path, with its cause, instead of letting the player
+     * find out by being rejected — exactly as {@link EventInfoDto} does for actions.</p>
+     */
     public static class LocationNeighborDto {
         private Long idLocation;
         private String uuid;
@@ -205,6 +214,8 @@ public class MatchInfoResponse {
         private CardInfoResponse cardBack;
         private CardInfoResponse cardLocationFrom;
         private CardInfoResponse cardLocationTo;
+        private boolean available;
+        private String reason;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -220,6 +231,8 @@ public class MatchInfoResponse {
             d.cardBack = CardInfoResponse.fromModel(m.getCardBack());
             d.cardLocationFrom = CardInfoResponse.fromModel(m.getCardLocationFrom());
             d.cardLocationTo = CardInfoResponse.fromModel(m.getCardLocationTo());
+            d.available = m.isAvailable();
+            d.reason = m.getReason();
             return d;
         }
 
@@ -247,6 +260,10 @@ public class MatchInfoResponse {
         public void setCardLocationFrom(CardInfoResponse cardLocationFrom) { this.cardLocationFrom = cardLocationFrom; }
         public CardInfoResponse getCardLocationTo() { return cardLocationTo; }
         public void setCardLocationTo(CardInfoResponse cardLocationTo) { this.cardLocationTo = cardLocationTo; }
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 
     /**

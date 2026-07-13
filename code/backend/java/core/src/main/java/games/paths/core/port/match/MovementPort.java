@@ -71,6 +71,25 @@ public interface MovementPort {
                         boolean conditionMet) {
     }
 
+    /**
+     * The verdict on a single move, shared by {@code /api/match/{uuid}/info} (which reports it
+     * on every neighbor) and {@code POST .../action/move} (which enforces it). Mirrors
+     * {@code EventExecutionPort.EventAvailability} — see {@code MovementAvailabilityChecker}.
+     */
+    record MovementAvailability(boolean available, MovementException.Code reason) {
+
+        public static final MovementAvailability OK = new MovementAvailability(true, null);
+
+        public static MovementAvailability no(MovementException.Code reason) {
+            return new MovementAvailability(false, reason);
+        }
+
+        /** The reason as it travels on the wire, or null when the move is allowed. */
+        public String reasonName() {
+            return reason == null ? null : reason.name();
+        }
+    }
+
     /** Domain exception mapped to HTTP status codes by the controller. */
     class MovementException extends RuntimeException {
         public enum Code {

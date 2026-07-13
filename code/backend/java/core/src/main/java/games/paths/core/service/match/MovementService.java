@@ -3,7 +3,10 @@ package games.paths.core.service.match;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.MovementPort;
+import games.paths.core.port.match.MovementPort.MovementAvailability;
 import games.paths.core.port.match.MovementStorePort;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveCheckContext;
+import games.paths.core.service.match.MovementAvailabilityChecker.MoveEdgeCheck;
 import games.paths.core.port.match.MovementStorePort.MatchMovementView;
 import games.paths.core.port.match.MovementStorePort.MoveCharacterView;
 import games.paths.core.port.match.MovementStorePort.MoveLocationView;
@@ -71,18 +74,17 @@ public class MovementService implements MovementPort {
         MoveCharacterView caller = store.findCharacterByMatchAndUser(match.id(), userId)
                 .orElseThrow(MovementService::notFound);
 
-        if (!MatchStatuses.RUNNING.equals(match.status())) {
-            throw new MovementException(MovementException.Code.MATCH_NOT_RUNNING,
-                    "Match is not RUNNING");
+        // The mover's own state (match RUNNING, coma, sleep) is judged before the target is
+        // even resolved, so an asleep player is told they are asleep rather than that their
+        // destination is not a neighbor. Passing a null edge asks the checker for exactly
+        // that prefix of the verdict; NOT_A_NEIGHBOR is its way of saying "so far so good,
+        // now give me an edge", and this call is not the one that decides it.
+        MoveCheckContext ctx = moveContext(match, caller);
+        MovementAvailability pre = MovementAvailabilityChecker.check(ctx, null);
+        if (!pre.available() && pre.reason() != MovementException.Code.NOT_A_NEIGHBOR) {
+            throw new MovementException(pre.reason(), reasonMessage(pre.reason()));
         }
-        if (caller.isComa()) {
-            throw new MovementException(MovementException.Code.COMA,
-                    "Character cannot move while in coma");
-        }
-        if (caller.isSleeping()) {
-            throw new MovementException(MovementException.Code.SLEEPING,
-                    "Character cannot move while sleeping");
-        }
+
         if (caller.idLocation() == null) {
             throw new MovementException(MovementException.Code.NOT_A_NEIGHBOR,
                     "Character has no current location");
@@ -96,26 +98,17 @@ public class MovementService implements MovementPort {
                 .orElseThrow(() -> new MovementException(MovementException.Code.NOT_A_NEIGHBOR,
                         "Target location is not a neighbor"));
 
-        if (!conditionMet(match.id(), edge)) {
-            throw new MovementException(MovementException.Code.MOVEMENT_CONDITION_NOT_MET,
-                    "Movement condition not met: " + edge.conditionKey() + "=" + edge.conditionValue());
-        }
-
         int totalCost = totalEnergyCost(edge.energyCost(), target, weatherCost(match.id()));
 
-        // Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
-        if (caller.carriedWeight() > caller.weightMax()) {
-            throw new MovementException(MovementException.Code.OVERWEIGHT,
-                    "Carried weight exceeds capacity");
-        }
-        if (caller.energy() < totalCost) {
-            throw new MovementException(MovementException.Code.INSUFFICIENT_ENERGY,
-                    "Not enough energy: need " + totalCost + ", have " + caller.energy());
-        }
-        if (target.maxCharacters() > 0
-                && store.countCharactersAtLocation(match.id(), target.id()) >= target.maxCharacters()) {
-            throw new MovementException(MovementException.Code.LOCATION_FULL,
-                    "Target location is at capacity");
+        MovementAvailability verdict = MovementAvailabilityChecker.check(ctx, new MoveEdgeCheck(
+                conditionMet(match.id(), edge),
+                totalCost,
+                target.maxCharacters(),
+                target.maxCharacters() > 0
+                        ? store.countCharactersAtLocation(match.id(), target.id())
+                        : 0));
+        if (!verdict.available()) {
+            throw new MovementException(verdict.reason(), reasonMessage(verdict.reason()));
         }
 
         int newEnergy = caller.energy() - totalCost;
@@ -209,6 +202,34 @@ public class MovementService implements MovementPort {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
+
+    /** The mover's edge-independent state, as {@link MovementAvailabilityChecker} wants it. */
+    private static MoveCheckContext moveContext(MatchMovementView match, MoveCharacterView caller) {
+        return new MoveCheckContext(
+                MatchStatuses.RUNNING.equals(match.status()),
+                true,
+                caller.isComa(),
+                caller.isSleeping(),
+                caller.energy(),
+                // Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
+                caller.carriedWeight(),
+                caller.weightMax());
+    }
+
+    /** The player-facing message for a refused move; the CODE is what clients switch on. */
+    private static String reasonMessage(MovementException.Code code) {
+        return switch (code) {
+            case MATCH_NOT_RUNNING -> "Match is not RUNNING";
+            case COMA -> "Character cannot move while in coma";
+            case SLEEPING -> "Character cannot move while sleeping";
+            case MOVEMENT_CONDITION_NOT_MET -> "Movement condition not met";
+            case OVERWEIGHT -> "Carried weight exceeds capacity";
+            case INSUFFICIENT_ENERGY -> "Not enough energy for this move";
+            case LOCATION_FULL -> "Target location is at capacity";
+            case CHARACTER_CANNOT_ACT -> "Character cannot act";
+            default -> "Movement refused";
+        };
+    }
 
     /** total = edge cost + target entry cost + weather modifier (safe/unsafe). */
     static int totalEnergyCost(int edgeCost, MoveLocationView target, WeatherMoveCost weather) {

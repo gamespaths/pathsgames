@@ -65,6 +65,26 @@ describe('matchInfoToGameData', () => {
     expect(forest).toMatchObject({ name: 'Ancient Forest' })
   })
 
+  // The backend's move verdict must reach MovementCard: it knows causes the board cannot
+  // compute on its own (coma, sleep, a barred way, a full destination).
+  it('carries the neighbor move verdict (available + reason) through to the board', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.available = false
+    nb.reason = 'MOVEMENT_CONDITION_NOT_MET'
+
+    const gd = matchInfoToGameData(info)
+    expect(gd.locations.find(l => l.idLocation === 1003))
+      .toMatchObject({ available: false, reason: 'MOVEMENT_CONDITION_NOT_MET' })
+  })
+
+  it('leaves the verdict null when the backend sends none (older payload)', () => {
+    const gd = matchInfoToGameData(mockMatchInfo)
+    // null, not false: an absent verdict must not read as "refused"
+    expect(gd.locations[0].available).toBeNull()
+    expect(gd.locations[0].reason).toBeNull()
+  })
+
   it('shows the forward card (not cardBack) when no cardBack is present', () => {
     const info = JSON.parse(JSON.stringify(mockMatchInfo))
     // Active 1001 is the `to` side but the edge has no cardBack → keep forward card.

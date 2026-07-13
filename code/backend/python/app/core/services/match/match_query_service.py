@@ -23,6 +23,52 @@ from app.core.ports.match.match_ports import (
     UserAccessPort,
 )
 from app.core.services.match.character_query_service import build_character_infos
+from app.core.services.match import movement_availability
+from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
+from app.core.services.match.movement_service import move_check_context
+
+
+class _MoveJudge:
+    """The pre-loaded move context, plus the per-edge arithmetic match-info needs to apply it.
+
+    The cost is the movement system's own formula (edge + target entry + weather modifier,
+    safe or not), so ``/info`` greys out exactly the paths ``action/move`` would refuse.
+    """
+
+    def __init__(self, ctx: MoveCheckContext, weather, characters_by_location, registry):
+        self.ctx = ctx
+        self.weather = weather
+        self.characters_by_location = characters_by_location
+        self.registry = registry
+
+    @staticmethod
+    def no_character() -> "_MoveJudge":
+        """No movement store wired (legacy): every neighbor reads as blocked, never a silent yes."""
+        return _MoveJudge(MoveCheckContext.no_character(), (0, 0), {}, {})
+
+    def _condition_met(self, n) -> bool:
+        key = n.get("condition_registry_key")
+        if not key or not str(key).strip():
+            return True
+        expected = n.get("condition_registry_value")
+        return expected is not None and expected == self.registry.get(key)
+
+    def judge(self, n, target):
+        if target is None:
+            return movement_availability.MovementAvailability.no(
+                movement_availability.MovementError.NOT_A_NEIGHBOR)
+        cost_safe, cost_not_safe = self.weather if self.weather else (0, 0)
+        weather_mod = cost_safe if (target.get("secure_param") or 0) > 0 else cost_not_safe
+        total = ((n.get("energy_cost") or 0)
+                 + (target.get("cost_energy_enter") or 0)
+                 + (weather_mod or 0))
+        max_chars = target.get("max_characters") or 0
+        return movement_availability.check(self.ctx, MoveEdgeCheck(
+            condition_met=self._condition_met(n),
+            total_energy_cost=total,
+            max_characters=max_chars,
+            characters_at_target=self.characters_by_location.get(target.get("id"), 0),
+        ))
 
 
 class MatchQueryService(MatchQueryPort):
@@ -227,8 +273,12 @@ class MatchQueryService(MatchQueryPort):
         # Step 29 — ONE context for every event of the payload: the checker is a pure
         # function over it, so fifty events cost exactly what one costs.
         check_ctx = self._load_check_context(match)
+        # ...and one for every neighbor, same idea: the move verdict is a pure function of the
+        # mover's state plus the edge, so no query happens inside the neighbor loop either.
+        move_judge = self._load_move_judge(match, registry_rows)
         locations_active = self._build_locations_active(
-            story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids, check_ctx
+            story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids, check_ctx,
+            move_judge
         )
 
         return MatchDetail(
@@ -259,7 +309,40 @@ class MatchQueryService(MatchQueryPort):
                 break
         return self.event_store.load_check_context(match["id"], ref_id)
 
-    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en", visited_loc_ids=None, check_ctx=None) -> List[LocationInfo]:
+    def _load_move_judge(self, match, registry_rows) -> "_MoveJudge":
+        """Everything the move verdict needs, loaded once per request: the mover's state, the
+        weather energy modifier in force, how many characters stand on each location (for
+        LOCATION_FULL) and the match registry (for the edge conditions).
+
+        The reference character is the creator's — the same one ``_load_check_context`` judges
+        events for, so the two verdicts speak about the same player.
+        """
+        if self.movement_store is None or match.get("id_user_creator") is None:
+            return _MoveJudge.no_character()
+
+        caller = self.movement_store.find_character_by_match_and_user(
+            match["id"], match["id_user_creator"])
+        if caller is None:
+            return _MoveJudge.no_character()
+
+        counts = {}
+        for c in self.movement_store.find_characters_for_movement(match["id"]) or []:
+            if c.get("id_location") is not None:
+                counts[c["id_location"]] = counts.get(c["id_location"], 0) + 1
+
+        weather = self.movement_store.find_current_weather_move_cost(match["id"]) or (0, 0)
+
+        registry = {}
+        for r in registry_rows or []:
+            if r.get("key") is not None:
+                value = r.get("string_value")
+                if value is None and r.get("int_value") is not None:
+                    value = str(r["int_value"])
+                registry[r["key"]] = value
+
+        return _MoveJudge(move_check_context(match, caller), weather, counts, registry)
+
+    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en", visited_loc_ids=None, check_ctx=None, move_judge=None) -> List[LocationInfo]:
         """Build the enriched ``locations_active`` list: each player-occupied
         location with its card, the neighbor links touching it (both directions)
         and the events specific to it — each with a resolved card."""
@@ -299,6 +382,8 @@ class MatchQueryService(MatchQueryPort):
                     neighbor_card_back_id = neighbor_card_id
                 from_id = n.get("id_location_from")
                 to_id = n.get("id_location_to")
+                # No port call in this loop either: the move context was loaded once.
+                verdict = (move_judge or _MoveJudge.no_character()).judge(n, other)
                 neighbor_infos.append(LocationNeighborInfo(
                     id_location=other_id,
                     uuid=other["uuid"] if other else None,
@@ -314,6 +399,8 @@ class MatchQueryService(MatchQueryPort):
                         story_id, from_id, loc_by_id, lang, visited_loc_ids),
                     card_location_to=self._resolve_location_card(
                         story_id, to_id, loc_by_id, lang, visited_loc_ids),
+                    available=verdict.available,
+                    reason=verdict.reason,
                 ))
 
             event_infos: List[EventInfo] = []

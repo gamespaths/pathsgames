@@ -46,6 +46,23 @@ class MovementResult:
     current_clock: int
 
 
+@dataclass
+class MovementAvailability:
+    """The verdict on a single move, shared by match-info (which reports it on every neighbor)
+    and action/move (which enforces it). ``reason`` is a ``MovementError`` code, None when the
+    move is allowed. Mirrors ``EventAvailability`` — see ``movement_availability.check``."""
+    available: bool
+    reason: Optional[str] = None
+
+    @staticmethod
+    def ok() -> "MovementAvailability":
+        return MovementAvailability(True, None)
+
+    @staticmethod
+    def no(reason: str) -> "MovementAvailability":
+        return MovementAvailability(False, reason)
+
+
 class MovementError(Exception):
     """Domain error mapped to HTTP status codes by the controller (Step 28)."""
 

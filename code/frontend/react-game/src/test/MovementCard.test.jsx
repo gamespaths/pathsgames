@@ -148,4 +148,87 @@ describe('MovementCard', () => {
     await waitFor(() => expect(startMovement).toHaveBeenCalled())
     expect(onMoved).not.toHaveBeenCalled()
   })
+
+  // The backend's verdict on the neighbor (available + reason) is the authority: it knows
+  // causes the board cannot compute (coma, sleep, a barred way, a full destination).
+  describe("the backend's move verdict", () => {
+    const blocked = (reason) => ({ ...LOCATION, available: false, reason })
+
+    it('locks a refused move and shows the translated reason, whatever the energy', () => {
+      render(<MovementCard location={blocked('COMA')} totalEnergyCost={1}
+        playerStats={{ energy: 999 }} story={STORY} onPreview={vi.fn()}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(screen.getByTestId('locked').textContent).toBe('true')
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.reason.COMA')
+      expect(screen.queryByTestId('action-btn')).toBeNull()
+    })
+
+    // The icon comes from the shared reason→icon table (constants/lockReasons), not from an
+    // `if` inside the card; it says what to do about the refusal, not merely that it happened.
+    it.each([
+      ['SLEEPING', 'fas fa-moon'],
+      ['MOVEMENT_CONDITION_NOT_MET', 'fas fa-lock'],
+      ['LOCATION_FULL', 'fas fa-users'],
+      // the bed points at the way out of an energy problem: go to sleep
+      ['INSUFFICIENT_ENERGY', 'fas fa-bed'],
+    ])('%s renders the %s icon', (reason, icon) => {
+      render(<MovementCard location={blocked(reason)} totalEnergyCost={1}
+        playerStats={{ energy: 999 }} story={STORY} onPreview={vi.fn()}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(capturedProps.lockedIcon).toBe(icon)
+      expect(capturedProps.lockInfo).toBe(`game.movement.reason.${reason}`)
+    })
+
+    it('says only that the move is blocked when the backend gives no reason', () => {
+      render(<MovementCard location={{ ...LOCATION, available: false, reason: null }}
+        totalEnergyCost={1} playerStats={{ energy: 999 }} story={STORY} onPreview={vi.fn()}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      // no cause is invented out of thin air
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.blocked')
+    })
+
+    it('an available neighbor moves, and carries the reason into the preview', () => {
+      const onPreview = vi.fn()
+      render(<MovementCard location={{ ...LOCATION, available: true, reason: null }}
+        totalEnergyCost={4} playerStats={{ energy: 30 }} story={STORY} onPreview={onPreview}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(screen.getByTestId('locked').textContent).toBe('false')
+      expect(screen.getByTestId('action-btn')).toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('preview-btn'))
+      expect(onPreview.mock.calls[0][2]).toBeNull()   // 3rd arg = lockReason
+    })
+
+    // Two registers for one refusal: a word on the card (it lives in a badge), the whole
+    // sentence in the preview (which has the room to explain).
+    it('shows the short reason on the card and the full sentence in the preview', () => {
+      const onPreview = vi.fn()
+      render(<MovementCard location={blocked('LOCATION_FULL')} totalEnergyCost={1}
+        playerStats={{ energy: 999 }} story={STORY} onPreview={onPreview}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.reason.LOCATION_FULL')
+      fireEvent.click(screen.getByTestId('preview-btn'))
+      expect(onPreview.mock.calls[0][2])   // 3rd arg = lockReason
+        .toBe('game.movement.reasonFull.LOCATION_FULL')
+    })
+
+    it('explains an energy-locked move in full in the preview, even with no backend verdict', () => {
+      const onPreview = vi.fn()
+      render(<MovementCard location={LOCATION} totalEnergyCost={50}
+        playerStats={{ energy: 5 }} story={STORY} onPreview={onPreview}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.noEnergy')
+      fireEvent.click(screen.getByTestId('preview-btn'))
+      expect(onPreview.mock.calls[0][2]).toBe('game.movement.reasonFull.INSUFFICIENT_ENERGY')
+    })
+
+    it('an older payload with no verdict still gates on the local energy check', () => {
+      // available/reason absent: the card behaves exactly as it did before the verdict existed
+      render(<MovementCard location={LOCATION} totalEnergyCost={50}
+        playerStats={{ energy: 5 }} story={STORY} onPreview={vi.fn()}
+        matchUuid="m1" accessToken="tok" onMoved={vi.fn()} />)
+      expect(screen.getByTestId('locked').textContent).toBe('true')
+      expect(screen.getByTestId('lock-info').textContent).toBe('game.movement.noEnergy')
+      expect(capturedProps.lockedIcon).toBe('fas fa-bed')
+    })
+  })
 })

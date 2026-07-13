@@ -1,5 +1,21 @@
 {
   "author": "Paths Games Team",
+  "card": {
+    "alternativeImage": null,
+    "awesomeIcon": "fas fa-chess-rook",
+    "cardType": null,
+    "copyrightText": "Lili Popper on Unsplash",
+    "description": "Welcome to the Paths Alpha tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges. Step inside and discover how every choice shapes your destiny.",
+    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+    "styleDetail": null,
+    "styleImageLarge": null,
+    "styleImageLittle": null,
+    "styleImageMedium": null,
+    "styleMain": null,
+    "title": "Paths Tutorial",
+    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
+    "uuid": "52b424e5-945a-4b50-b16c-c9b83ae957fb"
+  },
   "cards": [
     {
       "alternativeImage": null,
@@ -584,7 +600,7 @@
     },
     {
       "alternativeImage": null,
-      "awesomeIcon": "",
+      "awesomeIcon": "fas fa-user-tie",
       "cardType": null,
       "id": 53,
       "idCard": 53,
@@ -592,6 +608,7 @@
       "idTextCopyright": 156,
       "idTextDescription": 153,
       "idTextTitle": 142,
+      "id_card": 53,
       "linkCopyright": "https://unsplash.com/photos/a-wooden-walkway-leading-to-a-beach-with-sand-dunes-in-the-background-AKnXtxfBKN8",
       "styleDetail": null,
       "styleImageLarge": null,
@@ -603,7 +620,7 @@
     },
     {
       "alternativeImage": null,
-      "awesomeIcon": "",
+      "awesomeIcon": "fas fa-user-tie",
       "cardType": null,
       "id": 54,
       "idCard": 54,
@@ -871,6 +888,16 @@
       "linkCopyright": "https://unsplash.com/photos/aerial-view-of-a-coastal-river-delta-with-mangrove-forests-ijhhIWPLBwI",
       "urlImage": "https://images.unsplash.com/photo-1770764171390-c174aa0cf6fc?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "112b5e2e-7913-4f2d-99cb-724e90f44950"
+    },
+    {
+      "id": 74,
+      "idCard": 74,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 207,
+      "idTextName": 207,
+      "idTextTitle": 207,
+      "uuid": "6b235de6-1305-4737-874a-c101e09db974"
     }
   ],
   "category": "adventure",
@@ -1312,7 +1339,20 @@
     }
   ],
   "eventCount": 1,
-  "eventEffects": [],
+  "eventEffects": [
+    {
+      "id": 1,
+      "idCard": 74,
+      "idEvent": 2,
+      "idTextDescription": 207,
+      "idTextName": 207,
+      "id_card": 74,
+      "statistics": "LIFE",
+      "target": "ALL",
+      "uuid": "67415d38-a9a7-4ce3-aead-6966bed7dec3",
+      "value": -1
+    }
+  ],
   "events": [
     {
       "card": {
@@ -1359,6 +1399,7 @@
       "idTextDescription": 162,
       "idTextName": 160,
       "id_card": 58,
+      "type": "NORMAL",
       "uuid": "a3767c5a-1768-471d-bf9f-49b7e3d700df"
     }
   ],
@@ -5253,6 +5294,26 @@
       "longText": "",
       "shortText": "",
       "uuid": "0d032ee9-c223-44ab-ae00-2146d8bb8013"
+    },
+    {
+      "id": 206,
+      "idCreator": 1,
+      "idText": 206,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Action2",
+      "shortText": "Action2",
+      "uuid": "480afda8-c07a-4eee-b5bd-d25a46d086cb"
+    },
+    {
+      "id": 207,
+      "idCreator": 1,
+      "idText": 207,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Action complete",
+      "shortText": "Action complete",
+      "uuid": "521787ca-f9b9-4ea9-a61b-3325baee5e18"
     }
   ],
   "title": "Paths Tutorial",

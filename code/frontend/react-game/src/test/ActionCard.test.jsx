@@ -141,4 +141,46 @@ describe('ActionCard', () => {
     expect(screen.getByTestId('lock-info').textContent).toBe('game.event.blocked')
     expect(screen.queryByTestId('action-btn')).toBeNull()
   })
+
+  // Two registers for one refusal: a word on the card (it lives in a badge), the whole
+  // sentence in the preview (which has the room to explain).
+  it('shows the short reason on the card and the full sentence in the preview', () => {
+    const onPreview = vi.fn()
+    const action = { ...ACTION, available: false, reason: 'WEATHER_CONDITION_NOT_MET' }
+    render(<ActionCard action={action} story={STORY} onPreview={onPreview} matchUuid="m1" />)
+
+    expect(screen.getByTestId('lock-info').textContent)
+      .toBe('game.event.reason.WEATHER_CONDITION_NOT_MET')
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][2])   // 3rd arg = lockReason
+      .toBe('game.event.reasonFull.WEATHER_CONDITION_NOT_MET')
+  })
+
+  // The icon comes from the shared reason→icon table (constants/lockReasons), the same one
+  // MovementCard reads — one refusal, one icon, wherever it is rendered.
+  it.each([
+    ['NOT_ENOUGH_ENERGY', 'fas fa-bed'],
+    ['NOT_ENOUGH_COINS', 'fas fa-coins'],
+    ['WEATHER_CONDITION_NOT_MET', 'fas fa-cloud-sun'],
+    ['ONCE_ALREADY_CONSUMED', 'fas fa-check'],
+  ])('%s renders the %s icon', (reason, icon) => {
+    render(<ActionCard action={{ ...ACTION, available: false, reason }} story={STORY}
+      onPreview={vi.fn()} matchUuid="m1" />)
+    expect(capturedProps.lockedIcon).toBe(icon)
+  })
+
+  it('falls back to the "you cannot" icon when the backend names no reason', () => {
+    render(<ActionCard action={{ uuid: 'a9', name: 'Legacy' }} story={STORY}
+      onPreview={vi.fn()} matchUuid="m1" />)
+    expect(capturedProps.lockedIcon).toBe('fas fa-ban')
+  })
+
+  it('falls back to the long blocked sentence in the preview when no reason is given', () => {
+    const onPreview = vi.fn()
+    const action = { uuid: 'a9', name: 'Legacy', card: { title: 'Legacy' } }
+    render(<ActionCard action={action} story={STORY} onPreview={onPreview} matchUuid="m1" />)
+
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    expect(onPreview.mock.calls[0][2]).toBe('game.event.blockedFull')
+  })
 })

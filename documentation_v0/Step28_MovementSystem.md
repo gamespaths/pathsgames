@@ -1494,6 +1494,25 @@ Static HTML/CSS concept mockups (desktop and mobile) live under
 | `src/i18n/en.json`, `src/i18n/it.json` | New `game.map.*`, `card.back`, `card.forward` keys |
 | `src/styles/main.css` | `.game-map-canvas` mobile fixed-height override |
 
+## 13.10 Mobile arrow-rendering bugfix (v0.29.0 addendum)
+
+The gold neighbor arrows described in §13.4 were broken on mobile: arrowheads vanished
+or were mis-sized, and edge lines blurred on pinch-zoom. Root causes and fix, all in
+`Map.jsx`/`main.css`:
+
+- Arrowheads were SVG `<marker>` elements; inside a layer transformed with CSS (the
+  pan/zoom transform), mobile browsers render `<marker>` inconsistently. They are now
+  plain `<polygon>` triangles computed directly in graph coordinates alongside the edge
+  line, so they scale and position exactly like the line they belong to.
+- `will-change: transform` on the map plane forced the browser to rasterize the layer at
+  the *current* zoom level; zooming further on mobile then stretched that raster, blurring
+  the edge lines. Removed.
+- The SVG element's `width`/`height`/`max-width: none` are now set inline, because a
+  global mobile rule (`.book-mobile-layout * { max-width: 100% }`) was shrinking the SVG
+  box while its `viewBox` kept rescaling the lines — the graph nodes (positioned in px)
+  stayed put while the lines drawn against the viewBox drifted, visibly detaching arrows
+  from their nodes.
+
 ---
 
 # Paths Games V0 - Step 0.28.6: Fog-of-War on Neighbor Location Cards
@@ -1972,6 +1991,70 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 ---
 
 
+# Paths Games V0 - Step 0.29.1 (addendum): Movement Availability Verdict on `/info`
+
+## Overview
+
+Every `neighbors[]` entry under `locationsActive[]` on `GET /api/match/{uuid}/info` now
+carries the same **`available`/`reason`** verdict pattern already published for events
+(Step 29 §4). The board can therefore render a locked movement arrow *and say why*, without
+calling `POST /api/gameplay/{uuidMatch}/movements/start` speculatively:
+
+```json
+{ "idLocationTo": 2, "available": false, "reason": "INSUFFICIENT_ENERGY", "...": "..." }
+```
+
+`reason` is `null` when `available` is `true`. Possible values are the same 8 codes already
+used by `movements/start` (§2.1/§3): `CHARACTER_CANNOT_ACT`, `MATCH_NOT_RUNNING`, `COMA`,
+`SLEEPING`, `NOT_A_NEIGHBOR`, `MOVEMENT_CONDITION_NOT_MET`, `OVERWEIGHT`,
+`INSUFFICIENT_ENERGY`, `LOCATION_FULL`.
+
+## A shared, pure checker (mirrors `EventAvailabilityChecker`)
+
+The verdict and the endpoint now call **the same function** — a board that offers a move can
+never be told "no" by the endpoint, and a blocked arrow already knows its cause:
+
+- Java: `core/service/match/MovementAvailabilityChecker.java` — pure static function, no
+  ports, no I/O. Same shape as `EventAvailabilityChecker` (Step 29).
+- Python: `app/core/services/match/movement_availability.py`.
+- AWS: `lambda/match/movements.py`.
+
+`MovementService.startMovement` / `movement_service._start_movement` / the AWS movement
+start handler are refactored to call the checker instead of their own if-chains — same
+logic, same codes, one source of truth. `MatchQueryService` (and its Python/AWS
+counterparts) load the check context **once per request** — character state, weather,
+per-location character counts, registry — and loop the pure checker over the neighbors; no
+port call inside the loop. The reference character is the same one used for the event
+verdict (in single-player: the match creator's).
+
+## Order of checks (contract)
+
+The first check that fails wins; the ordering matches §3 (Validation Order) exactly, most
+explanatory first — coma beats sleep, character state beats edge cost:
+
+`CHARACTER_CANNOT_ACT` → `MATCH_NOT_RUNNING` → `COMA` → `SLEEPING` → (edge not found →
+`NOT_A_NEIGHBOR`) → `MOVEMENT_CONDITION_NOT_MET` → `OVERWEIGHT` → `INSUFFICIENT_ENERGY` →
+`LOCATION_FULL`.
+
+The energy cost used for the verdict is the same formula as execution (§4): edge cost +
+destination entry cost + weather modifier (safe/unsafe).
+
+## Files changed
+
+| Layer | Path |
+|---|---|
+| Check procedure | `core/service/match/MovementAvailabilityChecker.java` (mirrors `EventAvailabilityChecker`) |
+| Java | `MatchQueryService` (verdict loop), `MovementService.startMovement` (refactored to call the checker) |
+| Python | `app/core/services/match/movement_availability.py`, `movement_service.py`, `match_query_service.py` |
+| AWS | `lambda/match/movements.py` (checker), `lambda/match/handler.py` (verdict loop wired into match-info) |
+| OpenAPI | `adapter-rest/src/main/resources/openapi/v0.19.0-match-creation-api.yaml` — `LocationNeighborInfo` gains `available`/`reason` |
+| DTO | `adapter-rest/.../dto/MatchInfoResponse.java` |
+
+No database/schema change.
+
+---
+
+
 # Version Control
 
 - **Document Version**: 0.28.7
@@ -1987,8 +2070,9 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
   | 0.28.6 | §15: `/info` `locations[]` is now VISITED-ONLY on the player endpoint (the admin endpoint keeps every location for the console's runtime table); the synthetic `name` / `currentLocationName` / `players[].locationName` are removed from all three backends and titles now come from card titles; `locationsActive[].neighbors[]` gains `cardLocationFrom` / `cardLocationTo` — the LOCATION card of each edge endpoint, gated on that endpoint's own visited flag (so the move destination's card is `cardLocationFrom` when the player stands on `idLocationTo`, `cardLocationTo` otherwise). Java: `buildDetail` gains an `allLocations` flag, new `resolveLocationCard`, and a per-request card memo; `LocationNeighborInfo` ctor 10 → 12 args. **Python bugfix**: `find_locations_by_story_id` did not project `id_card`/`secure_param`, so `/info` `locationsActive[].card` and `.secureParam` were ALWAYS null in production (`secureParam` now returns `0/1`). AWS: the persisted `name`/`locationName` are stripped on READ (old matches already carry them) and no longer written. react-game: the adapter's neighbor card now falls back to the destination's LOCATION card and `mapGraph` feeds node photos from the new fields (real photos before `/locations` lands); its `flagAlreadyActived` visited fallback — which was near-dead — is replaced by `info.locations[]`. react-admin resolves names via the existing story-context resolvers. New Robot suite `28_movement/match_info_visited_locations.robot` (5 tests). Test counts: Java BUILD SUCCESS, Python 719 pass (92% cov), AWS 419 pass, react-game 484 pass, react-admin 429 pass | July 11, 2026 |
   | 0.28.7 | Match Logs API: new `GET /api/matches/{uuid}/logs` (owner-only, public port 8042) and `GET /api/admin/matches/{uuid}/logs` (no ownership check, admin port 8044) returning a chronologically-ordered timeline of WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE log entries (+ RECOVERY on Java/Python; **not yet on AWS**, see gap note). Sleep actions are now logged: new `clock INTEGER` column added to `log_events` via Flyway `V0.28.7__add_log_events_clock.sql` (postgres + sqlite); `TurnCycleStorePort.logSleep()` + adapter write added; `TimeAdvancementService.sleep()` calls `logSleep()` after `setCharacterSleeping()`. New Java classes: `MatchLogsStorePort`, `MatchLogsStoreAdapter`, `MatchLogsPort`, `MatchLogsService`, `MatchLogsController`, `MatchLogsResponse`. `MatchAdminController` gains admin endpoint + `MatchLogsPort` dependency. Unused `spring-boot-starter-actuator` dependency removed from `core/pom.xml`. Python: same changes mirrored in `time_ports.py`, `time_store_adapter.py`, `time_advancement_service.py`, new `match_logs_service.py`, route added to `match_controller.py` + `match_admin_controller.py`. AWS: new `GetMatchLogsRoute` / `AdminMatchLogsRoute` added to `template/match.yaml` (the API Gateway routes did not exist and the endpoints were unreachable without them); `sleepLog` field added to match item, written in `_sleep()`; new `_get_match_logs`, `_get_admin_match_logs`, `_build_match_logs`, `_ms_to_iso` helpers reading `db_utils.query_by_pk` (not `query_by_sk_prefix`, which does not exist); routes in `lambda_handler`. react-admin: new "Logs" detail tab (`MatchLogsCard.jsx`, `getMatchLogs` in `matchApi.js`, `logs`/`logsError` state in `MatchDetailPage.jsx`), `FooterBar.jsx` version bump. Collateral PostgreSQL bugfix (pre-existing, Step 28): `POST /api/dev/cleanup` violated the `log_movements → gaming_character_instance` FK; fixed via `LogMovementRepository.deleteByMatchIdIn()` (Java) and an equivalent delete in `MatchPersistenceAdapter._delete_character_state` (Python, latent because SQLite doesn't enforce the FK). OpenAPI: `v0.28.7-match-logs-api.yaml`. Robot: new suite `29_match_logs/match_logs.robot` (11 tests), `Get Match Logs` + `Get Admin Match Logs` keywords added to `matches.resource`. Unit tests: `MatchLogsServiceTest` (16 cases, Java core), `MatchLogsControllerTest` (4, Java adapter-rest, new), 3 new admin-controller tests, `TurnCycleStoreAdapterTest.logSleep_savesEventWithNextIdAndClock`, `test_match_logs_service.py` (9, Python) + controller tests, `test_match_handler_logs.py` (9, AWS), `MatchDetailPage.test.jsx` error-state additions (react-admin). Test status: `mvn test` BUILD SUCCESS, Python 736 pass, AWS (unit) 428 pass, react-admin (vitest) 432 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 432/432; **AWS end-to-end not yet verified** — requires a deploy. | July 12, 2026 |
   | 0.28.7 | Match Logs API **extended** (still v0.28.7, no version bump): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, same opaque `offset:<n>` base64 token and `{nextCursor, limit, total}` envelope as `GET /api/admin/matches`) and their entries are **enriched** — WEATHER carries its own `idCard`/`card`, MOVEMENT carries the destination location's `idCard`/`card` plus `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java: `MatchLogsPort`/`MatchLogsStorePort`/`MatchLogsService`/`CoreConfig` gain the pagination + lookup surface (`MatchLogsService` now depends on `ContentQueryPort`; character template PK is `id_tipo`). Python: `match_logs_service.py` gains `clamp_limit`/`encode_cursor`/`decode_cursor` and a `content_query_service` dependency, wired in `launcher.py`. AWS: `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs` + `_clamp_logs_limit`/`_encode_logs_cursor`/`_decode_logs_cursor`; AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin: `MatchLogsCard.jsx` gains **Card** and **Character** columns plus a "Load more" button (same accumulate-pages pattern as `MatchesPage`); `getMatchLogs(uuid, params)` takes `{ limit, cursor, lang }`. Collateral PostgreSQL seed fix: weather cards `90010`-`90012`/`91010`-`91012` and tutorial location cards `90002`/`90003` resolved with a null title (missing `list_texts` rows `800`-`802` and missing `id_text_title` on the location cards) — fixed in `R__insert_dev_test_data.sql`; this also fixed pre-existing null titles on the weather and locations APIs on PostgreSQL. OpenAPI `v0.28.7-match-logs-api.yaml` updated. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests (card/character/pagination coverage); `Get Match Logs`/`Get Admin Match Logs` keywords gain `limit`/`cursor`/`lang` via `Build Logs Params`. Test status: `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. | July 12, 2026 |
+  | 0.29.1 | Movement availability verdict on `GET /api/match/{uuid}/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, mirroring the event verdict pattern (Step 29 §4). New pure checker (`MovementAvailabilityChecker.java` / `movement_availability.py` / AWS `lambda/match/movements.py`) shared by `/info` and `POST movements/start`, so the two can never diverge; same 8 codes and same check order as §3. `MatchQueryService` (and Python/AWS counterparts) load the check context once per request, no query per neighbor. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo` schema updated. No schema change. | July 13, 2026 |
 
-- **Last Updated**: July 12, 2026
+- **Last Updated**: July 13, 2026
 - **Status**: Complete
 
 # < Paths Games />

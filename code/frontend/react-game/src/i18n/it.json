@@ -211,25 +211,64 @@
       "action": "Muovi",
       "cost": "Costo",
       "noEnergy": "Energia",
-      "moveCost": "Movimento"
+      "moveCost": "Movimento",
+      "blocked": "Bloccato",
+      "blockedFull": "Ora non puoi andare lì.",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Bloccato",
+        "MATCH_NOT_RUNNING": "Sospesa",
+        "COMA": "Coma",
+        "SLEEPING": "Sonno",
+        "NOT_A_NEIGHBOR": "Lontano",
+        "MOVEMENT_CONDITION_NOT_MET": "Sbarrata",
+        "OVERWEIGHT": "Sovraccarico",
+        "INSUFFICIENT_ENERGY": "Energia",
+        "LOCATION_FULL": "Pieno"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "Ora non puoi muoverti.",
+        "MATCH_NOT_RUNNING": "La partita non è in corso, quindi non puoi muoverti.",
+        "COMA": "Sei in coma: non puoi muoverti finché qualcuno non ti aiuta.",
+        "SLEEPING": "Stai dormendo e non puoi muoverti.",
+        "NOT_A_NEIGHBOR": "Questo luogo non è adiacente a quello in cui ti trovi.",
+        "MOVEMENT_CONDITION_NOT_MET": "La via è sbarrata: manca ancora qualcosa per aprirla.",
+        "OVERWEIGHT": "Sei troppo carico per metterti in cammino.",
+        "INSUFFICIENT_ENERGY": "Non hai abbastanza energia per questo spostamento.",
+        "LOCATION_FULL": "In quel luogo non c'è più posto."
+      }
     },
     "event": {
       "action": "Agisci",
       "cost": "Costo",
-      "blocked": "Non disponibile",
+      "blocked": "Bloccata",
+      "blockedFull": "Questa azione ora non è disponibile.",
       "reason": {
-        "CHARACTER_CANNOT_ACT": "Non puoi agire ora",
-        "SLEEPING": "Stai dormendo",
-        "COMA": "Sei in coma",
-        "EVENT_NOT_EXECUTABLE_TYPE": "Non sta a te",
-        "ONCE_ALREADY_CONSUMED": "Già fatto",
-        "WRONG_LOCATION": "Non qui",
-        "NOT_ENOUGH_ENERGY": "Energia insufficiente",
-        "NOT_ENOUGH_COINS": "Monete insufficienti",
+        "CHARACTER_CANNOT_ACT": "Bloccata",
+        "SLEEPING": "Sonno",
+        "COMA": "Coma",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Bloccata",
+        "ONCE_ALREADY_CONSUMED": "Fatta",
+        "WRONG_LOCATION": "Altrove",
+        "NOT_ENOUGH_ENERGY": "Energia",
+        "NOT_ENOUGH_COINS": "Monete",
         "REGISTRY_CONDITION_NOT_MET": "Non ancora",
-        "WEATHER_CONDITION_NOT_MET": "Tempo sbagliato",
-        "ITEM_CONDITION_NOT_MET": "Ti manca un oggetto",
-        "CLASS_CONDITION_NOT_MET": "Non per la tua classe"
+        "WEATHER_CONDITION_NOT_MET": "Tempo",
+        "ITEM_CONDITION_NOT_MET": "Oggetto",
+        "CLASS_CONDITION_NOT_MET": "Classe"
+      },
+      "reasonFull": {
+        "CHARACTER_CANNOT_ACT": "Ora non puoi agire.",
+        "SLEEPING": "Stai dormendo e non puoi agire.",
+        "COMA": "Sei in coma: non puoi agire finché qualcuno non ti aiuta.",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Questa azione non sta a te.",
+        "ONCE_ALREADY_CONSUMED": "L'hai già fatta e non si può ripetere.",
+        "WRONG_LOCATION": "Questa azione appartiene a un altro luogo.",
+        "NOT_ENOUGH_ENERGY": "Non hai abbastanza energia per questa azione.",
+        "NOT_ENOUGH_COINS": "Non hai abbastanza monete per questa azione.",
+        "REGISTRY_CONDITION_NOT_MET": "Non sei ancora pronto per questa azione.",
+        "WEATHER_CONDITION_NOT_MET": "Il tempo non è adatto a questa azione.",
+        "ITEM_CONDITION_NOT_MET": "Ti manca l'oggetto che questa azione richiede.",
+        "CLASS_CONDITION_NOT_MET": "La tua classe non può compiere questa azione."
       }
     },
     "map": {

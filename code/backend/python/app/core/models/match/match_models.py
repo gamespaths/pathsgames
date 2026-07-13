@@ -190,6 +190,11 @@ class LocationNeighborInfo:
     # gated on its OWN visited flag: None until that location has been visited.
     card_location_from: Optional[Dict[str, Any]] = None
     card_location_to: Optional[Dict[str, Any]] = None
+    # Whether the reference character can take this path right now, and — when it cannot — the
+    # MovementError code action/move would answer with (COMA, SLEEPING, INSUFFICIENT_ENERGY,
+    # ...). Same verdict, same code, one source: movement_availability.check.
+    available: bool = True
+    reason: Optional[str] = None
 
 
 @dataclass

@@ -22,6 +22,46 @@ from app.core.models.match.movement_models import (
     VisitedLocation,
 )
 from app.core.ports.match.movement_ports import MovementPort, MovementStorePort
+from app.core.services.match import movement_availability
+from app.core.services.match.movement_availability import MoveCheckContext, MoveEdgeCheck
+
+
+def move_check_context(match: Dict[str, Any],
+                       caller: Optional[Dict[str, Any]]) -> MoveCheckContext:
+    """The mover's edge-independent state, as ``movement_availability.check`` wants it.
+
+    Shared with ``MatchQueryService``, which reports the same verdict on every neighbor of
+    match-info: one reading of the character, one meaning.
+    """
+    if caller is None:
+        return MoveCheckContext.no_character()
+    return MoveCheckContext(
+        match_running=match.get("status") == match_statuses.RUNNING,
+        has_character=True,
+        coma=bool(caller.get("is_coma")),
+        sleeping=bool(caller.get("is_sleeping")),
+        energy=caller.get("energy") or 0,
+        # Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
+        carried_weight=caller.get("carried_weight") or 0,
+        weight_max=caller.get("weight_max") or 0,
+    )
+
+
+# The player-facing message for a refused move; the CODE is what clients switch on.
+_REASON_MESSAGES = {
+    MovementError.MATCH_NOT_RUNNING: "Match is not RUNNING",
+    MovementError.COMA: "Character cannot move while in coma",
+    MovementError.SLEEPING: "Character cannot move while sleeping",
+    MovementError.MOVEMENT_CONDITION_NOT_MET: "Movement condition not met",
+    MovementError.OVERWEIGHT: "Carried weight exceeds capacity",
+    MovementError.INSUFFICIENT_ENERGY: "Not enough energy",
+    MovementError.LOCATION_FULL: "Target location is at capacity",
+    MovementError.CHARACTER_CANNOT_ACT: "Character cannot act",
+}
+
+
+def _reason_message(code: str) -> str:
+    return _REASON_MESSAGES.get(code, "Movement refused")
 
 
 class MovementService(MovementPort):
@@ -42,12 +82,16 @@ class MovementService(MovementPort):
         if caller is None:
             raise MovementError(MovementError.MATCH_NOT_FOUND, "Match not found or not accessible")
 
-        if match["status"] != match_statuses.RUNNING:
-            raise MovementError(MovementError.MATCH_NOT_RUNNING, "Match is not RUNNING")
-        if caller.get("is_coma"):
-            raise MovementError(MovementError.COMA, "Character cannot move while in coma")
-        if caller.get("is_sleeping"):
-            raise MovementError(MovementError.SLEEPING, "Character cannot move while sleeping")
+        # The mover's own state (match RUNNING, coma, sleep) is judged before the target is
+        # even resolved, so an asleep player is told they are asleep rather than that their
+        # destination is not a neighbor. Passing edge=None asks the checker for exactly that
+        # prefix of the verdict; NOT_A_NEIGHBOR is its way of saying "so far so good, now
+        # give me an edge", and this call is not the one that decides it.
+        ctx = move_check_context(match, caller)
+        pre = movement_availability.check(ctx, None)
+        if not pre.available and pre.reason != MovementError.NOT_A_NEIGHBOR:
+            raise MovementError(pre.reason, _reason_message(pre.reason))
+
         if caller.get("id_location") is None:
             raise MovementError(MovementError.NOT_A_NEIGHBOR, "Character has no current location")
 
@@ -59,22 +103,20 @@ class MovementService(MovementPort):
         if edge is None:
             raise MovementError(MovementError.NOT_A_NEIGHBOR, "Target location is not a neighbor")
 
-        if not self._condition_met(match["id"], edge):
-            raise MovementError(MovementError.MOVEMENT_CONDITION_NOT_MET,
-                                "Movement condition not met")
-
         total_cost = self._total_cost(edge["energy_cost"], target,
                                       self.store.find_current_weather_move_cost(match["id"]))
 
-        if (caller.get("carried_weight", 0) or 0) > (caller.get("weight_max", 0) or 0):
-            raise MovementError(MovementError.OVERWEIGHT, "Carried weight exceeds capacity")
-        if (caller.get("energy", 0) or 0) < total_cost:
-            raise MovementError(MovementError.INSUFFICIENT_ENERGY, "Not enough energy")
-
         max_chars = target.get("max_characters") or 0
-        if max_chars > 0 and self.store.count_characters_at_location(
-                match["id"], target["id"]) >= max_chars:
-            raise MovementError(MovementError.LOCATION_FULL, "Target location is at capacity")
+        verdict = movement_availability.check(ctx, MoveEdgeCheck(
+            condition_met=self._condition_met(match["id"], edge),
+            total_energy_cost=total_cost,
+            max_characters=max_chars,
+            characters_at_target=(
+                self.store.count_characters_at_location(match["id"], target["id"])
+                if max_chars > 0 else 0),
+        ))
+        if not verdict.available:
+            raise MovementError(verdict.reason, _reason_message(verdict.reason))
 
         new_energy = (caller.get("energy", 0) or 0) - total_cost
         self.store.update_character_location_and_energy(

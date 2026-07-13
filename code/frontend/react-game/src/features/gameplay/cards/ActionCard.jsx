@@ -3,6 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { executeEvent } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
+import { lockedIconFor } from '@/constants/lockReasons'
 
 /**
  * ActionCard — Step 29. One card per NORMAL/ONCE event available at the active location.
@@ -25,9 +26,14 @@ export default function ActionCard({
 
   const available = action?.available === true
   const locked = !available
-  // An older backend sends no reason: say "not available" rather than invent a cause.
+  // Two registers for the same refusal: the card has room for one word (it sits in a badge next
+  // to the lock icon), the preview has room for the sentence that actually explains it.
+  // An older backend sends no reason: say "blocked" rather than invent a cause.
   const lockInfo = locked
     ? (action?.reason ? t(`game.event.reason.${action.reason}`) : t('game.event.blocked'))
+    : undefined
+  const lockInfoFull = locked
+    ? (action?.reason ? t(`game.event.reasonFull.${action.reason}`) : t('game.event.blockedFull'))
     : undefined
 
   const cardData = action?.card ?? {
@@ -49,7 +55,7 @@ export default function ActionCard({
       setRunning(false)
     }
   }
-console.log("action", action);
+  //console.log("action", action);
   const cost = action?.energy ?? 0
   const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
   const costBadge = (
@@ -66,12 +72,14 @@ console.log("action", action);
       actionIcon={actionIcon}
       locked={locked}
       lockInfo={lockInfo}
-      lockedIcon="fas fa-ban"
+      lockedIcon={lockedIconFor(action?.reason)}
       // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
-      onPreview={() => onPreview(action?.card ?? null, 'action', lockInfo ?? null, [], true,
+      onPreview={() => onPreview(action?.card ?? null, 'action', lockInfoFull ?? null, [], true,
         available
           ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon }
-          : {}, previewSide)}
+          : {extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>), 
+            actionLabelChildren: costBadge
+        }, previewSide)}
       story={story}
       flagInformationCard={true}
       childrenIntoImage={costBadge}

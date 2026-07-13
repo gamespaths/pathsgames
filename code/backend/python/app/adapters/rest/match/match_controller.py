@@ -160,6 +160,9 @@ def _location_info_to_camel(l):
                 "cardBack": n.card_back,
                 "cardLocationFrom": n.card_location_from,
                 "cardLocationTo": n.card_location_to,
+                # The verdict action/move would give this path, and its code when refused.
+                "available": n.available,
+                "reason": n.reason,
             }
             for n in l.neighbors
         ],
