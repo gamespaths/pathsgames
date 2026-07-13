@@ -1,4 +1,4 @@
-import images from '@/mock/images.json'
+import images from '@/data/images.json'
 
 /**
  * Builders for the two non-selectable loadout cards shown in the start book —
@@ -9,7 +9,7 @@ import images from '@/mock/images.json'
 
 const imgById = id => images.find(x => x.id === id)
 
-/** Map an entry of mock/images.json onto the `card` shape Card expects. *//** Map an entry of mock/images.json onto the `card` shape GameCard expects. */
+/** Map an entry of data/images.json onto the `card` shape Card expects. */
 function metaCard(imgId , title=null, description=null) {  
   const img = imgById(imgId)
   if (!img) return {}
@@ -21,6 +21,7 @@ function metaCard(imgId , title=null, description=null) {
     styleImageLittle: img.styleImageLittle,
     title: title ?? null,
     description: description ?? null,
+    awesomeIcon: img.awesomeIcon ?? null,
   }
 }
 
@@ -38,6 +39,59 @@ export function buildCardToSleep(story, playerStats, t) {
 
 export function buildEndGameCard(t) {
   return metaCard('endgame', t('game.endGameCard.title'), t('game.endGameCard.description'));
+}
+
+/**
+ * Step 27 — weather card shown after the sleep card. `weather` is the
+ * GET /api/matches/{uuid}/weather payload (or null when none is set). The
+ * description appends the energy delta applied to every character at time-start.
+ */
+export function buildWeatherCard(weather, t) {
+  const card = metaCard('weather', t('game.weather.title'), t('game.weather.description'));
+  const delta = weather?.deltaEnergy ?? 0;
+  if (delta) {
+    const sign = delta > 0 ? '+' : '';
+    card.description = `${card.description} (${t('game.weather.energyDelta')}: ${sign}${delta})`;
+  }
+  return card;
+}
+
+/** Step 0.28.5 — world-map card (MapCard). `t` is the i18n translate function. */
+export function buildMapCard(t) {
+  return metaCard('map', t('game.map.title'), null)
+}
+
+/**
+ * Fallback movement card for a neighbor that carries NO card (neither the
+ * forward `card` nor the return `cardBack`). Uses the fixed "neighbor" image
+ * from data/images.json.
+ *
+ * @param {Function} t - i18n translate function
+ * @param {string|null} direction - the neighbor direction (e.g. "NORTH"); the
+ *   title reads "Move to North" (forward) or "Back to North" (return).
+ * @param {string|null} fromName - the "From" location name.
+ * @param {string|null} toName - the "To" location name; falls back to
+ *   "Unexplored location" when null (destination not yet visited).
+ * @param {boolean} isBack - true when the character stands on the destination
+ *   and the move is a return: the title uses "Back to" and the caller has
+ *   already swapped From/To.
+ */
+export function buildNeighborCard(t, direction = null, fromName = null, toName = null, isBack = false) {
+  const dir = direction && typeof direction === 'string'
+    ? direction.charAt(0).toUpperCase() + direction.slice(1).toLowerCase()
+    : null
+  const prefix = isBack ? t('game.backTo') : t('game.moveToDirection')
+  const title = dir ? `${prefix} ${dir}` : (isBack ? t('game.backTo') : t('game.moveTo'))
+  // Description = the title, then From / To on their own lines, spaced apart:
+  //   Move to North        (or "Back to North")
+  //   From <from>
+  //   To   <to>
+  let description = title
+  if (fromName) description += `<br/><br/>${t('game.from')}: ${fromName}`
+  // Always show the "To" line; when the destination is not yet visited (no name)
+  // fall back to an "Unexplored location" label.
+  description += `<br/><br/>${t('game.to')}: ${toName ?? t('game.map.unexploredLocation')}`
+  return metaCard('neighbor', title, description)
 }
 
 /** "Guest" login card. `t` is the i18n translate function. */
@@ -58,6 +112,11 @@ export function buildAntibotCard(t) {
 /** "Free to play" card revealed once the Turnstile check succeeds. */
 export function buildFreeToPlay(t) {
   return metaCard('freeToPlay', t('book.freeToPlay'), t('book.freeToPlayDesc'));
+}
+
+/** "No traits selected" placeholder card shown in ConfigView when selectedTraits is empty. */
+export function buildNoTraitsCard(t) {
+  return metaCard('noTraits', t('book.noTraitsTitle'), t('book.noTraitsDesc'))
 }
 
 export function buildStatisticsCard(t, totals , story) {

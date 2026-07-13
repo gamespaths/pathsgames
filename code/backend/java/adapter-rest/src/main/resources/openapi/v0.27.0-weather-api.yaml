@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: Paths Games — Weather System API
+  description: |
+    Step 27 — weather system (random selection & effects). At every time-start
+    (match start and each clock advance) the engine selects one active weather
+    rule for the story with a deterministic **weighted roll** (weight =
+    `probability`), filtered by the current clock time range and an optional
+    registry condition. The chosen weather is stored on `gaming_match`
+    (`id_current_weather`), logged in `log_weather`, and its `delta_energy` is
+    applied to every character (clamped 0..energy_max). When the rule carries an
+    `id_event`, that event is recorded as pending.
+
+    Determinism: each match owns an `rng_seed` (BIGINT). Match creation generates
+    a random seed unless an explicit `rngSeed` is provided in the create request
+    (Robot tests pass 42). The roll for a clock uses `rng_seed + clock`.
+
+    Public endpoint: `GET /api/matches/{uuid}/weather`. The admin weather view
+    (`rng_seed` + current weather + `log_weather` history) is served on the admin
+    port at `GET /api/admin/matches/{uuid}/weather`.
+  version: 0.27.0
+servers:
+  - url: http://localhost:8042
+    description: Local development (public/player API)
+  - url: http://localhost:8044
+    description: Local development (admin API)
+tags:
+  - name: weather
+    description: Weather selection & effects
+security:
+  - bearerAuth: []
+paths:
+  /api/matches/{uuid}/weather:
+    get:
+      tags: [weather]
+      summary: Read the current weather of a match
+      description: |
+        Returns the weather currently set on the match, including its
+        `deltaEnergy` and the movement-cost modifiers for safe and not-safe
+        locations. Returns 404 when no weather has been selected yet (e.g. the
+        match is still in CREATED state).
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current weather
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeatherResponse' }
+        '404': { description: WEATHER_NOT_FOUND — no weather is set for this match }
+  /api/admin/matches/{uuidMatch}/weather:
+    get:
+      tags: [weather]
+      summary: Admin weather view — rng_seed, current weather and log_weather history
+      description: |
+        Admin-only (served on the admin port 8044). Returns the per-match
+        `rngSeed`, the current weather and the full `log_weather` history ordered
+        by clock.
+      parameters:
+        - name: uuidMatch
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Admin weather view
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WeatherAdminResponse' }
+        '400': { description: INVALID_INPUT — match uuid is required }
+  /api/matches:
+    post:
+      tags: [weather]
+      summary: (Extension) Create a match with an optional deterministic rng seed
+      description: |
+        Step 27 extends `POST /api/matches` with an optional `rngSeed` field used
+        to make weather selection reproducible. All other create fields are
+        unchanged (see the match-creation API).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                storyUuid: { type: string }
+                difficultyUuid: { type: string }
+                rngSeed:
+                  type: integer
+                  format: int64
+                  nullable: true
+                  description: Optional deterministic seed (Robot tests pass 42).
+      responses:
+        '201': { description: Match created }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    WeatherResponse:
+      type: object
+      properties:
+        idWeather: { type: integer, format: int64, nullable: true }
+        uuid: { type: string, nullable: true }
+        idTextName: { type: integer, nullable: true }
+        idCard: { type: integer, nullable: true }
+        card:
+          nullable: true
+          description: The weather's resolved visual card (image, title, description, icon).
+          type: object
+        deltaEnergy: { type: integer, nullable: true }
+        costMoveSafeLocation: { type: integer, nullable: true }
+        costMoveNotSafeLocation: { type: integer, nullable: true }
+        currentClock: { type: integer, nullable: true }
+    WeatherRuleSummary:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        uuid: { type: string }
+        idTextName: { type: integer, nullable: true }
+        name:
+          type: string
+          nullable: true
+          description: Resolved name (id_text_name text, falling back to the weather card title).
+        probability: { type: integer, nullable: true }
+        deltaEnergy: { type: integer, nullable: true }
+        costMoveSafeLocation: { type: integer, nullable: true }
+        costMoveNotSafeLocation: { type: integer, nullable: true }
+        active: { type: boolean }
+        current: { type: boolean, description: true for the match's currently active weather }
+    WeatherLogEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        uuid: { type: string }
+        clock: { type: integer }
+        idWeather: { type: integer, format: int64, nullable: true }
+        weatherUuid: { type: string, nullable: true }
+        idTextName: { type: integer, nullable: true }
+        timestampStart: { type: string, nullable: true }
+    WeatherAdminResponse:
+      type: object
+      properties:
+        rngSeed: { type: integer, format: int64, nullable: true }
+        current:
+          allOf:
+            - $ref: '#/components/schemas/WeatherResponse'
+          nullable: true
+        rules:
+          type: array
+          description: Every weather rule of the story, each flagged active/current.
+          items: { $ref: '#/components/schemas/WeatherRuleSummary' }
+        log:
+          type: array
+          items: { $ref: '#/components/schemas/WeatherLogEntry' }

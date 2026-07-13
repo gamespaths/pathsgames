@@ -254,6 +254,26 @@ Create And Update Creator With idCard
     ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/creators/${entity_uuid}
     Status Should Be    ${del_resp}    200
 
+Create And Update Location Neighbor With idCardBack
+    [Documentation]    Step 0.28.2 — the optional return card (idCardBack) is mapped and
+    ...                saved for location-neighbor sub-entities, alongside idCard.
+    [Tags]    admin    crud    step28    movement-back
+    &{data}=    Create Dictionary    idLocationFrom=${90001}    idLocationTo=${90002}
+    ...    direction=NORTH    idCard=${90002}    idCardBack=${90003}
+    ${create_resp}=    POST On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors    json=${data}
+    Status Should Be    ${create_resp}    201
+    ${entity_uuid}=    Set Variable    ${create_resp.json()}[uuid]
+    Response Field Should Equal    ${create_resp}    idCard        90002
+    Response Field Should Equal    ${create_resp}    idCardBack    90003
+
+    &{update_data}=    Create Dictionary    idCardBack=${90001}
+    ${update_resp}=    PUT On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}    json=${update_data}
+    Status Should Be    ${update_resp}    200
+    Response Field Should Equal    ${update_resp}    idCardBack    90001
+
+    ${del_resp}=    DELETE On Session    admin_session    /api/admin/stories/${DEMO_1_UUID}/location-neighbors/${entity_uuid}
+    Status Should Be    ${del_resp}    200
+
 Create And Delete Card With Style Fields
     [Documentation]    Full CRUD cycle for cards. Verifies alternativeImage, styleMain,
     ...                styleDetail and per-size styleImage* fields are persisted.

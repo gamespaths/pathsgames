@@ -10,6 +10,7 @@ from app.core.models.match.match_models import (
 from app.core.ports.match.match_ports import (
     CharacterCommandPort,
     CharacterPersistencePort,
+    CharacterReadPort,
     MatchPersistencePort,
     StoryMatchReadPort,
     UserAccessPort,
@@ -27,11 +28,13 @@ class CharacterCommandService(CharacterCommandPort):
         match_persistence_port: MatchPersistencePort,
         user_access_port: UserAccessPort,
         character_persistence_port: CharacterPersistencePort,
+        character_read_port: Optional[CharacterReadPort] = None,
     ) -> None:
         self.story_read_port = story_read_port
         self.match_persistence_port = match_persistence_port
         self.user_access_port = user_access_port
         self.character_persistence_port = character_persistence_port
+        self.character_read_port = character_read_port
 
     def join(self, command: JoinMatchCommand) -> CharacterInstanceInfo:
         if command is None or not command.match_uuid or not command.user_uuid:
@@ -178,6 +181,7 @@ class CharacterCommandService(CharacterCommandPort):
             "id_match": match["id"],
             "id_user": user["id"],
             "id_character_template": template.get("id_tipo"),
+            "id_class": clazz.get("id") if clazz else None,
             "dexterity": dexterity,
             "intelligence": intelligence,
             "constitution": constitution,
@@ -195,13 +199,11 @@ class CharacterCommandService(CharacterCommandPort):
 
     def _to_info(self, saved, match, story, user_uuid, template_uuid, class_uuid, trait_uuids):
         location_uuid = None
-        location_name = None
         loc_id = saved.get("id_location")
         if loc_id is not None and story is not None:
             for loc in self.story_read_port.find_locations_by_story_id(story["id"]):
                 if loc["id"] == loc_id:
                     location_uuid = loc["uuid"]
-                    location_name = f"location-{loc['id']}"
                     break
         return CharacterInstanceInfo(
             uuid=saved["uuid"],
@@ -222,7 +224,6 @@ class CharacterCommandService(CharacterCommandPort):
             weight=0,  # fresh character carries no items
             id_location=loc_id,
             location_uuid=location_uuid,
-            location_name=location_name,
             is_sleeping=saved["is_sleeping"],
             is_coma=saved["is_coma"],
             trait_uuids=list(trait_uuids),
@@ -231,6 +232,43 @@ class CharacterCommandService(CharacterCommandPort):
             magic=0,
             coin=0,
         )
+
+
+    def change_statistics(self, match_uuid: str, player_uuid: str,
+                          dex: Optional[int], intel: Optional[int], con: Optional[int],
+                          energy: Optional[int], life: Optional[int], sad: Optional[int],
+                          coin: Optional[int], food: Optional[int],
+                          magic: Optional[int]) -> str:
+        match = self.match_persistence_port.find_match_by_uuid(match_uuid)
+        if match is None:
+            return "MATCH_NOT_FOUND"
+        read_port = self.character_read_port or self.character_persistence_port
+        character = read_port.find_character_by_match_and_uuid(match["id"], player_uuid)
+        if character is None:
+            return "PLAYER_NOT_FOUND"
+
+        e_max = _nz(character.get("energy_max")) or None
+        l_max = _nz(character.get("life_max")) or None
+        s_max = _nz(character.get("sad_max")) or None
+
+        def _bounded(val, max_val):
+            if val is None:
+                return None
+            return min(val, max_val) if max_val else val
+
+        eff_energy = _bounded(energy, e_max)
+        eff_life   = _bounded(life,   l_max)
+        eff_sad    = _bounded(sad,    s_max)
+
+        self.character_persistence_port.update_character_stats(
+            match["id"], character["id"],
+            dex, intel, con, eff_energy, eff_life, eff_sad,
+        )
+        if any(v is not None for v in (food, magic, coin)):
+            self.character_persistence_port.update_backpack_stats(
+                match["id"], character["id"], food, magic, coin,
+            )
+        return "UPDATED"
 
 
 def _nz(value) -> int:

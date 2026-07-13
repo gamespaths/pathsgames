@@ -11,6 +11,10 @@ Main file documentation is
 
 Take your time. I prefer an accurate and thorough response over a quick one.
 
+You are never autorized to do commit and push into repository!
+
+Never create a new version without specific indication, the current version is from pom (code/backend/java/pom.xml) without SNAPSHOT indication. Use a new version only if indicated into the prompt. 
+
 You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
 You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
 You're alwasy allowed to run compilation commands and test unit commands without my confirmation: like "mvn build", "mvn test", "pytest", "pyunit", "run_robots*.sh", "npx vitest ", "python -m pytest", "npx vitest run"!
@@ -22,11 +26,11 @@ Every time you run, every time, after change something, when you complete your t
 
 Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
 
-Every time if you chage/create code (java, python, react) remember to check unit test codes.
+Every time if you chage/create code (java, python, react) remember to check unit test codes and test coverage of new code must be > 90%.
 
 At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
 
-Every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
+If in prompt there is the "log all command" annotation, every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
 
 ## Project Overview
 
@@ -188,23 +192,8 @@ app/launcher.py      Entry point and DI wiring
 ```
 
 ### Node.js backend — Fastify/TypeScript/Prisma
+Node.js backend doesn'e exist! Is removed from project!
 
-```
-src/core/                 Pure domain (services, models, port interfaces — no framework)
-src/adapters/rest/        Fastify controllers (11 controllers, dual Fastify instances)
-src/adapters/persistence/ Prisma repositories (7 implementations)
-src/adapters/auth/        JWT token adapter
-src/__tests__/            Jest unit tests (21 tests)
-src/main.ts               Entry point + manual DI wiring
-prisma/schema.prisma      32 Prisma models mapped to list_* / users / gaming_* tables
-prisma/seed.js            Story seed data (tutorial story)
-```
-
-**Schema:** uses the documented relational `list_*` model (same tables as Java/Python/AWS). 32 Prisma models with `@@map("list_xxx")` and `@map("snake_case")` for column names; composite PKs `@@id([id, idStory])` with integer IDs (no autoincrement on composite PK parts — IDs assigned by the import service). Auth via `users` table (state=6 for guests) + `users_tokens`. Gaming via `gaming_match` + `gaming_character_instance`.
-
-**Schema push:** container startup executes `npx prisma db push --accept-data-loss` then `node prisma/seed.js`. The `--accept-data-loss` flag is required when the schema changes without a formal migration file (dev workflow).
-
-**Ports:** public 8042, admin 8044 (same as all other backends).
 
 ### AWS backend — serverless
 
@@ -233,16 +222,28 @@ React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medie
 |-------|----------|
 | `01_smoke` | Basic connectivity |
 | `12_auth` | Guest login, session management |
+| `13_session_token` | Session token validation |
 | `14_admin` | Admin guest management |
 | `14_stories` | Story catalog |
 | `15_story_content` | Story content APIs |
 | `16_content_detail` | Content detail APIs |
 | `17_admin_crud` | Admin CRUD for all story entities |
+| `19_match` | Match creation and end flow |
+| `20_admin_match` | Admin match control (stop/pause/resume) |
+| `20_website` | Website/Turnstile captcha flow |
+| `21_character_selection` | Character join, stat formula, backpack/traits |
+| `22_story_validation` | Story import validation rules |
+| `23_trait_selection` | Trait selection with class/cost/compatibility checks |
+| `24_turn_cycle` | Full turn cycle gameplay |
+| `25_time_clock` | Active location seeding and time clock |
+| `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
+| `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
+| `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations; full location/neighbor `card` resolution + `?lang=` on `GET /locations` (`location_cards.robot`, v0.28.5); fog-of-war gating hides neighbor `card`/`idCard` for never-visited destinations on `/locations` and `/info` (`location_fog_of_war.robot`, v0.28.6); `/info` `locations[]` visited-only (admin keeps all), no synthetic `name`/`currentLocationName`/`locationName`, and neighbor `cardLocationFrom`/`cardLocationTo` gated per endpoint (`match_info_visited_locations.robot`, v0.28.6); neighbor return card idCardBack (`neighbor_card_back.robot`); event-to-location binding idSpecificLocation, guards AWS stale-alias + Python column-name bugs (`event_location.robot`) |
+| `29_match_logs` | Consolidated match log timeline `GET /api/matches/{uuid}/logs` and `GET /api/admin/matches/{uuid}/logs`: WEATHER/MOVEMENT/SLEEP/CLOCK_ADVANCE entries, auth/ownership, 404/400 error contract, cursor pagination (`?limit=&cursor=`), and card/character enrichment on WEATHER/MOVEMENT/SLEEP/RECOVERY entries (`match_logs.robot`, 16 tests) |
 
 ### Robot seed and command!
 | AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html
 | Java/SQLite | `R__insert_story_seed_data.sql` | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java/report.html
 | Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
 | Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
-| Node.js | `code/backend/node/prisma/seed.js` | code/scripts/dev/run_robots/run_robot_with_local_node.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-node/report.html
 

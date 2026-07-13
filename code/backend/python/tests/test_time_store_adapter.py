@@ -154,3 +154,19 @@ def test_resolve_text_falls_back_to_english(session_factory):
     # request 'it' which is absent → falls back to the 'en' text
     singular, plural = adapter.find_story_clock_labels(1, "it")
     assert singular == "hour" and plural == "hours"
+
+
+def test_log_sleep_appends_action_sleep_event(session_factory):
+    """Step 28.7 — sleep actions land in log_events with the match clock."""
+    from app.adapters.persistence.match.models import LogEventsEntity
+
+    _seed(session_factory)
+    adapter = TimeStoreAdapter(session_factory)
+    adapter.log_sleep(1, 1, 2)
+    adapter.log_sleep(1, 1, 3)  # exercises the max(id)+1 path
+
+    with session_factory() as s:
+        rows = s.query(LogEventsEntity).order_by(LogEventsEntity.id.asc()).all()
+    assert [r.log_message for r in rows] == ["ACTION_SLEEP", "ACTION_SLEEP"]
+    assert [r.clock for r in rows] == [2, 3]
+    assert rows[0].id_character_match == 1

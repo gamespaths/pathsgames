@@ -19,7 +19,7 @@ export default function UserLanguageSelector() {
         <i className="fas fa-scroll me-2" />{t('modals.guestUser.languageTitle')}
       </h3>*/}
         {availableLangs.map(l => (
-            <button
+            <button key={l.code}
             className={`lang-btn ${lang === l.code ? 'active' : ''}`}
             onClick={() => setLang(l.code)}
             title={l.label}

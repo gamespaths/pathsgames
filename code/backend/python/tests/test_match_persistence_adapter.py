@@ -115,6 +115,73 @@ def test_find_all_matches_empty(session_factory):
     assert adapter.find_all_matches() == []
 
 
+# ── find_matches_page (v0.28.1) ──────────────────────────────────────────────
+
+def _seed_page_rows(adapter, session_factory, specs):
+    """Save matches then override status/ts_insert deterministically.
+
+    specs: list of dicts {creator, story, status, ts}. Returns saved ids in
+    insertion order so tests can assert on them."""
+    from app.adapters.persistence.match.models import GamingMatchEntity
+    ids = []
+    for spec in specs:
+        saved = adapter.save_match({
+            "id_story": spec["story"], "id_difficulty": 2,
+            "id_user_creator": spec["creator"],
+        })
+        ids.append(saved["id"])
+    with session_factory() as session:
+        for mid, spec in zip(ids, specs):
+            row = session.get(GamingMatchEntity, mid)
+            row.status = spec["status"]
+            row.ts_insert = spec["ts"]
+        session.commit()
+    return ids
+
+
+def test_find_matches_page_orders_newest_first_and_keysets(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    i1, i2, i3 = _seed_page_rows(adapter, session_factory, [
+        {"creator": 7, "story": 1, "status": "CREATED", "ts": "2024-01-01T00:00:00+00:00"},
+        {"creator": 7, "story": 1, "status": "CREATED", "ts": "2024-02-02T00:00:00+00:00"},
+        {"creator": 7, "story": 1, "status": "CREATED", "ts": "2024-03-03T00:00:00+00:00"},
+    ])
+    # First page (newest two): i3 then i2.
+    page1 = adapter.find_matches_page(None, None, None, None, None, None, 2)
+    assert [r["id"] for r in page1] == [i3, i2]
+    # Keyset from the last row of page1 → the remaining oldest row.
+    last = page1[-1]
+    page2 = adapter.find_matches_page(None, None, None, None, last["ts_insert"], last["id"], 2)
+    assert [r["id"] for r in page2] == [i1]
+
+
+def test_find_matches_page_filters(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    _seed_page_rows(adapter, session_factory, [
+        {"creator": 7, "story": 1, "status": "RUNNING", "ts": "2024-03-01T00:00:00+00:00"},
+        {"creator": 9, "story": 2, "status": "ENDED", "ts": "2024-01-01T00:00:00+00:00"},
+    ])
+    by_user = adapter.find_matches_page(None, 7, None, None, None, None, 50)
+    assert [r["id_user_creator"] for r in by_user] == [7]
+    by_story = adapter.find_matches_page(None, None, 2, None, None, None, 50)
+    assert [r["id_story"] for r in by_story] == [2]
+    by_status = adapter.find_matches_page("ENDED", None, None, None, None, None, 50)
+    assert [r["status"] for r in by_status] == ["ENDED"]
+    # ts_from keeps only rows at/after the bound (the RUNNING 2024-03 one).
+    recent = adapter.find_matches_page(None, None, None, "2024-02-01T00:00:00+00:00", None, None, 50)
+    assert [r["status"] for r in recent] == ["RUNNING"]
+
+
+def test_find_matches_page_limit_and_empty(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    _seed_page_rows(adapter, session_factory, [
+        {"creator": 7, "story": 1, "status": "CREATED", "ts": "2024-02-02T00:00:00+00:00"},
+        {"creator": 7, "story": 1, "status": "CREATED", "ts": "2024-01-01T00:00:00+00:00"},
+    ])
+    assert len(adapter.find_matches_page(None, None, None, None, None, None, 1)) == 1
+    assert adapter.find_matches_page("GAMEOVER", None, None, None, None, None, 50) == []
+
+
 def test_save_locations_and_registry_no_op_when_empty(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     adapter.save_locations([])
@@ -149,7 +216,7 @@ def test_story_match_read_adapter(session_factory):
         story_id = story.id
 
         diff = StoryDifficultyEntity(id=1, id_story=story_id, uuid="diff-uuid", exp_cost=5)
-        location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_start=3)
+        location = LocationEntity(id=10, id_story=story_id, uuid="loc-uuid", counter_time=3)
         key = KeyEntity(id=20, id_story=story_id, uuid="key-uuid", key_name="k", key_value="1")
         session.add_all([diff, location, key])
         session.commit()
@@ -170,7 +237,12 @@ def test_story_match_read_adapter(session_factory):
     assert read.find_difficulty_by_id(s_by_uuid["id"], 99) is None
 
     locs = read.find_locations_by_story_id(s_by_uuid["id"])
-    assert locs[0]["counter_start"] == 3
+    assert locs[0]["counter_time"] == 3
+    # v0.28.6 — the projection must carry id_card and secure_param: the match-info
+    # enrichment reads them off these dicts (locationsActive[].card/.secureParam and
+    # the neighbor location cards). They were missing, so those fields were always null.
+    assert "id_card" in locs[0]
+    assert "secure_param" in locs[0]
     keys = read.find_keys_by_story_id(s_by_uuid["id"])
     assert keys[0]["key_value"] == "1"
 

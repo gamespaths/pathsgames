@@ -488,6 +488,80 @@ export default function StoryEditorPage() {
     return nextCardId
   }
 
+  // Duplicate a neighbor's forward Card into a new "Card Back": copies every card
+  // field except the title/description text ids — those get two brand-new text ids
+  // holding the originals' values with a ' BIS' suffix — then points the neighbor's
+  // idCardBack at the new card.
+  const handleDuplicateCardBack = async (neighbor) => {
+    const parsedIdCard = Number(neighbor?.idCard)
+    if (!Number.isFinite(parsedIdCard)) {
+      setError('This neighbor has no source Card to duplicate')
+      return
+    }
+    try {
+      let availableCards = cardsRef
+      if (!availableCards?.length) availableCards = await listEntities(uuid, 'cards')
+      const sourceCard = availableCards.find(c => Number(c.idCard ?? c.id ?? c.id_card) === parsedIdCard)
+      if (!sourceCard) {
+        setError(`Card #${parsedIdCard} not found`)
+        return
+      }
+
+      // Fresh texts, then allocate new text ids above the current max.
+      const existingTexts = await refreshTexts(uuid)
+      const textIds = existingTexts.map(t => Number(t.idText)).filter(Number.isFinite)
+      let nextTextId = textIds.length ? Math.max(...textIds) + 1 : 1
+
+      const cloneTextWithBis = async (sourceTextId, newTextId) => {
+        const rows = existingTexts.filter(t => Number(t.idText) === Number(sourceTextId))
+        const langs = rows.length ? rows : [{ lang: 'en', shortText: '', longText: '' }]
+        for (const row of langs) {
+          await createEntity(uuid, 'texts', {
+            id: newTextId,
+            idText: newTextId,
+            lang: row.lang,
+            shortText: row.shortText ? `${row.shortText} BIS` : 'BIS',
+            longText: row.longText ? `${row.longText} BIS` : (row.longText ?? ''),
+            idTextCopyright: row.idTextCopyright ?? null,
+            idCreator: row.idCreator ?? null,
+          })
+        }
+      }
+
+      const srcTitleTextId = Number(sourceCard.idTextTitle)
+      const srcDescTextId = Number(sourceCard.idTextDescription)
+      const newTitleTextId = Number.isFinite(srcTitleTextId) ? nextTextId++ : null
+      const newDescTextId = Number.isFinite(srcDescTextId) ? nextTextId++ : null
+      if (newTitleTextId !== null) await cloneTextWithBis(srcTitleTextId, newTitleTextId)
+      if (newDescTextId !== null) await cloneTextWithBis(srcDescTextId, newDescTextId)
+
+      // New card id above the current max.
+      const cardIds = availableCards.map(c => Number(c.idCard ?? c.id ?? c.id_card)).filter(Number.isFinite)
+      const newCardId = cardIds.length ? Math.max(...cardIds) + 1 : 1
+
+      // Copy every source-card field except identity + the two text ids.
+      const { uuid: _u, id: _i, idCard: _c, idTextTitle: _tt, idTextDescription: _td,
+        tsInsert: _ti, tsUpdate: _tu, ...rest } = sourceCard
+      await createEntity(uuid, 'cards', {
+        ...rest,
+        idCard: newCardId,
+        idTextTitle: newTitleTextId ?? sourceCard.idTextTitle ?? null,
+        idTextDescription: newDescTextId ?? sourceCard.idTextDescription ?? null,
+      })
+
+      // Point the neighbor's return card at the freshly created card.
+      await updateEntity(uuid, 'location-neighbors', neighbor.uuid, { idCardBack: newCardId })
+
+      await refreshTexts(uuid)
+      await refreshReferenceEntities(uuid)
+      await loadEntities()
+      setSuccess(`Card Back #${newCardId} created (BIS texts #${newTitleTextId ?? '—'}/#${newDescTextId ?? '—'})`)
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (e) {
+      setError(`Duplicate Card Back failed: ${e.message}`)
+    }
+  }
+
   if (loading) return <LoadingSpinner text="Loading story data..." />
 
   // Column definitions for each entity type
@@ -807,6 +881,9 @@ export default function StoryEditorPage() {
       idCard: {
         options: cardsOptions,
       },
+      idCardBack: {
+        options: cardsOptions,
+      },
       idLocationFrom: {
         options: locationOptions,
       },
@@ -841,7 +918,7 @@ export default function StoryEditorPage() {
 
       {/* Main Content */}
       <div className="flex-grow min-w-0">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-1">
           {success && (
             <div className="pg-alert pg-alert-success position-absolute left-1/2 z-10 px-4">
               <i className="fas fa-check-circle me-2" />{success}
@@ -1083,6 +1160,10 @@ export default function StoryEditorPage() {
             texts={texts}
             relationOptionsByField={pathSelectorOptionsByTab[activeTab] || {}}
             onOpenIdCardForm={handleOpenCardFromEntityTable}
+            onDuplicateCardBack={handleDuplicateCardBack}
+            showCardBackColumn={activeTab === 'location-neighbors'}
+            // Loc Neighbors shows a 4th column (Direction); other tabs keep 3.
+            maxColumns={activeTab === 'location-neighbors' ? 4 : 3}
             onEdit={(ent) => setModal({ type: 'form', entity: normalizeEntityForForm(ent, activeTab), entityTab: activeTab })}
             onDelete={(ent) => setModal({ type: 'delete', entity: ent, entityTab: activeTab })}
           />

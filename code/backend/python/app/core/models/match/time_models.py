@@ -11,12 +11,22 @@ class ClockCharacter:
 
 
 @dataclass
+class RecoveryItem:
+    """Step 26 — per-character recovery summary (deltas applied at time-start)."""
+    character_uuid: Optional[str]
+    energy_delta: int
+    life_delta: int
+    sad_delta: int
+
+
+@dataclass
 class SleepResult:
     match_uuid: str
     character_uuid: Optional[str]
     is_sleeping: bool
     time_end_triggered: bool
     current_clock: int
+    recovery: List["RecoveryItem"] = field(default_factory=list)
 
 
 @dataclass

@@ -21,7 +21,6 @@ public class MatchInfoResponse {
     private MatchSummaryResponse match;
     private Long currentLocationId;
     private String currentLocationUuid;
-    private String currentLocationName;
     private List<LocationStateDto> locations = new ArrayList<>();
     private List<RegistryEntryDto> registry = new ArrayList<>();
     private List<EventOptionDto> events = new ArrayList<>();
@@ -38,7 +37,6 @@ public class MatchInfoResponse {
         r.match = MatchSummaryResponse.fromModel(d.getMatch());
         r.currentLocationId = d.getCurrentLocationId();
         r.currentLocationUuid = d.getCurrentLocationUuid();
-        r.currentLocationName = d.getCurrentLocationName();
         for (MatchLocationState s : d.getLocations()) {
             r.locations.add(LocationStateDto.fromModel(s));
         }
@@ -69,9 +67,6 @@ public class MatchInfoResponse {
     public String getCurrentLocationUuid() { return currentLocationUuid; }
     public void setCurrentLocationUuid(String currentLocationUuid) { this.currentLocationUuid = currentLocationUuid; }
 
-    public String getCurrentLocationName() { return currentLocationName; }
-    public void setCurrentLocationName(String currentLocationName) { this.currentLocationName = currentLocationName; }
-
     public List<LocationStateDto> getLocations() { return locations; }
     public void setLocations(List<LocationStateDto> locations) { this.locations = locations; }
 
@@ -95,7 +90,6 @@ public class MatchInfoResponse {
         private String uuid;
         private Integer flagAlreadyActived;
         private Integer clockCounter;
-        private String name;
 
         public static LocationStateDto fromModel(MatchLocationState m) {
             LocationStateDto d = new LocationStateDto();
@@ -103,7 +97,6 @@ public class MatchInfoResponse {
             d.uuid = m.getUuid();
             d.flagAlreadyActived = m.getFlagAlreadyActived();
             d.clockCounter = m.getClockCounter();
-            d.name = m.getName();
             return d;
         }
 
@@ -115,8 +108,6 @@ public class MatchInfoResponse {
         public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
         public Integer getClockCounter() { return clockCounter; }
         public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
     }
 
     public static class RegistryEntryDto {
@@ -162,14 +153,17 @@ public class MatchInfoResponse {
     public static class LocationInfoDto {
         private Long idLocation;
         private String uuid;
+        private Integer idCard;
         private CardInfoResponse card;
         private List<LocationNeighborDto> neighbors = new ArrayList<>();
         private List<EventInfoDto> events = new ArrayList<>();
+        private Integer secureParam;
 
         public static LocationInfoDto fromModel(LocationInfo m) {
             LocationInfoDto d = new LocationInfoDto();
             d.idLocation = m.getIdLocation();
             d.uuid = m.getUuid();
+            d.idCard = m.getIdCard();
             d.card = CardInfoResponse.fromModel(m.getCard());
             for (LocationNeighborInfo n : m.getNeighbors()) {
                 d.neighbors.add(LocationNeighborDto.fromModel(n));
@@ -177,6 +171,7 @@ public class MatchInfoResponse {
             for (EventInfo e : m.getEvents()) {
                 d.events.add(EventInfoDto.fromModel(e));
             }
+            d.secureParam = m.getSecureParam();
             return d;
         }
 
@@ -184,12 +179,16 @@ public class MatchInfoResponse {
         public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
         public String getUuid() { return uuid; }
         public void setUuid(String uuid) { this.uuid = uuid; }
+        public Integer getIdCard() { return idCard; }
+        public void setIdCard(Integer idCard) { this.idCard = idCard; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
         public List<LocationNeighborDto> getNeighbors() { return neighbors; }
         public void setNeighbors(List<LocationNeighborDto> neighbors) { this.neighbors = neighbors; }
         public List<EventInfoDto> getEvents() { return events; }
         public void setEvents(List<EventInfoDto> events) { this.events = events; }
+        public Integer getSecureParam() { return secureParam; }
+        public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
     }
 
     /** A neighbor location reachable from a player-occupied location. */
@@ -200,6 +199,12 @@ public class MatchInfoResponse {
         private Integer flagBack;
         private Integer energyCost;
         private CardInfoResponse card;
+        private Integer secureParam;
+        private Long idLocationFrom;
+        private Long idLocationTo;
+        private CardInfoResponse cardBack;
+        private CardInfoResponse cardLocationFrom;
+        private CardInfoResponse cardLocationTo;
 
         public static LocationNeighborDto fromModel(LocationNeighborInfo m) {
             LocationNeighborDto d = new LocationNeighborDto();
@@ -209,6 +214,12 @@ public class MatchInfoResponse {
             d.flagBack = m.getFlagBack();
             d.energyCost = m.getEnergyCost();
             d.card = CardInfoResponse.fromModel(m.getCard());
+            d.secureParam = m.getSecureParam();
+            d.idLocationFrom = m.getIdLocationFrom();
+            d.idLocationTo = m.getIdLocationTo();
+            d.cardBack = CardInfoResponse.fromModel(m.getCardBack());
+            d.cardLocationFrom = CardInfoResponse.fromModel(m.getCardLocationFrom());
+            d.cardLocationTo = CardInfoResponse.fromModel(m.getCardLocationTo());
             return d;
         }
 
@@ -224,6 +235,18 @@ public class MatchInfoResponse {
         public void setEnergyCost(Integer energyCost) { this.energyCost = energyCost; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
+        public Integer getSecureParam() { return secureParam; }
+        public void setSecureParam(Integer secureParam) { this.secureParam = secureParam; }
+        public Long getIdLocationFrom() { return idLocationFrom; }
+        public void setIdLocationFrom(Long idLocationFrom) { this.idLocationFrom = idLocationFrom; }
+        public Long getIdLocationTo() { return idLocationTo; }
+        public void setIdLocationTo(Long idLocationTo) { this.idLocationTo = idLocationTo; }
+        public CardInfoResponse getCardBack() { return cardBack; }
+        public void setCardBack(CardInfoResponse cardBack) { this.cardBack = cardBack; }
+        public CardInfoResponse getCardLocationFrom() { return cardLocationFrom; }
+        public void setCardLocationFrom(CardInfoResponse cardLocationFrom) { this.cardLocationFrom = cardLocationFrom; }
+        public CardInfoResponse getCardLocationTo() { return cardLocationTo; }
+        public void setCardLocationTo(CardInfoResponse cardLocationTo) { this.cardLocationTo = cardLocationTo; }
     }
 
     /** An event available at a player-occupied location, with its card. */

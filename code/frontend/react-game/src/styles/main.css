@@ -40,6 +40,50 @@
   position: relative;
 }
 
+/* entityType badge — small pill shown in the title bar / credits bar */
+.gc-type-badge {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--color-gold-dark);
+  color: var(--color-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(232,184,48,0.5);
+  transition: opacity 0.2s ease;
+}
+.gc-type-badge-credits{
+  color: var(--color-gold-light);
+  font-size: 0.7rem !important;
+  /*font-weight: 900;*/
+}
+/* inside the title bar: float the badge over the title text, pinned top-right,
+   so a long title never pushes it out of view */
+.gc-title .gc-type-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 3;
+  font-size:0.7rem;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(0,0,0,0.78);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+/* on the small grid cards the title is tiny: reveal the badge only on hover
+   (opacity keeps its layout slot, so the title doesn't jump) */
+.pg-card--small .gc-type-badge,
+.pg-card--grid  .gc-type-badge { opacity: 0; }
+.pg-card--small:hover .gc-type-badge,
+.pg-card--grid:hover  .gc-type-badge { opacity: 1; }
+
 /* Shared inner fragments (used across card types) */
 .pg-card__img {
   width: 100%;
@@ -398,6 +442,9 @@ html, body {
   padding: 20px 20px 0;
   max-width: 1400px;
   margin: 0 auto;
+  
+}
+.stories-section-center {
   text-align: center;
 }
 .stories-loading{
@@ -608,6 +655,12 @@ html, body {
   margin-top: auto;
   padding: 10px;
   border-top: 1px solid var(--color-brown-dark);
+
+  font-size: 1.25rem;
+  color: var(--color-gold-deep);
+  line-height: 1.25;
+  overflow-y: auto;
+
 }
 .book-page-extra-align-right{
   display: flex;
@@ -763,6 +816,27 @@ html, body {
   border-radius: 8px 8px 0 0;
   flex-shrink: 0;
 }
+/* Title-bar nav buttons (back / forward): icon-only; on hover the button
+   lights up (gold fill + glow). Shared by Card's page variant and MapPage. */
+.book-page-nav {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  color: var(--color-gold-light);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color .18s, background .18s, border-color .18s, box-shadow .18s;
+}
+.book-page-nav i { font-size: 1.7rem; }
+.book-page-nav:hover {
+  color: var(--color-brown-deep);
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  border-color: var(--color-gold-deep);
+  box-shadow: 0 0 12px rgba(200,150,10,.6);
+}
 .book-page-buttons{
   /* display: flex; justify-content: center; */
   gap: 14px;
@@ -872,6 +946,17 @@ html, body {
   color: var(--color-gold-super-deep);
 }
 
+.book-page-desc a {
+  cursor: pointer;
+  color: var(--color-gold-shine);
+  text-decoration: underline;
+  text-decoration-color: rgba(232,184,48,0.35);
+}
+.book-page-desc a:hover {
+  color: var(--color-gold-light);
+  text-decoration-color: var(--color-gold);
+}
+
 /* BookPageContent desc: badges inline, large as text */
 .book-page-desc .bonus-badge {
   color: var(--color-parchment); /*quiqui todo check*/
@@ -927,6 +1012,15 @@ html, body {
 .config-total-bonus {
   justify-content: center;
   margin-top: 10px;
+}
+.config-total-bonus-little{
+  gap: 2px !important;
+  justify-content: center;
+  margin-top: 3px;
+}
+.config-total-bonus-little .bonus-badge-little-version{
+  font-size: 0.7rem !important;
+  padding: 1px 3px !important;
 }
 
 .config-info-btn {
@@ -1465,6 +1559,7 @@ html, body {
    ═══════════════════════════════════════════ */
 
 .gc-title {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 6px;
@@ -1642,7 +1737,7 @@ html, body {
   background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
   /* border-top: 1px solid var(--color-gold-dark); */ 
   font-family: var(--font-heading);
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   color: var(--color-parchment-light);
   letter-spacing: 0.3px;
   border-radius: 0 0 8px 8px;
@@ -2426,13 +2521,282 @@ html, body {
   position: relative;
   background: transparent;
   border: none;
+  pointer-events: auto;
 }
 .card-preview-modal-body {
   padding: 0;
+  height: min(88vh, 680px);
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+.card-preview-modal-body .book-page-content {
+  flex: 1;
+  min-height: 0;
+  pointer-events: auto;
+}
+.card-preview-modal-body a,
+.card-preview-modal-body .gc-credits__link {
+  cursor: pointer;
+  pointer-events: auto;
 }
 .card-preview-modal-close {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 5;
+}
+
+/* ═══════════════════════════════════
+   GAME MAP (Step 0.28.5) — MapPage on the left book page
+   (v0.28.5 Map concept graphics: white plane, gold arrows,
+   photo nodes, "?" fog nodes, legend footer)
+   ═══════════════════════════════════ */
+.game-map-page { display: flex; flex-direction: column; }
+
+.game-map-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  background: var(--color-parchment-light);
+  box-shadow: inset 0 0 18px rgba(46,21,8,.12);
+}
+.game-map-canvas:active { cursor: grabbing; }
+
+.game-map-world {
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.game-map-world--anim { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
+/* paths paint ABOVE the node circles so the arrows are never hidden; the layer
+   ignores pointer events so the nodes underneath stay clickable. */
+.game-map-svg { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+
+/* paths: all gold; one-way = dashed; hot = touching the current location */
+.game-map-edge { stroke: var(--color-gold-dark); stroke-width: 3; fill: none; opacity: 1; }
+.game-map-edge--oneway { stroke-dasharray: 7 6; }
+.game-map-edge--hot {
+  stroke: var(--color-gold-deep);
+  stroke-width: 4;
+  opacity: 1;
+  filter: drop-shadow(0 0 3px var(--color-gold));
+}
+
+.game-map-node {
+  position: absolute;
+  width: 74px; height: 74px;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  border: 3px solid var(--color-brown-mid);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-parchment-dark);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+}
+.game-map-node__icon { font-size: 1.6rem; color: var(--color-brown-mid); }
+/* explored locations are clickable (they open their card on the right page) */
+.game-map-node:not(.game-map-node--unknown) { cursor: pointer; }
+.game-map-node--current {
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65);
+  z-index: 2;
+}
+.game-map-node--unknown {
+  /* !important: hides the inline background-image of a never-visited location */
+  background-image: radial-gradient(circle at 40% 35%, var(--color-brown--extra-tan), var(--color-brown-dark) 75%) !important;
+  border-style: dashed;
+  border-color: var(--color-brown-warm);
+  box-shadow: inset 0 0 14px rgba(0,0,0,.55);
+}
+.game-map-node--unknown::after {
+  content: '?';
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--color-brown-mid);
+  text-shadow: 0 3px 8px rgba(0,0,0,.8);
+  font-weight:700;
+}
+
+.game-map-node--safe {
+  border-color: #1f9f53;
+}
+
+/* "you are here" marker: the character's location */
+.game-map-node__here {
+  position: absolute;
+  top: -8px; right: -8px;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  font-size: .8rem;
+  color: var(--color-brown-deep);
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  border: 1px solid var(--color-gold-deep);
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(0,0,0,.5);
+  z-index: 3;
+}
+
+/* zoom / center controls over the map */
+.game-map-ctrl {
+  position: absolute;
+  top: 8px; right: 8px;
+  display: flex; flex-direction: column; gap: 5px;
+  z-index: 3;
+}
+.game-map-ctrl button {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  font-size: 1rem;
+  font-family: var(--font-heading);
+  color: var(--color-gold-light);
+  background: rgba(26,10,2,.82);
+  border: 1px solid var(--color-gold-dark);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.game-map-ctrl button:hover {
+  background: var(--color-gold);
+  color: var(--color-brown-deep);
+  box-shadow: 0 0 10px rgba(200,150,10,.6);
+}
+
+/* legend footer (dark bar, like the movement section) */
+.game-map-legend {
+  flex-shrink: 0;
+  display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+  padding: 7px 10px;
+  background: linear-gradient(120deg, var(--color-brown-dark) 0%, var(--color-brown-mid) 60%, var(--color-brown-dark) 100%);
+  border-top: 2px solid var(--color-gold-dark);
+  border-radius: 0 0 8px 8px;
+  font-size: .78rem;
+  color: var(--color-parchment-dark);
+}
+.game-map-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.game-map-legend__dot {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid var(--color-gold-shine);
+  box-shadow: 0 0 5px rgba(200,150,10,.8);
+}
+.game-map-legend__safe {
+  display: inline-block; width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid #1f9f53;
+}
+
+/* the little MapCard in the statistics list: whole card clickable, no footer */
+.game-map-card { cursor: pointer; }
+
+/* Mobile: the stacked column gives .book-page-content height:auto, which
+   collapses the flex:1 map canvas (its children are absolutely positioned) to
+   zero — the map was invisible. Pin an explicit height so it shows and stays
+   pannable (drag + the +/−/◎ buttons; no wheel on touch). */
+@media (max-width: 767px) {
+  .book-mobile-layout .game-map-page { height: auto; }
+  .book-mobile-layout .game-map-canvas {
+    flex: none;
+    height: clamp(300px, 55vh, 460px);
+  }
+}
+
+/* ── Match history (Step 28.7 logs API) ──────────────────────────────────────
+   MatchLogCard: the match timeline shown on the book's right page as a grid of
+   little Cards (one per log entry), inside Card's `extraContent` slot. */
+
+.match-log-extra {
+  width: 100%;
+}
+
+.match-log-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.match-log-state {
+  padding: 0.75rem 0.25rem;
+  font-family: var(--font-heading);
+  color: var(--color-gold-deep);
+  font-size: 2rem;
+}
+
+.match-log-error {
+  color: var(--color-blood, #8b1a1a);
+}
+
+/* The entry tiles reuse the same grid the other card lists use. */
+.match-log-list {
+  width: 100%;
+}
+
+/* Event type, overlaid on the entry card's image. */
+.match-log-type {
+  display: block;
+  align-items: center;
+  white-space: nowrap;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgba(26, 10, 2, 0.75);
+}
+
+.match-log-type--WEATHER       { color: #eab308; }
+.match-log-type--MOVEMENT      { color: #22c55e; }
+.match-log-type--SLEEP         { color: #60a5fa; }
+.match-log-type--CLOCK_ADVANCE { color: #c084fc; }
+.match-log-type--RECOVERY      { color: #2dd4bf; }
+
+/* Date (and actor) under each entry card. */
+.match-log-entry-extra {
+  padding: 0.15rem 0.35rem;
+}
+
+.match-log-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-parchment-light);
+  font-size: 0.8rem;
+}
+
+.match-log-character {
+  color: var(--color-parchment-dark);
+}
+
+/* Load more: full-width, centered, at the end of the entry list. Reuses
+   CardButtons' gc-footer__btn look so it reads as the same control. */
+.match-log-more-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0.35rem 0;
+}
+
+.match-log-more {
+  min-width: 60%;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.match-log-more:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.match-log-count {
+  margin: 0;
+  color: var(--color-ash);
+  font-size: 0.72rem;
 }

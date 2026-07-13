@@ -74,6 +74,7 @@ Active Location Carries Card Neighbors And Events Keys
     Dictionary Should Contain Key    ${active}    idLocation
     Dictionary Should Contain Key    ${active}    uuid
     Dictionary Should Contain Key    ${active}    card
+    Dictionary Should Contain Key    ${active}    secureParam
     Dictionary Should Contain Key    ${active}    neighbors
     Dictionary Should Contain Key    ${active}    events
     ${neighbors_is_list}=    Evaluate    isinstance($active['neighbors'], list)
@@ -113,9 +114,9 @@ Event Cards Expose The End Game Flag
 
 Neighbor And Event Cards Match The Active Location Schema
     [Documentation]    When the seed wires neighbors/events to the player's location, each
-    ...                neighbor exposes idLocation/direction/energyCost and each event
-    ...                exposes uuid/type — both with a `card` key. Skipped when the seed has
-    ...                none at the start location (keeps the suite backend-agnostic).
+    ...                neighbor exposes idLocation/direction/energyCost/card and secureParam;
+    ...                each event exposes uuid/type/card. Skipped when the seed has none at
+    ...                the start location (keeps the suite backend-agnostic).
     [Tags]    locations-active    match-info    step27
     ${match}=    New Match With Character
     Start Match    ${TOKEN}    ${match}    200
@@ -127,12 +128,31 @@ Neighbor And Event Cards Match The Active Location Schema
         Dictionary Should Contain Key    ${n}    direction
         Dictionary Should Contain Key    ${n}    energyCost
         Dictionary Should Contain Key    ${n}    card
+        Dictionary Should Contain Key    ${n}    secureParam
     END
     IF    len($active['events']) > 0
         ${e}=    Set Variable    ${active}[events][0]
         Dictionary Should Contain Key    ${e}    uuid
         Dictionary Should Contain Key    ${e}    type
         Dictionary Should Contain Key    ${e}    card
+    END
+
+Neighbor SecureParam Is Integer Or Null
+    [Documentation]    Every neighbor of an active location must carry a `secureParam` key
+    ...                whose value is an integer (positive = safe destination) or null.
+    ...                Skipped when the player's start location has no neighbors in the seed.
+    [Tags]    locations-active    match-info    step27    secure-param
+    ${match}=    New Match With Character
+    Start Match    ${TOKEN}    ${match}    200
+    ${response}=    Get Match Info    ${TOKEN}    ${match}    200
+    ${active}=    Set Variable    ${response.json()}[locationsActive][0]
+    FOR    ${n}    IN    @{active}[neighbors]
+        Dictionary Should Contain Key    ${n}    secureParam
+        ${val}=    Set Variable    ${n}[secureParam]
+        IF    $val is not None
+            ${is_int}=    Evaluate    isinstance($val, int)
+            Should Be True    ${is_int}    msg=secureParam must be an integer, got: ${val}
+        END
     END
 
 

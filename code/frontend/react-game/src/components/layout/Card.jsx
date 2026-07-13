@@ -50,18 +50,22 @@ export default function Card({
   onAction,
   actionLabel = 'Change',
   actionIcon = 'fa-sync-alt',
-  actionOnlyIfPreview = false, actionWithInfo=false,
+  actionOnlyIfPreview = false, actionLabelChildren=null,
   onPreview, hidePreview = false,
+  infoLabel, infoIconClassName, infoLabelClassName,
+
+  action2Label=null, action2Icon=null, onAction2=null,
 
   /* extra overlay content */
   childrenIntoImage,
   children,
 
-  statistics, flagShowFullStatistics=false,
+  statistics, flagShowFullStatistics=false, 
+  bonusBadgeListLittleTitle=true, bonusBadgeListLittleIntoImage=false, bonusBadgeListLittleDesc=false,
   flagInformationCard=false,
 
   /* page variant (variant="page" — the book reading page) */
-  loading, onClose, entity, entityType,
+  loading, onClose, onForward, entity, entityType,
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
@@ -92,11 +96,11 @@ export default function Card({
       ? (card?.styleImageMedium ?? '')
       : (card?.styleImageLittle ?? '')
   const imageClassName = [styleDetail, sizedImageStyle].filter(Boolean).join(' ')
-  const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType).map(s => ({
+  const statItemsReal = statItemsToPageContent ?? getNonZeroStats(entity, entityType, t).map(s => ({
     key: s.key,
     label: STAT_CATEGORY_ORDER.includes(s.key)
       ? t(`book.stats.totals.${s.key}`)
-      : t(`book.stats.${s.key}`),
+      : t(`book.stats.${s.key}`) ,
     value: s.value,
   }))
 
@@ -113,13 +117,18 @@ export default function Card({
     </a>
   )
 
+  /* ── entityType badge (shown on hover, non-page cards) ── */
+  const typeBadgeLabel = entityType
+    ? (() => { const k = `book.${entityType}`; const tr = t(k); return tr === k ? entityType : tr })()
+    : null
+
   const cardClasses = isPage? " book-page-content " : [
     'pg-card',
     isBig ? 'card-big' : isSmall ? 'pg-card--small' : 'pg-card--grid',
     //isDisabled ? 'config-card-disabled' : '',
     selected    ? 'config-card-selected' : '',
   ].filter(Boolean).join(' ')
-
+  
   return (
     <div className={cardClasses}>
       {isPage && loading && (
@@ -131,14 +140,18 @@ export default function Card({
       {!isPage && <div className="gc-title">
         <div className="gc-title__text">{name}</div>
         {!flagShowFullStatistics && statistics && statistics.length > 0 &&
-          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={true} />
+          <BonusBadgeList className="mt-0 mb-0 config-total-bonus float-right" items={statistics} littleVersion={bonusBadgeListLittleTitle} />
         }
+        {typeBadgeLabel && <span className="gc-type-badge">{typeBadgeLabel}</span>}
       </div>}
       { isPage && <h2 className="book-page-title">
-          { onClose && <button className="float-left" onClick={onClose} aria-label="Close preview">
-          <i className="fas fa-arrow-left me-1" />
+          { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')}>
+          <i className="fas fa-arrow-left" />
         </button>}
-        <SafeHtml value={name} />
+        <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
+        { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')}>
+          <i className="fas fa-arrow-right" />
+        </button>}
       </h2>}
 
       {/* ── children Into Image ── */}
@@ -148,7 +161,8 @@ export default function Card({
             {childrenIntoImage}
           </div>}
           {flagShowFullStatistics && statistics && statistics.length > 0 &&
-            <BonusBadgeList className="gc-img__overlay config-total-bonus" items={statistics} littleVersion={false} />
+            <BonusBadgeList className={"gc-img__overlay config-total-bonus" + (bonusBadgeListLittleIntoImage ? " config-total-bonus-little" : "")}
+              items={statistics} littleVersion={bonusBadgeListLittleIntoImage} />
           }
         </div>
       )}
@@ -164,31 +178,34 @@ export default function Card({
       />
 
       {children}
-
+      
       {/* pageDesc */ }
-      {isPage && (pageDesc || statItemsReal) && (
+      {isPage && (pageDesc || (statItemsReal!=null && statItemsReal.length > 0)) && (
         <div className="book-page-desc">
-          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} />
-          <SafeHtml value={pageDesc} />
+          <BonusBadgeList items={statItemsReal} className="book-page-stats" lockedReason={lockedReason} littleVersion={bonusBadgeListLittleDesc} />
+          <SafeHtml key={card?.uuid ?? card?.title ?? String(pageDesc ?? '')} value={pageDesc} />
         </div>
       )}
-
-      <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
-            locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
-            onSelect={onSelect} selected={selected} selectLabel={selectLabel}
-            onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview}
-            onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
-            flagInformationCard={flagInformationCard} />
-
-      {viewLink}
-
+      
       {/* ── footer: info (i) + action button ── */}
       { extraContent && 
         <div className={`book-page-extra ${extraContentClassName ?? ''}`}>{extraContent}</div>
       }
-      
+
+      <CardButtons isPage={isPage} name={name ?? label} onPreviewClick={onPreviewClick}
+            locked={locked} lockedReason={lockedReason} lockInfo={lockInfo} lockedIcon={lockedIcon}
+            onSelect={onSelect} selected={selected} selectLabel={selectLabel}
+            onAction={onAction} actionLabel={actionLabel} actionIcon={actionIcon} actionOnlyIfPreview={actionOnlyIfPreview} actionLabelChildren={actionLabelChildren}
+            onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
+            flagInformationCard={flagInformationCard}
+            infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
+            action2Label={action2Label} action2Icon={action2Icon} onAction2={onAction2}
+          />
+
+      {viewLink}
+
       {isPage && card?.linkCopyright && (
-        <CardCreditsBar card={card} story={story} />
+        <CardCreditsBar card={card} story={story} typeBadgeLabel={typeBadgeLabel} />
       )}
     </div>
   )

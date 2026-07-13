@@ -70,4 +70,30 @@ public class CharacterPersistenceAdapter implements CharacterPersistencePort {
         }
         return (int) characterRepository.countByIdMatch(matchId);
     }
+
+    @Override
+    public void updateCharacterStats(Long matchId, Long characterId,
+                                     Integer dex, Integer intel, Integer con,
+                                     Integer energy, Integer life, Integer sad) {
+        characterRepository.findByIdMatchAndId(matchId, characterId).ifPresent(entity -> {
+            if (dex    != null) entity.setDexterity(dex);
+            if (intel  != null) entity.setIntelligence(intel);
+            if (con    != null) entity.setConstitution(con);
+            if (energy != null) entity.setEnergy(energy);
+            if (life   != null) entity.setLife(life);
+            if (sad    != null) entity.setSad(sad);
+            characterRepository.save(entity);
+        });
+    }
+
+    @Override
+    public void updateBackpackStats(Long matchId, Long characterId,
+                                    Integer food, Integer magic, Integer coin) {
+        backpackRepository.findByIdMatchAndIdCharacterMatch(matchId, characterId).ifPresent(entity -> {
+            if (food  != null) entity.setFood(food);
+            if (magic != null) entity.setMagic(magic);
+            if (coin  != null) entity.setCoin(coin);
+            backpackRepository.save(entity);
+        });
+    }
 }

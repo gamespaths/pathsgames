@@ -52,4 +52,39 @@ describe('BonusBadgeList', () => {
     )
     expect(container.querySelector('.fa-circle')).toBeTruthy()
   })
+
+  it('shows fractional values like "3/5" as non-zero', () => {
+    const { container } = render(
+      <BonusBadgeList
+        items={[
+          { key: 'life', label: 'Life', value: '3/5' },
+          { key: 'energy', label: 'Energy', value: '0/0' },
+        ]}
+      />
+    )
+    const badges = container.querySelectorAll('.stat-badge')
+    expect(badges.length).toBe(1)
+    expect(badges[0].textContent).toContain('3/5')
+  })
+
+  it('renders lockedReason badge when provided', () => {
+    const { container } = render(
+      <BonusBadgeList
+        items={[{ key: 'life', label: 'Life', value: 5 }]}
+        lockedReason="Requires Warrior"
+      />
+    )
+    expect(container.querySelector('.locked')).toBeTruthy()
+    expect(container.querySelector('.locked').textContent).toContain('Requires Warrior')
+  })
+
+  it('applies littleVersion class to badges when flag is set', () => {
+    const { container } = render(
+      <BonusBadgeList
+        items={[{ key: 'life', label: 'Life', value: 5 }]}
+        littleVersion
+      />
+    )
+    expect(container.querySelector('.bonus-badge-little-version')).toBeTruthy()
+  })
 })

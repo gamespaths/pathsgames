@@ -25,7 +25,7 @@ export const TURNSTILE_APPEARANCE = {
 export const TURNSTILE_PASS_COOKIE = 'pathsgames.turnstilePass'
 
 const _RAW_TTL = Number(import.meta.env.VITE_TURNSTILE_PASS_TTL_MINUTES)
-export const TURNSTILE_PASS_TTL_MIN = Number.isFinite(_RAW_TTL) && _RAW_TTL > 0 ? _RAW_TTL : 30
+export const TURNSTILE_PASS_TTL_MIN = Number.isFinite(_RAW_TTL) && _RAW_TTL > 0 ? _RAW_TTL : 3000
 
 // A live cookie (not yet expired by its max-age) means a recent human pass.
 export function isTurnstilePassValid() {

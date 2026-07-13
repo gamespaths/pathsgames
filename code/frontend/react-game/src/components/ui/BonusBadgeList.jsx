@@ -25,6 +25,10 @@ const STAT_VISUAL = {
   weight:       { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
   exp:          { icon: 'fas fa-star',          color: '#9b59b6' },
 
+  // Step 26 — location time counter (clock_counter) shown as a statistic
+  clockCounter: { icon: 'fas fa-hourglass-half', color: '#d4af37' },
+  clock:        { icon: 'fas fa-hourglass-half', color: '#d4af37' },
+
   // Live player stats (in-match) — see PlayerStats.jsx
   sadness:      { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
   experience:   { icon: 'fas fa-star',           color: '#9b59b6' },
@@ -60,9 +64,11 @@ const STAT_VISUAL = {
 
 const DEFAULT_VISUAL = { icon: 'fas fa-circle', color: '#7f8c8d' }
 
-export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false }) {
-  if (!items || items.length === 0) return null
 
+export default function BonusBadgeList({ items, className = '', showZeros = false , lockedReason=null , littleVersion=false }) {
+  //console.log("BonusBadgeList", items, className, showZeros , lockedReason , littleVersion);
+  if (!items || items.length === 0) return null
+  
   const visibleItems = showZeros
     ? items
     : items.filter(item => {
@@ -93,7 +99,7 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
         return (
           <span key={item.key} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
             <i className={visual.icon} style={{ color: visual.color }} />
-            {!littleVersion && <span>{item.label}:</span>} 
+            {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
             <strong>{item.value}</strong>
           </span>
         )

@@ -74,6 +74,26 @@ describe('Card', () => {
     expect(screen.getByTestId('overlay')).toBeInTheDocument()
   })
 
+  it('renders the entityType badge in the title bar on non-page cards', () => {
+    const { container } = render(<Card card={{ title: 'Mage' }} entityType="character" />)
+    const badge = container.querySelector('.gc-type-badge')
+    expect(badge).toBeTruthy()
+    // missing translation key falls back to the raw entityType
+    expect(badge.textContent).toBe('character')
+  })
+
+  it('does not render the entityType badge when entityType is absent', () => {
+    const { container } = render(<Card card={{ title: 'Mage' }} />)
+    expect(container.querySelector('.gc-type-badge')).toBeFalsy()
+  })
+
+  it('does not render the entityType badge on page variant', () => {
+    const { container } = render(
+      <Card variant="page" card={{ title: 'Cave' }} entityType="story" />,
+    )
+    expect(container.querySelector('.gc-type-badge')).toBeFalsy()
+  })
+
   describe('variant="page"', () => {
     it('renders the book page body with title, image and description', () => {
       const card = { title: 'Cave', description: '<b>Dark</b>', urlImage: 'http://x/c.png' }
@@ -90,8 +110,31 @@ describe('Card', () => {
         <Card variant="page" card={{ title: 'T' }} loading onClose={onClose} />
       )
       expect(container.querySelector('.fa-spinner')).toBeTruthy()
-      fireEvent.click(screen.getByLabelText('Close preview'))
+      fireEvent.click(screen.getByLabelText('card.back'))
       expect(onClose).toHaveBeenCalled()
+    })
+
+    it('renders the back button (left arrow) with the card.back aria-label', () => {
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} onClose={vi.fn()} />)
+      const btn = container.querySelector('.book-page-nav--back')
+      expect(btn).toBeTruthy()
+      expect(btn.querySelector('i.fa-arrow-left')).toBeTruthy()
+      expect(btn.getAttribute('aria-label')).toBe('card.back')
+    })
+
+    it('renders the forward button (right arrow) and fires onForward', () => {
+      const onForward = vi.fn()
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} onForward={onForward} />)
+      const btn = container.querySelector('.book-page-nav--forward')
+      expect(btn).toBeTruthy()
+      expect(btn.querySelector('i.fa-arrow-right')).toBeTruthy()
+      fireEvent.click(screen.getByLabelText('card.forward'))
+      expect(onForward).toHaveBeenCalled()
+    })
+
+    it('omits the forward button when onForward is absent', () => {
+      const { container } = render(<Card variant="page" card={{ title: 'T' }} />)
+      expect(container.querySelector('.book-page-nav--forward')).toBeNull()
     })
   })
 })

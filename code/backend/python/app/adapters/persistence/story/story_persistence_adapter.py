@@ -224,7 +224,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     max_characters=item.get("maxCharacters"),
                     id_event_on_enter=item.get("idEventOnEnter"),
                     id_event_if_counter_zero=item.get("idEventIfCounterZero"),
-                    counter_start=item.get("counterStart"),
+                    counter_time=item.get("counterTime"),
                     id_card=item.get("idCard")
                 )
                 explicit_id = _get_long(item, "id")
@@ -237,12 +237,17 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     ne = LocationNeighborEntity(
                         id=next_nb_id(),
                         id_story=story_id,
+                        # A uuid is required for the neighbor to be addressable via the
+                        # admin CRUD API (GET/PUT/DELETE .../location-neighbors/{uuid}).
+                        uuid=n.get("uuid") or str(__import__('uuid').uuid4()),
                         id_location_from=loc.id,
                         id_location_to=n.get("idLocationTo"),
                         direction=n.get("direction"),
                         energy_cost=n.get("energyCost", 1),
                         condition_key=n.get("conditionKey"),
-                        condition_value=n.get("conditionValue")
+                        condition_value=n.get("conditionValue"),
+                        id_card=n.get("idCard"),
+                        id_card_back=n.get("idCardBack")
                     )
                     session.add(ne)
             session.commit()
@@ -265,7 +270,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_next=item.get("idEventNext"),
                     flag_interrupt=item.get("flagInterrupt", 0),
                     flag_end_time=item.get("flagEndTime", 0),
-                    id_location=item.get("idLocation")
+                    id_specific_location=item.get("idSpecificLocation")
+                    if item.get("idSpecificLocation") is not None else item.get("idLocation")
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
@@ -439,8 +445,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
 
     def save_weather_rules(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         self._insert_batch(WeatherRuleEntity, story_id, items, {
-            "id_card": "idCard", "id_text_name": "idTextName", "probability": "probability", 
-            "delta_energy": "deltaEnergy", "id_event": "idEvent", 
+            "id_card": "idCard", "id_text_name": "idTextName", "probability": "probability",
+            "delta_energy": "deltaEnergy", "id_event": "idEvent",
+            "cost_move_safe_location": "costMoveSafeLocation",
+            "cost_move_not_safe_location": "costMoveNotSafeLocation",
             "condition_key": "conditionKey", "condition_value": "conditionValue",
             "time_start": "timeStart", "time_end": "timeEnd", "is_active": "isActive"
         })

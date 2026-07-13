@@ -222,19 +222,25 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 (90003, 9001, 'choice_made',       'false', 952, 'tutorial', 3, 'PUBLIC');
 
 -- ── Locations (8 training rooms) ────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
-(90001, 9001, 100, 100, 1, 0, 10),   -- Welcome Hall (start)
-(90002, 9001, 101, 101, 1, 1, 10),   -- Movement Training Room
-(90003, 9001, 102, 102, 1, 0, 10),   -- Energy & Life Classroom
-(90004, 9001, 103, 103, 1, 0, 10),   -- Item Workshop
-(90005, 9001, 104, 104, 1, 1, 10),   -- Choice Arena
-(90006, 9001, 105, 105, 1, 0, 10),   -- Weather Observatory
-(90007, 9001, 106, 106, 1, 0, 10),   -- Mission Board
-(90008, 9001, 107, 107, 1, 0, 10);   -- Multiplayer Courtyard
+-- Step 26: secure_param > 0 marks a SAFE location (full energy/life recovery and
+-- sadness relief at time-start); the start hall (90001) is safe and carries a
+-- counter_time so the location-counter decrement path is exercised where the
+-- player actually stands. The Choice Arena (90005) is UNSAFE (secure_param 0).
+-- Step 27.x: each location carries an id_card (logical FK to list_cards) so
+-- GET /api/match/{uuid}/info returns locationsActive[].idCard + its resolved card.
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters, secure_param, counter_time, id_event_if_counter_zero) VALUES
+(90001, 9001, 90001, 100, 100, 1, 0, 10, 1, 2, NULL),   -- Welcome Hall (start, safe, counter)
+(90002, 9001, 90002, 101, 101, 1, 1, 10, 1, NULL, NULL),-- Movement Training Room (safe)
+(90003, 9001, 90003, 102, 102, 1, 0, 10, 1, NULL, NULL),-- Energy & Life Classroom (safe)
+(90004, 9001, 90002, 103, 103, 1, 0, 10, 1, NULL, NULL),-- Item Workshop (safe)
+(90005, 9001, 90003, 104, 104, 1, 1, 10, 0, NULL, NULL),-- Choice Arena (unsafe)
+(90006, 9001, 90003, 105, 105, 1, 0, 10, 1, NULL, NULL),-- Weather Observatory (safe)
+(90007, 9001, 90002, 106, 106, 1, 0, 10, 1, NULL, NULL),-- Mission Board (safe)
+(90008, 9001, 90001, 107, 107, 1, 0, 10, 1, NULL, NULL);-- Multiplayer Courtyard (safe)
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
-(90001, 9001, 90001, 90002, 'NORTH', 1, 0),   -- Welcome ↔ Movement Room
+(90001, 9001, 90001, 90002, 'NORTH', 1, 2),   -- Welcome ↔ Movement Room (Step 28: edge energy cost)
 (90002, 9001, 90002, 90003, 'EAST',  1, 0),   -- Movement ↔ Energy Classroom
 (90003, 9001, 90003, 90004, 'NORTH', 1, 0),   -- Energy ↔ Item Workshop
 (90004, 9001, 90004, 90005, 'EAST',  1, 0),   -- Items ↔ Choice Arena
@@ -242,6 +248,10 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 (90006, 9001, 90006, 90007, 'EAST',  1, 0),   -- Weather ↔ Mission Board
 (90007, 9001, 90007, 90008, 'NORTH', 1, 0),   -- Mission ↔ Multiplayer Courtyard
 (90008, 9001, 90001, 90008, 'EAST',  1, 1);   -- Welcome ↔ Multiplayer (shortcut)
+
+-- Step 0.28.2 — optional return card: when the player stands on locationTo (90002)
+-- the Welcome↔Movement edge shows id_card_back (catalog card 90003) instead of card.
+UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
 -- ── Items ───────────────────────────────────────────────────────
 INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight, is_consumabile) VALUES
@@ -257,10 +267,10 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 (90003, 9001, 90004, 'ENERGY', 3);
 
 -- ── Weather Rules ───────────────────────────────────────────────
-INSERT INTO list_weather_rules (id, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
-(90001, 9001, 800, 800, 50, 0, 0, 1, 1,  0),   -- Clear Skies (common, no penalty)
-(90002, 9001, 801, 801, 35, 0, 1, 1, 2,  0),   -- Light Rain (mild penalty)
-(90003, 9001, 802, 802, 15, 0, 1, 1, 3, -1);   -- Training Storm (demonstrates weather effect)
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
+(90001, 9001, 90010, 800, 800, 50, 0, 0, 1, 1,  0),   -- Clear Skies (common, no penalty)
+(90002, 9001, 90011, 801, 801, 35, 0, 1, 1, 2,  0),   -- Light Rain (mild penalty)
+(90003, 9001, 90012, 802, 802, 15, 0, 1, 1, 3, -1);   -- Training Storm (demonstrates weather effect)
 
 -- ── Events ──────────────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
@@ -327,7 +337,11 @@ INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main , id_
 (90001, 9001, 'https://images.unsplash.com/photo-1585829365343-ea8ed0b1cb5b?q=80&w=1470', 'fas fa-graduation-cap', 'tutorial', 42, 42, 1
     ,'https://unsplash.com/photos/green-and-black-typewriter-with-white-printer-paper-HpWwEURimK8', 43 ),
 (90002, 9001, NULL, 'fas fa-book-open',      'learning', 911, 911, 911 ,'',42),
-(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912,'',42);
+(90003, 9001, NULL, 'fas fa-lightbulb',      'tips', 912, 912, 912,'',42),
+-- Step 27 — weather cards (referenced by list_weather_rules.id_card)
+(90010, 9001, NULL, 'fas fa-sun',            'weather', 800, 800, 800,'',42),
+(90011, 9001, NULL, 'fas fa-cloud-rain',     'weather', 801, 801, 801,'',42),
+(90012, 9001, NULL, 'fas fa-cloud-bolt',     'weather', 802, 802, 802,'',42);
 
 
 INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
@@ -517,19 +531,19 @@ INSERT INTO list_keys (id, id_story, name, value, id_text_description, "group", 
 (91003, 9002, 'countess_letter',   'false', 952, 'diplomacy', 3, 'PUBLIC');
 
 -- ── Locations (12) ─────────────────────────────────────────────
-INSERT INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
-(91001, 9002, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
-(91002, 9002, 101, 101, 1, 1, 15),   -- Treviso
-(91003, 9002, 102, 102, 1, 1, 20),   -- Padova
-(91004, 9002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
-(91005, 9002, 104, 104, 1, 1, 6),    -- Asolo
-(91006, 9002, 105, 105, 1, 1, 10),   -- Cittadella
-(91007, 9002, 106, 106, 0, 2, 4),    -- Monastero di Campese
-(91008, 9002, 107, 107, 0, 2, 6),    -- Marostica
-(91009, 9002, 108, 108, 0, 2, 4),    -- Paludi del Sile
-(91010, 9002, 109, 109, 0, 2, 12),   -- Vicenza
-(91011, 9002, 110, 110, 0, 2, 6),    -- Bosco del Montello
-(91012, 9002, 111, 111, 1, 0, 8);    -- Ponte di Piave
+INSERT INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, cost_energy_enter, max_characters) VALUES
+(91001, 9002, 91001, 100, 100, 1, 0, 10),   -- Castelfranco Veneto (start)
+(91002, 9002, 91002, 101, 101, 1, 1, 15),   -- Treviso
+(91003, 9002, 91003, 102, 102, 1, 1, 20),   -- Padova
+(91004, 9002, 91002, 103, 103, 0, 2, 8),    -- Bassano del Grappa
+(91005, 9002, 91001, 104, 104, 1, 1, 6),    -- Asolo
+(91006, 9002, 91002, 105, 105, 1, 1, 10),   -- Cittadella
+(91007, 9002, 91003, 106, 106, 0, 2, 4),    -- Monastero di Campese
+(91008, 9002, 91002, 107, 107, 0, 2, 6),    -- Marostica
+(91009, 9002, 91003, 108, 108, 0, 2, 4),    -- Paludi del Sile
+(91010, 9002, 91001, 109, 109, 0, 2, 12),   -- Vicenza
+(91011, 9002, 91002, 110, 110, 0, 2, 6),    -- Bosco del Montello
+(91012, 9002, 91003, 111, 111, 1, 0, 8);    -- Ponte di Piave
 
 -- ── Location Neighbors ──────────────────────────────────────────
 INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
@@ -563,10 +577,10 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 (91005, 9002, 91005, 'COIN',    5);
 
 -- ── Weather Rules ───────────────────────────────────────────────
-INSERT INTO list_weather_rules (id, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
-(91001, 9002, 800, 800, 40, 0, 0, 1, 1,  0),   -- Autumn Sun
-(91002, 9002, 801, 801, 35, 0, 1, 1, 2,  0),   -- Fog
-(91003, 9002, 802, 802, 25, 1, 2, 1, 3, -1);   -- Storm
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
+(91001, 9002, 91010, 800, 800, 40, 0, 0, 1, 1,  0),   -- Autumn Sun
+(91002, 9002, 91011, 801, 801, 35, 0, 1, 1, 2,  0),   -- Fog
+(91003, 9002, 91012, 802, 802, 25, 1, 2, 1, 3, -1);   -- Storm
 
 -- ── Events ──────────────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES
@@ -640,7 +654,11 @@ INSERT INTO list_creator (id, id_story, link, url, url_image) VALUES
 INSERT INTO list_cards (id, id_story, url_immage, awesome_icon, style_main, id_text_title, id_text_description , id_text_name) VALUES
 (91001, 9002, 'https://unsplash.com/photos/a-castle-in-the-middle-of-a-lush-green-forest-nxySr36wCSM', 'fas fa-chess-rook',    'medieval', 1, 2 ,1),
 (91002, 9002, NULL, 'fas fa-scroll',        'evidence', 941, 941, 942),
-(91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943);
+(91003, 9002, NULL, 'fas fa-balance-scale', 'justice', 942, 942, 943),
+-- Step 27 — weather cards for story 9002
+(91010, 9002, NULL, 'fas fa-sun',           'weather', 800, 800, 800),
+(91011, 9002, NULL, 'fas fa-smog',          'weather', 801, 801, 801),
+(91012, 9002, NULL, 'fas fa-cloud-bolt',    'weather', 802, 802, 802);
 
 -- ── Step 27.x / 0.25.4 — match-info locationsActive wiring ──────
 -- Set the start location (so a joined character has idLocation), mark the

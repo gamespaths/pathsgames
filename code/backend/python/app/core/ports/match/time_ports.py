@@ -1,6 +1,6 @@
 """Step 25 — time advancement & clock cycle ports."""
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.models.match.time_models import ClockResult, SleepResult
 from app.core.ports.match.turn_ports import TurnCycleStorePort
@@ -46,3 +46,57 @@ class TimeStorePort(TurnCycleStorePort):
     def find_story_clock_labels(self, id_match: int,
                                 lang: str) -> Tuple[Optional[str], Optional[str]]:
         """Resolve the (singular, plural) clock labels for the match's story."""
+
+    # ── Step 26: time-start recovery ────────────────────────────────────────
+
+    @abstractmethod
+    def load_recovery_context(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Return {"id_story", "difficulty_energy"} for the match, or None."""
+
+    @abstractmethod
+    def find_recovery_characters(self, id_match: int) -> List[Dict[str, Any]]:
+        """Per-character recovery inputs (stats, caps, id_class, id_location)."""
+
+    @abstractmethod
+    def find_location_safety(self, id_story: int) -> List[Dict[str, Any]]:
+        """Per-location {"id_location", "secure_param", "counter_time",
+        "id_event_if_counter_zero"} for the story."""
+
+    @abstractmethod
+    def find_class_bonuses(self, id_story: int) -> List[Dict[str, Any]]:
+        """Class-bonus rows {"id_class", "statistic", "value"} for the story."""
+
+    @abstractmethod
+    def find_state_locations(self, id_match: int) -> List[Dict[str, Any]]:
+        """Existing gaming_state_locations rows {"id_location", "clock_counter"}."""
+
+    @abstractmethod
+    def update_character_stats(self, id_match: int, id_character: int,
+                               energy: int, life: int, sad: int) -> None:
+        """Persist the recovered current stats of a single character."""
+
+    @abstractmethod
+    def insert_state_location(self, id_match: int, id_location: int, clock_counter: int) -> None:
+        """Insert a gaming_state_locations row seeded with the given counter."""
+
+    @abstractmethod
+    def update_state_location_counter(self, id_match: int, id_location: int,
+                                      new_clock_counter: int) -> None:
+        """Update gaming_state_locations.clock_counter for a location."""
+
+    @abstractmethod
+    def log_recovery(self, id_match: int, id_character: int, message: str) -> None:
+        """Audit a per-character recovery summary into log_events."""
+
+    @abstractmethod
+    def log_counter_zero(self, id_match: int, id_location: int,
+                         id_event_if_counter_zero: Optional[int], message: str) -> None:
+        """Audit a counter-zero event (pending execution; wired in Step 29)."""
+
+    @abstractmethod
+    def mark_state_location_activated(self, id_match: int, id_location: int) -> None:
+        """Set gaming_state_locations.flag_already_actived = 1 when the counter reaches zero."""
+
+    @abstractmethod
+    def log_sleep(self, id_match: int, id_character: int, clock: int) -> None:
+        """Write a log_events row for a voluntary sleep action (Step 28.7)."""

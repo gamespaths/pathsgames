@@ -16,6 +16,8 @@ class MatchCreateCommand:
     single_player: Optional[int] = None
     turnstile_token: Optional[str] = None
     remote_ip: Optional[str] = None
+    # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
+    rng_seed: Optional[int] = None
 
 
 @dataclass
@@ -37,12 +39,46 @@ class MatchSummary:
 
 
 @dataclass
+class MatchListFilter:
+    """v0.28.1 — raw request inputs for the paginated admin match list.
+
+    Carries the *unresolved* values from the query string; the query service
+    turns ``user_uuid``/``story_uuid`` into ids, ``since_days`` into an ISO
+    lower bound and ``cursor`` into a keyset position. ``None``/blank ⇒ no filter.
+    """
+
+    status: Optional[str] = None
+    user_uuid: Optional[str] = None
+    story_uuid: Optional[str] = None
+    since_days: Optional[int] = None
+    cursor: Optional[str] = None
+    limit: Optional[int] = None
+
+
+@dataclass
+class MatchSummaryPage:
+    """v0.28.1 — one page of the admin match list (newest first).
+
+    ``next_cursor`` is ``None`` on the last page; pass it back as ``?cursor=`` to
+    fetch the following page. ``limit`` is the effective (clamped) page size.
+    """
+
+    items: List[MatchSummary]
+    next_cursor: Optional[str]
+    limit: int
+
+
+@dataclass
 class MatchLocationState:
+    """One row of gaming_state_locations. v0.28.6 — on the PLAYER info endpoint
+    only ALREADY-VISITED locations are projected (visited = character positions ∪
+    movement log, the same set GET /locations returns); the admin endpoint keeps
+    every location so the console can render the full runtime table."""
+
     id_location: int
     uuid: str
     flag_already_actived: int
     clock_counter: int
-    name: Optional[str] = None
 
 
 @dataclass
@@ -95,7 +131,6 @@ class CharacterInstanceInfo:
     weight: int = 0
     id_location: Optional[int] = None
     location_uuid: Optional[str] = None
-    location_name: Optional[str] = None
     is_sleeping: int = 0
     is_coma: int = 0
     trait_uuids: List[str] = field(default_factory=list)
@@ -138,6 +173,15 @@ class LocationNeighborInfo:
     flag_back: Optional[int] = None
     energy_cost: Optional[int] = None
     card: Optional[Dict[str, Any]] = None
+    secure_param: Optional[int] = None
+    id_location_from: Optional[int] = None
+    id_location_to: Optional[int] = None
+    card_back: Optional[Dict[str, Any]] = None
+    # v0.28.6 — the card of the LOCATION at each endpoint of the edge, distinct
+    # from `card` (authored LINK card) and `card_back` (return LINK card). Each is
+    # gated on its OWN visited flag: None until that location has been visited.
+    card_location_from: Optional[Dict[str, Any]] = None
+    card_location_to: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -147,9 +191,11 @@ class LocationInfo:
 
     id_location: int
     uuid: Optional[str] = None
+    id_card: Optional[int] = None
     card: Optional[Dict[str, Any]] = None
     neighbors: List[LocationNeighborInfo] = field(default_factory=list)
     events: List[EventInfo] = field(default_factory=list)
+    secure_param: Optional[int] = None
 
 
 @dataclass
@@ -157,7 +203,6 @@ class MatchDetail:
     match: MatchSummary
     current_location_id: Optional[int] = None
     current_location_uuid: Optional[str] = None
-    current_location_name: Optional[str] = None
     locations: List[MatchLocationState] = field(default_factory=list)
     registry: List[MatchRegistryEntry] = field(default_factory=list)
     events: List[MatchEventOption] = field(default_factory=list)

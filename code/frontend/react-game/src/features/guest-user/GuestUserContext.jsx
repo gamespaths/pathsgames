@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { useServer, MOCK_SERVER } from '@/context/ServerContext'
+import { useServer } from '@/context/ServerContext'
 import { createGuestSession, resumeGuestSession } from '@/api/auth'
 
 /**
@@ -9,46 +9,20 @@ import { createGuestSession, resumeGuestSession } from '@/api/auth'
  * entirely on the backend HttpOnly cookies (`pathsgames.guestcookie` +
  * `pathsgames.refreshToken`, see openapi/v0.12.0-guest-auth-api.yaml).
  *
- * Flow on mount:
- *   - real server → try `POST /api/auth/guest/resume` first (browser sends
- *     `pathsgames.guestcookie` automatically when `withCredentials:true`); on
- *     401/error fall back to `POST /api/auth/guest` to mint a brand-new guest.
- *   - mock server → synthesize an offline guest identity for this tab session.
+ * Flow on mount: try `POST /api/auth/guest/resume` first (browser sends
+ * `pathsgames.guestcookie` automatically when `withCredentials:true`); on
+ * 401/error fall back to `POST /api/auth/guest` to mint a brand-new guest.
  *
  * StrictMode-safe: `initRef` blocks the second dev-mode effect invocation so a
- * single network call (or no calls in mock) runs per provider lifetime.
+ * single network call runs per provider lifetime.
  */
 
 const GuestUserContext = createContext(null)
 
-/**
- * Generates an opaque identifier for an offline (mock-server) guest.
- * Uses the Web Crypto API only — never Math.random — so the value is
- * unpredictable. This id is not security-critical (the mock guest never
- * touches a real backend) but a CSPRNG keeps it collision-resistant and
- * satisfies static-analysis checks.
- */
-function mockGuestUuid() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const bytes = crypto.getRandomValues(new Uint8Array(8))
-    return 'mock-' + Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
-  }
-  // Non-browser environment with no Web Crypto — extremely unlikely.
-  return 'mock-' + Date.now().toString(36)
-}
-
-function buildMockGuest() {
-  const uuid = mockGuestUuid()
-  return { userUuid: uuid, username: 'guest_' + uuid.slice(0, 8) }
-}
-
 function toIdentity(payload) {
   if (!payload) return null
   // `accessToken` is the JWT bearer token needed to call the protected match
-  // endpoints (see api/matches.js). Mock guests have no token.
+  // endpoints (see api/matches.js).
   return {
     userUuid: payload.userUuid,
     username: payload.username,
@@ -84,11 +58,6 @@ export function GuestUserProvider({ children }) {
     if (initRef.current) return
     initRef.current = true
 
-    if (server === MOCK_SERVER) {
-      setUser(buildMockGuest())
-      return
-    }
-
     setLoading(true)
     setError(null)
     ;(async () => {
@@ -113,10 +82,6 @@ export function GuestUserProvider({ children }) {
   }, [server])
 
   const refreshGuest = useCallback(async () => {
-    if (server === MOCK_SERVER) {
-      setUser(buildMockGuest())
-      return
-    }
     setLoading(true)
     setError(null)
     try {

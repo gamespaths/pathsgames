@@ -49,6 +49,13 @@ from app.adapters.persistence.match.time_store_adapter import TimeStoreAdapter
 from app.core.services.match.time_advancement_service import TimeAdvancementService
 from app.core.services.event.in_process_event_publisher import InProcessDomainEventPublisher
 from app.adapters.rest.match.time_clock_controller import TimeClockController
+from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
+from app.core.services.match.movement_service import MovementService
+from app.adapters.rest.match.movement_controller import MovementController
+from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
+from app.core.services.match.match_logs_service import MatchLogsService
+from app.core.services.match.weather_selection_service import WeatherSelectionService
+from app.adapters.rest.match.weather_controller import WeatherController
 from app.adapters.turnstile.turnstile_adapter import TurnstileVerificationAdapter
 import app.adapters.persistence.match.models  # noqa: F401  - registers ORM tables
 
@@ -113,6 +120,7 @@ character_command_service = CharacterCommandService(
     match_persistence_adapter,
     user_access_adapter,
     character_persistence_adapter,
+    character_persistence_adapter,  # also implements CharacterReadPort
 )
 character_query_service = CharacterQueryService(
     match_persistence_adapter,
@@ -120,11 +128,15 @@ character_query_service = CharacterQueryService(
     story_match_read_adapter,
     user_access_adapter,
 )
+# Step 28 — movement store (also gives MatchQueryService the visited-location set
+# for fog of war on GET /info neighbor cards, v0.28.6).
+movement_store_adapter = MovementStoreAdapter(SessionLocal)
 match_query_service = MatchQueryService(
     match_persistence_adapter,
     story_match_read_adapter,
     user_access_adapter,
     character_persistence_adapter,
+    movement_store_adapter,
 )
 
 # Dev-only test-data cleanup service
@@ -139,18 +151,44 @@ story_controller = StoryController(story_query_service)
 story_admin_controller = StoryAdminController(story_query_service, story_import_service, story_validator_service)
 content_controller = ContentController(content_query_service)
 story_crud_admin_controller = StoryCrudAdminController(story_crud_service)
-match_controller = MatchController(match_command_service, match_query_service)
-match_admin_controller = MatchAdminController(match_command_service, match_query_service)
+# Step 28.7 — consolidated match logs timeline (player + admin endpoints).
+# content_query_service resolves the weather / location / character cards on the page.
+match_logs_service = MatchLogsService(SessionLocal, content_query_service)
+match_controller = MatchController(match_command_service, match_query_service,
+                                   match_logs_service)
 character_controller = CharacterController(character_command_service, character_query_service)
+
+# Step 27 — weather selection engine (shared by turn-start, time-advancement and queries).
+weather_store_adapter = WeatherStoreAdapter(SessionLocal)
+weather_selection_service = WeatherSelectionService(weather_store_adapter)
+weather_controller = WeatherController(weather_selection_service, content_query_service)
+
+# Step 28 — movement system service (shared by player and admin controllers).
+# story_match_read_adapter resolves the location cards on GET /locations;
+# movement_store_adapter was created above (reused here).
+movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
+
+match_admin_controller = MatchAdminController(match_command_service, match_query_service,
+                                               character_command_service,
+                                               weather_selection_service,
+                                               movement_service,
+                                               match_logs_service)
 turn_cycle_store_adapter = TurnCycleStoreAdapter(SessionLocal)
-turn_cycle_service = TurnCycleService(turn_cycle_store_adapter)
+turn_cycle_service = TurnCycleService(turn_cycle_store_adapter, weather_selection_service)
 turn_cycle_controller = TurnCycleController(turn_cycle_service)
 
 # Step 25 — time advancement & clock cycle.
 time_store_adapter = TimeStoreAdapter(SessionLocal)
 domain_event_publisher = InProcessDomainEventPublisher()
-time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher)
+time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
+                                                  weather_service=weather_selection_service)
 time_clock_controller = TimeClockController(time_advancement_service)
+
+# Step 28 — movement system (single-player). The controller is mounted on the
+# public app; the service is also passed to the admin controller for the admin
+# locations view.
+movement_controller = MovementController(movement_service)
+
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
 from fastapi import Request
@@ -238,6 +276,8 @@ app = _build_app([
     character_controller.router,
     turn_cycle_controller.router,
     time_clock_controller.router,
+    movement_controller.router,
+    weather_controller.router,
 ])
 
 # Admin app — served ONLY on settings.admin_port. Hosts every /api/admin/** endpoint,

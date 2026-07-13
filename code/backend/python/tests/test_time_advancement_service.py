@@ -21,6 +21,7 @@ class FakeTimeStore:
         self.users = users if users is not None else {"user-uuid": USER_ID}
         self.queue = []
         self.clock_history = []
+        self.sleep_log = []
         self.labels = ("hour", "hours")
 
     # ── turn-cycle store methods ──
@@ -64,6 +65,10 @@ class FakeTimeStore:
             if c["id"] == id_character:
                 c["is_sleeping"] = bool(sleeping)
 
+    def log_sleep(self, id_match, id_character, clock):
+        self.sleep_log.append({"id_match": id_match, "id_character": id_character,
+                               "clock": clock})
+
     def wake_all_characters(self, id_match):
         for c in self.characters:
             c["is_sleeping"] = False
@@ -77,6 +82,10 @@ class FakeTimeStore:
 
     def find_story_clock_labels(self, id_match, lang):
         return self.labels
+
+    # ── Step 26 recovery store (no-op here: no story context) ──
+    def load_recovery_context(self, id_match):
+        return None
 
 
 class RecordingPublisher:
@@ -163,6 +172,8 @@ def test_sleep_without_trigger_keeps_clock():
     assert result.is_sleeping is True
     assert store.clock_history == []
     assert publisher.events == []
+    # Step 28.7 — the sleep action is appended to the match log timeline.
+    assert store.sleep_log == [{"id_match": MATCH_ID, "id_character": 10, "clock": 3}]
 
 
 def test_sleep_rebuilds_queue_active_highest_priority():

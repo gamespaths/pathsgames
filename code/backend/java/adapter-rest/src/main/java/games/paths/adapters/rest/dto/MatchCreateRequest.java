@@ -18,6 +18,8 @@ public class MatchCreateRequest extends AbstractCreatorLoadoutDto {
     private String storyUuid;
     private String difficultyUuid;
     private String turnstileToken;
+    /** Step 27 — optional deterministic RNG seed for weather/probability rolls. */
+    private Long rngSeed;
 
     public MatchCreateRequest() {
     }
@@ -30,4 +32,7 @@ public class MatchCreateRequest extends AbstractCreatorLoadoutDto {
 
     public String getTurnstileToken() { return turnstileToken; }
     public void setTurnstileToken(String turnstileToken) { this.turnstileToken = turnstileToken; }
+
+    public Long getRngSeed() { return rngSeed; }
+    public void setRngSeed(Long rngSeed) { this.rngSeed = rngSeed; }
 }

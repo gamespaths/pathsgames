@@ -34,7 +34,6 @@ public abstract class AbstractCharacterStatsResponse {
     private Integer weightMax;
     private Integer weight;
     private Long idLocation;
-    private String locationName;
     private Boolean isSleeping;
     private Boolean isComa;
     private List<String> traitUuids = new ArrayList<>();
@@ -61,7 +60,6 @@ public abstract class AbstractCharacterStatsResponse {
         this.weightMax = m.getWeightMax();
         this.weight = m.getWeight();
         this.idLocation = m.getIdLocation();
-        this.locationName = m.getLocationName();
         this.isSleeping = m.getIsSleeping();
         this.isComa = m.getIsComa();
         this.traitUuids = m.getTraitUuids() != null ? new ArrayList<>(m.getTraitUuids()) : new ArrayList<>();
@@ -105,8 +103,6 @@ public abstract class AbstractCharacterStatsResponse {
     public void setWeight(Integer weight) { this.weight = weight; }
     public Long getIdLocation() { return idLocation; }
     public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
-    public String getLocationName() { return locationName; }
-    public void setLocationName(String locationName) { this.locationName = locationName; }
     public Boolean getIsSleeping() { return isSleeping; }
     public void setIsSleeping(Boolean isSleeping) { this.isSleeping = isSleeping; }
     public Boolean getIsComa() { return isComa; }

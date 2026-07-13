@@ -28,6 +28,8 @@ class MatchDtosTest {
         r.setClassUuid("cl");
         r.setTraitUuids(List.of("t1", "t2"));
         r.setSinglePlayer(1);
+        r.setTurnstileToken("tok");
+        r.setRngSeed(42L);
         assertEquals("s", r.getStoryUuid());
         assertEquals("d", r.getDifficultyUuid());
         assertEquals("n", r.getName());
@@ -35,6 +37,8 @@ class MatchDtosTest {
         assertEquals("cl", r.getClassUuid());
         assertEquals(List.of("t1", "t2"), r.getTraitUuids());
         assertEquals(1, r.getSinglePlayer());
+        assertEquals("tok", r.getTurnstileToken());
+        assertEquals(42L, r.getRngSeed());
     }
 
     @Test
@@ -108,13 +112,11 @@ class MatchDtosTest {
         d.setMatch(new MatchSummary());
         d.setCurrentLocationId(1L);
         d.setCurrentLocationUuid("u");
-        d.setCurrentLocationName("loc");
         MatchLocationState s = new MatchLocationState();
         s.setIdLocation(2L);
         s.setUuid("ls");
         s.setFlagAlreadyActived(1);
         s.setClockCounter(3);
-        s.setName("ls-name");
         d.setLocations(List.of(s));
         MatchRegistryEntry e = new MatchRegistryEntry();
         e.setUuid("r");
@@ -129,14 +131,12 @@ class MatchDtosTest {
         assertNotNull(r.getMatch());
         assertEquals(1L, r.getCurrentLocationId());
         assertEquals("u", r.getCurrentLocationUuid());
-        assertEquals("loc", r.getCurrentLocationName());
 
         MatchInfoResponse.LocationStateDto ls = r.getLocations().get(0);
         assertEquals(2L, ls.getIdLocation());
         assertEquals("ls", ls.getUuid());
         assertEquals(1, ls.getFlagAlreadyActived());
         assertEquals(3, ls.getClockCounter());
-        assertEquals("ls-name", ls.getName());
 
         MatchInfoResponse.RegistryEntryDto re = r.getRegistry().get(0);
         assertEquals("r", re.getUuid());
@@ -158,10 +158,15 @@ class MatchDtosTest {
                 null, null, null, null, null, "Cave", "dark", null, null, null);
         CardInfo evCard = new CardInfo("c-ev", "event", null, null, "fa-z",
                 null, null, null, null, null, "Stranger", "appears", null, null, null);
+        CardInfo nbBackCard = new CardInfo("c-nb-back", "location", null, null, "fa-yb",
+                null, null, null, null, null, "Cave Return", "back", null, null, null);
 
-        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard);
+        // v0.28.6 — the LOCATION card of idLocationFrom (visited: the player stands
+        // there); idLocationTo is still under fog of war, hence null.
+        LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard,
+                locCard, null);
         EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
-        LocationInfo li = new LocationInfo(1L, "loc-1", locCard, List.of(nb), List.of(ev));
+        LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
         MatchDetail d = new MatchDetail();
         d.setMatch(new MatchSummary());
@@ -172,6 +177,7 @@ class MatchDtosTest {
         MatchInfoResponse.LocationInfoDto dto = r.getLocationsActive().get(0);
         assertEquals(1L, dto.getIdLocation());
         assertEquals("loc-1", dto.getUuid());
+        assertEquals(7, dto.getIdCard());
         assertEquals("Tavern", dto.getCard().getTitle());
 
         assertEquals(1, dto.getNeighbors().size());
@@ -180,6 +186,12 @@ class MatchDtosTest {
         assertEquals("N", nbDto.getDirection());
         assertEquals(3, nbDto.getEnergyCost());
         assertEquals("Cave", nbDto.getCard().getTitle());
+        assertEquals(1, nbDto.getSecureParam());
+        assertEquals(1L, nbDto.getIdLocationFrom());
+        assertEquals(2L, nbDto.getIdLocationTo());
+        assertEquals("Cave Return", nbDto.getCardBack().getTitle());
+        assertEquals("Tavern", nbDto.getCardLocationFrom().getTitle());
+        assertNull(nbDto.getCardLocationTo());
 
         assertEquals(1, dto.getEvents().size());
         MatchInfoResponse.EventInfoDto evDto = dto.getEvents().get(0);
@@ -195,7 +207,6 @@ class MatchDtosTest {
         r.setMatch(new MatchSummaryResponse());
         r.setCurrentLocationId(9L);
         r.setCurrentLocationUuid("u");
-        r.setCurrentLocationName("n");
         r.setLocations(List.of());
         r.setRegistry(List.of());
         r.setEvents(List.of());
@@ -203,7 +214,6 @@ class MatchDtosTest {
         assertNotNull(r.getMatch());
         assertEquals(9L, r.getCurrentLocationId());
         assertEquals("u", r.getCurrentLocationUuid());
-        assertEquals("n", r.getCurrentLocationName());
         assertNotNull(r.getLocations());
         assertNotNull(r.getRegistry());
         assertNotNull(r.getEvents());
@@ -217,12 +227,10 @@ class MatchDtosTest {
         ls.setUuid("u");
         ls.setFlagAlreadyActived(1);
         ls.setClockCounter(2);
-        ls.setName("n");
         assertEquals(1L, ls.getIdLocation());
         assertEquals("u", ls.getUuid());
         assertEquals(1, ls.getFlagAlreadyActived());
         assertEquals(2, ls.getClockCounter());
-        assertEquals("n", ls.getName());
 
         MatchInfoResponse.RegistryEntryDto re = new MatchInfoResponse.RegistryEntryDto();
         re.setUuid("u");
@@ -241,5 +249,88 @@ class MatchDtosTest {
         assertEquals("u", ev.getUuid());
         assertEquals("n", ev.getName());
         assertEquals("E", ev.getType());
+    }
+
+    @Test
+    void locationInfoDtoSetters() {
+        CardInfoResponse card = new CardInfoResponse();
+        card.setUuid("card-uuid");
+
+        MatchInfoResponse.LocationInfoDto loc = new MatchInfoResponse.LocationInfoDto();
+        loc.setIdLocation(1L);
+        loc.setUuid("loc-1");
+        loc.setIdCard(10);
+        loc.setCard(card);
+        loc.setNeighbors(List.of(new MatchInfoResponse.LocationNeighborDto()));
+        loc.setEvents(List.of(new MatchInfoResponse.EventInfoDto()));
+        loc.setSecureParam(1);
+
+        assertEquals(1L, loc.getIdLocation());
+        assertEquals("loc-1", loc.getUuid());
+        assertEquals(10, loc.getIdCard());
+        assertEquals("card-uuid", loc.getCard().getUuid());
+        assertEquals(1, loc.getNeighbors().size());
+        assertEquals(1, loc.getEvents().size());
+        assertEquals(1, loc.getSecureParam());
+
+        MatchInfoResponse r = new MatchInfoResponse();
+        r.setLocationsActive(List.of(loc));
+        assertEquals("loc-1", r.getLocationsActive().get(0).getUuid());
+    }
+
+    @Test
+    void locationNeighborDtoSetters() {
+        CardInfoResponse card = new CardInfoResponse();
+        card.setUuid("card-uuid");
+        CardInfoResponse back = new CardInfoResponse();
+        back.setUuid("card-back");
+        CardInfoResponse from = new CardInfoResponse();
+        from.setUuid("card-from");
+        CardInfoResponse to = new CardInfoResponse();
+        to.setUuid("card-to");
+
+        MatchInfoResponse.LocationNeighborDto n = new MatchInfoResponse.LocationNeighborDto();
+        n.setIdLocation(2L);
+        n.setUuid("loc-2");
+        n.setDirection("NORTH");
+        n.setFlagBack(1);
+        n.setEnergyCost(4);
+        n.setCard(card);
+        n.setSecureParam(0);
+        n.setIdLocationFrom(1L);
+        n.setIdLocationTo(2L);
+        n.setCardBack(back);
+        n.setCardLocationFrom(from);
+        n.setCardLocationTo(to);
+
+        assertEquals(2L, n.getIdLocation());
+        assertEquals("loc-2", n.getUuid());
+        assertEquals("NORTH", n.getDirection());
+        assertEquals(1, n.getFlagBack());
+        assertEquals(4, n.getEnergyCost());
+        assertEquals("card-uuid", n.getCard().getUuid());
+        assertEquals(0, n.getSecureParam());
+        assertEquals(1L, n.getIdLocationFrom());
+        assertEquals(2L, n.getIdLocationTo());
+        assertEquals("card-back", n.getCardBack().getUuid());
+        assertEquals("card-from", n.getCardLocationFrom().getUuid());
+        assertEquals("card-to", n.getCardLocationTo().getUuid());
+    }
+
+    @Test
+    void eventInfoDtoSetters() {
+        CardInfoResponse card = new CardInfoResponse();
+        card.setUuid("card-uuid");
+
+        MatchInfoResponse.EventInfoDto e = new MatchInfoResponse.EventInfoDto();
+        e.setUuid("ev-1");
+        e.setType("NORMAL");
+        e.setEndGame(true);
+        e.setCard(card);
+
+        assertEquals("ev-1", e.getUuid());
+        assertEquals("NORMAL", e.getType());
+        assertTrue(e.isEndGame());
+        assertEquals("card-uuid", e.getCard().getUuid());
     }
 }

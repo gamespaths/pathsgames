@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from '../../i18n/context'
-import { useServer, MOCK_SERVER } from '../../context/ServerContext'
+import { useServer } from '../../context/ServerContext'
 import { getServerStatus } from '../../api/echoApi'
 
 export default function Footer() {
@@ -11,11 +11,6 @@ export default function Footer() {
 
   useEffect(() => {
     let cancelled = false
-    if (server === MOCK_SERVER) {
-      setStatus('mock')
-      setVersion('')
-      return
-    }
     setStatus('loading')
     setVersion('')
     getServerStatus(server)
@@ -51,8 +46,7 @@ export default function Footer() {
                 ))}
               </select>
             )}
-            {status === 'mock' && <span style={{ color: '#888', fontSize: '0.65rem', marginLeft: '0.3rem' }}>mock</span>}
-            {status === 'online' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4caf50', display: 'inline-block', marginLeft: '0.3rem' }} />}
+            {status === 'online' &&<span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4caf50', display: 'inline-block', marginLeft: '0.3rem' }} />}
             {status === 'offline' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f44336', display: 'inline-block', marginLeft: '0.3rem' }} />}
             {status === 'loading' && <span style={{ color: '#888', fontSize: '0.65rem', marginLeft: '0.3rem' }}>…</span>}
             {version && <span style={{ color: '#888', fontSize: '0.6rem', fontFamily: 'Cinzel, serif', marginLeft: '0.3rem' }}>{version}</span>}
@@ -65,7 +59,7 @@ export default function Footer() {
           <span className="gold-light">PATHS GAMES</span> 
           &nbsp; &copy; {t('footer.rights').toUpperCase()} 
           <br />
-          v0.25.4 &nbsp;
+          v0.28.7 &nbsp;
           {t('footer.madeWith').toUpperCase()} <i className="fas fa-heart" /> {t('footer.byTeam').toUpperCase()}
         </div>
 

@@ -68,12 +68,20 @@ paths:
         — which is scoped to the calling player and returns `404` for matches
         created by other users — this endpoint has **no ownership check** and
         works for every match.
+
+        v0.28.6 — it also returns EVERY story location in `locations[]`, with no
+        visited filter, so the console can render the full gaming_state_locations
+        runtime table. The fog-of-war gating on the `locationsActive[].neighbors[]`
+        cards (`card`, `cardLocationFrom`, `cardLocationTo`) is unchanged and
+        identical to the player endpoint.
       operationId: getAdminMatchInfo
       parameters:
         - $ref: '#/components/parameters/UuidMatch'
       responses:
         '200':
-          description: The full match detail (same shape as GET /api/match/{uuidMatch}/info)
+          description: >
+            The full match detail (same shape as GET /api/match/{uuidMatch}/info,
+            except `locations[]` is NOT filtered to the visited locations)
           content:
             application/json:
               schema:

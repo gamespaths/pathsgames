@@ -238,6 +238,70 @@ def test_resolve_text():
     assert _resolve_text(texts, 'en', 'missing') is None
     assert _resolve_text({}, 'en', 'title') is None
 
+def test_resolve_text_per_field_english_fallback():
+    """When the requested language exists but lacks this specific field (or it is
+    empty), fall back to the English value for that field — not None."""
+    from story.handler import _resolve_text
+    # `it` has title but no description → description must fall back to English.
+    texts = {'en': {'title': 'Hello', 'description': 'A tale'},
+             'it': {'title': 'Ciao'}}
+    assert _resolve_text(texts, 'it', 'title') == 'Ciao'
+    assert _resolve_text(texts, 'it', 'description') == 'A tale'
+    # Empty string is treated as missing → English fallback.
+    texts_empty = {'en': {'title': 'Hello'}, 'it': {'title': ''}}
+    assert _resolve_text(texts_empty, 'it', 'title') == 'Hello'
+
+def test_resolve_story_text_prefers_raw_texts():
+    """An imported story whose derived `texts` map is incomplete for `it` still
+    resolves the Italian title from the flat `raw_texts` rows (like cards)."""
+    from story.handler import _resolve_story_text
+    item = {
+        'idTextTitle': 1,
+        # Derived map is missing the Italian title (only English present)…
+        'texts': {'en': {'title': 'Welcome'}},
+        # …but the raw Italian row IS stored on the item.
+        'raw_texts': [
+            {'idText': 1, 'lang': 'en', 'shortText': 'Welcome'},
+            {'idText': 1, 'lang': 'it', 'shortText': 'Benvenuto'},
+        ],
+    }
+    assert _resolve_story_text(item, 'it', 'title', 1) == 'Benvenuto'
+    assert _resolve_story_text(item, 'en', 'title', 1) == 'Welcome'
+
+def test_resolve_story_text_falls_back_to_derived_map_for_seed():
+    """Seed stories carry the derived `texts` map but no top-level idTextTitle /
+    raw row for it, so resolution falls back to the map (with English fallback)."""
+    from story.handler import _resolve_story_text
+    item = {
+        'texts': {'en': {'title': 'Seed Story'}, 'it': {'title': 'Storia Seed'}},
+        'raw_texts': [],
+    }
+    assert _resolve_story_text(item, 'it', 'title', None) == 'Storia Seed'
+    assert _resolve_story_text(item, 'fr', 'title', None) == 'Seed Story'
+
+def test_list_stories_lang_it_resolves_title_from_raw_texts():
+    """End-to-end: GET /api/stories?lang=it returns the Italian title resolved
+    from raw_texts even when the derived `texts` map only carries English."""
+    item = {
+        **STORY_ITEM,
+        'idTextTitle': 1,
+        'idTextDescription': 2,
+        'texts': {'en': {'title': 'My Story', 'description': 'A tale'}},
+        'raw_texts': [
+            {'idText': 1, 'lang': 'en', 'shortText': 'My Story'},
+            {'idText': 1, 'lang': 'it', 'shortText': 'La Mia Storia'},
+            {'idText': 2, 'lang': 'it', 'shortText': 'Un racconto'},
+        ],
+    }
+    with patch('story.handler.db_utils.query_gsi', return_value=[item]):
+        from story.handler import lambda_handler
+        event = make_event('GET', '/api/stories', qs={'lang': 'it'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 200
+    body = _body(result)
+    assert body[0]['title'] == 'La Mia Storia'
+    assert body[0]['description'] == 'Un racconto'
+
 def test_assign_uuids():
     from story.handler import _assign_uuids
     assert _assign_uuids([]) == []
@@ -386,7 +450,7 @@ def test_import_story_resolves_inline_cards_for_gameplay():
                    'urlImage': 'hall.png', 'awesomeIcon': 'fas fa-map'}],
         'locations': [{'id': 1, 'idCard': 44}, {'id': 2, 'idCard': 44}],
         'locationNeighbors': [{'id': 1, 'idLocationFrom': 1, 'idLocationTo': 2,
-                               'direction': 'EAST', 'idCard': None}],
+                               'direction': 'EAST', 'idCard': None, 'idCardBack': 44}],
         'events': [{'id': 1, 'idCard': 44, 'idSpecificLocation': 1, 'type': 'NORMAL'}],
     }
     captured = {}
@@ -410,6 +474,8 @@ def test_import_story_resolves_inline_cards_for_gameplay():
     # Neighbors stored under the key the match handler reads
     assert 'neighbors' in item
     assert item['neighbors'][0]['idLocationTo'] == 2
+    # Step 0.28.2 — optional return card resolved inline from idCardBack
+    assert item['neighbors'][0]['cardBack']['title'] == 'Hall'
     # Events get the gameplay `idLocation` alias + resolved card
     assert item['events'][0]['idLocation'] == 1
     assert item['events'][0]['card']['title'] == 'Hall'
@@ -562,6 +628,33 @@ def test_create_entity_card_sets_idcard():
         result = lambda_handler(event, {})
     assert result['statusCode'] == 201
     assert _body(result)['idCard'] == 1
+
+def test_create_entity_id_is_max_plus_one_not_len_plus_one():
+    # Regression: after a middle element is deleted the list shrinks but the high
+    # ids remain. The new id must be max(existing)+1, never len+1 (which collided).
+    # TYPE_MAP routes 'cards' to the 'raw_cards' field.
+    story = {**STORY_ITEM, 'raw_cards': [{'uuid': 'c1', 'id': 1, 'idCard': 1},
+                                         {'uuid': 'c3', 'id': 3, 'idCard': 3},
+                                         {'uuid': 'c5', 'id': 5, 'idCard': 5}]}
+    captured = {}
+    def _capture(item):
+        captured['item'] = item
+        return True
+    with patch('story.handler.db_utils.get_item', side_effect=[ADMIN_USER, story]), \
+         patch('story.handler.db_utils.put_item', side_effect=_capture):
+        from story.handler import lambda_handler
+        event = admin_event('POST', '/api/admin/stories/story-uuid-1/cards',
+                            path_params={'uuidStory': 'story-uuid-1', 'entityType': 'cards'},
+                            body={'urlImage': 'x'})
+        result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
+    # len+1 would have produced 4 (collides with nothing here) — but the bug shows
+    # with a list like [1,2,3,4,5] minus the middle. Here max is 5 → new id must be 6.
+    assert _body(result)['id'] == 6
+    assert _body(result)['idCard'] == 6
+    # No duplicate ids in the persisted list.
+    ids = [c['id'] for c in captured['item']['raw_cards']]
+    assert len(ids) == len(set(ids)), f'duplicate ids: {ids}'
 
 
 # ── get_entity ────────────────────────────────────────────────────────────────

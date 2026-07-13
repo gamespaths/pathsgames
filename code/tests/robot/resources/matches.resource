@@ -1,6 +1,7 @@
 *** Settings ***
 # ---------------------------------------------------------------------------
 # matches.resource — keywords for the Step 19 match endpoints.
+#   GET /api/matches/{uuidMatch}/logs   — Step 28.7 (Get Match Logs keyword)
 #
 # Authenticated (Bearer access token issued by /api/auth/guest):
 #   POST /api/matches                  → 201, MatchSummary
@@ -41,6 +42,84 @@ Create Match
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
+Create Match With Rng Seed
+    [Documentation]    POST /api/matches with an explicit rngSeed (Step 27) so weather
+    ...                selection is deterministic. Robot always passes 42.
+    [Arguments]    ${token}    ${story_uuid}    ${difficulty_uuid}
+    ...    ${rng_seed}=42    ${name}=robottest_weather    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    Set To Dictionary    ${headers}    Content-Type=application/json
+    &{body}=    Create Dictionary
+    ...    storyUuid=${story_uuid}
+    ...    difficultyUuid=${difficulty_uuid}
+    ...    name=${name}
+    ...    rngSeed=${rng_seed}
+    ${cf_token}=    Get Variable Value    ${CF_TURNSTILE_TOKEN}    ${EMPTY}
+    IF    '${cf_token}' != ''
+        Set To Dictionary    ${body}    turnstileToken=${cf_token}
+    END
+    ${response}=    POST On Session    public_session    /api/matches
+    ...    headers=${headers}
+    ...    json=${body}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Match Weather
+    [Documentation]    GET /api/matches/{uuidMatch}/weather (Step 27) — current weather.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/matches/${match_uuid}/weather
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Admin Match Weather
+    [Documentation]    GET /api/admin/matches/{uuidMatch}/weather (Step 27) — admin view
+    ...                with rng_seed, current weather and log_weather history.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/weather
+    ...    headers=${headers}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Match Logs
+    [Documentation]    GET /api/matches/{uuidMatch}/logs (Step 28.7) — consolidated log timeline.
+    ...                Owner-only; returns WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries.
+    ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${response}=    GET On Session    public_session    /api/matches/${match_uuid}/logs
+    ...    headers=${headers}
+    ...    params=${params}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Admin Match Logs
+    [Documentation]    GET /api/admin/matches/{uuidMatch}/logs (Step 28.7) — admin log timeline.
+    ...                No ownership check; served on admin port 8044.
+    ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/logs
+    ...    headers=${headers}
+    ...    params=${params}
+    ...    expected_status=${expected_status}
+    RETURN    ${response}
+
+Build Logs Params
+    [Documentation]    Query params dict for the logs endpoints, omitting empty values.
+    [Arguments]    ${limit}    ${cursor}    ${lang}
+    ${params}=    Create Dictionary
+    IF    '${limit}' != ''     Set To Dictionary    ${params}    limit=${limit}
+    IF    '${cursor}' != ''    Set To Dictionary    ${params}    cursor=${cursor}
+    IF    '${lang}' != ''      Set To Dictionary    ${params}    lang=${lang}
+    RETURN    ${params}
+
 Create Match With Loadout
     [Documentation]    POST /api/matches with the full creator loadout —
     ...                character template, class, traits and single-player flag.
@@ -80,19 +159,29 @@ List Matches
 List All Matches
     [Documentation]    GET /api/admin/matches with the given Bearer token (admin-only).
     ...                Served on the admin endpoint (admin_session → ADMIN_BASE_URL).
-    [Arguments]    ${token}    ${expected_status}=any
+    ...                v0.28.1 — returns a paginated envelope {items, nextCursor, limit};
+    ...                ${params} may carry limit/cursor/status/userUuid/storyUuid/sinceDays.
+    [Arguments]    ${token}    ${expected_status}=any    ${params}=${None}
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    admin_session    /api/admin/matches
     ...    headers=${headers}
+    ...    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
 Get Match Info
     [Documentation]    GET /api/match/{uuidMatch}/info with the given Bearer token.
-    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ...                When ${lang} is set it is forwarded as the `?lang=` query
+    ...                parameter so card texts are resolved in that language.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${None}
     ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    $lang is not None
+        Set To Dictionary    ${params}    lang    ${lang}
+    END
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/info
     ...    headers=${headers}
+    ...    params=${params}
     ...    expected_status=${expected_status}
     RETURN    ${response}
 
@@ -324,5 +413,32 @@ Get Clock
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
     ${headers}=    Get Auth Headers    ${token}
     ${response}=    GET On Session    public_session    /api/match/${match_uuid}/clock
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+# ── Step 28 — movement system ──
+
+Start Movement
+    [Documentation]    POST /api/gameplay/{uuidMatch}/movements/start — move to an adjacent location.
+    [Arguments]    ${token}    ${match_uuid}    ${target_location_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    targetLocationUuid=${target_location_uuid}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/movements/start
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Locations
+    [Documentation]    GET /api/match/{uuidMatch}/locations — visited locations + total energy cost (Step 28).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/match/${match_uuid}/locations
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Admin Get Locations
+    [Documentation]    GET /api/admin/matches/{uuidMatch}/locations — admin visited-locations view (Step 28).
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/locations
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}

@@ -5,12 +5,20 @@ import { render, screen } from '@testing-library/react'
 // and renders the description paragraph below it. Mock BookPageContent so the
 // test focuses on what LocationCard passes/renders.
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ card, icon, imageAlt }) => (
+  default: ({ card, icon, imageAlt, statItemsToPageContent, onForward }) => (
     <div data-testid="page-content" data-icon={icon} data-alt={imageAlt}>
       {card?.title}
       {card?.description}
+      {statItemsToPageContent?.map(s => (
+        <span key={s.key} data-testid={`stat-${s.key}`}>{s.label}:{s.value}</span>
+      ))}
+      {onForward && <button data-testid="forward" onClick={onForward}>forward</button>}
     </div>
   ),
+}))
+
+vi.mock('@/i18n/context', () => ({
+  useTranslation: () => ({ t: (k) => k }),
 }))
 
 import LocationCard from '../features/gameplay/cards/LocationCard'
@@ -44,5 +52,29 @@ describe('LocationCard', () => {
   it('falls back to default icon when awesomeIcon is missing', () => {
     render(<LocationCard location={{ name: 'Ruins' }} card={{}} />)
     expect(screen.getByTestId('page-content')).toHaveAttribute('data-icon', 'fas fa-map-marker-alt')
+  })
+
+  it('shows the clock counter as a statistic when greater than zero', () => {
+    render(<LocationCard location={{ name: 'Yard', clockCounter: 3 }} card={{ title: 'Yard' }} />)
+    expect(screen.getByTestId('stat-clockCounter')).toHaveTextContent('3')
+  })
+
+  it('hides the clock counter when zero or missing', () => {
+    render(<LocationCard location={{ name: 'Yard', clockCounter: 0 }} card={{ title: 'Yard' }} />)
+    expect(screen.queryByTestId('stat-clockCounter')).toBeNull()
+    render(<LocationCard location={{ name: 'Hall' }} card={{ title: 'Hall' }} />)
+    expect(screen.queryByTestId('stat-clockCounter')).toBeNull()
+  })
+
+  it('passes no onForward to Card when onEnterLocation is absent', () => {
+    render(<LocationCard location={{ name: 'Hall' }} card={{ title: 'Hall' }} />)
+    expect(screen.queryByTestId('forward')).toBeNull()
+  })
+
+  it('forwards onEnterLocation to Card as onForward', () => {
+    const onEnter = vi.fn()
+    render(<LocationCard location={{ name: 'Hall' }} card={{ title: 'Hall' }} onEnterLocation={onEnter} />)
+    screen.getByTestId('forward').click()
+    expect(onEnter).toHaveBeenCalledTimes(1)
   })
 })

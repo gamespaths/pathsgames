@@ -125,4 +125,20 @@ describe('MatchDetailModal render', () => {
     fireEvent.click(screen.getByText('Close'))
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('fires onClose when Escape key is pressed on backdrop', () => {
+    const onClose = vi.fn()
+    render(<MatchDetailModal detail={makeDetail()} onClose={onClose} />)
+    const backdrop = document.querySelector('.pg-modal-backdrop')
+    fireEvent.keyDown(backdrop, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('does not fire onClose when non-Escape key is pressed on backdrop', () => {
+    const onClose = vi.fn()
+    render(<MatchDetailModal detail={makeDetail()} onClose={onClose} />)
+    const backdrop = document.querySelector('.pg-modal-backdrop')
+    fireEvent.keyDown(backdrop, { key: 'Enter' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

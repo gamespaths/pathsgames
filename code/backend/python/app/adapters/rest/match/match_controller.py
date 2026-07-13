@@ -40,6 +40,8 @@ class MatchCreateRequestBody(BaseModel):
     traitUuids: Optional[List[str]] = None
     singlePlayer: Optional[int] = None
     turnstileToken: Optional[str] = None
+    # Step 27 — optional deterministic RNG seed (Robot tests pass 42).
+    rngSeed: Optional[int] = None
 
 
 def _error(code: str, message: str, http_status: int) -> JSONResponse:
@@ -99,7 +101,6 @@ def _character_summary_to_camel(p):
         "weight": p.weight,
         "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
-        "locationName": p.location_name,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
     }
@@ -128,7 +129,6 @@ def _character_full_to_camel(p):
         "items": [_item_to_camel(it) for it in p.items],
         "idLocation": p.id_location,
         "locationUuid": p.location_uuid,
-        "locationName": p.location_name,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
         "traitUuids": list(p.trait_uuids),
@@ -143,7 +143,9 @@ def _location_info_to_camel(l):
     return {
         "idLocation": l.id_location,
         "uuid": l.uuid,
+        "idCard": l.id_card,
         "card": l.card,
+        "secureParam": l.secure_param,
         "neighbors": [
             {
                 "idLocation": n.id_location,
@@ -152,6 +154,12 @@ def _location_info_to_camel(l):
                 "flagBack": n.flag_back,
                 "energyCost": n.energy_cost,
                 "card": n.card,
+                "secureParam": n.secure_param,
+                "idLocationFrom": n.id_location_from,
+                "idLocationTo": n.id_location_to,
+                "cardBack": n.card_back,
+                "cardLocationFrom": n.card_location_from,
+                "cardLocationTo": n.card_location_to,
             }
             for n in l.neighbors
         ],
@@ -167,14 +175,12 @@ def _detail_to_camel(detail):
         "match": _summary_to_camel(detail.match),
         "currentLocationId": detail.current_location_id,
         "currentLocationUuid": detail.current_location_uuid,
-        "currentLocationName": detail.current_location_name,
         "locations": [
             {
                 "idLocation": l.id_location,
                 "uuid": l.uuid,
                 "flagAlreadyActived": l.flag_already_actived,
                 "clockCounter": l.clock_counter,
-                "name": l.name,
             }
             for l in detail.locations
         ],
@@ -195,15 +201,20 @@ def _detail_to_camel(detail):
 
 
 class MatchController:
-    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort):
+    def __init__(self, command_port: MatchCommandPort, query_port: MatchQueryPort,
+                 match_logs_service=None):
         self.command_port = command_port
         self.query_port = query_port
+        self.match_logs_service = match_logs_service
         self.router = APIRouter()
         self.router.add_api_route(
             "/api/matches", self.create_match, methods=["POST"]
         )
         self.router.add_api_route(
             "/api/matches", self.list_matches, methods=["GET"]
+        )
+        self.router.add_api_route(
+            "/api/matches/{uuid_match}/logs", self.get_match_logs, methods=["GET"]
         )
         self.router.add_api_route(
             "/api/match/{uuid_match}/info", self.get_match_info, methods=["GET"]
@@ -231,6 +242,7 @@ class MatchController:
             single_player=body.singlePlayer,
             turnstile_token=body.turnstileToken,
             remote_ip=request.client.host if request.client else None,
+            rng_seed=body.rngSeed,
         )
         try:
             summary = self.command_port.create_match(command)
@@ -245,13 +257,13 @@ class MatchController:
         results = self.query_port.list_user_matches(user_uuid)
         return JSONResponse(status_code=200, content=[_summary_to_camel(s) for s in results])
 
-    def get_match_info(self, uuid_match: str, request: Request):
+    def get_match_info(self, uuid_match: str, request: Request, lang: str = "en"):
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
         if not uuid_match:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
-        detail = self.query_port.get_match_info(uuid_match, user_uuid)
+        detail = self.query_port.get_match_info(uuid_match, user_uuid, lang)
         if detail is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=_detail_to_camel(detail))
@@ -272,3 +284,19 @@ class MatchController:
             return _error("EVENT_NOT_END_GAME",
                           "The supplied event is not the end-game event for this match", 406)
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+
+    def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
+                       limit: Optional[int] = None, cursor: Optional[str] = None):
+        """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        if not uuid_match or not uuid_match.strip():
+            return _error("INVALID_INPUT", "Match uuid is required", 400)
+        if self.match_logs_service is None:
+            return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit, cursor)
+        if result is None:
+            return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
+        return JSONResponse(status_code=200, content=result)

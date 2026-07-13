@@ -225,3 +225,148 @@ class TestDbUtilsErrorBranches:
             'UpdateItem'
         )
         assert db.update_ts_last_access('USER#1', 12345) is False
+
+
+@patch.object(db, '_table')
+class TestPagination:
+    """scan/query helpers must follow LastEvaluatedKey so large tables are fully read."""
+
+    def test_scan_pk_prefix_follows_last_evaluated_key(self, mock_table):
+        mock_table.scan.side_effect = [
+            {'Items': [{'PK': 'MATCH#1'}], 'LastEvaluatedKey': {'PK': 'MATCH#1'}},
+            {'Items': [{'PK': 'MATCH#2'}]},
+        ]
+        result = db.scan_pk_prefix('MATCH#')
+        assert [i['PK'] for i in result] == ['MATCH#1', 'MATCH#2']
+        assert mock_table.scan.call_count == 2
+        assert mock_table.scan.call_args_list[1].kwargs['ExclusiveStartKey'] == {'PK': 'MATCH#1'}
+
+    def test_query_by_pk_follows_last_evaluated_key(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'A'}], 'LastEvaluatedKey': {'SK': 'A'}},
+            {'Items': [{'SK': 'B'}]},
+        ]
+        result = db.query_by_pk('MATCH#1')
+        assert len(result) == 2
+        assert mock_table.query.call_count == 2
+
+    def test_query_gsi_follows_last_evaluated_key(self, mock_table):
+        mock_table.query.side_effect = [
+            {'Items': [{'SK': 'A'}], 'LastEvaluatedKey': {'SK': 'A'}},
+            {'Items': [{'SK': 'B'}]},
+        ]
+        assert len(db.query_gsi('GSI1', 'USER_MATCHES#u1')) == 2
+        assert mock_table.query.call_count == 2
+
+
+@patch.object(db, '_table')
+class TestQueryIndexPage:
+    """v0.28.1 — single-page GSI query for cursor pagination (no LEK following)."""
+
+    def test_single_page_returns_items_and_last_key(self, mock_table):
+        mock_table.query.return_value = {
+            'Items': [{'uuid': 'm2'}, {'uuid': 'm1'}],
+            'LastEvaluatedKey': {'GSI2_SK': '00000000000000000100#m1'},
+        }
+        items, last = db.query_index_page('GSI2', 'GSI2_PK', 'MATCH', limit=2)
+        assert [i['uuid'] for i in items] == ['m2', 'm1']
+        assert last == {'GSI2_SK': '00000000000000000100#m1'}
+        # Exactly one query — pagination is the caller's job, via the cursor.
+        assert mock_table.query.call_count == 1
+        kwargs = mock_table.query.call_args.kwargs
+        assert kwargs['IndexName'] == 'GSI2'
+        assert kwargs['Limit'] == 2
+        assert kwargs['ScanIndexForward'] is False
+        assert 'FilterExpression' not in kwargs
+        assert 'ExclusiveStartKey' not in kwargs
+
+    def test_sk_from_adds_range_and_filters_and_start_key(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        items, last = db.query_index_page(
+            'GSI2', 'GSI2_PK', 'MATCH', sk_name='GSI2_SK', sk_from='00000000000000000050',
+            eq_filters={'status': 'RUNNING', 'storyUuid': None}, limit=10,
+            start_key={'GSI2_SK': 'x'}, ascending=True,
+        )
+        assert items == [] and last is None
+        kwargs = mock_table.query.call_args.kwargs
+        assert kwargs['ScanIndexForward'] is True
+        assert kwargs['ExclusiveStartKey'] == {'GSI2_SK': 'x'}
+        # None-valued filters are dropped; only status survives.
+        assert 'FilterExpression' in kwargs
+
+    def test_no_active_filters_omits_filter_expression(self, mock_table):
+        mock_table.query.return_value = {'Items': []}
+        db.query_index_page('GSI2', 'GSI2_PK', 'MATCH', eq_filters={'status': None})
+        assert 'FilterExpression' not in mock_table.query.call_args.kwargs
+
+    def test_client_error_returns_empty(self, mock_table):
+        mock_table.query.side_effect = ClientError(
+            {'Error': {'Code': 'InternalServerError', 'Message': 'boom'}}, 'Query')
+        assert db.query_index_page('GSI2', 'GSI2_PK', 'MATCH') == ([], None)
+
+
+@patch.object(db, '_table')
+class TestBackfillGsi2Matches:
+    """v0.28.1 migration — add GSI2 keys to matches that predate the index."""
+
+    def test_backfills_only_rows_missing_keys(self, mock_table):
+        mock_table.scan.return_value = {'Items': [
+            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
+            {'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 200,
+             'GSI2_PK': 'MATCH', 'GSI2_SK': '00000000000000000200#m2'},
+        ]}
+        stats = db.backfill_gsi2_matches()
+        assert stats == {'scanned': 2, 'updated': 1, 'skipped': 1}
+        # only m1 is written, with the same SK format as _create_match
+        mock_table.update_item.assert_called_once()
+        kwargs = mock_table.update_item.call_args.kwargs
+        assert kwargs['Key'] == {'PK': 'MATCH#m1', 'SK': 'METADATA'}
+        assert kwargs['ExpressionAttributeValues'][':p'] == 'MATCH'
+        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000100#m1'
+
+    def test_dry_run_writes_nothing(self, mock_table):
+        mock_table.scan.return_value = {'Items': [
+            {'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 100},
+        ]}
+        stats = db.backfill_gsi2_matches(dry_run=True)
+        assert stats == {'scanned': 1, 'updated': 1, 'skipped': 0}
+        mock_table.update_item.assert_not_called()
+
+    def test_follows_last_evaluated_key(self, mock_table):
+        mock_table.scan.side_effect = [
+            {'Items': [{'PK': 'MATCH#m1', 'SK': 'METADATA', 'uuid': 'm1', 'tsInsert': 1}],
+             'LastEvaluatedKey': {'PK': 'MATCH#m1'}},
+            {'Items': [{'PK': 'MATCH#m2', 'SK': 'METADATA', 'uuid': 'm2', 'tsInsert': 2}]},
+        ]
+        stats = db.backfill_gsi2_matches()
+        assert stats['updated'] == 2
+        assert mock_table.scan.call_count == 2
+
+    def test_derives_uuid_from_pk_and_defaults_missing_ts(self, mock_table):
+        # No 'uuid'/'tsInsert' attributes → derive uuid from PK, ts → 0.
+        mock_table.scan.return_value = {'Items': [{'PK': 'MATCH#abc', 'SK': 'METADATA'}]}
+        db.backfill_gsi2_matches()
+        kwargs = mock_table.update_item.call_args.kwargs
+        assert kwargs['ExpressionAttributeValues'][':s'] == '00000000000000000000#abc'
+
+
+class TestCursorCodec:
+    """Opaque base64 cursor round-trips a DynamoDB LastEvaluatedKey."""
+
+    def test_round_trip(self):
+        key = {'PK': 'MATCH#m1', 'SK': 'METADATA', 'GSI2_SK': '00000000000000000100#m1'}
+        token = db.encode_cursor(key)
+        assert isinstance(token, str)
+        assert db.decode_cursor(token) == key
+
+    def test_encode_none_or_empty_is_none(self):
+        assert db.encode_cursor(None) is None
+        assert db.encode_cursor({}) is None
+
+    def test_decode_none_or_blank_is_none(self):
+        assert db.decode_cursor(None) is None
+        assert db.decode_cursor('') is None
+
+    def test_decode_malformed_token_is_none(self):
+        assert db.decode_cursor('!!!not-base64!!!') is None
+        assert db.decode_cursor('bm90LWpzb24=') is None  # base64 of "not-json"

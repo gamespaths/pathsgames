@@ -37,6 +37,15 @@ def _sleep_to_camel(r: SleepResult) -> dict:
         "isSleeping": r.is_sleeping,
         "timeEndTriggered": r.time_end_triggered,
         "currentClock": r.current_clock,
+        "recovery": [
+            {
+                "characterUuid": item.character_uuid,
+                "energyDelta": item.energy_delta,
+                "lifeDelta": item.life_delta,
+                "sadDelta": item.sad_delta,
+            }
+            for item in (r.recovery or [])
+        ],
     }
 
 

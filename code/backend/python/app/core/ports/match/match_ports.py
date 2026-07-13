@@ -7,7 +7,9 @@ from app.core.models.match.match_models import (
     JoinMatchCommand,
     MatchCreateCommand,
     MatchDetail,
+    MatchListFilter,
     MatchSummary,
+    MatchSummaryPage,
 )
 
 
@@ -51,7 +53,13 @@ class MatchQueryPort(ABC):
         """Return every match in the platform, newest first (admin view)."""
 
     @abstractmethod
-    def get_match_info(self, match_uuid: str, user_uuid: str) -> Optional[MatchDetail]:
+    def list_matches_page(self, filter: MatchListFilter) -> MatchSummaryPage:
+        """v0.28.1 — return one keyset page of the admin match list, applying the
+        optional filters (status / creator / story / sinceDays) and resuming from
+        ``filter.cursor``. Backs GET /api/admin/matches."""
+
+    @abstractmethod
+    def get_match_info(self, match_uuid: str, user_uuid: str, lang: str = "en") -> Optional[MatchDetail]:
         ...
 
     @abstractmethod
@@ -78,6 +86,16 @@ class MatchPersistencePort(ABC):
     @abstractmethod
     def find_all_matches(self) -> List[Dict[str, Any]]:
         """Return every ``gaming_match`` row, newest first."""
+
+    @abstractmethod
+    def find_matches_page(self, status: Optional[str], id_user: Optional[int],
+                          id_story: Optional[int], ts_from: Optional[str],
+                          ts_cursor: Optional[str], id_cursor: Optional[int],
+                          limit: int) -> List[Dict[str, Any]]:
+        """v0.28.1 — keyset page of matches (newest first) matching the resolved
+        filters. Any ``None`` filter is ignored. ``ts_from`` is an ISO lower bound;
+        ``ts_cursor``/``id_cursor`` carry the keyset position. Returns at most
+        ``limit`` rows."""
 
     @abstractmethod
     def save_locations(self, rows: List[Dict[str, Any]]) -> None:
@@ -221,6 +239,17 @@ class CharacterCommandPort(ABC):
         """Step 21 — instantiate the caller's character in the match. Raises
         :class:`CharacterJoinError` for validation failures."""
 
+    @abstractmethod
+    def change_statistics(self, match_uuid: str, player_uuid: str,
+                          dex: Optional[int], intel: Optional[int], con: Optional[int],
+                          energy: Optional[int], life: Optional[int], sad: Optional[int],
+                          coin: Optional[int], food: Optional[int],
+                          magic: Optional[int]) -> str:
+        """Admin — override current statistics of a character instance.
+        Pass None to skip a field. For energy/life/sad the value is capped at max.
+
+        Returns one of ``'UPDATED'``, ``'MATCH_NOT_FOUND'``, ``'PLAYER_NOT_FOUND'``."""
+
 
 class CharacterQueryPort(ABC):
     @abstractmethod
@@ -253,6 +282,19 @@ class CharacterPersistencePort(ABC):
     @abstractmethod
     def count_characters_by_match_id(self, match_id: int) -> int:
         ...
+
+    @abstractmethod
+    def update_character_stats(self, match_id: int, character_id: int,
+                               dex: Optional[int], intel: Optional[int], con: Optional[int],
+                               energy: Optional[int], life: Optional[int],
+                               sad: Optional[int]) -> None:
+        """Admin: persist updated base stats on the character instance. None = skip."""
+
+    @abstractmethod
+    def update_backpack_stats(self, match_id: int, character_id: int,
+                              food: Optional[int], magic: Optional[int],
+                              coin: Optional[int]) -> None:
+        """Admin: persist updated backpack resources. None = skip."""
 
 
 class CharacterReadPort(ABC):

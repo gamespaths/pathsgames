@@ -64,7 +64,10 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 {
                     "id": r.id,
                     "uuid": r.uuid,
-                    "counter_start": r.counter_start,
+                    "counter_time": r.counter_time,
+                    "id_card": r.id_card,
+                    # Python schema: is_safe doubles as secure_param (no dedicated column).
+                    "secure_param": r.is_safe or 0,
                 }
                 for r in rows
             ]
@@ -110,8 +113,10 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_location_from": r.id_location_from,
                     "id_location_to": r.id_location_to,
                     "direction": r.direction,
+                    "flag_back": r.flag_back,
                     "energy_cost": r.energy_cost,
                     "id_card": r.id_card,
+                    "id_card_back": r.id_card_back,
                 }
                 for r in rows
             ]
@@ -128,7 +133,7 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id": r.id,
                     "uuid": r.uuid,
                     "type": r.event_type,
-                    "id_location": r.id_location,
+                    "id_specific_location": r.id_specific_location,
                     "id_card": r.id_card,
                 }
                 for r in rows

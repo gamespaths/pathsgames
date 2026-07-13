@@ -539,13 +539,17 @@ class StoryImportServiceTest {
         void importStory_withLocationNeighbors() {
             Map<String, Object> data = new HashMap<>();
             data.put("uuid", "ln-uuid");
-            data.put("locationNeighbors", List.of(Map.of("idLocationFrom", 1, "idLocationTo", 2, "direction", "NORTH")));
+            data.put("locationNeighbors", List.of(Map.of("idLocationFrom", 1, "idLocationTo", 2,
+                    "direction", "NORTH", "idCard", 5, "idCardBack", 9)));
             setupStory("ln-uuid");
             when(persistencePort.saveLocationNeighbors(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
             storyImportService.importStory(data);
 
-            verify(persistencePort).saveLocationNeighbors(argThat(list -> list.size() == 1));
+            verify(persistencePort).saveLocationNeighbors(argThat(list ->
+                    list.size() == 1
+                            && ((LocationNeighborEntity) list.get(0)).getIdCard() == 5
+                            && ((LocationNeighborEntity) list.get(0)).getIdCardBack() == 9));
         }
 
         @Test

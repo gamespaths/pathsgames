@@ -12,11 +12,11 @@ import Card from '../layout/Card'
  */
 export default function CardPreviewModal({ preview, story }) {
   const { t } = useTranslation()
-console.log("CardPreviewModal preview",preview);
+//console.log("CardPreviewModal preview",preview);
   return createPortal(
     <div className="modal fade" id="cardPreviewModal" tabIndex="-1" aria-hidden="true">
       <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div className="modal-content card-preview-modal-content">
+        <div className=" card-preview-modal-content ex-modal-content">
           <button
             type="button"
             className="modal-custom-close card-preview-modal-close"

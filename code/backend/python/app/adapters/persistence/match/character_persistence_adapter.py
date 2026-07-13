@@ -39,6 +39,7 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
                 uuid=_new_uuid(),
                 id_user=row["id_user"],
                 id_character_template=row["id_character_template"],
+                id_class=row.get("id_class"),
                 dexterity=row.get("dexterity", 1),
                 intelligence=row.get("intelligence", 1),
                 constitution=row.get("constitution", 1),
@@ -118,6 +119,45 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
                 .filter(GamingCharacterInstanceEntity.id_match == match_id)
                 .count()
             )
+
+    def update_character_stats(self, match_id: int, character_id: int,
+                               dex, intel, con, energy, life, sad) -> None:
+        with self.session_factory() as session:
+            entity = (
+                session.query(GamingCharacterInstanceEntity)
+                .filter(GamingCharacterInstanceEntity.id_match == match_id)
+                .filter(GamingCharacterInstanceEntity.id == character_id)
+                .first()
+            )
+            if entity is None:
+                return
+            now = _now_iso()
+            if dex    is not None: entity.dexterity    = dex
+            if intel  is not None: entity.intelligence = intel
+            if con    is not None: entity.constitution = con
+            if energy is not None: entity.energy       = energy
+            if life   is not None: entity.life         = life
+            if sad    is not None: entity.sad          = sad
+            entity.ts_update = now
+            session.commit()
+
+    def update_backpack_stats(self, match_id: int, character_id: int,
+                              food, magic, coin) -> None:
+        with self.session_factory() as session:
+            entity = (
+                session.query(GamingBackpackResourcesEntity)
+                .filter(GamingBackpackResourcesEntity.id_match == match_id)
+                .filter(GamingBackpackResourcesEntity.id_character_match == character_id)
+                .first()
+            )
+            if entity is None:
+                return
+            now = _now_iso()
+            if food  is not None: entity.food  = food
+            if magic is not None: entity.magic = magic
+            if coin  is not None: entity.coin  = coin
+            entity.ts_update = now
+            session.commit()
 
     # ─── read side ───────────────────────────────────────────────────────────
 

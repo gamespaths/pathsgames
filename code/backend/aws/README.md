@@ -21,7 +21,7 @@ The infrastructure is built entirely on managed AWS services:
 | Lambda Echo | `pathsgames-<env>-EchoFunction` | Health check (`GET /api/echo/status`) |
 | Lambda Auth | `pathsgames-<env>-AuthFunction` | Guest + admin authentication (11 routes) |
 | Lambda Story | `pathsgames-<env>-StoryFunction` | Story catalog + admin + content (9 routes); story detail includes resolved `card` objects on difficulties, classes, character templates and traits |
-| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches`) |
+| Lambda Match | `pathsgames-<env>-MatchFunction` | Match creation and listing (`POST /api/matches`, `GET /api/matches`, `GET /api/match/{uuid}/info`, `GET /api/admin/matches` with pagination & filters) |
 | Lambda Seed | `pathsgames-<env>-SeedFunction` | Dev-only: inserts test data (stories, cards) |
 | Log Groups ×5 | `/aws/lambda/pathsgames-<env>-*` | Deleted with the stack |
 
@@ -85,7 +85,7 @@ code/backend/aws/
 │   ├── common/           # Shared code (db_utils, jwt_utils)
 │   ├── auth/             # Guest login, sessions, admin guests (11 routes)
 │   ├── story/            # Catalog, categories, groups, enriched detail, import (9 routes)
-│   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches)
+│   ├── match/            # Match creation and listing (POST, GET /api/matches, GET /api/admin/matches with pagination & filters)
 │   ├── seed/             # Dev seed: inserts test users and stories
 │   └── echo/             # Health check and diagnostics
 └── README.md             # This file
@@ -95,12 +95,22 @@ code/backend/aws/
 
 All entities coexist in the same table using a prefix for differentiation:
 
-| Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) |
-| :--- | :--- | :--- | :--- |
-| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` |
-| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` |
-| **Card** | `CARD#<id>` | `METADATA` | — |
-| **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` |
+| Entity | Partition Key (PK) | Sort Key (SK) | GSI1_PK (Example) | GSI2_PK | GSI2_SK |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **User** | `USER#<uuid>` | `METADATA` | `USER_LIST` | — | — |
+| **Story** | `STORY#<uuid>` | `METADATA` | `STORY_LIST` | — | — |
+| **Card** | `CARD#<id>` | `METADATA` | — | — | — |
+| **Match** | `MATCH#<uuid>` | `METADATA` | `USER#<uuid>` | `MATCH` | `{tsInsert:020d}#{uuid}` |
+
+**GSI2 — "by type" index** (added v0.28.1): enables a single newest-first **Query** on all match items without scanning the full table. `GSI2_PK` is the constant string `"MATCH"`; `GSI2_SK` is a zero-padded epoch timestamp followed by the UUID, ensuring natural descending order. The `sinceDays` filter uses a range condition on `GSI2_SK`; `status`, `userUuid`, `storyUuid` are applied as FilterExpression. Matches created before v0.28.1 lack GSI2 keys and will not appear in the admin list until their items are rewritten. **After deploying the GSI2 template, run the one-time backfill once per environment** to index existing matches:
+
+```bash
+# from code/backend/aws/ (needs AWS creds with DynamoDB scan/update on the table)
+python scripts/backfill_gsi2_matches.py --env dev            # or --table PathsGamesBackend-prod
+python scripts/backfill_gsi2_matches.py --env dev --dry-run  # preview only, no writes
+```
+
+The script is idempotent (rows already carrying `GSI2_PK` are skipped) and reuses `db_utils.backfill_gsi2_matches`, which writes the exact `GSI2_SK` format `_create_match` uses, so backfilled and new rows sort together.
 
 Cards are stored as standalone items (`PK=CARD#<id>`) and resolved on-the-fly during story detail requests. The `_build_card()` helper in `story/handler.py` fetches the card from DynamoDB and maps its fields (urlImage, alternativeImage, awesomeIcon, styleMain, styleDetail, styleImageLittle, styleImageMedium, styleImageLarge, cardType, localised title/description/copyrightText, linkCopyright). Sub-entities that reference a card (difficulties, characterTemplates, classes, traits) expose both `idCard` (integer) and the fully resolved `card` object in the API response.
 
@@ -157,6 +167,80 @@ One set of IAM Roles, one backup plan, and one point of monitoring on CloudWatch
 ---
 
 ## 📝 Changelog
+
+### v0.28.6 — Bugfix: fog-of-war leak on neighbor location cards
+
+- **`lambda/match/handler.py`**: The v0.28.5 card enrichment below leaked the card of
+  locations the match had **never visited**, via the neighbor sub-lists it added. Fixed
+  by gating the neighbor's location-card resolution on the visited set:
+  - `_detail_from_item` now computes `visited_loc_ids` (character positions ∪ every
+    `movementLog` entry's `idLocationFrom`/`idLocationTo`) and passes it into
+    `_build_locations_active(..., visited_loc_ids)`, which nulls only the **fallback**
+    to `other.get("idCard")` when the destination is unvisited — an authored
+    `n.get("idCard")` link card on the neighbor edge itself is always kept.
+  - `_visited_locations_payload` already tracked visited ids in its `seen` set; it now
+    nulls a neighbor's `idCard`/`card` when the destination is not in `seen`.
+- **Unit tests**: `tests/test_match_handler.py` and `tests/test_movement_handler.py` gain
+  regression tests for both the hide-when-unvisited and keep-authored-link-card cases.
+  416 Lambda unit tests pass.
+- **Robot**: new backend-agnostic test file
+  `code/tests/robot/tests/28_movement/location_fog_of_war.robot` (4 tests): hides
+  `card`/`idCard` on unvisited neighbors in `GET /locations`; the card reappears (and
+  resolves via `/content`) after moving into that location; `GET /info` never leaks the
+  location card ahead of the visit; the admin locations view applies the same gating.
+- No API contract change — nullability only. See
+  `documentation_v0/Step28_MovementSystem.md` §14.
+
+### v0.28.5 — Location cards on `GET /locations`
+
+- **`lambda/match/handler.py`**: `_visited_locations_payload(match, match_uuid, lang='en')`
+  now resolves a full `card` object (not just `idCard`) for every visited location and
+  every neighbor, reusing the existing `resolve_card_from_raw` helper against the story's
+  `raw_cards`/`raw_texts` — the same resolution path already used by `GET /api/match/{uuid}/info`.
+  `_get_locations` and `_get_admin_locations` now read the optional `lang` query-string
+  parameter (default `en`) and pass it through. No change to the visited-locations/neighbor
+  lookup logic itself.
+- **Unit tests**: 414 Lambda unit tests pass.
+- **Robot**: new test file `code/tests/robot/tests/28_movement/location_cards.robot`
+  (backend-agnostic, 5 tests: card per location, card per neighbor, full `CardInfo`
+  fields, `?lang=` param, admin view matches player view).
+- **Frontend**: this enrichment feeds the new interactive world map in react-game
+  (`Map.jsx`/`mapGraph.js`/`MapCard.jsx`), which renders a photo for every visited
+  location without a second round-trip per node. See
+  `documentation_v0/Step28_MovementSystem.md` §12–13.
+
+### v0.28.2 — AWS bugfix: neighbor `cardBack` desync
+
+- **`lambda/match/handler.py`**: Added `_story_neighbors(story)` helper that returns
+  the authoritative neighbor list for a STORY item. The AWS DynamoDB item carries two
+  separate arrays: `locationNeighbors` (written by admin CRUD) and `neighbors` (written
+  by seed/import). Before this fix, the gameplay engine read only `neighbors`, so admin
+  edits to `idCard`, `idCardBack`, `direction`, or `energyCost` were invisible to
+  `GET /api/match/{uuid}/info`, `POST /api/gameplay/{uuid}/movements/start`, and
+  `GET /api/match/{uuid}/locations`. The helper reads `locationNeighbors` first and
+  falls back to `neighbors` for seed stories that predate admin edits. Applied at the
+  three gameplay read-points: `_build_locations_active` (match-info),
+  `_find_edge` (movement validation), `_build_locations_visited` (locations query).
+- **`tests/test_match_handler.py`**: New regression test
+  `test_match_info_neighbor_cardback_reads_admin_edited_location_neighbors` — asserts
+  that a stale `neighbors` copy does not shadow the `locationNeighbors` admin edit.
+- **Unit tests**: 407 Lambda unit tests pass.
+- **Robot**: New suite `code/tests/robot/tests/29_neighbor_card_back/neighbor_card_back.robot`
+  (backend-agnostic): admin sets `idCard`+`idCardBack` on a neighbor touching the start
+  location; player reads `GET /api/match/{uuid}/info?lang=en`; asserts distinct
+  `card`/`cardBack` UUIDs, both resolving as real catalog cards; teardown restores
+  originals. See `documentation_v0/Step29_NeighborCardBack.md` for full details.
+- **Note**: `api-test.paths.games` requires a Lambda redeployment (`sam deploy
+  --config-env dev`) to apply this fix.
+
+### v0.28.1 — Admin match listing: pagination, filtering, GSI2 index
+
+- **`template.yaml`**: New DynamoDB **GSI2** index `PathsGamesGSI2` on attribute pair `GSI2_PK` / `GSI2_SK`. Every MATCH METADATA item now carries `GSI2_PK="MATCH"` and `GSI2_SK="{tsInsert:020d}#{uuid}"`.
+- **`lambda/match/handler.py`**: `_list_all_matches` rewritten to call `db_utils.query_index_page` on GSI2 instead of `scan_pk_prefix`. Accepts query params `limit` (default 50, clamped to [1, 200]), `cursor`, `status`, `userUuid`, `storyUuid`, `sinceDays`. Returns paged envelope `{"items": [...], "nextCursor": string|null, "limit": int}`.
+- **`lambda/common/db_utils.py`**: New helpers `query_index_page`, `encode_cursor`, `decode_cursor` (cursor = base64 of DynamoDB `LastEvaluatedKey`), and `backfill_gsi2_matches` (one-time migration adding GSI2 keys to pre-v0.28.1 matches; idempotent).
+- **`scripts/backfill_gsi2_matches.py`**: CLI wrapper for the migration — run once per environment after deploy (`--env dev` / `--table ...`, `--dry-run` supported) so existing matches appear in the admin list.
+- **Unit tests**: 406 Lambda unit tests pass.
+- **Robot**: `List All Matches` keyword in `resources/matches.resource` accepts optional `params`; new tests in `19_match/match_creation.robot` for paged envelope shape, limit/cursor pagination, and status filter.
 
 ### v0.19.10 — Admin-wide match listing
 

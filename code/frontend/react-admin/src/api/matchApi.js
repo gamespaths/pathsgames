@@ -9,9 +9,11 @@ import { apiClient } from './client'
  * Requests carry the admin bearer token configured on the login screen.
  */
 
-// GET /api/admin/matches — every match in the platform (admin view, newest first)
-export const listMatches = () =>
-  apiClient().get('/api/admin/matches').then(r => r.data)
+// GET /api/admin/matches — paginated, filterable list of matches (v0.28.1).
+// Returns the envelope { items, nextCursor, limit }. `params` may carry
+// { limit, cursor, status, userUuid, storyUuid, sinceDays } — all optional.
+export const listMatches = (params = {}) =>
+  apiClient().get('/api/admin/matches', { params }).then(r => r.data)
 
 // GET /api/admin/matches/:uuid/info — full runtime state of a single match.
 // The admin console uses the admin-scoped endpoint (not the per-user
@@ -24,6 +26,18 @@ export const getMatchInfo = (uuid) =>
 // the player endpoint GET /api/match/:uuid/clock, without the ownership check.
 export const getMatchClock = (uuid) =>
   apiClient().get(`/api/admin/matches/${uuid}/clock`).then(r => r.data)
+
+// GET /api/admin/matches/:uuid/locations — movement view (Step 28): the visited
+// locations, each with its current character count and the per-neighbor
+// totalEnergyCost (edge + entry + weather) resolved for the current weather.
+export const getMatchLocations = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/locations`).then(r => r.data)
+
+// GET /api/admin/matches/:uuid/weather — weather view (Step 27): the per-match
+// rngSeed, the current weather (delta_energy + movement-cost modifiers) and the
+// full log_weather history ordered by clock.
+export const getMatchWeather = (uuid) =>
+  apiClient().get(`/api/admin/matches/${uuid}/weather`).then(r => r.data)
 
 // GET /api/admin/matches/statuses — valid match statuses [{ value, terminal }]
 export const listMatchStatuses = () =>
@@ -48,3 +62,15 @@ export const resumeMatch = (uuid) =>
 // DELETE /api/admin/matches/:uuid — delete a stopped match (ENDED / GAMEOVER)
 export const deleteMatch = (uuid) =>
   apiClient().delete(`/api/admin/matches/${uuid}`).then(r => r.data)
+
+// POST /api/admin/matches/:uuid/player/:playerUuid/changeStatistics
+// Override character statistics. Pass -1 to leave a field unchanged.
+export const changePlayerStatistics = (matchUuid, playerUuid, body) =>
+  apiClient().post(`/api/admin/matches/${matchUuid}/player/${playerUuid}/changeStatistics`, body).then(r => r.data)
+
+// GET /api/admin/matches/:uuid/logs — consolidated log timeline (Step 28.7):
+// WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries ordered by timestamp asc.
+// v0.28.7 — cursor-paginated. Returns { matchUuid, currentClock, logs, nextCursor,
+// limit, total }; `params` may carry { limit, cursor, lang }.
+export const getMatchLogs = (uuid, params = {}) =>
+  apiClient().get(`/api/admin/matches/${uuid}/logs`, { params }).then(r => r.data)

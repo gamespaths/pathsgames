@@ -26,6 +26,8 @@ public interface GamingCharacterInstanceRepository
 
     Optional<GamingCharacterInstanceEntity> findByIdMatchAndIdUser(Long idMatch, Long idUser);
 
+    Optional<GamingCharacterInstanceEntity> findByIdMatchAndId(Long idMatch, Long id);
+
     long countByIdMatch(Long idMatch);
 
     /** Deletes every character row belonging to the given match ids (cleanup / cascade). */

@@ -60,6 +60,8 @@
     "antibot": "Sicurezza",
     "antibotOk": "Verifica superata",
     "antibotDesc": "Controllo antibot completato con successo: sei pronto per iniziare l'avventura.",
+    "noTraitsTitle": "Nessun Tratto",
+    "noTraitsDesc": "Non hai selezionato nessun tratto. Puoi procedere senza tratti oppure selezionarne uno per personalizzare il tuo personaggio.",
     "freeToPlay": "Gioca Gratis",
     "freeToPlayDesc": "Paths Games è gratuito: nessun costo, nessun account richiesto. Inizia subito a giocare.",
     "selectTitle": "Seleziona",
@@ -90,10 +92,11 @@
         "dexterity": "Destrezza",
         "intelligence": "Intelligenza",
         "constitution": "Fisico",
-        "weight": "Trasporto",
+        "weight": "Peso",
         "exp": "EXP"
       }
-    }
+    },
+    "map": "Mappa"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -122,9 +125,31 @@
       "GAMEOVER": "Game Over"
     }
   },
+  "matchLog": {
+    "title": "Storia della partita",
+    "loading": "Caricamento della storia…",
+    "empty": "In questa partita non è ancora successo nulla.",
+    "error": "Impossibile caricare la storia della partita",
+    "loadMore": "Carica altri",
+    "when": "Data",
+    "type": "Evento",
+    "card": "Carta",
+    "character": "Personaggio",
+    "types": {
+      "WEATHER": "Meteo",
+      "MOVEMENT": "Movimento",
+      "SLEEP": "Riposo",
+      "CLOCK_ADVANCE": "Scorre il tempo",
+      "RECOVERY": "Recupero"
+    }
+  },
   "card": {
     "info": "Info",
-    "viewOriginal": "Vedi originale"
+    "gameStatus": "Status",
+    "viewOriginal": "Vedi originale",
+    "actionInProgress": "Esecuzione",
+    "back": "Indietro",
+    "forward": "Vai"
   },
   "game": {
     "currentLocation": "Posizione Attuale",
@@ -141,7 +166,7 @@
       "food": "Cibo",
       "magic": "Magia",
       "coins": "Monete",
-      "weight": "Trasporto",
+      "weight": "Peso",
       "items": "Oggetti"
     },
     "move": "Vai Qui",
@@ -163,14 +188,47 @@
       "title": "Tempo",
       "fallback": "Tempo {n}"
     },
+    "weather": {
+      "title": "Meteo",
+      "description": "Il meteo attuale. Alcune condizioni meteo consumano energia a ogni unità di tempo e modificano i costi di movimento.",
+      "energyDelta": "Variazione energia"
+    },
     "sleep": {
       "action": "Dormi",
       "confirmTitle": "Vuoi dormire?",
       "confirmBody": "Il tuo personaggio si addormenterà. Quando tutti dormono o sono senza energia, il tempo avanza al prossimo ciclo.",
       "confirm": "Dormi",
       "cancel": "Annulla",
-      "sleeping": "Sta dormendo"
-    }
+      "sleeping": "Sta dormendo",
+      "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
+      "safeLocation": "Ti trovi in un luogo sicuro. Recupererai:"
+    },
+    "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
+    "location": {
+      "clockCounter": "Contatore tempo"
+    },
+    "movement": {
+      "action": "Muovi",
+      "cost": "Costo",
+      "noEnergy": "Energia",
+      "moveCost": "Movimento"
+    },
+    "map": {
+      "title": "Mappa",
+      "here": "Selezionata",
+      "safe": "Sicura",
+      "unexplored": "Inesplorata",
+      "zoomIn": "Ingrandisci",
+      "zoomOut": "Riduci",
+      "center": "Centra sulla posizione attuale",
+      "youAreHere": "Sei qui",
+      "open": "Apri mappa",
+      "unexploredLocation": "Location inesplorata"
+    },
+    "moveToDirection": "Vai verso",
+    "from": "Da",
+    "to": "A",
+    "backTo": "Torna a"
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",
@@ -187,6 +245,11 @@
     "devlog": "Devlog",
     "instagram": "Instagram",
     "youtube": "YouTube"
+  },
+  "errors": {
+    "title": "Errore Match",
+    "matchNotRunning": "Impossibile caricare il match.",
+    "matchEnded": "Perché la storia è già conclusa."
   },
   "modals": {
     "close": "Chiudi",

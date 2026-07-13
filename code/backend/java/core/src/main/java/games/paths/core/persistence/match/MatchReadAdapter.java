@@ -53,6 +53,15 @@ public class MatchReadAdapter implements MatchReadPort {
     }
 
     @Override
+    public List<GamingMatchEntity> findMatchesPage(MatchPageCriteria c) {
+        int limit = Math.max(1, c.limit());
+        return matchRepository.findMatchesPage(
+                c.status(), c.idUser(), c.idStory(), c.tsFrom(),
+                c.tsCursor(), c.idCursor(),
+                org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+
+    @Override
     public List<GamingStateLocationsEntity> findLocationsByMatchId(Long matchId) {
         if (matchId == null) {
             return List.of();

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { matchInfoToGameData } from '../api/matchInfoAdapter'
-import mockMatchInfo from '../mock/matchInfo.json'
+import mockMatchInfo from './fixtures/matchInfo.json'
+import images from '../data/images.json'
+
+const NEIGHBOR_IMG = images.find(i => i.id === 'neighbor')?.urlImage
 
 describe('matchInfoToGameData', () => {
   it('returns empty board for null info', () => {
@@ -53,17 +56,112 @@ describe('matchInfoToGameData', () => {
   it('maps the active location neighbors into board move-target cards', () => {
     const gd = matchInfoToGameData(mockMatchInfo)
     expect(gd.locations).toHaveLength(2)
+    // Step 0.28.2 — player stands on the edge's `to` location (1001) for the cave
+    // neighbor, so its return card (cardBack) is shown instead of the forward card.
     const cave = gd.locations.find(l => l.idLocation === 1002)
-    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Dark Cave', energyCost: 2, direction: 'N' })
+    expect(cave).toMatchObject({ uuid: 'loc-002', name: 'Back to the Dark Cave', energyCost: 2, direction: 'N' })
+    // For the forest neighbor the player is on the `from` side → forward card.
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest).toMatchObject({ name: 'Ancient Forest' })
+  })
+
+  it('shows the forward card (not cardBack) when no cardBack is present', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    // Active 1001 is the `to` side but the edge has no cardBack → keep forward card.
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.cardBack = null
+    const gd = matchInfoToGameData(info)
+    expect(gd.locations.find(l => l.idLocation === 1002).name).toBe('Dark Cave')
+  })
+
+  it('shows the destination LOCATION card when the link has no card but the destination is visited', () => {
+    // Step 0.28.6 — cardLocationTo is the destination's own card, resolved only
+    // once that location has been visited. It outranks the generic fallback.
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationTo = { title: 'Ancient Forest', description: 'Towering trees.', urlImage: 'forest.png' }
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.name).toBe('Ancient Forest')
+    expect(forest.urlImage).toBe('forest.png')
+    expect(forest.urlImage).not.toBe(NEIGHBOR_IMG)
+  })
+
+  it('falls back to the fixed "neighbor" card when there is no card anywhere', () => {
+    // No LINK card, no return card, and the destination is still under fog of war
+    // (cardLocationTo null) → the generic direction card, with the destination
+    // described as unexplored.
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationTo = null
+    nb.direction = 'NORTH'
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    // uses the fixed neighbor image from data/images.json
+    expect(forest.urlImage).toBe(NEIGHBOR_IMG)
+    expect(forest.card.urlImage).toBe(NEIGHBOR_IMG)
+    // title = "Move to North" (identity translator → game.moveToDirection + dir)
+    expect(forest.card.title).toBe('game.moveToDirection North')
+    expect(forest.card.description).toContain('game.moveToDirection North')
+    // From = the current location's card title; To = unexplored (not visited yet)
+    expect(forest.card.description).toContain('game.from: The Old Tavern')
+    expect(forest.card.description).toContain('game.to: game.map.unexploredLocation')
+  })
+
+  it('uses "Back to" and swaps From/To for a return neighbor (player at destination)', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    // Cave neighbor 1002: from=1002, to=1001; player stands on 1001 (=to) → return.
+    // Strip every card so the generic card is used and the swap is observable.
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.card = null
+    nb.cardBack = null
+    nb.cardLocationFrom = null   // the move DESTINATION when playerAtTo
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    // title = "Back to N" (fixture direction is 'N')
+    expect(cave.card.title).toBe('game.backTo N')
+    // From/To swapped: To is the CURRENT location, which only happens on a return.
+    expect(cave.card.description).toContain('game.to: The Old Tavern')
+    // The move destination is unvisited, so it has no name — buildNeighborCard
+    // omits the From line entirely (only the To line gets an "unexplored" label).
+    expect(cave.card.description).not.toContain('game.from:')
+  })
+
+  it('takes the return-move destination name from cardLocationFrom when playerAtTo', () => {
+    // Player on the edge's `to` side → the destination is `from`, so its name must
+    // come from cardLocationFrom (not cardLocationTo).
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1002)
+    nb.card = null
+    nb.cardBack = null
+    const gd = matchInfoToGameData(info, null, (k) => k)
+    const cave = gd.locations.find(l => l.idLocation === 1002)
+    // fixture: cardLocationFrom is the Dark Cave card (1002 is visited)
+    expect(cave.name).toBe('Dark Cave')
+  })
+
+  it('keeps the real card when only cardBack is missing (no fallback)', () => {
+    const info = JSON.parse(JSON.stringify(mockMatchInfo))
+    const nb = info.locationsActive[0].neighbors.find(n => n.idLocation === 1003)
+    nb.cardBack = null // card still present → no neighbor fallback
+    const gd = matchInfoToGameData(info)
+    const forest = gd.locations.find(l => l.idLocation === 1003)
+    expect(forest.name).toBe('Ancient Forest')
+    expect(forest.urlImage).not.toBe(NEIGHBOR_IMG)
   })
 
   it('falls back to a currentLocation* card (with story image) when locationsActive is absent', () => {
     const { locationsActive, ...lean } = mockMatchInfo
     const story = { card: { urlImage: 'http://img/x.png', awesomeIcon: 'fas fa-book' } }
     const gd = matchInfoToGameData(lean, story)
+    // v0.28.6 — currentLocationName is gone, so the fallback card has no name.
     expect(gd.actualLocationCard).toMatchObject({
       uuid: 'loc-001',
-      name: 'The Old Tavern',
+      name: '',
       urlImage: 'http://img/x.png',
     })
     expect(gd.locations).toEqual([])

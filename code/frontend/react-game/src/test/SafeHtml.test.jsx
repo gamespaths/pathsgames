@@ -17,4 +17,18 @@ describe('SafeHtml', () => {
     const { container } = render(<SafeHtml value={null} />)
     expect(container.firstChild).toBeNull()
   })
+
+  it('updates the rendered HTML when value changes', () => {
+    const { container, rerender } = render(<SafeHtml value="<p>first</p>" />)
+    expect(container.querySelector('p')?.textContent).toBe('first')
+    rerender(<SafeHtml value="<p>second</p>" />)
+    expect(container.querySelector('p')?.textContent).toBe('second')
+  })
+
+  it('transitions from null to string correctly', () => {
+    const { container, rerender } = render(<SafeHtml value={null} />)
+    expect(container.firstChild).toBeNull()
+    rerender(<SafeHtml value="<b>appeared</b>" />)
+    expect(container.querySelector('b')?.textContent).toBe('appeared')
+  })
 })

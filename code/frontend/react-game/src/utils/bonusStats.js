@@ -55,11 +55,13 @@ export function getClassBonusStats(classEntity) {
  * For `class` entities the returned list also contains the rows from
  * `class.bonuses[]` mapped to their canonical category keys.
  */
-export function getNonZeroStats(entity, entityType) {
+export function getNonZeroStats(entity, entityType,t) {
   if (!entity || !entityType) return []
   const keys = STAT_FIELDS[entityType] ?? []
+  const label = (key) => t(`book.stats.${key}`)!=`book.stats.${key}` ? 
+    t(`book.stats.${key}`) : t(`book.stats.totals.${key}`)!=`book.stats.totals.${key}` ? t(`book.stats.totals.${key}`) : key; // translation function for labels
   const baseStats = keys
-    .map(key => ({ key, value: Number(entity[key]) }))
+    .map(key => ({ key, value: Number(entity[key]) , label : label(key) }))
     .filter(s => Number.isFinite(s.value) && s.value !== 0)
   if (entityType === 'class') {
     return baseStats.concat(getClassBonusStats(entity))
@@ -109,10 +111,10 @@ export const STAT_CATEGORY_ORDER = ['life', 'energy', 'sad', 'dexterity', 'intel
  * Each pair: { entity, type }. Returns [{ category, value }] in STAT_CATEGORY_ORDER,
  * skipping categories whose summed value is zero.
  */
-export function aggregateBonusTotals(pairs) {
+export function aggregateBonusTotals(pairs, t = (k) => k) {
   const totals = {}
   for (const { entity, type } of pairs) {
-    for (const { key, value } of getNonZeroStats(entity, type)) {
+    for (const { key, value } of getNonZeroStats(entity, type,t)) {
       const cat = STAT_CATEGORY[key]
       if (!cat) continue
       totals[cat] = (totals[cat] ?? 0) + value

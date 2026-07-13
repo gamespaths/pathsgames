@@ -13,9 +13,11 @@ from app.adapters.rest.match.match_admin_controller import MatchAdminController
 from app.core.models.match.match_models import (
     MatchDetail,
     MatchEventOption,
+    MatchListFilter,
     MatchLocationState,
     MatchRegistryEntry,
     MatchSummary,
+    MatchSummaryPage,
 )
 
 
@@ -52,22 +54,46 @@ def _detail():
         match=_summary(),
         current_location_id=10,
         current_location_uuid="loc-uuid",
-        current_location_name="loc",
-        locations=[MatchLocationState(10, "ls", 0, 5, "loc")],
+        locations=[MatchLocationState(10, "ls", 0, 5)],
         registry=[MatchRegistryEntry("r", "k", "v", 1)],
         events=[MatchEventOption("e", "n", "EVENT")],
         choices=[MatchEventOption("c", "n", "CHOICE")],
     )
 
 
-def test_list_all_matches_returns_list(env):
+def test_list_all_matches_returns_envelope(env):
     client, _, query_port = env
-    query_port.list_all_matches.return_value = [_summary()]
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[_summary()], next_cursor="next-tok", limit=50)
     response = client.get("/api/admin/matches")
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["uuid"] == "match-uuid"
+    assert body["items"][0]["uuid"] == "match-uuid"
+    assert body["nextCursor"] == "next-tok"
+    assert body["limit"] == 50
+
+
+def test_list_all_matches_empty_envelope(env):
+    client, _, query_port = env
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[], next_cursor=None, limit=50)
+    body = client.get("/api/admin/matches").json()
+    assert body == {"items": [], "nextCursor": None, "limit": 50}
+
+
+def test_list_all_matches_forwards_query_params(env):
+    client, _, query_port = env
+    query_port.list_matches_page.return_value = MatchSummaryPage(
+        items=[], next_cursor=None, limit=25)
+    response = client.get("/api/admin/matches", params={
+        "limit": 25, "cursor": "cur-1", "status": "RUNNING",
+        "userUuid": "u-9", "storyUuid": "s-7", "sinceDays": 7,
+    })
+    assert response.status_code == 200
+    query_port.list_matches_page.assert_called_once()
+    sent = query_port.list_matches_page.call_args.args[0]
+    assert sent == MatchListFilter(status="RUNNING", user_uuid="u-9", story_uuid="s-7",
+                                   since_days=7, cursor="cur-1", limit=25)
 
 
 def test_list_match_statuses(env):
@@ -165,3 +191,54 @@ def test_get_admin_match_info_returns_404(env):
     resp = client.get('/api/admin/matches/m1/info')
     assert resp.status_code == 404
     assert resp.json()['error'] == 'MATCH_NOT_FOUND'
+
+
+# ── Step 28.7 — GET /api/admin/matches/{uuid}/logs ──────────────────────────
+
+@pytest.fixture()
+def logs_env():
+    """Same admin app as ``env`` but with a match-logs service wired in."""
+    logs_service = MagicMock()
+    controller = MatchAdminController(MagicMock(), MagicMock(),
+                                      match_logs_service=logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+    return TestClient(app), logs_service
+
+
+def test_get_admin_match_logs_returns_200(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = {
+        "matchUuid": "m1", "currentClock": 0, "logs": [],
+    }
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 200
+    assert resp.json()["matchUuid"] == "m1"
+    logs_service.get_match_logs_for_admin.assert_called_once_with("m1", "en", None, None)
+
+
+def test_get_admin_match_logs_passes_lang_limit_and_cursor(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = {
+        "matchUuid": "m1", "currentClock": 0, "logs": [],
+        "nextCursor": "next", "limit": 10, "total": 42,
+    }
+    resp = client.get("/api/admin/matches/m1/logs?lang=it&limit=10&cursor=cur")
+    assert resp.status_code == 200
+    assert resp.json()["nextCursor"] == "next"
+    logs_service.get_match_logs_for_admin.assert_called_once_with("m1", "it", 10, "cur")
+
+
+def test_get_admin_match_logs_unknown_match_returns_404(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs_for_admin.return_value = None
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_get_admin_match_logs_without_service_returns_501(env):
+    client, _, _ = env
+    resp = client.get("/api/admin/matches/m1/logs")
+    assert resp.status_code == 501
+    assert resp.json()["error"] == "NOT_IMPLEMENTED"

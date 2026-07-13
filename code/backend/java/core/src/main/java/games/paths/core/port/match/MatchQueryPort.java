@@ -1,7 +1,9 @@
 package games.paths.core.port.match;
 
 import games.paths.core.model.match.MatchDetail;
+import games.paths.core.model.match.MatchListFilter;
 import games.paths.core.model.match.MatchSummary;
+import games.paths.core.model.match.MatchSummaryPage;
 
 import java.util.List;
 
@@ -23,11 +25,19 @@ public interface MatchQueryPort {
     List<MatchSummary> listAllMatches();
 
     /**
-     * Returns the full match detail (summary + state) by match uuid.
+     * v0.28.1 — returns one keyset page of the admin match list, applying the
+     * optional filters in {@code filter} (status / creator / story / sinceDays)
+     * and resuming from {@code filter.cursor()}. Exposed at GET /api/admin/matches.
+     */
+    MatchSummaryPage listMatchesPage(MatchListFilter filter);
+
+    /**
+     * Returns the full match detail (summary + state) by match uuid, with all
+     * card texts resolved in {@code lang} (English fallback when blank/missing).
      * @return {@code null} when the match does not exist or the user
      *         is not allowed to access it.
      */
-    MatchDetail getMatchInfo(String matchUuid, String userUuid);
+    MatchDetail getMatchInfo(String matchUuid, String userUuid, String lang);
 
     /**
      * Returns the full match detail (summary + state) by match uuid for the

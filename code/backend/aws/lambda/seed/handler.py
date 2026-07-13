@@ -34,10 +34,12 @@ import time
 
 from common import db_utils
 from common import jwt_utils
+from common.response import HEADERS
+from common.data_utils import (safe_int as _safe_int,
+                               resolve_raw_text as _resolve_raw_text,
+                               resolve_card_from_raw as _resolve_card_from_raw)
 
 # ─── constants ────────────────────────────────────────────────────────────────
-
-HEADERS = {"Content-Type": "application/json"}
 
 # Canonical marker tagging rows created by automated (Robot Framework) test
 # runs — see POST /api/dev/cleanup below.
@@ -142,19 +144,24 @@ SEED_STORIES = [
         # Step 19 — runtime seed data: locations and registry keys
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterStart": 0,
-             "idCard": None,
-             "card": {"title": "Welcome Hall", "description": "A bright entrance hall.",
-                      "urlImage": None, "awesomeIcon": "fas fa-door-open"}},
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterStart": 0,
-             "idCard": None,
-             "card": {"title": "Practice Yard", "description": "Where recruits train.",
-                      "urlImage": None, "awesomeIcon": "fas fa-dumbbell"}},
+            # Step 26: location 1 is safe (secureParam > 0) so the start-location
+            # recovery exercises the safe branch; location 2 carries a time counter
+            # with a counter-zero event for the decrement/flag path.
+            # Step 27.x — locations reference a real card via idCard; the card is
+            # resolved from raw_cards at seed time (see _seed_stories), so it also
+            # appears in the story's card list instead of being an orphan literal.
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterTime": 0,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 2,
+             "secureParam": 0, "idEventIfCounterZero": 1, "idCard": 3},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
         "neighbors": [
             {"id": 1, "uuid": "nb-tutorial-1", "idLocationFrom": 1, "idLocationTo": 2,
              "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
+             # Step 0.28.2 — optional return card shown when the player stands on
+             # locationTo (2); resolves to catalog card 2 (Welcome Hall).
+             "idCardBack": 2,
              "card": {"title": "To the Practice Yard", "description": "A short walk north.",
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],
@@ -198,6 +205,19 @@ SEED_STORIES = [
             {"uuid": "cb-tut-3", "idClass": 2, "statistic": "int",    "value": 3},
             {"uuid": "cb-tut-4", "idClass": 3, "statistic": "dex",    "value": 3},
         ],
+        # Step 27 — weather rules: a dominant "clear" weather (no energy delta) and
+        # a rarer "storm" that drains energy. Probabilities make the roll
+        # deterministic enough for the rng_seed=42 Robot checks.
+        "weatherRules": [
+            {"uuid": "we-tut-clear", "id": 1, "idTextName": 800, "idCard": 5, "probability": 70,
+             "deltaEnergy": 0, "idEvent": None, "conditionKey": None,
+             "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 1,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1},
+            {"uuid": "we-tut-storm", "id": 2, "idTextName": 801, "idCard": 6, "probability": 30,
+             "deltaEnergy": -2, "idEvent": None, "conditionKey": None,
+             "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 1,
+             "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3},
+        ],
         # Step 23 — tr-tut-quick permitted only for class 2, tr-tut-resilient
         # prohibited for class 1, tr-tut-frail/tr-tut-weary are negative-cost;
         # tr-tut-brave stays unrestricted (robot loadout default)
@@ -240,6 +260,15 @@ SEED_STORIES = [
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 1, "lang": "it", "shortText": "TUTORIAL", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # Step 27 — weather names
+            {"idText": 800, "lang": "en", "shortText": "Clear Skies", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 800, "lang": "it", "shortText": "Cielo Sereno", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 801, "lang": "en", "shortText": "Storm", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 801, "lang": "it", "shortText": "Tempesta", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 2, "lang": "en",
              "shortText": "A short training adventure in the Academy of Paths. "
                           "Learn movement, energy, items, choices, and missions "
@@ -269,6 +298,23 @@ SEED_STORIES = [
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 202, "lang": "it", "shortText": "Il tuo addestramento inizia qui.", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # location card texts (idCard 2 = Welcome Hall, idCard 3 = Practice Yard)
+            {"idText": 210, "lang": "en", "shortText": "Welcome Hall", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 210, "lang": "it", "shortText": "Sala di Benvenuto", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 211, "lang": "en", "shortText": "A bright entrance hall.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 211, "lang": "it", "shortText": "Un luminoso ingresso.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 212, "lang": "en", "shortText": "Practice Yard", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 212, "lang": "it", "shortText": "Cortile di Addestramento", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 213, "lang": "en", "shortText": "Where recruits train.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 213, "lang": "it", "shortText": "Dove si addestrano le reclute.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
         ],
         "raw_cards": [
             {
@@ -285,6 +331,79 @@ SEED_STORIES = [
                 "awesomeIcon":      "fa-graduation-cap",
                 "styleMain":        "card-tutorial",
                 "styleDetail":      "card-tutorial-detail",
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                2,
+                "uuid":             "card-tutorial-loc-1",
+                "cardType":         "location",
+                "idTextTitle":      210,
+                "idTextDescription": 211,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-door-open",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                3,
+                "uuid":             "card-tutorial-loc-2",
+                "cardType":         "location",
+                "idTextTitle":      212,
+                "idTextDescription": 213,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-dumbbell",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            # Step 27 — weather cards (referenced by list_weather_rules.idCard)
+            {
+                "id":                5,
+                "uuid":             "card-tutorial-weather-clear",
+                "cardType":         "weather",
+                "idTextTitle":      800,
+                "idTextDescription": 800,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-sun",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                6,
+                "uuid":             "card-tutorial-weather-storm",
+                "cardType":         "weather",
+                "idTextTitle":      801,
+                "idTextDescription": 801,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-cloud-bolt",
+                "styleMain":        None,
+                "styleDetail":      None,
                 "styleImageLittle": None,
                 "styleImageMedium": None,
                 "styleImageLarge":  None,
@@ -367,18 +486,14 @@ SEED_STORIES = [
         # Step 19 — runtime seed data
         "idLocationStart":   1,
         "locations": [
-            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterStart": 0,
-             "idCard": None,
-             "card": {"title": "Crossroads", "description": "Three paths meet here.",
-                      "urlImage": None, "awesomeIcon": "fas fa-signs-post"}},
-            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterStart": 5,
-             "idCard": None,
-             "card": {"title": "Northern Path", "description": "A road heading north.",
-                      "urlImage": None, "awesomeIcon": "fas fa-road"}},
-            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterStart": 10,
-             "idCard": None,
-             "card": {"title": "Southern Cave", "description": "A dark cavern mouth.",
-                      "urlImage": None, "awesomeIcon": "fas fa-mountain"}},
+            # Step 27.x — locations reference a real card via idCard; resolved from
+            # raw_cards at seed time (see _seed_stories) so cards appear in the list.
+            {"id": 1, "uuid": "loc-demo1-1", "name": "Crossroads", "counterTime": 0,
+             "idCard": 1},
+            {"id": 2, "uuid": "loc-demo1-2", "name": "Northern Path", "counterTime": 5,
+             "idCard": 2},
+            {"id": 3, "uuid": "loc-demo1-3", "name": "Southern Cave", "counterTime": 10,
+             "idCard": 3},
         ],
         # Step 27.x — neighbor links: Crossroads connects to both paths
         "neighbors": [
@@ -458,11 +573,103 @@ SEED_STORIES = [
                           "Ogni ora conta.",
              "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # location card texts (idCard 1/2/3)
+            {"idText": 310, "lang": "en", "shortText": "Crossroads", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 310, "lang": "it", "shortText": "Crocevia", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 311, "lang": "en", "shortText": "Three paths meet here.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 311, "lang": "it", "shortText": "Qui si incontrano tre sentieri.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 312, "lang": "en", "shortText": "Northern Path", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 312, "lang": "it", "shortText": "Sentiero Nord", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 313, "lang": "en", "shortText": "A road heading north.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 313, "lang": "it", "shortText": "Una strada verso nord.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 314, "lang": "en", "shortText": "Southern Cave", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 314, "lang": "it", "shortText": "Caverna Sud", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 315, "lang": "en", "shortText": "A dark cavern mouth.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 315, "lang": "it", "shortText": "L'imbocco di una caverna buia.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
         ],
-        "raw_cards":    [],
+        "raw_cards":    [
+            {
+                "id":                1,
+                "uuid":             "card-demo1-loc-1",
+                "cardType":         "location",
+                "idTextTitle":      310,
+                "idTextDescription": 311,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-signs-post",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                2,
+                "uuid":             "card-demo1-loc-2",
+                "cardType":         "location",
+                "idTextTitle":      312,
+                "idTextDescription": 313,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-road",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+            {
+                "id":                3,
+                "uuid":             "card-demo1-loc-3",
+                "cardType":         "location",
+                "idTextTitle":      314,
+                "idTextDescription": 315,
+                "idTextCopyright":  None,
+                "linkCopyright":    None,
+                "idCreator":        None,
+                "urlImage":         None,
+                "alternativeImage": None,
+                "awesomeIcon":      "fas fa-mountain",
+                "styleMain":        None,
+                "styleDetail":      None,
+                "styleImageLittle": None,
+                "styleImageMedium": None,
+                "styleImageLarge":  None,
+            },
+        ],
         "raw_creators": [],
     },
 ]
+
+
+def _enrich_locations_with_cards(locations, raw_cards, raw_texts):
+    """Resolve each location's card from its idCard against raw_cards, so the
+    stored item carries both idCard and the resolved card — exactly like an
+    imported story. Locations no longer hold orphan inline card literals."""
+    enriched = []
+    for loc in locations:
+        loc = dict(loc)
+        loc["card"] = _resolve_card_from_raw(raw_cards, raw_texts, loc.get("idCard"))
+        enriched.append(loc)
+    return enriched
 
 
 def _seed_stories():
@@ -496,9 +703,18 @@ def _seed_stories():
             "item_count":               s["item_count"],
             # Step 19 — runtime data used by POST /api/matches
             "idLocationStart":          s.get("idLocationStart"),
-            "locations":                s.get("locations", []),
-            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info
+            # Step 27.x — resolve each location's card from idCard against raw_cards
+            # so locationsActive returns idCard + a card that exists in the card list.
+            "locations":                _enrich_locations_with_cards(
+                                            s.get("locations", []),
+                                            s.get("raw_cards", []),
+                                            s.get("raw_texts", [])),
+            # Step 27.x — neighbor links used to enrich GET /api/match/{uuid}/info.
+            # Step 0.28.2 — also store them under `locationNeighbors` (the admin-CRUD
+            # field): gameplay reads locationNeighbors-first and the admin API lists/edits
+            # this same array, so seeded neighbors are both playable AND admin-editable.
             "neighbors":                s.get("neighbors", []),
+            "locationNeighbors":        s.get("neighbors", []),
             "keys":                     s.get("keys", []),
             # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
             "idEventEndGame":           s.get("idEventEndGame"),
@@ -507,6 +723,8 @@ def _seed_stories():
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),
             "classBonuses":             s.get("classBonuses", []),
+            # Step 27 — weather rules embedded on the story item.
+            "weatherRules":             s.get("weatherRules", []),
             "traits":                   s.get("traits", []),
             "card":                     s.get("card"),
             "idCard":                   s.get("idCard"),

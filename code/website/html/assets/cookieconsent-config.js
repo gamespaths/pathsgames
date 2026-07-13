@@ -67,9 +67,9 @@
           consentModal: {
             title: 'We value your privacy',
             description:
-              'We use a strictly necessary cookie to remember your choices, and — only with your consent — analytics cookies (Google Tag Manager) to understand how this site is used.',
+              'We use a strictly necessary cookie to remember your choices, and — only with your consent — analytics cookies to understand how this site is used.',
             acceptAllBtn: 'Accept all',
-            acceptNecessaryBtn: 'Reject all',
+            //acceptNecessaryBtn: 'Reject all',
             showPreferencesBtn: 'Manage preferences'
           },
           preferencesModal: {
@@ -112,7 +112,7 @@
           consentModal: {
             title: 'Teniamo alla tua privacy',
             description:
-              'Usiamo un cookie strettamente necessario per ricordare le tue scelte e — solo con il tuo consenso — cookie analitici (Google Tag Manager) per capire come viene usato questo sito.',
+              'Usiamo un cookie strettamente necessario per ricordare le tue scelte e — solo con il tuo consenso — cookie analitici per capire come viene usato questo sito.',
             acceptAllBtn: 'Accetta tutti',
             acceptNecessaryBtn: 'Rifiuta tutti',
             showPreferencesBtn: 'Gestisci preferenze'

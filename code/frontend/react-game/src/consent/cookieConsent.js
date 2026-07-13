@@ -10,9 +10,9 @@ const TRANSLATIONS = {
     consentModal: {
       title: 'We value your privacy',
       description:
-        'We use cookies that are strictly necessary to keep your game session active, and — only with your consent — analytics cookies (Google Tag Manager) to understand how the game is used.',
+        'We use cookies that are strictly necessary to keep your game session active, and — only with your consent — analytics cookies to understand how the game is used.',
       acceptAllBtn: 'Accept all',
-      acceptNecessaryBtn: 'Reject all',
+      //acceptNecessaryBtn: 'Reject all',
       showPreferencesBtn: 'Manage preferences',
     },
     preferencesModal: {
@@ -34,6 +34,7 @@ const TRANSLATIONS = {
               { name: 'pathsgames.refreshToken', description: 'Session refresh token', expiration: '7 days' },
               { name: 'pathsgames.cookiesConsent', description: 'Stores your cookie choices', expiration: '6 months' },
               { name: 'pathsgames.turnstilePass', description: 'Remembers a recent Cloudflare Turnstile anti-bot pass (security)', expiration: '30 minutes' },
+              { name: 'pathsgames.lang', description: 'Remembers your chosen interface language', expiration: 'Persistent (until cleared)' },
             ],
           },
         },
@@ -56,7 +57,7 @@ const TRANSLATIONS = {
     consentModal: {
       title: 'Teniamo alla tua privacy',
       description:
-        'Usiamo cookie strettamente necessari per mantenere attiva la sessione di gioco e — solo con il tuo consenso — cookie analitici (Google Tag Manager) per capire come viene usato il gioco.',
+        'Usiamo cookie strettamente necessari per mantenere attiva la sessione di gioco e — solo con il tuo consenso — cookie analitici per capire come viene usato il gioco.',
       acceptAllBtn: 'Accetta tutti',
       acceptNecessaryBtn: 'Rifiuta tutti',
       showPreferencesBtn: 'Gestisci preferenze',
@@ -80,6 +81,7 @@ const TRANSLATIONS = {
               { name: 'pathsgames.refreshToken', description: 'Token di refresh della sessione', expiration: '7 giorni' },
               { name: 'pathsgames.cookiesConsent', description: 'Memorizza le tue scelte sui cookie', expiration: '6 mesi' },
               { name: 'pathsgames.turnstilePass', description: 'Ricorda una recente verifica anti-bot Cloudflare Turnstile (sicurezza)', expiration: '30 minuti' },
+              { name: 'pathsgames.lang', description: 'Memorizza la lingua dell’interfaccia scelta', expiration: 'Persistente (fino a cancellazione)' },
             ],
           },
         },

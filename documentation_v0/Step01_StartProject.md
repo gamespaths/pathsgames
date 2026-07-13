@@ -65,8 +65,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Sadness (Sad) Threshold: When a character's sad value reaches their current life value, the character loses life points equal to their COS stat. Following this, sad is reset to 0, and the character enters the SLEEPING state immediately.
 		- Coma State: If a character's life drops to 0 or less, they enter a COMA. Characters in coma are simultaneously considered SLEEPING.
 		- Recovery at Time Start: At the beginning of each Time, characters recover stats based on their current location's Safety Parameter:	
-			- In a Safe Location: Gain DES + P energy, COS + P life, and lose INT + P sadness.
-			- In an Unsafe Location: Gain only DES energy (no life recovery or sadness reduction).
+			- In a Safe Location: Gain DES + P energy, COS + secure_param life, and lose INT + secure_param sadness (P = secure_param + difficulty.energy).
+			- In an Unsafe Location: Gain only difficulty.energy (no DES, no life recovery or sadness reduction).
 	- Turn Management & Concurrency (The Turn Loop): The game uses a dynamic turn system managed via WebSockets to ensure real-time updates:
 		- Turn sequence: Calculated at the start of every Time Unit using a specific formula. The character with the highest value acts first. In case of a tie, the id_character_match acts as a tie-breaker.
 		- Action Flow: Active characters act in sequence. A player can perform multiple actions during their turn as long as they have energy.
@@ -205,8 +205,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	13. `list_items` (id, id_card, id_story, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited)
 	14. `list_items_effects` (id, id_story, id_item, id_text_name, id_text_description, effect_code=LIFE, effect_value=2)
 	15. `list_weather_rules` (id, id_card, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, condition_key, condition_key_value, time_from, time_to, id_text, active, priority, delta_energy, id_event)
-	16. `list_events` (id, id_card, id_story, id_specific_location, id_text_name, id_text_description, type=AUTOMATIC/FIRST/NORMAL, cost_enery, flag_end_time, characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add, id_item_to_add, id_weather, id_event_next, coin_cost )
-	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), traits_to_add, traits_to_remove, target_class, id_item_target, item_action (REMOVE, ADD)) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
+	16. `list_events` (id, id_card, id_story, id_specific_location, id_text_name, id_text_description, type=AUTOMATIC/FIRST/NORMAL/ONCE, cost_enery, flag_end_time, id_item, id_weather, id_event_next, coin_cost , registry_name, registry_value, id_class 
+	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), target_class, id_item_target, item_action (REMOVE, ADD), "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
 	18. `list_choices` (id, id_card, id_story, id_event, id_location, priority, id_text_name, id_text_description, id_text_narrative, id_event_torun, limit_sad, limit_dex, limit_int, limit_cos, otherwise_flag (boolean), is_progress (true -> insert progress ) logic_operator (AND/OR))
 	19. `list_choices_conditions` (id, id_story, id_choices, type (KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM, ), key, value, operator (= > < !=), id_text_name, id_text_description
 	20. `list_choices_effects` (id, id_story, id_choices, id_scelta, flag_group, statistics (life, energy, sad, DEX, COS, INT), value, id_text, key, value_to_add, value_to_remove)
@@ -272,6 +272,8 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ GET `/content/{uuid_story}/text/{uuid_text}/lang/{lang}`: Get a Text
 		- ✅ GET `/content/{uuid_story}/creator/{uuid_creator}`: Get a creator
 	- Matches
+		- ✅ GET  `/matches`: Matches list of the user
+		- ✅ GET `/matches/{uuid_match}/logs`: Consolidated match log timeline — WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE (+ RECOVERY on Java/Python only, not yet on AWS); choices/items/registry logging is a future addition (v0.28.7, see `Step28_MovementSystem.md`)
 		- GET  `/matches/active`: Matches list in status "wait for others players"
 		- GET  `/matches/list/{uuid_user}/{status}`: Matches list filtered by status and by user
 		- POST `/matches/{uuid_match}/leave`: Leave a matches if not started
@@ -282,9 +284,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/matches/{uuid}/characters/templates`
 		- GET `/matches/{uuid}/characters/classes`
 		- GET `/matches/{uuid}/characters/traits`
-		- GET `/matches/{uuid}/weather`
+		- ✅ GET `/matches/{uuid}/weather`
 		- GET `/matches/{uuid}/characters/{uuid}/resources `
-		- ?? GET `/match/{uuid_match}/locations`: Location list (only already visited)		
+		- ✅ GET `/match/{uuid_match}/locations`: Location list (only already visited with all information!)		
 	- Match
 		- ✅ GET `/match/{uuid_match}/info`: Detail of the location where current character is located (events & choices)
 			- Note: The method *info* returns so many informations (location, events, choices, registry), in future if the frontend is making too many REST calls to compose a single view, you could consider GraphQL for future versions. 
@@ -297,7 +299,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- GET `/match/{uuid_match}/events/history/{page}`: Get event list with pagining system
 		- PATCH `/match/{uuid_match}/end/{uuid_event}`: To complete a match
 	- Gameplay movements
-		- POST `/gameplay/{uuid_match}/movements/start`: To move characters 
+		✅ POST `/gameplay/{uuid_match}/movements/start`: To move characters 
 		- GET  `/gameplay/{uuid_match}/movements/pending`: Pending invitations list
 		- POST `/gameplay/{uuid_match}/movements/confirm-movement-invite`: To confirm a movement invitation 
 	- Gameplay actions
@@ -305,7 +307,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- POST `/gameplay/{uuid_match}/action/help-player`: To help a player in same location
 		- POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
 		- POST `/gameplay/{uuid_match}/action/select-choice`: Send an choice option selected 
-		- POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
+		✅ POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
 		- POST `/gameplay/{uuid_match}/action/pass`: Send a pass *action* (could run gameover)
 		- POST `/gameplay/{uuid_match}/action/use-exp`: To use exp to upgrade a character
 	- Gameplay inventory action
@@ -331,8 +333,9 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- ✅ POST	`/api/admin/stories/import`
 		- ✅ GET 	`/api/admin/stories`
 		- ✅ DELETE	`/api/admin/stories/{uuid}`
-		- GET   `/admin/matches/`: Load all matches informations
-		- PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
+		- ✅ GET   `/admin/matches/`: Load all matches informations
+		- ✅ PATCH `/admin/matches/{uuid_match}`: Delete/terminate a match
+		- ✅ POST 	`api/admin/match/{uuid_match}/player/{uuid_player}/changeStatistics` to change statistics of a player
 		- GET 	`/admin/params`: Get all parameter values
 		- GET 	`/admin/match/{uuid_match}/replay` Get all match logs
 		- GET 	`/admin/match/{uuid_match}/log/{filter}`: Get all logs with a filter (character, item, ...)
@@ -447,7 +450,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		48. timeStart(id_match,meteo_new) metodo che modifica le tabelle
 		49. timeCalculateNewWeather(id_match,giorno_nuovo) calcola un nuovo meteo senza salvare nulla e ritorna meteo_new
 		50. timeAddBonusClasse(id_match,id_character) data la classe e tipo aggiunge valori al character
-		51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+P,sad=-INT-P), se non si trova in luogo sicuro characterAddValues(energia=DES), P=secure_param del luogo in cui si trova
+		51. timeAddBonusLuogoInizioGiornata(id_match) per ogni giocatore in luogo sicuro characterAddValues(energia=DES+P,vita=COS+secure_param,sad=-(INT+secure_param)), se non si trova in luogo sicuro characterAddValues(energia=difficulty.energy), P=secure_param+difficulty.energy del luogo in cui si trova
 		52. timeEnd(id_match) metodo di utilità quando tutti i characters sono a zero energia o stanno dormento che poi lancia la timeStart()
 		53. timeCalculateCharactersSort: svuota tabella gioco_coda_turni (id_match, id_character_match, ordine_turno) e ripopola con elenco characters con ordine determinato da formula_ordine (In caso di parità si aggiunge id_character)
 		54. timeStartDayEventiNeiLuoghi (id_match) per ogni luogo con almeno un giocatore eventExec(id_parita,evento_se_giocatore_inizia_day)

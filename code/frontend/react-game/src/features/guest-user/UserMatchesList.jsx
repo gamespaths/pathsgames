@@ -10,7 +10,7 @@ import MatchCard from '@/features/matches/MatchCard'
  * then renders a scrollable grid of MatchCard items.
  */
 export default function UserMatchesList({ accessToken, preloadedMatches, onPreviewCard, onClose }) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const [matches,  setMatches]  = useState([])
   const [storyMap, setStoryMap] = useState({}) // storyUuid → story
@@ -35,7 +35,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
         setMatches(safeList)
 
         const uniqueUuids = [...new Set(safeList.map(m => m.storyUuid).filter(Boolean))]
-        const stories = await Promise.all(uniqueUuids.map(uuid => getStory(uuid).catch(() => null)))
+        const stories = await Promise.all(uniqueUuids.map(uuid => getStory(uuid, lang).catch(() => null)))
         if (cancelled) return
         const map = {}
         uniqueUuids.forEach((uuid, i) => { if (stories[i]) map[uuid] = stories[i] })
@@ -45,7 +45,7 @@ export default function UserMatchesList({ accessToken, preloadedMatches, onPrevi
       .finally(() => { if (!cancelled) setLoading(false) })
 
     return () => { cancelled = true }
-  }, [accessToken, preloadedMatches])
+  }, [accessToken, preloadedMatches, lang])
 
   if (loading) return (
     <div className="matches-list-state matches-list-state-loading">

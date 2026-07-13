@@ -1,3 +1,49 @@
+/* added mannualy by developer for card grid into GamePage and GameBook!  */
+@media (max-width: 991px)and (min-width: 768px) {
+  .stat-badge{
+    font-size: 0.8rem !important;
+  }
+}
+@media (max-width: 991px) {
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+@media (max-width: 550px) {
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 1120px) {
+  .credit-author, .credit-credit { display:none;}
+  .selection-list {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .btn-start-game{
+    font-size: 1rem !important;
+  }
+}
+@media (max-width: 350px) {
+  .stat-badge{
+    font-size: 0.6rem !important;
+    padding: 2px 6px !important;
+  }
+}
+@media (max-width: 330px) {
+  .stat-badge{
+    font-size: 1rem !important;
+  }
+  .book-mobile-layout .selection-list {
+    grid-template-columns: repeat(1, 1fr) !important;
+  }
+  .start-match-actions {
+    display: grid !important;
+  }
+
+}
+
+
+
 /* ═══════════════════════════════════════════════════════════
    MOBILE STYLES  — breakpoint ≤ 767px
    Modifica qui font, colori e dimensioni per il layout mobile.
@@ -94,7 +140,7 @@
 /* Enlarge the small (little) card titles on mobile for readability; allow them
    to wrap rather than truncate at the bigger size. */
 .book-mobile-layout .selection-list .gc-title__text {
-  font-size: clamp(1.20rem, 3.2vw, 1.20rem);
+  font-size: clamp(1rem, 3.2vw, 1rem);
   /* white-space: normal; */
 }
 /* The Start Game CTA lives on the hero card on mobile, so ConfigView's own
@@ -249,6 +295,19 @@
   .gc-footer__btn {
     font-size: 1.125rem !important;
   }
+  .book-page-extra{
+    background: var(--book-page-background);
+    font-size: 1rem !important;
+  }
 
+  .credit-author, .credit-credit{
+    display:none;
+  }
+  .card-preview-modal-content{
+    width: 100%;
+  }
+  .gc-title .player-stats-bar{
+    display:contents !important;
+  }
 }
 

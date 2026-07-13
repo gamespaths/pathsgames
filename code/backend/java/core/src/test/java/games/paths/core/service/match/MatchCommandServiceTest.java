@@ -392,6 +392,21 @@ class MatchCommandServiceTest {
         }
 
         @Test
+        @DisplayName("honours an explicit rng seed instead of generating a random one")
+        void createsWithExplicitRngSeed() {
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+
+            MatchCreateCommand command = new MatchCreateCommand(
+                    "user-uuid", "story-uuid", "diff-uuid", "My match", null,
+                    null, null, 1, null, null, 42L);
+            service.createMatch(command);
+
+            verify(persistencePort).saveMatch(argThat(m -> m != null && m.getRngSeed() == 42L));
+        }
+
+        @Test
         @DisplayName("null exp cost on difficulty defaults to 5")
         void difficultyNullExp() {
             when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "diff-uuid"))

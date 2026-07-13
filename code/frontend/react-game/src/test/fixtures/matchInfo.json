@@ -1,0 +1,180 @@
+{
+  "match": {
+    "uuid": "mock-match-0001",
+    "name": "Mock Adventure",
+    "storyUuid": "story-mock",
+    "difficultyUuid": "diff-mock",
+    "status": "RUNNING",
+    "singlePlayer": 1,
+    "currentClock": 0,
+    "expCost": 0,
+    "tsInsert": "2026-06-15T10:00:00Z",
+    "characterTemplateUuid": "char-tpl-1",
+    "classUuid": "class-1",
+    "traitUuids": []
+  },
+  "currentLocationId": 1001,
+  "currentLocationUuid": "loc-001",
+  "locations": [
+    {
+      "idLocation": 1001,
+      "uuid": "loc-001",
+      "flagAlreadyActived": 1,
+      "clockCounter": 0
+    },
+    {
+      "idLocation": 1002,
+      "uuid": "loc-002",
+      "flagAlreadyActived": 0,
+      "clockCounter": 0
+    }
+  ],
+  "registry": [
+    {
+      "uuid": "reg-1",
+      "key": "chapter",
+      "stringValue": null,
+      "intValue": 1
+    }
+  ],
+  "events": [
+    {
+      "uuid": "end-event-uuid",
+      "name": "Complete the story",
+      "type": "END_GAME"
+    }
+  ],
+  "choices": [
+    {
+      "uuid": "choice-002",
+      "name": "Search for Clues",
+      "type": "OPTIONAL"
+    },
+    {
+      "uuid": "choice-003",
+      "name": "Rest & Recover",
+      "type": "OPTIONAL"
+    }
+  ],
+  "players": [
+    {
+      "uuid": "char-inst-1",
+      "userUuid": "guest-1",
+      "characterTemplateUuid": "char-tpl-1",
+      "classUuid": "class-1",
+      "dexterity": 5,
+      "intelligence": 4,
+      "constitution": 6,
+      "energy": 80,
+      "life": 100,
+      "sad": 20,
+      "lifeMax": 120,
+      "energyMax": 110,
+      "sadMax": 40,
+      "weightMax": 24,
+      "weight": 4,
+      "idLocation": 1001,
+      "isSleeping": false,
+      "isComa": false,
+      "traitUuids": [],
+      "items": [
+        {
+          "uuid": "inv-1",
+          "itemUuid": "item-1",
+          "name": "Training Potion",
+          "weight": 2,
+          "amount": 2,
+          "state": "ACTIVE"
+        }
+      ]
+    }
+  ],
+  "locationsActive": [
+    {
+      "idLocation": 1001,
+      "uuid": "loc-001",
+      "card": {
+        "title": "The Old Tavern",
+        "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+        "urlImage": null,
+        "awesomeIcon": "fas fa-beer"
+      },
+      "neighbors": [
+        {
+          "idLocation": 1002,
+          "uuid": "loc-002",
+          "direction": "N",
+          "flagBack": 1,
+          "energyCost": 2,
+          "idLocationFrom": 1002,
+          "idLocationTo": 1001,
+          "card": {
+            "title": "Dark Cave",
+            "description": "A cold draught seeps from the cave mouth.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-mountain"
+          },
+          "cardBack": {
+            "title": "Back to the Dark Cave",
+            "description": "Retrace your steps into the dark.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-arrow-left"
+          },
+          "cardLocationFrom": {
+            "title": "Dark Cave",
+            "description": "A cold draught seeps from the cave mouth.",
+            "urlImage": "cave.png",
+            "awesomeIcon": "fas fa-mountain"
+          },
+          "cardLocationTo": {
+            "title": "The Old Tavern",
+            "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-beer"
+          }
+        },
+        {
+          "idLocation": 1003,
+          "uuid": "loc-003",
+          "direction": "E",
+          "flagBack": 1,
+          "energyCost": 1,
+          "idLocationFrom": 1001,
+          "idLocationTo": 1003,
+          "card": {
+            "title": "Ancient Forest",
+            "description": "Towering trees swallow the light.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-tree"
+          },
+          "cardBack": {
+            "title": "Ancient Forest",
+            "description": "Towering trees swallow the light.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-tree"
+          },
+          "cardLocationFrom": {
+            "title": "The Old Tavern",
+            "description": "A warm hearth and the smell of stew. Travellers trade rumours here.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-beer"
+          },
+          "cardLocationTo": null
+        }
+      ],
+      "events": [
+        {
+          "uuid": "evt-tavern-1",
+          "type": "NORMAL",
+          "endGame": false,
+          "card": {
+            "title": "A Hooded Stranger",
+            "description": "Someone in the corner watches you intently.",
+            "urlImage": null,
+            "awesomeIcon": "fas fa-user-secret"
+          }
+        }
+      ]
+    }
+  ]
+}

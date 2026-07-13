@@ -487,11 +487,6 @@ be unit-tested independently.
   - `GET /api/match/{uuidMatch}/turn-sequence`
 - [ ] `tests/test_turn_handler.py` — pytest unit tests (mock DynamoDB with `moto`)
 
-**Note on PHP and Node.js backends:** PHP and Node.js backends share the same REST API
-contract.  They must implement the same three endpoints with identical request/response
-shapes and error codes.  Robot tests in §9 are backend-agnostic and validate all
-participating backends without modification.  The implementation checklist above (§7.1
-Java) is the reference; adapt naming conventions to each language's existing patterns.
 
 ### 7.4 React-Game (`code/frontend/react-game/src`)
 

@@ -26,10 +26,18 @@ public class TurnCycleService implements TurnCyclePort {
 
     private final TurnCycleStorePort store;
     private final UserAccessPort userAccessPort;
+    private final WeatherSelectionService weatherService;
 
     public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort) {
+        this(store, userAccessPort, null);
+    }
+
+    /** Step 27 — overload wiring the weather selection engine (may be null in tests). */
+    public TurnCycleService(TurnCycleStorePort store, UserAccessPort userAccessPort,
+                            WeatherSelectionService weatherService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
+        this.weatherService = weatherService;
     }
 
     @Override
@@ -64,6 +72,11 @@ public class TurnCycleService implements TurnCyclePort {
 
         store.replaceQueue(match.id(), rows);
         store.updateMatchStatusAndTurn(match.id(), MatchStatuses.RUNNING, top.idCharacterMatch());
+
+        // Step 27: select the initial weather for clock 0 when the match starts.
+        if (weatherService != null) {
+            weatherService.applyAtTimeStart(match.id());
+        }
 
         return buildSequence(matchUuid, match.currentClock(), MatchStatuses.RUNNING,
                 top.idCharacterMatch(), rows, characters);

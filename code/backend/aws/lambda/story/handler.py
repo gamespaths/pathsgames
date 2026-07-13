@@ -31,10 +31,17 @@ DynamoDB layout for stories
 import json
 import os
 import uuid as uuid_lib
-import decimal
 
 from common import db_utils
 from common import jwt_utils
+from common.response import dumps as _dumps, ok as _ok, err as _err, HEADERS
+from common.http_utils import (normalize_path as _normalize_path,
+                               get_source_ip as _get_source_ip,
+                               bearer_token as _bearer_token,
+                               check_admin_ip as _check_admin_ip_common)
+from common.data_utils import (safe_int as _safe_int,
+                               resolve_raw_text as _resolve_raw_text,
+                               resolve_card_from_raw as _find_card_from_raw)
 
 try:
     from story import story_validator
@@ -43,18 +50,11 @@ except ImportError:  # when handler is imported as a top-level module in tests
 
 # ─── shared helpers ───────────────────────────────────────────────────────────
 
-HEADERS = {"Content-Type": "application/json"}
-
-def _get_source_ip(event):
-    """Extract caller source IP from HTTP API v2 event."""
-    return (event.get('requestContext', {}).get('http', {}).get('sourceIp', '') or
-            (event.get('headers') or {}).get('x-forwarded-for', '').split(',')[0].strip())
-
 def _check_admin_ip(event):
     """Return error response if caller IP not in ADMIN_IP_WHITELIST, else None."""
     whitelist_raw = os.environ.get('ADMIN_IP_WHITELIST', '').strip()
     if not whitelist_raw:
-        return None  # no restriction configured
+        return None
     allowed = [ip.strip() for ip in whitelist_raw.split(',') if ip.strip()]
     if not allowed:
         return None
@@ -63,42 +63,12 @@ def _check_admin_ip(event):
         return _err(403, 'FORBIDDEN', f'IP {source_ip} not authorized for admin access')
     return None
 
-class _DecimalEncoder(json.JSONEncoder):
-    """Serialise DynamoDB Decimal values as int or float."""
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return int(obj) if obj % 1 == 0 else float(obj)
-        return super().default(obj)
-
-def _dumps(obj):
-    return json.dumps(obj, cls=_DecimalEncoder)
-
-def _ok(body, status=200):
-    return {"statusCode": status, "headers": HEADERS, "body": _dumps(body)}
-
-def _err(status, code, message):
-    return {"statusCode": status, "headers": HEADERS,
-            "body": _dumps({"error": code, "message": message})}
-
 def _validation_400(errors):
-    """Step 22: 400 body for a failed story validation, carrying the errors[] array."""
+    """400 body for a failed story validation, carrying the errors[] array."""
     return {"statusCode": 400, "headers": HEADERS,
             "body": _dumps({"error": "INVALID_STORY",
                             "message": story_validator.summary(errors),
                             "errors": errors})}
-
-def _normalize_path(raw_path):
-    if raw_path.startswith('/api/'):
-        return raw_path
-    idx = raw_path.find('/api/')
-    return raw_path[idx:] if idx >= 0 else raw_path
-
-def _bearer_token(event):
-    auth = (event.get('headers') or {}).get('authorization',
-           (event.get('headers') or {}).get('Authorization', ''))
-    if auth.startswith('Bearer '):
-        return auth[7:]
-    return None
 
 def _require_admin(event):
     """Return (user_dict, None) or (None, error_response).
@@ -144,67 +114,33 @@ def _get_lang(event):
     return qs.get('lang', 'en') or 'en'
 
 def _resolve_text(texts_dict, lang, field):
-    """Resolve a text field with English fallback."""
-    t = texts_dict.get(lang) or texts_dict.get('en') or {}
-    return t.get(field)
-
-def _safe_int(val, default=0):
-    """Safely convert a value to int, returning default on None/error."""
-    if val is None:
-        return default
-    try:
-        return int(val)
-    except (ValueError, TypeError):
-        return default
+    """Resolve a text field from a derived per-language map with PER-FIELD English
+    fallback: when the requested language exists but lacks this specific field
+    (or it is empty), fall back to the English value for that field rather than
+    returning None. Mirrors the per-row fallback of resolve_raw_text / Java /
+    Python so a partially-translated language never blanks a field."""
+    val = (texts_dict.get(lang) or {}).get(field)
+    if val in (None, ''):
+        val = (texts_dict.get('en') or {}).get(field)
+    return val
 
 
-def _resolve_raw_text(raw_texts, id_text, lang):
-    """Resolve shortText/longText from a flat raw_texts list by idText + lang."""
-    if id_text is None:
-        return None
-    id_text_int = _safe_int(id_text)
-    fallback = None
-    for t in raw_texts:
-        if _safe_int(t.get('idText')) == id_text_int:
-            if t.get('lang') == lang:
-                return t.get('shortText') or t.get('longText')
-            if t.get('lang') == 'en':
-                fallback = t.get('shortText') or t.get('longText')
-    return fallback
+def _resolve_story_text(item, lang, field, id_text):
+    """Resolve a story-level title/description preferring the flat ``raw_texts``
+    rows (resolved per idText + lang, like cards), and only falling back to the
+    derived ``texts`` map when no raw row is found.
 
+    This makes the summary/detail title robust for IMPORTED stories whose derived
+    ``texts`` map may be incomplete for a language even though the raw Italian row
+    exists, while SEED stories (which carry the derived map but no top-level
+    idText*) still resolve through the map fallback."""
+    raw_texts = item.get('raw_texts', [])
+    if id_text is not None and raw_texts:
+        val = _resolve_raw_text(raw_texts, id_text, lang)
+        if val not in (None, ''):
+            return val
+    return _resolve_text(item.get('texts', {}), lang, field)
 
-def _find_card_from_raw(raw_cards, raw_texts, id_card, lang):
-    """Look up a card by integer id from raw_cards and resolve text fields.
-
-    Cards are stored inline on the story item (not as separate DynamoDB items).
-    """
-    if id_card is None:
-        return None
-    id_card_int = _safe_int(id_card)
-    card = None
-    for c in raw_cards:
-        if _safe_int(c.get('id')) == id_card_int:
-            card = c
-            break
-    if not card:
-        return None
-    return {
-        'uuid':             card.get('uuid'),
-        'cardType':         card.get('cardType'),
-        # Storage key is `urlImage`; legacy records may still have `imageUrl`.
-        'urlImage':         card.get('urlImage'),# or card.get('imageUrl'),
-        'alternativeImage': card.get('alternativeImage'),
-        'awesomeIcon':      card.get('awesomeIcon'),
-        'styleMain':        card.get('styleMain'),
-        'styleDetail':      card.get('styleDetail'),
-        'styleImageLittle': card.get('styleImageLittle'),
-        'styleImageMedium': card.get('styleImageMedium'),
-        'styleImageLarge':  card.get('styleImageLarge'),
-        'title':            _resolve_raw_text(raw_texts, card.get('idTextTitle'), lang),
-        'description':      _resolve_raw_text(raw_texts, card.get('idTextDescription'), lang),
-        'copyrightText':    _resolve_raw_text(raw_texts, card.get('idTextCopyright'), lang),
-        'linkCopyright':    card.get('linkCopyright'),
-    }
 
 
 # ─── response builders ────────────────────────────────────────────────────────
@@ -222,8 +158,8 @@ def _story_summary(item, lang):
     return {
         'uuid':            item.get('uuid'),
         'id':              _safe_int(item.get('id')),
-        'title':           _resolve_text(texts, lang, 'title'),
-        'description':     _resolve_text(texts, lang, 'description'),
+        'title':           _resolve_story_text(item, lang, 'title', item.get('idTextTitle')),
+        'description':     _resolve_story_text(item, lang, 'description', item.get('idTextDescription')),
         'author':          item.get('author'),
         'category':        item.get('category'),
         'group':           item.get('group'),
@@ -346,8 +282,8 @@ def _story_detail(item, lang):
     return {
         'uuid':                       item.get('uuid'),
         'id':                         _safe_int(item.get('id')),
-        'title':                      _resolve_text(texts, lang, 'title'),
-        'description':                _resolve_text(texts, lang, 'description'),
+        'title':                      _resolve_story_text(item, lang, 'title', item.get('idTextTitle')),
+        'description':                _resolve_story_text(item, lang, 'description', item.get('idTextDescription')),
         'author':                     item.get('author'),
         'category':                   item.get('category'),
         'group':                      item.get('group'),
@@ -868,6 +804,10 @@ def import_story(event):
     for n in _assign_ids(data.get('locationNeighbors', []), 'id'):
         n = dict(n)
         n['card'] = _resolve_inline_card(n.get('idCard'))
+        # Step 0.28.2 — optional return card; falls back to the forward idCard.
+        n['cardBack'] = _resolve_inline_card(n.get('idCardBack')
+                                             if n.get('idCardBack') is not None
+                                             else n.get('idCard'))
         neighbors_enriched.append(n)
 
     # Events expose their owning location as `idSpecificLocation` in the import
@@ -1263,7 +1203,10 @@ def create_entity(event, story_uuid, entity_type):
 
     if field not in item:
         item[field] = []
-    data['id'] = len(item[field]) + 1
+    # Next id = max(existing ids) + 1 (NOT len+1, which collides after a middle
+    # element is deleted — the list shrinks but high ids remain). Mirrors _assign_ids.
+    existing_ids = [_safe_int(e.get('id')) for e in item[field]]
+    data['id'] = (max(existing_ids) if existing_ids else 0) + 1
     if entity_type=='cards':
         data['idCard']=data['id']
     _normalize_entity_input(entity_type, data)

@@ -4,6 +4,11 @@ package games.paths.core.model.match;
  * MatchLocationState - Domain model for one row of {@code gaming_state_locations}.
  * Step 19: returned inside {@link MatchDetail} so the player can see the runtime
  * counters per location.
+ *
+ * <p>On the player-facing info endpoint only ALREADY-VISITED locations are
+ * projected (visited = character positions ∪ movement log, the same set that
+ * {@code GET /locations} returns). The admin info endpoint keeps every location
+ * so the console can render the full runtime table.</p>
  */
 public class MatchLocationState {
 
@@ -11,7 +16,6 @@ public class MatchLocationState {
     private String uuid;
     private Integer flagAlreadyActived;
     private Integer clockCounter;
-    private String name;
 
     public MatchLocationState() {
     }
@@ -27,7 +31,4 @@ public class MatchLocationState {
 
     public Integer getClockCounter() { return clockCounter; }
     public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
 }

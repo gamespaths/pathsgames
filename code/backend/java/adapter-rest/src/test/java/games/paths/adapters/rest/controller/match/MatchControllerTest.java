@@ -228,7 +228,7 @@ class MatchControllerTest {
 
     @Test
     void getMatchInfo_notFound_returns404() throws Exception {
-        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(null);
+        when(queryPort.getMatchInfo("abc", "user-uuid", "en")).thenReturn(null);
         mockMvc.perform(authed(get("/api/match/abc/info")))
                 .andExpect(status().isNotFound());
     }
@@ -239,13 +239,11 @@ class MatchControllerTest {
         detail.setMatch(summary());
         detail.setCurrentLocationId(10L);
         detail.setCurrentLocationUuid("loc-uuid");
-        detail.setCurrentLocationName("loc");
         MatchLocationState s = new MatchLocationState();
         s.setIdLocation(10L);
         s.setUuid("ls");
         s.setFlagAlreadyActived(0);
         s.setClockCounter(2);
-        s.setName("ls-name");
         detail.setLocations(List.of(s));
         MatchRegistryEntry r = new MatchRegistryEntry();
         r.setUuid("r");
@@ -254,7 +252,7 @@ class MatchControllerTest {
         detail.setRegistry(List.of(r));
         detail.setEvents(List.of(new MatchEventOption("ev", "n", "EVENT")));
         detail.setChoices(List.of(new MatchEventOption("ch", "n", "CHOICE")));
-        when(queryPort.getMatchInfo("abc", "user-uuid")).thenReturn(detail);
+        when(queryPort.getMatchInfo("abc", "user-uuid", "en")).thenReturn(detail);
 
         mockMvc.perform(authed(get("/api/match/abc/info")))
                 .andExpect(status().isOk())
@@ -263,7 +261,10 @@ class MatchControllerTest {
                 .andExpect(jsonPath("$.locations[0].uuid").value("ls"))
                 .andExpect(jsonPath("$.registry[0].key").value("k"))
                 .andExpect(jsonPath("$.events[0].uuid").value("ev"))
-                .andExpect(jsonPath("$.choices[0].uuid").value("ch"));
+                .andExpect(jsonPath("$.choices[0].uuid").value("ch"))
+                // v0.28.6 — the synthetic location names are gone from the contract.
+                .andExpect(jsonPath("$.currentLocationName").doesNotExist())
+                .andExpect(jsonPath("$.locations[0].name").doesNotExist());
     }
 
     @Test

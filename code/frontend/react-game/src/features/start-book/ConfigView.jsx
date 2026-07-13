@@ -2,12 +2,13 @@ import { useTranslation } from '../../i18n/context'
 import Card from '../../components/layout/Card'
 import BonusBadgeList from '../../components/ui/BonusBadgeList'
 import { aggregateBonusTotals, buildConfigStatistics } from '../../utils/bonusStats'
-import { buildStatisticsCard } from '@/utils/loadoutCards'
+import { buildStatisticsCard, buildNoTraitsCard } from '@/utils/loadoutCards'
 
 export default function ConfigView({ config, story, onChangeClick, onPreview, onProceed }) {
   const { t } = useTranslation()
 
   const selectedTraits = Array.isArray(config.traits) ? config.traits : []
+  const noTraitsCard = selectedTraits.length === 0 ? buildNoTraitsCard(t) : null
   const statistics = buildConfigStatistics(config, t);
   const statisticsCard = buildStatisticsCard(t, statistics , story);
   const statisticCard1 = statistics.filter(cat => ['dexterity', 'intelligence', 'constitution'].includes(cat.key)) ;
@@ -28,7 +29,7 @@ export default function ConfigView({ config, story, onChangeClick, onPreview, on
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard1) } 
           statistics={statisticCard1} flagShowFullStatistics={true} 
         />
-        <Card card={selectedTraits[0]?.card ?? null} entityType="trait" onAction={() => onChangeClick('trait')} onPreview={() => onChangeClick('trait')} story={story} />
+        <Card card={selectedTraits[0]?.card ?? noTraitsCard} entityType="trait" onAction={() => onChangeClick('trait')} onPreview={() => onChangeClick('trait')} story={story} />
         <Card card={config.difficulty?.card} entityType="difficulty" onAction={() => onChangeClick('difficulty')} onPreview={() => onChangeClick('difficulty')} story={story} />
         <Card card={statisticsCard} entityType="bonuses" flagInformationCard={true} story={story} 
           onPreview={() => onPreview(statisticsCard,"bonuses", null ,statisticCard2) } 

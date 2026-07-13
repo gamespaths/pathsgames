@@ -146,7 +146,7 @@ export default function StartBookModal({ story, onClose }) {
   //console.log("preview",preview);
   const leftContent = preview ? ( 
      <CardPreviewOverlay
-      card={preview?.card}
+      card={preview?.entity?.card}
       entity={preview?.entity}
       entityType={preview?.type}
       story={activeStory}
@@ -211,7 +211,7 @@ export default function StartBookModal({ story, onClose }) {
 }
 
 export function CardPreviewOverlay({ card, entity, entityType, story, onClose, lockedReason , statItemsToPageContent}) {
-  //console.log(card.entity);
+  //console.log("CardPreviewOverlay", card, entity, entityType, story, lockedReason , statItemsToPageContent );
   return (
     <div className="card-preview-overlay">
       <Card variant="page"

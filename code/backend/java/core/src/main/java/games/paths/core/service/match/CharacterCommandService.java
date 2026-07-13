@@ -17,6 +17,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.port.match.CharacterCommandPort;
 import games.paths.core.port.match.CharacterPersistencePort;
+import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.StoryReadPort;
@@ -40,15 +41,18 @@ public class CharacterCommandService implements CharacterCommandPort {
     private final MatchReadPort matchReadPort;
     private final UserAccessPort userAccessPort;
     private final CharacterPersistencePort persistencePort;
+    private final CharacterReadPort characterReadPort;
 
     public CharacterCommandService(StoryReadPort storyReadPort,
                                    MatchReadPort matchReadPort,
                                    UserAccessPort userAccessPort,
-                                   CharacterPersistencePort persistencePort) {
+                                   CharacterPersistencePort persistencePort,
+                                   CharacterReadPort characterReadPort) {
         this.storyReadPort = storyReadPort;
         this.matchReadPort = matchReadPort;
         this.userAccessPort = userAccessPort;
         this.persistencePort = persistencePort;
+        this.characterReadPort = characterReadPort;
     }
 
     @Override
@@ -249,6 +253,7 @@ public class CharacterCommandService implements CharacterCommandPort {
         instance.setIdMatch(match.getId());
         instance.setIdUser(user.id());
         instance.setIdCharacterTemplate(template.getIdTipo());
+        instance.setIdClass(clazz != null ? clazz.getId() : null);
         instance.setDexterity(dexterity);
         instance.setIntelligence(intelligence);
         instance.setConstitution(constitution);
@@ -299,12 +304,60 @@ public class CharacterCommandService implements CharacterCommandPort {
             for (LocationEntity l : storyReadPort.findLocationsByStoryId(story.getId())) {
                 if (saved.getIdLocation().equals(l.getId())) {
                     info.setLocationUuid(l.getUuid());
-                    info.setLocationName("location-" + l.getId());
                     break;
                 }
             }
         }
         return info;
+    }
+
+    @Override
+    public ChangeStatsOutcome changeStatistics(String matchUuid, String playerUuid,
+                                               ChangeStatsCommand command) {
+        GamingMatchEntity match = matchReadPort.findMatchByUuid(matchUuid)
+                .orElse(null);
+        if (match == null) {
+            return ChangeStatsOutcome.MATCH_NOT_FOUND;
+        }
+        GamingCharacterInstanceEntity character =
+                characterReadPort.findCharacterByMatchIdAndUuid(match.getId(), playerUuid)
+                        .orElse(null);
+        if (character == null) {
+            return ChangeStatsOutcome.PLAYER_NOT_FOUND;
+        }
+
+        Integer dex    = apply(command.getDex(),    null);
+        Integer intel  = apply(command.getIntel(),  null);
+        Integer con    = apply(command.getCon(),     null);
+        Integer energy = applyBounded(command.getEnergy(), character.getEnergyMax());
+        Integer life   = applyBounded(command.getLife(),   character.getLifeMax());
+        Integer sad    = applyBounded(command.getSad(),    character.getSadMax());
+
+        persistencePort.updateCharacterStats(match.getId(), character.getId(),
+                dex, intel, con, energy, life, sad);
+
+        Integer food  = apply(command.getFood(),  null);
+        Integer magic = apply(command.getMagic(), null);
+        Integer coin  = apply(command.getCoin(),  null);
+
+        if (food != null || magic != null || coin != null) {
+            persistencePort.updateBackpackStats(match.getId(), character.getId(),
+                    food, magic, coin);
+        }
+        return ChangeStatsOutcome.UPDATED;
+    }
+
+    /** Returns {@code v} when {@code v != null && v != -1}, otherwise {@code fallback}. */
+    private static Integer apply(Integer v, Integer fallback) {
+        return (v != null && v != -1) ? v : fallback;
+    }
+
+    /** Like {@link #apply} but also caps the value at {@code max} (ignored if max is null/0). */
+    private static Integer applyBounded(Integer v, Integer max) {
+        Integer result = apply(v, null);
+        if (result == null) return null;
+        if (max != null && max > 0 && result > max) return max;
+        return result;
     }
 
     private static int base(Integer v) { return v != null ? v : 0; }

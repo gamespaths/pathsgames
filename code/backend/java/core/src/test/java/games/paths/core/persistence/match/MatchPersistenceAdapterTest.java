@@ -10,6 +10,8 @@ import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogMovementRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,8 @@ class MatchPersistenceAdapterTest {
     private GamingBackpackResourcesRepository backpackRepository;
     private GamingCharacterTraitsRepository characterTraitsRepository;
     private GamingInventoryItemsRepository inventoryRepository;
+    private LogEventsRepository logEventsRepository;
+    private LogMovementRepository logMovementRepository;
     private MatchPersistenceAdapter adapter;
     private MatchReadAdapter readAdapter;
 
@@ -42,8 +46,11 @@ class MatchPersistenceAdapterTest {
         backpackRepository = mock(GamingBackpackResourcesRepository.class);
         characterTraitsRepository = mock(GamingCharacterTraitsRepository.class);
         inventoryRepository = mock(GamingInventoryItemsRepository.class);
+        logEventsRepository = mock(LogEventsRepository.class);
+        logMovementRepository = mock(LogMovementRepository.class);
         adapter = new MatchPersistenceAdapter(matchRepository, locationsRepository, registryRepository,
-                characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository);
+                characterRepository, backpackRepository, characterTraitsRepository, inventoryRepository,
+                logEventsRepository, logMovementRepository);
         readAdapter = new MatchReadAdapter(matchRepository, locationsRepository, registryRepository);
     }
 
@@ -112,9 +119,14 @@ class MatchPersistenceAdapterTest {
         int deleted = adapter.deleteMatchesByNameLike("robottest%");
 
         assertEquals(2, deleted);
+        // current-turn FK must be cleared before the character rows are deleted
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(ids);
         verify(characterTraitsRepository).deleteByMatchIdIn(ids);
         verify(inventoryRepository).deleteByMatchIdIn(ids);
         verify(backpackRepository).deleteByMatchIdIn(ids);
+        verify(logEventsRepository).deleteByMatchIdIn(ids);
+        // log_movements references gaming_character_instance (FK enforced on PostgreSQL)
+        verify(logMovementRepository).deleteByMatchIdIn(ids);
         verify(characterRepository).deleteByMatchIdIn(ids);
         verify(locationsRepository).deleteByMatchIdIn(ids);
         verify(registryRepository).deleteByMatchIdIn(ids);
@@ -163,6 +175,8 @@ class MatchPersistenceAdapterTest {
 
         assertTrue(adapter.deleteMatchByUuid("u"));
 
+        verify(matchRepository).clearCurrentTurnByMatchIdIn(List.of(5L));
+        verify(logEventsRepository).deleteByMatchIdIn(List.of(5L));
         verify(characterTraitsRepository).deleteByMatchIdIn(List.of(5L));
         verify(inventoryRepository).deleteByMatchIdIn(List.of(5L));
         verify(backpackRepository).deleteByMatchIdIn(List.of(5L));
@@ -227,5 +241,35 @@ class MatchPersistenceAdapterTest {
         when(registryRepository.findByIdMatch(1L))
                 .thenReturn(List.of(new GamingStateRegistryEntity()));
         assertEquals(1, readAdapter.findRegistryByMatchId(1L).size());
+    }
+
+    @Test
+    void readAdapter_findMatchesPage_delegatesWithLimitAndCriteria() {
+        var criteria = new games.paths.core.port.match.MatchReadPort.MatchPageCriteria(
+                "RUNNING", 7L, 2L, "2024-01-01T00:00:00Z", "2024-02-02T00:00:00Z", 9L, 25);
+        when(matchRepository.findMatchesPage(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(new GamingMatchEntity()));
+
+        assertEquals(1, readAdapter.findMatchesPage(criteria).size());
+
+        var pageCaptor = org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(matchRepository).findMatchesPage(eq("RUNNING"), eq(7L), eq(2L),
+                eq("2024-01-01T00:00:00Z"), eq("2024-02-02T00:00:00Z"), eq(9L), pageCaptor.capture());
+        assertEquals(25, pageCaptor.getValue().getPageSize());
+        assertEquals(0, pageCaptor.getValue().getPageNumber());
+    }
+
+    @Test
+    void readAdapter_findMatchesPage_clampsNonPositiveLimit() {
+        var criteria = new games.paths.core.port.match.MatchReadPort.MatchPageCriteria(
+                null, null, null, null, null, null, 0);
+        when(matchRepository.findMatchesPage(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        readAdapter.findMatchesPage(criteria);
+
+        var pageCaptor = org.mockito.ArgumentCaptor.forClass(org.springframework.data.domain.Pageable.class);
+        verify(matchRepository).findMatchesPage(any(), any(), any(), any(), any(), any(), pageCaptor.capture());
+        assertEquals(1, pageCaptor.getValue().getPageSize()); // PageRequest rejects size < 1
     }
 }

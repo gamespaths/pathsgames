@@ -37,7 +37,18 @@ public interface TimeAdvancementPort {
                        String characterUuid,
                        boolean isSleeping,
                        boolean timeEndTriggered,
-                       int currentClock) {
+                       int currentClock,
+                       List<RecoveryItem> recovery) {
+    }
+
+    /**
+     * Per-character recovery summary (Step 26): the energy/life/sad deltas applied
+     * at time-start. Empty when the sleep action did not trigger a time-end.
+     */
+    record RecoveryItem(String characterUuid,
+                        int energyDelta,
+                        int lifeDelta,
+                        int sadDelta) {
     }
 
     record ClockResult(String matchUuid,

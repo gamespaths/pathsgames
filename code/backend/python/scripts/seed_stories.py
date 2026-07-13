@@ -74,7 +74,17 @@ def seed():
              "traitCostPositiveBudget": 2, "traitCostNegativeBudget": 3}
         ],
         "locations": [
-            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1}
+            # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
+            # counter so the location-counter decrement/zero path is exercised.
+            # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
+             "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 1,
+             "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2,
+                            "idCardBack": 1}]},
+            # Step 28: a second location to move into.
+            # Step 0.28.5: both locations carry idCard so GET /locations resolves
+            # a full `card` for each location and neighbor (as Java/AWS seeds do).
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -105,6 +115,18 @@ def seed():
             {"idTipo": 90001, "idTextName": 210, "idTextDescription": 210,
              "idClassPermitted": None, "idClassProhibited": None}
         ],
+        # Step 27 — weather rules: a dominant "clear" weather (no energy delta) and
+        # a rarer "storm" that drains energy. With rngSeed=42 the roll is deterministic.
+        "weatherRules": [
+            {"idTextName": 200, "idCard": 5, "probability": 70, "deltaEnergy": 0, "idEvent": None,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 1,
+             "conditionKey": None, "conditionValue": None, "timeStart": None,
+             "timeEnd": None, "isActive": 1},
+            {"idTextName": 201, "idCard": 6, "probability": 30, "deltaEnergy": -2, "idEvent": None,
+             "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3,
+             "conditionKey": None, "conditionValue": None, "timeStart": None,
+             "timeEnd": None, "isActive": 1},
+        ],
         "cards": [
             {
                 "id": 1,
@@ -115,7 +137,12 @@ def seed():
                 "awesomeIcon": "fa-graduation-cap",
                 "styleMain": "card-tutorial",
                 "styleDetail": "card-tutorial-detail"
-            }
+            },
+            # Step 27 — weather cards (referenced by weatherRules.idCard)
+            {"id": 5, "uuid": "card-tutorial-weather-clear", "idTextTitle": 200,
+             "idTextDescription": 200, "awesomeIcon": "fa-sun", "styleMain": "card-weather"},
+            {"id": 6, "uuid": "card-tutorial-weather-storm", "idTextTitle": 201,
+             "idTextDescription": 201, "awesomeIcon": "fa-cloud-bolt", "styleMain": "card-weather"},
         ]
     }
     

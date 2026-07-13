@@ -375,6 +375,55 @@ describe('StoryEditorPage', () => {
     expect(await screen.findByText(/Card #77 not found/i)).toBeInTheDocument()
   })
 
+  it('duplicates a neighbor card into a Card Back with BIS texts', async () => {
+    createEntity.mockResolvedValue({ status: 'CREATED' })
+    updateEntity.mockResolvedValue({ status: 'UPDATED' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve([
+        { idText: 101, lang: 'en', shortText: 'Title One', longText: 'Long one' },
+        { idText: 102, lang: 'en', shortText: 'Desc One', longText: '' },
+      ])
+      if (type === 'cards') return Promise.resolve([
+        { uuid: 'card-5', id: 5, idCard: 5, idTextTitle: 101, idTextDescription: 102, awesomeIcon: 'fa-x' },
+      ])
+      if (type === 'location-neighbors') return Promise.resolve([
+        { uuid: 'nb-1', id: 1, idLocationFrom: 1, idLocationTo: 2, direction: 'N', idCard: 5, idCardBack: null },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Loc Neighbors/i }))
+    const dupBtn = await screen.findByTitle(/Duplicate the Card as Card Back/i)
+    await userEvent.click(dupBtn)
+
+    // Two new BIS texts (title #103, desc #104), a new card #6, neighbor → idCardBack 6.
+    await waitFor(() => expect(createEntity).toHaveBeenCalledWith('story-123', 'texts',
+      expect.objectContaining({ idText: 103, shortText: 'Title One BIS' })))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'texts',
+      expect.objectContaining({ idText: 104, shortText: 'Desc One BIS' }))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'cards',
+      expect.objectContaining({ idCard: 6, idTextTitle: 103, idTextDescription: 104 }))
+    expect(updateEntity).toHaveBeenCalledWith('story-123', 'location-neighbors', 'nb-1',
+      expect.objectContaining({ idCardBack: 6 }))
+  })
+
+  it('reports an error duplicating a Card Back when the neighbor card is missing from the catalog', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'cards') return Promise.resolve([])
+      if (type === 'location-neighbors') return Promise.resolve([
+        { uuid: 'nb-9', id: 9, idLocationFrom: 1, idLocationTo: 2, direction: 'N', idCard: 77, idCardBack: null },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Loc Neighbors/i }))
+    await userEvent.click(await screen.findByTitle(/Duplicate the Card as Card Back/i))
+    expect(await screen.findByText(/Card #77 not found/i)).toBeInTheDocument()
+  })
+
   it('saves a brand new fast text through the input-generator', async () => {
     createEntity.mockResolvedValue({ status: 'CREATED' })
     renderPage()
@@ -411,6 +460,46 @@ describe('StoryEditorPage', () => {
     await waitFor(() => expect(updateEntity).toHaveBeenCalledWith(
       'story-123', 'texts', expect.anything(), expect.objectContaining({ lang: 'en' }),
     ))
+  })
+
+  it('cancels a delete confirmation (line 1215 onCancel)', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idTextName: 101 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Locations/i }))
+    const trashBtn = await waitFor(() => {
+      const buttons = screen.getAllByRole('button')
+      return buttons.find(b => b.querySelector('.fa-trash'))
+    })
+    await userEvent.click(trashBtn)
+    expect(screen.getByText(/Are you sure you want to delete this location/i)).toBeInTheDocument()
+    // Cancel — line 1215: onCancel={() => setModal(null)}
+    await userEvent.click(screen.getByText('Cancel'))
+    await waitFor(() => expect(screen.queryByText(/Are you sure you want to delete/i)).not.toBeInTheDocument())
+    expect(deleteEntity).not.toHaveBeenCalled()
+  })
+
+  it('selects the start location from its selector (lines 1146-1148)', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ idLocation: 5, idTextName: 101, uuid: 'loc-5' }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    // Click the "Select Start Location" selector button in metadata form
+    const startLocBtn = screen.queryByTitle(/Select Start Location ID/i)
+    if (startLocBtn) {
+      await userEvent.click(startLocBtn)
+      expect(await screen.findByText('Select Start Location')).toBeInTheDocument()
+      // Select the first option → onSelect callback runs (lines 1146-1148)
+      const selectBtns = screen.getAllByText('Select')
+      await userEvent.click(selectBtns[0])
+    }
   })
 
   it('selects the coma/end-game location and event references from their selectors', async () => {

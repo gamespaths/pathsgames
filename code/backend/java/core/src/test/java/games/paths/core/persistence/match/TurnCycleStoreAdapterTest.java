@@ -5,6 +5,7 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingTurnQueueEntity;
 import games.paths.core.entity.match.LogClockHistoryEntity;
+import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.entity.story.TextEntity;
 import games.paths.core.port.match.TurnCycleStorePort.CharacterTurnView;
@@ -15,10 +16,12 @@ import games.paths.core.repository.match.GamingCharacterInstanceRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingTurnQueueRepository;
 import games.paths.core.repository.match.LogClockHistoryRepository;
+import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.story.StoryRepository;
 import games.paths.core.repository.story.TextRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +38,7 @@ class TurnCycleStoreAdapterTest {
     private GamingCharacterInstanceRepository characterRepository;
     private GamingTurnQueueRepository turnQueueRepository;
     private LogClockHistoryRepository logClockHistoryRepository;
+    private LogEventsRepository logEventsRepository;
     private StoryRepository storyRepository;
     private TextRepository textRepository;
     private TurnCycleStoreAdapter adapter;
@@ -45,10 +49,11 @@ class TurnCycleStoreAdapterTest {
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         turnQueueRepository = mock(GamingTurnQueueRepository.class);
         logClockHistoryRepository = mock(LogClockHistoryRepository.class);
+        logEventsRepository = mock(LogEventsRepository.class);
         storyRepository = mock(StoryRepository.class);
         textRepository = mock(TextRepository.class);
         adapter = new TurnCycleStoreAdapter(matchRepository, characterRepository, turnQueueRepository,
-                logClockHistoryRepository, storyRepository, textRepository);
+                logClockHistoryRepository, logEventsRepository, storyRepository, textRepository);
     }
 
     private GamingMatchEntity match() {
@@ -187,6 +192,21 @@ class TurnCycleStoreAdapterTest {
         when(logClockHistoryRepository.findMaxId()).thenReturn(4L);
         adapter.insertClockHistory(1L, 5);
         verify(logClockHistoryRepository).save(any(LogClockHistoryEntity.class));
+    }
+
+    @Test
+    void logSleep_savesEventWithNextIdAndClock() {
+        when(logEventsRepository.findMaxId()).thenReturn(7L);
+        adapter.logSleep(1L, 10L, 3);
+
+        ArgumentCaptor<LogEventsEntity> captor = ArgumentCaptor.forClass(LogEventsEntity.class);
+        verify(logEventsRepository).save(captor.capture());
+        LogEventsEntity saved = captor.getValue();
+        assertEquals(8L, saved.getId());
+        assertEquals(1L, saved.getIdMatch());
+        assertEquals(10L, saved.getIdCharacterMatch());
+        assertEquals(3, saved.getClock());
+        assertEquals("ACTION_SLEEP", saved.getLogMessage());
     }
 
     @Test

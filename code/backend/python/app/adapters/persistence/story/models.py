@@ -174,7 +174,7 @@ class LocationEntity(Base):
     max_characters = Column(Integer)
     id_event_on_enter = Column(Integer)
     id_event_if_counter_zero = Column(Integer)
-    counter_start = Column(Integer)
+    counter_time = Column(Integer)
     id_card = Column(Integer)
 
 
@@ -183,12 +183,15 @@ class LocationNeighborEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
+    id_card_back = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_location_from = Column(Integer)
     id_location_to = Column(Integer)
     direction = Column(String(20))
+    flag_back = Column(Integer, nullable=False, default=0)
     energy_cost = Column(Integer, default=1)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
@@ -228,6 +231,9 @@ class WeatherRuleEntity(Base):
     id_text_name = Column(Integer)
     probability = Column(Float)
     delta_energy = Column(Integer, default=0)
+    # Step 27 — movement-cost modifiers per weather (safe / not-safe location)
+    cost_move_safe_location = Column(Integer, default=0)
+    cost_move_not_safe_location = Column(Integer, default=0)
     id_event = Column(Integer)
     condition_key = Column(String(255))
     condition_value = Column(String(255))
@@ -252,7 +258,10 @@ class EventEntity(Base):
     id_event_next = Column(Integer)
     flag_interrupt = Column(Integer, default=0)
     flag_end_time = Column(Integer, default=0)
-    id_location = Column(Integer)
+    # The owning location of a location-specific event. Named to match the shared
+    # contract / Java column `id_specific_location` (camelCase idSpecificLocation),
+    # so the admin CRUD and match-info agree on a single field.
+    id_specific_location = Column(Integer)
 
 
 class EventEffectEntity(Base):

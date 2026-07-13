@@ -99,6 +99,58 @@ describe('EntityTable', () => {
     expect(onOpenIdCardForm).toHaveBeenCalledWith(12)
   })
 
+  // ── Step 0.28.2 — "Card Back" column for Loc Neighbors ───────────────────────
+
+  it('shows the Card Back column and opens the back card when idCardBack is set', async () => {
+    const onOpenIdCardForm = vi.fn()
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCard: 12, idCardBack: 34 }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents}
+                       onOpenIdCardForm={onOpenIdCardForm}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('#34'))
+    expect(onOpenIdCardForm).toHaveBeenCalledWith(34)
+  })
+
+  it('offers a duplicate icon and fires onDuplicateCardBack when idCardBack is empty', async () => {
+    const onDuplicateCardBack = vi.fn()
+    const ent = { uuid: '1', id: 1, name: 'X', idCard: 12, idCardBack: null }
+    render(<EntityTable columns={MOCK_COLS} entities={[ent]}
+                       onDuplicateCardBack={onDuplicateCardBack}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    const dupBtn = screen.getAllByRole('button').find(b => b.querySelector('.fa-clone'))
+    expect(dupBtn).toBeTruthy()
+    await userEvent.click(dupBtn)
+    expect(onDuplicateCardBack).toHaveBeenCalledWith(ent)
+  })
+
+  it('shows a dash in Card Back when neither idCardBack nor idCard is set', () => {
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCardBack: null }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    expect(document.querySelector('.fa-clone')).toBeNull()
+  })
+
+  it('hides the Card Back column for entity types without idCardBack', () => {
+    const ents = [{ uuid: '1', id: 1, name: 'X', idCard: 12 }]
+    render(<EntityTable columns={MOCK_COLS} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.queryByText('Card Back')).toBeNull()
+  })
+
+  it('forces the Card Back column via showCardBackColumn even without the key', async () => {
+    const onDuplicateCardBack = vi.fn()
+    // Row has NO idCardBack key (e.g. a backend that does not echo it) but has idCard.
+    const ent = { uuid: '1', id: 1, name: 'X', idCard: 12 }
+    render(<EntityTable columns={MOCK_COLS} entities={[ent]} showCardBackColumn
+                       onDuplicateCardBack={onDuplicateCardBack}
+                       onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Card Back')).toBeInTheDocument()
+    const dupBtn = screen.getAllByRole('button').find(b => b.querySelector('.fa-clone'))
+    await userEvent.click(dupBtn)
+    expect(onDuplicateCardBack).toHaveBeenCalledWith(ent)
+  })
+
   it('resolves a relation label from relationOptionsByField', () => {
     const cols = [{ key: 'idClass', label: 'Class' }]
     const ents = [{ uuid: '1', id: 1, idClass: 7 }]
@@ -113,5 +165,48 @@ describe('EntityTable', () => {
     const ents = [{ uuid: '1', id: 1, idName: null }]
     render(<EntityTable columns={cols} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
     expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('truncates idTextName text to 33 characters with ellipsis', () => {
+    const longText = 'A very long location name that definitely exceeds thirty-three characters'
+    const cols = [{ key: 'idName', label: 'Name', type: 'idTextName' }]
+    const ents = [{ uuid: '1', id: 1, idName: 42 }]
+    const texts = [{ idText: 42, lang: 'en', shortText: longText }]
+    render(<EntityTable columns={cols} entities={ents} texts={texts} onEdit={()=>{}} onDelete={()=>{}} />)
+    const badge = screen.getByTitle(longText)
+    expect(badge.textContent).toContain('…')
+    expect(badge.textContent.replace(/^#\d+\s*/, '')).toHaveLength(34) // 33 chars + '…'
+  })
+
+  it('does not truncate idTextName text shorter than 34 characters', () => {
+    const shortText = 'Short name'
+    const cols = [{ key: 'idName', label: 'Name', type: 'idTextName' }]
+    const ents = [{ uuid: '1', id: 1, idName: 7 }]
+    const texts = [{ idText: 7, lang: 'en', shortText: shortText }]
+    render(<EntityTable columns={cols} entities={ents} texts={texts} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText(/Short name/)).toBeInTheDocument()
+    expect(screen.queryByText(/…/)).toBeNull()
+  })
+
+  it('shows only the first 3 definition columns by default', () => {
+    const cols = [
+      { key: 'a', label: 'ColA' }, { key: 'b', label: 'ColB' },
+      { key: 'c', label: 'ColC' }, { key: 'd', label: 'ColD' },
+    ]
+    const ents = [{ uuid: '1', id: 1, a: 1, b: 2, c: 3, d: 4 }]
+    render(<EntityTable columns={cols} entities={ents} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('ColC')).toBeInTheDocument()
+    expect(screen.queryByText('ColD')).toBeNull()
+  })
+
+  it('shows a 4th column when maxColumns is raised (Loc Neighbors Direction)', () => {
+    const cols = [
+      { key: 'flagBack', label: 'Back' }, { key: 'idLocationFrom', label: 'From' },
+      { key: 'idLocationTo', label: 'To' }, { key: 'direction', label: 'Direction' },
+    ]
+    const ents = [{ uuid: '1', id: 1, flagBack: 1, idLocationFrom: 1, idLocationTo: 2, direction: 'NORTH' }]
+    render(<EntityTable columns={cols} entities={ents} maxColumns={4} onEdit={()=>{}} onDelete={()=>{}} />)
+    expect(screen.getByText('Direction')).toBeInTheDocument()
+    expect(screen.getByText('NORTH')).toBeInTheDocument()
   })
 })

@@ -59,8 +59,7 @@ def _detail():
         match=_summary(),
         current_location_id=10,
         current_location_uuid="loc-uuid",
-        current_location_name="loc",
-        locations=[MatchLocationState(10, "ls", 0, 5, "loc")],
+        locations=[MatchLocationState(10, "ls", 0, 5)],
         registry=[MatchRegistryEntry("r", "k", "v", 1)],
         events=[MatchEventOption("e", "n", "EVENT")],
         choices=[MatchEventOption("c", "n", "CHOICE")],
@@ -227,7 +226,11 @@ def test_get_match_info_serializes_locations_active(env):
             neighbors=[LocationNeighborInfo(
                 id_location=12, uuid="loc-12", direction="N",
                 flag_back=0, energy_cost=2,
-                card={"title": "Cave"})],
+                card={"title": "Cave"},
+                id_location_from=10, id_location_to=12,
+                card_back={"title": "Cave Return"},
+                card_location_from={"title": "Tavern"},
+                card_location_to=None)],
             events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
         )
     ]
@@ -242,6 +245,16 @@ def test_get_match_info_serializes_locations_active(env):
     assert la[0]["neighbors"][0]["idLocation"] == 12
     assert la[0]["neighbors"][0]["energyCost"] == 2
     assert la[0]["neighbors"][0]["card"]["title"] == "Cave"
+    assert la[0]["neighbors"][0]["idLocationFrom"] == 10
+    assert la[0]["neighbors"][0]["idLocationTo"] == 12
+    assert la[0]["neighbors"][0]["cardBack"]["title"] == "Cave Return"
+    # v0.28.6 — the LOCATION card of each endpoint, fog-gated per endpoint.
+    assert la[0]["neighbors"][0]["cardLocationFrom"]["title"] == "Tavern"
+    assert la[0]["neighbors"][0]["cardLocationTo"] is None
+    # the synthetic names are gone from the contract
+    assert "currentLocationName" not in body
+    assert "name" not in body["locations"][0]
+    assert "locationName" not in body["players"][0] if body.get("players") else True
     assert la[0]["events"][0]["uuid"] == "evt-1"
     assert la[0]["events"][0]["endGame"] is True
     assert la[0]["events"][0]["card"]["title"] == "Stranger"
@@ -297,3 +310,72 @@ def test_end_match_not_found_returns_404(env):
     resp = client.patch("/api/match/m1/end/e1", headers={"x-user": "u"})
     assert resp.status_code == 404
     assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+# ── Step 28.7 — GET /api/matches/{uuid}/logs ────────────────────────────────
+
+@pytest.fixture()
+def logs_env():
+    """Same app as ``env`` but with a match-logs service wired in."""
+    command_port = MagicMock()
+    query_port = MagicMock()
+    logs_service = MagicMock()
+    controller = MatchController(command_port, query_port, logs_service)
+    app = FastAPI()
+    app.include_router(controller.router)
+
+    @app.middleware("http")
+    async def inject_user(request, call_next):
+        if request.headers.get("x-user"):
+            request.state.user_uuid = request.headers["x-user"]
+        return await call_next(request)
+
+    return TestClient(app), logs_service
+
+
+def _logs_payload():
+    return {
+        "matchUuid": "m1",
+        "currentClock": 2,
+        "logs": [{"type": "SLEEP", "clock": 1, "timestamp": "2024-01-01T00:00:00"}],
+    }
+
+
+def test_get_match_logs_requires_authentication(logs_env):
+    client, _ = logs_env
+    resp = client.get("/api/matches/m1/logs")
+    assert resp.status_code == 401
+    assert resp.json()["error"] == "UNAUTHENTICATED"
+
+
+def test_get_match_logs_returns_200(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = _logs_payload()
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 200
+    assert resp.json()["logs"][0]["type"] == "SLEEP"
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "en", None, None)
+
+
+def test_get_match_logs_passes_lang_limit_and_cursor(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = _logs_payload()
+    resp = client.get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur",
+                      headers={"x-user": "u"})
+    assert resp.status_code == 200
+    logs_service.get_match_logs.assert_called_once_with("m1", "u", "it", 10, "cur")
+
+
+def test_get_match_logs_unknown_match_returns_404(logs_env):
+    client, logs_service = logs_env
+    logs_service.get_match_logs.return_value = None
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "MATCH_NOT_FOUND"
+
+
+def test_get_match_logs_without_service_returns_501(env):
+    client, _, _ = env
+    resp = client.get("/api/matches/m1/logs", headers={"x-user": "u"})
+    assert resp.status_code == 501
+    assert resp.json()["error"] == "NOT_IMPLEMENTED"

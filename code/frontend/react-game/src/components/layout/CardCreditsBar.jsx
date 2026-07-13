@@ -3,7 +3,7 @@
  * Shows "Credits: story by <author>, image by <copyright>" with links.
  * Returns null when neither story author nor card copyright is available.
  */
-export default function CardCreditsBar({ card, story }) {
+export default function CardCreditsBar({ card, story, typeBadgeLabel = null }) {
   const author   = story?.author ?? null
   const storyUrl = story?.card?.linkCopyright ?? null
   const imgName  = card?.copyrightText ?? null
@@ -14,7 +14,7 @@ export default function CardCreditsBar({ card, story }) {
   const parts = []
   if (author) {
     parts.push(
-      <span key="story">
+      <span key="story" className="credit-author">
         story by{' '}
         {storyUrl
           ? <a href={storyUrl} target="_blank" rel="noopener noreferrer" className="gc-credits__link" onClick={e => e.stopPropagation()}>{author}</a>
@@ -24,7 +24,7 @@ export default function CardCreditsBar({ card, story }) {
   }
   if (imgName) {
     parts.push(
-      <span key="image">
+      <span key="image" className="credit-image">
         image by{' '}
         {imgUrl
           ? <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="gc-credits__link" onClick={e => e.stopPropagation()}>{imgName}</a>
@@ -35,9 +35,10 @@ export default function CardCreditsBar({ card, story }) {
 
   return (
     <div className="gc-credits">
-      <span className="gc-credits__label">Credits:</span>
+      {typeBadgeLabel && <span className="gc-type-badge-credits">{typeBadgeLabel}</span>} 
+      {typeBadgeLabel && <span className="gc-credits__label credit-credit"> - </span>  }
       {parts.map((p, i) => (
-        <span key={i}>{i > 0 ? ', ' : ' '}{p}</span>
+        <span key={i}>{i > 0 ? ' - ' : ' '}{p}</span>
       ))}
     </div>
   )

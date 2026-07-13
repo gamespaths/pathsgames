@@ -16,8 +16,8 @@ describe('utils/turnstile', () => {
     document.cookie = `${TURNSTILE_PASS_COOKIE}=; max-age=0; path=/`
   })
 
-  it('defaults the TTL to 30 minutes when not configured', () => {
-    expect(TURNSTILE_PASS_TTL_MIN).toBe(30)
+  it('resolves the pass TTL to 3000 minutes', () => {
+    expect(TURNSTILE_PASS_TTL_MIN).toBe(3000)
   })
 
   it('falls back to "always" appearance for unset env keys', () => {

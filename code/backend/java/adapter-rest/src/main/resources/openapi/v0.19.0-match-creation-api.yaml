@@ -114,24 +114,74 @@ paths:
   /api/admin/matches:
     get:
       tags: [Matches]
-      summary: List every match in the platform (admin)
+      summary: List matches in the platform — paginated (admin)
       description: |
-        Admin-only view returning every match created on the platform,
-        newest first. Unlike `GET /api/matches` — which is scoped to the
-        caller — this endpoint is not filtered by owner. The bearer token
-        must belong to a user whose role is `ADMIN`.
+        Admin-only view of the matches created on the platform, newest first.
+        Unlike `GET /api/matches` — which is scoped to the caller — this endpoint
+        is not filtered by owner. The bearer token must belong to a user whose
+        role is `ADMIN`.
 
         Step 0.19.10 — added so the admin console can list all matches.
+
+        v0.28.1 — the endpoint is now **paginated and filterable** so the admin
+        console never reads the whole table:
+          * the response is a `PagedMatches` envelope `{ items, nextCursor, limit }`
+            (no longer a bare array);
+          * pass `?cursor=` with the previous response's `nextCursor` to fetch the
+            next page (`nextCursor` is `null` on the last page);
+          * optional filters: `status`, `userUuid`, `storyUuid`, `sinceDays`.
+        On AWS this is a single DynamoDB Query on the `GSI2` "by type" index; on
+        Java/Python it is a keyset query (`ts_insert`, `id`) with `LIMIT`.
       operationId: listAllMatches
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size. Clamped to [1, 200].
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque token from a previous response's `nextCursor`. Omit for the first page.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: Exact status filter.
+          schema:
+            type: string
+            enum: [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
+        - name: userUuid
+          in: query
+          required: false
+          description: Only matches created by this user.
+          schema:
+            type: string
+        - name: storyUuid
+          in: query
+          required: false
+          description: Only matches of this story.
+          schema:
+            type: string
+        - name: sinceDays
+          in: query
+          required: false
+          description: Only matches created within the last N days.
+          schema:
+            type: integer
+            minimum: 1
       responses:
         '200':
-          description: Matches list (newest first)
+          description: One page of matches (newest first)
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MatchSummary'
+                $ref: '#/components/schemas/PagedMatches'
         '401':
           description: Missing or invalid bearer token
         '403':
@@ -155,6 +205,13 @@ paths:
       operationId: getMatchInfo
       parameters:
         - $ref: '#/components/parameters/uuidMatch'
+        - name: lang
+          in: query
+          required: false
+          description: Language code used to resolve all card texts (location, neighbor and event cards). Falls back to English when blank or missing.
+          schema:
+            type: string
+            default: en
       responses:
         '200':
           description: Match runtime info
@@ -305,7 +362,36 @@ components:
             format: uuid
           description: Trait UUIDs selected by the creator
 
+    PagedMatches:
+      type: object
+      description: |
+        v0.28.1 — one page of the admin match list (newest first). Returned by
+        `GET /api/admin/matches`.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MatchSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Opaque token for the next page; `null` on the last page. Pass it back as `?cursor=`.
+        limit:
+          type: integer
+          format: int32
+          description: Effective (clamped) page size that produced this page.
+      required: [items, limit]
+
     LocationState:
+      description: >
+        One row of gaming_state_locations. v0.28.6 — on the PLAYER endpoint only
+        ALREADY-VISITED locations are returned (visited = character positions ∪
+        movement log, the same set GET /api/match/{uuidMatch}/locations returns);
+        the list is empty until a character joins the match. The ADMIN endpoint
+        (GET /api/admin/matches/{uuidMatch}/info) is the exception: it returns
+        every story location so the console can render the full runtime table.
+        `flagAlreadyActived` is NOT a visited flag — it tracks the location's
+        entry-event state.
       type: object
       properties:
         idLocation:
@@ -320,9 +406,6 @@ components:
         clockCounter:
           type: integer
           format: int32
-        name:
-          type: string
-          nullable: true
 
     RegistryEntry:
       type: object
@@ -365,10 +448,13 @@ components:
           type: string
           format: uuid
           nullable: true
-        currentLocationName:
-          type: string
-          nullable: true
         locations:
+          description: >
+            v0.28.6 — the ALREADY-VISITED locations of the match only. The admin
+            info endpoint returns every story location instead (no visited filter).
+            The synthetic `name` field was removed: resolve a location's title from
+            its card (LocationInfo.card, LocationNeighborInfo.cardLocationFrom /
+            cardLocationTo, or GET /locations).
           type: array
           items:
             $ref: '#/components/schemas/LocationState'
@@ -464,7 +550,51 @@ components:
           format: int32
           nullable: true
         card:
-          $ref: '#/components/schemas/CardInfo'
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          description: >
+            Resolved neighbor card: the authored LINK (movement) card when set,
+            otherwise a fallback to the destination LOCATION's card. Fog of war
+            (v0.28.6): the LOCATION fallback is null until the destination has
+            been visited; an authored link card is always shown.
+          nullable: true
+        secureParam:
+          type: integer
+          nullable: true
+          description: "Safety parameter of the destination location: positive = safe (full recovery), zero or negative = unsafe (only difficulty.energy recovered)"
+        idLocationFrom:
+          description: The `from` endpoint of the neighbor edge (raw orientation).
+          type: integer
+          format: int64
+          nullable: true
+        idLocationTo:
+          description: The `to` endpoint of the neighbor edge (raw orientation). When the active player stands on this location, clients show `cardBack` instead of `card`.
+          type: integer
+          format: int64
+          nullable: true
+        cardBack:
+          description: "Optional resolved \"return\" card, shown when the player traverses the edge from the locationTo side. Falls back to `card` when the link defines no idCardBack."
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+        cardLocationFrom:
+          description: >
+            v0.28.6 — resolved card of the LOCATION at `idLocationFrom`. Distinct
+            from `card` (the authored LINK/movement card) and `cardBack` (the
+            return LINK card). Fog of war: null until that location has been
+            visited; the gating applies identically on the admin endpoint. The
+            active location is always visited, so the endpoint matching it always
+            resolves — the move DESTINATION is `cardLocationFrom` when the player
+            stands on `idLocationTo`, and `cardLocationTo` otherwise.
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+        cardLocationTo:
+          description: >
+            v0.28.6 — resolved card of the LOCATION at `idLocationTo`, gated on
+            that location's own visited flag. See `cardLocationFrom`.
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
 
     EventInfo:
       type: object
@@ -491,8 +621,16 @@ components:
           type: string
           format: uuid
           nullable: true
+        idCard:
+          type: integer
+          nullable: true
+          description: "Logical reference to the location's visual card (list_cards id); the resolved card is returned in `card`."
         card:
           $ref: '#/components/schemas/CardInfo'
+        secureParam:
+          type: integer
+          nullable: true
+          description: "Safety parameter: positive = safe location (full recovery), zero or negative = unsafe (only difficulty.energy recovered)"
         neighbors:
           type: array
           items:

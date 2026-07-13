@@ -3,6 +3,8 @@ import uuid as uuid_lib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, or_
+
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity,
     GamingCharacterInstanceEntity,
@@ -10,6 +12,8 @@ from app.adapters.persistence.match.models import (
     GamingMatchEntity,
     GamingStateLocationEntity,
     GamingStateRegistryEntity,
+    LogEventsEntity,
+    LogMovementEntity,
 )
 from app.core.ports.match.match_ports import MatchPersistencePort
 
@@ -56,6 +60,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                 secure_location_param=match.get("secure_location_param", 0),
                 counter_consecutive_pass=match.get("counter_consecutive_pass", 0),
                 single_player=match.get("single_player", 1),
+                rng_seed=match.get("rng_seed"),
                 character_template_uuid=match.get("character_template_uuid"),
                 class_uuid=match.get("class_uuid"),
                 trait_uuids=_join_trait_uuids(match.get("trait_uuids")),
@@ -87,6 +92,41 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             rows = (
                 session.query(GamingMatchEntity)
                 .order_by(GamingMatchEntity.ts_insert.desc())
+                .all()
+            )
+            return [self._match_to_dict(r) for r in rows]
+
+    def find_matches_page(self, status: Optional[str], id_user: Optional[int],
+                          id_story: Optional[int], ts_from: Optional[str],
+                          ts_cursor: Optional[str], id_cursor: Optional[int],
+                          limit: int) -> List[Dict[str, Any]]:
+        # v0.28.1 — keyset page of the admin match list. ts_insert is an ISO
+        # string, so its lexical order matches chronological order; id is the
+        # deterministic tie-breaker. The keyset clause selects the rows strictly
+        # older than the previous page's last row, so pages never skip/duplicate.
+        with self.session_factory() as session:
+            q = session.query(GamingMatchEntity)
+            if status is not None:
+                q = q.filter(GamingMatchEntity.status == status)
+            if id_user is not None:
+                q = q.filter(GamingMatchEntity.id_user_creator == id_user)
+            if id_story is not None:
+                q = q.filter(GamingMatchEntity.id_story == id_story)
+            if ts_from is not None:
+                q = q.filter(GamingMatchEntity.ts_insert >= ts_from)
+            if ts_cursor is not None:
+                q = q.filter(
+                    or_(
+                        GamingMatchEntity.ts_insert < ts_cursor,
+                        and_(
+                            GamingMatchEntity.ts_insert == ts_cursor,
+                            GamingMatchEntity.id < id_cursor,
+                        ),
+                    )
+                )
+            rows = (
+                q.order_by(GamingMatchEntity.ts_insert.desc(), GamingMatchEntity.id.desc())
+                .limit(max(1, limit))
                 .all()
             )
             return [self._match_to_dict(r) for r in rows]
@@ -234,6 +274,14 @@ class MatchPersistenceAdapter(MatchPersistencePort):
         session.query(GamingBackpackResourcesEntity).filter(
             GamingBackpackResourcesEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
+        # log_events and log_movements reference gaming_character_instance(id, id_match):
+        # the FK is enforced on PostgreSQL, so they must go before the instances.
+        session.query(LogEventsEntity).filter(
+            LogEventsEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
+        session.query(LogMovementEntity).filter(
+            LogMovementEntity.id_match.in_(match_ids)
+        ).delete(synchronize_session=False)
         session.query(GamingCharacterInstanceEntity).filter(
             GamingCharacterInstanceEntity.id_match.in_(match_ids)
         ).delete(synchronize_session=False)
@@ -250,6 +298,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             "status": entity.status,
             "current_clock": entity.current_clock or 0,
             "exp_cost": entity.exp_cost or 0,
+            "rng_seed": entity.rng_seed,
             "ts_insert": entity.ts_insert,
             "ts_update": entity.ts_update,
             "single_player": entity.single_player,

@@ -174,18 +174,27 @@ public class CoreConfig {
                                          StoryReadPort storyReadPort,
                                          UserAccessPort userAccessPort,
                                          CharacterReadPort characterReadPort,
-                                         ContentQueryPort contentQueryPort) {
+                                         ContentQueryPort contentQueryPort,
+                                         games.paths.core.port.match.MovementStorePort movementStorePort) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort);
+                characterReadPort, contentQueryPort, movementStorePort);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
 
     @Bean
+    public games.paths.core.service.match.WeatherSelectionService weatherSelectionService(
+            games.paths.core.port.match.WeatherStorePort weatherStorePort) {
+        return new games.paths.core.service.match.WeatherSelectionService(weatherStorePort);
+    }
+
+    @Bean
     public games.paths.core.port.match.TurnCyclePort turnCyclePort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
-            UserAccessPort userAccessPort) {
-        return new games.paths.core.service.match.TurnCycleService(turnCycleStorePort, userAccessPort);
+            UserAccessPort userAccessPort,
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
+        return new games.paths.core.service.match.TurnCycleService(
+                turnCycleStorePort, userAccessPort, weatherSelectionService);
     }
 
     // ───── Step 25: Time advancement & clock cycle (single-player) ─────
@@ -196,12 +205,32 @@ public class CoreConfig {
     }
 
     @Bean
+    public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
+            games.paths.core.port.match.RecoveryStorePort recoveryStorePort) {
+        return new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort);
+    }
+
+    @Bean
     public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
-            games.paths.core.port.event.DomainEventPublisher domainEventPublisher) {
+            games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
+            games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService,
+            games.paths.core.service.match.WeatherSelectionService weatherSelectionService) {
         return new games.paths.core.service.match.TimeAdvancementService(
-                turnCycleStorePort, userAccessPort, domainEventPublisher);
+                turnCycleStorePort, userAccessPort, domainEventPublisher,
+                timeStartRecoveryService, weatherSelectionService);
+    }
+
+    // ───── Step 28: Movement system (single-player) ─────
+
+    @Bean
+    public games.paths.core.port.match.MovementPort movementPort(
+            games.paths.core.port.match.MovementStorePort movementStorePort,
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.MovementService(
+                movementStorePort, userAccessPort, contentQueryPort);
     }
 
     // ───── Step 21: Character template & class selection ─────
@@ -210,9 +239,10 @@ public class CoreConfig {
     public CharacterCommandPort characterCommandPort(StoryReadPort storyReadPort,
                                                      MatchReadPort matchReadPort,
                                                      UserAccessPort userAccessPort,
-                                                     CharacterPersistencePort characterPersistencePort) {
+                                                     CharacterPersistencePort characterPersistencePort,
+                                                     CharacterReadPort characterReadPort) {
         return new CharacterCommandService(storyReadPort, matchReadPort,
-                userAccessPort, characterPersistencePort);
+                userAccessPort, characterPersistencePort, characterReadPort);
     }
 
     @Bean
@@ -222,6 +252,17 @@ public class CoreConfig {
                                                  UserAccessPort userAccessPort) {
         return new CharacterQueryService(matchReadPort, characterReadPort,
                 storyReadPort, userAccessPort);
+    }
+
+    // ───── Step 28.7: Match logs API ─────
+
+    @Bean
+    public games.paths.core.port.match.MatchLogsPort matchLogsPort(
+            games.paths.core.port.match.MatchLogsStorePort matchLogsStorePort,
+            UserAccessPort userAccessPort,
+            games.paths.core.port.story.ContentQueryPort contentQueryPort) {
+        return new games.paths.core.service.match.MatchLogsService(
+                matchLogsStorePort, userAccessPort, contentQueryPort);
     }
 
     // ───── Dev-only test-data cleanup ─────

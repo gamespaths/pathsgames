@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { MOCK_SERVER } from '../context/ServerContext'
 
 /**
  * Guest authentication API client (Step 12).
@@ -14,7 +13,7 @@ import { MOCK_SERVER } from '../context/ServerContext'
  */
 
 export async function createGuestSession(serverUrl) {
-  if (!serverUrl || serverUrl === MOCK_SERVER) return null
+  if (!serverUrl) return null
   const res = await axios.post(
     `${serverUrl}/api/auth/guest`,
     null,
@@ -24,7 +23,7 @@ export async function createGuestSession(serverUrl) {
 }
 
 export async function resumeGuestSession(serverUrl) {
-  if (!serverUrl || serverUrl === MOCK_SERVER) return null
+  if (!serverUrl) return null
   const res = await axios.post(
     `${serverUrl}/api/auth/guest/resume`,
     null,

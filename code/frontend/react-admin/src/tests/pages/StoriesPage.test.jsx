@@ -181,6 +181,38 @@ describe('StoriesPage', () => {
     clickSpy.mockRestore()
   })
 
+  it('exports weather-rules and global-random-events under their import keys', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let capturedBlob = null
+    global.URL.createObjectURL = vi.fn((blob) => { capturedBlob = blob; return mockObjectURL })
+
+    listEntities.mockImplementation((_uuid, apiType) => {
+      if (apiType === 'weather-rules') return Promise.resolve([{ id: 1, idTextName: 800, probability: 70 }])
+      if (apiType === 'global-random-events') return Promise.resolve([{ id: 2, idEvent: 5 }])
+      return Promise.resolve([])
+    })
+
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('Export JSON')[0])
+    await waitFor(() => expect(capturedBlob).not.toBeNull())
+
+    // The admin API is queried with kebab-case types (the bug used camelCase).
+    expect(listEntities).toHaveBeenCalledWith('aaa-111', 'weather-rules')
+    expect(listEntities).toHaveBeenCalledWith('aaa-111', 'global-random-events')
+    expect(listEntities).not.toHaveBeenCalledWith('aaa-111', 'weatherRules')
+    expect(listEntities).not.toHaveBeenCalledWith('aaa-111', 'globalRandomEvents')
+
+    // The importer reads camelCase keys → data must land under those keys, non-empty.
+    const parsed = JSON.parse(await capturedBlob.text())
+    expect(parsed.weatherRules).toHaveLength(1)
+    expect(parsed.weatherRules[0].probability).toBe(70)
+    expect(parsed.globalRandomEvents).toHaveLength(1)
+    expect(parsed.globalRandomEvents[0].idEvent).toBe(5)
+
+    clickSpy.mockRestore()
+  })
+
   it('exports JSON with alphabetically sorted keys, including nested nodes', async () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     let capturedBlob = null
@@ -301,5 +333,69 @@ describe('StoriesPage', () => {
     const closeBtn = errorMsg.parentElement.querySelector('button')
     await userEvent.click(closeBtn)
     expect(screen.queryByText(/Persistent error/i)).toBeNull()
+  })
+
+  it('closes detail modal when backdrop is clicked', async () => {
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+    expect(screen.getByText('Close')).toBeInTheDocument()
+    // Click the backdrop (pg-modal-backdrop) to close
+    const backdrop = document.querySelector('.pg-modal-backdrop')
+    await userEvent.click(backdrop)
+    await waitFor(() => expect(screen.queryByText('Close')).toBeNull())
+  })
+
+  it('shows difficulties in detail modal for story with difficulties', async () => {
+    const storyWithDifficulty = {
+      uuid: 'ccc-333', title: 'Epic Quest', author: 'GameMaster', visibility: 'PUBLIC',
+      priority: 3, peghi: 0, difficultyCount: 1, card: null,
+      difficulties: [
+        { expCost: 5, maxWeight: 20, minCharacter: 1, maxCharacter: 4, life: 100, energy: 50, sad: 10, dexterity: 15, intelligence: 12, constitution: 18, weight: 3 },
+      ],
+    }
+    listAllStories.mockResolvedValue([storyWithDifficulty])
+    renderPage()
+    await screen.findByText('Epic Quest')
+    await userEvent.click(screen.getAllByTitle('View Info')[0])
+    await waitFor(() => expect(screen.getByText(/Difficulties \(1\)/)).toBeInTheDocument())
+    expect(screen.getByText(/expCost: 5/)).toBeInTheDocument()
+  })
+
+  it('exports story with texts including idText remapping', async () => {
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    getStory.mockResolvedValue({ uuid: 'aaa-111', title: 'Epic Quest', author: 'Author' })
+    listEntities.mockImplementation((_uuid, type) => {
+      if (type === 'texts') return Promise.resolve([
+        { idText: 10, lang: 'en', shortText: 'Hello', tsInsert: '2024-01-01', idStory: 'aaa' },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const exportButtons = screen.getAllByTitle('Export JSON')
+    await userEvent.click(exportButtons[0])
+    await waitFor(() => expect(screen.getByText(/exported successfully/i)).toBeInTheDocument())
+    clickSpy.mockRestore()
+  })
+
+  it('shows error when deleteStory throws', async () => {
+    deleteStory.mockRejectedValue(new Error('Delete failed'))
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const deleteButtons = screen.getAllByTitle('Delete')
+    await userEvent.click(deleteButtons[0])
+    const confirmBtn = await screen.findByText('Confirm')
+    await userEvent.click(confirmBtn)
+    await waitFor(() => expect(screen.getByText(/Delete failed/i)).toBeInTheDocument())
+  })
+
+  it('shows error when createStory throws', async () => {
+    createStory.mockRejectedValue(new Error('Create failed'))
+    renderPage()
+    await screen.findByText('The Lost Kingdom')
+    const createBtn = screen.getByText(/New Story/i)
+    await userEvent.click(createBtn)
+    await waitFor(() => expect(screen.getByText(/Create failed/i)).toBeInTheDocument())
   })
 })

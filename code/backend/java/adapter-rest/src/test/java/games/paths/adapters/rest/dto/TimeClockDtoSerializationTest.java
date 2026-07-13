@@ -36,7 +36,8 @@ class TimeClockDtoSerializationTest {
     @Test
     void sleepActionResponseUsesIsSleepingAndTimeEndTriggeredKeys() throws Exception {
         TimeAdvancementPort.SleepResult model = new TimeAdvancementPort.SleepResult(
-                "match-uuid", "char-uuid", false, true, 4);
+                "match-uuid", "char-uuid", false, true, 4,
+                java.util.List.of(new TimeAdvancementPort.RecoveryItem("char-uuid", 2, 1, -3)));
 
         String json = mapper.writeValueAsString(SleepActionResponse.fromModel(model));
 
@@ -44,5 +45,8 @@ class TimeClockDtoSerializationTest {
         assertTrue(json.contains("\"timeEndTriggered\":true"), json);
         assertTrue(json.contains("\"currentClock\":4"), json);
         assertFalse(json.contains("\"sleeping\":"), json);
+        // Step 26 — the recovery recap is serialized on the sleep response.
+        assertTrue(json.contains("\"recovery\":"), json);
+        assertTrue(json.contains("\"energyDelta\":2"), json);
     }
 }

@@ -5,98 +5,13 @@ import {
   joinMatch, getMatchPlayers, getCharacter,
   startMatch, passTurn, getTurnSequence,
   getMatchClock, sleepCharacter,
+  startMovement, getMatchLocations,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
 
 describe('matches api', () => {
   beforeEach(() => vi.clearAllMocks())
-
-  describe('mock mode (no backend)', () => {
-    beforeEach(() => apiClient.mockReturnValue(null))
-
-    it('createMatch synthesizes a MatchSummary', async () => {
-      const m = await createMatch({
-        storyUuid: 's1', difficultyUuid: 'd1', singlePlayer: 1, traitUuids: ['t1'],
-      })
-      expect(m.uuid).toBeTruthy()
-      expect(m.storyUuid).toBe('s1')
-      expect(m.difficultyUuid).toBe('d1')
-      expect(m.status).toBe('CREATED')
-      expect(m.singlePlayer).toBe(1)
-      expect(m.traitUuids).toEqual(['t1'])
-    })
-
-    it('createMatch tolerates a missing payload', async () => {
-      const m = await createMatch()
-      expect(m.status).toBe('CREATED')
-      expect(m.traitUuids).toEqual([])
-    })
-
-    it('listMatches returns an empty array', async () => {
-      expect(await listMatches()).toEqual([])
-    })
-
-    it('getMatchInfo returns null', async () => {
-      expect(await getMatchInfo('m1')).toBeNull()
-    })
-
-    it('endMatch synthesizes an ENDED response carrying the match uuid', async () => {
-      const res = await endMatch('m1', 'evt-end-1')
-      expect(res.status).toBe('ENDED')
-      expect(res.uuid).toBe('m1')
-    })
-
-    it('joinMatch synthesizes a character carrying the match uuid and loadout', async () => {
-      const c = await joinMatch('m1', { characterTemplateUuid: 'ct1', traitUuids: ['t1'] })
-      expect(c.uuid).toBeTruthy()
-      expect(c.matchUuid).toBe('m1')
-      expect(c.characterTemplateUuid).toBe('ct1')
-      expect(c.traitUuids).toEqual(['t1'])
-    })
-
-    it('getMatchPlayers returns an empty array', async () => {
-      expect(await getMatchPlayers('m1')).toEqual([])
-    })
-
-    it('getCharacter returns null', async () => {
-      expect(await getCharacter('m1', 'c1')).toBeNull()
-    })
-
-    it('startMatch synthesizes a RUNNING turn sequence carrying the match uuid', async () => {
-      const seq = await startMatch('m1')
-      expect(seq.matchUuid).toBe('m1')
-      expect(seq.status).toBe('RUNNING')
-      expect(seq.queue).toEqual([])
-    })
-
-    it('passTurn synthesizes a RUNNING pass result carrying the match uuid', async () => {
-      const res = await passTurn('m1')
-      expect(res.matchUuid).toBe('m1')
-      expect(res.status).toBe('RUNNING')
-    })
-
-    it('getTurnSequence synthesizes a sequence carrying the match uuid', async () => {
-      const seq = await getTurnSequence('m1')
-      expect(seq.matchUuid).toBe('m1')
-      expect(seq.queue).toEqual([])
-    })
-
-    it('getMatchClock synthesizes an empty clock at 0 carrying the match uuid', async () => {
-      const clock = await getMatchClock('m1')
-      expect(clock.matchUuid).toBe('m1')
-      expect(clock.currentClock).toBe(0)
-      expect(clock.anyCharacterSleeping).toBe(false)
-      expect(clock.characters).toEqual([])
-    })
-
-    it('sleepCharacter synthesizes a sleeping success without ending time', async () => {
-      const res = await sleepCharacter('m1')
-      expect(res.matchUuid).toBe('m1')
-      expect(res.isSleeping).toBe(true)
-      expect(res.timeEndTriggered).toBe(false)
-    })
-  })
 
   describe('real server mode', () => {
     const post = vi.fn()
@@ -134,10 +49,16 @@ describe('matches api', () => {
       expect(get).toHaveBeenCalledWith('/api/matches', expect.any(Object))
     })
 
-    it('getMatchInfo gets /api/match/{uuid}/info', async () => {
+    it('getMatchInfo gets /api/match/{uuid}/info with default lang', async () => {
       get.mockResolvedValue({ data: { match: { uuid: 'm1' } } })
       await getMatchInfo('m1', 'tok')
-      expect(get).toHaveBeenCalledWith('/api/match/m1/info', expect.any(Object))
+      expect(get).toHaveBeenCalledWith('/api/match/m1/info?lang=en', expect.any(Object))
+    })
+
+    it('getMatchInfo forwards the requested lang', async () => {
+      get.mockResolvedValue({ data: { match: { uuid: 'm1' } } })
+      await getMatchInfo('m1', 'tok', 'it')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/info?lang=it', expect.any(Object))
     })
 
     it('endMatch PATCHes /api/match/{uuidMatch}/end/{uuidEvent} with the bearer token', async () => {
@@ -245,6 +166,29 @@ describe('matches api', () => {
     it('sleepCharacter propagates a 409 ALREADY_SLEEPING error', async () => {
       post.mockRejectedValue(new Error('ALREADY_SLEEPING'))
       await expect(sleepCharacter('m1', 'tok')).rejects.toThrow('ALREADY_SLEEPING')
+    })
+
+    it('startMovement posts the target location to /api/gameplay/{uuid}/movements/start', async () => {
+      post.mockResolvedValue({ data: { toLocationUuid: 'loc2', energySpent: 3 } })
+      const res = await startMovement('m1', 'loc2', 'tok-mv')
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/movements/start',
+        { targetLocationUuid: 'loc2' },
+        expect.objectContaining({ headers: { Authorization: 'Bearer tok-mv' } }),
+      )
+      expect(res.energySpent).toBe(3)
+    })
+
+    it('startMovement propagates a 409 NOT_A_NEIGHBOR error', async () => {
+      post.mockRejectedValue(new Error('NOT_A_NEIGHBOR'))
+      await expect(startMovement('m1', 'loc9', 'tok')).rejects.toThrow('NOT_A_NEIGHBOR')
+    })
+
+    it('getMatchLocations gets /api/match/{uuid}/locations', async () => {
+      get.mockResolvedValue({ data: { matchUuid: 'm1', locations: [{ idLocation: 1 }] } })
+      const res = await getMatchLocations('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/locations', expect.any(Object))
+      expect(res.locations).toEqual([{ idLocation: 1 }])
     })
   })
 })

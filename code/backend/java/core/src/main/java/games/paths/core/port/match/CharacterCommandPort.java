@@ -21,6 +21,65 @@ public interface CharacterCommandPort {
     CharacterInstanceInfo join(JoinMatchCommand command);
 
     /**
+     * Outcome of an admin statistics change (POST changeStatistics endpoint).
+     */
+    enum ChangeStatsOutcome {
+        /** Statistics were updated successfully. */
+        UPDATED,
+        /** No match exists with the given uuid. */
+        MATCH_NOT_FOUND,
+        /** No character instance exists with the given uuid in this match. */
+        PLAYER_NOT_FOUND
+    }
+
+    /**
+     * Admin-only: overrides the current statistics of a character instance.
+     * Fields set to {@code -1} are left unchanged. For {@code energy},
+     * {@code life} and {@code sad} the new value must be {@code <= max}.
+     *
+     * @param matchUuid  the match uuid
+     * @param playerUuid the character instance uuid (uuid in gaming_character_instance)
+     * @param command    the statistics to update (-1 = skip)
+     * @return the outcome of the operation
+     */
+    ChangeStatsOutcome changeStatistics(String matchUuid, String playerUuid, ChangeStatsCommand command);
+
+    /**
+     * ChangeStatsCommand - carries the per-field overrides for the admin
+     * changeStatistics call. Any field may be {@code null} (no change).
+     */
+    class ChangeStatsCommand {
+        private Integer dex;
+        private Integer intel;
+        private Integer con;
+        private Integer energy;
+        private Integer life;
+        private Integer sad;
+        private Integer coin;
+        private Integer food;
+        private Integer magic;
+
+        public Integer getDex() { return dex; }
+        public void setDex(Integer dex) { this.dex = dex; }
+        public Integer getIntel() { return intel; }
+        public void setIntel(Integer intel) { this.intel = intel; }
+        public Integer getCon() { return con; }
+        public void setCon(Integer con) { this.con = con; }
+        public Integer getEnergy() { return energy; }
+        public void setEnergy(Integer energy) { this.energy = energy; }
+        public Integer getLife() { return life; }
+        public void setLife(Integer life) { this.life = life; }
+        public Integer getSad() { return sad; }
+        public void setSad(Integer sad) { this.sad = sad; }
+        public Integer getCoin() { return coin; }
+        public void setCoin(Integer coin) { this.coin = coin; }
+        public Integer getFood() { return food; }
+        public void setFood(Integer food) { this.food = food; }
+        public Integer getMagic() { return magic; }
+        public void setMagic(Integer magic) { this.magic = magic; }
+    }
+
+    /**
      * CharacterJoinException - thrown when a character cannot join a match.
      * The {@link #getCode()} value drives the HTTP status mapping in the
      * controller layer.

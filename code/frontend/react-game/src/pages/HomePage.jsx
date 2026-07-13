@@ -17,7 +17,7 @@ const HERO_IMG = {
 }
 
 export default function HomePage() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const { user, openGuestModal } = useGuestUser()
   const [stories, setStories] = useState([])
   const [matches, setMatches] = useState(null) // guest matches, loaded once when human
@@ -34,13 +34,13 @@ export default function HomePage() {
   useEffect(() => {
     if (gate.phase !== 'ready') return undefined
     let cancelled = false
-    getStories().then(data => {
+    getStories(lang).then(data => {
       if (cancelled) return
       setStories(data)
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [gate.phase])
+  }, [gate.phase, lang])
 
   // Load the guest's matches once cleared, so the catalog can badge stories and
   // a story click can reuse the list (no extra fetch, and it is handed to the
@@ -78,7 +78,7 @@ export default function HomePage() {
 
       {/* Catalog — gated by the Turnstile antibot check */}
       {gate.phase === 'error' ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <i className="fas fa-exclamation-triangle me-2" />{t('antibot.error')}
           <br />
           <div className="mt-5">
@@ -88,7 +88,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : gate.phase === 'checking' ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <div className="turnstile-checking"> <i className="fas fa-spinner fa-spin me-2" />{t('antibot.verifying')}</div>
 
           <div className="mt-5">
@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : loading ? (
-        <div className="stories-section stories-loading">
+        <div className="stories-section-center stories-loading">
           <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
         </div>
       ) : (

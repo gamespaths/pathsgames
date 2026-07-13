@@ -67,7 +67,7 @@ const MOCK_MATCHES = [
 
 const MOCK_INFO = {
   match: MOCK_MATCHES[0],
-  currentLocationId: 10, currentLocationUuid: 'loc-1', currentLocationName: 'Tavern',
+  currentLocationId: 10, currentLocationUuid: 'loc-1',
   locations: [], registry: [], events: [], choices: [],
 }
 
@@ -86,7 +86,13 @@ describe('GuestsPage', () => {
     pauseMatch.mockResolvedValue({})
     resumeMatch.mockResolvedValue({})
     getStory.mockResolvedValue({ uuid: 'story-uuid-1', title: 'The Dragon Path', author: 'Admin' })
-    listEntities.mockResolvedValue([])
+    // v0.28.6 — currentLocationName is gone from /info; the console resolves the
+    // location title from the story context (list_locations.idTextName → texts).
+    listEntities.mockImplementation((_uuid, kind) => {
+      if (kind === 'locations') return Promise.resolve([{ uuid: 'loc-1', id: 10, idTextName: 500 }])
+      if (kind === 'texts') return Promise.resolve([{ idText: 500, lang: 'en', shortText: 'Tavern' }])
+      return Promise.resolve([])
+    })
   })
 
   it('shows loading spinner initially', () => {
@@ -176,7 +182,7 @@ describe('GuestsPage', () => {
     await screen.findByText('Dragon Run')
     await userEvent.click(screen.getByTitle('View match detail'))
     await waitFor(() => expect(getMatchInfo).toHaveBeenCalledWith('m1-uuid-aaaa'))
-    expect(await screen.findByText(/Tavern/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Tavern/)).length).toBeGreaterThan(0)
   })
 
   it('shows stop button for active match and calls stopMatch', async () => {

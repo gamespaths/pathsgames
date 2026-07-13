@@ -1,32 +1,43 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../api/matches', () => ({ getMatchInfo: vi.fn() }))
-vi.mock('../mock/matchInfo.json', () => ({ default: { __mock: true } }))
 
-import { getMatchInfo } from '../api/matches'
-import { getGameData } from '../api/game'
+import { getMatchInfo as fetchMatchInfo } from '../api/matches'
+import { getMatchInfo, MatchNotRunningError } from '../api/game'
 
-describe('api/game — getGameData', () => {
+describe('api/game — getMatchInfo', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns the live match info when available', async () => {
-    getMatchInfo.mockResolvedValue({ live: true })
-    expect(await getGameData('m1', 'tok')).toEqual({ live: true })
-    expect(getMatchInfo).toHaveBeenCalledWith('m1', 'tok')
+  it('returns the live match info when status is RUNNING', async () => {
+    fetchMatchInfo.mockResolvedValue({ match: { status: 'RUNNING' }, live: true })
+    expect(await getMatchInfo('m1', 'tok', 'it')).toEqual({ match: { status: 'RUNNING' }, live: true })
+    expect(fetchMatchInfo).toHaveBeenCalledWith('m1', 'tok', 'it')
   })
 
-  it('falls back to the mock payload when there is no match uuid', async () => {
-    expect(await getGameData()).toEqual({ __mock: true })
-    expect(getMatchInfo).not.toHaveBeenCalled()
+  it('throws MatchNotRunningError when status is ENDED', async () => {
+    fetchMatchInfo.mockResolvedValue({ match: { status: 'ENDED' } })
+    await expect(getMatchInfo('m1', 'tok')).rejects.toThrow(MatchNotRunningError)
   })
 
-  it('falls back to the mock payload when getMatchInfo returns null (mock server)', async () => {
-    getMatchInfo.mockResolvedValue(null)
-    expect(await getGameData('m1')).toEqual({ __mock: true })
+  it('MatchNotRunningError carries the status', async () => {
+    fetchMatchInfo.mockResolvedValue({ match: { status: 'GAMEOVER' } })
+    const err = await getMatchInfo('m1', 'tok').catch(e => e)
+    expect(err).toBeInstanceOf(MatchNotRunningError)
+    expect(err.status).toBe('GAMEOVER')
   })
 
-  it('falls back to the mock payload when getMatchInfo throws', async () => {
-    getMatchInfo.mockRejectedValue(new Error('network'))
-    expect(await getGameData('m1', 'tok')).toEqual({ __mock: true })
+  it('returns null when there is no match uuid', async () => {
+    expect(await getMatchInfo()).toBeNull()
+    expect(fetchMatchInfo).not.toHaveBeenCalled()
+  })
+
+  it('returns null when fetchMatchInfo returns no data', async () => {
+    fetchMatchInfo.mockResolvedValue(null)
+    expect(await getMatchInfo('m1')).toBeNull()
+  })
+
+  it('propagates the error when fetchMatchInfo throws (network error)', async () => {
+    fetchMatchInfo.mockRejectedValue(new Error('network'))
+    await expect(getMatchInfo('m1', 'tok')).rejects.toThrow('network')
   })
 })

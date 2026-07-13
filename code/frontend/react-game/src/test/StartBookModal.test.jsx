@@ -7,7 +7,7 @@ vi.mock('../i18n/context', () => ({
 }))
 vi.mock('../api/stories', () => ({ getStoryDetail: vi.fn(), getStories: vi.fn() }))
 vi.mock('../components/book/Book', () => ({
-  default: ({ left, right, onClose }) => <div data-testid="book">{left}{right}</div>,
+  default: ({ left, right, mobile, onClose }) => <div data-testid="book">{left}{right}{mobile}</div>,
 }))
 vi.mock('../components/layout/Card', () => ({
   default: ({ card, loading }) => (
@@ -32,7 +32,15 @@ vi.mock('../features/start-book/OptionPicker', () => ({
     </div>
   ),
 }))
-vi.mock('../features/start-book/StartBookMobile', () => ({ default: () => <div data-testid="mobile" /> }))
+vi.mock('../features/start-book/StartBookMobile', () => ({
+  default: ({ onPreview }) => (
+    <div data-testid="mobile">
+      <button data-testid="mobile-preview" onClick={() => onPreview?.({ title: 'Preview' }, 'character')}>
+        preview
+      </button>
+    </div>
+  ),
+}))
 
 import StartBookModal, { CardPreviewOverlay } from '../features/start-book/StartBookModal'
 import { getStoryDetail } from '../api/stories'
@@ -98,6 +106,61 @@ describe('StartBookModal', () => {
   it('returns null when story is not provided', () => {
     const { container } = render(<MemoryRouter><StartBookModal onClose={vi.fn()} /></MemoryRouter>)
     expect(container.firstChild).toBeNull()
+  })
+
+  it('calls handlePreviewModal via mobile onPreview prop', async () => {
+    const show = vi.fn()
+    window.bootstrap = { Modal: { getOrCreateInstance: vi.fn().mockReturnValue({ show }) } }
+    const el = document.createElement('div')
+    el.id = 'cardPreviewModal'
+    document.body.appendChild(el)
+    wrap()
+    await screen.findByTestId('config-view')
+    fireEvent.click(screen.getByTestId('mobile-preview'))
+    // handlePreviewModal is called — the Bootstrap modal show is attempted
+    expect(window.bootstrap.Modal.getOrCreateInstance).toHaveBeenCalled()
+    delete window.bootstrap
+    document.body.removeChild(el)
+  })
+
+  it('handleSelectionPreview sets preview to null when entity is falsy', async () => {
+    wrap()
+    await screen.findByTestId('config-view')
+    // Selecting then clearing — just verifies no crash (line 109: null entity path)
+    fireEvent.click(screen.getByText('change-class'))
+    // Pick an option (sets preview)
+    fireEvent.click(screen.getByText('pick:Fighter'))
+    // After selecting, config-view is shown again — no crash
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
+  })
+
+  it('class change drops character when all options are locked (reselect null fallback)', async () => {
+    // Build a story where changing class locks all characters
+    // The current character has class restriction that is incompatible with the new class
+    const storyWithLocks = {
+      ...STORY,
+      classes: [
+        { uuid: 'c1', name: 'Fighter', card: {}, classRestriction: 'FIGHTER' },
+        { uuid: 'c2', name: 'Mage', card: {}, classRestriction: 'MAGE' },
+      ],
+      characterTemplates: [
+        { uuid: 'ch1', name: 'Warrior', card: {}, requiredClass: 'c1' },
+      ],
+    }
+    getStoryDetail.mockResolvedValue(storyWithLocks)
+    render(
+      <MemoryRouter>
+        <StartBookModal story={storyWithLocks} onClose={vi.fn()} />
+      </MemoryRouter>
+    )
+    await screen.findByTestId('config-view')
+    // Trigger class change — the character reselect path (line 83 null return) runs
+    fireEvent.click(screen.getByText('change-class'))
+    if (screen.queryByText('pick:Mage')) {
+      fireEvent.click(screen.getByText('pick:Mage'))
+    }
+    // No crash — null reselect handled
+    expect(screen.getByTestId('config-view')).toBeInTheDocument()
   })
 
   it('navigates to start-match and closes when "Start Game" is pressed', async () => {

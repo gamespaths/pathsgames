@@ -173,40 +173,42 @@ INSERT OR IGNORE INTO list_keys (id, id_story, key_name, key_value, key_group, i
 (90003, 9001, 'choice_made', 'false', 'tutorial', 1);
 
 -- ── Story 1 Locations ───────────────────────────────────────────
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90001, 9001, 100, 100, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90002, 9001, 101, 101, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90003, 9001, 102, 102, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90004, 9001, 103, 103, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90005, 9001, 104, 104, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90006, 9001, 105, 105, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90007, 9001, 106, 106, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(90008, 9001, 107, 107, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90001, 9001, 90001, 100, 100, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90002, 9001, 90002, 101, 101, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90003, 9001, 90003, 102, 102, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90004, 9001, 90002, 103, 103, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90005, 9001, 90003, 104, 104, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90006, 9001, 90003, 105, 105, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90007, 9001, 90002, 106, 106, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(90008, 9001, 90001, 107, 107, 1, 10);
 
 -- ── Story 1 Location Neighbors ──────────────────────────────────
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90001, 9001, 90001, 90002, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90002, 9001, 90002, 90003, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90003, 9001, 90003, 90004, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90004, 9001, 90004, 90005, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90005, 9001, 90005, 90006, 'NORTH', 1);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90006, 9001, 90006, 90007, 'EAST', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90007, 9001, 90007, 90008, 'NORTH', 0);
-INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, energy_cost) VALUES
-(90008, 9001, 90001, 90008, 'EAST', 1);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90001, 9001, 90001, 90002, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90002, 9001, 90002, 90003, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90003, 9001, 90003, 90004, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90004, 9001, 90004, 90005, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90005, 9001, 90005, 90006, 'NORTH', 1, 1);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90006, 9001, 90006, 90007, 'EAST', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90007, 9001, 90007, 90008, 'NORTH', 1, 0);
+INSERT OR IGNORE INTO list_locations_neighbors (id, id_story, id_location_from, id_location_to, direction, flag_back, energy_cost) VALUES
+(90008, 9001, 90001, 90008, 'EAST', 1, 1);
+-- Step 0.28.2 — optional return card on the Welcome↔Movement edge (catalog card 90003).
+UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
 -- ── Story 1 Items ───────────────────────────────────────────────
 INSERT OR IGNORE INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES
@@ -426,30 +428,30 @@ INSERT OR IGNORE INTO list_character_templates (id, id_story, id_tipo, id_text_n
 (91003, 9002, 91003, 212, 212, 14, 12, 10, 4, 1, 5, NULL,  91001);
 
 -- ── Story 2 Locations ───────────────────────────────────────────
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91001, 9002, 100, 100, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91002, 9002, 101, 101, 1, 15);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91003, 9002, 102, 102, 1, 20);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91004, 9002, 103, 103, 0, 8);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91005, 9002, 104, 104, 1, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91006, 9002, 105, 105, 1, 10);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91007, 9002, 106, 106, 0, 4);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91008, 9002, 107, 107, 0, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91009, 9002, 108, 108, 0, 4);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91010, 9002, 109, 109, 0, 12);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91011, 9002, 110, 110, 0, 6);
-INSERT OR IGNORE INTO list_locations (id, id_story, id_text_name, id_text_description, is_safe, max_characters) VALUES
-(91012, 9002, 111, 111, 1, 8);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91001, 9002, 91001, 100, 100, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91002, 9002, 91002, 101, 101, 1, 15);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91003, 9002, 91003, 102, 102, 1, 20);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91004, 9002, 91002, 103, 103, 0, 8);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91005, 9002, 91001, 104, 104, 1, 6);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91006, 9002, 91002, 105, 105, 1, 10);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91007, 9002, 91003, 106, 106, 0, 4);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91008, 9002, 91002, 107, 107, 0, 6);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91009, 9002, 91003, 108, 108, 0, 4);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91010, 9002, 91001, 109, 109, 0, 12);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91011, 9002, 91002, 110, 110, 0, 6);
+INSERT OR IGNORE INTO list_locations (id, id_story, id_card, id_text_name, id_text_description, is_safe, max_characters) VALUES
+(91012, 9002, 91003, 111, 111, 1, 8);
 
 -- ── Story 2 Events ──────────────────────────────────────────────
 INSERT OR IGNORE INTO list_events (id, id_story, id_text_name, id_text_description, event_type, energy_cost, flag_end_time) VALUES

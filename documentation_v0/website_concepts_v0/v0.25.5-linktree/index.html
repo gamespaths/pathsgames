@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paths.games</title>
+  <meta name="description" content="Paths Games — Epic Medieval Gamebook. All our links in one place." />
+  <meta property="og:title" content="paths.games" />
+  <meta property="og:description" content="Epic Adventures Await — free to play, branching stories, multiplayer paths." />
+  <meta property="og:type" content="website" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome 6 (includes fa-x-twitter) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="lt-container">
+
+    <!-- Profile -->
+    <div class="lt-profile">
+      <div class="lt-avatar">
+        <i class="fas fa-dice-d20 lt-avatar-icon"></i>
+      </div>
+      <h1 class="lt-title">paths.games</h1>
+      <p class="lt-bio">Epic Adventures Await you
+        <br><em>Free to play</em></p>
+    </div>
+
+    <!-- Ornament divider -->
+    <div class="lt-divider">
+      <span class="lt-divider-icon">&#10022; &#10022; &#10022;</span>
+    </div>
+
+    <!-- Links — rendered by JS from inline JSON -->
+    <div class="lt-links" id="lt-links" role="list"></div>
+
+    <!-- Footer -->
+    <footer class="lt-footer">
+      <i class="fas fa-dice-d20"></i>Paths Games &copy; 2026 &mdash; All rights reserved
+    </footer>
+
+  </div>
+
+  <!-- Links data — edit here to add/remove/reorder links -->
+  <script id="links-data" type="application/json">
+ [
+  {
+    "icon": "fas fa-dice-d20  lt-avatar-icon",
+    "label": "Play alpha version",
+    "url": "https://test.paths.games",
+    "comingSoon": false
+  },
+  {
+    "icon": "fas fa-book-open",
+    "label": "Game Rules",
+    "url": "https://github.com/gamespaths/pathsgames/blob/main/documentation_v0/Step01_StartProject.md",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-youtube",
+    "label": "YouTube",
+    "url": "https://www.youtube.com/channel/UCbrfVJJDmX-iBda6WhURPkQ",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-instagram",
+    "label": "Instagram",
+    "url": "https://www.instagram.com/pathsgames/",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-x-twitter",
+    "label": "X",
+    "url": "https://x.com/PathsGames",
+    "comingSoon": false
+  },
+  {
+    "icon": "fab fa-github",
+    "label": "Open source code on GitHub",
+    "url": "https://github.com/gamespaths/pathsgames",
+    "comingSoon": false
+  },
+  {
+    "icon": "fas fa-coins",
+    "label": "Crowdfunding",
+    "url": null,
+    "comingSoon": true
+  }
+]
+
+  </script>
+
+  <script>
+    const links = JSON.parse(document.getElementById('links-data').textContent);
+    const container = document.getElementById('lt-links');
+
+    links.forEach((link, index) => {
+      const delay = `${0.1 + index * 0.08}s`;
+
+      if (link.comingSoon) {
+        const div = document.createElement('div');
+        div.className = 'lt-link lt-link--soon';
+        div.style.animationDelay = delay;
+        div.setAttribute('role', 'listitem');
+        div.setAttribute('aria-label', `${link.label} — coming soon`);
+        div.innerHTML = `
+          <i class="${link.icon} lt-link-icon" aria-hidden="true"></i>
+          <span class="lt-link-label">${link.label}</span>
+          <span class="lt-link-soon-badge">
+            <i class="fas fa-hourglass-half" aria-hidden="true"></i> Coming Soon
+          </span>
+        `;
+        container.appendChild(div);
+      } else {
+        const a = document.createElement('a');
+        a.className = 'lt-link';
+        a.href = link.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.animationDelay = delay;
+        a.setAttribute('role', 'listitem');
+        a.setAttribute('aria-label', link.label);
+        a.innerHTML = `
+          <i class="${link.icon} lt-link-icon" aria-hidden="true"></i>
+          <span class="lt-link-label">${link.label}</span>
+          <i class="fas fa-chevron-right lt-link-arrow" aria-hidden="true"></i>
+        `;
+        container.appendChild(a);
+      }
+    });
+  </script>
+
+</body>
+</html>

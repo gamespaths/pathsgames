@@ -286,4 +286,43 @@ class StoryCrudAdminControllerTest {
                     .andExpect(jsonPath("$.error").value("ENTITY_NOT_FOUND"));
         }
     }
+
+    @Nested
+    @DisplayName("Persistence constraint handling")
+    class DataIntegrity {
+
+        @Test
+        @DisplayName("Should map a StoryValidationException to 400 INVALID_STORY with the report errors")
+        void createEntity_validationFailure() throws Exception {
+            games.paths.core.model.story.StoryValidationReport report =
+                    new games.paths.core.model.story.StoryValidationReport();
+            report.add("LOCATION_CARD_REQUIRED", "locations", "e1", "idCard", "idCard is required");
+            when(storyCrudPort.createEntity(eq("uuid-1"), eq("locations"), anyMap()))
+                    .thenThrow(new games.paths.core.port.story.StoryValidatorPort
+                            .StoryValidationException(report));
+
+            mockMvc.perform(post("/api/admin/stories/uuid-1/locations")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Hall\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("INVALID_STORY"))
+                    .andExpect(jsonPath("$.errors[0].rule").value("LOCATION_CARD_REQUIRED"))
+                    .andExpect(jsonPath("$.errors[0].message").value("idCard is required"));
+        }
+
+        @Test
+        @DisplayName("Should map a DataIntegrityViolationException to 409 CONSTRAINT_VIOLATION")
+        void createEntity_constraintViolation() throws Exception {
+            when(storyCrudPort.createEntity(eq("uuid-1"), eq("locations"), anyMap()))
+                    .thenThrow(new org.springframework.dao.DataIntegrityViolationException(
+                            "FK id_card not present"));
+
+            mockMvc.perform(post("/api/admin/stories/uuid-1/locations")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"name\":\"Hall\"}"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error").value("CONSTRAINT_VIOLATION"))
+                    .andExpect(jsonPath("$.message").value(containsString("does not exist")));
+        }
+    }
 }

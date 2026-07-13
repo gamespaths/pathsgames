@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -pl core,adapter-rest,adapter-admin -am test jacoco:report -DskipITs)"
+    ]
+  }
+}

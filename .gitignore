@@ -52,6 +52,8 @@ target/
 .aws-sam-cli-managed-default/
 .aws-sam-cli-managed-default.toml
 
+# Backend aws
+code/backend/aws/scripts/backfill_gsi2_matches.py
 
 # AWS CloudFormation
 .ebextensions/  

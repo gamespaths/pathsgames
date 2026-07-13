@@ -32,7 +32,7 @@ def _info():
         character_template_uuid="tpl", class_uuid="cls",
         dexterity=19, intelligence=18, constitution=19, energy=127, life=137, sad=0,
         life_max=137, energy_max=127, sad_max=8, weight_max=24, weight=0,
-        id_location=90001, location_uuid="loc", location_name="location-90001",
+        id_location=90001, location_uuid="loc",
         is_sleeping=0, is_coma=0, trait_uuids=["t1"], items=[], food=0, magic=0, coin=0,
     )
 

@@ -35,13 +35,27 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     private final TurnCycleStorePort store;
     private final UserAccessPort userAccessPort;
     private final DomainEventPublisher eventPublisher;
+    private final TimeStartRecoveryService recoveryService;
+    private final WeatherSelectionService weatherService;
 
     public TimeAdvancementService(TurnCycleStorePort store,
                                   UserAccessPort userAccessPort,
-                                  DomainEventPublisher eventPublisher) {
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService) {
+        this(store, userAccessPort, eventPublisher, recoveryService, null);
+    }
+
+    /** Step 27 — overload wiring the weather selection engine (may be null in tests). */
+    public TimeAdvancementService(TurnCycleStorePort store,
+                                  UserAccessPort userAccessPort,
+                                  DomainEventPublisher eventPublisher,
+                                  TimeStartRecoveryService recoveryService,
+                                  WeatherSelectionService weatherService) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.eventPublisher = eventPublisher;
+        this.recoveryService = recoveryService;
+        this.weatherService = weatherService;
     }
 
     @Override
@@ -60,19 +74,24 @@ public class TimeAdvancementService implements TimeAdvancementPort {
 
         // Idempotent: setting sleeping on an already-sleeping character is a no-op effect.
         store.setCharacterSleeping(match.id(), caller.id(), true);
+        // Step 28.7 — log the sleep action for the match logs timeline.
+        store.logSleep(match.id(), caller.id(), match.currentClock());
 
         // Re-read the characters so the trigger sees the just-applied sleep flag.
         List<CharacterTurnView> characters = store.findCharactersByMatchId(match.id());
         boolean triggered = allCharactersDone(characters);
 
         int currentClock = match.currentClock();
+        List<RecoveryItem> recovery = List.of();
         if (triggered) {
-            currentClock = advanceTime(match);
+            AdvanceResult advanced = advanceTime(match);
+            currentClock = advanced.newClock();
+            recovery = advanced.recovery();
         }
 
         // After a time-end every character is awake again; otherwise the caller stays asleep.
         boolean finalSleeping = !triggered;
-        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock);
+        return new SleepResult(matchUuid, caller.uuid(), finalSleeping, triggered, currentClock, recovery);
     }
 
     @Override
@@ -124,13 +143,27 @@ public class TimeAdvancementService implements TimeAdvancementPort {
         return true;
     }
 
-    private int advanceTime(MatchView match) {
+    private AdvanceResult advanceTime(MatchView match) {
         int newClock = store.incrementMatchClock(match.id());
         store.insertClockHistory(match.id(), newClock);
         store.wakeAllCharacters(match.id());
+        // Step 26: per-character recovery, class bonuses and location counters.
+        List<TimeStartRecoveryService.RecoveryRecap> recaps =
+                recoveryService.applyAtTimeStart(match.id());
+        // Step 27: select the weather for the new time unit and apply its energy delta.
+        if (weatherService != null) {
+            weatherService.applyAtTimeStart(match.id());
+        }
         rebuildQueue(match.id(), newClock);
         eventPublisher.publish(new TimeAdvanced(match.uuid(), newClock));
-        return newClock;
+        List<RecoveryItem> recovery = new ArrayList<>();
+        for (TimeStartRecoveryService.RecoveryRecap r : recaps) {
+            recovery.add(new RecoveryItem(r.characterUuid(), r.energyDelta(), r.lifeDelta(), r.sadDelta()));
+        }
+        return new AdvanceResult(newClock, recovery);
+    }
+
+    private record AdvanceResult(int newClock, List<RecoveryItem> recovery) {
     }
 
     /** Rebuild the turn queue for a new clock: all WAITING, highest priority ACTIVE. */

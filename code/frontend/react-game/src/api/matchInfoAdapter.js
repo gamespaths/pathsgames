@@ -11,24 +11,32 @@
  * action cards are derived from the active location matching `players[0].idLocation`.
  * `story` is still passed in for end-game card and graceful fallbacks.
  *
+ * Step 0.28.6 — `locations` now lists ONLY the already-visited locations, and the
+ * synthetic `name` fields are gone (locations[].name, currentLocationName,
+ * players[].locationName). A location's title comes from its card. Neighbors gained
+ * `cardLocationFrom`/`cardLocationTo`: the card of the LOCATION at each endpoint of
+ * the edge, null while that endpoint is still under fog of war.
+ *
  * API shape (consumed):
  *   {
  *     match: { uuid, name, status, currentClock, ... },
- *     currentLocationId, currentLocationUuid, currentLocationName,
- *     locations: [{ idLocation, uuid, flagAlreadyActived, clockCounter, name }],
+ *     currentLocationId, currentLocationUuid,
+ *     locations: [{ idLocation, uuid, flagAlreadyActived, clockCounter }],  // visited only
  *     registry:  [{ uuid, key, stringValue, intValue }],
  *     events:    [{ uuid, name, type }],
  *     choices:   [{ uuid, name, type }],
  *     players:   [{ uuid, idLocation, energy, life, sad, ... }],
  *     locationsActive: [{
  *       idLocation, uuid, card,
- *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card }],
+ *       neighbors: [{ idLocation, uuid, direction, flagBack, energyCost, card,
+ *                     idLocationFrom, idLocationTo, cardBack,
+ *                     cardLocationFrom, cardLocationTo }],
  *       events:    [{ uuid, type, endGame, card }],
  *     }]
  *   }
  */
 
-import { buildEndGameCard } from "@/utils/loadoutCards"
+import { buildEndGameCard, buildNeighborCard } from "@/utils/loadoutCards"
 
 const EMPTY_STATS = {
   life: 0, energy: 0, sadness: 0, experience: 0, food: 0, magic: 0, coins: 0, weight: 0,
@@ -79,10 +87,14 @@ function toPlayerStats(player) {
  */
 export function matchInfoToGameData(info, story = null,t) {
   if (!info) {
-    return { actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
+    return { info:info, actualLocationCard: null, playerStats: { ...EMPTY_STATS }, locations: [], actions: [], endGameCard: null, match: null }
   }
 
   const playerStats = toPlayerStats(info.players?.[0])
+
+  // `t` is the i18n translate fn (passed by GamePage). Guard against callers /
+  // tests that omit it so the adapter never throws on a missing translator.
+  const tr = typeof t === 'function' ? t : (k) => k
 
   // The active location is the one the player currently stands on. Prefer the
   // entry matching players[0].idLocation, falling back to the first active one.
@@ -91,37 +103,68 @@ export function matchInfoToGameData(info, story = null,t) {
   const active = activeList.find(l => l.idLocation === playerLoc) ?? activeList[0] ?? null
   //console.log("active location", active,playerLoc, activeList);
   const activeCard = active?.card ?? null
-
   const actualLocationCard = activeCard
-    ? activeCard /*{
-      uuid: active.uuid ?? info.currentLocationUuid ?? null,
-      name: activeCard.title ?? info.currentLocationName ?? '',
-      description: activeCard.description ?? '',
-      urlImage: activeCard.urlImage ?? story?.card?.urlImage ?? null,
-      awesomeIcon: activeCard.awesomeIcon ?? story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
-    }*/
-    : (info.currentLocationUuid || info.currentLocationName)
+    ? activeCard
+    : info.currentLocationUuid
       ? {
-        uuid: info.currentLocationUuid ?? null,
-        name: info.currentLocationName ?? '',
+        uuid: info.currentLocationUuid,
+        name: '',
         description: '',
         urlImage: story?.card?.urlImage ?? null,
         awesomeIcon: story?.card?.awesomeIcon ?? 'fas fa-map-marker-alt',
       }
       : null
 
+  // Step 26 — the residual location time counter (gaming_state_locations.clock_counter)
+  // for the location the player currently stands on, surfaced on the location card so
+  // LocationCard can render it as a statistic when > 0.
+  const stateLoc = (info.locations ?? []).find(l => l.idLocation === playerLoc) ?? null
+  const actualLocationCounter = stateLoc?.clockCounter ?? null
+  const actualLocationCardWithCounter = actualLocationCard
+    ? { ...actualLocationCard, clockCounter: actualLocationCounter }
+    : actualLocationCard
+
   // Neighbor locations of the active location become the board's move-target cards.
-  const locations = (active?.neighbors ?? []).map(n => ({
-    uuid: n.uuid ?? null,
-    idLocation: n.idLocation ?? null,
-    name: n.card?.title ?? '',
-    description: n.card?.description ?? '',
-    urlImage: n.card?.urlImage ?? null,
-    awesomeIcon: n.card?.awesomeIcon ?? 'fas fa-location-arrow',
-    direction: n.direction ?? null,
-    energyCost: n.energyCost ?? null,
-    card: n.card ?? null,
-  }))
+  // Step 0.28.2 — when the player stands on the edge's `to` location, prefer the
+  // optional return card (cardBack); otherwise show the forward card.
+  const locations = (active?.neighbors ?? []).map(n => {
+    // When the character stands on the edge's `to` endpoint, the neighbor is a
+    // RETURN move: the destination is the `from` endpoint, and From/To swap.
+    const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
+    // Step 0.28.6 — the LOCATION cards of the two endpoints, each null while that
+    // endpoint is unvisited. The active location is always visited, so the origin
+    // card resolves; the destination card appears only once explored.
+    const destLocationCard = (playerAtTo ? n.cardLocationFrom : n.cardLocationTo) ?? null
+    const originLocationCard = (playerAtTo ? n.cardLocationTo : n.cardLocationFrom) ?? null
+
+    // Step 0.28.5 — when a neighbor has NO card at all, fall back to the fixed
+    // "neighbor" card from data/images.json, titled by the move direction and
+    // described with the current + destination location names. The destination
+    // name stays null (→ "Unexplored location") until it has been visited.
+    const currentTitle = actualLocationCard?.title ?? originLocationCard?.title ?? null
+    const destName = destLocationCard?.title ?? null
+    const fromName = playerAtTo ? destName : currentTitle
+    const toName = playerAtTo ? currentTitle : destName
+    const genericNeighborCard = buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
+
+    // Precedence: the return LINK card when moving back, then the forward LINK
+    // card, then the destination's own LOCATION card, then the generic fallback.
+    const displayCard = ((playerAtTo && n.cardBack) ? n.cardBack : n.card)
+      ?? destLocationCard
+      ?? genericNeighborCard
+
+    return {
+      uuid: n.uuid ?? null,
+      idLocation: n.idLocation ?? null,
+      name: displayCard?.title ?? '',
+      description: displayCard?.description ?? '',
+      urlImage: displayCard?.urlImage ?? null,
+      awesomeIcon: displayCard?.awesomeIcon ?? 'fas fa-location-arrow',
+      direction: n.direction ?? null,
+      energyCost: n.energyCost ?? null,
+      card: displayCard ?? null,
+    }
+  })
 
   // Lean events + choices still drive the END_GAME flow (uuidEvent is what
   // endMatch expects). Step 27.x — ADD the active location's enriched event cards
@@ -148,12 +191,10 @@ export function matchInfoToGameData(info, story = null,t) {
   }))
   const actions = [...leanActions, ...eventActions]
 
-  // `t` is the i18n translate fn (passed by GamePage). Guard against callers /
-  // tests that omit it so the adapter never throws on a missing translator.
-  const tr = typeof t === 'function' ? t : (k) => k
   const endGameCard = buildEndGameCard(tr);// story?.endGameCard ?? story?.card ?? null
 
-  return { actualLocationCard, playerStats, locations, actions, endGameCard, match: info.match ?? null }
+  return { info: info, actualLocationCard: actualLocationCardWithCounter, 
+    playerStats, locations, actions, endGameCard, match: info.match ?? null }
 }
 
 export default matchInfoToGameData

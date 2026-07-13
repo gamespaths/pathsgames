@@ -13,8 +13,10 @@ from app.core.ports.match.turn_ports import TurnCyclePort, TurnCycleStorePort
 
 
 class TurnCycleService(TurnCyclePort):
-    def __init__(self, store: TurnCycleStorePort) -> None:
+    def __init__(self, store: TurnCycleStorePort, weather_service=None) -> None:
         self.store = store
+        # Step 27 — optional weather selection engine (may be None in tests).
+        self.weather_service = weather_service
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -44,6 +46,10 @@ class TurnCycleService(TurnCyclePort):
         self.store.replace_queue(match["id"], rows)
         top_id = rows[0]["id_character_match"]
         self.store.update_match_status_and_turn(match["id"], match_statuses.RUNNING, top_id)
+
+        # Step 27: select the initial weather for clock 0 when the match starts.
+        if self.weather_service is not None:
+            self.weather_service.apply_at_time_start(match["id"])
 
         return self._build_sequence(match_uuid, match["current_clock"],
                                     match_statuses.RUNNING, top_id, rows, characters)
