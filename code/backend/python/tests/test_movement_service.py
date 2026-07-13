@@ -144,7 +144,16 @@ def test_sleeping_blocked(service, store):
     store.character["is_sleeping"] = True
     with pytest.raises(MovementError) as e:
         service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
-    assert e.value.code == MovementError.CHARACTER_CANNOT_ACT
+    assert e.value.code == MovementError.SLEEPING
+
+
+def test_coma_blocked(service, store):
+    """Coma outranks sleep: a comatose character is also asleep, and only a rescue helps."""
+    store.character["is_sleeping"] = True
+    store.character["is_coma"] = True
+    with pytest.raises(MovementError) as e:
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    assert e.value.code == MovementError.COMA
 
 
 def test_no_location(service, store):

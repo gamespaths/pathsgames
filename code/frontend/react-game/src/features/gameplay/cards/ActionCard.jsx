@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { executeEvent } from '@/api/matches'
+import BonusBadgeList from '@/components/ui/BonusBadgeList'
 
 /**
  * ActionCard — Step 29. One card per NORMAL/ONCE event available at the active location.
@@ -48,13 +49,20 @@ export default function ActionCard({
       setRunning(false)
     }
   }
+console.log("action", action);
+  const cost = action?.energy ?? 0
+  const costItems = [{ key: 'energy', value: '' + cost, label: t('game.movement.cost') }]
+  const costBadge = (
+    <BonusBadgeList items={costItems.map(item => ({ ...item, label: null }))} 
+      className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
+  ) 
 
   return (
     <Card
       card={cardData}
       entityType="action"
-      onAction={available ? handleExecute : undefined}
-      actionLabel={t('game.event.action')}
+      //onAction={available ? handleExecute : undefined}
+      //actionLabel={t('game.event.action')}
       actionIcon={actionIcon}
       locked={locked}
       lockInfo={lockInfo}
@@ -66,8 +74,11 @@ export default function ActionCard({
           : {}, previewSide)}
       story={story}
       flagInformationCard={true}
+      childrenIntoImage={costBadge}
       actionWithInfo={true}
       infoLabel={t('game.event.action')}
+      infoIconClassName={"fas " + actionIcon}
+
     />
   )
 }

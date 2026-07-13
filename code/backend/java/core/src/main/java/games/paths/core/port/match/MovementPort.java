@@ -77,6 +77,8 @@ public interface MovementPort {
             MATCH_NOT_FOUND,
             MATCH_NOT_RUNNING,
             CHARACTER_CANNOT_ACT,
+            SLEEPING,
+            COMA,
             NOT_A_NEIGHBOR,
             MOVEMENT_CONDITION_NOT_MET,
             OVERWEIGHT,

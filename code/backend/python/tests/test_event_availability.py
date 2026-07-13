@@ -80,11 +80,16 @@ def test_no_character():
 
 
 def test_sleeping_cannot_act():
-    assert_blocked(check(event(), ctx(sleeping=True)), EventError.CHARACTER_CANNOT_ACT)
+    assert_blocked(check(event(), ctx(sleeping=True)), EventError.SLEEPING)
 
 
 def test_coma_cannot_act():
-    assert_blocked(check(event(), ctx(coma=True)), EventError.CHARACTER_CANNOT_ACT)
+    assert_blocked(check(event(), ctx(coma=True)), EventError.COMA)
+
+
+def test_coma_outranks_sleep():
+    """A comatose character is also flagged asleep — the player must hear the worse news."""
+    assert_blocked(check(event(), ctx(sleeping=True, coma=True)), EventError.COMA)
 
 
 def test_automatic_and_first_are_not_player_executable():
@@ -168,7 +173,7 @@ def test_class_unset():
 
 def test_actor_state_wins_over_everything():
     e = event(id_specific_location=999, cost_enery=999, coin_cost=999)
-    assert_blocked(check(e, ctx(sleeping=True)), EventError.CHARACTER_CANNOT_ACT)
+    assert_blocked(check(e, ctx(sleeping=True)), EventError.SLEEPING)
 
 
 def test_once_consumed_wins_over_location_and_cost():

@@ -568,7 +568,7 @@ def test_get_match_info_locations_active(mock_jwt):
         ],
         'events': [
             {'id': 1, 'uuid': 'evt-1', 'idLocation': 1, 'type': 'NORMAL', 'idCard': 4,
-             'card': {'title': 'STALE-EVT'}},
+             'costEnery': 2, 'card': {'title': 'STALE-EVT'}},
             {'id': 2, 'uuid': 'evt-2', 'idLocation': 2, 'type': 'NORMAL'},
         ],
         'raw_cards': [
@@ -630,6 +630,8 @@ def test_get_match_info_locations_active(mock_jwt):
     assert [e['uuid'] for e in la[0]['events']] == ['evt-1']
     assert la[0]['events'][0]['endGame'] is True
     assert la[0]['events'][0]['card']['title'] == 'Greeting'
+    # The energy the action costs, so the board renders the cost without a second call.
+    assert la[0]['events'][0]['energy'] == 2
 
 
 @patch('match.handler.jwt_utils.verify_access_token')

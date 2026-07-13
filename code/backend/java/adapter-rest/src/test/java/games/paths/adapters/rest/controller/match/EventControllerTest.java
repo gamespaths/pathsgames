@@ -136,7 +136,8 @@ class EventControllerTest {
     @Test
     void executeEvent_conflictCodes() throws Exception {
         List<Code> conflicts = List.of(
-                Code.MATCH_NOT_RUNNING, Code.CHARACTER_CANNOT_ACT, Code.EVENT_NOT_EXECUTABLE_TYPE,
+                Code.MATCH_NOT_RUNNING, Code.CHARACTER_CANNOT_ACT, Code.SLEEPING, Code.COMA,
+                Code.EVENT_NOT_EXECUTABLE_TYPE,
                 Code.ONCE_ALREADY_CONSUMED, Code.WRONG_LOCATION, Code.NOT_ENOUGH_ENERGY,
                 Code.NOT_ENOUGH_COINS, Code.REGISTRY_CONDITION_NOT_MET,
                 Code.WEATHER_CONDITION_NOT_MET, Code.ITEM_CONDITION_NOT_MET,

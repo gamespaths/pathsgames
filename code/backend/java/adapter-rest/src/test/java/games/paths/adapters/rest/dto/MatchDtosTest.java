@@ -166,7 +166,7 @@ class MatchDtosTest {
         LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard,
                 locCard, null);
         // v0.29.0 — the event carries the check-procedure verdict; here it is blocked.
-        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard, false, "NOT_ENOUGH_ENERGY");
+        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard, false, "NOT_ENOUGH_ENERGY", 3);
         LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
         MatchDetail d = new MatchDetail();
@@ -202,6 +202,8 @@ class MatchDtosTest {
         assertEquals("Stranger", evDto.getCard().getTitle());
         assertFalse(evDto.isAvailable());
         assertEquals("NOT_ENOUGH_ENERGY", evDto.getReason());
+        // The energy the action costs, so the board renders it without a second call.
+        assertEquals(3, evDto.getEnergy());
     }
 
     @Test

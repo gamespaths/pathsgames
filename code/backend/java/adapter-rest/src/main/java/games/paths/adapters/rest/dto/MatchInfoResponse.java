@@ -264,6 +264,7 @@ public class MatchInfoResponse {
         private CardInfoResponse card;
         private boolean available;
         private String reason;
+        private int energy;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
@@ -273,6 +274,7 @@ public class MatchInfoResponse {
             d.card = CardInfoResponse.fromModel(m.getCard());
             d.available = m.isAvailable();
             d.reason = m.getReason();
+            d.energy = m.getEnergy();
             return d;
         }
 
@@ -288,5 +290,8 @@ public class MatchInfoResponse {
         public void setAvailable(boolean available) { this.available = available; }
         public String getReason() { return reason; }
         public void setReason(String reason) { this.reason = reason; }
+        /** The energy the event costs to trigger; 0 when it is free. */
+        public int getEnergy() { return energy; }
+        public void setEnergy(int energy) { this.energy = energy; }
     }
 }

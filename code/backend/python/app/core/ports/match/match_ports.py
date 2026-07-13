@@ -291,6 +291,13 @@ class CharacterPersistencePort(ABC):
         """Admin: persist updated base stats on the character instance. None = skip."""
 
     @abstractmethod
+    def update_character_flags(self, match_id: int, character_id: int,
+                               sleeping: Optional[bool], coma: Optional[bool]) -> None:
+        """Admin: persist the character's state flags. None = leave the flag as it is. Waking a
+        character out of a coma is what a rescue will do on its own in Step 38; until then this
+        is the only way back."""
+
+    @abstractmethod
     def update_backpack_stats(self, match_id: int, character_id: int,
                               food: Optional[int], magic: Optional[int],
                               coin: Optional[int]) -> None:

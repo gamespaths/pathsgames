@@ -334,6 +334,9 @@ public class MatchAdminController {
             if (body.getCoin()  != null && body.getCoin()  != -1) command.setCoin(body.getCoin());
             if (body.getFood()  != null && body.getFood()  != -1) command.setFood(body.getFood());
             if (body.getMagic() != null && body.getMagic() != -1) command.setMagic(body.getMagic());
+            // The state flags: omitted (null) means "leave as it is", the -1 of the numbers.
+            command.setSleeping(body.getSleeping());
+            command.setComa(body.getComa());
         }
         CharacterCommandPort.ChangeStatsOutcome outcome =
                 characterCommandPort.changeStatistics(uuidMatch, uuidPlayer, command);
@@ -364,6 +367,8 @@ public class MatchAdminController {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        private Boolean sleeping;
+        private Boolean coma;
 
         public Integer getDex() { return dex; }
         public void setDex(Integer dex) { this.dex = dex; }
@@ -383,6 +388,11 @@ public class MatchAdminController {
         public void setFood(Integer food) { this.food = food; }
         public Integer getMagic() { return magic; }
         public void setMagic(Integer magic) { this.magic = magic; }
+        /** Null = leave the flag untouched. Clearing coma also wakes the character up. */
+        public Boolean getSleeping() { return sleeping; }
+        public void setSleeping(Boolean sleeping) { this.sleeping = sleeping; }
+        public Boolean getComa() { return coma; }
+        public void setComa(Boolean coma) { this.coma = coma; }
     }
 
     private ResponseEntity<Object> applyMatchUpdate(String uuidMatch, String status, String name) {

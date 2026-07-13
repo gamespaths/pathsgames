@@ -87,6 +87,64 @@ class CharacterCommandServiceChangeStatsTest {
     }
 
     @Test
+    void clearingComaWakesTheCharacterAndGivesItALifeToActWith() {
+        // A comatose character is also asleep and sits at life 0: leaving those as they are
+        // would drop it straight back into the coma. Clearing it must hand back a character
+        // that can actually act.
+        GamingCharacterInstanceEntity comatose = character();
+        comatose.setLife(0);
+        comatose.setIsSleeping(true);
+        comatose.setIsComa(true);
+        when(matchReadPort.findMatchByUuid("match-uuid")).thenReturn(Optional.of(match()));
+        when(characterReadPort.findCharacterByMatchIdAndUuid(1L, "player-uuid"))
+                .thenReturn(Optional.of(comatose));
+
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setComa(false);
+
+        assertEquals(ChangeStatsOutcome.UPDATED,
+                service.changeStatistics("match-uuid", "player-uuid", cmd));
+
+        verify(persistencePort).updateCharacterStats(1L, 2L, null, null, null, null, 1, null);
+        verify(persistencePort).updateCharacterFlags(1L, 2L, false, false);
+    }
+
+    @Test
+    void clearingComaKeepsTheLifeTheAdminAsked() {
+        wireMatchAndCharacter();
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setComa(false);
+        cmd.setLife(9);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+
+        verify(persistencePort).updateCharacterStats(1L, 2L, null, null, null, null, 9, null);
+        verify(persistencePort).updateCharacterFlags(1L, 2L, false, false);
+    }
+
+    @Test
+    void sleepingFlagIsSetOnItsOwnAndComaIsLeftAlone() {
+        wireMatchAndCharacter();
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setSleeping(true);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+
+        verify(persistencePort).updateCharacterFlags(1L, 2L, true, null);
+    }
+
+    @Test
+    void flagsUntouchedWhenTheCommandCarriesNone() {
+        wireMatchAndCharacter();
+        ChangeStatsCommand cmd = new ChangeStatsCommand();
+        cmd.setLife(5);
+
+        service.changeStatistics("match-uuid", "player-uuid", cmd);
+
+        verify(persistencePort, never()).updateCharacterFlags(anyLong(), anyLong(), any(), any());
+    }
+
+    @Test
     void appliesEveryProvidedStatAndBackpackValue() {
         wireMatchAndCharacter();
         ChangeStatsCommand cmd = new ChangeStatsCommand();

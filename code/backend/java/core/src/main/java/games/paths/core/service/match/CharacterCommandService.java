@@ -333,8 +333,25 @@ public class CharacterCommandService implements CharacterCommandPort {
         Integer life   = applyBounded(command.getLife(),   character.getLifeMax());
         Integer sad    = applyBounded(command.getSad(),    character.getSadMax());
 
+        // Pulling a character OUT of a coma must leave a state it can act from: a comatose
+        // character is also asleep, and with life <= 0 the engine would drop it right back in.
+        // So clearing coma also clears sleep and lifts life to 1 when the admin left it at 0.
+        Boolean sleeping = command.getSleeping();
+        Boolean coma = command.getComa();
+        if (Boolean.FALSE.equals(coma)) {
+            sleeping = Boolean.FALSE;
+            int newLife = life != null ? life : base(character.getLife());
+            if (newLife <= 0) {
+                life = 1;
+            }
+        }
+
         persistencePort.updateCharacterStats(match.getId(), character.getId(),
                 dex, intel, con, energy, life, sad);
+
+        if (sleeping != null || coma != null) {
+            persistencePort.updateCharacterFlags(match.getId(), character.getId(), sleeping, coma);
+        }
 
         Integer food  = apply(command.getFood(),  null);
         Integer magic = apply(command.getMagic(), null);

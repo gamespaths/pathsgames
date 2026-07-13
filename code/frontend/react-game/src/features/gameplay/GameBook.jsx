@@ -48,6 +48,20 @@ function scrollBookToTop() {
   })
 }
 
+/**
+ * The card an executed event narrates: the LAST applied effect that carries one. The effects
+ * come back in the order the engine applied them (a chain runs several), and the story reads
+ * as the one that landed last. Effects without a card are skipped — they change stats, they
+ * do not tell anything.
+ */
+export function lastEffectCard(result) {
+  const effects = result?.effects ?? []
+  for (let i = effects.length - 1; i >= 0; i -= 1) {
+    if (effects[i]?.card) return effects[i].card
+  }
+  return null
+}
+
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
@@ -234,6 +248,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       setPreviewLeft(previewData)
       // The left reading page scrolls its own content back to the top.
       document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
+    }
+  }
+  // Step 29 — an executed event answers with one entry per applied effect, each carrying its
+  // OWN card: that card is the narrative. A chain (idEventNext) applies several in order, and
+  // the story reads as the last one — so that is the one shown, on the reading page.
+  // handleBackOrClose() inside the reload would close it again, hence the preview comes after.
+  function handleEventExecuted(result) {
+    handleReloadClockWeatherAndMatchData()
+    const narrative = lastEffectCard(result)
+    if (narrative) {
+      handleSelectionPreviewFull(narrative, 'action', null, [], true, {}, 'right')
     }
   }
   function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
@@ -424,7 +449,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
               return <ActionCard key={action.uuid} action={action} story={story}
                 onPreview={handleSelectionPreviewFull} previewSide="right"
                 playerStats={playerStats} matchUuid={matchUuid} accessToken={user?.accessToken}
-                onDone={handleReloadClockWeatherAndMatchData} onError={onError} />
+                onDone={handleEventExecuted} onError={onError} />
             }
           }) }
           <div className="sleep-action-row">

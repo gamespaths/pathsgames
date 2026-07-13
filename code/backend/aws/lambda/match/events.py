@@ -118,8 +118,14 @@ def check(event, ctx):
     """
     if not event:
         return False, "EVENT_NOT_FOUND"
-    if not ctx or ctx.get("idCharacter") is None or ctx.get("sleeping") or ctx.get("coma"):
+    if not ctx or ctx.get("idCharacter") is None:
         return False, "CHARACTER_CANNOT_ACT"
+    # Coma outranks sleep: a comatose character is also flagged asleep, and the two are not the
+    # same news for the player — one waits, the other needs a rescue.
+    if ctx.get("coma"):
+        return False, "COMA"
+    if ctx.get("sleeping"):
+        return False, "SLEEPING"
 
     event_type = str(event.get("type") or "").strip().upper()
     if event_type not in EXECUTABLE_TYPES:

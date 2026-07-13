@@ -155,7 +155,7 @@ class MovementServiceTest {
         }
 
         @Test
-        @DisplayName("sleeping character → CHARACTER_CANNOT_ACT")
+        @DisplayName("sleeping character → SLEEPING")
         void sleeping() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
             when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
@@ -163,7 +163,7 @@ class MovementServiceTest {
                             50L, "c", USER_ID, 1L, 10, 100, 0, 30, true, false)));
             MovementException ex = assertThrows(MovementException.class,
                     () -> service.startMovement(MATCH, USER, "loc-2"));
-            assertEquals(MovementException.Code.CHARACTER_CANNOT_ACT, ex.getCode());
+            assertEquals(MovementException.Code.SLEEPING, ex.getCode());
         }
 
         @Test

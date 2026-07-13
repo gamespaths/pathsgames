@@ -74,7 +74,7 @@ public class EventController {
     private static HttpStatus mapStatus(EventExecutionException.Code code) {
         return switch (code) {
             case MATCH_NOT_FOUND, EVENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT, EVENT_NOT_EXECUTABLE_TYPE,
+            case MATCH_NOT_RUNNING, CHARACTER_CANNOT_ACT, SLEEPING, COMA, EVENT_NOT_EXECUTABLE_TYPE,
                  ONCE_ALREADY_CONSUMED, WRONG_LOCATION, NOT_ENOUGH_ENERGY, NOT_ENOUGH_COINS,
                  REGISTRY_CONDITION_NOT_MET, WEATHER_CONDITION_NOT_MET, ITEM_CONDITION_NOT_MET,
                  CLASS_CONDITION_NOT_MET -> HttpStatus.CONFLICT;

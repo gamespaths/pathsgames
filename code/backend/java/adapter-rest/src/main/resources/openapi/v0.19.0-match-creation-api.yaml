@@ -620,13 +620,20 @@ components:
         reason:
           description: |
             Step 29 — why not, as the error code `execute-event` would return: one of
-            `CHARACTER_CANNOT_ACT`, `EVENT_NOT_EXECUTABLE_TYPE`, `ONCE_ALREADY_CONSUMED`,
+            `CHARACTER_CANNOT_ACT`, `SLEEPING`, `COMA`, `EVENT_NOT_EXECUTABLE_TYPE`,
+            `ONCE_ALREADY_CONSUMED`,
             `WRONG_LOCATION`, `NOT_ENOUGH_ENERGY`, `NOT_ENOUGH_COINS`,
             `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
             `ITEM_CONDITION_NOT_MET`, `CLASS_CONDITION_NOT_MET`. Null when `available` is true.
           type: string
           nullable: true
           example: NOT_ENOUGH_ENERGY
+        energy:
+          description: |
+            The energy the event costs to trigger (`costEnery`); 0 when it is free. The board
+            renders the cost on the action without a second call.
+          type: integer
+          example: 1
 
     LocationInfo:
       type: object

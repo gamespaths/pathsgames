@@ -53,7 +53,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   ),
 }))
 
-import GameBook from '../features/gameplay/GameBook'
+import GameBook, { lastEffectCard } from '../features/gameplay/GameBook'
 import { endMatch, sleepCharacter } from '../api/matches'
 
 const GAME_DATA = {
@@ -315,5 +315,30 @@ describe('GameBook', () => {
     const closeBtn = screen.queryByTestId('config-view-close')
     if (closeBtn) fireEvent.click(closeBtn)
     // Either the sleep card is still visible or normal view is back — no crash
+  })
+})
+
+// Step 29 — an executed event narrates itself through the card of its LAST applied effect.
+describe('lastEffectCard', () => {
+  it('picks the card of the last effect that carries one', () => {
+    const result = { effects: [
+      { statistic: 'exp', card: { title: 'First link' } },
+      { statistic: 'life', card: { title: 'Last link' } },
+    ] }
+    expect(lastEffectCard(result)).toEqual({ title: 'Last link' })
+  })
+
+  it('skips the trailing effects that carry no card', () => {
+    const result = { effects: [
+      { statistic: 'exp', card: { title: 'The only narrative' } },
+      { statistic: 'coin' },
+    ] }
+    expect(lastEffectCard(result)).toEqual({ title: 'The only narrative' })
+  })
+
+  it('returns null when nothing narrates the event', () => {
+    expect(lastEffectCard({ effects: [{ statistic: 'exp' }] })).toBeNull()
+    expect(lastEffectCard({ effects: [] })).toBeNull()
+    expect(lastEffectCard(undefined)).toBeNull()
   })
 })

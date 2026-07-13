@@ -87,6 +87,16 @@ public class CharacterPersistenceAdapter implements CharacterPersistencePort {
     }
 
     @Override
+    public void updateCharacterFlags(Long matchId, Long characterId,
+                                     Boolean sleeping, Boolean coma) {
+        characterRepository.findByIdMatchAndId(matchId, characterId).ifPresent(entity -> {
+            if (sleeping != null) entity.setIsSleeping(sleeping);
+            if (coma     != null) entity.setIsComa(coma);
+            characterRepository.save(entity);
+        });
+    }
+
+    @Override
     public void updateBackpackStats(Long matchId, Long characterId,
                                     Integer food, Integer magic, Integer coin) {
         backpackRepository.findByIdMatchAndIdCharacterMatch(matchId, characterId).ifPresent(entity -> {

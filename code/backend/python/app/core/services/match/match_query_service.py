@@ -328,6 +328,7 @@ class MatchQueryService(MatchQueryPort):
                         card=self._resolve_card(story_id, e.get("id_card"), lang),
                         available=verdict.available,
                         reason=verdict.reason,
+                        energy=e.get("cost_enery") or 0,
                     ))
 
             result.append(LocationInfo(

@@ -120,8 +120,10 @@ export const STORIES_ENTITIES_FIELDS = {
     ],
     // Step 29 — the EFFECT side. The card of each row is the narrative the board renders.
     'event-effects': [
-      { key: 'idEvent', label: 'Event ID', type: 'number' },
       { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
+      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
+      { key: 'idEvent', label: 'Event ID', type: 'number' },
       { key: 'statistics', label: 'Statistic', type: 'select', options: EVENT_EFFECT_STATISTICS_OPTIONS },
       { key: 'value', label: 'Value', type: 'number' },
       { key: 'target', label: 'Target', type: 'select', options: EVENT_EFFECT_TARGET_OPTIONS },
@@ -357,6 +359,7 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'flagEndTime', label: 'End Time' },
     ],
     'event-effects': [
+      { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idEvent', label: 'Event ID' },
       { key: 'statistics', label: 'Statistic' },
       { key: 'value', label: 'Value' },

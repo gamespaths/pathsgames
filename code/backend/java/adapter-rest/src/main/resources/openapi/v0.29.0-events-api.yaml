@@ -17,7 +17,9 @@ info:
     none is planned. They are evaluated in this order, and the first failure names the
     reason:
 
-        character awake and not in coma      → CHARACTER_CANNOT_ACT
+        caller owns a character in the match → CHARACTER_CANNOT_ACT
+        character not in coma                → COMA
+        character awake                      → SLEEPING
         type is NORMAL or ONCE               → EVENT_NOT_EXECUTABLE_TYPE
         a ONCE event not yet spent           → ONCE_ALREADY_CONSUMED
         id_specific_location                 → WRONG_LOCATION
@@ -137,7 +139,8 @@ paths:
         '409':
           description: |
             The check procedure said no. The `error` field carries the reason:
-            `MATCH_NOT_RUNNING`, `CHARACTER_CANNOT_ACT`, `EVENT_NOT_EXECUTABLE_TYPE`,
+            `MATCH_NOT_RUNNING`, `CHARACTER_CANNOT_ACT`, `SLEEPING`, `COMA`,
+            `EVENT_NOT_EXECUTABLE_TYPE`,
             `ONCE_ALREADY_CONSUMED`, `WRONG_LOCATION`, `NOT_ENOUGH_ENERGY`,
             `NOT_ENOUGH_COINS`, `REGISTRY_CONDITION_NOT_MET`, `WEATHER_CONDITION_NOT_MET`,
             `ITEM_CONDITION_NOT_MET` or `CLASS_CONDITION_NOT_MET`.

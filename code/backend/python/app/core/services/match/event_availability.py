@@ -36,8 +36,14 @@ def check(event: Optional[Dict[str, Any]], ctx: Optional[EventCheckContext]) -> 
     """The single verdict. ``ctx`` may be None (caller owns no character)."""
     if not event:
         return EventAvailability.no(EventError.EVENT_NOT_FOUND)
-    if ctx is None or ctx.id_character is None or ctx.sleeping or ctx.coma:
+    if ctx is None or ctx.id_character is None:
         return EventAvailability.no(EventError.CHARACTER_CANNOT_ACT)
+    # Coma outranks sleep: a comatose character is also flagged asleep, and the two are not
+    # the same news for the player — one waits, the other needs a rescue.
+    if ctx.coma:
+        return EventAvailability.no(EventError.COMA)
+    if ctx.sleeping:
+        return EventAvailability.no(EventError.SLEEPING)
 
     event_type = (event.get("type") or "").strip().upper()
     if event_type not in EXECUTABLE_TYPES:

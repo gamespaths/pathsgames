@@ -165,7 +165,7 @@ def _location_info_to_camel(l):
         ],
         "events": [
             {"uuid": e.uuid, "type": e.type, "endGame": e.end_game, "card": e.card,
-             "available": e.available, "reason": e.reason}
+             "available": e.available, "reason": e.reason, "energy": e.energy}
             for e in l.events
         ],
     }

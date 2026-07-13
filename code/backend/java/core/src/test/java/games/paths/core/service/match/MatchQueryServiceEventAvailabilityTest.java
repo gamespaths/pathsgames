@@ -174,7 +174,7 @@ class MatchQueryServiceEventAvailabilityTest {
 
         for (EventInfo e : events()) {
             assertFalse(e.isAvailable());
-            assertEquals("CHARACTER_CANNOT_ACT", e.getReason());
+            assertEquals("SLEEPING", e.getReason());
         }
     }
 

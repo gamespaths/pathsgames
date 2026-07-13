@@ -75,9 +75,13 @@ public class MovementService implements MovementPort {
             throw new MovementException(MovementException.Code.MATCH_NOT_RUNNING,
                     "Match is not RUNNING");
         }
-        if (caller.isSleeping() || caller.isComa()) {
-            throw new MovementException(MovementException.Code.CHARACTER_CANNOT_ACT,
-                    "Character cannot move while sleeping or in coma");
+        if (caller.isComa()) {
+            throw new MovementException(MovementException.Code.COMA,
+                    "Character cannot move while in coma");
+        }
+        if (caller.isSleeping()) {
+            throw new MovementException(MovementException.Code.SLEEPING,
+                    "Character cannot move while sleeping");
         }
         if (caller.idLocation() == null) {
             throw new MovementException(MovementException.Code.NOT_A_NEIGHBOR,

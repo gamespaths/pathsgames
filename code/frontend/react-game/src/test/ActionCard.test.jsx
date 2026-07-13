@@ -86,14 +86,23 @@ describe('ActionCard', () => {
 
   /* ── Step 29 — execution and the backend's availability verdict ─────────── */
 
+  // The card itself no longer carries the action button: an available event hands its
+  // `onAction` to the preview (through additionalProps), and the player triggers it there.
+  function triggerFromPreview(onPreview) {
+    fireEvent.click(screen.getByTestId('preview-btn'))
+    const [[, , , , , additionalProps]] = onPreview.mock.calls
+    return additionalProps.onAction()
+  }
+
   it('executes the event and hands the result to onDone', async () => {
     const onDone = vi.fn()
+    const onPreview = vi.fn()
     const result = { eventUuid: 'a1', refreshRecommended: true }
     executeEvent.mockResolvedValue(result)
 
-    render(<ActionCard action={ACTION} story={STORY} onPreview={vi.fn()}
+    render(<ActionCard action={ACTION} story={STORY} onPreview={onPreview}
       matchUuid="m1" accessToken="tok" onDone={onDone} />)
-    fireEvent.click(screen.getByTestId('action-btn'))
+    triggerFromPreview(onPreview)
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(result))
     expect(executeEvent).toHaveBeenCalledWith('m1', 'a1', 'tok')
@@ -104,9 +113,10 @@ describe('ActionCard', () => {
     const boom = new Error('nope')
     executeEvent.mockRejectedValue(boom)
 
-    render(<ActionCard action={ACTION} story={STORY} onPreview={vi.fn()}
+    const onPreview = vi.fn()
+    render(<ActionCard action={ACTION} story={STORY} onPreview={onPreview}
       matchUuid="m1" accessToken="tok" onError={onError} />)
-    fireEvent.click(screen.getByTestId('action-btn'))
+    triggerFromPreview(onPreview)
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(boom))
   })

@@ -50,8 +50,16 @@ public final class EventAvailabilityChecker {
         if (event == null) {
             return EventAvailability.no(Code.EVENT_NOT_FOUND);
         }
-        if (ctx == null || ctx.idCharacter() == null || ctx.sleeping() || ctx.coma()) {
+        if (ctx == null || ctx.idCharacter() == null) {
             return EventAvailability.no(Code.CHARACTER_CANNOT_ACT);
+        }
+        // Coma outranks sleep: a comatose character is also flagged asleep, and the two are
+        // not the same news for the player — one waits, the other needs a rescue.
+        if (ctx.coma()) {
+            return EventAvailability.no(Code.COMA);
+        }
+        if (ctx.sleeping()) {
+            return EventAvailability.no(Code.SLEEPING);
         }
         if (!EXECUTABLE_TYPES.contains(type(event))) {
             return EventAvailability.no(Code.EVENT_NOT_EXECUTABLE_TYPE);

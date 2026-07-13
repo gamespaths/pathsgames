@@ -231,7 +231,8 @@ def test_get_match_info_serializes_locations_active(env):
                 card_back={"title": "Cave Return"},
                 card_location_from={"title": "Tavern"},
                 card_location_to=None)],
-            events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"})],
+            events=[EventInfo(uuid="evt-1", type="NORMAL", end_game=True, card={"title": "Stranger"},
+                              energy=2)],
         )
     ]
     query_port.get_match_info.return_value = detail
@@ -257,6 +258,8 @@ def test_get_match_info_serializes_locations_active(env):
     assert "locationName" not in body["players"][0] if body.get("players") else True
     assert la[0]["events"][0]["uuid"] == "evt-1"
     assert la[0]["events"][0]["endGame"] is True
+    # The energy the action costs, so the board renders the cost without a second call.
+    assert la[0]["events"][0]["energy"] == 2
     assert la[0]["events"][0]["card"]["title"] == "Stranger"
 
 

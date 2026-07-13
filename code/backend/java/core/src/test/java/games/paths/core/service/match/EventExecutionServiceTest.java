@@ -203,7 +203,7 @@ class EventExecutionServiceTest {
             when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(
                     new EventCheckContext(CHAR_ID, LOC, true, false, 20, 10, 50L,
                             new HashSet<>(), null, new HashSet<>(), new HashMap<>()));
-            assertEquals(Code.CHARACTER_CANNOT_ACT, codeOf(EventExecutionServiceTest.this::execute));
+            assertEquals(Code.SLEEPING, codeOf(EventExecutionServiceTest.this::execute));
         }
     }
 

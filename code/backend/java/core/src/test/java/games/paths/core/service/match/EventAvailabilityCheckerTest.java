@@ -184,17 +184,26 @@ class EventAvailabilityCheckerTest {
         }
 
         @Test
-        @DisplayName("CHARACTER_CANNOT_ACT while sleeping")
+        @DisplayName("SLEEPING while sleeping")
         void sleeping() {
             assertUnavailable(EventAvailabilityChecker.check(event(), ctx(b -> b.sleeping = true)),
-                    Code.CHARACTER_CANNOT_ACT);
+                    Code.SLEEPING);
         }
 
         @Test
-        @DisplayName("CHARACTER_CANNOT_ACT while in coma")
+        @DisplayName("COMA while in coma")
         void coma() {
             assertUnavailable(EventAvailabilityChecker.check(event(), ctx(b -> b.coma = true)),
-                    Code.CHARACTER_CANNOT_ACT);
+                    Code.COMA);
+        }
+
+        @Test
+        @DisplayName("COMA outranks SLEEPING: a comatose character is also asleep")
+        void comaOutranksSleeping() {
+            assertUnavailable(EventAvailabilityChecker.check(event(), ctx(b -> {
+                b.sleeping = true;
+                b.coma = true;
+            })), Code.COMA);
         }
 
         @Test
@@ -363,7 +372,7 @@ class EventAvailabilityCheckerTest {
             e.setCostEnery(999);
             e.setCoinCost(999);
             assertUnavailable(EventAvailabilityChecker.check(e, ctx(b -> b.sleeping = true)),
-                    Code.CHARACTER_CANNOT_ACT);
+                    Code.SLEEPING);
         }
 
         @Test

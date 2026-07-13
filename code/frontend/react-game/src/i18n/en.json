@@ -233,6 +233,8 @@
       "blocked": "Not available",
       "reason": {
         "CHARACTER_CANNOT_ACT": "You cannot act now",
+        "SLEEPING": "You are asleep",
+        "COMA": "You are in a coma",
         "EVENT_NOT_EXECUTABLE_TYPE": "Not your move",
         "ONCE_ALREADY_CONSUMED": "Already done",
         "WRONG_LOCATION": "Not here",

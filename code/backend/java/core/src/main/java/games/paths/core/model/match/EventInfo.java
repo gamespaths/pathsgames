@@ -25,15 +25,17 @@ public class EventInfo {
     private final CardInfo card;
     private final boolean available;
     private final String reason;
+    private final int energy;
 
     public EventInfo(String uuid, String type, boolean endGame, CardInfo card,
-                     boolean available, String reason) {
+                     boolean available, String reason, int energy) {
         this.uuid = uuid;
         this.type = type;
         this.endGame = endGame;
         this.card = card;
         this.available = available;
         this.reason = reason;
+        this.energy = energy;
     }
 
     public String getUuid() { return uuid; }
@@ -45,4 +47,6 @@ public class EventInfo {
     public boolean isAvailable() { return available; }
     /** Why not, as an {@code EventExecutionException.Code} name; null when available. */
     public String getReason() { return reason; }
+    /** The energy the event costs to trigger ({@code costEnery}); 0 when it is free. */
+    public int getEnergy() { return energy; }
 }

@@ -44,9 +44,10 @@ class MovementService(MovementPort):
 
         if match["status"] != match_statuses.RUNNING:
             raise MovementError(MovementError.MATCH_NOT_RUNNING, "Match is not RUNNING")
-        if caller.get("is_sleeping") or caller.get("is_coma"):
-            raise MovementError(MovementError.CHARACTER_CANNOT_ACT,
-                                "Character cannot move while sleeping or in coma")
+        if caller.get("is_coma"):
+            raise MovementError(MovementError.COMA, "Character cannot move while in coma")
+        if caller.get("is_sleeping"):
+            raise MovementError(MovementError.SLEEPING, "Character cannot move while sleeping")
         if caller.get("id_location") is None:
             raise MovementError(MovementError.NOT_A_NEIGHBOR, "Character has no current location")
 

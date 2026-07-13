@@ -16,6 +16,8 @@ _STATUS_BY_CODE = {
     MovementError.MATCH_NOT_FOUND: 404,
     MovementError.MATCH_NOT_RUNNING: 409,
     MovementError.CHARACTER_CANNOT_ACT: 409,
+    MovementError.SLEEPING: 409,
+    MovementError.COMA: 409,
     MovementError.NOT_A_NEIGHBOR: 409,
     MovementError.MOVEMENT_CONDITION_NOT_MET: 409,
     MovementError.OVERWEIGHT: 409,

@@ -25,6 +25,10 @@ export default function EditStatsModal({ matchUuid, player, onClose, onSaved }) 
     })
     return init
   })
+  // The state flags ride along with the statistics: the same endpoint carries them, and only
+  // the admin can clear a coma (the in-game rescue is Step 38).
+  const [sleeping, setSleeping] = useState(() => !!(player.isSleeping ?? player.sleeping))
+  const [coma, setComa] = useState(() => !!(player.isComa ?? player.coma))
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState('')
 
@@ -37,6 +41,10 @@ export default function EditStatsModal({ matchUuid, player, onClose, onSaved }) 
       const n = raw === '' ? -1 : parseInt(raw, 10)
       body[f.key] = isNaN(n) ? -1 : n
     })
+    body.sleeping = sleeping
+    // Clearing coma also wakes the character and lifts life to 1 when it is still 0: the
+    // backend does that, so the character it hands back is one that can actually act.
+    body.coma = coma
     changePlayerStatistics(matchUuid, player.uuid, body)
       .then(() => { onSaved(); onClose() })
       .catch(e => setErr(e.response?.data?.message || e.message || 'Save failed'))
@@ -87,6 +95,32 @@ export default function EditStatsModal({ matchUuid, player, onClose, onSaved }) 
             )
           })}
         </div>
+        <div className="flex gap-2" style={{ marginTop: '0.75rem', flexWrap: 'wrap' }}>
+          <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <input
+              type="checkbox"
+              data-testid="stats-sleeping"
+              checked={sleeping}
+              onChange={e => setSleeping(e.target.checked)}
+            />
+            <i className="fas fa-bed" /> Sleeping
+          </label>
+          <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem',
+            marginLeft: '1rem' }}>
+            <input
+              type="checkbox"
+              data-testid="stats-coma"
+              checked={coma}
+              onChange={e => setComa(e.target.checked)}
+            />
+            <i className="fas fa-heart-crack" /> Coma
+          </label>
+        </div>
+        {coma === false && (player.isComa ?? player.coma) && (
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-gold)', marginTop: '0.35rem' }}>
+            Clearing the coma also wakes the character and raises Life to at least 1.
+          </p>
+        )}
         {err && (
           <p style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '0.5rem' }}>{err}</p>
         )}

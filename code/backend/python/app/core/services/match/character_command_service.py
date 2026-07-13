@@ -238,7 +238,9 @@ class CharacterCommandService(CharacterCommandPort):
                           dex: Optional[int], intel: Optional[int], con: Optional[int],
                           energy: Optional[int], life: Optional[int], sad: Optional[int],
                           coin: Optional[int], food: Optional[int],
-                          magic: Optional[int]) -> str:
+                          magic: Optional[int],
+                          sleeping: Optional[bool] = None,
+                          coma: Optional[bool] = None) -> str:
         match = self.match_persistence_port.find_match_by_uuid(match_uuid)
         if match is None:
             return "MATCH_NOT_FOUND"
@@ -260,10 +262,23 @@ class CharacterCommandService(CharacterCommandPort):
         eff_life   = _bounded(life,   l_max)
         eff_sad    = _bounded(sad,    s_max)
 
+        # Pulling a character OUT of a coma must leave a state it can act from: a comatose
+        # character is also asleep, and with life <= 0 the engine would drop it right back in.
+        # So clearing coma also clears sleep and lifts life to 1 when the admin left it at 0.
+        if coma is False:
+            sleeping = False
+            new_life = eff_life if eff_life is not None else _nz(character.get("life"))
+            if new_life <= 0:
+                eff_life = 1
+
         self.character_persistence_port.update_character_stats(
             match["id"], character["id"],
             dex, intel, con, eff_energy, eff_life, eff_sad,
         )
+        if sleeping is not None or coma is not None:
+            self.character_persistence_port.update_character_flags(
+                match["id"], character["id"], sleeping, coma,
+            )
         if any(v is not None for v in (food, magic, coin)):
             self.character_persistence_port.update_backpack_stats(
                 match["id"], character["id"], food, magic, coin,

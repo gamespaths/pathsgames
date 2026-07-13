@@ -71,7 +71,7 @@ paths:
         '404': { description: MATCH_NOT_FOUND }
         '409':
           description: >
-            MATCH_NOT_RUNNING | CHARACTER_CANNOT_ACT | NOT_A_NEIGHBOR |
+            MATCH_NOT_RUNNING | CHARACTER_CANNOT_ACT | SLEEPING | COMA | NOT_A_NEIGHBOR |
             MOVEMENT_CONDITION_NOT_MET | OVERWEIGHT | INSUFFICIENT_ENERGY | LOCATION_FULL
   /api/match/{uuidMatch}/locations:
     get:

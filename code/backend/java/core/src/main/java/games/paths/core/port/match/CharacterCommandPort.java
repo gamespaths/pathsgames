@@ -58,6 +58,14 @@ public interface CharacterCommandPort {
         private Integer coin;
         private Integer food;
         private Integer magic;
+        /** State flags: null leaves the flag untouched (the -1 of the numeric fields). */
+        private Boolean sleeping;
+        private Boolean coma;
+
+        public Boolean getSleeping() { return sleeping; }
+        public void setSleeping(Boolean sleeping) { this.sleeping = sleeping; }
+        public Boolean getComa() { return coma; }
+        public void setComa(Boolean coma) { this.coma = coma; }
 
         public Integer getDex() { return dex; }
         public void setDex(Integer dex) { this.dex = dex; }

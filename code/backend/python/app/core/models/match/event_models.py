@@ -15,7 +15,12 @@ class EventError(Exception):
     MATCH_NOT_FOUND = "MATCH_NOT_FOUND"
     MATCH_NOT_RUNNING = "MATCH_NOT_RUNNING"
     EVENT_NOT_FOUND = "EVENT_NOT_FOUND"
+    # The caller owns no character in this match: nothing is executable.
     CHARACTER_CANNOT_ACT = "CHARACTER_CANNOT_ACT"
+    # Asleep: the character wakes up on its own, so the block is temporary.
+    SLEEPING = "SLEEPING"
+    # In a coma: only a rescue brings it back.
+    COMA = "COMA"
     EVENT_NOT_EXECUTABLE_TYPE = "EVENT_NOT_EXECUTABLE_TYPE"
     ONCE_ALREADY_CONSUMED = "ONCE_ALREADY_CONSUMED"
     WRONG_LOCATION = "WRONG_LOCATION"

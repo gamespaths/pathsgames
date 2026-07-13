@@ -2566,11 +2566,14 @@ html, body {
 }
 .game-map-canvas:active { cursor: grabbing; }
 
+/* No `will-change: transform` here: it promotes the plane to a GPU layer that is
+   rasterised once at the current scale, so on mobile the zoomed-in map came out
+   blurry and the thin gold paths smeared. Repainting on pan is cheap (a handful
+   of nodes + one SVG) and the lines stay crisp at every zoom level. */
 .game-map-world {
   position: absolute;
   top: 0; left: 0;
   transform-origin: 0 0;
-  will-change: transform;
 }
 .game-map-world--anim { transition: transform .5s cubic-bezier(.22, 1, .36, 1); }
 /* paths paint ABOVE the node circles so the arrows are never hidden; the layer
@@ -2584,8 +2587,13 @@ html, body {
   stroke: var(--color-gold-deep);
   stroke-width: 4;
   opacity: 1;
-  filter: drop-shadow(0 0 3px var(--color-gold));
 }
+
+/* arrowheads: real polygons (see Map.jsx), so they zoom with the plane and do
+   not depend on <marker> support inside a transformed layer */
+.game-map-arrow { fill: var(--color-gold-dark); stroke: none; }
+.game-map-arrow--big { fill: var(--color-gold-deep); }
+.game-map-arrow--hot { fill: var(--color-gold-deep); }
 
 .game-map-node {
   position: absolute;
@@ -2705,6 +2713,15 @@ html, body {
     flex: none;
     height: clamp(300px, 55vh, 460px);
   }
+  /* mobile.css caps every descendant at `max-width: 100%`, which squeezed the
+     map's world and its <svg> down to the canvas width: the viewBox then scaled
+     the paths (and shrank the arrow markers to nothing) while the nodes, placed
+     with absolute left/top in px, stayed put — lines drawn off their circles.
+     The world is a pan/zoom plane in graph coordinates: it must keep its own
+     size and let .game-map-canvas do the clipping. */
+  .book-mobile-layout .game-map-world,
+  .book-mobile-layout .game-map-svg,
+  .book-mobile-layout .game-map-node { max-width: none; }
 }
 
 /* ── Match history (Step 28.7 logs API) ──────────────────────────────────────

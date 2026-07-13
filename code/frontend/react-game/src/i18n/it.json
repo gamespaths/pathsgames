@@ -219,6 +219,8 @@
       "blocked": "Non disponibile",
       "reason": {
         "CHARACTER_CANNOT_ACT": "Non puoi agire ora",
+        "SLEEPING": "Stai dormendo",
+        "COMA": "Sei in coma",
         "EVENT_NOT_EXECUTABLE_TYPE": "Non sta a te",
         "ONCE_ALREADY_CONSUMED": "Già fatto",
         "WRONG_LOCATION": "Non qui",

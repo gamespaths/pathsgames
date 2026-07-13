@@ -22,6 +22,8 @@ _STATUS_BY_CODE = {
     EventError.EVENT_NOT_FOUND: 404,
     EventError.MATCH_NOT_RUNNING: 409,
     EventError.CHARACTER_CANNOT_ACT: 409,
+    EventError.SLEEPING: 409,
+    EventError.COMA: 409,
     EventError.EVENT_NOT_EXECUTABLE_TYPE: 409,
     EventError.ONCE_ALREADY_CONSUMED: 409,
     EventError.WRONG_LOCATION: 409,

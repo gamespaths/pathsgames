@@ -156,9 +156,11 @@ describe('MapPage', () => {
 
   it('draws the big arrow on the exits from the current location', () => {
     const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
-    const big = [...container.querySelectorAll('line')].filter(
-      l => l.getAttribute('marker-end') === 'url(#gameMapArrBig)')
+    const big = container.querySelectorAll('polygon.game-map-arrow--big')
     expect(big.length).toBe(2) // 1→3 and 1→6 both leave the current location
+    // the heads are geometry in graph coordinates, not <marker> defs (mobile drops those)
+    expect(container.querySelectorAll('marker')).toHaveLength(0)
+    expect(big[0].getAttribute('points').split(' ')).toHaveLength(3)
   })
 
   it('calls onClose from the back arrow', () => {
@@ -216,7 +218,43 @@ describe('MapPage', () => {
     const { container } = render(<MapPage gameData={data} onClose={vi.fn()} />)
     const lines = container.querySelectorAll('line.game-map-edge')
     expect(lines).toHaveLength(1)
-    expect(lines[0].getAttribute('marker-end')).toBe('url(#gameMapArrBig)')
-    expect(lines[0].getAttribute('marker-start')).toBeNull()
+    const heads = container.querySelectorAll('polygon.game-map-arrow')
+    expect(heads).toHaveLength(1)
+    expect(heads[0].classList.contains('game-map-arrow--big')).toBe(true)
+  })
+
+  it('pushes each arrowhead a few px past its line end, outward toward the node', () => {
+    const { container } = render(<MapPage gameData={GAME_DATA} onClose={vi.fn()} />)
+    const group = container.querySelector('.game-map-svg g g')
+    const line = group.querySelector('line')
+    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(k => Number(line.getAttribute(k)))
+    const [tip] = group.querySelector('polygon').getAttribute('points').split(' ')
+    const [tx, ty] = tip.split(',').map(Number)
+    const len = Math.hypot(x2 - x1, y2 - y1)
+    // the tip lies ON the line's direction, just beyond its end point
+    expect(Math.hypot(tx - x1, ty - y1)).toBeCloseTo(len + 3, 5)
+    expect((tx - x1) * (y2 - y1) - (ty - y1) * (x2 - x1)).toBeCloseTo(0, 5)
+  })
+
+  it('sends the two heads of a two-way edge in opposite directions', () => {
+    // a two-way link between two visited locations, neither of them the current
+    // one, keeps a head at each end
+    const data = JSON.parse(JSON.stringify(GAME_DATA))
+    data.info.locations.push({ idLocation: 4, flagAlreadyActived: 1, clockCounter: 0 })
+    data.info.locationsActive[0].neighbors = [
+      { uuid: 'n4', idLocationFrom: 3, idLocationTo: 4, direction: 'NORTH', flagBack: 1 },
+    ]
+    const { container } = render(<MapPage gameData={data} onClose={vi.fn()} />)
+    const group = container.querySelector('.game-map-svg g g')
+    const line = group.querySelector('line')
+    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(k => Number(line.getAttribute(k)))
+    const tips = [...group.querySelectorAll('polygon')].map(p => {
+      const [tip] = p.getAttribute('points').split(' ')
+      return tip.split(',').map(Number)
+    })
+    expect(tips).toHaveLength(2)
+    // each tip overshoots its own end, so the pair is farther apart than the line
+    const span = Math.hypot(tips[0][0] - tips[1][0], tips[0][1] - tips[1][1])
+    expect(span).toBeCloseTo(Math.hypot(x2 - x1, y2 - y1) + 6, 5)
   })
 })

@@ -134,7 +134,12 @@ public interface EventExecutionPort {
             MATCH_NOT_FOUND,
             MATCH_NOT_RUNNING,
             EVENT_NOT_FOUND,
+            /** The caller owns no character in this match: nothing is executable. */
             CHARACTER_CANNOT_ACT,
+            /** The character is asleep — it wakes up on its own, so the block is temporary. */
+            SLEEPING,
+            /** The character is in a coma: only a rescue can bring it back. */
+            COMA,
             EVENT_NOT_EXECUTABLE_TYPE,
             ONCE_ALREADY_CONSUMED,
             WRONG_LOCATION,

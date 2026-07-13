@@ -75,9 +75,15 @@ def test_no_context_or_no_character():
     blocked(events.check(event(), {"idCharacter": None}), "CHARACTER_CANNOT_ACT")
 
 
-@pytest.mark.parametrize("state", [{"sleeping": True}, {"coma": True}])
-def test_sleeping_or_coma_cannot_act(state):
-    blocked(events.check(event(), ctx(**state)), "CHARACTER_CANNOT_ACT")
+@pytest.mark.parametrize("state,expected", [
+    ({"sleeping": True}, "SLEEPING"),
+    ({"coma": True}, "COMA"),
+    # Coma outranks sleep: a comatose character is also flagged asleep, and only one of the
+    # two tells the player they need a rescue.
+    ({"sleeping": True, "coma": True}, "COMA"),
+])
+def test_sleeping_and_coma_are_told_apart(state, expected):
+    blocked(events.check(event(), ctx(**state)), expected)
 
 
 @pytest.mark.parametrize("t", ["AUTOMATIC", "FIRST", "END", "END_GAME", None])
@@ -139,7 +145,7 @@ def test_weather_item_and_class_conditions():
 
 def test_actor_state_wins_over_everything():
     e = event(idSpecificLocation=999, costEnery=999, coinCost=999)
-    blocked(events.check(e, ctx(sleeping=True)), "CHARACTER_CANNOT_ACT")
+    blocked(events.check(e, ctx(sleeping=True)), "SLEEPING")
 
 
 def test_location_wins_over_cost_and_energy_over_coins():

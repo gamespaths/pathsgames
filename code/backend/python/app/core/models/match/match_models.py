@@ -166,6 +166,8 @@ class EventInfo:
     available: bool = False
     reason: Optional[str] = None
     card: Optional[Dict[str, Any]] = None
+    # The energy the event costs to trigger (`cost_enery`); 0 when it is free.
+    energy: int = 0
 
 
 @dataclass

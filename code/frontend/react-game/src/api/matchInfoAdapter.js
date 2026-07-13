@@ -194,6 +194,7 @@ export function matchInfoToGameData(info, story = null,t) {
     // case the action is treated as not executable rather than assumed to work.
     available: e.available === true,
     reason: e.reason ?? null,
+    energy: e?.energy ?? 0,
   }))
   const actions = [...leanActions, ...eventActions]
 

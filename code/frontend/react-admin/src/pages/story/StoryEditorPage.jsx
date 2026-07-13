@@ -722,6 +722,11 @@ export default function StoryEditorPage() {
       idEvent: {
         options: eventOptions,
       },
+      // The effect's own card is the narrative the board renders when the event runs, so it
+      // gets the same picker (and the same "new card" shortcut) as every other idCard.
+      idCard: {
+        options: cardsOptions,
+      },
       traitsToAdd: {
         options: traitsOptions,
       },

@@ -385,6 +385,8 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang),
                 "available": available,
                 "reason": reason,
+                # The energy the event costs to trigger; 0 when it is free.
+                "energy": _nz(e.get("costEnery")),
             })
 
         result.append({
@@ -948,6 +950,9 @@ def _change_statistics(match_uuid, player_uuid, body):
     coin   = _skip(body.get('coin'))
     food   = _skip(body.get('food'))
     magic  = _skip(body.get('magic'))
+    # State flags: absent (null) means "leave as it is" — the -1 of the numeric fields.
+    sleeping = body.get('sleeping')
+    coma = body.get('coma')
 
     # Cap bounded stats at their max values
     if energy is not None:
@@ -963,6 +968,15 @@ def _change_statistics(match_uuid, player_uuid, body):
         if sad_max > 0:
             sad = min(sad, sad_max)
 
+    # Pulling a character OUT of a coma must leave a state it can act from: a comatose
+    # character is also asleep, and with life <= 0 the engine would drop it right back in. So
+    # clearing coma also clears sleep and lifts life to 1 when the admin left it at 0.
+    if coma is False:
+        sleeping = False
+        new_life = life if life is not None else _nz(item.get('life'))
+        if new_life <= 0:
+            life = 1
+
     updates = {}
     if dex    is not None: updates['dexterity']    = dex
     if intel  is not None: updates['intelligence'] = intel
@@ -973,6 +987,8 @@ def _change_statistics(match_uuid, player_uuid, body):
     if coin   is not None: updates['coin']         = coin
     if food   is not None: updates['food']         = food
     if magic  is not None: updates['magic']        = magic
+    if sleeping is not None: updates['isSleeping'] = 1 if sleeping else 0
+    if coma     is not None: updates['isComa']     = 1 if coma else 0
 
     if updates:
         updated = dict(item)
@@ -1891,8 +1907,10 @@ def _start_movement(user, match_uuid, body):
 
     if match.get('status') != 'RUNNING':
         return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
-    if _nz(caller.get('isSleeping')) == 1 or _nz(caller.get('isComa')) == 1:
-        return _err(409, 'CHARACTER_CANNOT_ACT', 'Character cannot move while sleeping or in coma')
+    if _nz(caller.get('isComa')) == 1:
+        return _err(409, 'COMA', 'Character cannot move while in coma')
+    if _nz(caller.get('isSleeping')) == 1:
+        return _err(409, 'SLEEPING', 'Character cannot move while sleeping')
     if caller.get('idLocation') is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Character has no current location')
 

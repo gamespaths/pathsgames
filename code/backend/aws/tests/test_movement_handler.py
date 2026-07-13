@@ -168,7 +168,7 @@ def test_move_sleeping_blocked():
         result = h.lambda_handler(
             _event('POST', '/api/gameplay/m1/movements/start',
                    body={'targetLocationUuid': 'loc-2'}), None)
-    assert _body(result)['error'] == 'CHARACTER_CANNOT_ACT'
+    assert _body(result)['error'] == 'SLEEPING'
 
 
 def test_move_not_a_neighbor():

@@ -563,7 +563,8 @@ public class MatchQueryService implements MatchQueryPort {
                     eventInfos.add(new EventInfo(
                             e.getUuid(), e.getType(), endGame,
                             resolveCard(storyId, e.getIdCard(), lang, cardCache),
-                            av.available(), av.reasonName()));
+                            av.available(), av.reasonName(),
+                            e.getCostEnery() == null ? 0 : e.getCostEnery()));
                 }
             }
 

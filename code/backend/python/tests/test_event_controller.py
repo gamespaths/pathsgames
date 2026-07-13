@@ -104,6 +104,7 @@ def test_not_found_codes(env, code):
 
 @pytest.mark.parametrize("code", [
     EventError.MATCH_NOT_RUNNING, EventError.CHARACTER_CANNOT_ACT,
+    EventError.SLEEPING, EventError.COMA,
     EventError.EVENT_NOT_EXECUTABLE_TYPE, EventError.ONCE_ALREADY_CONSUMED,
     EventError.WRONG_LOCATION, EventError.NOT_ENOUGH_ENERGY, EventError.NOT_ENOUGH_COINS,
     EventError.REGISTRY_CONDITION_NOT_MET, EventError.WEATHER_CONDITION_NOT_MET,
