@@ -263,15 +263,22 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_card=item.get("idCard"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
-                    event_type=item.get("eventType", item.get("type")),
-                    trigger_type=item.get("triggerType"),
-                    energy_cost=item.get("energyCost", 0),
+                    # v0.29.0 — the JSON contract spells these `type` and `costEnery` (the
+                    # historical typo). Reading only `eventType`/`energyCost`, as this did,
+                    # dropped both on every Java-authored story.
+                    type=item.get("type", item.get("eventType")),
+                    cost_enery=item.get("costEnery", item.get("energyCost", 0)),
                     coin_cost=item.get("coinCost", 0),
-                    id_event_next=item.get("idEventNext"),
-                    flag_interrupt=item.get("flagInterrupt", 0),
                     flag_end_time=item.get("flagEndTime", 0),
+                    id_event_next=item.get("idEventNext"),
                     id_specific_location=item.get("idSpecificLocation")
-                    if item.get("idSpecificLocation") is not None else item.get("idLocation")
+                    if item.get("idSpecificLocation") is not None else item.get("idLocation"),
+                    id_weather=item.get("idWeather"),
+                    registry_key_condition=item.get("registryKeyCondition"),
+                    registry_value_condition=item.get("registryValueCondition"),
+                    id_item_condition=item.get("idItemCondition"),
+                    id_class_condition=item.get("idClassCondition"),
+                    id_item_to_add=item.get("idItemToAdd"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ev_id()
@@ -279,17 +286,47 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 session.add(ev)
                 session.flush()
 
+                # Effects may be nested under the event (Python's own format) or authored as a
+                # top-level `eventEffects` array (the Java/JSON contract) — see save_event_effects.
                 for ef in item.get("effects", []):
-                    efe = EventEffectEntity(
-                        id=next_ef_id(),
-                        id_story=story_id,
-                        id_event=ev.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value")),
-                        flag_group=ef.get("flagGroup", 0)
-                    )
-                    session.add(efe)
+                    session.add(self._event_effect(story_id, next_ef_id(), ef, ev.id))
             session.commit()
+
+    def save_event_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.29.0 — the top-level `eventEffects` array of the shared JSON contract."""
+        with self.session_factory() as session:
+            next_ef_id = self._make_id_counter(session, "list_events_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                new_id = explicit_id if explicit_id is not None else next_ef_id()
+                session.add(self._event_effect(story_id, new_id, ef, ef.get("idEvent")))
+            session.commit()
+
+    def _event_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
+                      id_event: Any) -> EventEffectEntity:
+        return EventEffectEntity(
+            id=new_id,
+            id_story=story_id,
+            uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+            # The effect's own card is the narrative the board renders — never imported before.
+            id_card=ef.get("idCard"),
+            id_text_name=ef.get("idTextName"),
+            id_text_description=ef.get("idTextDescription"),
+            id_event=id_event,
+            statistics=ef.get("statistics", ef.get("effectType")),
+            value=ef.get("value", ef.get("effectValue", 0)),
+            target=ef.get("target", "ALL"),
+            target_class=ef.get("targetClass"),
+            traits_to_add=ef.get("traitsToAdd"),
+            traits_to_remove=ef.get("traitsToRemove"),
+            id_item_target=ef.get("idItemTarget"),
+            item_action=ef.get("itemAction"),
+            key_to_add=ef.get("keyToAdd"),
+            key_value_to_add=ef.get("keyValueToAdd"),
+            characteristic_to_add=ef.get("characteristicToAdd"),
+            characteristic_to_remove=ef.get("characteristicToRemove"),
+            id_weather=ef.get("idWeather"),
+        )
 
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:

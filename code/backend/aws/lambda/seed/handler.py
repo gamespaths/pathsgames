@@ -174,10 +174,100 @@ SEED_STORIES = [
         "events": [
             {"id": 99, "uuid": "evt-tutorial-end", "name": "Tutorial Complete",
              "idLocation": None, "type": "END_GAME", "idCard": None},
+            # idCard (resolved against raw_cards) instead of an orphan inline literal: this
+            # event is NORMAL, so it is offered on /info like any Step 29 one, and the card
+            # the board renders is resolved — and localized — from the catalog.
             {"id": 1,  "uuid": "evt-tutorial-1",   "name": "Intro Greeting",
-             "idLocation": 1, "type": "NORMAL", "idCard": None,
-             "card": {"title": "Intro Greeting", "description": "A guard greets you.",
-                      "urlImage": None, "awesomeIcon": "fas fa-comment"}},
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            # Step 29 — one event per branch of the check procedure, all at the start
+            # location (1), plus the "unlocker" that makes each blocked one available.
+            # costEnery/coinCost/flagEndTime are spelled out even when they are 0: the SQL
+            # backends get the 0 from a column default, here the seed IS the schema, and a
+            # missing key reads back as null.
+            {"id": 10, "uuid": "evt-step29-plain", "name": "Search the Hall",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 1, "coinCost": 0, "flagEndTime": 0},
+            {"id": 11, "uuid": "evt-step29-once", "name": "A Single Chance",
+             "idSpecificLocation": 1, "type": "ONCE", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 12, "uuid": "evt-step29-noenergy", "name": "Exhausting Deed",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 999, "coinCost": 0, "flagEndTime": 0},
+            {"id": 13, "uuid": "evt-step29-nocoins", "name": "Costly Deed",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 999, "flagEndTime": 0},
+            {"id": 14, "uuid": "evt-step29-registry", "name": "Behind the Gate",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0,
+             "registryKeyCondition": "STEP29_GATE", "registryValueCondition": "OPEN"},
+            {"id": 15, "uuid": "evt-step29-class", "name": "A Warrior's Deed",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0,
+             "idClassCondition": 1},
+            # Weather 3 is the seed's inactive rule: it is never rolled at time-start, so this
+            # event starts blocked in every run and only event 21 can open it.
+            {"id": 16, "uuid": "evt-step29-weather", "name": "Under the Storm",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0, "idWeather": 3},
+            {"id": 17, "uuid": "evt-step29-elsewhere", "name": "Far Away Deed",
+             "idSpecificLocation": 2, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 18, "uuid": "evt-step29-chain", "name": "The First Link",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0, "idEventNext": 19},
+            {"id": 19, "uuid": "evt-step29-chain-tail", "name": "The Last Link",
+             "idSpecificLocation": None, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 20, "uuid": "evt-step29-open-gate", "name": "Open the Gate",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 21, "uuid": "evt-step29-set-weather", "name": "Call the Storm",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 22, "uuid": "evt-step29-endtime", "name": "Rest Until Dawn",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 1},
+            {"id": 23, "uuid": "evt-step29-traits", "name": "Take Heart",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 24, "uuid": "evt-step29-item", "name": "The Locked Chest",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0,
+             "idItemCondition": 1},
+            {"id": 25, "uuid": "evt-step29-grant-item", "name": "Find the Key",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 26, "uuid": "evt-step29-resources", "name": "Raid the Pantry",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 27, "uuid": "evt-step29-auto", "name": "The Wind Rises",
+             "idSpecificLocation": 1, "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+        ],
+        # Step 29 — the EFFECT side. Each row's own idCard is the narrative the board shows.
+        "eventEffects": [
+            {"id": 1, "idEvent": 10, "idCard": 1, "statistics": "exp",  "value": 5,  "target": "ONLY_ONE"},
+            {"id": 2, "idEvent": 10, "idCard": 1, "statistics": "life", "value": -2, "target": "ALL"},
+            {"id": 3, "idEvent": 11, "idCard": 1, "statistics": "exp",  "value": 7,  "target": "ONLY_ONE"},
+            {"id": 4, "idEvent": 18, "idCard": 1, "statistics": "exp",  "value": 1,  "target": "ONLY_ONE"},
+            {"id": 5, "idEvent": 19, "idCard": 1, "statistics": "exp",  "value": 2,  "target": "ONLY_ONE"},
+            # Unlocks event 14 (the registry gate).
+            {"id": 6, "idEvent": 20, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "STEP29_GATE", "keyValueToAdd": "OPEN"},
+            # Unlocks event 16. Here idWeather is an EFFECT — it SETS the match weather;
+            # on the event above it is a CONDITION. Same name, opposite direction.
+            {"id": 7, "idEvent": 21, "idCard": 1, "target": "ONLY_ONE", "idWeather": 3},
+            {"id": 8, "idEvent": 22, "idCard": 1, "statistics": "energy", "value": -1, "target": "ONLY_ONE"},
+            {"id": 9, "idEvent": 23, "idCard": 1, "target": "ONLY_ONE",
+             "traitsToAdd": "1", "characteristicToAdd": "BRAVE"},
+            # Unlocks event 24 (the item gate).
+            {"id": 10, "idEvent": 25, "idCard": 1, "target": "ONLY_ONE",
+             "idItemTarget": 1, "itemAction": "ADD"},
+            # Backpack resources: the three land on one event, and the untouched ones stay put.
+            {"id": 11, "idEvent": 26, "idCard": 1, "statistics": "food",  "value": 3, "target": "ONLY_ONE"},
+            {"id": 12, "idEvent": 26, "idCard": 1, "statistics": "magic", "value": 2, "target": "ONLY_ONE"},
+            {"id": 13, "idEvent": 26, "idCard": 1, "statistics": "coin",  "value": 9, "target": "ONLY_ONE"},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -217,6 +307,12 @@ SEED_STORIES = [
              "deltaEnergy": -2, "idEvent": None, "conditionKey": None,
              "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 1,
              "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3},
+            # Step 29 — inactive, so the roll at time-start can never land on it: an event
+            # conditioned on this weather is blocked until an effect sets it, in every run.
+            {"uuid": "we-tut-arcane", "id": 3, "idTextName": 801, "idCard": 6, "probability": 0,
+             "deltaEnergy": 0, "idEvent": None, "conditionKey": None,
+             "conditionValue": None, "timeStart": None, "timeEnd": None, "isActive": 0,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 0},
         ],
         # Step 23 — tr-tut-quick permitted only for class 2, tr-tut-resilient
         # prohibited for class 1, tr-tut-frail/tr-tut-weary are negative-cost;
@@ -719,6 +815,8 @@ def _seed_stories():
             # Step 20.1 — end-game event trigger (read by PATCH /api/match/{uuid}/end/{uuid_event})
             "idEventEndGame":           s.get("idEventEndGame"),
             "events":                   s.get("events", []),
+            # Step 29 — the effect side of an event (the event side lives in "events").
+            "eventEffects":             s.get("eventEffects", []),
             # Step 15 fields
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),

@@ -97,6 +97,19 @@ class TimeAdvancementService(TimeAdvancementPort):
                 return False
         return True
 
+    def force_time_end(self, match_uuid: str) -> int:
+        """Step 29 — force a time end: put every character to sleep, then advance.
+
+        Exposed on the class and deliberately NOT on TimeAdvancementPort: nothing over REST
+        should be able to skip a time unit, only the engine. Note that _advance_time wakes
+        everybody right after, so the net observable state is "awake at clock+1"; the
+        forced_sleep flag the event returns records the transition.
+        """
+        match = self._require_match(match_uuid)
+        self.store.set_all_characters_sleeping(match["id"])
+        new_clock, _recovery = self._advance_time(match)
+        return new_clock
+
     def _advance_time(self, match: Dict[str, Any]):
         new_clock = self.store.increment_match_clock(match["id"])
         self.store.insert_clock_history(match["id"], new_clock)

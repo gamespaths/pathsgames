@@ -52,6 +52,9 @@ from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
 from app.core.services.match.movement_service import MovementService
 from app.adapters.rest.match.movement_controller import MovementController
+from app.adapters.persistence.match.event_store_adapter import EventStoreAdapter
+from app.core.services.match.event_service import EventService
+from app.adapters.rest.match.event_controller import EventController
 from app.adapters.persistence.match.weather_store_adapter import WeatherStoreAdapter
 from app.core.services.match.match_logs_service import MatchLogsService
 from app.core.services.match.weather_selection_service import WeatherSelectionService
@@ -131,12 +134,16 @@ character_query_service = CharacterQueryService(
 # Step 28 — movement store (also gives MatchQueryService the visited-location set
 # for fog of war on GET /info neighbor cards, v0.28.6).
 movement_store_adapter = MovementStoreAdapter(SessionLocal)
+# Step 29 — the event store also feeds MatchQueryService the check context behind the
+# `available` flag each event of /info carries.
+event_store_adapter = EventStoreAdapter(SessionLocal)
 match_query_service = MatchQueryService(
     match_persistence_adapter,
     story_match_read_adapter,
     user_access_adapter,
     character_persistence_adapter,
     movement_store_adapter,
+    event_store_adapter,
 )
 
 # Dev-only test-data cleanup service
@@ -188,6 +195,13 @@ time_clock_controller = TimeClockController(time_advancement_service)
 # public app; the service is also passed to the admin controller for the admin
 # locations view.
 movement_controller = MovementController(movement_service)
+
+# Step 29 — normal events (player-triggered actions). The time service is held as the
+# concrete class: force_time_end is deliberately absent from the port so REST cannot skip
+# a time unit.
+event_service = EventService(event_store_adapter, story_match_read_adapter,
+                             time_advancement_service)
+event_controller = EventController(event_service)
 
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 
@@ -277,6 +291,7 @@ app = _build_app([
     turn_cycle_controller.router,
     time_clock_controller.router,
     movement_controller.router,
+    event_controller.router,
     weather_controller.router,
 ])
 

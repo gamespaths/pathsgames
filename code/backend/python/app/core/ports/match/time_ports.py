@@ -31,6 +31,10 @@ class TimeStorePort(TurnCycleStorePort):
         """Set/clear ``is_sleeping`` on a single character of the match."""
 
     @abstractmethod
+    def set_all_characters_sleeping(self, id_match: int) -> None:
+        """Step 29 — the bulk counterpart of wake_all_characters (event with flag_end_time)."""
+
+    @abstractmethod
     def wake_all_characters(self, id_match: int) -> None:
         """Clear ``is_sleeping`` on every character of the match (wake at time start)."""
 

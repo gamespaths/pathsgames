@@ -442,3 +442,19 @@ Admin Get Locations
     ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/locations
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}
+
+Execute Event
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/execute-event — trigger a NORMAL/ONCE
+    ...                event (Step 29). Whether it can be triggered is already on match-info:
+    ...                every event of locationsActive[].events carries `available` and, when
+    ...                false, the `reason` — the very code this endpoint returns as its error.
+    [Arguments]    ${token}    ${match_uuid}    ${event_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    eventUuid=${event_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/execute-event
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}

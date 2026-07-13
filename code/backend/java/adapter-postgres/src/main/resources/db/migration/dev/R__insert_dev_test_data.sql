@@ -251,6 +251,9 @@ INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value
 INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90001, 9001, 90010, 800, 50, 1);
 INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90002, 9001, 90011, 801, 35, 1);
 INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90003, 9001, 90012, 802, 15, 1);
+-- Step 29: inactive, so the roll at time-start can never land on it. An event conditioned on
+-- this weather is blocked until an effect sets it — in every run, not just the lucky ones.
+INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90004, 9001, 90012, 802, 0, 0);
 
 -- ── Story 1 Events ──────────────────────────────────────────────
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90001, 9001, 500, 500, 'FIRST', 0, 0);
@@ -260,11 +263,51 @@ INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, 
 INSERT INTO list_events (id, id_story, id_text_name, id_text_description, type, cost_enery, flag_end_time) VALUES (90005, 9001, 504, 504, 'AUTOMATIC', 0, 1);
 
 -- ── Story 1 Event Effects ───────────────────────────────────────
-INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90001, 9001, 90001, 'exp', 2);
-INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90002, 9001, 90002, 'exp', 3);
-INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90003, 9001, 90003, 'exp', 3);
-INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90004, 9001, 90004, 'energy', -1);
-INSERT INTO list_events_effects (id, id_story, id_event, statistics, value) VALUES (90005, 9001, 90005, 'exp', 15);
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES (90001, 9001, 90001, 'exp', 2, 'ALL');
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES (90002, 9001, 90002, 'exp', 3, 'ALL');
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES (90003, 9001, 90003, 'exp', 3, 'ALL');
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES (90004, 9001, 90004, 'energy', -1, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES (90005, 9001, 90005, 'exp', 15, 'ALL');
+
+-- ── Step 29 Events — player-triggered actions (mirrors the SQLite seed) ──────
+-- Bound to the START location (90001, Welcome Hall) so a fresh match already has
+-- executable actions on GET /match/{uuid}/info: one event per branch of the check
+-- procedure, plus the "unlocker" that makes each blocked one available.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90010, 9001, 90001, 503, 503, 90001, 'NORMAL', 1, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90011, 9001, 90001, 503, 503, 90001, 'ONCE', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90012, 9001, 90001, 503, 503, 90001, 'NORMAL', 999, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90013, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 999, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90014, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, 'STEP29_GATE', 'OPEN', NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90015, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, 90002, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90016, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, 90002);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90017, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, 90004, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90018, 9001, 90001, 503, 503, 90005, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+-- 90023 is the second link of the 90019 chain: Postgres validates id_event_next on
+-- INSERT, so the target row must already exist when 90019 lands.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90023, 9001, 90001, 503, 503, NULL, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90019, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, 90023, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90020, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90021, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90022, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90024, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 1, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- ── Step 29 Event Effects — one per effect kind. The EFFECT's card is the narrative. ──
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90010, 9001, 90010, 90001, 'exp', 5, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90011, 9001, 90010, 90001, 'life', -2, 'ALL');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90012, 9001, 90011, 90001, 'exp', 7, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90013, 9001, 90019, 90001, 'exp', 1, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90014, 9001, 90023, 90001, 'exp', 2, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, key_to_add, key_value_to_add) VALUES (90015, 9001, 90020, 90001, 'ONLY_ONE', 'STEP29_GATE', 'OPEN');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, id_item_target, item_action) VALUES (90016, 9001, 90021, 90001, 'ONLY_ONE', 90002, 'ADD');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, id_weather) VALUES (90017, 9001, 90022, 90001, 'ONLY_ONE', 90004);
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90018, 9001, 90024, 90001, 'energy', -1, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, traits_to_add, traits_to_remove, characteristic_to_add) VALUES (90019, 9001, 90025, 90001, 'ONLY_ONE', '90001', '90004', 'BRAVE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90020, 9001, 90026, 90001, 'food', 3, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90021, 9001, 90026, 90001, 'magic', 2, 'ONLY_ONE');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90022, 9001, 90026, 90001, 'coin', 9, 'ONLY_ONE');
 
 -- ── Story 1 Choices ─────────────────────────────────────────────
 INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90001, 9001, 90004, 1, 600, 600, 0, 1);

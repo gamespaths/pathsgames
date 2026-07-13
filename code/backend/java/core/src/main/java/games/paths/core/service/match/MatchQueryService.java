@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateLocationsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
@@ -22,6 +23,10 @@ import games.paths.core.model.match.MatchSummaryPage;
 import games.paths.core.model.match.MatchTraitCodec;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.CharacterReadPort;
+import games.paths.core.port.match.EventExecutionPort.EventAvailability;
+import games.paths.core.port.match.EventExecutionPort.EventExecutionException.Code;
+import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.EventExecutionStorePort.EventCheckContext;
 import games.paths.core.port.match.MatchQueryPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.MovementStorePort;
@@ -54,6 +59,7 @@ public class MatchQueryService implements MatchQueryPort {
     private final CharacterReadPort characterReadPort;
     private final ContentQueryPort contentQueryPort;
     private final MovementStorePort movementStorePort;
+    private final EventExecutionStorePort eventExecutionStorePort;
 
     public MatchQueryService(MatchReadPort matchReadPort,
                              StoryReadPort storyReadPort,
@@ -100,12 +106,35 @@ public class MatchQueryService implements MatchQueryPort {
                              CharacterReadPort characterReadPort,
                              ContentQueryPort contentQueryPort,
                              MovementStorePort movementStorePort) {
+        this(matchReadPort, storyReadPort, userAccessPort, characterReadPort, contentQueryPort,
+                movementStorePort, null);
+    }
+
+    /**
+     * Step 29 — the {@code eventExecutionStorePort} loads the check context once per request so
+     * every event of {@code locationsActive} can report its {@code available} flag and, when
+     * blocked, the {@code reason}. The verdict comes from {@link EventAvailabilityChecker}, the
+     * same one {@code execute-event} enforces, so the board and the endpoint cannot disagree.
+     *
+     * <p>When {@code null} (legacy constructors) every event reports
+     * {@code available=false, reason=CHARACTER_CANNOT_ACT} rather than silently claiming to be
+     * executable.</p>
+     */
+    @SuppressWarnings("java:S107")
+    public MatchQueryService(MatchReadPort matchReadPort,
+                             StoryReadPort storyReadPort,
+                             UserAccessPort userAccessPort,
+                             CharacterReadPort characterReadPort,
+                             ContentQueryPort contentQueryPort,
+                             MovementStorePort movementStorePort,
+                             EventExecutionStorePort eventExecutionStorePort) {
         this.matchReadPort = matchReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
         this.characterReadPort = characterReadPort;
         this.contentQueryPort = contentQueryPort;
         this.movementStorePort = movementStorePort;
+        this.eventExecutionStorePort = eventExecutionStorePort;
     }
 
     @Override
@@ -412,13 +441,38 @@ public class MatchQueryService implements MatchQueryPort {
         detail.setEvents(new ArrayList<>());
         detail.setChoices(new ArrayList<>());
 
+        // Step 29 — ONE context for every event of the payload. The checker is a pure function
+        // over it, so a story with fifty events costs exactly the same as a story with one.
+        EventCheckContext checkCtx = loadCheckContext(match);
+
         // Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         Long storyId = storyOpt.map(StoryEntity::getId).orElse(null);
         Integer endEventId = storyOpt.map(StoryEntity::getIdEventEndGame).orElse(null);
-        detail.setLocationsActive(
-                buildLocationsActive(storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds));
+        detail.setLocationsActive(buildLocationsActive(
+                storyId, endEventId, activeLocIds, locationsById, lang, visitedLocIds, checkCtx));
 
         return detail;
+    }
+
+    /**
+     * The check context of the match's reference character — in single-player the only one, and
+     * the creator's. Loaded once per request; null when no event store is wired.
+     *
+     * <p>The admin view uses the same reference character, so the console sees exactly the flags
+     * the player would. Per-character availability arrives with multiplayer (Step 60+).</p>
+     */
+    private EventCheckContext loadCheckContext(GamingMatchEntity match) {
+        if (eventExecutionStorePort == null || characterReadPort == null) {
+            return null;
+        }
+        Long refCharacterId = null;
+        for (GamingCharacterInstanceEntity c : characterReadPort.findCharactersByMatchId(match.getId())) {
+            if (c.getIdUser() != null && c.getIdUser().equals(match.getIdUserCreator())) {
+                refCharacterId = c.getId();
+                break;
+            }
+        }
+        return eventExecutionStorePort.loadCheckContext(match.getId(), refCharacterId);
     }
 
     /**
@@ -431,12 +485,14 @@ public class MatchQueryService implements MatchQueryPort {
      * without the cache the same card would be re-read from the content port
      * once per edge.</p>
      */
+    @SuppressWarnings("java:S107")
     private List<LocationInfo> buildLocationsActive(Long storyId,
                                                     Integer endEventId,
                                                     Set<Long> activeLocIds,
                                                     Map<Long, LocationEntity> locationsById,
                                                     String lang,
-                                                    Set<Long> visitedLocIds) {
+                                                    Set<Long> visitedLocIds,
+                                                    EventCheckContext checkCtx) {
         List<LocationInfo> result = new ArrayList<>();
         if (storyId == null || activeLocIds.isEmpty()) {
             return result;
@@ -500,9 +556,14 @@ public class MatchQueryService implements MatchQueryPort {
                         && locId.equals(e.getIdSpecificLocation().longValue())) {
                     boolean endGame = endEventId != null && e.getId() != null
                             && endEventId.longValue() == e.getId();
+                    // Step 29 — no port call in this loop: the context was loaded once.
+                    EventAvailability av = checkCtx == null
+                            ? EventAvailability.no(Code.CHARACTER_CANNOT_ACT)
+                            : EventAvailabilityChecker.check(e, checkCtx);
                     eventInfos.add(new EventInfo(
                             e.getUuid(), e.getType(), endGame,
-                            resolveCard(storyId, e.getIdCard(), lang, cardCache)));
+                            resolveCard(storyId, e.getIdCard(), lang, cardCache),
+                            av.available(), av.reasonName()));
                 }
             }
 

@@ -3,6 +3,7 @@ import base64
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
+from app.core.services.match import event_availability
 from app.core.models.match.match_models import (
     EventInfo,
     LocationInfo,
@@ -32,6 +33,7 @@ class MatchQueryService(MatchQueryPort):
         user_access_port: UserAccessPort,
         character_read_port: Optional[CharacterReadPort] = None,
         movement_store=None,
+        event_store=None,
     ) -> None:
         self.match_persistence_port = match_persistence_port
         self.story_read_port = story_read_port
@@ -42,6 +44,10 @@ class MatchQueryService(MatchQueryPort):
         # to hide a neighbor's location-card fallback for never-visited
         # destinations (fog of war). When None, no gating is applied.
         self.movement_store = movement_store
+        # Step 29 — loads the check context once per request so every event of
+        # locations_active can report its `available` flag (and, when blocked, the reason).
+        # None (legacy wiring) makes every event report unavailable rather than pretend to work.
+        self.event_store = event_store
 
     def list_user_matches(self, user_uuid: str) -> List[MatchSummary]:
         if not user_uuid:
@@ -218,8 +224,11 @@ class MatchQueryService(MatchQueryPort):
 
         story_id = story.get("id") if story else None
         end_event_id = story.get("id_event_end_game") if story else None
+        # Step 29 — ONE context for every event of the payload: the checker is a pure
+        # function over it, so fifty events cost exactly what one costs.
+        check_ctx = self._load_check_context(match)
         locations_active = self._build_locations_active(
-            story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids
+            story_id, end_event_id, active_loc_ids, loc_by_id, lang, visited_loc_ids, check_ctx
         )
 
         return MatchDetail(
@@ -234,7 +243,23 @@ class MatchQueryService(MatchQueryPort):
             locations_active=locations_active,
         )
 
-    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en", visited_loc_ids=None) -> List[LocationInfo]:
+    def _load_check_context(self, match):
+        """The check context of the match's reference character — in single-player the only
+        one, and the creator's. Loaded once per request; None when no event store is wired.
+
+        The admin view uses the same reference character, so the console sees exactly the
+        flags the player would. Per-character availability arrives with multiplayer.
+        """
+        if self.event_store is None or self.character_read_port is None:
+            return None
+        ref_id = None
+        for c in self.character_read_port.find_characters_by_match_id(match["id"]) or []:
+            if c.get("id_user") == match.get("id_user_creator"):
+                ref_id = c.get("id")
+                break
+        return self.event_store.load_check_context(match["id"], ref_id)
+
+    def _build_locations_active(self, story_id, end_event_id, active_loc_ids, loc_by_id, lang: str = "en", visited_loc_ids=None, check_ctx=None) -> List[LocationInfo]:
         """Build the enriched ``locations_active`` list: each player-occupied
         location with its card, the neighbor links touching it (both directions)
         and the events specific to it — each with a resolved card."""
@@ -294,11 +319,15 @@ class MatchQueryService(MatchQueryPort):
             event_infos: List[EventInfo] = []
             for e in events:
                 if e.get("id_specific_location") == loc_id:
+                    # Step 29 — no port call in this loop: the context was loaded once.
+                    verdict = event_availability.check(e, check_ctx)
                     event_infos.append(EventInfo(
                         uuid=e.get("uuid"),
                         type=e.get("type"),
                         end_game=(end_event_id is not None and e.get("id") == end_event_id),
                         card=self._resolve_card(story_id, e.get("id_card"), lang),
+                        available=verdict.available,
+                        reason=verdict.reason,
                     ))
 
             result.append(LocationInfo(

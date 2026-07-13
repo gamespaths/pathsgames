@@ -9,6 +9,7 @@ import {
   CHOICE_CONDITION_TYPE_OPTIONS,
   EVENT_EFFECT_TARGET_OPTIONS,
   EVENT_TYPE_OPTIONS,
+  EVENT_EFFECT_STATISTICS_OPTIONS,
   ITEM_ACTION_OPTIONS,
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
@@ -97,6 +98,9 @@ export const STORIES_ENTITIES_FIELDS = {
       // Card Back is only meaningful when the neighbor allows going back (flagBack = YES).
       { key: 'idCardBack', label: 'Card Back ID', type: 'number', showIf: (d) => Number(d.flagBack) === 1 },
     ],
+    // Step 29 — list_events is the CONDITION side of an event: cost, chain, and the
+    // conditions the check procedure evaluates (all of them in AND). Everything the event
+    // DOES lives on event-effects below.
     events: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
@@ -104,26 +108,33 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idSpecificLocation', label: 'Specific Location ID', type: 'number' },
       { key: 'type', label: 'Event Type', type: 'select', options: EVENT_TYPE_OPTIONS },
       { key: 'costEnery', label: 'Energy Cost', type: 'number' },
-      { key: 'flagEndTime', label: 'Flag End Time', type: 'number' },
-      { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
-      { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
-      { key: 'keyToAdd', label: 'Key to Add', type: 'text' },
-      { key: 'keyValueToAdd', label: 'Key Value to Add', type: 'text' },
-      { key: 'idItemToAdd', label: 'Item to Add ID', type: 'number' },
-      { key: 'idWeather', label: 'Weather ID', type: 'number' },
-      { key: 'idEventNext', label: 'Next Event ID', type: 'number' },
       { key: 'coinCost', label: 'Coin Cost', type: 'number' },
+      { key: 'flagEndTime', label: 'Flag End Time', type: 'number' },
+      { key: 'idEventNext', label: 'Next Event ID', type: 'number' },
+      // Conditions (AND). idWeather here GATES the event; on an effect it SETS the weather.
+      { key: 'idWeather', label: 'Weather (condition)', type: 'number' },
+      { key: 'registryKeyCondition', label: 'Registry Key (condition)', type: 'text' },
+      { key: 'registryValueCondition', label: 'Registry Value (condition)', type: 'text' },
+      { key: 'idItemCondition', label: 'Item Owned (condition)', type: 'number' },
+      { key: 'idClassCondition', label: 'Class (condition)', type: 'number' },
     ],
+    // Step 29 — the EFFECT side. The card of each row is the narrative the board renders.
     'event-effects': [
       { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'select', options: POSSIBLE_STATISTICS_OPTIONS },
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
+      { key: 'statistics', label: 'Statistic', type: 'select', options: EVENT_EFFECT_STATISTICS_OPTIONS },
       { key: 'value', label: 'Value', type: 'number' },
       { key: 'target', label: 'Target', type: 'select', options: EVENT_EFFECT_TARGET_OPTIONS },
-      { key: 'traitsToAdd', label: 'Traits to Add', type: 'number' },
-      { key: 'traitsToRemove', label: 'Traits to Remove', type: 'number' },
       { key: 'targetClass', label: 'Target Class', type: 'number' },
+      { key: 'traitsToAdd', label: 'Traits to Add (csv of ids)', type: 'text' },
+      { key: 'traitsToRemove', label: 'Traits to Remove (csv of ids)', type: 'text' },
       { key: 'idItemTarget', label: 'Item Target ID', type: 'number' },
       { key: 'itemAction', label: 'Item Action', type: 'select', options: ITEM_ACTION_OPTIONS },
+      { key: 'keyToAdd', label: 'Registry Key to Write', type: 'text' },
+      { key: 'keyValueToAdd', label: 'Registry Value to Write', type: 'text' },
+      { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
+      { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
+      { key: 'idWeather', label: 'Weather to Set (effect)', type: 'number' },
     ],
     items: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -340,9 +351,10 @@ export const STORIES_ENTITIES_COLUMNS = {
     events: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'type', label: 'Type' },
+      { key: 'idSpecificLocation', label: 'Location' },
       { key: 'costEnery', label: 'Energy Cost' },
-      { key: 'flagEndTime', label: 'End Time' },
       { key: 'coinCost', label: 'Coin Cost' },
+      { key: 'flagEndTime', label: 'End Time' },
     ],
     'event-effects': [
       { key: 'idEvent', label: 'Event ID' },

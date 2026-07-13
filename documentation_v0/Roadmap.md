@@ -41,6 +41,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix |
 | 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
+| 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events — check procedure, `available` flag on match-info, `execute-event` endpoint |
 
 | Steps | Phase |
 | -- | -- |
@@ -69,48 +70,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
 
-29. Normal events — player-triggered actions
-    - change tables
-        - move "key_to_add, key_value_to_add" "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add to table "list_events_effects"
-        - add "registry_key_condition", "registry_value_condition" "id_class_condition" e "id_item_condition" to table "list_events"
-        - add "id_weather" to table list_events_effects (to set weather)
-        - add TYPE=ONCE into list_events values
-        - change all backend projects (aws, lambda, python) and all frontends (on editor)
-            - "update import/validator/CRUD/seed in all backend e frontends".
-        - nota: doen't matter "list_events_conditions" logic because all conditions are always in AND! Add it to final documentation.
-        - upgrade openAPI documents after changes 
-    - Create an unique "check procedure" tecnical point on backend to check if an event is possibile:
-        type=NORMAL or ONCE . ONCE if event is not on log_events table!
-        id_specific_location: if_specific_location=location of character 
-        cost_enery: character has enough energy 
-        registry: registry_key_condition, registry_value_condition
-        coin_cost : character has enough coin
-        id_weather: actual weather
-        id_item_condition: character has specific item
-        id_class_condition: character has specific class
-    - List available Normal events at current location via GET /match/{uuid_match}/info response (backend)
-        on info response add field "available" (flag to write into response if an event is possibile)
-        example ONCE just done -> available=false (ONCE is for match , write it on documentation)
-        example: if characher is_sleeping/coma -> available=false always!
-        nota: normal event with list_choices: after effects and after get choises!
-    - Implement POST /gameplay/{uuid_match}/action/execute-event endpoint to activate normal event (backend)
-        - Validate event activation: use check procedure 
-        - execute-event 
-            - with "has turn" -> new turn 
-            - execute-event if OK return event, card, flags fields for every fiedlds (turnConsumed, timeEndend, itemRemoved, itemAdded, registryChanges, weatherApplied , forcedSleep, comaTriggered, gameOver, statChanges ...), list_events_effects with cards (narrative component is card of list_events_effects), pendingChoices & refreshRecommended to return to frontend if reload "match-info API" (true if one or more flag are changes)! 
-            - if KO return reason (ONCE_ALREADY_CONSUMED, WRONG_LOCATION, NOT_ENOUGH_ENERGY,... )
-    - Deduct energy and coins cost, apply event effects to character and match state (backend)
-        - run id_event_next if present (don't mind about loop event: validator into Step22 )
-        - execute-event should have lang for cards
-    - Apply stat modifications 
-        - respecting limits: energy ≤ energy_max, life ≤ life_max, sadness ≤ sad_max, life ≥ 0 (backend)
-        - add/remove item (item_action), add/remove trait, scrittura registry (key_to_add), exp, target ALL/ONLY_ONE/target_class (INV-27: all location)
-        - if after event life ≤ 0 -> coma! Step 29 only set flag is_coma=true, is_sleeping=true and only return (clamp + flag)
-    - Handle flag_end_time: if event causes time end, force all characters to sleep and advance time (backend)
-    - Write backend unit tests for optional event activation, cost validation, effect application, and time-end trigger (backend tests)
-    - Write log into log_events table!
-    - update step09 md file! 
-    - write new robot test for ever fields and conditions (for every branches code and conditions!)
 30. Choice engine — conditions, validation, presentation
     - Return currently available choices within GET /match/{uuid_match}/info response for active character (backend)
     - Load choice options from list_choices for current event or location, ordered by priority (backend)
@@ -171,6 +130,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Build frontend mission panel component showing active missions as cards with step progress indicators (frontend)
     - Write backend unit tests for mission activation, step progression, completion events, and status transitions (backend tests)
 37. Experience and character advancement
+    - exp on event (on 29 step event exp is silence)
     - Implement experience gain through events: add experience points to gaming_character_instance on eligible events (backend)
     - Implement POST /gameplay/{uuid_match}/action/use-exp endpoint to spend experience on stat increase (backend)
     - Validate advancement: character must be sleeping in safe location, have sufficient experience (backend)
@@ -718,7 +678,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.28.7 (here only due changes)
+- **Document Version**: 0.29.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
@@ -757,8 +717,9 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     | 0.28.6 | Bugfix — fog-of-war leak on neighbor location cards: the v0.28.5 card enrichment (§ above) exposed the photo/title/description of locations that had **never been visited**, via the neighbor sub-list of `GET /api/match/{uuid}/locations` and the neighbor fallback in `GET /api/match/{uuid}/info`. Fix: a neighbor whose destination location is not in the visited set (character positions ∪ `log_movements`/`movementLog` from/to endpoints) no longer exposes that location's card. `/locations`: neighbor `idCard`+`card` set to null for unvisited destinations. `/info`: the authored LINK card (`n.idCard`) is always kept; only the fallback to the destination LOCATION's card (and therefore `cardBack`, which itself falls back to the neighbor card) is hidden. Java: `MovementService.buildLocations` and `MatchQueryService.buildLocationsActive` (new `MovementStorePort` 6th constructor arg, null-safe) gate on `findVisitedLocationIds`; `CoreConfig` updated. Python: `movement_service._build_locations` and `match_query_service._build_locations_active` (new optional `movement_store` param) gate on `find_visited_location_ids`; `launcher.py` now builds `movement_store_adapter` once and shares it with both services. AWS: `_visited_locations_payload` gates on `seen`; `_detail_from_item` computes `visited_loc_ids` (positions ∪ `movementLog` from/to) and passes it into `_build_locations_active`. OpenAPI `v0.28.0-movement-api.yaml` and `v0.19.0-match-creation-api.yaml` document the fog-of-war nullability. New Robot suite `28_movement/location_fog_of_war.robot` (4 backend-agnostic tests, tags: movement/locations/fog-of-war/step28): hides neighbor card+idCard when destination unvisited; moving into the neighbor reveals its card and it resolves via `/content`; `/info` never leaks the location card of an unvisited neighbor; admin locations view applies the same gating. Test counts: Java `mvn clean test` BUILD SUCCESS (+1 `MovementServiceTest`, +3 `MatchQueryServiceLocationsActiveTest`); Python 715 pass (+2 fog tests); AWS 416 pass (+2 fog tests); Robot dry-run 4/4. See [Step28_MovementSystem.md §14](./Step28_MovementSystem.md). | July 11, 2026 |
     | 0.28.7 | Match Logs API: new `GET /api/matches/{uuid}/logs` (owner-only) and `GET /api/admin/matches/{uuid}/logs` (admin, no ownership check) return a consolidated, timestamp-sorted timeline of WEATHER/MOVEMENT/SLEEP/CLOCK_ADVANCE log entries (+ RECOVERY on Java/Python; AWS does not yet build RECOVERY entries — no `recoveryLog` on the match item). Sleep actions are now logged for the first time: `log_events.clock` column added (Flyway `V0.28.7__add_log_events_clock.sql`), `TurnCycleStorePort.logSleep()` called from `TimeAdvancementService.sleep()`. New Java `MatchLogs{StorePort,StoreAdapter,Port,Service,Controller}` + admin endpoint; Python mirrors in `match_logs_service.py` + both controllers; AWS adds the previously-missing API Gateway routes (`GetMatchLogsRoute`/`AdminMatchLogsRoute` in `template/match.yaml`) and `sleepLog`/log-assembly helpers in `lambda/match/handler.py`. react-admin gains a "Logs" detail tab (`MatchLogsCard.jsx`). Collateral PostgreSQL fix: `POST /api/dev/cleanup` was violating the `log_movements → gaming_character_instance` FK; fixed with `LogMovementRepository.deleteByMatchIdIn()` (Java) and an equivalent Python delete (latent under SQLite, which doesn't enforce the FK). New Robot suite `29_match_logs/match_logs.robot` (11 tests). Test counts: Java BUILD SUCCESS, Python 736 pass, AWS (unit) 428 pass, react-admin (vitest) 432 pass, Robot 432/432 on Java/SQLite, Java/PostgreSQL, Python; AWS end-to-end not yet verified (requires deploy). See [Step28_MovementSystem.md — "Step 0.28.7: Match Logs API"](./Step28_MovementSystem.md). | July 12, 2026 |
     | 0.28.7 | Match Logs API **extended** (still v0.28.7): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, default limit 50, max 200 — same opaque-token envelope as `GET /api/admin/matches`: `nextCursor`/`limit`/`total`), and the entries on each page are **enriched** — WEATHER carries its own card, MOVEMENT carries the destination location's card plus the mover's `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java `MatchLogsService` now depends on `ContentQueryPort` and adds a base64 `offset:<n>` cursor codec; `MatchLogsStorePort` gains the weather/location/template-card and match-character lookups (run once per page, not per entry). Python `match_logs_service.py` mirrors the pagination helpers and takes a `content_query_service`. AWS `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs`; the AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin `MatchLogsCard.jsx` gains **Card** and **Character** columns and a "Load more" button (`getMatchLogs(uuid, { limit, cursor, lang })`). Collateral PostgreSQL seed fix: weather cards (`90010`-`90012`/`91010`-`91012`) and tutorial location cards (`90002`/`90003`) resolved with a null title (missing `list_texts` rows and missing `id_text_title`) — fixed in `R__insert_dev_test_data.sql`, also correcting pre-existing null titles on the weather/locations APIs on PostgreSQL. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests. Test counts: Java `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. See [Step28_MovementSystem.md — "Step 0.28.7: Match Logs API"](./Step28_MovementSystem.md). | July 12, 2026 |
+    | 0.29.0 | Step 29 Normal events (player-triggered actions): new `POST /api/gameplay/{uuid_match}/action/execute-event` (body `{eventUuid}`, `?lang=`) and a per-event `available`/`reason` flag on `GET /api/match/{uuid}/info` → `locationsActive[].events[]`. Both are driven by one pure check procedure (`EventAvailabilityChecker`, no I/O) evaluated against a context loaded once per request, so the board and the endpoint can never disagree; evaluation order is `CHARACTER_CANNOT_ACT` → `EVENT_NOT_EXECUTABLE_TYPE` → `ONCE_ALREADY_CONSUMED` → `WRONG_LOCATION` → `NOT_ENOUGH_ENERGY` → `NOT_ENOUGH_COINS` → `REGISTRY_CONDITION_NOT_MET` → `WEATHER_CONDITION_NOT_MET` → `ITEM_CONDITION_NOT_MET` → `CLASS_CONDITION_NOT_MET`, all AND'd (no `list_events_conditions` table — none planned). Schema `V0.29.0__events_conditions_and_effects.sql` (sqlite+postgres, add→copy→drop): `list_events` becomes the CONDITION side (adds `registry_key_condition`/`registry_value_condition`/`id_item_condition`/`id_class_condition`; new `type=ONCE` for per-match single-use events; deprecates `id_item_to_add`); `list_events_effects` becomes the EFFECT side (gains `id_weather` — opposite meaning from the identically-named column on `list_events`: here it *sets* the weather — plus `key_to_add`/`key_value_to_add`/`characteristic_to_add`/`characteristic_to_remove`, moved off `list_events`); `gaming_character_instance` gains `exp` (spent in Step 37) and `characteristics` (CSV). Chained events (`id_event_next`) are consequences, not choices: not re-checked, not charged, bounded by a visited-set + `MAX_CHAIN=32`; `target=ALL` = every character in the actor's location (INV-27), `ONLY_ONE` = the actor; coma (`life ≤ 0`) short-circuits the chain and suppresses `flag_end_time`; `turnConsumed` is always `false` (Step 28 precedent, revisited at Step 61). Executed events append an `EVENT` entry to `GET /api/matches/{uuid}/logs` (`MatchLogsService`). Two pre-existing bugs fixed on the way in: `StoryImportService.importEvents`/`importEventEffects` never persisted `idSpecificLocation`/`idWeather`/`idEventNext`/effect `idCard`, so every imported story had zero location-bound events and zero chains; and a naive "is this ONCE spent" read off `log_events.id_event` would have been poisoned by Step 26/27 rows that only *reference* an event without executing it, fixed by keying off an `EVENT_EXECUTED` message-prefix marker instead. Java (`EventAvailabilityChecker`, `EventExecutionService`, `EventExecutionPort`/`EventExecutionStorePort`/`EventExecutionStoreAdapter`, `EventController`, `StoryValidatorService` R7_EVENT_CONDITION, OpenAPI `v0.29.0-events-api.yaml` + patches to `v0.19.0`/`v0.19.12`) 1712 unit tests; Python (model columns realigned on Java, `event_availability.py`, `event_service.py`, `event_controller.py`) 828 tests, 95% coverage on the new modules; AWS (`lambda/match/events.py`, `_execute_event` in `handler.py`) 474 tests, 92% coverage on the engine; react-admin (`storiesEntities.jsx`/`storyFieldOptions.js` admin form) 439 tests; react-game (`ActionCard.jsx`, `api/matches.js`, `matchInfoAdapter.js`) 508 tests; new Robot suite `29_events/events.robot` (17 tests) — full E2E 454/454, zero regressions, on Java/SQLite, Java/PostgreSQL and Python. See [Step29_NormalEvents.md](./Step29_NormalEvents.md). | July 13, 2026 |
 
-- **Last Updated**: July 12, 2026 (v0.28.7)
+- **Last Updated**: July 13, 2026 (v0.29.0)
 - **Status**: In progress
 
 

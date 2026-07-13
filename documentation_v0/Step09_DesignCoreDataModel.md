@@ -77,8 +77,8 @@ These tables are populated by a story importer and are **read-only** during game
 | **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. |
 | **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (e.g., LIFE), `effect_value` (e.g., 2). |
 | **WeatherRule** | `list_weather_rules` | Weather types with `id_card`, `id_story`, `id_text_name`, `id_text_description`, `probability`, `cost_move_safe_location`, `cost_move_not_safe_location`, `condition_key`, `condition_key_value`, `time_from`, `time_to`, `id_text`, `active`, `priority`, `delta_energy`, `id_event`. |
-| **Event** | `list_events` | Event definitions: `id_card`, `id_story`, `id_specific_location`, `id_text_name`, `id_text_description`, `type` (AUTOMATIC/FIRST/NORMAL), `cost_enery`, `flag_end_time`, `characteristic_to_add`, `characteristic_to_remove`, `key_to_add`, `key_value_to_add`, `id_item_to_add`, `id_weather`, `id_event_next`, `coin_cost`. |
-| **EventEffect** | `list_events_effects` | Granular effects: `id_card`, `id_story`, `id_event`, `statistics` (life/energy/exp/…), `value`, `target` (ALL/ONLY_ONE), `traits_to_add`, `traits_to_remove`, `target_class`, `id_item_target`, `item_action` (REMOVE/ADD). |
+| **Event** | `list_events` | *(v0.29.0 — the CONDITION side of an event; everything it DOES lives on `list_events_effects`.)* `id_card`, `id_story`, `id_text_name`, `id_text_description`, `type` (AUTOMATIC/FIRST/NORMAL/**ONCE**), `cost_enery`, `coin_cost`, `flag_end_time`, `id_event_next`, plus the conditions — all combined in **AND** — `id_specific_location`, `id_weather` (**condition**: the current weather must match), `registry_key_condition`, `registry_value_condition`, `id_item_condition`, `id_class_condition`. `id_item_to_add` is **deprecated** (kept only for a FK clause; grant items via effects). The four columns `characteristic_to_add`, `characteristic_to_remove`, `key_to_add`, `key_value_to_add` were **dropped** and moved to `list_events_effects`. |
+| **EventEffect** | `list_events_effects` | *(v0.29.0 — the EFFECT side; each row's `id_card` is the **narrative** the board renders.)* `id_card`, `id_story`, `id_event`, `statistics` (life/energy/sad/exp/dex/int/cos/food/magic/coin), `value`, `target` (ALL/ONLY_ONE), `target_class`, `traits_to_add`, `traits_to_remove`, `id_item_target`, `item_action` (REMOVE/ADD), and new in v0.29.0: `id_weather` (**effect**: *sets* the match weather — the opposite meaning of the identically-named column on `list_events`), `key_to_add`, `key_value_to_add`, `characteristic_to_add`, `characteristic_to_remove`. |
 | **Choice** | `list_choices` | Options after an event or at a location: `id_card`, `id_story`, `id_event`, `id_location`, `priority`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_event_torun`, `limit_sad`, `limit_dex`, `limit_int`, `limit_cos`, `otherwise_flag`, `is_progress`, `logic_operator` (AND/OR). |
 | **ChoiceCondition** | `list_choices_conditions` | Condition rules for a choice: `id_story`, `id_choices`, `type` (KEYS/ITEM/CLASS/LOCATION/ALL_IN_SAME_LOC/traits/statistics/statistics_SUM), `key`, `value`, `operator` (= > < !=), `id_text_name`, `id_text_description`. |
 | **ChoiceEffect** | `list_choices_effects` | Stat deltas when selected: `id_story`, `id_choices`, `id_scelta`, `flag_group`, `statistics` (life/energy/sad/DEX/COS/INT), `value`, `id_text`, `key`, `value_to_add`, `value_to_remove`. |
@@ -95,7 +95,7 @@ These tables are populated by a story importer and are **read-only** during game
 | Entity | Table | Description |
 |--------|-------|-------------|
 | **Match** | `gaming_match` | Active match instance: `id_story`, `name`, `id_difficulty`, `exp_cost`, `status` (CREATED/RUNNING/PAUSED/ENDED/GAMEOVER), `current_clock`, `id_current_weather`, `id_user_creator`, `timestamp_start`, `timestamp_lock_expiration`, `timestamp_gameover`, `timestamp_end`, `id_character_current_turn`, `secure_location_param`, `counter_consecutive_pass`, `single_player` (INTEGER, 1=single-player / 0=multiplayer, default 1 — added v0.19.9), `character_template_uuid` (TEXT/UUID nullable — creator's chosen template, added v0.19.9), `class_uuid` (TEXT/UUID nullable — creator's chosen class, added v0.19.9), `trait_uuids` (TEXT nullable — comma-separated list of chosen trait UUIDs, added v0.19.9). |
-| **CharacterInstance** | `gaming_character_instance` | A player's character within a match: `id_match`, `id_user`, `id_character_template`, `dexterity`, `intelligence`, `constitution`, `energy`, `life`, `sad`, `id_location`, `is_sleeping`, `is_coma`, `clock_in_coma`, `timestamp_last_pass`, `counter_consecutive_pass`. |
+| **CharacterInstance** | `gaming_character_instance` | A player's character within a match: `id_match`, `id_user`, `id_character_template`, `dexterity`, `intelligence`, `constitution`, `energy`, `life`, `sad`, `id_location`, `is_sleeping`, `is_coma`, `clock_in_coma`, `timestamp_last_pass`, `counter_consecutive_pass`, `exp` (INTEGER NOT NULL DEFAULT 0 — written by event effects since v0.29.0, spent in Step 37), `characteristics` (TEXT, CSV via `MatchTraitCodec`, mirrors `gaming_match.trait_uuids` — written by `characteristic_to_add`/`characteristic_to_remove` event effects, added v0.29.0). |
 | **CharacterTraits** | `gaming_character_traits` | Traits assigned to a character instance: `id_match`, `id_character_match`, `id_traits`, `id_event`. |
 | **BackpackResources** | `gaming_backpack_resources` | Per-character resources: `id_character_match`, `food`, `magic`, `coin`. |
 | **InventoryItem** | `gaming_inventory_items` | Items held by a character: `id_character_match`, `id_item`, `amount`, `state`. |
@@ -430,8 +430,29 @@ As defined in `list_events.type`:
 | **AUTOMATIC** | `AUTOMATIC` | System-triggered events (first entry, subsequent entry, first in location, time start). The specific trigger is determined by the location columns (`id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `id_event_if_character_start_time`). | Zero |
 | **FIRST** | `FIRST` | First player entering triggers this | Zero |
 | **NORMAL** | `NORMAL` | Character voluntarily triggers the event (optional interaction) | Defined per event (`cost_enery`) |
+| **ONCE** | `ONCE` | *(v0.29.0)* Same as NORMAL, but executable **at most once per MATCH** — not per clock, not per location. Once triggered it stays spent for the rest of that match. | Defined per event (`cost_enery`) |
+
+Only **NORMAL** and **ONCE** are player-executable (`POST /api/gameplay/{uuid}/action/execute-event`); AUTOMATIC and FIRST are engine-driven.
 
 Note: The distinction between automatic sub-types (first entry, subsequent entry, first-in-location, time-start) is handled by the **location columns** that reference specific events, not by the event type enum itself.
+
+#### Event conditions are always in AND (v0.29.0)
+
+Whether a NORMAL/ONCE event can be triggered is decided by a **single check procedure**
+(`EventAvailabilityChecker`), shared by the `available` flag on `GET /api/match/{uuid}/info` and by
+`execute-event` itself — so the board and the endpoint can never disagree.
+
+Every condition lives as a **column on `list_events`** and they all combine in **AND**. There is no
+`list_events_conditions` table and none is planned. (`list_choices_conditions` belongs to the choice
+engine and is not used for events.)
+
+The conditions, in evaluation order — the first failure names the reason returned to the client:
+`type` ∈ {NORMAL, ONCE} → ONCE not already spent → `id_specific_location` (NULL = no location
+constraint) → `cost_enery` → `coin_cost` → `registry_key_condition`/`registry_value_condition` →
+`id_weather` → `id_item_condition` → `id_class_condition`. A sleeping or comatose character can
+trigger nothing.
+
+See [Step29_NormalEvents.md](./Step29_NormalEvents.md).
 
 
 ### 4.7 Time Lifecycle
@@ -525,11 +546,12 @@ These are **system invariants** — conditions that must hold true at all times 
 | # | Invariant | Enforcement |
 |---|-----------|-------------|
 | **INV-27** | An event affects **all characters** in the location (unless `target` in `list_events_effects` restricts to `ONLY_ONE` or `target_class`) | `execEvent()` iterates over characters in location; `EventEffect.target` controls scope |
-| **INV-28** | An event with `flag_end_time = true` **forces all characters to sleep** and ends the current time | `execEvent()` checks `flag_end_time` after applying effects |
+| **INV-28** | An event with `flag_end_time = true` **forces all characters to sleep** and ends the current time — **unless** the effect chain put the character in coma (`life ≤ 0`), in which case the chain stops immediately and `flag_end_time` does **not** fire (v0.29.0) | `execEvent()` checks `flag_end_time` after applying effects; the coma short-circuit runs first |
 | **INV-29** | A choice with `otherwise_flag = true` has **no activation conditions** — it is always selectable | `execChoice()` skips condition validation for otherwise option |
 | **INV-30** | Each choice resolves to at most **one** result event via `id_event_torun` | Choice → `id_event_torun` is N:1 |
 | **INV-31** | Choice conditions use **all AND** or **all OR** logic — no mixed operators within a single choice | `logic_operator` field enforced on `list_choices` |
 | **INV-32** | An event cannot execute if character lacks required energy or coins | `execEvent()` step 91b validates energy and coins before proceeding |
+| **INV-33** | A `ONCE` event executes **at most once per MATCH** — not per clock, not per location; once triggered it stays spent for the rest of that match (v0.29.0) | `EventAvailabilityChecker` builds the consumed set only from `log_events` rows whose message starts with `EVENT_EXECUTED`; rows written by recovery (Step 26) or weather (Step 27) logging that merely *reference* an `id_event` without running it do not count |
 
 
 ### 5.6 Registry Invariants
@@ -857,7 +879,8 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.19.3 | Add style fileds columns into card tables and use into frontend | May 14, 2026 |
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
-- **Last Updated**: May 19, 2026
+    | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
+- **Last Updated**: July 13, 2026
 - **Status**: Complete ✅
 
 

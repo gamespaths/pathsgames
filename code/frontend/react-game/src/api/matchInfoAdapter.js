@@ -188,6 +188,12 @@ export function matchInfoToGameData(info, story = null,t) {
     // Step 0.25.4 — the backend now flags the story's end-game event explicitly.
     endGame: e.endGame === true,
     card: e.card ?? null,
+    // Step 29 — the backend's own check-procedure verdict, the same one execute-event
+    // enforces. `reason` is the error code it would return (NOT_ENOUGH_ENERGY,
+    // ONCE_ALREADY_CONSUMED, WRONG_LOCATION, …). Absent on an older backend, in which
+    // case the action is treated as not executable rather than assumed to work.
+    available: e.available === true,
+    reason: e.reason ?? null,
   }))
   const actions = [...leanActions, ...eventActions]
 

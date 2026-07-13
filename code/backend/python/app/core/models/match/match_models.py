@@ -153,12 +153,18 @@ class JoinMatchCommand:
 
 @dataclass
 class EventInfo:
-    """Step 27.x — an event available at a player-occupied location, with its
-    resolved visual card (a camelCase dict mirroring CardInfoResponse)."""
+    """An event at a player-occupied location, with its resolved visual card (a camelCase
+    dict mirroring CardInfoResponse).
+
+    Step 29 added ``available``/``reason``: the verdict of the same check procedure that
+    execute-event enforces, so a board offering an action can never be refused, and a
+    blocked one already knows why."""
 
     uuid: str
     type: Optional[str] = None
     end_game: bool = False
+    available: bool = False
+    reason: Optional[str] = None
     card: Optional[Dict[str, Any]] = None
 
 

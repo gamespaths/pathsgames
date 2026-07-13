@@ -1972,8 +1972,6 @@ being deleted before their `log_movements` rows, so the delete violated the FK.
 ---
 
 
----
-
 # Version Control
 
 - **Document Version**: 0.28.7

@@ -88,6 +88,21 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                     c.ts_update = now
             session.commit()
 
+    def set_all_characters_sleeping(self, id_match: int) -> None:
+        """Step 29 — the bulk counterpart of wake_all_characters, for an event with
+        flag_end_time: everyone is put to sleep, then time advances."""
+        with self.session_factory() as session:
+            rows = (
+                session.query(GamingCharacterInstanceEntity)
+                .filter(GamingCharacterInstanceEntity.id_match == id_match)
+                .all()
+            )
+            now = _now_iso()
+            for c in rows:
+                c.is_sleeping = 1
+                c.ts_update = now
+            session.commit()
+
     def increment_match_clock(self, id_match: int) -> int:
         with self.session_factory() as session:
             m = session.query(GamingMatchEntity).filter(GamingMatchEntity.id == id_match).first()

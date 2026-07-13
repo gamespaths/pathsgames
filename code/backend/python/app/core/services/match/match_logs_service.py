@@ -25,6 +25,7 @@ from app.adapters.persistence.story.models import (
     LocationEntity,
     WeatherRuleEntity,
 )
+from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED
 
 
 _TYPE_WEATHER = "WEATHER"
@@ -32,6 +33,7 @@ _TYPE_MOVEMENT = "MOVEMENT"
 _TYPE_SLEEP = "SLEEP"
 _TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE"
 _TYPE_RECOVERY = "RECOVERY"
+_TYPE_EVENT = "EVENT"
 _MSG_SLEEP = "ACTION_SLEEP"
 
 DEFAULT_LIMIT = 50
@@ -169,6 +171,14 @@ class MatchLogsService:
                     "clock": e.clock,
                     "timestamp": e.timestamp,
                     "idCharacterMatch": e.id_character_match,
+                })
+            elif msg.startswith(MSG_EVENT_EXECUTED):
+                entries.append({
+                    "type": _TYPE_EVENT,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "idCharacterMatch": e.id_character_match,
+                    "message": msg,
                 })
             elif msg.startswith("recovery") or msg.startswith("counter"):
                 entries.append({

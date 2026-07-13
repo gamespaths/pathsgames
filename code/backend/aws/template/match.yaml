@@ -220,6 +220,14 @@ Resources:
       RouteKey: "POST /api/gameplay/{uuidMatch}/movements/start"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 29 — normal events (player API)
+  ExecuteEventRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/execute-event"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   GetLocationsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

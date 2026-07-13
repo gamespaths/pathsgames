@@ -122,6 +122,11 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
             ]
 
     def find_events_by_story_id(self, story_id: int) -> List[Dict[str, Any]]:
+        """Every event of the story, with the full Step 29 condition set.
+
+        The check procedure runs over these rows, so they must carry the costs and the
+        conditions — not just the id/type/location this used to return.
+        """
         with self.session_factory() as session:
             rows = (
                 session.query(EventEntity)
@@ -132,9 +137,19 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 {
                     "id": r.id,
                     "uuid": r.uuid,
-                    "type": r.event_type,
-                    "id_specific_location": r.id_specific_location,
+                    "type": r.type,
                     "id_card": r.id_card,
+                    "cost_enery": r.cost_enery or 0,
+                    "coin_cost": r.coin_cost or 0,
+                    "flag_end_time": r.flag_end_time or 0,
+                    "id_event_next": r.id_event_next,
+                    # conditions (AND)
+                    "id_specific_location": r.id_specific_location,
+                    "id_weather": r.id_weather,
+                    "registry_key_condition": r.registry_key_condition,
+                    "registry_value_condition": r.registry_value_condition,
+                    "id_item_condition": r.id_item_condition,
+                    "id_class_condition": r.id_class_condition,
                 }
                 for r in rows
             ]

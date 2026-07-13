@@ -167,6 +167,15 @@ public class TurnCycleStoreAdapter implements TurnCycleStorePort {
     }
 
     @Override
+    public void setAllCharactersSleeping(long idMatch) {
+        List<GamingCharacterInstanceEntity> characters = characterRepository.findByIdMatch(idMatch);
+        for (GamingCharacterInstanceEntity c : characters) {
+            c.setIsSleeping(true);
+        }
+        characterRepository.saveAll(characters);
+    }
+
+    @Override
     public int incrementMatchClock(long idMatch) {
         GamingMatchEntity m = matchRepository.findById(idMatch).orElse(null);
         if (m == null) return 0;

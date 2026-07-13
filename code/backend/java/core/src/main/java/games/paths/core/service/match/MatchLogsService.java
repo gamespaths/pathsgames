@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
@@ -49,6 +50,8 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_SLEEP = "SLEEP";
     private static final String TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE";
     private static final String TYPE_RECOVERY = "RECOVERY";
+    /** Step 29 — an event the player triggered. */
+    private static final String TYPE_EVENT = "EVENT";
     private static final String MSG_SLEEP = "ACTION_SLEEP";
     private static final String DEFAULT_LANG = "en";
     private static final String CURSOR_PREFIX = "offset:";
@@ -122,6 +125,9 @@ public class MatchLogsService implements MatchLogsPort {
                     null, null, null, null, null, null, null, null, null));
         }
 
+        // log_events is a shared table and the type is derived from the message prefix, so an
+        // unrecognised message is dropped rather than shown as garbage. A new writer therefore
+        // needs a branch here or its rows never reach the timeline.
         for (EventLogEntry e : store.findEventLog(match.id())) {
             String msg = e.logMessage();
             if (msg == null) {
@@ -130,6 +136,9 @@ public class MatchLogsService implements MatchLogsPort {
             if (MSG_SLEEP.equals(msg)) {
                 entries.add(new LogEntry(TYPE_SLEEP, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, null, null, null, null, null));
+            } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
+                entries.add(new LogEntry(TYPE_EVENT, e.clock(), e.timestamp(), null,
+                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null));
             } else if (msg.startsWith("recovery") || msg.startsWith("counter")) {
                 entries.add(new LogEntry(TYPE_RECOVERY, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, null, null, msg, null, null));

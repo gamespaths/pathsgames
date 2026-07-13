@@ -227,6 +227,23 @@
       "notNeighbor": "Not a neighbor",
       "moveCost": "Moving"
     },
+    "event": {
+      "action": "Do",
+      "cost": "Cost",
+      "blocked": "Not available",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "You cannot act now",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Not your move",
+        "ONCE_ALREADY_CONSUMED": "Already done",
+        "WRONG_LOCATION": "Not here",
+        "NOT_ENOUGH_ENERGY": "Not enough energy",
+        "NOT_ENOUGH_COINS": "Not enough coins",
+        "REGISTRY_CONDITION_NOT_MET": "Not yet",
+        "WEATHER_CONDITION_NOT_MET": "Wrong weather",
+        "ITEM_CONDITION_NOT_MET": "You lack an item",
+        "CLASS_CONDITION_NOT_MET": "Not for your class"
+      }
+    },
     "map": {
       "title": "Map",
       "here": "Selected",

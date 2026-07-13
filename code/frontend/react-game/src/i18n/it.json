@@ -213,6 +213,23 @@
       "noEnergy": "Energia",
       "moveCost": "Movimento"
     },
+    "event": {
+      "action": "Agisci",
+      "cost": "Costo",
+      "blocked": "Non disponibile",
+      "reason": {
+        "CHARACTER_CANNOT_ACT": "Non puoi agire ora",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Non sta a te",
+        "ONCE_ALREADY_CONSUMED": "Già fatto",
+        "WRONG_LOCATION": "Non qui",
+        "NOT_ENOUGH_ENERGY": "Energia insufficiente",
+        "NOT_ENOUGH_COINS": "Monete insufficienti",
+        "REGISTRY_CONDITION_NOT_MET": "Non ancora",
+        "WEATHER_CONDITION_NOT_MET": "Tempo sbagliato",
+        "ITEM_CONDITION_NOT_MET": "Ti manca un oggetto",
+        "CLASS_CONDITION_NOT_MET": "Non per la tua classe"
+      }
+    },
     "map": {
       "title": "Mappa",
       "here": "Selezionata",

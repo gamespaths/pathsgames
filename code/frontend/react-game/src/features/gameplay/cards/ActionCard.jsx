@@ -1,35 +1,73 @@
+import { useState } from 'react'
+import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
+import { executeEvent } from '@/api/matches'
 
 /**
- * ActionCard — a location action card (WIP). Modeled on MovementCard: one card
- * per non-end-game action available at the active location.
+ * ActionCard — Step 29. One card per NORMAL/ONCE event available at the active location.
  *
- * For now it only surfaces the action's card with the (i) preview routed to the
- * chosen book page (`previewSide`) — it does not execute anything yet. In the
- * future it will grow like MovementCard: an energy (and/or item) cost, a
- * locked/affordable state, and an action button that calls the gameplay
- * "perform action" endpoint and reloads the board. The `playerStats`, `matchUuid`,
- * `accessToken`, `onDone` and `onError` props are already threaded through so
- * that evolution needs no wiring change in GameBook.
+ * The backend has already decided whether the action can be taken: match-info ships every
+ * event with `available` and, when false, with the `reason` — the very code
+ * `execute-event` would return as its error. So this card never guesses: it either renders
+ * locked with the translated reason, or it calls
+ * POST /gameplay/{match}/action/execute-event and asks the parent to reload the board.
+ *
+ * The locked state goes through `lockInfo`, never a `label` prop: CardButtons falls back to
+ * the name and the hint would be lost (the no-label-prop-in-card convention).
  */
 export default function ActionCard({
   action, story, onPreview, previewSide = 'left',
-  // Reserved for the upcoming "perform action" flow (see MovementCard):
   playerStats, matchUuid, accessToken, onDone, onError, // eslint-disable-line no-unused-vars
 }) {
+  const { t } = useTranslation()
+  const [running, setRunning] = useState(false)
+
+  const available = action?.available === true
+  const locked = !available
+  // An older backend sends no reason: say "not available" rather than invent a cause.
+  const lockInfo = locked
+    ? (action?.reason ? t(`game.event.reason.${action.reason}`) : t('game.event.blocked'))
+    : undefined
+
   const cardData = action?.card ?? {
     title: action?.name, description: action?.description,
     urlImage: action?.urlImage, awesomeIcon: action?.awesomeIcon,
+  }
+  const actionIcon = action?.awesomeIcon ?? action?.card?.awesomeIcon ?? 'fas fa-bolt'
+
+  async function handleExecute() {
+    if (running || !matchUuid || !action?.uuid) return
+    setRunning(true)
+    try {
+      const result = await executeEvent(matchUuid, action.uuid, accessToken)
+      onDone?.(result)
+    } catch (e) {
+      console.error('execute-event failed', e?.response?.data?.error || e?.message)
+      onError?.(e)
+    } finally {
+      setRunning(false)
+    }
   }
 
   return (
     <Card
       card={cardData}
       entityType="action"
+      onAction={available ? handleExecute : undefined}
+      actionLabel={t('game.event.action')}
+      actionIcon={actionIcon}
+      locked={locked}
+      lockInfo={lockInfo}
+      lockedIcon="fas fa-ban"
       // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
-      onPreview={() => onPreview(action?.card ?? null, 'action', null, [], true, {}, previewSide)}
+      onPreview={() => onPreview(action?.card ?? null, 'action', lockInfo ?? null, [], true,
+        available
+          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon }
+          : {}, previewSide)}
       story={story}
       flagInformationCard={true}
+      actionWithInfo={true}
+      infoLabel={t('game.event.action')}
     />
   )
 }

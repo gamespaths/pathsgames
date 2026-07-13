@@ -315,11 +315,16 @@ public class StoryImportService implements StoryImportPort {
             e.setType(getString(item, "type"));
             e.setCostEnery(getInteger(item, "costEnery"));
             e.setFlagEndTime(getInteger(item, "flagEndTime"));
-            e.setCharacteristicToAdd(getString(item, "characteristicToAdd"));
-            e.setCharacteristicToRemove(getString(item, "characteristicToRemove"));
-            e.setKeyToAdd(getString(item, "keyToAdd"));
-            e.setKeyValueToAdd(getString(item, "keyValueToAdd"));
             e.setCoinCost(getInteger(item, "coinCost"));
+            // v0.29.0: these four were authored in the JSON but never persisted, so every
+            // imported story had location-less events and no chains.
+            e.setIdSpecificLocation(getInteger(item, "idSpecificLocation"));
+            e.setIdWeather(getInteger(item, "idWeather"));
+            e.setIdEventNext(getInteger(item, "idEventNext"));
+            e.setRegistryKeyCondition(getString(item, "registryKeyCondition"));
+            e.setRegistryValueCondition(getString(item, "registryValueCondition"));
+            e.setIdClassCondition(getInteger(item, "idClassCondition"));
+            e.setIdItemCondition(getInteger(item, "idItemCondition"));
             entities.add(e);
         }
         return persistencePort.saveEvents(entities).size();
@@ -596,6 +601,11 @@ public class StoryImportService implements StoryImportPort {
             EventEffectEntity e = new EventEffectEntity();
             e.setId(resolveStoryScopedId(item, "story/list_events_effects", "list_events_effects", "id", storyId, "id"));
             e.setIdStory(storyId);
+            e.setUuid(getString(item, "uuid"));
+            // v0.29.0: the effect's card is its narrative component — never imported before.
+            e.setIdCard(getInteger(item, "idCard"));
+            e.setIdTextName(getInteger(item, "idTextName"));
+            e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setIdEvent(getInteger(item, "idEvent"));
             e.setStatistics(getString(item, "statistics"));
             e.setValue(getInteger(item, "value"));
@@ -605,6 +615,11 @@ public class StoryImportService implements StoryImportPort {
             e.setTargetClass(getInteger(item, "targetClass"));
             e.setIdItemTarget(getInteger(item, "idItemTarget"));
             e.setItemAction(getString(item, "itemAction"));
+            e.setIdWeather(getInteger(item, "idWeather"));
+            e.setKeyToAdd(getString(item, "keyToAdd"));
+            e.setKeyValueToAdd(getString(item, "keyValueToAdd"));
+            e.setCharacteristicToAdd(getString(item, "characteristicToAdd"));
+            e.setCharacteristicToRemove(getString(item, "characteristicToRemove"));
             entities.add(e);
         }
         persistencePort.saveEventEffects(entities);

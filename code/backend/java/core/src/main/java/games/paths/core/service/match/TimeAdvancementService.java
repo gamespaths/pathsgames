@@ -127,6 +127,29 @@ public class TimeAdvancementService implements TimeAdvancementPort {
     // ── time-end ────────────────────────────────────────────────────────────
 
     /**
+     * Step 29 — force a time-end: put every character to sleep, then advance.
+     *
+     * <p>Called by {@code EventExecutionService} when an executed event carries
+     * {@code flag_end_time}. It is exposed on the class and deliberately NOT on
+     * {@link TimeAdvancementPort}: nothing over REST should be able to skip a time unit,
+     * only the engine.</p>
+     *
+     * <p>Note that {@link #advanceTime} wakes everybody right after, so the net observable
+     * state is "awake at clock+1". The {@code forcedSleep} flag the event returns records
+     * the transition, exactly like {@code SleepResult.isSleeping = !triggered} does.</p>
+     */
+    public TimeEndOutcome forceTimeEnd(String matchUuid) {
+        MatchView match = requireMatch(matchUuid);
+        store.setAllCharactersSleeping(match.id());
+        AdvanceResult advanced = advanceTime(match);
+        return new TimeEndOutcome(advanced.newClock(), advanced.recovery());
+    }
+
+    /** Outcome of {@link #forceTimeEnd(String)}. */
+    public record TimeEndOutcome(int newClock, List<RecoveryItem> recovery) {
+    }
+
+    /**
      * Time-end trigger: fires when every character is sleeping OR out of energy.
      * In single-player the list is size 1. An empty list never triggers.
      */

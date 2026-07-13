@@ -165,7 +165,8 @@ class MatchDtosTest {
         // there); idLocationTo is still under fog of war, hence null.
         LocationNeighborInfo nb = new LocationNeighborInfo(2L, "loc-2", "N", 0, 3, nbCard, 1, 1L, 2L, nbBackCard,
                 locCard, null);
-        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard);
+        // v0.29.0 — the event carries the check-procedure verdict; here it is blocked.
+        EventInfo ev = new EventInfo("evt-1", "NORMAL", true, evCard, false, "NOT_ENOUGH_ENERGY");
         LocationInfo li = new LocationInfo(1L, "loc-1", 7, locCard, List.of(nb), List.of(ev), 1);
 
         MatchDetail d = new MatchDetail();
@@ -199,6 +200,8 @@ class MatchDtosTest {
         assertEquals("NORMAL", evDto.getType());
         assertTrue(evDto.isEndGame());
         assertEquals("Stranger", evDto.getCard().getTitle());
+        assertFalse(evDto.isAvailable());
+        assertEquals("NOT_ENOUGH_ENERGY", evDto.getReason());
     }
 
     @Test

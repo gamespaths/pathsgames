@@ -847,20 +847,24 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("targetClass", ee.getTargetClass());
             m.put("idItemTarget", ee.getIdItemTarget());
             m.put("itemAction", ee.getItemAction());
+            m.put("idWeather", ee.getIdWeather());
+            m.put("keyToAdd", ee.getKeyToAdd());
+            m.put("keyValueToAdd", ee.getKeyValueToAdd());
+            m.put("characteristicToAdd", ee.getCharacteristicToAdd());
+            m.put("characteristicToRemove", ee.getCharacteristicToRemove());
         } else if (e instanceof EventEntity) {
             EventEntity ev = (EventEntity) e;
             m.put("idSpecificLocation", ev.getIdSpecificLocation());
             m.put("type", ev.getType());
             m.put("costEnery", ev.getCostEnery());
             m.put("flagEndTime", ev.getFlagEndTime());
-            m.put("characteristicToAdd", ev.getCharacteristicToAdd());
-            m.put("characteristicToRemove", ev.getCharacteristicToRemove());
-            m.put("keyToAdd", ev.getKeyToAdd());
-            m.put("keyValueToAdd", ev.getKeyValueToAdd());
-            m.put("idItemToAdd", ev.getIdItemToAdd());
             m.put("idWeather", ev.getIdWeather());
             m.put("idEventNext", ev.getIdEventNext());
             m.put("coinCost", ev.getCoinCost());
+            m.put("registryKeyCondition", ev.getRegistryKeyCondition());
+            m.put("registryValueCondition", ev.getRegistryValueCondition());
+            m.put("idClassCondition", ev.getIdClassCondition());
+            m.put("idItemCondition", ev.getIdItemCondition());
         } else if (e instanceof ChoiceConditionEntity) {
             ChoiceConditionEntity cc = (ChoiceConditionEntity) e;
             m.put("idChoices", cc.getIdChoices());
@@ -1179,22 +1183,20 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCostEnery(intVal(d, "costEnery"));
         if (d.containsKey("flagEndTime"))
             e.setFlagEndTime(intVal(d, "flagEndTime"));
-        if (d.containsKey("characteristicToAdd"))
-            e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
-        if (d.containsKey("characteristicToRemove"))
-            e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
-        if (d.containsKey("keyToAdd"))
-            e.setKeyToAdd(str(d, "keyToAdd"));
-        if (d.containsKey("keyValueToAdd"))
-            e.setKeyValueToAdd(str(d, "keyValueToAdd"));
-        if (d.containsKey("idItemToAdd"))
-            e.setIdItemToAdd(intVal(d, "idItemToAdd"));
         if (d.containsKey("idWeather"))
             e.setIdWeather(intVal(d, "idWeather"));
         if (d.containsKey("idEventNext"))
             e.setIdEventNext(intVal(d, "idEventNext"));
         if (d.containsKey("coinCost"))
             e.setCoinCost(intVal(d, "coinCost"));
+        if (d.containsKey("registryKeyCondition"))
+            e.setRegistryKeyCondition(str(d, "registryKeyCondition"));
+        if (d.containsKey("registryValueCondition"))
+            e.setRegistryValueCondition(str(d, "registryValueCondition"));
+        if (d.containsKey("idClassCondition"))
+            e.setIdClassCondition(intVal(d, "idClassCondition"));
+        if (d.containsKey("idItemCondition"))
+            e.setIdItemCondition(intVal(d, "idItemCondition"));
     }
 
     private void applyItemFields(ItemEntity e, Map<String, Object> d) {
@@ -1416,6 +1418,16 @@ public class StoryCrudService implements StoryCrudPort {
             e.setIdItemTarget(intVal(d, "idItemTarget"));
         if (d.containsKey("itemAction"))
             e.setItemAction(str(d, "itemAction"));
+        if (d.containsKey("idWeather"))
+            e.setIdWeather(intVal(d, "idWeather"));
+        if (d.containsKey("keyToAdd"))
+            e.setKeyToAdd(str(d, "keyToAdd"));
+        if (d.containsKey("keyValueToAdd"))
+            e.setKeyValueToAdd(str(d, "keyValueToAdd"));
+        if (d.containsKey("characteristicToAdd"))
+            e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
+        if (d.containsKey("characteristicToRemove"))
+            e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
     }
 
     private void applyChoiceFields(ChoiceEntity e, Map<String, Object> d) {

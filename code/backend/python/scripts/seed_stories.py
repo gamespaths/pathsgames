@@ -88,7 +88,79 @@ def seed():
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
-             "idSpecificLocation": 1}
+             "idSpecificLocation": 1},
+            # Step 29 — one event per branch of the check procedure, all bound to the start
+            # location (1) so a fresh match already offers them, plus the "unlocker" that makes
+            # each blocked one available. Effects carry their own idCard: that card is the
+            # narrative the board renders.
+            {"id": 10, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costEnery": 1, "idCard": 1,
+             "effects": [
+                 {"idCard": 1, "statistics": "exp",  "value": 5,  "target": "ONLY_ONE"},
+                 {"idCard": 1, "statistics": "life", "value": -2, "target": "ALL"},
+             ]},
+            {"id": 11, "idTextName": 500, "idTextDescription": 500, "type": "ONCE",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 7, "target": "ONLY_ONE"}]},
+            # NOT_ENOUGH_ENERGY / NOT_ENOUGH_COINS
+            {"id": 12, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costEnery": 999, "idCard": 1},
+            {"id": 13, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "coinCost": 999, "idCard": 1},
+            # REGISTRY_CONDITION_NOT_MET, until event 20 writes the key
+            {"id": 14, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "registryKeyCondition": "STEP29_GATE", "registryValueCondition": "OPEN"},
+            # ITEM_CONDITION_NOT_MET, until event 21 grants item 1
+            {"id": 15, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1, "idItemCondition": 1},
+            # WEATHER_CONDITION_NOT_MET, until event 22 sets weather 3 (the inactive rule, so
+            # the roll at time-start can never hand it to us for free)
+            {"id": 17, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1, "idWeather": 3},
+            # WRONG_LOCATION: bound to the other location
+            {"id": 18, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 2, "idCard": 1},
+            # The chain: 19 charges, then runs 23. 23 has no location, so it is not listed.
+            {"id": 19, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1, "idEventNext": 23,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 1, "target": "ONLY_ONE"}]},
+            {"id": 23, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": None, "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 2, "target": "ONLY_ONE"}]},
+            # The unlockers: registry key, item, weather.
+            {"id": 20, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP29_GATE", "keyValueToAdd": "OPEN"}]},
+            {"id": 21, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "idItemTarget": 1, "itemAction": "ADD"}]},
+            # Here idWeather is an EFFECT — it SETS the weather; on event 17 it is a CONDITION.
+            {"id": 22, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idWeather": 3}]},
+            # flagEndTime advances the clock for everyone.
+            {"id": 24, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1, "flagEndTime": 1,
+             "effects": [{"idCard": 1, "statistics": "energy", "value": -1,
+                          "target": "ONLY_ONE"}]},
+            # Traits + characteristics, then the backpack resources.
+            {"id": 25, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "traitsToAdd": "1",
+                          "traitsToRemove": "2", "characteristicToAdd": "BRAVE"}]},
+            {"id": 26, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [
+                 {"idCard": 1, "statistics": "food",  "value": 3, "target": "ONLY_ONE"},
+                 {"idCard": 1, "statistics": "magic", "value": 2, "target": "ONLY_ONE"},
+                 {"idCard": 1, "statistics": "coin",  "value": 9, "target": "ONLY_ONE"},
+             ]},
+            # EVENT_NOT_EXECUTABLE_TYPE: listed, never player-triggered.
+            {"id": 27, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idSpecificLocation": 1, "idCard": 1},
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}
@@ -126,6 +198,12 @@ def seed():
              "costMoveSafeLocation": 1, "costMoveNotSafeLocation": 3,
              "conditionKey": None, "conditionValue": None, "timeStart": None,
              "timeEnd": None, "isActive": 1},
+            # Step 29 — inactive, so the roll at time-start can never land on it: the event
+            # conditioned on this weather is blocked until an effect sets it, in every run.
+            {"idTextName": 201, "idCard": 6, "probability": 0, "deltaEnergy": 0, "idEvent": None,
+             "costMoveSafeLocation": 0, "costMoveNotSafeLocation": 0,
+             "conditionKey": None, "conditionValue": None, "timeStart": None,
+             "timeEnd": None, "isActive": 0},
         ],
         "cards": [
             {

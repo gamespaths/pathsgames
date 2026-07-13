@@ -64,9 +64,41 @@ public class StoryValidatorService implements StoryValidatorPort {
             case "character-templates" -> validateTemplateLocal(entityType, id, data, report);
             case "items", "traits" -> validateClassRestrictionLocal(entityType, id, data, report);
             case "difficulties" -> validateDifficultyLocal(entityType, id, data, report);
+            case "events" -> validateEventLocal(entityType, id, data, report);
             default -> { /* no entity-local rule */ }
         }
         return report;
+    }
+
+    /**
+     * Step 29 — entity-local event rules, reachable from the lenient admin CRUD path
+     * (which never sees the whole story graph).
+     *
+     * <p>Note there is deliberately NO closed vocabulary for {@code type}. The column is
+     * free text and authored stories already use values beyond the documented four
+     * (`END`, `END_GAME`), while the end-game event is identified by
+     * {@code story.idEventEndGame} rather than by its type. Rejecting an unknown type
+     * would break that content for no gain: the engine already treats anything outside
+     * {NORMAL, ONCE} as not player-executable, which is the safe default.</p>
+     */
+    private void validateEventLocal(String type, String id, Map<String, Object> data,
+                                    StoryValidationReport report) {
+        // A registry condition whose expected value is missing can never be satisfied, so the
+        // event would be permanently unavailable — almost certainly an authoring slip.
+        String key = str(data.get("registryKeyCondition"));
+        String value = str(data.get("registryValueCondition"));
+        if (key != null && !key.isBlank() && (value == null || value.isBlank())) {
+            report.add("R7_EVENT_CONDITION", type, id, "registryValueCondition",
+                    "registryKeyCondition=" + key + " has no registryValueCondition,"
+                            + " so the condition can never be met");
+        }
+    }
+
+    /** Step 29 — the same rule over every event of a whole story. */
+    private void validateEvents(StoryGraph g, StoryValidationReport report) {
+        for (Map.Entry<String, Map<String, Object>> e : g.eventData.entrySet()) {
+            validateEventLocal("events", e.getKey(), e.getValue(), report);
+        }
     }
 
     // ===== Rule engine =====
@@ -79,6 +111,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         validateKeys(g, report);          // R4 conditions reference valid keys
         validateTemplates(g, report);     // R6 stat ranges
         validateClassRestrictions(g, report); // R6 permitted != prohibited
+        validateEvents(g, report);        // R7 event conditions (Step 29)
     }
 
     private void validateReferences(StoryGraph g, StoryValidationReport report) {
@@ -90,6 +123,7 @@ public class StoryValidatorService implements StoryValidatorPort {
                 case CHOICE -> g.choices;
                 case CLASS -> g.classes;
                 case MISSION -> g.missions;
+                case WEATHER -> g.weathers;
             };
             if (r.value != null && r.value > 0 && !universe.contains(r.value)) {
                 report.add(r.rule, r.entityType, r.entityId, r.field,
@@ -265,6 +299,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         collectIds(g.choices, list(data, "choices"), "id");
         collectIds(g.classes, list(data, "classes"), "id");
         collectIds(g.missions, list(data, "missions"), "id");
+        collectIds(g.weathers, list(data, "weatherRules"), "id");
         for (Map<String, Object> k : list(data, "keys")) {
             String name = str(k.get("name"));
             if (name != null) {
@@ -281,8 +316,12 @@ public class StoryValidatorService implements StoryValidatorPort {
         for (Map<String, Object> e : list(data, "events")) {
             String id = str(e.get("id"));
             ref(g, "events", id, "idSpecificLocation", Target.LOCATION, asInt(e.get("idSpecificLocation")));
-            ref(g, "events", id, "idItemToAdd", Target.ITEM, asInt(e.get("idItemToAdd")));
             ref(g, "events", id, "idEventNext", Target.EVENT, asInt(e.get("idEventNext")));
+            // Step 29 conditions (idItemToAdd is deprecated and no longer referenced).
+            ref(g, "events", id, "idWeather", Target.WEATHER, asInt(e.get("idWeather")));
+            ref(g, "events", id, "idClassCondition", Target.CLASS, asInt(e.get("idClassCondition")));
+            ref(g, "events", id, "idItemCondition", Target.ITEM, asInt(e.get("idItemCondition")));
+            g.eventData.put(id, e);
             Integer myId = asInt(e.get("id"));
             Integer next = asInt(e.get("idEventNext"));
             if (myId != null && next != null) {
@@ -315,6 +354,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "idEvent", Target.EVENT, asInt(ee.get("idEvent")));
             ref(g, "event-effects", id, "idItemTarget", Target.ITEM, asInt(ee.get("idItemTarget")));
             ref(g, "event-effects", id, "targetClass", Target.CLASS, asInt(ee.get("targetClass")));
+            // Step 29 — here idWeather is the EFFECT that sets the match weather.
+            ref(g, "event-effects", id, "idWeather", Target.WEATHER, asInt(ee.get("idWeather")));
         }
         for (Map<String, Object> ie : list(data, "itemEffects")) {
             ref(g, "item-effects", str(ie.get("id")), "idItem", Target.ITEM, asInt(ie.get("idItem")));
@@ -391,8 +432,15 @@ public class StoryValidatorService implements StoryValidatorPort {
         for (EventEntity e : events) {
             String id = str(e.getId());
             ref(g, "events", id, "idSpecificLocation", Target.LOCATION, e.getIdSpecificLocation());
-            ref(g, "events", id, "idItemToAdd", Target.ITEM, e.getIdItemToAdd());
             ref(g, "events", id, "idEventNext", Target.EVENT, e.getIdEventNext());
+            // Step 29 conditions (idItemToAdd is deprecated and no longer referenced).
+            ref(g, "events", id, "idWeather", Target.WEATHER, e.getIdWeather());
+            ref(g, "events", id, "idClassCondition", Target.CLASS, e.getIdClassCondition());
+            ref(g, "events", id, "idItemCondition", Target.ITEM, e.getIdItemCondition());
+            Map<String, Object> row = new HashMap<>();
+            row.put("registryKeyCondition", e.getRegistryKeyCondition());
+            row.put("registryValueCondition", e.getRegistryValueCondition());
+            g.eventData.put(id, row);
             if (e.getId() != null && e.getIdEventNext() != null) {
                 g.eventNext.put(e.getId().intValue(), e.getIdEventNext());
             }
@@ -421,6 +469,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "idEvent", Target.EVENT, ee.getIdEvent());
             ref(g, "event-effects", id, "idItemTarget", Target.ITEM, ee.getIdItemTarget());
             ref(g, "event-effects", id, "targetClass", Target.CLASS, ee.getTargetClass());
+            // Step 29 — here idWeather is the EFFECT that sets the match weather.
+            ref(g, "event-effects", id, "idWeather", Target.WEATHER, ee.getIdWeather());
         }
         for (ItemEffectEntity ie : readPort.findItemEffectsByStoryId(storyId)) {
             ref(g, "item-effects", str(ie.getId()), "idItem", Target.ITEM, ie.getIdItem());
@@ -432,6 +482,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "mission-steps", str(ms.getId()), "idMission", Target.MISSION, ms.getIdMission());
         }
         for (WeatherRuleEntity wr : readPort.findWeatherRulesByStoryId(storyId)) {
+            addId(g.weathers, wr.getId());
             ref(g, "weather-rules", str(wr.getId()), "idEvent", Target.EVENT, wr.getIdEvent());
         }
         for (GlobalRandomEventEntity gr : readPort.findGlobalRandomEventsByStoryId(storyId)) {
@@ -484,6 +535,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             case CHOICE -> "R_CHOICE_REF";
             case CLASS -> "R_CLASS_REF";
             case MISSION -> "R_MISSION_REF";
+            case WEATHER -> "R_WEATHER_REF";
         };
     }
 
@@ -543,7 +595,7 @@ public class StoryValidatorService implements StoryValidatorPort {
 
     // ===== Internal normalised model =====
 
-    private enum Target { LOCATION, EVENT, ITEM, CHOICE, CLASS, MISSION }
+    private enum Target { LOCATION, EVENT, ITEM, CHOICE, CLASS, MISSION, WEATHER }
 
     private record Ref(String rule, String entityType, String entityId, String field, Target target, Integer value) {}
 
@@ -563,6 +615,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         final Set<Integer> choices = new HashSet<>();
         final Set<Integer> classes = new HashSet<>();
         final Set<Integer> missions = new HashSet<>();
+        final Set<Integer> weathers = new HashSet<>();
         final Set<String> keyNames = new HashSet<>();
         final List<Ref> refs = new ArrayList<>();
         final List<Neighbor> neighbors = new ArrayList<>();
@@ -572,5 +625,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         final Map<Integer, Integer> eventNext = new HashMap<>();
         final Map<Integer, Boolean> choiceOtherwise = new HashMap<>();
         final Set<Integer> choicesWithOption = new HashSet<>();
+        /** Step 29 — event id to its authored fields, so the entity-local rules can run story-wide. */
+        final Map<String, Map<String, Object>> eventData = new HashMap<>();
     }
 }

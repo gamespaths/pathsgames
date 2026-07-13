@@ -30,7 +30,16 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_events(self, story_id: int, events: List[Dict[str, Any]]) -> None:
         pass
-        
+
+    @abstractmethod
+    def save_event_effects(self, story_id: int, effects: List[Dict[str, Any]]) -> None:
+        """v0.29.0 — the top-level `eventEffects` array of the shared JSON contract.
+
+        It used to be dropped entirely on this backend: effects were only read when nested
+        under an event, which the Java-authored format never does.
+        """
+        pass
+
     @abstractmethod
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         pass

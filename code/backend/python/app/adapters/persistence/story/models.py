@@ -243,6 +243,18 @@ class WeatherRuleEntity(Base):
 
 
 class EventEntity(Base):
+    """v0.29.0 — the CONDITION side of an event.
+
+    Realigned onto the Java column names (the reference implementation): the table used to
+    call these `event_type` and `energy_cost`, which meant a Java-authored story imported
+    into Python silently lost its costs. Everything an event DOES now lives on
+    EventEffectEntity; what is left here is the cost, the chain, and the conditions — all
+    of which combine in AND.
+
+    `cost_enery` keeps the historical typo of the shared DDL on purpose: the JSON contract,
+    the admin form and the Java entity all spell it that way.
+    """
+
     __tablename__ = "list_events"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -251,30 +263,61 @@ class EventEntity(Base):
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
-    event_type = Column(String(50))
-    trigger_type = Column(String(50))
-    energy_cost = Column(Integer, default=0)
+    # AUTOMATIC / FIRST / NORMAL / ONCE (free text: authored stories also use END, END_GAME).
+    # Only NORMAL and ONCE are player-executable; ONCE is spent once per MATCH.
+    type = Column(String(50))
+    cost_enery = Column(Integer, default=0)
     coin_cost = Column(Integer, default=0)
-    id_event_next = Column(Integer)
-    flag_interrupt = Column(Integer, default=0)
     flag_end_time = Column(Integer, default=0)
-    # The owning location of a location-specific event. Named to match the shared
-    # contract / Java column `id_specific_location` (camelCase idSpecificLocation),
-    # so the admin CRUD and match-info agree on a single field.
+    id_event_next = Column(Integer)
+    # ── conditions (AND) ────────────────────────────────────────────────────
+    # The owning location of a location-specific event; NULL = no location constraint.
     id_specific_location = Column(Integer)
+    # CONDITION: the match's current weather must equal this. Beware the mirror —
+    # EventEffectEntity.id_weather carries the same name but SETS the weather.
+    id_weather = Column(Integer)
+    registry_key_condition = Column(String(200))
+    registry_value_condition = Column(String(500))
+    id_item_condition = Column(Integer)
+    id_class_condition = Column(Integer)
+    # DEPRECATED v0.29.0: ignored by the engine. Items are granted through effects.
+    id_item_to_add = Column(Integer)
 
 
 class EventEffectEntity(Base):
+    """v0.29.0 — the EFFECT side of an event, one row per effect.
+
+    Realigned onto the Java column set; the old `effect_type`/`effect_value`/`flag_group`
+    trio was disjoint from it, so no Java-authored effect survived an import.
+    The inherited `id_card` is the row's NARRATIVE card — that, not the event's card, is
+    what the board renders.
+    """
+
     __tablename__ = "list_events_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
+    id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_event = Column(Integer)
-    effect_type = Column(String(50))
-    effect_value = Column(Integer)
-    flag_group = Column(Integer, default=0)
+    # life, energy, sad, exp, dex, int, cos, food, magic, coin
+    statistics = Column(String(50))
+    value = Column(Integer, default=0)
+    # ALL = every character in the actor's location (INV-27); ONLY_ONE = the actor.
+    target = Column(String(20), default="ALL")
+    target_class = Column(Integer)
+    traits_to_add = Column(String(200))
+    traits_to_remove = Column(String(200))
+    id_item_target = Column(Integer)
+    item_action = Column(String(20))
+    key_to_add = Column(String(200))
+    key_value_to_add = Column(String(500))
+    characteristic_to_add = Column(String(200))
+    characteristic_to_remove = Column(String(200))
+    # EFFECT: sets gaming_match.id_current_weather (the opposite of EventEntity.id_weather).
+    id_weather = Column(Integer)
 
 
 class ChoiceEntity(Base):

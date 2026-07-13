@@ -249,12 +249,21 @@ public class MatchInfoResponse {
         public void setCardLocationTo(CardInfoResponse cardLocationTo) { this.cardLocationTo = cardLocationTo; }
     }
 
-    /** An event available at a player-occupied location, with its card. */
+    /**
+     * An event at a player-occupied location, with its card.
+     *
+     * <p>{@code available} (Step 29) is the verdict of the same check procedure that
+     * {@code POST /api/gameplay/{uuid}/action/execute-event} enforces, and {@code reason}
+     * is the error code that endpoint would return. The board can therefore render a locked
+     * action, with its cause, without guessing.</p>
+     */
     public static class EventInfoDto {
         private String uuid;
         private String type;
         private boolean endGame;
         private CardInfoResponse card;
+        private boolean available;
+        private String reason;
 
         public static EventInfoDto fromModel(EventInfo m) {
             EventInfoDto d = new EventInfoDto();
@@ -262,6 +271,8 @@ public class MatchInfoResponse {
             d.type = m.getType();
             d.endGame = m.isEndGame();
             d.card = CardInfoResponse.fromModel(m.getCard());
+            d.available = m.isAvailable();
+            d.reason = m.getReason();
             return d;
         }
 
@@ -273,5 +284,9 @@ public class MatchInfoResponse {
         public void setEndGame(boolean endGame) { this.endGame = endGame; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 }

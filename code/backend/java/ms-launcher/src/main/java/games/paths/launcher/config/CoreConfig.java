@@ -170,14 +170,17 @@ public class CoreConfig {
     }
 
     @Bean
-    public MatchQueryPort matchQueryPort(MatchReadPort matchReadPort,
-                                         StoryReadPort storyReadPort,
-                                         UserAccessPort userAccessPort,
-                                         CharacterReadPort characterReadPort,
-                                         ContentQueryPort contentQueryPort,
-                                         games.paths.core.port.match.MovementStorePort movementStorePort) {
+    @SuppressWarnings("java:S107")
+    public MatchQueryPort matchQueryPort(
+            MatchReadPort matchReadPort,
+            StoryReadPort storyReadPort,
+            UserAccessPort userAccessPort,
+            CharacterReadPort characterReadPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.MovementStorePort movementStorePort,
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort) {
         return new MatchQueryService(matchReadPort, storyReadPort, userAccessPort,
-                characterReadPort, contentQueryPort, movementStorePort);
+                characterReadPort, contentQueryPort, movementStorePort, eventExecutionStorePort);
     }
 
     // ───── Step 24: Turn cycle engine (single-player) ─────
@@ -210,8 +213,13 @@ public class CoreConfig {
         return new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort);
     }
 
+    /**
+     * Exposed as the concrete class, not only as the port: Step 29 needs
+     * {@code forceTimeEnd}, which is deliberately absent from
+     * {@code TimeAdvancementPort} so that nothing over REST can skip a time unit.
+     */
     @Bean
-    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+    public games.paths.core.service.match.TimeAdvancementService timeAdvancementService(
             games.paths.core.port.match.TurnCycleStorePort turnCycleStorePort,
             UserAccessPort userAccessPort,
             games.paths.core.port.event.DomainEventPublisher domainEventPublisher,
@@ -220,6 +228,12 @@ public class CoreConfig {
         return new games.paths.core.service.match.TimeAdvancementService(
                 turnCycleStorePort, userAccessPort, domainEventPublisher,
                 timeStartRecoveryService, weatherSelectionService);
+    }
+
+    @Bean
+    public games.paths.core.port.match.TimeAdvancementPort timeAdvancementPort(
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService) {
+        return timeAdvancementService;
     }
 
     // ───── Step 28: Movement system (single-player) ─────
@@ -231,6 +245,18 @@ public class CoreConfig {
             ContentQueryPort contentQueryPort) {
         return new games.paths.core.service.match.MovementService(
                 movementStorePort, userAccessPort, contentQueryPort);
+    }
+
+    // ───── Step 29: Normal events (player-triggered actions) ─────
+
+    @Bean
+    public games.paths.core.port.match.EventExecutionPort eventExecutionPort(
+            games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort,
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService) {
+        return new games.paths.core.service.match.EventExecutionService(
+                eventExecutionStorePort, userAccessPort, contentQueryPort, timeAdvancementService);
     }
 
     // ───── Step 21: Character template & class selection ─────

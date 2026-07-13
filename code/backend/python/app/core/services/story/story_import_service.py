@@ -103,6 +103,9 @@ class StoryImportService(StoryImportPort):
             entity_mapping = [
                 ("locations", "list_locations", "id", self.persistence_port.save_locations),
                 ("events", "list_events", "id", self.persistence_port.save_events),
+                # v0.29.0 — must run AFTER events: an effect points at its owning event.
+                ("eventEffects", "list_events_effects", "id",
+                 self.persistence_port.save_event_effects),
                 ("items", "list_items", "id", self.persistence_port.save_items),
                 ("classes", "list_classes", "id", self.persistence_port.save_classes),
                 ("choices", "list_choices", "id", self.persistence_port.save_choices),

@@ -99,6 +99,10 @@ class GamingCharacterInstanceEntity(Base):
     clock_in_coma = Column(Integer, default=0)
     timestamp_last_pass = Column(String(50))
     counter_consecutive_pass = Column(Integer, default=0, nullable=False)
+    # Step 29 — two effect targets that previously had nowhere to be written.
+    # exp is written by event effects here and spent in Step 37; characteristics is a CSV.
+    exp = Column(Integer, default=0, nullable=False)
+    characteristics = Column(String(500))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

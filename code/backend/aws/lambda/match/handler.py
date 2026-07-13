@@ -246,11 +246,16 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False):
         # Step 21 — the players/characters of the match (summary rows).
         "players": [_character_summary(c) for c in players],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
-        "locationsActive": _build_locations_active(story, active_loc_ids, lang, visited_loc_ids),
+        # Step 29 — ONE context for every event of the payload: the checker is a pure
+        # function over it, so a story with many events costs no more than one with few.
+        "locationsActive": _build_locations_active(
+            story, active_loc_ids, lang, visited_loc_ids,
+            _events.build_context(item, story, _reference_character(players, item))),
     }
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
+from match import events as _events
 
 
 def _story_neighbors(story):
@@ -274,7 +279,21 @@ def _event_location(event):
     return e.get('idSpecificLocation') if e.get('idSpecificLocation') is not None else e.get('idLocation')
 
 
-def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None):
+def _reference_character(players, match):
+    """The match's reference character — in single-player the only one, and the creator's.
+
+    The admin view uses the same one, so the console sees exactly the flags the player
+    would. Per-character availability arrives with multiplayer.
+    """
+    creator = match.get('userCreatorUuid') or match.get('idUserCreator')
+    for c in (players or []):
+        if c.get('userUuid') == creator:
+            return c
+    return (players or [None])[0]
+
+
+def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=None,
+                            check_ctx=None):
     """Build the enriched ``locationsActive`` list from the STORY item: each
     player-occupied location with its card, the neighbor links touching it (both
     directions) and the events specific to it.
@@ -354,12 +373,19 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
                 "cardLocationTo": _loc_card(n.get("idLocationTo")),
             })
 
-        event_infos = [
-            {"uuid": e.get("uuid"), "type": e.get("type"),
-             "endGame": end_event_id is not None and e.get("id") == end_event_id,
-             "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang)}
-            for e in events if _event_location(e) == loc_id
-        ]
+        event_infos = []
+        for e in events:
+            if _event_location(e) != loc_id:
+                continue
+            # Step 29 — the verdict of the same check procedure execute-event enforces.
+            available, reason = _events.check(e, check_ctx)
+            event_infos.append({
+                "uuid": e.get("uuid"), "type": e.get("type"),
+                "endGame": end_event_id is not None and e.get("id") == end_event_id,
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, e.get("idCard"), lang),
+                "available": available,
+                "reason": reason,
+            })
 
         result.append({
             "idLocation": loc_id,
@@ -1484,6 +1510,16 @@ def _assemble_match_logs(match, match_uuid):
             "energyCost": m.get('energyCost'),
         })
 
+    # Step 29 — EVENT from eventLog (an event the player triggered).
+    for e in (match.get('eventLog') or []):
+        entries.append({
+            "type": "EVENT",
+            "clock": e.get('clock'),
+            "timestamp": _ms_to_iso(e.get('timestamp')),
+            "characterUuid": e.get('characterUuid'),
+            "message": e.get('message'),
+        })
+
     # SLEEP from sleepLog
     for s in (match.get('sleepLog') or []):
         entries.append({
@@ -1931,6 +1967,212 @@ def _start_movement(user, match_uuid, body):
     })
 
 
+# ── Step 29 — normal (player-triggered) events ─────────────────────────────
+
+def _execute_event(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/action/execute-event.
+
+    Refuses exactly the events match-info already marked unavailable, with exactly that
+    reason: both go through ``events.check``. The energy/coin cost is paid ONCE, for the
+    event the player asked for; the id_event_next chain that follows is a consequence, not
+    a choice — its links are neither re-checked nor charged.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    event_uuid = (body or {}).get('eventUuid')
+    if not event_uuid or not str(event_uuid).strip():
+        return _err(400, 'MISSING_EVENT', 'eventUuid is required')
+
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    characters = _match_characters(match_uuid)
+    caller = next((c for c in characters if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        # An unknown match and a caller who is not in it are deliberately indistinguishable.
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    all_events = story.get('events') or []
+    event = next((e for e in all_events if e.get('uuid') == event_uuid), None)
+    if event is None:
+        return _err(404, 'EVENT_NOT_FOUND', 'Event not found in this story')
+
+    ctx = _events.build_context(match, story, caller)
+    available, reason = _events.check(event, ctx)
+    if not available:
+        return _err(409, reason, f'Event cannot be executed: {reason}')
+
+    # Resolve the class id of every character once — target_class narrows on it.
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+
+    item_uuids = {_events._nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+    effects_by_event = _events.effects_by_event(story)
+    end_game_id = story.get('idEventEndGame')
+    events_by_id = {_events._nz(e.get('id')): e for e in all_events if e.get('id') is not None}
+
+    # ── pay, once, for the event the player asked for ──
+    energy_spent = _events._nz(event.get('costEnery'))
+    coin_spent = _events._nz(event.get('coinCost'))
+    if energy_spent:
+        caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
+    if coin_spent:
+        caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+
+    stat_changes, registry_changes = [], []
+    trait_changes, item_changes, characteristic_changes = [], [], []
+    applied_effects, executed_uuids = [], []
+    touched = {caller.get('uuid'): caller}
+    flags = {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
+             'comaTriggered': False, 'gameOver': False, 'endTime': False}
+    visited = set()
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+
+    current = event
+    while current is not None:
+        event_id = _events._nz(current.get('id'))
+        visited.add(event_id)
+        ctx['consumedEventIds'].add(event_id)
+        if current.get('uuid'):
+            executed_uuids.append(current.get('uuid'))
+
+        for effect in effects_by_event.get(event_id, []):
+            recipients = _events.resolve_recipients(effect, caller, characters)
+
+            # Weather is a property of the MATCH: applied once per effect row, no matter
+            # how many characters that row targets.
+            id_weather = effect.get('idWeather')
+            if id_weather:
+                match['currentWeatherId'] = _events._nz(id_weather)
+                ctx['currentWeatherId'] = _events._nz(id_weather)
+                flags['weatherApplied'] = True
+
+            for target_char in recipients:
+                touched[target_char.get('uuid')] = target_char
+                _events.apply_stat(target_char, effect, stat_changes)
+                added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                    item_changes)
+                flags['itemAdded'] = flags['itemAdded'] or added
+                flags['itemRemoved'] = flags['itemRemoved'] or removed
+                _events.apply_traits(target_char, effect, trait_uuids, trait_changes)
+                _events.apply_characteristics(target_char, effect, characteristic_changes)
+
+            # The registry is match-scoped too: written once, by the actor.
+            key = effect.get('keyToAdd')
+            if key:
+                value = effect.get('keyValueToAdd')
+                _events.apply_registry(match, key, value, registry_changes)
+                ctx['registry'][key] = value
+
+            applied_effects.append({
+                "eventUuid": current.get('uuid'),
+                "effectUuid": effect.get('uuid'),
+                "statistic": effect.get('statistics'),
+                "value": effect.get('value'),
+                "target": effect.get('target'),
+                "targetClass": effect.get('targetClass'),
+                "characterUuids": [c.get('uuid') for c in recipients],
+                # The EFFECT's own card is the narrative to render — not the event's.
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+            })
+
+        if _events._nz(current.get('flagEndTime')) == 1:
+            flags['endTime'] = True
+        if end_game_id is not None and _events._nz(end_game_id) == event_id:
+            flags['gameOver'] = True
+
+        # Coma: Step 29 only raises the flags and stops. Rescue and game over are Step 38.
+        for c in touched.values():
+            if _nz(c.get('life')) <= 0 and _nz(c.get('isComa')) != 1:
+                c['isComa'] = 1
+                c['isSleeping'] = 1
+                if c.get('uuid') == caller.get('uuid'):
+                    flags['comaTriggered'] = True
+
+        event_log = match.setdefault('eventLog', [])
+        event_log.append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+        })
+
+        if flags['comaTriggered']:
+            break  # coma stops the chain, and flag_end_time with it
+
+        nxt = current.get('idEventNext')
+        if not nxt or _events._nz(nxt) <= 0:
+            break
+        next_id = _events._nz(nxt)
+        if next_id in visited or len(visited) >= _events.MAX_CHAIN:
+            break  # an authored loop, or a chain long enough to be a bug
+        nxt_event = events_by_id.get(next_id)
+        if nxt_event is None:
+            break  # dangling idEventNext
+        if str(nxt_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+                and next_id in ctx['consumedEventIds']:
+            break  # a spent ONCE event stays spent, even mid-chain
+        current = nxt_event  # not re-checked, not charged
+
+    for c in touched.values():
+        db_utils.put_item(c)
+
+    current_clock = _nz(match.get('currentClock'))
+    time_ended = False
+    if flags['endTime'] and not flags['comaTriggered']:
+        for c in _match_characters(match_uuid):
+            c['isSleeping'] = 1
+            db_utils.put_item(c)
+        current_clock, _recovery = _advance_time(match, match_uuid)
+        time_ended = True
+    else:
+        db_utils.put_item(match)
+
+    changed = any([time_ended, flags['itemAdded'], flags['itemRemoved'],
+                   flags['weatherApplied'], flags['comaTriggered'], flags['gameOver'],
+                   stat_changes, registry_changes, trait_changes, characteristic_changes])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "executedEventUuids": executed_uuids,
+        "energySpent": energy_spent,
+        "coinSpent": coin_spent,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "currentClock": current_clock,
+        # v0.29.0 — execute-event never touches the turn queue (Step 61 revisits this).
+        "turnConsumed": False,
+        "timeEnded": time_ended,
+        "itemAdded": flags['itemAdded'],
+        "itemRemoved": flags['itemRemoved'],
+        "weatherApplied": flags['weatherApplied'],
+        "forcedSleep": time_ended or flags['comaTriggered'],
+        "comaTriggered": flags['comaTriggered'],
+        "gameOver": flags['gameOver'],
+        "refreshRecommended": bool(changed),
+        "statChanges": stat_changes,
+        "registryChanges": registry_changes,
+        "traitChanges": trait_changes,
+        "itemChanges": item_changes,
+        "characteristicChanges": characteristic_changes,
+        "effects": applied_effects,
+        # Always empty in v0.29.0 — the Step 30 choice engine fills it.
+        "pendingChoices": [],
+    })
+
+
 def _visited_locations_payload(match, match_uuid, lang='en'):
     """Build the visited-locations payload with character counts, per-neighbor
     totalEnergyCost resolved for the current weather and the resolved location
@@ -2260,6 +2502,21 @@ def lambda_handler(event, context):
         except (TypeError, ValueError):
             return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
         return _start_movement(user, match_uuid, body)
+
+    # ── Step 29 — normal events ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/execute-event')
+            and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/execute-event
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _execute_event(user, match_uuid, body, lang)
 
     if (path.startswith('/api/match/') and path.endswith('/locations') and method == 'GET'):
         params = event.get('pathParameters') or {}

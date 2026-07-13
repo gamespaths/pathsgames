@@ -1,249 +1,84 @@
 # CLAUDE.md
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This is a project to develop a new videogame web-based, it's similar to gamebook with branches and choices. 
-Main file documentation is
-- developer roadmap: `/mnt/Dati4/Workspace/pathsgames/documentation_v0/Roadmap.md`
-- main game-roles description: `/mnt/Dati4/Workspace/pathsgames/documentation_v0/Step01_StartProject.md`
-- su notebooklm è "PathsGames - Storytelling Game Platform" con NOTEBOOK="cd7b4625-76cd-4531-971a-98df705b840e"
- 
-## Agents configuration
+Guidance for Claude Code in this repo. **Keep this file small** — it is loaded into every
+session, so every line here is paid for on every request. Reference material belongs in the
+on-demand files listed below, not here.
 
-Take your time. I prefer an accurate and thorough response over a quick one.
+**Paths Games** is a web gamebook: a multi-user storytelling platform with branching
+narratives. The repo holds several backends (Java is the reference implementation; Python
+and AWS track it), a React admin frontend, a React game frontend, and Robot Framework E2E
+tests — all sharing one REST API contract.
 
-You are never autorized to do commit and push into repository!
+## Read on demand (do NOT preload)
 
-Never create a new version without specific indication, the current version is from pom (code/backend/java/pom.xml) without SNAPSHOT indication. Use a new version only if indicated into the prompt. 
+| Need | File |
+|---|---|
+| Build / run / test any component | `.claude/docs/commands.md` |
+| Robot suites, seed files, report paths | `.claude/docs/robot-suites.md` |
+| Anything in the design docs | `documentation_v0/INDEX.md` — the map. **Never open a Step file without it.** |
+| Search the design docs | Ask the `doc-finder` subagent (Haiku, read-only, returns a summary) |
 
-You're allowed without confirmation to read files inside workspace folder (cat, find, tail, grep, cd, sed , awk, ...). 
-You're allowed without confirmation to run ".venv/bin/activate" inside the workspace folder!
-You're alwasy allowed to run compilation commands and test unit commands without my confirmation: like "mvn build", "mvn test", "pytest", "pyunit", "run_robots*.sh", "npx vitest ", "python -m pytest", "npx vitest run"!
-You're never allowed to run without my configurmation to run command to run server, cloud cli, cloud command or command to change files outside workspace folder: asm ke alwasy confirmation.
+`documentation_v0/` is ~4.2 MB of markdown (~1M tokens). `Roadmap.md` alone is 24k tokens,
+`Step28_MovementSystem.md` is 29k. Grep and read line ranges; never `cat` a Step file whole.
+Never read `documentation_v0/website_concepts_v0/` (450 MB of images).
 
-Never use notebooklm if not indicated into prompt! If not indicated, ask me at the end if use it to update notebooklm files.
+## Hard rules
 
-Every time you run, every time, after change something, when you complete your task ask me if i wanna run sub-agent "paths-games-doc".
+- **Never commit or push.** No exceptions.
+- **Never bump the version** unless the prompt says so. Current version = `code/backend/java/pom.xml` minus `-SNAPSHOT`.
+- **Never touch NotebookLM** unless the prompt says so. (Notebook: "PathsGames - Storytelling Game Platform", `NOTEBOOK=cd7b4625-76cd-4531-971a-98df705b840e`.)
+- Take your time — an accurate answer beats a fast one.
 
-Every time you run use always CAVEMAN agent (/.agents/rules/caveman.md). Tell me "i've execute caveman sub-agent" if it's works
+## Permissions
 
-Every time if you chage/create code (java, python, react) remember to check unit test codes and test coverage of new code must be > 90%.
+- **Allowed without asking:** reading anything in the workspace (`cat`, `find`, `grep`, `sed`, `awk`, …); `source .venv/bin/activate`; builds and unit tests (`mvn`, `pytest`, `npx vitest`, `run_robots*.sh`).
+- **Always ask first:** starting servers, any cloud/AWS CLI command, anything writing outside the workspace.
 
-At the end of any message, write me a row with context information: token usage, token limit, % tokens. 
+## When you change code
 
-If in prompt there is the "log all command" annotation, every time you run a command (example in bash, like test, compilation) write the actual date, the complete prompt and two rows to describe what you have done into workspace file ".agents/logs/YYYYMMDD.log", after add 5 empty rows and the separator "-------------------------------".
-
-## Project Overview
-
-**Paths Games** is a multi-user storytelling game platform with branching narratives. The repo contains multiple backend implementations (Java primary, Python/AWS alternatives), a React admin frontend, and Robot Framework E2E tests — all sharing the same API contract.
-
----
-
-## Commands
-
-If you have to run python (or robot framework) command use ALWAYS virtual end from `source .venv/bin/activate`
-
-All commands must be run from the specified working directory.
-
-### Java Backend (primary) — `code/backend/java/`
-
-```bash
-mvn clean install -DskipTests           # build without tests
-mvn clean test                           # run all unit tests
-mvn -pl core test -DskipITs             # run core domain tests only (fastest)
-mvn -pl ms-launcher spring-boot:run     # start dev server (SQLite, public 8042 + admin 8044)
-mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod  # start prod (PostgreSQL, public 8080, admin 8044)
-curl -s http://localhost:8042/api/echo/status | python3 -m json.tool  # health check (public)
-curl -s http://localhost:8044/api/admin/matches  # admin API lives on 8044 (401 without admin token)
-```
-
-**Admin endpoint split (Step 20):** every `/api/admin/**` endpoint is served ONLY on the
-dedicated admin port **8044** (`game.admin.port`, second Tomcat connector); the public
-connector returns 404 for admin paths. Admin controllers live in `adapter-admin/` (incl.
-`MatchAdminController`). Lock 8044 to the owner IP at the network layer.
-
-Prod PostgreSQL on Docker:
-```bash
-docker run --name pathsgames-postgres -p 5432:5432 -e POSTGRES_DB=pathsgames -e POSTGRES_USER=pathsgames -e POSTGRES_PASSWORD=pathsgames -d postgres:latest
-```
-
-### Python Backend (alternative) — `code/backend/python/`
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python3 -m app.launcher                  # start dev server (public app 8042 + admin app 8044, one process)
-pytest tests                             # run tests
-pytest tests --cov=app --cov-report=term-missing
-```
-
-### AWS Serverless Backend — `code/backend/aws/`
-Important to Cluade: NEVER RUN THIS SCRIPT WITHOUT ASK USER CONFIRMATION
-```bash
-/code/script/dev/aws_backend_deploy.sh
-/code/script/dev/aws_backend_remove.sh
-```
-
-### Robot E2E Tests — `code/tests/robot/`
-
-```bash
-# via scripts (from repo root)
-code/script/dev/run_robots/run_robot_with_local_java.sh          # Java + SQLite
-code/script/dev/run_robots/run_robot_with_local_java_postgres.sh # Java + PostgreSQL
-code/script/dev/run_robots/run_robot_with_local_python.sh
-code/script/dev/run_robots/run_robot_with_aws_serverless.sh
-
-# manually (from code/tests/robot/)
-robot --variablefile variables/dev.yaml --outputdir reports/ tests/
-python -m robot --variablefile variables/dev.yaml tests/17_admin_crud  # single suite
-```
-
-Reports are written to `code/tests/robot/reports/report.html`.
-
-### React Admin Frontend — `code/frontend/react-admin/`
-
-```bash
-npm install
-npm run dev    # http://localhost:5172, proxies /api/* → http://localhost:8044 (admin port)
-npm run test
-```
-
-### Flask Admin Console (alternative) — `code/frontend/python-flask-admin/`
-
-```bash
-cd code/frontend/python-flask-admin
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                        # http://localhost:5098 (admin port 8044)
-ADMIN_BASE_URL=http://localhost:8044 python run.py   # explicit backend URL
-pytest                                               # run 35 unit tests (backend mocked)
-pytest --cov=app --cov-report=term-missing           # with coverage
-```
-
-### Flask Game Frontend (alternative) — `code/frontend/python-flask-game/`
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python run.py                                   # http://localhost:5099 (mock data)
-BASE_URL=http://localhost:8042 python run.py    # live backend mode
-pytest                                          # run 35 unit tests
-pytest --cov=app --cov-report=term-missing      # with coverage
-```
-
-### SonarQube
-
-```bash
-code/script/dev/run_sonar_scanner_java.sh
-```
-
----
+- Python and Robot commands always run inside the venv: `source .venv/bin/activate`.
+- Java / Python / React changes need unit tests; coverage of new code must be **> 90%**.
+- Changing one backend usually means changing the others — they share the API contract.
+- Docs are updated **on request**, via `/doc-update` (runs the `paths-games-doc` subagent). Do not offer it after every task; suggest it only when a feature is complete or the API, schema, or a component actually changed.
 
 ## Architecture
 
-### Multi-backend, shared API contract
-
-All five backends (Java, Python, AWS) implement the **same REST API**. The Robot Framework tests validate any backend interchangeably via `variables/dev.yaml`. The Java backend is the reference implementation; others track it.
-
-### Java backend — Hexagonal Architecture
+Java backend — hexagonal, `code/backend/java/`:
 
 ```
-ms-launcher          Spring Boot entry point; wires all adapters via DI
-core/                Pure domain — no framework dependencies
-  entity/story/      ~27 domain entities (Story, Mission, Location, Item, Character, ...)
-  port/              Interfaces (ports) that adapters implement
-  service/           Domain services (EchoService, StoryQueryService, StoryCrudService,
-                     StoryImportService, ContentQueryService, GuestAuthService,
-                     GuestAdminService, SessionService)
-  model/             Domain models (auth, story)
-  repository/        Repository interfaces
-adapter-rest/        REST controllers; OpenAPI specs in src/main/resources/openapi/
-adapter-auth/        JWT authentication, Google SSO, Spring Security
-adapter-admin/       Admin management REST endpoints
-adapter-websocket/   WebSocket for real-time game state sync
-adapter-postgres/    PostgreSQL JPA repositories + Flyway migrations (production)
-adapter-sqlite/      SQLite repositories + Flyway migrations (development)
-adapter-mongo/       MongoDB adapter for document registries
-adapter-kafka/       Kafka producer/consumer for async messaging
+ms-launcher      Spring Boot entry point; DI wiring
+core/            Pure domain, no framework deps (entity/, port/, service/, model/, repository/)
+adapter-rest/    REST controllers; OpenAPI specs in src/main/resources/openapi/
+adapter-auth/    JWT, Google SSO, Spring Security
+adapter-admin/   Admin REST endpoints
+adapter-websocket/  Real-time game state sync
+adapter-postgres/   JPA + Flyway (prod)     adapter-sqlite/  SQLite + Flyway (dev)
+adapter-mongo/      Document registries     adapter-kafka/   Async messaging
 ```
 
-**Dev profile** (default): public port 8042, SQLite at `~/.paths.games/database.sqlite`.  
-**Prod profile**: public port 8080, PostgreSQL via env vars `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`.  
-**Admin port** (both profiles): `game.admin.port` (env `ADMIN_PORT`, default **8044**) — serves only `/api/admin/**`. See `documentation_v0/Step20_AdminEndpoint.md`.
+- **Dev profile** (default): public port 8042, SQLite at `~/.paths.games/database.sqlite`.
+- **Prod profile**: public port 8080, PostgreSQL via `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`/`DB_PASSWORD`.
+- **Admin port 8044** (both profiles, `game.admin.port` / env `ADMIN_PORT`): serves `/api/admin/**` and nothing else; the public connector 404s on admin paths. Lock 8044 to the owner IP at the network layer.
+- Flyway migrations run on startup, in `adapter-{postgres,sqlite}/src/main/resources/db/migration/`.
 
-Both profiles use Flyway for schema migrations; migrations run automatically on startup.
+Python backend mirrors the same hexagonal split (`app/core/`, `app/adapters/`, `app/launcher.py`).
+AWS backend is serverless: API Gateway (HTTP v2) → Lambda (Python 3.13) → DynamoDB single-table
+with GSIs, deployed with SAM, envs `dev`/`prod`.
+React admin: React 18 + Vite 5, Tailwind, Bootstrap 5 (CDN), Axios, Router 6; medieval dark
+theme with `pg-*` classes; JWT admin token pasted at login; dev proxy `/api/*` → 8044.
 
-Flyway migrations live in:
-- `adapter-postgres/src/main/resources/db/migration/`
-- `adapter-sqlite/src/main/resources/db/migration/`
+**There is no Node.js backend** — it was removed from the project.
 
-To run prod locally you need **both** Maven and Spring profile flags:
-```bash
-mvn -pl ms-launcher spring-boot:run -P prod -Dspring-boot.run.profiles=prod
-# -P prod → puts adapter-postgres on the classpath
-# -Dspring-boot.run.profiles=prod → loads application-prod.yml
-```
+## API conventions
 
-### Python backend — same hexagonal pattern
+- OpenAPI specs: `code/backend/java/adapter-rest/src/main/resources/openapi/`. All REST APIs are OpenAPI-compatible.
+- Prefix `/api/`, no explicit version in V1. Kebab-case segments, plural resource nouns, no verbs in URLs.
+- Contexts: `/api/auth/`, `/api/stories/`, `/api/games/`, `/api/game/{id}/`, `/api/gameplay/{id_game}/`, `/api/admin/`, `/api/echo/`.
 
-```
-app/core/            Pure domain (models, ports, services)
-app/adapters/        REST (FastAPI), auth, persistence (SQLite/PostgreSQL), websocket
-app/launcher.py      Entry point and DI wiring
-```
+## Output
 
-### Node.js backend — Fastify/TypeScript/Prisma
-Node.js backend doesn'e exist! Is removed from project!
+End every message with one line: token usage, token limit, % used.
 
-
-### AWS backend — serverless
-
-API Gateway (HTTP v2) → Lambda functions (Python 3.13) → DynamoDB (Single Table Design with GSIs). Deployed with AWS SAM. Environments: `dev` / `prod`.
-
-### React Admin frontend
-
-React 18 + Vite 5, Tailwind CSS, Bootstrap 5 (CDN), Axios, React Router 6. Medieval dark theme with `pg-*` CSS utility classes. Authenticates via a JWT admin token pasted on the login screen. Dev proxy routes `/api/*` to the admin port 8044 (the console only calls `/api/admin/**`).
-
----
-
-## API open-api description
-- Open-API Folder `code/backend/java/adapter-rest/src/main/resources/openapi/`
-- All REST-API are open-api compatibile!
-
-## API Naming Conventions
-
-- Prefix: `/api/` (no explicit version in V1)
-- Path segments: **kebab-case**, resource names **plural nouns**
-- Context prefixes: `/api/auth/`, `/api/stories/`, `/api/games/`, `/api/game/{id}/`, `/api/gameplay/{id_game}/`, `/api/admin/`, `/api/echo/` (echo is unversioned)
-- HTTP verbs define actions; no verbs in URLs
-
-## Robot Test Suites
-
-| Suite | Coverage |
-|-------|----------|
-| `01_smoke` | Basic connectivity |
-| `12_auth` | Guest login, session management |
-| `13_session_token` | Session token validation |
-| `14_admin` | Admin guest management |
-| `14_stories` | Story catalog |
-| `15_story_content` | Story content APIs |
-| `16_content_detail` | Content detail APIs |
-| `17_admin_crud` | Admin CRUD for all story entities |
-| `19_match` | Match creation and end flow |
-| `20_admin_match` | Admin match control (stop/pause/resume) |
-| `20_website` | Website/Turnstile captcha flow |
-| `21_character_selection` | Character join, stat formula, backpack/traits |
-| `22_story_validation` | Story import validation rules |
-| `23_trait_selection` | Trait selection with class/cost/compatibility checks |
-| `24_turn_cycle` | Full turn cycle gameplay |
-| `25_time_clock` | Active location seeding and time clock |
-| `26_time_recovery` | Time-start stat recovery, counter re-seed, i18n lang on match info, i18n regression on `/api/stories?lang=` |
-| `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
-| `28_movement` | Movement system: adjacency validation, energy cost formula, visited locations, admin locations; full location/neighbor `card` resolution + `?lang=` on `GET /locations` (`location_cards.robot`, v0.28.5); fog-of-war gating hides neighbor `card`/`idCard` for never-visited destinations on `/locations` and `/info` (`location_fog_of_war.robot`, v0.28.6); `/info` `locations[]` visited-only (admin keeps all), no synthetic `name`/`currentLocationName`/`locationName`, and neighbor `cardLocationFrom`/`cardLocationTo` gated per endpoint (`match_info_visited_locations.robot`, v0.28.6); neighbor return card idCardBack (`neighbor_card_back.robot`); event-to-location binding idSpecificLocation, guards AWS stale-alias + Python column-name bugs (`event_location.robot`) |
-| `29_match_logs` | Consolidated match log timeline `GET /api/matches/{uuid}/logs` and `GET /api/admin/matches/{uuid}/logs`: WEATHER/MOVEMENT/SLEEP/CLOCK_ADVANCE entries, auth/ownership, 404/400 error contract, cursor pagination (`?limit=&cursor=`), and card/character enrichment on WEATHER/MOVEMENT/SLEEP/RECOVERY entries (`match_logs.robot`, 16 tests) |
-
-### Robot seed and command!
-| AWS | `seed/handler.py` | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_aws_serverless.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-aws/report.html
-| Java/SQLite | `R__insert_story_seed_data.sql` | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java/report.html
-| Java/Postgres | `code/backend/java/adapter-postgres/src/main/resources/db/migration/dev/R__insert_dev_test_data.sql` | code/scripts/dev/run_robots/run_robot_with_local_java_postgres.sh | /mnt/Dati4/Workspace/pathsgames/code/scripts/dev/run_robots/run_robot_with_local_java.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-java-postgres/report.html 
-| Python | `code/backend/python/scripts/seed_stories.py` | code/scripts/dev/run_robots/run_robot_with_local_python.sh | /mnt/Dati4/Workspace/pathsgames/code/tests/robot/reports-local-python/report.html
-
+If the prompt contains **"log all command"**: for each command you run, append to
+`.agents/logs/YYYYMMDD.log` the date, the full prompt, and two lines describing what you did,
+then 5 blank lines and `-------------------------------`.

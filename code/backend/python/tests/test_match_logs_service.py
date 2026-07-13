@@ -168,6 +168,22 @@ def test_counter_zero_event_is_reported_as_recovery(session_factory):
     assert [e["type"] for e in logs] == ["RECOVERY"]
 
 
+def test_executed_event_is_reported_as_event(session_factory):
+    """Step 29 — log_events derives its type from the message prefix and drops what it does
+    not recognise, so an executed event needs its own EVENT branch."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=11, id_match=MATCH_ID, uuid="e11", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=90010,
+                              log_message="EVENT_EXECUTED 90010",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["EVENT"]
+    assert logs[0]["message"] == "EVENT_EXECUTED 90010"
+    assert logs[0]["idCharacterMatch"] == 10
+
+
 def test_admin_variant_skips_the_ownership_check(session_factory):
     _seed_match(session_factory)
     _seed_logs(session_factory)

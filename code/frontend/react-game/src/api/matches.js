@@ -227,3 +227,33 @@ export async function getMatchLocations(uuidMatch, accessToken, lang) {
   )
   return res.data
 }
+
+/* ── Step 29 — normal events (player-triggered actions) ───────────────────── */
+
+/**
+ * Trigger a NORMAL or ONCE event at the character's location
+ * (POST /api/gameplay/{uuid}/action/execute-event).
+ *
+ * Whether an event can be triggered is already known before calling: every event in
+ * `locationsActive[].events` of match-info carries `available` and, when false, the
+ * `reason` — the very code this endpoint would return as its error. So the board can
+ * render a locked action without guessing, and this call is only made for an available one.
+ *
+ * Resolves to the execution result: the event's card, one entry per applied effect (each
+ * with its OWN card — that is the narrative to show), the itemised stat/registry/item/trait
+ * changes, and the flags (`timeEnded`, `comaTriggered`, `gameOver`, …). When
+ * `refreshRecommended` is true the caller should reload match-info.
+ *
+ * Throws on a backend error: 409 with `ONCE_ALREADY_CONSUMED` / `NOT_ENOUGH_ENERGY` /
+ * `WRONG_LOCATION` / …, or 404 `MATCH_NOT_FOUND` / `EVENT_NOT_FOUND`.
+ */
+export async function executeEvent(uuidMatch, eventUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/execute-event`,
+    { eventUuid },
+    config,
+  )
+  return res.data
+}
