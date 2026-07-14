@@ -27,6 +27,7 @@ import MapCard from './cards/MapCard'
 import MatchLogCard from '@/features/matches/MatchLogCard'
 import MapPage from '@/components/layout/Map'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
+import { buildCardToSleep } from '@/utils/loadoutCards'
 
 // Mobile is a single stacked column (left on top, right below) that scrolls as a
 // whole inside `.book-overlay`. These helpers move a card into view there; on
@@ -144,6 +145,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // Set right before a sleep/movement reload so the effect below scrolls the
   // freshly-loaded board (the new card) back to the top on mobile.
   const scrollTopAfterReloadRef = useRef(false)
+  const [showGoToSleepCard,setShowGoToSleepCard]=useState(false);
 
   // Load the clock cycle state once the match is known, and after each sleep.
   async function refreshClock() {
@@ -245,6 +247,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     setPreviewRight(null)
     setMapView(false)
     setMapSelected(null)
+    setShowGoToSleepCard(false);
     const el = document.getElementById('cardPreviewModal')
     const Modal = window.bootstrap?.Modal
     if (el && Modal) Modal.getOrCreateInstance(el).hide()
@@ -313,6 +316,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   function handleBackOrClose() {
     setPreviewLeft(null);
     setStatisticsCards(false);
+    setShowGoToSleepCard(false);
   }
   // Step 0.28.5 — from the map's right-page location card (when it is the
   // character's own location), enter the play view: left = current location,
@@ -323,6 +327,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     setStatisticsCards(false);
     setPreviewLeft(null);
     setPreviewRight(null);
+    setShowGoToSleepCard(false);
   }
 
   const handleEndGame = async (action) => {
@@ -369,6 +374,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       : previewRight?.kind === 'matchlog'
         ? <MatchLogCard matchUuid={matchUuid} accessToken={user?.accessToken}
             story={story} onBack={closeRight} />
+//      : previewRight?.kind === 'sleep'
+//        ? <GoToSleepCard story={story} playerStats={playerStats} t={t} 
+//            onPreview={handleSelectionPreviewFull} onSlept={handleReloadClockWeatherAndMatchData} />
       : previewRight?.kind === 'preview'
         ? <Card variant="page"
             card={previewRight.card}
@@ -426,7 +434,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   //console.log("playerStats",playerStats);
   //console.log("a",resolveSelectionEntity(storyFull, playerStats, gameData, 'difficulty'));
   //console.log("mapSelected",mapSelected, "hereLocationId", hereLocationId, "locationCosts", locationCosts);
-  
+
+  function setSleepCardFromInfoCard() {//buildCardToSleep(story, playerStats, t)
+  //  setPreviewRight({ kind: 'sleep' });
+    setShowGoToSleepCard(true);
+    //qui voglio simulare il click sul bottone con aria-label=Sleep
+    setTimeout(() => { document.querySelector('button[aria-label="Sleep"]')?.click(); }, 100);
+  }
+
   const rightContent =
     previewRight ? previewRightContent
     // Step 0.28.5 — while the map fills the left page, the right page shows
@@ -459,12 +474,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             infoLabel={''/*t('card.gameStatus')*/} infoIconClassName="fas fa-info-circle font-size-medium m-1" 
             infoLabelClassName="font-size-medium display-none"
     
-            actionLabel={''}    actionIcon= 'fa-map m-1' onAction={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} 
-            actionsList={[
-              { label: '', icon: 'fa-flask m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+            actionLabel={''}    actionIcon= 'fa-map m-1'   onAction={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} 
+            actionsList={[{ label: '', icon: 'fa-bed m-1', onAction: () => { setSleepCardFromInfoCard();}},              
               /* NEVER REMOVE THIS COMMENT
               { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               { label: '', icon: 'fa-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+              { label: '', icon: 'fa-flask m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               { label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
                */
             ]}
@@ -475,7 +490,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           />
           {/* Show the sleep card only when the player is energy-stuck: every
               available movement and action costs more energy than they have. */}
-          {checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) &&
+          {(checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) || (showGoToSleepCard)) &&
             <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
               previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
           }
