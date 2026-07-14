@@ -13,7 +13,7 @@ import { STORIES_ENTITIES_FIELDS as FIELDS } from '../../constants/story/stories
 
 // ─── Entity types loaded to detect unused cards ──────────────────────────────
 const CARD_REF_TYPES = [
-  'difficulties', 'locations', 'location-neighbors', 'events', 'items',
+  'difficulties', 'locations', 'location-neighbors', 'events', 'event-effects', 'items',
   'character-templates', 'classes', 'traits', 'creators', 'keys',
   'choices', 'choice-effects', 'weather-rules', 'global-random-events', 'missions',
 ]
@@ -27,7 +27,7 @@ const CARD_REF_TYPES = [
 // Entity types NOT in this list but with a potential idCard+idTextDescription
 // mismatch are reported as warnings rather than silently updated.
 const DESC_ALIGN_TYPES = [
-  'difficulties', 'locations', 'events', 'items',
+  'difficulties', 'locations', 'events', 'event-effects', 'items',
   'character-templates', 'classes', 'traits', 'keys', 'missions',
 ]
 // ─────────────────────────────────────────────────────────────────────────────

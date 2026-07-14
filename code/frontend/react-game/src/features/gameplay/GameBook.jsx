@@ -62,6 +62,46 @@ export function lastEffectCard(result) {
   return null
 }
 
+// The engine names the statistics as the story authors them; the badges (and their
+// translations) use the longer in-game names. Anything not listed has no badge.
+const STAT_CHANGE_KEYS = {
+  life: 'life',
+  energy: 'energy',
+  sad: 'sadness',
+  exp: 'experience',
+  dex: 'dexterity',
+  int: 'intelligence',
+  cos: 'constitution',
+  food: 'food',
+  magic: 'magic',
+  coin: 'coins',
+}
+
+/**
+ * The badges an executed event earned the player: its `statChanges`, which carry the delta
+ * ACTUALLY applied (after the clamp — a -10 life on a character with 3 left is a -3), one row
+ * per character and per statistic. Rows of the other characters standing in the location are
+ * dropped, and a chain that touches the same statistic twice is summed into one badge.
+ * A net delta of 0 earns no badge.
+ */
+export function statChangeItems(result, characterUuid, t = (k) => k) {
+  const totals = new Map()
+  for (const change of result?.statChanges ?? []) {
+    if (characterUuid && change?.characterUuid && change.characterUuid !== characterUuid) continue
+    const key = STAT_CHANGE_KEYS[String(change?.statistic ?? '').toLowerCase()]
+    const delta = Number(change?.delta)
+    if (!key || !Number.isFinite(delta)) continue
+    totals.set(key, (totals.get(key) ?? 0) + delta)
+  }
+  return [...totals.entries()]
+    .filter(([, delta]) => delta !== 0)
+    .map(([key, delta]) => ({
+      key,
+      label: t(`game.stats.${key}`),
+      value: delta > 0 ? `+${delta}` : String(delta),
+    }))
+}
+
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
@@ -70,6 +110,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const storyCard = story?.card ?? null
   // The location the character currently stands on (for the map's "enter" arrow).
   const hereLocationId = gameData?.info?.players?.[0]?.idLocation ?? null
+  // The character this client plays: an event with target ALL also changes the stats of the
+  // other characters in the location, and those are not this player's badges.
+  const playerUuid = gameData?.info?.players?.[0]?.uuid ?? null
 
   const [gameEnded, setGameEnded] = useState(false)
   // Desktop dual-page preview. `previewLeft` fills the book's LEFT reading page
@@ -258,13 +301,13 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     handleReloadClockWeatherAndMatchData()
     const narrative = lastEffectCard(result)
     if (narrative) {
-      handleSelectionPreviewFull(narrative, 'action', null, [], true, {}, 'right')
+      handleSelectionPreviewFull(narrative, 'effect', null, statChangeItems(result, playerUuid, t), true, {}, 'right')
     }
   }
   function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
     //setEndGameCard(card);
     //setActiveAction(action);
-    handleSelectionPreviewFull(card, 'action', lockReason, statistics , showModal , additionalProps, 'right');
+    handleSelectionPreviewFull(card, 'end game', lockReason, statistics , showModal , additionalProps, 'right');
     //setPreviewRight({ kind: 'endgame' });
   }
   function handleBackOrClose() {
@@ -417,10 +460,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             infoLabelClassName="font-size-medium display-none"
     
             actionLabel={''}    actionIcon= 'fa-map m-1' onAction={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} 
-            action2Label={''}   action2Icon= 'fa-suitcase m-1' onAction2={ () => {alert('Coming soon!')} }
+            actionsList={[
+              { label: '', icon: 'fa-flask m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+              /* NEVER REMOVE THIS COMMENT
+              { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+              { label: '', icon: 'fa-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+              { label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
+               */
+            ]}
 
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
-            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} className="m-1 display-inline-grid flex-direction-column" />}
+            childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} showGrid2={true}
+                                  className="m-1 display-inline-grid flex-direction-column display-grid2" />}
           />
           {/* Show the sleep card only when the player is energy-stuck: every
               available movement and action costs more energy than they have. */}

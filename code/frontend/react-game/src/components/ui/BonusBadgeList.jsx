@@ -18,7 +18,7 @@ const STAT_VISUAL = {
   // Canonical categories (totals + class bonuses)
   life:         { icon: 'fas fa-heart',         color: '#e74c3c' },
   energy:       { icon: 'fas fa-bolt',          color: '#f39c12' },
-  sad:          { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  sad:          { icon: 'fas fa-frown',    color: '#dee694' },
   dexterity:    { icon: 'fas fa-running',       color: '#3498db' },
   intelligence: { icon: 'fas fa-brain',         color: '#9b59b6' },
   constitution: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
@@ -30,7 +30,7 @@ const STAT_VISUAL = {
   clock:        { icon: 'fas fa-hourglass-half', color: '#d4af37' },
 
   // Live player stats (in-match) — see PlayerStats.jsx
-  sadness:      { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  sadness:      { icon: 'fas fa-frown',    color: '#dee694' },
   experience:   { icon: 'fas fa-star',           color: '#9b59b6' },
   food:         { icon: 'fas fa-drumstick-bite', color: '#27ae60' },
   magic:        { icon: 'fas fa-magic',          color: '#1abc9c' },
@@ -39,7 +39,7 @@ const STAT_VISUAL = {
   // Character base stats
   lifeMax:           { icon: 'fas fa-heart',         color: '#e74c3c' },
   energyMax:         { icon: 'fas fa-bolt',          color: '#f39c12' },
-  sadMax:            { icon: 'fas fa-cloud-rain',    color: '#6c8ebf' },
+  sadMax:            { icon: 'fas fa-frown',      color: '#dee694' },
   dexterityStart:    { icon: 'fas fa-running',       color: '#3498db' },
   intelligenceStart: { icon: 'fas fa-brain',         color: '#9b59b6' },
   constitutionStart: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },

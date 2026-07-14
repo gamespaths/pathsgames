@@ -53,7 +53,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   ),
 }))
 
-import GameBook, { lastEffectCard } from '../features/gameplay/GameBook'
+import GameBook, { lastEffectCard, statChangeItems } from '../features/gameplay/GameBook'
 import { endMatch, sleepCharacter } from '../api/matches'
 
 const GAME_DATA = {
@@ -340,5 +340,62 @@ describe('lastEffectCard', () => {
     expect(lastEffectCard({ effects: [{ statistic: 'exp' }] })).toBeNull()
     expect(lastEffectCard({ effects: [] })).toBeNull()
     expect(lastEffectCard(undefined)).toBeNull()
+  })
+})
+
+// Step 29 — the badges under the narrative come from the applied statChanges, not the effects.
+describe('statChangeItems', () => {
+  const t = (key) => key
+
+  it('maps the engine statistics onto the badge keys, signing the delta', () => {
+    const result = { statChanges: [
+      { characterUuid: 'me', statistic: 'life', before: 10, after: 7, delta: -3 },
+      { characterUuid: 'me', statistic: 'exp', before: 0, after: 2, delta: 2 },
+      { characterUuid: 'me', statistic: 'coin', before: 5, after: 9, delta: 4 },
+    ] }
+    expect(statChangeItems(result, 'me', t)).toEqual([
+      { key: 'life', label: 'game.stats.life', value: '-3' },
+      { key: 'experience', label: 'game.stats.experience', value: '+2' },
+      { key: 'coins', label: 'game.stats.coins', value: '+4' },
+    ])
+  })
+
+  it('drops the changes of the other characters in the location', () => {
+    const result = { statChanges: [
+      { characterUuid: 'me', statistic: 'life', delta: -3 },
+      { characterUuid: 'someone-else', statistic: 'life', delta: -3 },
+    ] }
+    expect(statChangeItems(result, 'me', t)).toEqual([
+      { key: 'life', label: 'game.stats.life', value: '-3' },
+    ])
+  })
+
+  it('sums a statistic a chain touched more than once', () => {
+    const result = { statChanges: [
+      { characterUuid: 'me', statistic: 'energy', delta: -4 },
+      { characterUuid: 'me', statistic: 'energy', delta: 1 },
+    ] }
+    expect(statChangeItems(result, 'me', t)).toEqual([
+      { key: 'energy', label: 'game.stats.energy', value: '-3' },
+    ])
+  })
+
+  it('shows no badge for a net delta of zero, an unknown statistic or no change at all', () => {
+    const clamped = { statChanges: [
+      { characterUuid: 'me', statistic: 'life', before: 3, after: 3, delta: 0 },
+      { characterUuid: 'me', statistic: 'sad', delta: 2 },
+      { characterUuid: 'me', statistic: 'sad', delta: -2 },
+      { characterUuid: 'me', statistic: 'nonsense', delta: 5 },
+    ] }
+    expect(statChangeItems(clamped, 'me', t)).toEqual([])
+    expect(statChangeItems({ statChanges: [] }, 'me', t)).toEqual([])
+    expect(statChangeItems(undefined, 'me', t)).toEqual([])
+  })
+
+  it('keeps every change when the player character is unknown', () => {
+    const result = { statChanges: [{ characterUuid: 'me', statistic: 'sad', delta: 2 }] }
+    expect(statChangeItems(result, null, t)).toEqual([
+      { key: 'sadness', label: 'game.stats.sadness', value: '+2' },
+    ])
   })
 })

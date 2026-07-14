@@ -38,6 +38,62 @@ describe('CardButtons action spinner', () => {
   })
 })
 
+describe('CardButtons actionsList', () => {
+  it('renders one button per entry, in order, after the main action', () => {
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map" actionIcon="fa-map"
+        actionsList={[
+          { label: 'bag', icon: 'fa-suitcase', onAction: vi.fn() },
+          { label: 'quests', icon: 'fa-scroll', onAction: vi.fn() },
+        ]} />
+    )
+    const labels = [...document.querySelectorAll('.gc-footer__btn-label')].map(e => e.textContent)
+    expect(labels).toEqual(['map', 'bag', 'quests'])
+    expect(screen.getByText('bag').parentElement.querySelector('i')?.className).toContain('fa-suitcase')
+  })
+
+  it('fires the handler of the clicked entry only', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[
+          { label: 'bag', icon: 'fa-suitcase', onAction: first },
+          { label: 'quests', icon: 'fa-scroll', onAction: second },
+        ]} />
+    )
+    fireEvent.click(screen.getByText('quests'))
+    expect(second).toHaveBeenCalled()
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('shares the in-progress spinner: a running secondary action hides every button', async () => {
+    let resolve
+    render(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[{ label: 'bag', icon: 'fa-suitcase', onAction: () => new Promise(r => { resolve = r }) }]} />
+    )
+    fireEvent.click(screen.getByText('bag'))
+    expect(screen.getByText('card.actionInProgress')).toBeInTheDocument()
+    expect(screen.queryByText('bag')).not.toBeInTheDocument()
+
+    resolve()
+    await waitFor(() => expect(screen.getByText('bag')).toBeInTheDocument())
+  })
+
+  it('renders nothing extra for an empty list or for entries without a handler', () => {
+    const { rerender } = render(<CardButtons name="Stats" onAction={vi.fn()} actionLabel="map" />)
+    expect(document.querySelectorAll('.gc-footer__btn')).toHaveLength(1)
+
+    rerender(
+      <CardButtons name="Stats" onAction={vi.fn()} actionLabel="map"
+        actionsList={[{ label: 'dead', icon: 'fa-ban' }]} />
+    )
+    expect(document.querySelectorAll('.gc-footer__btn')).toHaveLength(1)
+    expect(screen.queryByText('dead')).not.toBeInTheDocument()
+  })
+})
+
 describe('CardButtons preview (i) button overrides', () => {
   it('defaults to the fa-info icon and card.info label', () => {
     render(<CardButtons name="Stats" flagInformationCard onPreview={vi.fn()} onPreviewClick={vi.fn()} />)

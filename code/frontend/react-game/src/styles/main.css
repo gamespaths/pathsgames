@@ -1659,6 +1659,7 @@ html, body {
   gap: 5px;
 }
 
+
 .gc-actions__info {
   flex-shrink: 0;
   width: 26px !important;
@@ -1687,7 +1688,7 @@ html, body {
   border: 1px solid var(--color-gold-dark);
   color: var(--color-gold-light);
   border-radius: 4px;
-  font-size: 0.8rem; /* clamp(0.8rem, 1.2vw, 0.8rem); */
+  font-size: 1rem; /* clamp(0.8rem, 1.2vw, 0.8rem); */
   font-family: var(--font-heading);
   padding: 3px 6px;
   cursor: pointer;

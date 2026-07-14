@@ -4,6 +4,14 @@
 .display-inline-flex{ display: inline-flex !important; }
 .display-ruby{ display: ruby !important; }
 .display-none{ display: none !important; }
+.display-grid3{
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+}
+.display-grid2{
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr);
+}
 
 .top--10{top:-10px !important;}
 .top--20{top:-20px !important;}

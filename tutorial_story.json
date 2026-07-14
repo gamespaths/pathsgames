@@ -1,21 +1,5 @@
 {
   "author": "Paths Games Team",
-  "card": {
-    "alternativeImage": null,
-    "awesomeIcon": "fas fa-chess-rook",
-    "cardType": null,
-    "copyrightText": "Lili Popper on Unsplash",
-    "description": "Welcome to the Paths Alpha tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges. Step inside and discover how every choice shapes your destiny.",
-    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
-    "styleDetail": null,
-    "styleImageLarge": null,
-    "styleImageLittle": null,
-    "styleImageMedium": null,
-    "styleMain": null,
-    "title": "Paths Tutorial",
-    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
-    "uuid": "52b424e5-945a-4b50-b16c-c9b83ae957fb"
-  },
   "cards": [
     {
       "alternativeImage": null,
@@ -704,8 +688,8 @@
       "idTextName": 160,
       "idTextTitle": 160,
       "id_card": 58,
-      "linkCopyright": "https://unsplash.com/photos/black-and-white-i-love-you-print-wall-PoO-pMjrP-0",
-      "urlImage": "https://images.unsplash.com/photo-1604151364473-02e3e26124a6?q=80&w=1229&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/a-dirt-path-between-two-large-rocks-in-a-field-qZoN6vQiRvQ",
+      "urlImage": "https://images.unsplash.com/photo-1641424721239-cba952d8abf4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "8c6f657c-94ba-41e4-8510-98dd00e8b994"
     },
     {
@@ -713,7 +697,7 @@
       "idCard": 59,
       "idCreator": 1,
       "idTextCopyright": 173,
-      "idTextDescription": 168,
+      "idTextDescription": 210,
       "idTextName": 168,
       "idTextTitle": 168,
       "id_card": 59,
@@ -728,7 +712,7 @@
       "idCard": 60,
       "idCreator": 1,
       "idTextCopyright": 171,
-      "idTextDescription": 169,
+      "idTextDescription": 209,
       "idTextName": 169,
       "idTextTitle": 169,
       "id_card": 60,
@@ -741,7 +725,7 @@
       "idCard": 61,
       "idCreator": 1,
       "idTextCopyright": 172,
-      "idTextDescription": 170,
+      "idTextDescription": 211,
       "idTextName": 170,
       "idTextTitle": 170,
       "id_card": 61,
@@ -754,7 +738,7 @@
       "idCard": 62,
       "idCreator": 1,
       "idTextCopyright": 176,
-      "idTextDescription": 174,
+      "idTextDescription": 208,
       "idTextName": 174,
       "idTextTitle": 174,
       "linkCopyright": "https://unsplash.com/photos/mountain-covered-with-green-grass-ZVbv1akA-l4",
@@ -893,10 +877,12 @@
       "id": 74,
       "idCard": 74,
       "idCreator": 1,
-      "idTextCopyright": 3,
-      "idTextDescription": 207,
+      "idTextCopyright": 213,
+      "idTextDescription": 212,
       "idTextName": 207,
       "idTextTitle": 207,
+      "linkCopyright": "https://unsplash.com/photos/a-dirt-path-between-two-large-rocks-in-a-field-qZoN6vQiRvQ",
+      "urlImage": "https://images.unsplash.com/photo-1641424721239-cba952d8abf4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "6b235de6-1305-4737-874a-c101e09db974"
     }
   ],
@@ -1344,13 +1330,13 @@
       "id": 1,
       "idCard": 74,
       "idEvent": 2,
-      "idTextDescription": 207,
+      "idTextDescription": 212,
       "idTextName": 207,
       "id_card": 74,
-      "statistics": "LIFE",
+      "statistics": "ENERGY",
       "target": "ALL",
       "uuid": "67415d38-a9a7-4ce3-aead-6966bed7dec3",
-      "value": -1
+      "value": 1
     }
   ],
   "events": [
@@ -1395,7 +1381,7 @@
       "costEnery": 2,
       "id": 2,
       "idCard": 58,
-      "idSpecificLocation": 3,
+      "idSpecificLocation": 6,
       "idTextDescription": 162,
       "idTextName": 160,
       "id_card": 58,
@@ -1530,7 +1516,7 @@
       "uuid": "6ec42bb6-761d-45af-aae1-95b2670e0b20"
     },
     {
-      "direction": "NORTH",
+      "direction": "WEST",
       "flagBack": 1,
       "id": 10,
       "idLocationFrom": 9,
@@ -1557,11 +1543,12 @@
       "uuid": "f15ec6b5-e13f-41bf-8698-aee0b11d8f9b"
     },
     {
-      "direction": "WEST",
-      "flagBack": 1,
+      "direction": "EAST",
+      "flagBack": 0,
       "id": 13,
-      "idLocationFrom": 6,
-      "idLocationTo": 13,
+      "idCardBack": "",
+      "idLocationFrom": 13,
+      "idLocationTo": 6,
       "idTextName": 196,
       "uuid": "c30d5ed6-fce8-45b6-bb89-6463e6965af5"
     },
@@ -1575,7 +1562,7 @@
       "uuid": "69a92101-f9ef-486d-98a3-b4b4f6859664"
     },
     {
-      "direction": "EAST",
+      "direction": "WEST",
       "flagBack": 1,
       "id": 15,
       "idLocationFrom": 12,
@@ -1724,7 +1711,7 @@
       "costEnergyEnter": 3,
       "id": 5,
       "idCard": 59,
-      "idTextDescription": 168,
+      "idTextDescription": 210,
       "idTextName": 168,
       "id_card": 59,
       "isSafe": true,
@@ -1736,7 +1723,7 @@
       "counterTime": 5,
       "id": 6,
       "idCard": 62,
-      "idTextDescription": 174,
+      "idTextDescription": 208,
       "idTextName": 174,
       "id_card": 62,
       "isSafe": true,
@@ -3297,8 +3284,8 @@
       "idTextName": null,
       "lang": "en",
       "linkCopyright": null,
-      "longText": "Welcome to the introduction match of paths.games.\n<br /><br />Here you can constantly check your vital statistics such as Life, Energy, and Happiness.\n<br /><br /> Examine the movement section to discover which adjacent locations are ready to be explored.\n<br /><br /> Browse the list of available actions to interact with your current location and advance the story.\n<br /><br /> Remember that every choice consumes resources and uniquely shapes your winding path",
-      "shortText": "Welcome to the introduction match of paths.games.\n<br /><br />Here you can constantly check your vital statistics such as Life, Energy, and Happiness.\n<br /><br /> Examine the movement section to discover which adjacent locations are ready to be explored.\n<br /><br /> Browse the list of available actions to interact with your current location and advance the story.\n<br /><br /> Remember that every choice consumes resources and uniquely shapes your winding path",
+      "longText": "Welcome to the Paths Games tutorial: your journey begins now. <br /> On the left side of your screen you'll see the location description telling you about the place where you stand. <br />On the right side is your character information card displaying your vital statistics: Life, Energy, and Happiness. <br />Below that you'll find two sections: the list of available movements to adjacent locations and the list of actions you can perform. Once you've reviewed all this information, choose a direction or action to progress. <br />Each movement and action shapes your unique story.",
+      "shortText": "Welcome to the Paths Games tutorial: your journey begins now. <br /> On the left side of your screen you'll see the location description telling you about the place where you stand. <br />On the right side is your character information card displaying your vital statistics: Life, Energy, and Happiness. <br />Below that you'll find two sections: the list of available movements to adjacent locations and the list of actions you can perform. Once you've reviewed all this information, choose a direction or action to progress. <br />Each movement and action shapes your unique story.",
       "uuid": "90f1aebd-9699-4b6a-8f06-a6f668bc7e18"
     },
     {
@@ -3591,8 +3578,8 @@
       "idTextName": null,
       "lang": "it",
       "linkCopyright": null,
-      "longText": "Benvenuto nella partita di introduzione di paths.games. \n<br /><br />Qui puoi monitorare controllare le tue statistiche vitali come Vita, Energia e Felicità.\n<br /><br />Esamina la sezione dei movimenti per scoprire quali luoghi adiacenti sono pronti per essere esplorati.\n<br /><br />Consulta l'elenco delle azioni disponibili per interagire con la location e far progredire la storia.\n<br /><br /> Ricorda che ogni scelta consuma risorse e plasma in modo unico il tuo tortuoso cammino",
-      "shortText": "Benvenuto nella partita di introduzione di paths.games. \n<br /><br />Qui puoi monitorare controllare le tue statistiche vitali come Vita, Energia e Felicità.\n<br /><br />Esamina la sezione dei movimenti per scoprire quali luoghi adiacenti sono pronti per essere esplorati.\n<br /><br />Consulta l'elenco delle azioni disponibili per interagire con la location e far progredire la storia.\n<br /><br /> Ricorda che ogni scelta consuma risorse e plasma in modo unico il tuo tortuoso cammino",
+      "longText": "Benvenuto nel tutorial di Paths Games: il tuo viaggio inizia ora. <br />Sul lato sinistro dello schermo vedrai la descrizione del luogo che ti racconta del posto in cui stai. <br />Sul lato destro c'è la tua carta informazioni personaggio con le tue statistiche vitali: Vita, Energia e Felicità. <br />Sotto troverai due sezioni: l'elenco dei movimenti disponibili verso i luoghi adiacenti e l'elenco delle azioni che puoi eseguire. <br />Una volta che hai esaminato tutte queste informazioni, scegli una direzione o un'azione per progredire. <br />Ogni movimento e azione modella la tua storia unica.",
+      "shortText": "Benvenuto nel tutorial di Paths Games: il tuo viaggio inizia ora. <br />Sul lato sinistro dello schermo vedrai la descrizione del luogo che ti racconta del posto in cui stai. <br />Sul lato destro c'è la tua carta informazioni personaggio con le tue statistiche vitali: Vita, Energia e Felicità. <br />Sotto troverai due sezioni: l'elenco dei movimenti disponibili verso i luoghi adiacenti e l'elenco delle azioni che puoi eseguire. <br />Una volta che hai esaminato tutte queste informazioni, scegli una direzione o un'azione per progredire. <br />Ogni movimento e azione modella la tua storia unica.",
       "uuid": "61310bf6-219d-4334-b08e-f041ce99d089"
     },
     {
@@ -4441,8 +4428,8 @@
       "idText": 148,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Back to start location",
-      "shortText": "Back to start location",
+      "longText": "Beware: not all paths are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "shortText": "Beware: not all paths are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
       "uuid": "8bbdfec2-6b95-4e61-bfac-e5bc61c19b92"
     },
     {
@@ -4461,8 +4448,8 @@
       "idText": 150,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Back to main location",
-      "shortText": "Back to main location",
+      "longText": "Beware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "shortText": "Beware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
       "uuid": "4aa4e0fa-047a-4bb3-8ea5-23263fe642c7"
     },
     {
@@ -4481,8 +4468,8 @@
       "idText": 152,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Back to main tutorial location.",
-      "shortText": "Back to main tutorial location.",
+      "longText": "Back to main tutorial location.<br />Beware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "shortText": "Back to main tutorial location.<br />Beware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
       "uuid": "4886dec3-4970-403f-8a04-e63cd3705c27"
     },
     {
@@ -4521,8 +4508,8 @@
       "idText": 153,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
-      "shortText": "You are in a protected shelter, a rare moment of respite from the dangers lurking in the shadows. In a safe place, resting allows you to regenerate your statistics exceptionally compared to dangerous areas\n. You will recover Energy based on your Dexterity and Life based on your physical Constitution\n. Furthermore, the peaceful atmosphere will promote a significant reduction in your Sadness level. Use this space wisely to best prepare yourself before the start of the next time cycle\n.",
+      "longText": "You are in a protected shelter where you can rest and recover. <br />Sleeping here restores Energy based on your difficulty level—up to 4 points on Easy mode. <br />Your Life recovers based on your Constitution stat, and your Sadness decreases significantly. <br />This is one of the few places where you can recover safely.<br />Use Safe Locations strategically—sometimes they cost Energy to reach, so plan your journey carefully. Return here when your resources are depleted.",
+      "shortText": "You are in a protected shelter where you can rest and recover. <br />Sleeping here restores Energy based on your difficulty level—up to 4 points on Easy mode. <br />Your Life recovers based on your Constitution stat, and your Sadness decreases significantly. <br />This is one of the few places where you can recover safely.<br />Use Safe Locations strategically—sometimes they cost Energy to reach, so plan your journey carefully. Return here when your resources are depleted.",
       "uuid": "a9c7042b-2b1b-46e0-beab-ac7bc414ec75"
     },
     {
@@ -4531,8 +4518,8 @@
       "idText": 153,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
-      "shortText": "Ti trovi in un rifugio protetto, un raro momento di tregua dalle insidie che si celano nell'ombra. In un luogo sicuro, il riposo ti permette di rigenerare le tue statistiche in modo eccezionale rispetto alle aree pericolose\n. Recupererai Energia basata sulla tua Destrezza e Vita basata sulla tua Costituzione fisica\n. Inoltre, l'atmosfera tranquilla favorirà una significativa riduzione del tuo livello di Tristezza. Usa saggiamente questo spazio per prepararti al meglio prima dell'inizio del prossimo ciclo temporale",
+      "longText": "Sei in un rifugio protetto dove puoi riposare e recuperare. <br />Dormire qui ripristina l'Energia in base al tuo livello di difficoltà—fino a 4 punti in modalità Facile. <br />La tua Vita si recupera in base al tuo stat Costituzione, e la tua Tristezza diminuisce significativamente. <br />Questo è uno dei pochi posti dove puoi recuperare in sicurezza. <br />Usa i Luoghi Sicuri strategicamente—a volte costano Energia per raggiungerli, quindi pianifica il tuo viaggio con cura. Torna qui quando le tue risorse sono esaurite.",
+      "shortText": "Sei in un rifugio protetto dove puoi riposare e recuperare. <br />Dormire qui ripristina l'Energia in base al tuo livello di difficoltà—fino a 4 punti in modalità Facile. <br />La tua Vita si recupera in base al tuo stat Costituzione, e la tua Tristezza diminuisce significativamente. <br />Questo è uno dei pochi posti dove puoi recuperare in sicurezza. <br />Usa i Luoghi Sicuri strategicamente—a volte costano Energia per raggiungerli, quindi pianifica il tuo viaggio con cura. Torna qui quando le tue risorse sono esaurite.",
       "uuid": "0be044f9-959b-4af9-ae4a-922119e03518"
     },
     {
@@ -4541,8 +4528,8 @@
       "idText": 154,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "This is the center location of tutorial story. <br /> <br /> Explore all location.",
-      "shortText": "This is the center location of tutorial story. <br /> <br /> Explore all location.",
+      "longText": "This is the central hub of the tutoral journey where multiple ways converge. <br />When you explore new locations, only their direction is shown—North, South, East, West. <br />Once you visit a location, its name appears so you can return easily. Use your map to plan your journey and see all the places you've visited. <br />Each movement costs Energy based on the difficulty of the terrain. Plan wisely which path to take next.",
+      "shortText": "This is the central hub of the tutoral journey where multiple ways converge. <br />When you explore new locations, only their direction is shown—North, South, East, West. <br />Once you visit a location, its name appears so you can return easily. Use your map to plan your journey and see all the places you've visited. <br />Each movement costs Energy based on the difficulty of the terrain. Plan wisely which path to take next.",
       "uuid": "df2b988e-9c1c-47f2-8ea5-0bf6976dd09f"
     },
     {
@@ -4551,8 +4538,8 @@
       "idText": 154,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Questo è la location centrale del tutorial.  <br /> <br /> Esplora altri luoghi.",
-      "shortText": "Questo è la location centrale del tutorial.  <br /> <br /> Esplora altri luoghi.",
+      "longText": "Questo è l'hub centrale del viaggio del tutorial dove convergono più corridoi. <br />Quando esplori nuovi luoghi, viene mostrata solo la loro direzione—Nord, Sud, Est, Ovest. <br />Una volta visitato un luogo, il suo nome appare così puoi tornarvi facilmente. <br />Usa la tua mappa per pianificare il tuo viaggio e vedere tutti i posti che hai visitato. <br />Ogni movimento costa Energia in base alla difficoltà del terreno. Pianifica saggiamente quale percorso prendere dopo.",
+      "shortText": "Questo è l'hub centrale del viaggio del tutorial dove convergono più corridoi. <br />Quando esplori nuovi luoghi, viene mostrata solo la loro direzione—Nord, Sud, Est, Ovest. <br />Una volta visitato un luogo, il suo nome appare così puoi tornarvi facilmente. <br />Usa la tua mappa per pianificare il tuo viaggio e vedere tutti i posti che hai visitato. <br />Ogni movimento costa Energia in base alla difficoltà del terreno. Pianifica saggiamente quale percorso prendere dopo.",
       "uuid": "9a7e2243-36ea-4a6a-8a0a-e7b375c52d53"
     },
     {
@@ -4631,8 +4618,8 @@
       "idText": 160,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Action",
-      "shortText": "Action",
+      "longText": "Explore hills",
+      "shortText": "Explore hills",
       "uuid": "3862be07-f482-4934-bfd8-05c3e8d1f655"
     },
     {
@@ -4651,8 +4638,8 @@
       "idText": 152,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Torna alla location principale",
-      "shortText": "Torna alla location principale",
+      "longText": "Attenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "shortText": "Attenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
       "uuid": "83f07062-a7a1-437b-aa9a-f87cbacce277"
     },
     {
@@ -4661,8 +4648,8 @@
       "idText": 161,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Li Lin",
-      "shortText": "Li Lin",
+      "longText": "Anne Zwickermann",
+      "shortText": "Anne Zwickermann",
       "uuid": "f2755cde-1462-4d48-8fa4-e2dbed2a7dbb"
     },
     {
@@ -4671,8 +4658,8 @@
       "idText": 162,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Actions & events management coming soon!",
-      "shortText": "Actions & events management coming soon!",
+      "longText": "You climb the windswept hills and discover ancient ruins hidden among the rocks, revealing a new path forward.",
+      "shortText": "You climb the windswept hills and discover ancient ruins hidden among the rocks, revealing a new path forward.",
       "uuid": "57defa81-3241-4c98-9584-6875ff922d1f"
     },
     {
@@ -4721,8 +4708,8 @@
       "idText": 148,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Torna alla partenza",
-      "shortText": "Torna alla partenza",
+      "longText": "Attenzione: non tutti i percorsi sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "shortText": "Attenzione: non tutti i percorsi sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
       "uuid": "13a2bd2a-7a99-40f6-bf51-378d7b514d67"
     },
     {
@@ -4731,8 +4718,8 @@
       "idText": 150,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Torna alla location principale",
-      "shortText": "Torna alla location principale",
+      "longText": "Attenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "shortText": "Attenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
       "uuid": "9d547773-7a40-4140-b878-c7b2405da704"
     },
     {
@@ -4811,8 +4798,8 @@
       "idText": 169,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Strange path",
-      "shortText": "Strange path",
+      "longText": "Strange way",
+      "shortText": "Strange way",
       "uuid": "cc814c48-7d45-4aa1-b580-f7c443a419ea"
     },
     {
@@ -5311,9 +5298,179 @@
       "idText": 207,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Action complete",
-      "shortText": "Action complete",
+      "longText": "Wake up",
+      "shortText": "Wake up",
       "uuid": "521787ca-f9b9-4ea9-a61b-3325baee5e18"
+    },
+    {
+      "id": 208,
+      "idCreator": 1,
+      "idText": 208,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.",
+      "shortText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.",
+      "uuid": "6a0322e7-3a68-4de4-ad5c-ddbafda2bbab"
+    },
+    {
+      "id": 208,
+      "idCreator": 1,
+      "idText": 208,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.",
+      "shortText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.",
+      "uuid": "5565e8c2-a3a8-44ad-993c-e4082c484751"
+    },
+    {
+      "id": 209,
+      "idCreator": 1,
+      "idText": 209,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You've wandered onto a twisted path where the stones beneath your feet seem to shift and twist in unnatural ways.<br />The air feels different here, charged with an energy you can't quite understand.<br />Tall trees loom overhead, their branches creating patterns that hurt your eyes if you stare too long.<br />The path itself seems to lead somewhere specific, but its destination remains unclear. <br />Some say those who follow strange paths discover shortcuts others have missed. Trust your instincts here.",
+      "shortText": "You've wandered onto a twisted path where the stones beneath your feet seem to shift and twist in unnatural ways.<br />The air feels different here, charged with an energy you can't quite understand.<br />Tall trees loom overhead, their branches creating patterns that hurt your eyes if you stare too long.<br />The path itself seems to lead somewhere specific, but its destination remains unclear. <br />Some say those who follow strange paths discover shortcuts others have missed. Trust your instincts here.",
+      "uuid": "a4769d6f-846c-46bd-a510-8119311f4f59"
+    },
+    {
+      "id": 209,
+      "idCreator": 1,
+      "idText": 209,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Sei finito su un sentiero contorto dove le pietre sotto i tuoi piedi sembrano spostarsi e attorcigliarsi in modi innaturali. <br />L'aria qui sembra diversa, carica di un'energia che non riesci a comprendere completamente. <br />Alberi alti si ergono sopra la tua testa, i loro rami creano motivi che feriscono gli occhi se li guardi troppo a lungo. Il sentiero stesso sembra portare da qualche parte di specifico, ma la sua destinazione rimane poco chiara. <br />Alcuni dicono che chi segue sentieri strani scopre scorciatoie che altri hanno perso. Fidati del tuo istinto qui.",
+      "shortText": "Sei finito su un sentiero contorto dove le pietre sotto i tuoi piedi sembrano spostarsi e attorcigliarsi in modi innaturali. <br />L'aria qui sembra diversa, carica di un'energia che non riesci a comprendere completamente. <br />Alberi alti si ergono sopra la tua testa, i loro rami creano motivi che feriscono gli occhi se li guardi troppo a lungo. Il sentiero stesso sembra portare da qualche parte di specifico, ma la sua destinazione rimane poco chiara. <br />Alcuni dicono che chi segue sentieri strani scopre scorciatoie che altri hanno perso. Fidati del tuo istinto qui.",
+      "uuid": "98205cf6-0140-4842-9317-30ddc5050309"
+    },
+    {
+      "id": 169,
+      "idCreator": 1,
+      "idText": 169,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Strano sentiero",
+      "shortText": "Strano sentiero",
+      "uuid": "71741aa4-bb15-44b8-a1e2-0fa52c31c46c"
+    },
+    {
+      "id": 210,
+      "idCreator": 1,
+      "idText": 210,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You find yourself in a secluded clearing where an old wooden bench sits beneath an ancient tree, as if waiting for you. <br />The place feels peaceful and forgotten, untouched by time and the chaos of the fortress. <br /><br />\nBeware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "shortText": "You find yourself in a secluded clearing where an old wooden bench sits beneath an ancient tree, as if waiting for you. <br />The place feels peaceful and forgotten, untouched by time and the chaos of the fortress. <br /><br />\nBeware: not all paths in the fortress are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "uuid": "a2ef2ec1-a10c-4405-b062-0b516dc993ca"
+    },
+    {
+      "id": 210,
+      "idCreator": 1,
+      "idText": 210,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ti ritrovi in una radura appartata dove una vecchia panchina di legno siede sotto un albero antico, come se ti stesse aspettando. <br />Il luogo sente pacifico e dimenticato, intatto dal tempo e dal caos della fortezza. Strani fiori sbocciano qui in sfida alla maledizione, i loro colori vividi e vivi. <br /><br />\nAttenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "shortText": "Ti ritrovi in una radura appartata dove una vecchia panchina di legno siede sotto un albero antico, come se ti stesse aspettando. <br />Il luogo sente pacifico e dimenticato, intatto dal tempo e dal caos della fortezza. Strani fiori sbocciano qui in sfida alla maledizione, i loro colori vividi e vivi. <br /><br />\nAttenzione: non tutti i percorsi nella fortezza sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "uuid": "49e75984-ad0f-4486-8210-ceae2c8d68f9"
+    },
+    {
+      "id": 211,
+      "idCreator": 1,
+      "idText": 211,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Beware: not all paths are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "shortText": "Beware: not all paths are bidirectional. Some movements lead only forward—once you leave this place through certain directions, you cannot return the way you came. Always check on map your available movements carefully before stepping forward into the unknown.",
+      "uuid": "37892dd2-7bec-4c87-b57c-4bd8b2119ef2"
+    },
+    {
+      "id": 211,
+      "idCreator": 1,
+      "idText": 211,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Attenzione: non tutti i percorsi sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "shortText": "Attenzione: non tutti i percorsi sono bidirezionali. Alcuni movimenti portano solo avanti—una volta che lasci questo luogo attraverso certe direzioni, non puoi tornare da dove sei venuto. Controlla sempre nella mappa i tuoi movimenti disponibili prima di fare un passo avanti nell'ignoto.",
+      "uuid": "6369f31c-1fd3-439f-849a-e2ffc6959d42"
+    },
+    {
+      "id": 160,
+      "idCreator": 1,
+      "idText": 160,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Esplora le colline",
+      "shortText": "Esplora le colline",
+      "uuid": "f3f609d5-3bce-4fc3-bec4-e03a9ea32bd8"
+    },
+    {
+      "id": 162,
+      "idCreator": 1,
+      "idText": 162,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Sali su colline ventose e scopri rovine antiche nascoste tra le rocce, rivelando un nuovo percorso in avanti.",
+      "shortText": "Sali su colline ventose e scopri rovine antiche nascoste tra le rocce, rivelando un nuovo percorso in avanti.",
+      "uuid": "68b9fa1d-9574-40e6-ba69-97abd3ac2c55"
+    },
+    {
+      "id": 207,
+      "idCreator": 1,
+      "idText": 207,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Svegliati",
+      "shortText": "Svegliati",
+      "uuid": "1eb49a6b-5284-4404-b181-823e4902c263"
+    },
+    {
+      "id": 212,
+      "idCreator": 1,
+      "idText": 212,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You find a quiet corner among the weathered stones and rest against an ancient wall, feeling your body relax. <br />Result: +1 Energy Recovered.<br /> This is a positive consequence  and you gained something valuable. However, every action has trade-offs: you spent time resting when you could have explored new locations. <br />Remember: not all consequences are immediate, so always read what happens after each action carefully.\n",
+      "shortText": "You find a quiet corner among the weathered stones and rest against an ancient wall, feeling your body relax. <br />Result: +1 Energy Recovered.<br /> This is a positive consequence  and you gained something valuable. However, every action has trade-offs: you spent time resting when you could have explored new locations. <br />Remember: not all consequences are immediate, so always read what happens after each action carefully.\n",
+      "uuid": "795103e3-d373-490a-8da8-9be098c7ede3"
+    },
+    {
+      "id": 212,
+      "idCreator": 1,
+      "idText": 212,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovi un angolo tranquillo tra le pietre consumate e ti appoggi a un muro antico, sentendo il tuo corpo rilassarsi. <br />Risultato: +1 Energia Recuperata.<br /> Questa è una conseguenza positiva e hai guadagnato qualcosa di prezioso. <br/>Tuttavia, ogni azione ha compromessi: hai speso tempo riposando quando avresti potuto esplorare nuovi luoghi. <br />Ricorda: non tutte le conseguenze sono immediate, quindi leggi sempre attentamente cosa accade dopo ogni azione.\n",
+      "shortText": "Trovi un angolo tranquillo tra le pietre consumate e ti appoggi a un muro antico, sentendo il tuo corpo rilassarsi. <br />Risultato: +1 Energia Recuperata.<br /> Questa è una conseguenza positiva e hai guadagnato qualcosa di prezioso. <br/>Tuttavia, ogni azione ha compromessi: hai speso tempo riposando quando avresti potuto esplorare nuovi luoghi. <br />Ricorda: non tutte le conseguenze sono immediate, quindi leggi sempre attentamente cosa accade dopo ogni azione.\n",
+      "uuid": "99b99685-c1ca-4252-b83e-475f0d16f510"
+    },
+    {
+      "id": 213,
+      "idCreator": 1,
+      "idText": 213,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Anne Zwickermann",
+      "shortText": "Anne Zwickermann",
+      "uuid": "306d51fe-9841-450a-b70b-73ca80d0ba5b"
+    },
+    {
+      "id": 213,
+      "idCreator": 1,
+      "idText": 213,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8d443aaf-45c0-44d9-9ba5-c0b6240e6986"
+    },
+    {
+      "id": 161,
+      "idCreator": 1,
+      "idText": 161,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "890592f2-6aec-44e9-ac30-d39a843fbb1c"
     }
   ],
   "title": "Paths Tutorial",

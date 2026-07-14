@@ -76,9 +76,10 @@ export default function ActionCard({
       // handleSelectionPreviewFull(card, type, lockReason, statistics, showModal, additionalProps, side)
       onPreview={() => onPreview(action?.card ?? null, 'action', lockInfoFull ?? null, [], true,
         available
-          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon }
+          ? { onAction: handleExecute, actionLabel: t('game.event.action'), actionIcon ,
+            actionLabelChildren: costBadge }
           : {extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>), 
-            actionLabelChildren: costBadge
+            
         }, previewSide)}
       story={story}
       flagInformationCard={true}

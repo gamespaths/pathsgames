@@ -12,7 +12,8 @@ const GAUGE_KEYS = [
 // Plain single-value stats (no max projected by /info yet).
 const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
 
-export default function PlayerStats({ stats , className , plainFlag=false , showZeros=true , specificKeys=null }) {
+export default function PlayerStats({ stats , className 
+    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true}) {
 
   const { t } = useTranslation()
 
@@ -22,7 +23,7 @@ export default function PlayerStats({ stats , className , plainFlag=false , show
     const max = stats?.[maxKey] ?? 0
     return {
       key,
-      label: t(`game.stats.${key}`),
+      label: showLabel ? t(`game.stats.${key}`) : null,
       // current/max when a max is known, otherwise the bare current value
       value: max ? `${value}/${max}` : value,
     }
@@ -37,7 +38,8 @@ export default function PlayerStats({ stats , className , plainFlag=false , show
   const items = Array.isArray(stats?.items) ? stats.items : []
 
   let clockStat=[]
-  if (plainFlag && stats.clock!=null){ clockStat.push({ key: 'clock', label: stats.clockLabelSingular ?? "Time", value: stats.clock }) }
+  if (plainFlag && stats.clock!=null){ 
+    clockStat.push({ key: 'clock', label: stats.clockLabelSingular ?? "Time", value: stats.clock }) }
 
   return (
     <>

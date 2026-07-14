@@ -54,7 +54,8 @@ export default function Card({
   onPreview, hidePreview = false,
   infoLabel, infoIconClassName, infoLabelClassName,
 
-  action2Label=null, action2Icon=null, onAction2=null,
+  // Extra footer buttons beside the main action: [{ label, icon, onAction }], in order.
+  actionsList=[],
 
   /* extra overlay content */
   childrenIntoImage,
@@ -199,7 +200,7 @@ export default function Card({
             onPreview={onPreview} previewOpened={previewOpened} hidePreview={hidePreview}
             flagInformationCard={flagInformationCard}
             infoLabel={infoLabel} infoIconClassName={infoIconClassName} infoLabelClassName={infoLabelClassName} 
-            action2Label={action2Label} action2Icon={action2Icon} onAction2={onAction2}
+            actionsList={actionsList}
           />
 
       {viewLink}
