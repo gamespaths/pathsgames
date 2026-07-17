@@ -283,6 +283,41 @@ Cards Are Localized By The Lang Parameter
     ${resp}=    Execute Event    ${TOKEN}    ${MATCH_UUID}    ${uuid}    200    lang=it
     Should Not Be Equal    ${resp.json()}[card]    ${None}
 
+A Location Effect Teleports The Character Without Any Movement Check
+    [Documentation]    v0.29.3 — an effect's idLocation moves the actor even though the target
+    ...                is NOT a neighbor of where they stand: no Step 28 check runs and no
+    ...                movement energy is charged (only the event's own cost). The move lands
+    ...                on the timeline as a cost-0 MOVEMENT entry. Runs on its own match: the
+    ...                teleport would strand the suite's shared character away from the seeded
+    ...                events.
+    [Tags]    events    step29    movement
+    ${event}    ${target}=    Teleport Seed
+    ${match}=    New Teleport Match
+
+    ${info}=    Get Match Info    ${TELEPORT_TOKEN}    ${match}    200    lang=en
+    ${before}=    Set Variable    ${info.json()}[currentLocationId]
+    Should Not Be Equal As Integers    ${target}    ${before}
+    ${neighbors}=    Neighbor Location Ids Of    ${before}
+    List Should Not Contain Value    ${neighbors}    ${target}
+    ...    msg=the seeded teleport target must NOT be a neighbor — that is what proves no check ran
+
+    ${resp}=    Execute Event    ${TELEPORT_TOKEN}    ${match}    ${event}    200
+    ${body}=    Set Variable    ${resp.json()}
+    Should Be True    ${body}[movementApplied]
+    Should Be True    ${body}[refreshRecommended]
+    Should Not Be Empty    ${body}[locationChanges]
+    Should Be Equal As Integers    ${body}[energySpent]    2
+    ...    msg=only the event's own cost — the forced movement itself is free
+
+    ${info}=    Get Match Info    ${TELEPORT_TOKEN}    ${match}    200    lang=en
+    Should Be Equal As Integers    ${info.json()}[currentLocationId]    ${target}
+
+    ${logs}=    Get Match Logs    ${TELEPORT_TOKEN}    ${match}    200
+    ${entry}=    First Movement Log Entry    ${logs.json()}[logs]
+    Should Be Equal As Integers    ${entry}[idLocationTo]    ${target}
+    Should Be Equal As Integers    ${entry}[energyCost]    0
+    ...    msg=a forced move is logged, at cost 0
+
 
 *** Keywords ***
 
@@ -463,6 +498,67 @@ Event Uuid By Effect
         END
     END
     Fail    no seeded effect matches: ${expression}
+
+Teleport Seed
+    [Documentation]    (event uuid, target location id) of the seeded forced-movement effect
+    ...                (v0.29.3): the first effect row carrying idLocation, and its owner.
+    ${effects}=    Admin Event Effects
+    ${events}=     Admin Events
+    FOR    ${e}    IN    @{effects}
+        IF    $e.get('idLocation')
+            ${owner}=    Set Variable    ${e}[idEvent]
+            FOR    ${ev}    IN    @{events}
+                IF    $ev['id'] == $owner    RETURN    ${ev}[uuid]    ${e}[idLocation]
+            END
+        END
+    END
+    Fail    no seeded effect carries idLocation (v0.29.3)
+
+New Teleport Match
+    [Documentation]    A fresh running single-player match on the suite's story: the teleport
+    ...                strands its character, so it never runs on the shared match.
+    ${story}    ${difficulty}    ${character}    ${class}    ${trait}=    Pick Story Loadout
+    Should Be Equal    ${story}    ${STORY_UUID}
+    ...    msg=the loadout must resolve to the suite's story, whose seeds hold the teleporter
+    ${guest}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${guest}    201
+    Set Suite Variable    ${TELEPORT_TOKEN}    ${guest.json()}[accessToken]
+    ${match}=    Create Match    ${TELEPORT_TOKEN}    ${story}    ${difficulty}    robottest_step29_teleport
+    Status Should Be    ${match}    201
+    ${uuid}=    Set Variable    ${match.json()}[uuid]
+    ${trait_list}=    Create List
+    IF    '${trait}' != ''
+        Append To List    ${trait_list}    ${trait}
+    END
+    ${join}=    Join Match    ${TELEPORT_TOKEN}    ${uuid}    ${character}    ${class}    ${trait_list}
+    Status Should Be    ${join}    201
+    Start Match    ${TELEPORT_TOKEN}    ${uuid}    200
+    RETURN    ${uuid}
+
+Neighbor Location Ids Of
+    [Documentation]    Location ids reachable in ONE move from the given location, per the
+    ...                admin story rows (both edge directions, the reverse one only with
+    ...                flagBack).
+    [Arguments]    ${id_location}
+    ${resp}=    GET On Session    admin_session    /api/admin/stories/${STORY_UUID}/location-neighbors
+    Status Should Be    ${resp}    200
+    ${ids}=    Create List
+    FOR    ${n}    IN    @{resp.json()}
+        IF    $n.get('idLocationFrom') == $id_location
+            Append To List    ${ids}    ${n}[idLocationTo]
+        END
+        IF    $n.get('idLocationTo') == $id_location and $n.get('flagBack')
+            Append To List    ${ids}    ${n}[idLocationFrom]
+        END
+    END
+    RETURN    ${ids}
+
+First Movement Log Entry
+    [Arguments]    ${logs}
+    FOR    ${entry}    IN    @{logs}
+        IF    $entry['type'] == 'MOVEMENT'    RETURN    ${entry}
+    END
+    Fail    no MOVEMENT entry on the timeline
 
 Total Exp Gained
     [Arguments]    ${body}

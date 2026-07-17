@@ -741,6 +741,16 @@ export default function StoryEditorPage() {
       targetClass: {
         options: classesOptions,
       },
+      // v0.29.3 — forced movement: the location the effect moves its recipients to. Same
+      // picker as events.idSpecificLocation (the value is a story-local location id).
+      idLocation: {
+        options: locationOptions,
+      },
+      // On an effect idWeather SETS the match weather; same picker as events.idWeather (where
+      // it is a CONDITION instead). The value is the rule's own id, not its idCard.
+      idWeather: {
+        options: weatherRulesOptions,
+      },
     },
     items: {
       idCard: {

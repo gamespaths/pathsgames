@@ -852,6 +852,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("keyValueToAdd", ee.getKeyValueToAdd());
             m.put("characteristicToAdd", ee.getCharacteristicToAdd());
             m.put("characteristicToRemove", ee.getCharacteristicToRemove());
+            m.put("idLocation", ee.getIdLocation());
         } else if (e instanceof EventEntity) {
             EventEntity ev = (EventEntity) e;
             m.put("idSpecificLocation", ev.getIdSpecificLocation());
@@ -1428,6 +1429,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setCharacteristicToAdd(str(d, "characteristicToAdd"));
         if (d.containsKey("characteristicToRemove"))
             e.setCharacteristicToRemove(str(d, "characteristicToRemove"));
+        if (d.containsKey("idLocation"))
+            e.setIdLocation(intVal(d, "idLocation"));
     }
 
     private void applyChoiceFields(ChoiceEntity e, Map<String, Object> d) {

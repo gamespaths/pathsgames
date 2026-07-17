@@ -318,6 +318,8 @@ class EventEffectEntity(Base):
     characteristic_to_remove = Column(String(200))
     # EFFECT: sets gaming_match.id_current_weather (the opposite of EventEntity.id_weather).
     id_weather = Column(Integer)
+    # EFFECT (v0.29.3): moves the recipients to this location — no Step 28 checks, no energy.
+    id_location = Column(Integer)
 
 
 class ChoiceEntity(Base):

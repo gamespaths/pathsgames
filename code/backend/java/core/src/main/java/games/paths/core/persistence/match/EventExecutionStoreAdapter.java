@@ -6,9 +6,11 @@ import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.LogEventsEntity;
+import games.paths.core.entity.match.LogMovementEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.port.match.EventExecutionStorePort;
@@ -21,6 +23,7 @@ import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
 import games.paths.core.repository.match.LogEventsRepository;
+import games.paths.core.repository.match.LogMovementRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,6 +59,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingCharacterTraitsRepository traitsRepository;
     private final GamingStateRegistryRepository registryRepository;
     private final LogEventsRepository logEventsRepository;
+    private final LogMovementRepository logMovementRepository;
     private final StoryReadPort storyReadPort;
     private final WeatherStorePort weatherStorePort;
 
@@ -67,6 +71,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       GamingCharacterTraitsRepository traitsRepository,
                                       GamingStateRegistryRepository registryRepository,
                                       LogEventsRepository logEventsRepository,
+                                      LogMovementRepository logMovementRepository,
                                       StoryReadPort storyReadPort,
                                       WeatherStorePort weatherStorePort) {
         this.matchRepository = matchRepository;
@@ -76,6 +81,7 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.traitsRepository = traitsRepository;
         this.registryRepository = registryRepository;
         this.logEventsRepository = logEventsRepository;
+        this.logMovementRepository = logMovementRepository;
         this.storyReadPort = storyReadPort;
         this.weatherStorePort = weatherStorePort;
     }
@@ -179,6 +185,18 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         for (TraitEntity t : storyReadPort.findTraitsByStoryId(idStory)) {
             if (t.getId() != null) {
                 out.put(t.getId(), t.getUuid());
+            }
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, String> findLocationUuidsById(long idStory) {
+        Map<Long, String> out = new HashMap<>();
+        for (LocationEntity l : storyReadPort.findLocationsByStoryId(idStory)) {
+            if (l.getId() != null) {
+                out.put(l.getId(), l.getUuid());
             }
         }
         return out;
@@ -393,6 +411,27 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     @Override
     public void setCurrentWeather(long idMatch, Long idWeather) {
         weatherStorePort.setCurrentWeather(idMatch, idWeather);
+    }
+
+    @Override
+    public void updateCharacterLocation(long idMatch, long idCharacter, long idLocation) {
+        characterRepository.findById(new GamingCharacterInstanceEntityId(idCharacter, idMatch))
+                .ifPresent(c -> {
+                    c.setIdLocation(idLocation);
+                    characterRepository.save(c);
+                });
+    }
+
+    @Override
+    public void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation, int energyCost) {
+        LogMovementEntity e = new LogMovementEntity();
+        e.setId(logMovementRepository.findMaxId() + 1);
+        e.setIdMatch(idMatch);
+        e.setIdCharacterMatch(idCharacter);
+        e.setIdLocationFrom(fromLocation);
+        e.setIdLocationTo(toLocation);
+        e.setEnergy(energyCost);
+        logMovementRepository.save(e);
     }
 
     @Override

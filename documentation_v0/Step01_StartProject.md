@@ -206,7 +206,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	14. `list_items_effects` (id, id_story, id_item, id_text_name, id_text_description, effect_code=LIFE, effect_value=2)
 	15. `list_weather_rules` (id, id_card, id_story, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, condition_key, condition_key_value, time_from, time_to, id_text, active, priority, delta_energy, id_event)
 	16. `list_events` (id, id_card, id_story, id_specific_location, id_text_name, id_text_description, type=AUTOMATIC/FIRST/NORMAL/ONCE, cost_enery, flag_end_time, id_item, id_weather, id_event_next, coin_cost , registry_name, registry_value, id_class 
-	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), target_class, id_item_target, item_action (REMOVE, ADD), "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
+	17. `list_events_effects` (id, id_card, id_story, id_event, statistics (live, energy, exp,...), value, target (ALL,ONLY_ONE), target_class, id_item_target, item_action (REMOVE, ADD), "traits_to_add", "traits_to_remove" e characteristic_to_add, characteristic_to_remove, key_to_add, key_value_to_add, id_location) [example: enter in a room with a trap -> -1 life, meet gandalf -> add  10 enerty, magic trap -> only wizards, arrested -> itemX removed]
 	18. `list_choices` (id, id_card, id_story, id_event, id_location, priority, id_text_name, id_text_description, id_text_narrative, id_event_torun, limit_sad, limit_dex, limit_int, limit_cos, otherwise_flag (boolean), is_progress (true -> insert progress ) logic_operator (AND/OR))
 	19. `list_choices_conditions` (id, id_story, id_choices, type (KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM, ), key, value, operator (= > < !=), id_text_name, id_text_description
 	20. `list_choices_effects` (id, id_story, id_choices, id_scelta, flag_group, statistics (life, energy, sad, DEX, COS, INT), value, id_text, key, value_to_add, value_to_remove)
@@ -517,6 +517,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- se registro_chiave, registro_valore allora chiaveRegistroAggiungi
 		- se elenco_eventi_effetti="MOVIMENTO" allora spaceMoveInto e space (capire come)
 		- se meteo_causato allora timeSet e flag interrompi eventi successivi
+		- se id_location allora spostare il characters nella location indicata senza alcun controllo (energia)
 	- 91e eventAddObject
 		- se id_oggetto_da_aggiungere allora inventoryCheckSufficientCapacity e inventoryAdd
 	- 91f eventTriggerChoice		

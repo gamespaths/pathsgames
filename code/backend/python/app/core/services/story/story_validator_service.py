@@ -404,6 +404,8 @@ class StoryValidatorService(StoryValidatorPort):
         self._ref(g, "event-effects", eid, "idEvent", _EVENT, _as_int(_get(ee, "idEvent")))
         self._ref(g, "event-effects", eid, "idItemTarget", _ITEM, _as_int(_get(ee, "idItemTarget")))
         self._ref(g, "event-effects", eid, "targetClass", _CLASS, _as_int(_get(ee, "targetClass")))
+        # v0.29.3 — forced movement: the location the effect moves its recipients to.
+        self._ref(g, "event-effects", eid, "idLocation", _LOCATION, _as_int(_get(ee, "idLocation")))
 
     def _collect_neighbor(self, g, n):
         frm = _as_int(_get(n, "idLocationFrom"))

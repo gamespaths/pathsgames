@@ -326,6 +326,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             characteristic_to_add=ef.get("characteristicToAdd"),
             characteristic_to_remove=ef.get("characteristicToRemove"),
             id_weather=ef.get("idWeather"),
+            # v0.29.3 — forced movement: moves the recipients here, no Step 28 checks.
+            id_location=ef.get("idLocation"),
         )
 
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:

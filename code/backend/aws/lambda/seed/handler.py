@@ -154,6 +154,11 @@ SEED_STORIES = [
              "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
             {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 2,
              "secureParam": 0, "idEventIfCounterZero": 1, "idCard": 3},
+            # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect
+            # (event 28) can bring a character here, proving the forced movement
+            # skips every Step 28 check.
+            {"id": 3, "uuid": "loc-tutorial-3", "name": "Hidden Grove", "counterTime": 0,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
         "neighbors": [
@@ -244,6 +249,11 @@ SEED_STORIES = [
             {"id": 27, "uuid": "evt-step29-auto", "name": "The Wind Rises",
              "idSpecificLocation": 1, "type": "AUTOMATIC", "idCard": 1,
              "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            # v0.29.3 — its effect teleports the actor to the Hidden Grove (3).
+            # costEnery 2 keeps the "cost 1" robot lookup unambiguous (it means event 10).
+            {"id": 28, "uuid": "evt-step29-teleport", "name": "Secret Passage",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 2, "coinCost": 0, "flagEndTime": 0},
         ],
         # Step 29 — the EFFECT side. Each row's own idCard is the narrative the board shows.
         "eventEffects": [
@@ -268,6 +278,10 @@ SEED_STORIES = [
             {"id": 11, "idEvent": 26, "idCard": 1, "statistics": "food",  "value": 3, "target": "ONLY_ONE"},
             {"id": 12, "idEvent": 26, "idCard": 1, "statistics": "magic", "value": 2, "target": "ONLY_ONE"},
             {"id": 13, "idEvent": 26, "idCard": 1, "statistics": "coin",  "value": 9, "target": "ONLY_ONE"},
+            # v0.29.3 — forced movement: sends the actor to the Hidden Grove (3), a location
+            # with no neighbor edge at all — no checks, no movement cost, only the event's
+            # own energy cost.
+            {"id": 14, "idEvent": 28, "idCard": 1, "target": "ONLY_ONE", "idLocation": 3},
         ],
         # Step 15 fields
         "characterTemplates": [

@@ -43,9 +43,13 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 
 ### `29_events` breakdown
 
-`events.robot` — the `available`/`reason` flag on `/info` events;
+`events.robot` (18 tests) — the `available`/`reason` flag on `/info` events;
 `POST /api/gameplay/{uuid}/action/execute-event` (every error code, every effect type, every
 `target` mode); the `id_event_next` chain; `ONCE` per-match consumption; `flag_end_time`; coma; `?lang=`.
+Plus (v0.29.3) "A Location Effect Teleports The Character Without Any Movement Check": an
+effect's `id_location` moves the actor with none of the Step 28 movement checks; runs on its
+**own match** (`New Teleport Match` keyword — the teleport would otherwise strand the suite's
+shared character away from the seeded events).
 
 ## Seed data and reports per backend
 

@@ -293,6 +293,8 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+-- v0.29.3 teleporter: its effect moves the actor to 90006
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90028, 9001, 90001, 503, 503, 90001, 'NORMAL', 2, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- ── Step 29 Event Effects — one per effect kind. The EFFECT's card is the narrative. ──
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90010, 9001, 90010, 90001, 'exp', 5, 'ONLY_ONE');
@@ -308,6 +310,9 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, target, traits
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90020, 9001, 90026, 90001, 'food', 3, 'ONLY_ONE');
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90021, 9001, 90026, 90001, 'magic', 2, 'ONLY_ONE');
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES (90022, 9001, 90026, 90001, 'coin', 9, 'ONLY_ONE');
+-- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
+-- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
 
 -- ── Story 1 Choices ─────────────────────────────────────────────
 INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90001, 9001, 90004, 1, 600, 600, 0, 1);

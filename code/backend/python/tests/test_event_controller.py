@@ -7,7 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.adapters.rest.match.event_controller import EventController
 from app.core.models.match.event_models import (
-    AppliedEffect, EntityChange, EventError, EventExecutionResult, RegistryChange, StatChange,
+    AppliedEffect, EntityChange, EventError, EventExecutionResult, LocationChange,
+    RegistryChange, StatChange,
 )
 
 URL = "/api/gameplay/m1/action/execute-event"
@@ -37,10 +38,12 @@ def _result() -> EventExecutionResult:
         executed_event_uuids=["evt-1", "evt-2"],
         energy_spent=3, coin_spent=2, new_energy=17, new_coin=8, current_clock=5,
         turn_consumed=False, time_ended=True, item_added=True, game_over=True,
+        movement_applied=True,
         refresh_recommended=True,
         stat_changes=[StatChange("char-1", "life", 30, 25, -5)],
         registry_changes=[RegistryChange("GATE", None, "OPEN")],
         item_changes=[EntityChange("char-1", "item-1", "ADD")],
+        location_changes=[LocationChange("char-1", "loc-a", "loc-b")],
         effects=[AppliedEffect("evt-1", "eff-1", "life", -5, "ONLY_ONE", None,
                                ["char-1"], {"title": "A wound"})],
     )
@@ -64,6 +67,11 @@ def test_execute_event_returns_the_full_payload(env):
     assert body["statChanges"][0]["delta"] == -5
     assert body["registryChanges"][0]["newValue"] == "OPEN"
     assert body["itemChanges"][0]["itemUuid"] == "item-1"
+    # v0.29.3 — forced movement travels as movementApplied + locationChanges.
+    assert body["movementApplied"] is True
+    assert body["locationChanges"] == [{"characterUuid": "char-1",
+                                        "fromLocationUuid": "loc-a",
+                                        "toLocationUuid": "loc-b"}]
     # The narrative is the EFFECT's card, not the event's.
     assert body["effects"][0]["card"]["title"] == "A wound"
     assert body["pendingChoices"] == []

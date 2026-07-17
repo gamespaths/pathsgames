@@ -211,6 +211,12 @@ components:
         weatherApplied:
           type: boolean
           description: An effect set the match weather (`list_events_effects.id_weather`).
+        movementApplied:
+          type: boolean
+          description: |
+            v0.29.3 — a forced-movement effect (`list_events_effects.id_location`) moved at
+            least one character. No Step 28 check applies and no energy is spent; see
+            `locationChanges` for who went where.
         forcedSleep:
           type: boolean
         comaTriggered:
@@ -242,6 +248,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CharacteristicChange'
+        locationChanges:
+          type: array
+          description: v0.29.3 — one entry per character a forced-movement effect moved.
+          items:
+            $ref: '#/components/schemas/LocationChange'
         effects:
           type: array
           description: One entry per `list_events_effects` row that ran.
@@ -314,6 +325,22 @@ components:
         action:
           type: string
           enum: [ADD, REMOVE]
+
+    LocationChange:
+      type: object
+      description: |
+        v0.29.3 — one forced movement (`list_events_effects.id_location`). The move skips
+        the whole Step 28 procedure and costs no energy; a cost-0 MOVEMENT entry appears
+        on the match-logs timeline instead.
+      properties:
+        characterUuid:
+          type: string
+        fromLocationUuid:
+          type: string
+          nullable: true
+          description: Null when the character had no position yet.
+        toLocationUuid:
+          type: string
 
     AppliedEffect:
       type: object

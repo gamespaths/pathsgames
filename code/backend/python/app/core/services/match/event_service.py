@@ -15,12 +15,15 @@ Rules worth stating, because they are easy to get wrong:
 * **Coma short-circuits everything.** When life reaches zero the chain stops and
   ``flag_end_time`` does not fire: Step 29 only raises the flags, Step 38 owns the rest.
 * **game_over is only a flag.** Moving the match to GAMEOVER is Step 38.
+* **Forced movement bypasses Step 28.** An effect's ``id_location`` (v0.29.3) moves its
+  recipients with no neighbor, energy or availability check; only a cost-0 movement log
+  row is written per moved character.
 """
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.event_models import (
     AppliedEffect, EntityChange, EventCheckContext, EventError, EventExecutionResult,
-    RegistryChange, StatChange,
+    LocationChange, RegistryChange, StatChange,
 )
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventPort, EventStorePort
 from app.core.services.match import event_availability
@@ -212,6 +215,7 @@ class EventService(EventPort):
             self._apply_traits(x, recipient, effect, event)
             self._apply_characteristics(x, recipient, effect)
             self._apply_registry(x, recipient, effect, event)
+            self._apply_movement(x, recipient, effect)
 
         x.effects.append(AppliedEffect(
             event_uuid=event.get("uuid"),
@@ -229,11 +233,14 @@ class EventService(EventPort):
         character of the match. target_class then narrows that set; matching nobody is legal
         and simply applies nothing."""
         target = (effect.get("target") or "ALL").strip().upper()
-        if target == TARGET_ONLY_ONE or x.actor.get("id_location") is None:
+        # Locations come from the tracked map, not the raw views: a forced movement earlier
+        # in the chain must be seen by the effects that follow it.
+        actor_location = x.location_of(x.actor)
+        if target == TARGET_ONLY_ONE or actor_location is None:
             base = [x.actor]
         else:
             base = [c for c in x.all_characters()
-                    if c.get("id_location") == x.actor.get("id_location")]
+                    if x.location_of(c) == actor_location]
 
         target_class = effect.get("target_class")
         if not target_class or target_class <= 0:
@@ -326,6 +333,32 @@ class EventService(EventPort):
         x.ctx.registry[key] = value
         x.registry_changes.append(RegistryChange(key, old, value))
 
+    def _apply_movement(self, x: "_Exec", recipient: Dict[str, Any],
+                        effect: Dict[str, Any]) -> None:
+        """v0.29.3 forced movement: the recipient is moved to ``id_location``, skipping the
+        whole Step 28 procedure — no neighbor check, no energy cost, no availability
+        verdict. An id that matches no location of the story is authored noise and is
+        skipped; so is a move to the location the recipient already stands in. The tracked
+        position is updated, so a later effect of the same chain resolves ``target=ALL``
+        where the recipient now stands."""
+        id_location = effect.get("id_location")
+        if not id_location or id_location <= 0:
+            return
+        target_uuid = x.location_uuids().get(id_location)
+        if target_uuid is None:
+            return  # authored noise, not an error
+        origin = x.location_of(recipient)
+        if origin == id_location:
+            return  # already there: nothing to move, nothing to log
+        self.store.update_character_location(x.match["id"], recipient["id"], id_location)
+        self.store.insert_movement_log(x.match["id"], recipient["id"], origin, id_location, 0)
+        x.set_location(recipient["id"], id_location)
+        x.movement_applied = True
+        x.location_changes.append(LocationChange(
+            character_uuid=recipient.get("uuid"),
+            from_location_uuid=x.location_uuids().get(origin) if origin else None,
+            to_location_uuid=target_uuid))
+
     # ── coma & time end ─────────────────────────────────────────────────────
 
     def _check_coma(self, x: "_Exec") -> None:
@@ -383,7 +416,8 @@ class EventService(EventPort):
         self._flush(x)
         actor = x.live(x.actor)
         changed = any([
-            x.time_ended, x.item_added, x.item_removed, x.weather_applied, x.forced_sleep,
+            x.time_ended, x.item_added, x.item_removed, x.weather_applied,
+            x.movement_applied, x.forced_sleep,
             x.coma_triggered, x.game_over, x.stat_changes, x.registry_changes,
             x.trait_changes, x.characteristic_changes,
         ])
@@ -403,6 +437,7 @@ class EventService(EventPort):
             item_added=x.item_added,
             item_removed=x.item_removed,
             weather_applied=x.weather_applied,
+            movement_applied=x.movement_applied,
             forced_sleep=x.forced_sleep,
             coma_triggered=x.coma_triggered,
             game_over=x.game_over,
@@ -412,6 +447,7 @@ class EventService(EventPort):
             trait_changes=x.trait_changes,
             item_changes=x.item_changes,
             characteristic_changes=x.characteristic_changes,
+            location_changes=x.location_changes,
             effects=x.effects,
             pending_choices=[],
         )
@@ -441,12 +477,16 @@ class _Exec:
         self._all_characters: Optional[List[Dict[str, Any]]] = None
         self._item_uuids: Optional[Dict[int, str]] = None
         self._trait_uuids: Optional[Dict[int, str]] = None
+        self._location_uuids: Optional[Dict[int, str]] = None
+        # Current location per character: seeded from the views, rewritten by forced movement.
+        self._location_by_character: Dict[int, Optional[int]] = {}
 
         self.stat_changes: List[StatChange] = []
         self.registry_changes: List[RegistryChange] = []
         self.trait_changes: List[EntityChange] = []
         self.item_changes: List[EntityChange] = []
         self.characteristic_changes: List[EntityChange] = []
+        self.location_changes: List[LocationChange] = []
         self.effects: List[AppliedEffect] = []
 
         self.current_clock = match.get("current_clock") or 0
@@ -457,6 +497,7 @@ class _Exec:
         self.item_added = False
         self.item_removed = False
         self.weather_applied = False
+        self.movement_applied = False
         self.forced_sleep = False
         self.coma_triggered = False
         self.game_over = False
@@ -477,6 +518,23 @@ class _Exec:
         if self._trait_uuids is None:
             self._trait_uuids = self._service.store.find_trait_uuids_by_id(self.match["id_story"])
         return self._trait_uuids
+
+    def location_uuids(self) -> Dict[int, str]:
+        """Lazily loaded: only a forced-movement effect needs the story's locations."""
+        if self._location_uuids is None:
+            self._location_uuids = self._service.store.find_location_uuids_by_id(
+                self.match["id_story"])
+        return self._location_uuids
+
+    def location_of(self, view: Dict[str, Any]) -> Optional[int]:
+        """The tracked position wins over the (possibly stale) view."""
+        key = view["id"]
+        if key not in self._location_by_character:
+            self._location_by_character[key] = view.get("id_location")
+        return self._location_by_character[key]
+
+    def set_location(self, id_character: int, id_location: int) -> None:
+        self._location_by_character[id_character] = id_location
 
     def live(self, view: Dict[str, Any]) -> _Live:
         key = view["id"]

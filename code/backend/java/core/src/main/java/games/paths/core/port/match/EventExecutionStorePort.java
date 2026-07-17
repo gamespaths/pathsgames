@@ -71,6 +71,13 @@ public interface EventExecutionStorePort {
     /** Story trait id → uuid, for the response payload. */
     Map<Long, String> findTraitUuidsById(long idStory);
 
+    /**
+     * Story location id → uuid. Doubles as the existence check of a forced-movement
+     * effect (v0.29.3): an {@code id_location} absent from this map is authored noise
+     * and the move is skipped.
+     */
+    Map<Long, String> findLocationUuidsById(long idStory);
+
     // ── the check context ───────────────────────────────────────────────────
 
     /**
@@ -114,6 +121,15 @@ public interface EventExecutionStorePort {
 
     /** Sets {@code gaming_match.id_current_weather} (null clears it). */
     void setCurrentWeather(long idMatch, Long idWeather);
+
+    /** Sets the character's {@code id_location} — forced movement (v0.29.3), energy untouched. */
+    void updateCharacterLocation(long idMatch, long idCharacter, long idLocation);
+
+    /**
+     * Append a {@code log_movements} row. Forced movement writes it with cost 0, so the
+     * Step 28.7 timeline and the Step 28.6 visited set stay truthful.
+     */
+    void insertMovementLog(long idMatch, long idCharacter, Long fromLocation, long toLocation, int energyCost);
 
     /**
      * Append the {@code log_events} row of an executed event. The message MUST start with

@@ -103,6 +103,14 @@ class EntityChange:
 
 
 @dataclass
+class LocationChange:
+    """One forced movement (v0.29.3): who moved, from where (None when unplaced), to where."""
+    character_uuid: Optional[str]
+    from_location_uuid: Optional[str]
+    to_location_uuid: Optional[str]
+
+
+@dataclass
 class AppliedEffect:
     """One list_events_effects row that ran.
 
@@ -138,6 +146,8 @@ class EventExecutionResult:
     item_added: bool = False
     item_removed: bool = False
     weather_applied: bool = False
+    # v0.29.3 — a forced-movement effect moved at least one character.
+    movement_applied: bool = False
     forced_sleep: bool = False
     coma_triggered: bool = False
     game_over: bool = False
@@ -147,6 +157,7 @@ class EventExecutionResult:
     trait_changes: List[EntityChange] = field(default_factory=list)
     item_changes: List[EntityChange] = field(default_factory=list)
     characteristic_changes: List[EntityChange] = field(default_factory=list)
+    location_changes: List[LocationChange] = field(default_factory=list)
     effects: List[AppliedEffect] = field(default_factory=list)
     # Always empty in v0.29.0 — the Step 30 choice engine fills it.
     pending_choices: List[Dict[str, Any]] = field(default_factory=list)

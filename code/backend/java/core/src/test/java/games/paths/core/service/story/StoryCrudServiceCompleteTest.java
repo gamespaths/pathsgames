@@ -661,6 +661,7 @@ class StoryCrudServiceCompleteTest {
         data.put("targetClass", 3);
         data.put("idItemTarget", 4);
         data.put("itemAction", "USE");
+        data.put("idLocation", 8);
         assertNotNull(service.createEntity("s", "event-effects", data));
     }
 

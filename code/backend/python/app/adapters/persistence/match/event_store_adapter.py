@@ -15,9 +15,10 @@ from typing import Any, Dict, List, Optional
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity, GamingCharacterInstanceEntity, GamingCharacterTraitsEntity,
     GamingInventoryItemsEntity, GamingMatchEntity, GamingStateRegistryEntity, LogEventsEntity,
+    LogMovementEntity,
 )
 from app.adapters.persistence.story.models import (
-    EventEffectEntity, EventEntity, ItemEntity, StoryEntity, TraitEntity,
+    EventEffectEntity, EventEntity, ItemEntity, LocationEntity, StoryEntity, TraitEntity,
 )
 from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
@@ -122,6 +123,12 @@ class EventStoreAdapter(EventStorePort):
         with self.session_factory() as session:
             rows = session.query(TraitEntity).filter(TraitEntity.id_story == id_story).all()
             return {t.id: t.uuid for t in rows if t.id is not None}
+
+    def find_location_uuids_by_id(self, id_story: int) -> Dict[int, str]:
+        with self.session_factory() as session:
+            rows = session.query(LocationEntity).filter(
+                LocationEntity.id_story == id_story).all()
+            return {l.id: l.uuid for l in rows if l.id is not None}
 
     # ── the check context ───────────────────────────────────────────────────
 
@@ -337,6 +344,33 @@ class EventStoreAdapter(EventStorePort):
             m.id_current_weather = id_weather
             session.commit()
 
+    def update_character_location(self, id_match: int, id_character: int,
+                                  id_location: int) -> None:
+        with self.session_factory() as session:
+            c = session.query(GamingCharacterInstanceEntity).filter(
+                GamingCharacterInstanceEntity.id_match == id_match,
+                GamingCharacterInstanceEntity.id == id_character).first()
+            if not c:
+                return
+            c.id_location = id_location
+            session.commit()
+
+    def insert_movement_log(self, id_match: int, id_character: int,
+                            from_location: Optional[int], to_location: int,
+                            energy_cost: int) -> None:
+        with self.session_factory() as session:
+            max_id = session.query(LogMovementEntity.id).order_by(
+                LogMovementEntity.id.desc()).first()
+            now = _now_iso()
+            session.add(LogMovementEntity(
+                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id_match=id_match, uuid=str(uuid_lib.uuid4()),
+                id_character_match=id_character,
+                id_location_from=from_location, id_location_to=to_location,
+                energy_cost=energy_cost,
+                timestamp_start=now, ts_insert=now, ts_update=now))
+            session.commit()
+
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,
                            clock: int, message: str) -> None:
         with self.session_factory() as session:
@@ -391,6 +425,7 @@ def _effect_dict(ef: EventEffectEntity) -> Dict[str, Any]:
         "characteristic_to_add": ef.characteristic_to_add,
         "characteristic_to_remove": ef.characteristic_to_remove,
         "id_weather": ef.id_weather,
+        "id_location": ef.id_location,
     }
 
 

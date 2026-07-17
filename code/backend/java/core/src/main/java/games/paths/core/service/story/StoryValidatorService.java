@@ -356,6 +356,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "targetClass", Target.CLASS, asInt(ee.get("targetClass")));
             // Step 29 — here idWeather is the EFFECT that sets the match weather.
             ref(g, "event-effects", id, "idWeather", Target.WEATHER, asInt(ee.get("idWeather")));
+            // v0.29.3 — forced movement: the location the effect moves its recipients to.
+            ref(g, "event-effects", id, "idLocation", Target.LOCATION, asInt(ee.get("idLocation")));
         }
         for (Map<String, Object> ie : list(data, "itemEffects")) {
             ref(g, "item-effects", str(ie.get("id")), "idItem", Target.ITEM, asInt(ie.get("idItem")));
@@ -471,6 +473,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "targetClass", Target.CLASS, ee.getTargetClass());
             // Step 29 — here idWeather is the EFFECT that sets the match weather.
             ref(g, "event-effects", id, "idWeather", Target.WEATHER, ee.getIdWeather());
+            // v0.29.3 — forced movement: the location the effect moves its recipients to.
+            ref(g, "event-effects", id, "idLocation", Target.LOCATION, ee.getIdLocation());
         }
         for (ItemEffectEntity ie : readPort.findItemEffectsByStoryId(storyId)) {
             ref(g, "item-effects", str(ie.getId()), "idItem", Target.ITEM, ie.getIdItem());

@@ -48,6 +48,10 @@ Existing: `id_event`, `statistics`, `value`, `target`, `traits_to_add`, `traits_
 New in v0.29.0: `id_weather`, `key_to_add`, `key_value_to_add`, `characteristic_to_add`,
 `characteristic_to_remove`.
 
+New in v0.29.3: `id_location` (nullable, `V0.29.3__event_effect_move_location.sql`). When an
+executed effect row carries it, every recipient of that row (the usual `target`/`target_class`
+scope, INV-27) is **MOVED** to that location — see §3 "Forced movement" below.
+
 > ⚠️ **`id_weather` means the OPPOSITE thing on the two tables.** On `list_events` it is a
 > *condition* (the event is only available under that weather). On `list_events_effects` it is an
 > *effect* (it **sets** the match weather). Same name, one table apart. The admin form labels them
@@ -170,6 +174,30 @@ One `list_events_effects` row at a time, in authored order.
   same chain reads what the previous one wrote.
 - An unknown `statistics` value is authored noise: ignored, not an error.
 
+### Forced movement (v0.29.3)
+
+An effect row with `id_location` set **moves** every recipient of that row to that location —
+**bypassing Step 28 entirely**: no neighbor/adjacency check, no energy cost, no availability
+verdict, no location-capacity check. Rules, applied per recipient:
+
+- **A move to the location the recipient already stands in is a no-op** — no `log_movements` row,
+  no `LocationChange` entry.
+- **An `id_location` matching no location of the story is authored noise**: the engine resolves it
+  against a story location id→uuid map and silently skips the move (checked, not an error).
+- Each actual move writes a **cost-0** row to `log_movements` (AWS: a cost-0 entry in the match
+  item's `movementLog`), purely so the timeline and fog-of-war stay consistent (see
+  [Step28_MovementSystem.md](./Step28_MovementSystem.md)): the Match Logs timeline still surfaces a
+  `MOVEMENT` entry, and the fog-of-war visited set (built from character positions ∪
+  `log_movements`/`movementLog`) stays truthful.
+- The recipient's tracked position is updated in the in-memory execution context, so a **later
+  effect in the same chain resolves `target=ALL` at the recipient's NEW location**, not the one
+  they started the chain at.
+- The response gains `movementApplied` (`true` if any move happened) and `locationChanges`
+  (`[{characterUuid, fromLocationUuid, toLocationUuid}]` — `fromLocationUuid` is `null` when the
+  recipient had no prior location). Both feed the board's `refreshRecommended` signal alongside the
+  existing flags (weather/item/coma/time-end). OpenAPI: `LocationChange` schema in
+  `v0.29.0-events-api.yaml`.
+
 ### Coma short-circuits everything
 
 Life at zero → `is_coma = true`, `is_sleeping = true`, log, **return**. The chain stops and
@@ -230,37 +258,44 @@ effect's narrative. Both are fixed.
 | Layer | Path |
 |---|---|
 | Migration | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.29.0__events_conditions_and_effects.sql` |
+| Migration (v0.29.3) | `adapter-{sqlite,postgres}/src/main/resources/db/migration/v0/V0.29.3__event_effect_move_location.sql` — adds `list_events_effects.id_location` |
 | Check procedure | `core/service/match/EventAvailabilityChecker.java` |
-| Engine | `core/service/match/EventExecutionService.java` |
-| Ports | `core/port/match/EventExecutionPort.java`, `EventExecutionStorePort.java` |
+| Engine | `core/service/match/EventExecutionService.java` (v0.29.3: `applyMovementEffect`) |
+| Ports | `core/port/match/EventExecutionPort.java`, `EventExecutionStorePort.java` (v0.29.3: `updateCharacterLocation`, `insertMovementLog`, `findLocationUuidsById`) |
 | Persistence | `core/persistence/match/EventExecutionStoreAdapter.java` |
-| REST | `adapter-rest/.../controller/match/EventController.java`, `dto/ExecuteEvent{Request,Response}.java` |
+| REST | `adapter-rest/.../controller/match/EventController.java`, `dto/ExecuteEvent{Request,Response}.java` (v0.29.3: `movementApplied`, `locationChanges`/`LocationChangeDto`) |
 | Time end | `TimeAdvancementService.forceTimeEnd` + `TurnCycleStorePort.setAllCharactersSleeping` |
 | Import fix | `core/service/story/StoryImportService.java` — `importEvents`/`importEventEffects` now persist `idSpecificLocation`/`idWeather`/`idEventNext`/effect `idCard` (§6) |
-| Validator | `core/service/story/StoryValidatorService.java` — `R7_EVENT_CONDITION` flags a registry condition with no expected value |
+| Validator | `core/service/story/StoryValidatorService.java` — `R7_EVENT_CONDITION` flags a registry condition with no expected value; v0.29.3: `event-effects.idLocation` wired into the existing `R_LOCATION_REF` dangling-reference check |
 | Logs | `core/service/match/MatchLogsService.java` — new `EVENT` branch on `GET /api/matches/{uuid}/logs` |
-| OpenAPI | `adapter-rest/src/main/resources/openapi/v0.29.0-events-api.yaml` + patches to `v0.19.0-match-creation-api.yaml` and `v0.19.12-admin-match-control-api.yaml` |
-| Admin form | `react-admin/src/constants/story/storiesEntities.jsx`, `storyFieldOptions.js` |
-| Game board | `react-game/src/features/gameplay/cards/ActionCard.jsx`, `src/api/matches.js`, `src/api/matchInfoAdapter.js` |
-| Robot | `code/tests/robot/tests/29_events/events.robot` (17 tests) |
+| OpenAPI | `adapter-rest/src/main/resources/openapi/v0.29.0-events-api.yaml` + patches to `v0.19.0-match-creation-api.yaml` and `v0.19.12-admin-match-control-api.yaml` (v0.29.3: `LocationChange` schema) |
+| Admin form | `react-admin/src/constants/story/storiesEntities.jsx`, `storyFieldOptions.js` (v0.29.3: `idLocation` — "Move To Location ID (effect)" — next to `idWeather` on the event-effects form) |
+| Game board | `react-game/src/features/gameplay/cards/ActionCard.jsx`, `src/api/matches.js`, `src/api/matchInfoAdapter.js` — **unchanged by v0.29.3**: `GameBook` already reloads clock/weather/locations and the whole board after every executed event, so a forced move arrives with the normal match-info reload |
+| Robot | `code/tests/robot/tests/29_events/events.robot` (18 tests — v0.29.3 added "A Location Effect Teleports The Character Without Any Movement Check", run on its own match via `New Teleport Match`) |
 
 Python and AWS mirror the engine (`app/core/services/match/event_availability.py`/`event_service.py`,
 `lambda/match/events.py`); see the [v0.29.0 Roadmap entry](./Roadmap.md) for the full per-backend
-file list and test counts.
+file list and test counts. v0.29.3 forced movement mirrors: Python `models.py`, `event_ports.py`,
+`event_store_adapter.py`, `event_service.py._apply_movement`, `event_models.py` (+`LocationChange`),
+`event_controller.py`; AWS `lambda/match/events.py.apply_location`, `lambda/match/handler.py`
+(location-uuid map, `movementApplied`, `locationChanges`), `lambda/seed/handler.py` (tutorial story
+gains location 3 "Hidden Grove" with no neighbor edge, event 28 "Secret Passage" costing 2 energy,
+effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)).
 
 
 
 
 # Version Control
 
-- **Document Version**: 0.29.0
+- **Document Version**: 0.29.3
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
+  | 0.29.3 | Forced movement via event effects: `list_events_effects.id_location` (nullable), engine bypasses the whole Step 28 check procedure and writes a cost-0 `log_movements` row per move; `movementApplied`/`locationChanges` on the execute-event response; admin form field; Robot suite 17 → 18 tests | July 17, 2026 |
 
 
-- **Last Updated**: July 13, 2026
+- **Last Updated**: July 17, 2026
 - **Status**: Complete
 
 # < Paths Games />

@@ -290,7 +290,8 @@ INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_
 (90024, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 1, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- flag_end_time: forces a time end
 (90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- traits + characteristics
 (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
-(90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL);   -- EVENT_NOT_EXECUTABLE_TYPE
+(90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
+(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);   -- v0.29.3 teleporter: its effect moves the actor to 90006
 
 -- ── Step 29 Event Effects — one per effect kind ─────────────────
 -- id_card = 90001 makes each row carry a narrative card, which is what the board renders
@@ -322,6 +323,11 @@ INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, stat
 (90020, 9001, 90026, 90001, 'food',   3, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (90021, 9001, 90026, 90001, 'magic',  2, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (90022, 9001, 90026, 90001, 'coin',   9, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
+-- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES
+(90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
 
 -- ── Story 1 Choices ─────────────────────────────────────────────
 INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress) VALUES

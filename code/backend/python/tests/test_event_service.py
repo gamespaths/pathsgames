@@ -264,6 +264,62 @@ def test_weather_effect_sets_the_match_weather_once(service, store):
     assert r.weather_applied is True
 
 
+# ── forced movement (v0.29.3) ───────────────────────────────────────────────
+
+def test_movement_effect_moves_the_actor(service, store):
+    store.find_location_uuids_by_id.return_value = {LOC: "loc-here", 200: "loc-target"}
+    store.find_effects_by_event_id.return_value = {1: [_effect(id_location=200)]}
+    r = run(service)
+    store.update_character_location.assert_called_once_with(MATCH_ID, CHAR_ID, 200)
+    store.insert_movement_log.assert_called_once_with(MATCH_ID, CHAR_ID, LOC, 200, 0)
+    assert r.movement_applied is True
+    assert r.refresh_recommended is True
+    assert r.energy_spent == 0  # forced movement must not charge energy
+    assert [(c.character_uuid, c.from_location_uuid, c.to_location_uuid)
+            for c in r.location_changes] == [("char-uuid", "loc-here", "loc-target")]
+
+
+def test_movement_effect_target_all_moves_the_room(service, store):
+    store.find_location_uuids_by_id.return_value = {LOC: "loc-here", 200: "loc-target"}
+    store.find_effects_by_event_id.return_value = {1: [_effect(id_location=200, target="ALL")]}
+    r = run(service)
+    moved = {c.args[1] for c in store.update_character_location.call_args_list}
+    assert moved == {CHAR_ID, MATE_ID}  # FAR stands elsewhere and stays put
+    assert len(r.location_changes) == 2
+
+
+def test_movement_to_an_unknown_location_is_skipped(service, store):
+    store.find_location_uuids_by_id.return_value = {LOC: "loc-here"}
+    store.find_effects_by_event_id.return_value = {1: [_effect(id_location=555)]}
+    r = run(service)
+    store.update_character_location.assert_not_called()
+    store.insert_movement_log.assert_not_called()
+    assert r.movement_applied is False
+    assert r.refresh_recommended is False
+
+
+def test_movement_to_the_current_location_is_a_no_op(service, store):
+    store.find_location_uuids_by_id.return_value = {LOC: "loc-here"}
+    store.find_effects_by_event_id.return_value = {1: [_effect(id_location=LOC)]}
+    r = run(service)
+    store.update_character_location.assert_not_called()
+    store.insert_movement_log.assert_not_called()
+    assert r.movement_applied is False
+
+
+def test_a_later_effect_resolves_all_at_the_new_location(service, store):
+    store.find_location_uuids_by_id.return_value = {LOC: "loc-here", 999: "loc-far"}
+    store.find_effects_by_event_id.return_value = {1: [
+        _effect(id_location=999),
+        _effect(id=2, uuid="effect-2", statistics="life", value=-5, target="ALL"),
+    ]}
+    run(service)
+    # The actor was teleported next to FAR before the life effect ran: the ALL set is now
+    # {actor, far}, and the mate left behind is untouched.
+    written = {c.args[1] for c in store.update_character_stats.call_args_list}
+    assert written == {CHAR_ID, FAR_ID}
+
+
 # ── chain, coma and time end ────────────────────────────────────────────────
 
 def test_the_chain_runs_every_link_and_charges_only_the_first(service, store):

@@ -4,6 +4,7 @@ import games.paths.core.port.match.EventExecutionPort.AppliedEffect;
 import games.paths.core.port.match.EventExecutionPort.CharacteristicChange;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
 import games.paths.core.port.match.EventExecutionPort.ItemChange;
+import games.paths.core.port.match.EventExecutionPort.LocationChange;
 import games.paths.core.port.match.EventExecutionPort.PendingChoice;
 import games.paths.core.port.match.EventExecutionPort.RegistryChange;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
@@ -39,6 +40,7 @@ public class ExecuteEventResponse {
     private boolean itemAdded;
     private boolean itemRemoved;
     private boolean weatherApplied;
+    private boolean movementApplied;
     private boolean forcedSleep;
     private boolean comaTriggered;
     private boolean gameOver;
@@ -48,6 +50,7 @@ public class ExecuteEventResponse {
     private List<TraitChangeDto> traitChanges;
     private List<ItemChangeDto> itemChanges;
     private List<CharacteristicChangeDto> characteristicChanges;
+    private List<LocationChangeDto> locationChanges;
     private List<AppliedEffectDto> effects;
     private List<PendingChoiceDto> pendingChoices;
 
@@ -68,6 +71,7 @@ public class ExecuteEventResponse {
         d.itemAdded = m.itemAdded();
         d.itemRemoved = m.itemRemoved();
         d.weatherApplied = m.weatherApplied();
+        d.movementApplied = m.movementApplied();
         d.forcedSleep = m.forcedSleep();
         d.comaTriggered = m.comaTriggered();
         d.gameOver = m.gameOver();
@@ -92,6 +96,10 @@ public class ExecuteEventResponse {
         d.characteristicChanges = new ArrayList<>();
         for (CharacteristicChange c : m.characteristicChanges()) {
             d.characteristicChanges.add(CharacteristicChangeDto.fromModel(c));
+        }
+        d.locationChanges = new ArrayList<>();
+        for (LocationChange c : m.locationChanges()) {
+            d.locationChanges.add(LocationChangeDto.fromModel(c));
         }
         d.effects = new ArrayList<>();
         for (AppliedEffect e : m.effects()) {
@@ -134,6 +142,8 @@ public class ExecuteEventResponse {
     public void setItemRemoved(boolean itemRemoved) { this.itemRemoved = itemRemoved; }
     public boolean isWeatherApplied() { return weatherApplied; }
     public void setWeatherApplied(boolean weatherApplied) { this.weatherApplied = weatherApplied; }
+    public boolean isMovementApplied() { return movementApplied; }
+    public void setMovementApplied(boolean movementApplied) { this.movementApplied = movementApplied; }
     public boolean isForcedSleep() { return forcedSleep; }
     public void setForcedSleep(boolean forcedSleep) { this.forcedSleep = forcedSleep; }
     public boolean isComaTriggered() { return comaTriggered; }
@@ -152,6 +162,8 @@ public class ExecuteEventResponse {
     public void setItemChanges(List<ItemChangeDto> itemChanges) { this.itemChanges = itemChanges; }
     public List<CharacteristicChangeDto> getCharacteristicChanges() { return characteristicChanges; }
     public void setCharacteristicChanges(List<CharacteristicChangeDto> c) { this.characteristicChanges = c; }
+    public List<LocationChangeDto> getLocationChanges() { return locationChanges; }
+    public void setLocationChanges(List<LocationChangeDto> locationChanges) { this.locationChanges = locationChanges; }
     public List<AppliedEffectDto> getEffects() { return effects; }
     public void setEffects(List<AppliedEffectDto> effects) { this.effects = effects; }
     public List<PendingChoiceDto> getPendingChoices() { return pendingChoices; }
@@ -269,6 +281,28 @@ public class ExecuteEventResponse {
         public void setCharacteristic(String characteristic) { this.characteristic = characteristic; }
         public String getAction() { return action; }
         public void setAction(String action) { this.action = action; }
+    }
+
+    /** One forced movement (v0.29.3): who moved, from where (null when unplaced), to where. */
+    public static class LocationChangeDto {
+        private String characterUuid;
+        private String fromLocationUuid;
+        private String toLocationUuid;
+
+        public static LocationChangeDto fromModel(LocationChange m) {
+            LocationChangeDto d = new LocationChangeDto();
+            d.characterUuid = m.characterUuid();
+            d.fromLocationUuid = m.fromLocationUuid();
+            d.toLocationUuid = m.toLocationUuid();
+            return d;
+        }
+
+        public String getCharacterUuid() { return characterUuid; }
+        public void setCharacterUuid(String characterUuid) { this.characterUuid = characterUuid; }
+        public String getFromLocationUuid() { return fromLocationUuid; }
+        public void setFromLocationUuid(String fromLocationUuid) { this.fromLocationUuid = fromLocationUuid; }
+        public String getToLocationUuid() { return toLocationUuid; }
+        public void setToLocationUuid(String toLocationUuid) { this.toLocationUuid = toLocationUuid; }
     }
 
     /** One list_events_effects row that ran. Its {@code card} is the narrative to show. */

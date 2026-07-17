@@ -68,6 +68,14 @@ public class EventEffectEntity extends BaseStoryScopedEntity {
     @Column(name = "characteristic_to_remove")
     private String characteristicToRemove;
 
+    /**
+     * EFFECT (v0.29.3): moves the recipients of this row to that location — no neighbor
+     * check, no energy cost, none of the Step 28 movement procedure. A value that matches
+     * no location of the story is authored noise: the engine skips the move silently.
+     */
+    @Column(name = "id_location")
+    private Integer idLocation;
+
     @PrePersist
     protected void onCreate() {
         if (value == null) value = 0;
@@ -117,5 +125,8 @@ public class EventEffectEntity extends BaseStoryScopedEntity {
 
     public String getCharacteristicToRemove() { return characteristicToRemove; }
     public void setCharacteristicToRemove(String characteristicToRemove) { this.characteristicToRemove = characteristicToRemove; }
+
+    public Integer getIdLocation() { return idLocation; }
+    public void setIdLocation(Integer idLocation) { this.idLocation = idLocation; }
 
 }

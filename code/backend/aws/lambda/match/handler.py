@@ -2100,6 +2100,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
 
     item_uuids = {_events._nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
     trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+    location_uuids = {_events._nz(l.get('id')): l.get('uuid')
+                      for l in (story.get('locations') or [])}
     effects_by_event = _events.effects_by_event(story)
     end_game_id = story.get('idEventEndGame')
     events_by_id = {_events._nz(e.get('id')): e for e in all_events if e.get('id') is not None}
@@ -2114,9 +2116,11 @@ def _execute_event(user, match_uuid, body, lang='en'):
 
     stat_changes, registry_changes = [], []
     trait_changes, item_changes, characteristic_changes = [], [], []
+    location_changes = []
     applied_effects, executed_uuids = [], []
     touched = {caller.get('uuid'): caller}
     flags = {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
+             'movementApplied': False,
              'comaTriggered': False, 'gameOver': False, 'endTime': False}
     visited = set()
     raw_cards = story.get('raw_cards') or []
@@ -2150,6 +2154,9 @@ def _execute_event(user, match_uuid, body, lang='en'):
                 flags['itemRemoved'] = flags['itemRemoved'] or removed
                 _events.apply_traits(target_char, effect, trait_uuids, trait_changes)
                 _events.apply_characteristics(target_char, effect, characteristic_changes)
+                moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                               location_changes, _ts_ms())
+                flags['movementApplied'] = flags['movementApplied'] or moved
 
             # The registry is match-scoped too: written once, by the actor.
             key = effect.get('keyToAdd')
@@ -2224,7 +2231,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
         db_utils.put_item(match)
 
     changed = any([time_ended, flags['itemAdded'], flags['itemRemoved'],
-                   flags['weatherApplied'], flags['comaTriggered'], flags['gameOver'],
+                   flags['weatherApplied'], flags['movementApplied'],
+                   flags['comaTriggered'], flags['gameOver'],
                    stat_changes, registry_changes, trait_changes, characteristic_changes])
 
     return _ok({
@@ -2244,6 +2252,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "itemAdded": flags['itemAdded'],
         "itemRemoved": flags['itemRemoved'],
         "weatherApplied": flags['weatherApplied'],
+        "movementApplied": flags['movementApplied'],
         "forcedSleep": time_ended or flags['comaTriggered'],
         "comaTriggered": flags['comaTriggered'],
         "gameOver": flags['gameOver'],
@@ -2253,6 +2262,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "traitChanges": trait_changes,
         "itemChanges": item_changes,
         "characteristicChanges": characteristic_changes,
+        "locationChanges": location_changes,
         "effects": applied_effects,
         # Always empty in v0.29.0 — the Step 30 choice engine fills it.
         "pendingChoices": [],

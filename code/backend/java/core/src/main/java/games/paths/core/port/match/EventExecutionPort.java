@@ -70,6 +70,8 @@ public interface EventExecutionPort {
                                 boolean itemAdded,
                                 boolean itemRemoved,
                                 boolean weatherApplied,
+                                /** True when a forced-movement effect (v0.29.3) moved somebody. */
+                                boolean movementApplied,
                                 boolean forcedSleep,
                                 boolean comaTriggered,
                                 boolean gameOver,
@@ -79,6 +81,7 @@ public interface EventExecutionPort {
                                 List<TraitChange> traitChanges,
                                 List<ItemChange> itemChanges,
                                 List<CharacteristicChange> characteristicChanges,
+                                List<LocationChange> locationChanges,
                                 List<AppliedEffect> effects,
                                 /** Always empty in v0.29.0 — Step 30 fills it. */
                                 List<PendingChoice> pendingChoices) {
@@ -96,6 +99,10 @@ public interface EventExecutionPort {
 
     /** {@code action} is ADD or REMOVE. */
     record ItemChange(String characterUuid, String itemUuid, String action) {
+    }
+
+    /** One forced movement (v0.29.3): who moved, from where (null when unplaced), to where. */
+    record LocationChange(String characterUuid, String fromLocationUuid, String toLocationUuid) {
     }
 
     /** {@code action} is ADD or REMOVE. */

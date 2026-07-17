@@ -84,7 +84,10 @@ def seed():
             # Step 28: a second location to move into.
             # Step 0.28.5: both locations carry idCard so GET /locations resolves
             # a full `card` for each location and neighbor (as Java/AWS seeds do).
-            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1}
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1},
+            # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect (event 28)
+            # can bring a character here, proving the forced movement skips every Step 28 check.
+            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -161,6 +164,12 @@ def seed():
             # EVENT_NOT_EXECUTABLE_TYPE: listed, never player-triggered.
             {"id": 27, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
              "idSpecificLocation": 1, "idCard": 1},
+            # v0.29.3 — forced movement: its effect teleports the actor to location 3, which is
+            # NOT a neighbor of the start — no checks, no movement cost, only the event's own
+            # energy cost (2, so the "cost 1" robot lookup keeps meaning event 10).
+            {"id": 28, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "costEnery": 2, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 3}]},
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}

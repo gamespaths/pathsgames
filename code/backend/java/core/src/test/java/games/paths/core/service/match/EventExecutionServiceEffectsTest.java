@@ -5,6 +5,7 @@ import games.paths.core.entity.story.EventEntity;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.EventExecutionPort.AppliedEffect;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
+import games.paths.core.port.match.EventExecutionPort.LocationChange;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
@@ -77,6 +78,8 @@ class EventExecutionServiceEffectsTest {
         when(store.findIdEventEndGame(STORY_ID)).thenReturn(Optional.empty());
         when(store.findItemUuidsById(STORY_ID)).thenReturn(Map.of(42L, "item-uuid"));
         when(store.findTraitUuidsById(STORY_ID)).thenReturn(Map.of(7L, "trait-uuid", 8L, "trait-8"));
+        when(store.findLocationUuidsById(STORY_ID)).thenReturn(
+                Map.of(LOC, "loc-here", 200L, "loc-target", 999L, "loc-far"));
         when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(ctx());
         when(contentQueryPort.getCardByStoryIdAndCardId(eq(STORY_ID), anyInt(), anyString()))
                 .thenAnswer(i -> card("card-" + i.getArgument(1)));
@@ -550,6 +553,92 @@ class EventExecutionServiceEffectsTest {
 
             verify(store, times(1)).setCurrentWeather(MATCH_ID, 3L);
             assertTrue(r.weatherApplied());
+        }
+    }
+
+    // ── forced movement (v0.29.3) ───────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Forced movement")
+    class ForcedMovement {
+
+        private EventEffectEntity move(int idLocation, String target) {
+            EventEffectEntity e = effect();
+            e.setIdLocation(idLocation);
+            e.setTarget(target);
+            return e;
+        }
+
+        @Test
+        @DisplayName("ONLY_ONE moves the actor: no energy, a cost-0 movement log, and the change is reported")
+        void movesTheActor() {
+            withEffects(move(200, "ONLY_ONE"));
+
+            EventExecutionResult r = execute();
+
+            verify(store).updateCharacterLocation(MATCH_ID, CHAR_ID, 200L);
+            verify(store).insertMovementLog(MATCH_ID, CHAR_ID, LOC, 200L, 0);
+            assertTrue(r.movementApplied());
+            assertTrue(r.refreshRecommended());
+            assertEquals(0, r.energySpent(), "forced movement must not charge energy");
+            assertEquals(1, r.locationChanges().size());
+            LocationChange c = r.locationChanges().get(0);
+            assertEquals("char-uuid", c.characterUuid());
+            assertEquals("loc-here", c.fromLocationUuid());
+            assertEquals("loc-target", c.toLocationUuid());
+        }
+
+        @Test
+        @DisplayName("ALL moves every character in the actor's location, and nobody elsewhere")
+        void movesEveryoneInTheRoom() {
+            withEffects(move(200, "ALL"));
+
+            EventExecutionResult r = execute();
+
+            verify(store).updateCharacterLocation(MATCH_ID, CHAR_ID, 200L);
+            verify(store).updateCharacterLocation(MATCH_ID, MATE_ID, 200L);
+            verify(store, never()).updateCharacterLocation(MATCH_ID, FAR_ID, 200L);
+            assertEquals(2, r.locationChanges().size());
+        }
+
+        @Test
+        @DisplayName("An id matching no location of the story is authored noise: nothing moves")
+        void danglingLocationIsSkipped() {
+            withEffects(move(555, "ONLY_ONE"));
+
+            EventExecutionResult r = execute();
+
+            verify(store, never()).updateCharacterLocation(anyLong(), anyLong(), anyLong());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt());
+            assertFalse(r.movementApplied());
+            assertTrue(r.locationChanges().isEmpty());
+            assertFalse(r.refreshRecommended());
+        }
+
+        @Test
+        @DisplayName("Moving to the location the recipient already stands in is a no-op")
+        void alreadyThereIsANoOp() {
+            withEffects(move((int) LOC, "ONLY_ONE"));
+
+            EventExecutionResult r = execute();
+
+            verify(store, never()).updateCharacterLocation(anyLong(), anyLong(), anyLong());
+            verify(store, never()).insertMovementLog(anyLong(), anyLong(), any(), anyLong(), anyInt());
+            assertFalse(r.movementApplied());
+        }
+
+        @Test
+        @DisplayName("A later effect resolves target=ALL where the recipient now stands")
+        void laterEffectSeesTheNewLocation() {
+            withEffects(move(999, "ONLY_ONE"), stat("life", -5, "ALL"));
+
+            execute();
+
+            // The actor was teleported next to FAR before the life effect ran: the ALL set
+            // is now {actor, far}, and the mate left behind is untouched.
+            assertEquals(25, writtenStats(CHAR_ID).life());
+            assertEquals(25, writtenStats(FAR_ID).life());
+            verify(store, never()).updateCharacterStats(eq(MATCH_ID), eq(MATE_ID), any());
         }
     }
 

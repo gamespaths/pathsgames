@@ -137,6 +137,8 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'characteristicToAdd', label: 'Characteristic to Add', type: 'text' },
       { key: 'characteristicToRemove', label: 'Characteristic to Remove', type: 'text' },
       { key: 'idWeather', label: 'Weather to Set (effect)', type: 'number' },
+      // v0.29.3 — forced movement: recipients are moved there, no Step 28 checks, no energy.
+      { key: 'idLocation', label: 'Move To Location ID (effect)', type: 'number' },
     ],
     items: [
       { key: 'idCard', label: 'Card ID', type: 'number' },

@@ -289,6 +289,52 @@ def test_registry_upsert_reports_the_old_value_and_types_the_new_one():
     assert match["registry"][0]["stringValue"] is None  # never both
 
 
+# ── forced movement (v0.29.3) ───────────────────────────────────────────────
+
+_LOCATION_UUIDS = {LOC: "loc-here", 200: "loc-target"}
+
+
+def test_forced_movement_moves_the_character_and_logs_at_cost_zero():
+    match, changes = {}, []
+    c = _char(uuid="a", locationUuid="loc-here")
+
+    moved = events.apply_location(match, c, {"idLocation": 200}, _LOCATION_UUIDS, changes, 123)
+
+    assert moved is True
+    assert c["idLocation"] == 200 and c["locationUuid"] == "loc-target"
+    assert match["movementLog"] == [{
+        "characterUuid": "a", "idLocationFrom": LOC, "idLocationTo": 200,
+        "energyCost": 0, "timestampStart": 123,
+    }]
+    assert changes == [{"characterUuid": "a", "fromLocationUuid": "loc-here",
+                        "toLocationUuid": "loc-target"}]
+
+
+def test_forced_movement_to_an_unknown_location_is_skipped():
+    match, changes = {}, []
+    c = _char(uuid="a")
+    assert events.apply_location(match, c, {"idLocation": 555},
+                                 _LOCATION_UUIDS, changes, 123) is False
+    assert c["idLocation"] == LOC
+    assert "movementLog" not in match and changes == []
+
+
+def test_forced_movement_to_the_current_location_is_a_no_op():
+    match, changes = {}, []
+    c = _char(uuid="a")
+    assert events.apply_location(match, c, {"idLocation": LOC},
+                                 _LOCATION_UUIDS, changes, 123) is False
+    assert "movementLog" not in match and changes == []
+
+
+def test_a_moved_character_resolves_all_at_the_new_location():
+    actor = _char(uuid="a")
+    far = _char(uuid="c", idLocation=999)
+    events.apply_location({}, actor, {"idLocation": 999}, {999: "loc-far"}, [], 123)
+    hit = events.resolve_recipients({"target": "ALL"}, actor, [actor, far])
+    assert [x["uuid"] for x in hit] == ["a", "c"]
+
+
 def test_effects_are_grouped_by_event_in_authored_order():
     story = {"eventEffects": [
         {"id": 2, "idEvent": 1}, {"id": 1, "idEvent": 1}, {"id": 3, "idEvent": 2},

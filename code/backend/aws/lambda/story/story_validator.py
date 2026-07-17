@@ -155,6 +155,8 @@ def validate_story_dict(data):
         ref("event-effects", eid, "idEvent", _EVENT, _field(ee, "idEvent"))
         ref("event-effects", eid, "idItemTarget", _ITEM, _field(ee, "idItemTarget"))
         ref("event-effects", eid, "targetClass", _CLASS, _field(ee, "targetClass"))
+        # v0.29.3 — forced movement: the location the effect moves its recipients to.
+        ref("event-effects", eid, "idLocation", _LOCATION, _field(ee, "idLocation"))
     for ie in _arr(data, "itemEffects"):
         ref("item-effects", str(_field(ie, "id")), "idItem", _ITEM, _field(ie, "idItem"))
     for cb in _arr(data, "classBonuses"):

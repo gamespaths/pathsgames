@@ -557,13 +557,16 @@ class StoryImportServiceTest {
         void importStory_withEventEffects() {
             Map<String, Object> data = new HashMap<>();
             data.put("uuid", "ee-uuid");
-            data.put("eventEffects", List.of(Map.of("idEvent", 1, "statistics", "life", "value", 5)));
+            data.put("eventEffects", List.of(
+                    Map.of("idEvent", 1, "statistics", "life", "value", 5, "idLocation", 6)));
             setupStory("ee-uuid");
             when(persistencePort.saveEventEffects(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
             storyImportService.importStory(data);
 
-            verify(persistencePort).saveEventEffects(argThat(list -> list.size() == 1));
+            verify(persistencePort).saveEventEffects(argThat(list ->
+                    list.size() == 1
+                            && ((EventEffectEntity) list.get(0)).getIdLocation() == 6));
         }
 
         @Test

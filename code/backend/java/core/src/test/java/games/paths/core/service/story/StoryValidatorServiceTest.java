@@ -108,6 +108,26 @@ class StoryValidatorServiceTest {
     }
 
     @Nested
+    @DisplayName("Event-effect references (v0.29.3 forced movement)")
+    class EventEffectRefs {
+        @Test
+        void danglingEffectLocation() {
+            Map<String, Object> s = validStory();
+            s.put("eventEffects", rows(entity("id", 1, "idEvent", 1, "idLocation", 77)));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertFalse(r.isValid());
+            assertTrue(r.getErrors().stream().anyMatch(e -> "idLocation".equals(e.field())));
+        }
+
+        @Test
+        void effectMovingToARealLocationPasses() {
+            Map<String, Object> s = validStory();
+            s.put("eventEffects", rows(entity("id", 1, "idEvent", 1, "idLocation", 2)));
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+    }
+
+    @Nested
     @DisplayName("R2 location neighbors")
     class Neighbors {
         @Test

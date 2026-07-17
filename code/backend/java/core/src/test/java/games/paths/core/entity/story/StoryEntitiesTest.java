@@ -604,6 +604,7 @@ class StoryEntitiesTest {
             ee.setKeyValueToAdd("DONE");
             ee.setCharacteristicToAdd("BRAVE");
             ee.setCharacteristicToRemove("WEAK");
+            ee.setIdLocation(9);
 
             assertAll(
                 () -> assertEquals(1, ee.getIdEvent()),
@@ -611,7 +612,8 @@ class StoryEntitiesTest {
                 () -> assertEquals("QUEST", ee.getKeyToAdd()),
                 () -> assertEquals("DONE", ee.getKeyValueToAdd()),
                 () -> assertEquals("BRAVE", ee.getCharacteristicToAdd()),
-                () -> assertEquals("WEAK", ee.getCharacteristicToRemove())
+                () -> assertEquals("WEAK", ee.getCharacteristicToRemove()),
+                () -> assertEquals(9, ee.getIdLocation())
             );
         }
     }

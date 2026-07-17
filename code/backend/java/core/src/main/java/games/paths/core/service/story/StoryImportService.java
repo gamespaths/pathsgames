@@ -620,6 +620,7 @@ public class StoryImportService implements StoryImportPort {
             e.setKeyValueToAdd(getString(item, "keyValueToAdd"));
             e.setCharacteristicToAdd(getString(item, "characteristicToAdd"));
             e.setCharacteristicToRemove(getString(item, "characteristicToRemove"));
+            e.setIdLocation(getInteger(item, "idLocation"));
             entities.add(e);
         }
         persistencePort.saveEventEffects(entities);

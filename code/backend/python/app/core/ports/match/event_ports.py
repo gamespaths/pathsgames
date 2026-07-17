@@ -73,6 +73,11 @@ class EventStorePort(ABC):
         ...
 
     @abstractmethod
+    def find_location_uuids_by_id(self, id_story: int) -> Dict[int, str]:
+        """Doubles as the existence check of a forced-movement effect (v0.29.3): an
+        id_location absent from this map is authored noise and the move is skipped."""
+
+    @abstractmethod
     def load_check_context(self, id_match: int,
                            id_character: Optional[int]) -> EventCheckContext:
         """Everything the check procedure needs, in ONE call (no N+1 on match-info)."""
@@ -122,6 +127,18 @@ class EventStorePort(ABC):
     @abstractmethod
     def set_current_weather(self, id_match: int, id_weather: Optional[int]) -> None:
         ...
+
+    @abstractmethod
+    def update_character_location(self, id_match: int, id_character: int,
+                                  id_location: int) -> None:
+        """Forced movement (v0.29.3): sets id_location, energy untouched."""
+
+    @abstractmethod
+    def insert_movement_log(self, id_match: int, id_character: int,
+                            from_location: Optional[int], to_location: int,
+                            energy_cost: int) -> None:
+        """Forced movement writes it with cost 0, so the Step 28.7 timeline and the
+        Step 28.6 visited set stay truthful."""
 
     @abstractmethod
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,

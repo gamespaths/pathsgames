@@ -122,6 +122,29 @@ def test_save_events_persists_idspecificlocation(adapter):
         assert legacy.id_specific_location == 3   # legacy idLocation key still honored
 
 
+def test_event_effect_persists_idlocation_v0293(adapter):
+    # v0.29.3 forced movement: an effect's idLocation must survive import, both when nested
+    # under its event (Python's inline format) and as a top-level eventEffects row (the shared
+    # JSON contract). Regression: _event_effect once dropped the field, so story import
+    # silently lost every teleport effect.
+    from app.adapters.persistence.story.models import EventEffectEntity
+    story_id = adapter.save_story({"uuid": "s-teleport"})
+    adapter.save_events(story_id, [
+        {"uuid": "ev-teleport", "idTextName": 1, "type": "NORMAL", "idSpecificLocation": 1,
+         "effects": [{"uuid": "ef-inline", "target": "ONLY_ONE", "idLocation": 3}]},
+    ])
+    adapter.save_event_effects(story_id, [
+        {"uuid": "ef-toplevel", "idEvent": 1, "target": "ALL", "idLocation": 5},
+    ])
+    with adapter.session_factory() as session:
+        inline = session.query(EventEffectEntity).filter_by(
+            id_story=story_id, uuid="ef-inline").first()
+        toplevel = session.query(EventEffectEntity).filter_by(
+            id_story=story_id, uuid="ef-toplevel").first()
+        assert inline.id_location == 3
+        assert toplevel.id_location == 5
+
+
 def test_create_location_neighbor_roundtrips_uuid_and_cardback(adapter):
     # Step 0.28.2 regression: admin-CRUD create of a location-neighbor saves a uuid
     # (the model previously lacked it → 500 on the post-save re-read) and the optional

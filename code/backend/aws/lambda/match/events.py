@@ -287,6 +287,41 @@ def apply_characteristics(char, effect, changes):
     char["characteristics"] = current
 
 
+def apply_location(match, char, effect, location_uuids, changes, ts):
+    """v0.29.3 forced movement: the recipient is moved to ``idLocation``, skipping the whole
+    Step 28 procedure — no neighbor check, no energy cost, no availability verdict. An id
+    matching no location of the story is authored noise and is skipped; so is a move to the
+    location the recipient already stands in. A cost-0 ``movementLog`` entry keeps the
+    timeline and the fog-of-war visited set truthful. Mutating the shared character dict
+    also means a later effect of the same chain resolves target=ALL where the recipient
+    now stands."""
+    id_location = effect.get("idLocation")
+    if not id_location or _nz(id_location) <= 0:
+        return False
+    target = _nz(id_location)
+    target_uuid = location_uuids.get(target)
+    if not target_uuid:
+        return False  # authored noise, not an error
+    origin = char.get("idLocation")
+    if origin is not None and _nz(origin) == target:
+        return False  # already there: nothing to move, nothing to log
+    char["idLocation"] = target
+    char["locationUuid"] = target_uuid
+    match.setdefault("movementLog", []).append({
+        "characterUuid": char.get("uuid"),
+        "idLocationFrom": origin,
+        "idLocationTo": target,
+        "energyCost": 0,
+        "timestampStart": ts,
+    })
+    changes.append({
+        "characterUuid": char.get("uuid"),
+        "fromLocationUuid": location_uuids.get(_nz(origin)) if origin is not None else None,
+        "toLocationUuid": target_uuid,
+    })
+    return True
+
+
 def apply_registry(match, key, value, changes):
     """The registry is match-scoped: written once per effect row, not once per recipient."""
     registry = match.setdefault("registry", [])

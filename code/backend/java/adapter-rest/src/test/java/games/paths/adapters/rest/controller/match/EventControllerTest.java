@@ -53,12 +53,13 @@ class EventControllerTest {
                 "m1", "evt-1", "ONCE", card("The Stranger"),
                 List.of("evt-1", "evt-2"),
                 3, 2, 17, 8, 5,
-                false, true, true, false, true, true, false, true, true,
+                false, true, true, false, true, true, true, false, true, true,
                 List.of(new StatChange("char-1", "life", 30, 25, -5)),
                 List.of(new RegistryChange("GATE", null, "OPEN")),
                 List.of(),
                 List.of(new ItemChange("char-1", "item-1", "ADD")),
                 List.of(),
+                List.of(new EventExecutionPort.LocationChange("char-1", "loc-a", "loc-b")),
                 List.of(new AppliedEffect("evt-1", "eff-1", "life", -5, "ONLY_ONE", null,
                         List.of("char-1"), card("A wound"))),
                 List.of());
@@ -88,6 +89,11 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.statChanges[0].delta").value(-5))
                 .andExpect(jsonPath("$.registryChanges[0].newValue").value("OPEN"))
                 .andExpect(jsonPath("$.itemChanges[0].action").value("ADD"))
+                // v0.29.3 — forced movement travels as movementApplied + locationChanges.
+                .andExpect(jsonPath("$.movementApplied").value(true))
+                .andExpect(jsonPath("$.locationChanges[0].characterUuid").value("char-1"))
+                .andExpect(jsonPath("$.locationChanges[0].fromLocationUuid").value("loc-a"))
+                .andExpect(jsonPath("$.locationChanges[0].toLocationUuid").value("loc-b"))
                 // The narrative is the EFFECT's card, not the event's.
                 .andExpect(jsonPath("$.effects[0].card.title").value("A wound"))
                 .andExpect(jsonPath("$.effects[0].characterUuids[0]").value("char-1"))

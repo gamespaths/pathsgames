@@ -12,7 +12,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.core.models.match.event_models import (
-    AppliedEffect, EntityChange, EventError, EventExecutionResult, RegistryChange, StatChange,
+    AppliedEffect, EntityChange, EventError, EventExecutionResult, LocationChange,
+    RegistryChange, StatChange,
 )
 from app.core.ports.match.event_ports import EventPort
 
@@ -56,6 +57,12 @@ def _entity_to_camel(c: EntityChange, value_key: str) -> dict:
     return {"characterUuid": c.character_uuid, value_key: c.value, "action": c.action}
 
 
+def _location_to_camel(c: LocationChange) -> dict:
+    return {"characterUuid": c.character_uuid,
+            "fromLocationUuid": c.from_location_uuid,
+            "toLocationUuid": c.to_location_uuid}
+
+
 def _effect_to_camel(e: AppliedEffect) -> dict:
     return {
         "eventUuid": e.event_uuid,
@@ -87,6 +94,7 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
         "itemAdded": r.item_added,
         "itemRemoved": r.item_removed,
         "weatherApplied": r.weather_applied,
+        "movementApplied": r.movement_applied,
         "forcedSleep": r.forced_sleep,
         "comaTriggered": r.coma_triggered,
         "gameOver": r.game_over,
@@ -98,6 +106,7 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
         "characteristicChanges": [
             _entity_to_camel(c, "characteristic") for c in r.characteristic_changes
         ],
+        "locationChanges": [_location_to_camel(c) for c in r.location_changes],
         "effects": [_effect_to_camel(e) for e in r.effects],
         "pendingChoices": r.pending_choices,
     }

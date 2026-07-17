@@ -317,6 +317,38 @@ describe('StoryEditorPage', () => {
       expect.objectContaining({ idWeather: 1 }))
   })
 
+  it('an event effect picks its move-to location from the location selector (v0.29.3)', async () => {
+    // The forced-movement location is a picker, like events.idSpecificLocation: choosing a
+    // location must store its own id (not its card) in effect.idLocation.
+    createEntity.mockResolvedValue({ uuid: 'new-eff' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([
+        { uuid: 'loc-9', id: 9, idTextName: 101, idCard: 5 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /Event Effects/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Event Eff/i }))
+
+    await userEvent.click(screen.getByTitle('Select Move To Location ID (effect)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    const optionRow = selectBtn.closest('tr')
+    expect(within(optionRow).getAllByText('#9').length).toBeGreaterThan(0)
+    expect(within(optionRow).queryByText('#5')).not.toBeInTheDocument()
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'event-effects',
+      expect.objectContaining({ idLocation: 9 }))
+  })
+
   it('deletes a text entity and refreshes texts', async () => {
     let textsCalls = 0
     listEntities.mockImplementation((uuid, type) => {

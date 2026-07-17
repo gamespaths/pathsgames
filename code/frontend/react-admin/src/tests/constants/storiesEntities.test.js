@@ -11,4 +11,9 @@ describe('event-effects entity config', () => {
     const [first] = STORIES_ENTITIES_COLUMNS['event-effects']
     expect(first).toMatchObject({ key: 'idTextName', type: 'idTextName' })
   })
+
+  it('offers the v0.29.3 forced-movement location as a number field', () => {
+    const field = STORIES_ENTITIES_FIELDS['event-effects'].find(f => f.key === 'idLocation')
+    expect(field).toMatchObject({ key: 'idLocation', type: 'number' })
+  })
 })

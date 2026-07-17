@@ -966,6 +966,18 @@
       "linkCopyright": "https://unsplash.com/photos/a-narrow-canyon-in-the-middle-of-a-desert-oGODSqsdHNE",
       "urlImage": "https://images.unsplash.com/photo-1714581732803-db75df67b941?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "e058cabc-3bc8-4ea3-bb64-4783612b2932"
+    },
+    {
+      "id": 82,
+      "idCard": 82,
+      "idCreator": 1,
+      "idTextCopyright": 234,
+      "idTextDescription": 235,
+      "idTextName": 232,
+      "idTextTitle": 232,
+      "linkCopyright": "https://unsplash.com/photos/a-desert-landscape-with-a-mountain-in-the-background-kjbXI-Qk9kI",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1733493684029-f0ff53ae6be1?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "42ded828-5c0e-4c76-bcca-b316c04c875a"
     }
   ],
   "category": "adventure",
@@ -1444,8 +1456,10 @@
       "id": 4,
       "idCard": 81,
       "idEvent": 6,
+      "idLocation": 16,
       "idTextDescription": 227,
       "idTextName": 227,
+      "idWeather": 1,
       "id_card": 81,
       "statistics": "SAD",
       "uuid": "02ef9a06-7731-4bb4-98d5-fa830647fa92",
@@ -1734,6 +1748,17 @@
       "idLocationTo": 15,
       "idTextName": 204,
       "uuid": "ce25f6b5-7320-40c4-a1cc-395b38d85681"
+    },
+    {
+      "direction": "WEST",
+      "energyCost": 1,
+      "flagBack": 0,
+      "id": 17,
+      "idCardBack": "",
+      "idLocationFrom": 16,
+      "idLocationTo": 9,
+      "idTextName": 233,
+      "uuid": "279ee2aa-a0ac-41b9-bac6-a141368b55f8"
     }
   ],
   "locations": [
@@ -1967,6 +1992,14 @@
       "idTextName": 199,
       "id_card": 73,
       "uuid": "f282dbaa-ed98-4b69-9746-9e397e3996a5"
+    },
+    {
+      "id": 16,
+      "idCard": 82,
+      "idTextDescription": 235,
+      "idTextName": 232,
+      "id_card": 82,
+      "uuid": "d3f20146-68b8-40d5-a967-1ae50f78d518"
     }
   ],
   "missionSteps": [],
@@ -5934,8 +5967,8 @@
       "idText": 231,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />You earn a sad point.",
-      "shortText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />You earn a sad point.",
+      "longText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />Some events may move you to a specific location.<br /><br />You earn a sad point.",
+      "shortText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />Some events may move you to a specific location.<br /><br />You earn a sad point.",
       "uuid": "3ff7f360-2f83-4e12-a077-31fd3e0ed09e"
     },
     {
@@ -5944,9 +5977,69 @@
       "idText": 231,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Guadagni un punto tristessa.",
-      "shortText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Guadagni un punto tristessa.",
+      "longText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Alcuni eventi ti possono spostare in una location specifiche.<br /><br />Guadagni un punto tristessa.",
+      "shortText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Alcuni eventi ti possono spostare in una location specifiche.<br /><br />Guadagni un punto tristessa.",
       "uuid": "8b727840-7220-437d-b59f-89c5aa6b3577"
+    },
+    {
+      "id": 232,
+      "idCreator": 1,
+      "idText": 232,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Desert landscape",
+      "shortText": "Desert landscape",
+      "uuid": "5d0b4f78-dba8-4695-b81b-c11b773389c7"
+    },
+    {
+      "id": 233,
+      "idCreator": 1,
+      "idText": 233,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Desert",
+      "shortText": "Desert",
+      "uuid": "a5b6d604-b1ba-4aa7-af4c-fd4e7273e917"
+    },
+    {
+      "id": 234,
+      "idCreator": 1,
+      "idText": 234,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Daniel J. Schwarz",
+      "shortText": "Daniel J. Schwarz",
+      "uuid": "da582a72-a917-41de-bab5-cc46b9421c51"
+    },
+    {
+      "id": 234,
+      "idCreator": 1,
+      "idText": 234,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "fb86d402-b3b7-468e-ac43-d549b1a31ec7"
+    },
+    {
+      "id": 235,
+      "idCreator": 1,
+      "idText": 235,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A vast, boundless desert.<br /><br />\nBetter to stay away and return to more pleasant places.",
+      "shortText": "A vast, boundless desert.<br /><br />\nBetter to stay away and return to more pleasant places.",
+      "uuid": "335fe9d0-943d-448e-bc20-6558c0c75a99"
+    },
+    {
+      "id": 235,
+      "idCreator": 1,
+      "idText": 235,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un grandissimo e sconfinato deserto.<br /><br />Meglio starci alla larga e tornare i luoghi più piacevoli.",
+      "shortText": "Un grandissimo e sconfinato deserto.<br /><br />Meglio starci alla larga e tornare i luoghi più piacevoli.",
+      "uuid": "3aac9ecf-b4bd-4feb-86e6-68d1d053ce4c"
     }
   ],
   "title": "Paths Tutorial",

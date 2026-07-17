@@ -41,6 +41,9 @@ import java.util.Set;
  *       {@code flag_end_time} does not fire: Step 29 only raises the flags, Step 38 owns
  *       the consequences.</li>
  *   <li><b>{@code gameOver} is only a flag.</b> Moving the match to GAMEOVER is Step 38.</li>
+ *   <li><b>Forced movement bypasses Step 28.</b> An effect's {@code id_location} (v0.29.3)
+ *       moves its recipients with no neighbor, energy or availability check; only a cost-0
+ *       movement log row is written per moved character.</li>
  * </ul>
  *
  * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
@@ -205,6 +208,7 @@ public class EventExecutionService implements EventExecutionPort {
             applyTraitEffects(x, recipient, effect, event);
             applyCharacteristicEffects(x, recipient, effect);
             applyRegistryEffect(x, recipient, effect, event);
+            applyMovementEffect(x, recipient, effect);
         }
 
         x.effects.add(new AppliedEffect(event.getUuid(), effect.getUuid(),
@@ -221,11 +225,14 @@ public class EventExecutionService implements EventExecutionPort {
     private List<EventActorView> resolveRecipients(Exec x, EventEffectEntity effect) {
         String target = effect.getTarget() == null ? "ALL" : effect.getTarget().trim().toUpperCase();
         List<EventActorView> base = new ArrayList<>();
-        if (TARGET_ONLY_ONE.equals(target) || x.actor.idLocation() == null) {
+        // Locations come from the tracked map, not the views: a forced movement earlier in
+        // the chain must be seen by the effects that follow it.
+        Long actorLocation = x.locationOf(x.actor);
+        if (TARGET_ONLY_ONE.equals(target) || actorLocation == null) {
             base.add(x.actor);
         } else {
             for (EventActorView c : x.allCharacters()) {
-                if (x.actor.idLocation().equals(c.idLocation())) {
+                if (actorLocation.equals(x.locationOf(c))) {
                     base.add(c);
                 }
             }
@@ -394,6 +401,36 @@ public class EventExecutionService implements EventExecutionPort {
         x.registryChanges.add(new RegistryChange(key, old, value));
     }
 
+    /**
+     * v0.29.3 forced movement: the recipient is moved to {@code id_location}, skipping the
+     * whole Step 28 procedure — no neighbor check, no energy cost, no availability verdict.
+     * An id that matches no location of the story is authored noise and is skipped; so is a
+     * move to the location the recipient already stands in. The tracked position is updated,
+     * so a later effect of the same chain resolves {@code target=ALL} where the recipient
+     * now stands.
+     */
+    private void applyMovementEffect(Exec x, EventActorView recipient, EventEffectEntity effect) {
+        Integer idLocation = effect.getIdLocation();
+        if (idLocation == null || idLocation <= 0) {
+            return;
+        }
+        long target = idLocation.longValue();
+        String targetUuid = x.locationUuids().get(target);
+        if (targetUuid == null) {
+            return; // authored noise, not an error
+        }
+        Long from = x.locationOf(recipient);
+        if (from != null && from == target) {
+            return; // already there: nothing to move, nothing to log
+        }
+        store.updateCharacterLocation(x.match.id(), recipient.id(), target);
+        store.insertMovementLog(x.match.id(), recipient.id(), from, target, 0);
+        x.setLocation(recipient.id(), target);
+        x.movementApplied = true;
+        x.locationChanges.add(new LocationChange(recipient.uuid(),
+                from == null ? null : x.locationUuids().get(from), targetUuid));
+    }
+
     // ── coma & time-end ─────────────────────────────────────────────────────
 
     /**
@@ -454,7 +491,7 @@ public class EventExecutionService implements EventExecutionPort {
         flush(x);
         Live actor = x.live(x.actor);
         boolean changed = x.timeEnded || x.itemAdded || x.itemRemoved || x.weatherApplied
-                || x.forcedSleep || x.comaTriggered || x.gameOver
+                || x.movementApplied || x.forcedSleep || x.comaTriggered || x.gameOver
                 || !x.statChanges.isEmpty() || !x.registryChanges.isEmpty()
                 || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty();
 
@@ -464,10 +501,10 @@ public class EventExecutionService implements EventExecutionPort {
                 new ArrayList<>(x.executedEventUuids),
                 x.energySpent, x.coinSpent, actor.energy, actor.coin, x.currentClock,
                 false, // turnConsumed — v0.29.0 never touches the turn queue
-                x.timeEnded, x.itemAdded, x.itemRemoved, x.weatherApplied,
+                x.timeEnded, x.itemAdded, x.itemRemoved, x.weatherApplied, x.movementApplied,
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
-                x.characteristicChanges, x.effects, List.of());
+                x.characteristicChanges, x.locationChanges, x.effects, List.of());
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -550,7 +587,11 @@ public class EventExecutionService implements EventExecutionPort {
         final List<TraitChange> traitChanges = new ArrayList<>();
         final List<ItemChange> itemChanges = new ArrayList<>();
         final List<CharacteristicChange> characteristicChanges = new ArrayList<>();
+        final List<LocationChange> locationChanges = new ArrayList<>();
         final List<AppliedEffect> effects = new ArrayList<>();
+
+        /** Current location per character: seeded from the views, rewritten by forced movement. */
+        final Map<Long, Long> locationByCharacter = new HashMap<>();
 
         int currentClock;
         int energySpent;
@@ -560,6 +601,7 @@ public class EventExecutionService implements EventExecutionPort {
         boolean itemAdded;
         boolean itemRemoved;
         boolean weatherApplied;
+        boolean movementApplied;
         boolean forcedSleep;
         boolean comaTriggered;
         boolean gameOver;
@@ -568,6 +610,7 @@ public class EventExecutionService implements EventExecutionPort {
         private List<EventActorView> allCharacters;
         private Map<Long, String> itemUuids;
         private Map<Long, String> traitUuids;
+        private Map<Long, String> locationUuids;
 
         Exec(MatchEventView match, EventActorView actor, EventCheckContext ctx,
              String lang, EventEntity event) {
@@ -599,6 +642,26 @@ public class EventExecutionService implements EventExecutionPort {
                 traitUuids = store.findTraitUuidsById(match.idStory());
             }
             return traitUuids;
+        }
+
+        /** Lazily loaded: only a forced-movement effect needs the story's locations. */
+        Map<Long, String> locationUuids() {
+            if (locationUuids == null) {
+                locationUuids = store.findLocationUuidsById(match.idStory());
+            }
+            return locationUuids;
+        }
+
+        /** The tracked position wins over the (possibly stale) view. */
+        Long locationOf(EventActorView v) {
+            if (!locationByCharacter.containsKey(v.id())) {
+                locationByCharacter.put(v.id(), v.idLocation());
+            }
+            return locationByCharacter.get(v.id());
+        }
+
+        void setLocation(long idCharacter, long idLocation) {
+            locationByCharacter.put(idCharacter, idLocation);
         }
 
         Live live(EventActorView view) {
