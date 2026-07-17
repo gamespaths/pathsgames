@@ -20,7 +20,7 @@ import { useTranslation } from '@/i18n/context'
  * (used on the map's right page when the selected location is the character's
  * own current location).
  */
-export default function LocationCard({ location , card , story , locationsActive , onEnterLocation }) {
+export default function LocationCard({ location , card , story , locationsActive , onEnterLocation ,loading = false}) {
   const { t } = useTranslation()
   if (!location) return null
 
@@ -39,6 +39,7 @@ export default function LocationCard({ location , card , story , locationsActive
         imageAlt={location.name}
         statItemsToPageContent={statItems}
         onForward={onEnterLocation}
+        loading={loading}
       />
     </div>
   )

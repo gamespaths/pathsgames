@@ -48,6 +48,14 @@ describe('MatchLogCard', () => {
     expect(getMatchLogs).toHaveBeenCalledWith('m1', 'tok', { limit: 50, lang: 'it' })
   })
 
+  it('shows the LoadingCard (with the story picture) while the first page loads', () => {
+    getMatchLogs.mockReturnValue(new Promise(() => {}))
+    const story = { card: { urlImage: 'http://story/cover.jpg', description: 'A tale' } }
+    const { container } = render(<MatchLogCard matchUuid="m1" accessToken="tok" story={story} />)
+    expect(screen.getByText('game.loadingCard.title')).toBeInTheDocument()
+    expect(container.querySelector('img').src).toBe('http://story/cover.jpg')
+  })
+
   it('renders one card per log entry, with the event type on the image', async () => {
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')

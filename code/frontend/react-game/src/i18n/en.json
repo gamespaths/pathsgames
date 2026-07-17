@@ -117,7 +117,7 @@
     "loading": "Loading matches…",
     "noMatches": "No matches yet. Start an adventure!",
     "unknownStory": "Unknown story",
-    "resume": "Resume",
+    "resume": "Play",
     "statusLabel": "Status",
     "created": "Started",
     "clock": "Clock",
@@ -162,6 +162,10 @@
     "actions": "Actions",
     "exitToHome": "Exit to Home",
     "story": "Story",
+    "loadingCard": {
+      "title": "Loading…",
+      "description": "Please wait while we prepare your adventure."
+    },
     "stats": {
       "life": "Life",
       "energy": "Energy",
@@ -226,7 +230,7 @@
       "noEnergy": "Energy",
       "notNeighbor": "Not a neighbor",
       "moveCost": "Moving",
-      "blocked": "Blocked",
+      "blocked": "Locked",
       "blockedFull": "You cannot go there right now.",
       "reason": {
         "CHARACTER_CANNOT_ACT": "Blocked",
@@ -254,13 +258,13 @@
     "event": {
       "action": "Do",
       "cost": "Cost",
-      "blocked": "Blocked",
+      "blocked": "Locked",
       "blockedFull": "This action is not available right now.",
       "reason": {
         "CHARACTER_CANNOT_ACT": "Blocked",
         "SLEEPING": "Sleeping",
         "COMA": "Coma",
-        "EVENT_NOT_EXECUTABLE_TYPE": "Blocked",
+        "EVENT_NOT_EXECUTABLE_TYPE": "Type",
         "ONCE_ALREADY_CONSUMED": "Done",
         "WRONG_LOCATION": "Elsewhere",
         "NOT_ENOUGH_ENERGY": "Energy",
@@ -274,8 +278,8 @@
         "CHARACTER_CANNOT_ACT": "You cannot act right now.",
         "SLEEPING": "You are asleep and cannot act.",
         "COMA": "You are in a coma: you cannot act until someone helps you.",
-        "EVENT_NOT_EXECUTABLE_TYPE": "This action is not yours to take.",
-        "ONCE_ALREADY_CONSUMED": "You have already done this, and it cannot be repeated.",
+        "EVENT_NOT_EXECUTABLE_TYPE": "You cannot execute this action type for now.",
+        "ONCE_ALREADY_CONSUMED": "You have already done this, it cannot be repeated.",
         "WRONG_LOCATION": "This action belongs to another location.",
         "NOT_ENOUGH_ENERGY": "You do not have enough energy for this action.",
         "NOT_ENOUGH_COINS": "You do not have enough coins for this action.",
@@ -294,7 +298,7 @@
       "zoomOut": "Zoom out",
       "center": "Center on current location",
       "youAreHere": "You are here",
-      "open": "Open map",
+      "open": "Map",
       "unexploredLocation": "Unexplored location"
     },
     "moveToDirection": "Move to",

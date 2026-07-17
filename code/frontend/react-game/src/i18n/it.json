@@ -158,6 +158,10 @@
     "actions": "Azioni",
     "exitToHome": "Torna alla Home",
     "story": "Storia",
+    "loadingCard": {
+      "title": "Caricamento…",
+      "description": "Il sentiero prende forma — il libro sta girando le pagine."
+    },
     "stats": {
       "life": "Vita",
       "energy": "Energia",

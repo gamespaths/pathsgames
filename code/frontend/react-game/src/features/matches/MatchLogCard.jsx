@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
+import LoadingCard from '@/components/layout/LoadingCard'
 import { getMatchLogs } from '@/api/matches'
 
 /**
@@ -135,12 +136,13 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   // Clock advances carry no card and no actor: they would render as empty tiles.
   const visibleEntries = entries.filter(e => !HIDDEN_TYPES.has(e.type))
 
+  if (loading) return <LoadingCard story={story} />
   const body = (
     <div className="match-log-wrap" data-testid="match-log-card">
       {loading ? (
-        <p className="match-log-state">
-          <i className="fas fa-spinner fa-spin me-2" />{t('matchLog.loading')}
-        </p>
+        // The "please wait" card page (with the story's picture when known);
+        // the load-more button below keeps its own inline spinner instead.
+        <LoadingCard story={story} />
       ) : error ? (
         <p className="match-log-state match-log-error">
           <i className="fas fa-exclamation-circle me-2" />

@@ -54,7 +54,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 }))
 
 import GameBook, { lastEffectCard, statChangeItems } from '../features/gameplay/GameBook'
-import { endMatch, sleepCharacter } from '../api/matches'
+import { endMatch, sleepCharacter, startMovement } from '../api/matches'
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },
@@ -212,6 +212,44 @@ describe('GameBook', () => {
     }
   })
 
+  // Map view: clicking an unexplored ("?") node that borders the player selects
+  // it and the RIGHT page shows its NEIGHBOR (movement) card — the location card
+  // is fog-gated, so the matching move-target from gameData.locations is used,
+  // with a working move action.
+  it('map: clicking an unexplored "?" neighbor shows its movement card and can move there', async () => {
+    const mapGameData = {
+      ...GAME_DATA,
+      playerStats: { life: 10, energy: 10 },
+      actions: [],
+      locations: [{ uuid: 'lb', idLocation: 6, name: 'Into the dark', energyCost: 2,
+        card: { title: 'Into the dark' } }],
+      info: {
+        players: [{ idLocation: 1 }],
+        locations: [{ idLocation: 1, flagAlreadyActived: 1, clockCounter: 0 }],
+        locationsActive: [{
+          idLocation: 1, uuid: 'l1', card: { title: 'Start location' },
+          neighbors: [{ uuid: 'lb', idLocation: 6, idLocationFrom: 1, idLocationTo: 6,
+            direction: 'WEST', flagBack: 0, card: { title: 'Into the dark' } }],
+        }],
+      },
+    }
+    startMovement.mockResolvedValue({})
+    render(<GameBook gameData={mapGameData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('action-information'))  // the fa-map action opens the map
+    // a visited node keeps its own location card on the right page
+    fireEvent.click(screen.getByTestId('map-node-1'))
+    expect(screen.getByText('Start location')).toBeInTheDocument()
+    // the unexplored neighbor node is clickable and takes the gold ring
+    fireEvent.click(screen.getByTestId('map-node-6'))
+    expect(screen.getByTestId('map-node-6').className).toContain('game-map-node--current')
+    // the right page shows the neighbor's movement card, with its move action
+    expect(screen.getByText('Into the dark')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('action-movement'))
+    await waitFor(() => {
+      expect(startMovement).toHaveBeenCalledWith('m1', 'lb', 'tok')
+    })
+  })
+
   it('renders gracefully when gameData is null', () => {
     render(<GameBook gameData={null} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
     expect(screen.getByTestId('book')).toBeInTheDocument()
@@ -253,7 +291,10 @@ describe('GameBook', () => {
     fireEvent.click(await screen.findByTestId('action-sleep'))
     // The overlay is active once its back arrow appears (the sleep flow already
     // cleared the statistics-view preview, so page-back can only come from it).
-    await waitFor(() => expect(screen.getByTestId('page-back')).toBeInTheDocument())
+    // The reload holds the LoadingCard on the right page for 3s
+    // (refreshComponents' timer), so the default 1s waitFor races it: give the
+    // overlay room to land.
+    await waitFor(() => expect(screen.getByTestId('page-back')).toBeInTheDocument(), { timeout: 4000 })
     expect(screen.getByText('Rainy')).toBeInTheDocument()   // WeatherCard on the right page
     // Back arrow dismisses the overlay (the page-back button goes away).
     fireEvent.click(screen.getByTestId('page-back'))

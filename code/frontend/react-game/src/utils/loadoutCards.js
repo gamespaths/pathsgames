@@ -61,6 +61,16 @@ export function buildMapCard(t) {
   return metaCard('map', t('game.map.title'), null)
 }
 
+/** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
+export function buildLoadingCard(t) {
+  return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))
+}
+
+/** Fixed match-error card (ErrorCard); the caller sets the description. */
+export function buildErrorCard(t) {
+  return metaCard('error', t('errors.title'), null)
+}
+
 /**
  * Fallback movement card for a neighbor that carries NO card (neither the
  * forward `card` nor the return `cardBack`). Uses the fixed "neighbor" image

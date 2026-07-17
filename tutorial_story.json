@@ -688,8 +688,8 @@
       "idTextName": 160,
       "idTextTitle": 160,
       "id_card": 58,
-      "linkCopyright": "https://unsplash.com/photos/a-dirt-path-between-two-large-rocks-in-a-field-qZoN6vQiRvQ",
-      "urlImage": "https://images.unsplash.com/photo-1641424721239-cba952d8abf4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "linkCopyright": "https://unsplash.com/photos/green-grass-on-gray-rocky-mountain-during-daytime-0o8DeLcq_yA",
+      "urlImage": "https://images.unsplash.com/photo-1597495283218-7a81f1744c5c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "8c6f657c-94ba-41e4-8510-98dd00e8b994"
     },
     {
@@ -884,6 +884,88 @@
       "linkCopyright": "https://unsplash.com/photos/a-dirt-path-between-two-large-rocks-in-a-field-qZoN6vQiRvQ",
       "urlImage": "https://images.unsplash.com/photo-1641424721239-cba952d8abf4?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "6b235de6-1305-4737-874a-c101e09db974"
+    },
+    {
+      "id": 75,
+      "idCard": 75,
+      "idCreator": 1,
+      "idTextCopyright": 216,
+      "idTextDescription": 215,
+      "idTextName": 214,
+      "idTextTitle": 214,
+      "linkCopyright": "https://unsplash.com/photos/lone-hiker-stands-on-a-rocky-mountain-ridge-at-sunset-6YV8BWSqhL0",
+      "urlImage": "https://images.unsplash.com/photo-1760943890190-21709a4688a1?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "e12ae056-65a8-4a1e-a67e-0f98f01db09e"
+    },
+    {
+      "id": 76,
+      "idCard": 76,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 218,
+      "idTextName": 217,
+      "idTextTitle": 217,
+      "linkCopyright": null,
+      "urlImage": null,
+      "uuid": "d0e2b41a-af98-471c-85d7-15165f12ad4e"
+    },
+    {
+      "id": 77,
+      "idCard": 77,
+      "idCreator": 1,
+      "idTextCopyright": 223,
+      "idTextDescription": 221,
+      "idTextName": 219,
+      "idTextTitle": 219,
+      "linkCopyright": "https://unsplash.com/photos/person-walking-on-rock-mountain-UqQ7-LM-PTk",
+      "urlImage": "https://images.unsplash.com/photo-1531322804667-8d2907f41406?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "644abf23-00df-48da-89f1-eb811e2fb869"
+    },
+    {
+      "id": 78,
+      "idCard": 78,
+      "idCreator": 1,
+      "idTextCopyright": 224,
+      "idTextDescription": 222,
+      "idTextName": 220,
+      "idTextTitle": 220,
+      "linkCopyright": "https://unsplash.com/photos/person-walking-on-rock-mountain-UqQ7-LM-PTk",
+      "urlImage": "https://images.unsplash.com/photo-1531322804667-8d2907f41406?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "ad11ae7d-92ee-460f-981e-c3592fd1f814"
+    },
+    {
+      "id": 79,
+      "idCard": 79,
+      "idCreator": 1,
+      "idTextCopyright": 229,
+      "idTextDescription": 228,
+      "idTextName": 225,
+      "idTextTitle": 225,
+      "linkCopyright": "https://unsplash.com/photos/a-person-walking-through-a-canyon-in-the-desert-9633dHhioC8",
+      "urlImage": "https://images.unsplash.com/photo-1682695795255-b236b1f1267d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "3c590acb-4895-4c1e-bb57-86be5952589e"
+    },
+    {
+      "id": 80,
+      "idCard": 80,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 226,
+      "idTextName": 226,
+      "idTextTitle": 226,
+      "uuid": "15a76457-2921-46f9-91e8-e5843de9f66c"
+    },
+    {
+      "id": 81,
+      "idCard": 81,
+      "idCreator": 1,
+      "idTextCopyright": 230,
+      "idTextDescription": 231,
+      "idTextName": 227,
+      "idTextTitle": 227,
+      "linkCopyright": "https://unsplash.com/photos/a-narrow-canyon-in-the-middle-of-a-desert-oGODSqsdHNE",
+      "urlImage": "https://images.unsplash.com/photo-1714581732803-db75df67b941?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "e058cabc-3bc8-4ea3-bb64-4783612b2932"
     }
   ],
   "category": "adventure",
@@ -1337,6 +1419,37 @@
       "target": "ALL",
       "uuid": "67415d38-a9a7-4ce3-aead-6966bed7dec3",
       "value": 1
+    },
+    {
+      "id": 2,
+      "idCard": 76,
+      "idEvent": 3,
+      "idTextDescription": 218,
+      "idTextName": 217,
+      "id_card": 76,
+      "uuid": "fb452178-8ff1-4e7b-a310-51fef215910b"
+    },
+    {
+      "id": 3,
+      "idCard": 78,
+      "idEvent": 4,
+      "idTextDescription": 222,
+      "idTextName": 220,
+      "id_card": 78,
+      "statistics": "LIFE",
+      "uuid": "5570225b-b917-4ab0-8701-76c61709578e",
+      "value": -1
+    },
+    {
+      "id": 4,
+      "idCard": 81,
+      "idEvent": 6,
+      "idTextDescription": 227,
+      "idTextName": 227,
+      "id_card": 81,
+      "statistics": "SAD",
+      "uuid": "02ef9a06-7731-4bb4-98d5-fa830647fa92",
+      "value": 1
     }
   ],
   "events": [
@@ -1387,6 +1500,49 @@
       "id_card": 58,
       "type": "NORMAL",
       "uuid": "a3767c5a-1768-471d-bf9f-49b7e3d700df"
+    },
+    {
+      "costEnery": 4,
+      "id": 3,
+      "idCard": 75,
+      "idSpecificLocation": 7,
+      "idTextDescription": 215,
+      "idTextName": 214,
+      "idWeather": 1,
+      "id_card": 75,
+      "type": "NORMAL",
+      "uuid": "aef4bc0c-42b6-4d5a-9b0f-b3a12f27ebed"
+    },
+    {
+      "costEnery": 2,
+      "id": 4,
+      "idCard": 77,
+      "idSpecificLocation": 8,
+      "idTextDescription": 221,
+      "idTextName": 219,
+      "id_card": 77,
+      "type": "ONCE",
+      "uuid": "e7d3f7d4-ade4-4f41-90fb-311ec61629eb"
+    },
+    {
+      "costEnery": 1,
+      "id": 5,
+      "idCard": 79,
+      "idEventNext": 6,
+      "idSpecificLocation": 9,
+      "idTextDescription": 228,
+      "idTextName": 225,
+      "id_card": 79,
+      "type": "NORMAL",
+      "uuid": "ee4faa3e-7157-4ecd-95f8-f243b4d6f424"
+    },
+    {
+      "id": 6,
+      "idCard": 80,
+      "idTextDescription": 226,
+      "idTextName": 226,
+      "id_card": 80,
+      "uuid": "6c124bec-625b-4522-a1b0-539c49c7c5da"
     }
   ],
   "globalRandomEvents": [],
@@ -4648,8 +4804,8 @@
       "idText": 161,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Anne Zwickermann",
-      "shortText": "Anne Zwickermann",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
       "uuid": "f2755cde-1462-4d48-8fa4-e2dbed2a7dbb"
     },
     {
@@ -5471,6 +5627,326 @@
       "longText": "",
       "shortText": "",
       "uuid": "890592f2-6aec-44e9-ac30-d39a843fbb1c"
+    },
+    {
+      "id": 214,
+      "idCreator": 1,
+      "idText": 214,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explore montains",
+      "shortText": "Explore montains",
+      "uuid": "4dc1f5b2-14ce-4540-956b-6a0a166e357f"
+    },
+    {
+      "id": 215,
+      "idCreator": 1,
+      "idText": 215,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Some actions can only be performed in certain weather conditions. For example, you can't explore the mountains if the weather isn't good. If the action is blocked, try sleeping through the day and returning when the weather improves.",
+      "shortText": "Some actions can only be performed in certain weather conditions. For example, you can't explore the mountains if the weather isn't good. If the action is blocked, try sleeping through the day and returning when the weather improves.",
+      "uuid": "feee8737-c8a9-413c-a9f2-1652781c09e3"
+    },
+    {
+      "id": 215,
+      "idCreator": 1,
+      "idText": 215,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Alcune azioni possono essere eseguite solo con dei meteo particolari. Per esempio non è possibile esplorare le montagne se non è bel tempo. Se l'azione è bloccata, prova a far passare le giornate dormendo e torna quando il tempo migliorato.",
+      "shortText": "Alcune azioni possono essere eseguite solo con dei meteo particolari. Per esempio non è possibile esplorare le montagne se non è bel tempo. Se l'azione è bloccata, prova a far passare le giornate dormendo e torna quando il tempo migliorato.",
+      "uuid": "f57feee8-051e-4d3d-be0b-f787bccab28e"
+    },
+    {
+      "id": 216,
+      "idCreator": 1,
+      "idText": 216,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tomas Trajan",
+      "shortText": "Tomas Trajan",
+      "uuid": "8b89d6e9-65dc-4696-8222-e474dde4b703"
+    },
+    {
+      "id": 216,
+      "idCreator": 1,
+      "idText": 216,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "45cfcb9d-b683-4505-904c-4e8ee9d8ab14"
+    },
+    {
+      "id": 217,
+      "idCreator": 1,
+      "idText": 217,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Nothing interesting",
+      "shortText": "Nothing interesting",
+      "uuid": "1d108c25-bcaf-4418-95b8-4b1166aa0df6"
+    },
+    {
+      "id": 218,
+      "idCreator": 1,
+      "idText": 218,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This exploration leads nowhere\n<br /><br />Some events have no effect",
+      "shortText": "This exploration leads nowhere\n<br /><br />Some events have no effect",
+      "uuid": "7b79c14a-127c-421f-8d03-c834c700f88c"
+    },
+    {
+      "id": 218,
+      "idCreator": 1,
+      "idText": 218,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questa eplorazione non porta a nulla\nAcuni eventi non hanno alcun effetto",
+      "shortText": "Questa eplorazione non porta a nulla\nAcuni eventi non hanno alcun effetto",
+      "uuid": "0681db5d-3246-4bb4-bd74-0a657245cdb5"
+    },
+    {
+      "id": 219,
+      "idCreator": 1,
+      "idText": 219,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explore peaks",
+      "shortText": "Explore peaks",
+      "uuid": "c0b121ef-f18f-4604-af9e-07cd8c6f54a5"
+    },
+    {
+      "id": 220,
+      "idCreator": 1,
+      "idText": 220,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You get lost",
+      "shortText": "You get lost",
+      "uuid": "e9b8dd53-7868-4682-b035-cbba01389c5d"
+    },
+    {
+      "id": 221,
+      "idCreator": 1,
+      "idText": 221,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Spend the whole day visiting the peaks of these beautiful mountains.<br /><br />Some events can only be performed once per game.",
+      "shortText": "Spend the whole day visiting the peaks of these beautiful mountains.<br /><br />Some events can only be performed once per game.",
+      "uuid": "7be762b8-57b1-4732-a907-a02193152a40"
+    },
+    {
+      "id": 221,
+      "idCreator": 1,
+      "idText": 221,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Spendi tutta la giornata per visitare la cime di queste bellissime montagne.<br /><br />Alcuni eventi possono essere eseguiti solo una volta per partita.",
+      "shortText": "Spendi tutta la giornata per visitare la cime di queste bellissime montagne.<br /><br />Alcuni eventi possono essere eseguiti solo una volta per partita.",
+      "uuid": "89fb71ae-7c5c-43c2-b353-e164661a21f4"
+    },
+    {
+      "id": 220,
+      "idCreator": 1,
+      "idText": 220,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ti sei perso",
+      "shortText": "Ti sei perso",
+      "uuid": "b79f8211-9425-408b-9335-6c6175b0671e"
+    },
+    {
+      "id": 222,
+      "idCreator": 1,
+      "idText": 222,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You get lost, take a long time to retrace your steps, and are injured during your exploration. You lose a health point.",
+      "shortText": "You get lost, take a long time to retrace your steps, and are injured during your exploration. You lose a health point.",
+      "uuid": "361ec917-dbf5-498b-8be5-f1ac99540dce"
+    },
+    {
+      "id": 222,
+      "idCreator": 1,
+      "idText": 222,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ti sei perso ci metti molto tempo a tornare sui tuoi passi e rimani ferito durante la tua explorazione. Perdi un punto vita.",
+      "shortText": "Ti sei perso ci metti molto tempo a tornare sui tuoi passi e rimani ferito durante la tua explorazione. Perdi un punto vita.",
+      "uuid": "d6be5910-1876-45d9-99a3-f1947314c925"
+    },
+    {
+      "id": 223,
+      "idCreator": 1,
+      "idText": 223,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Fabrizio Conti",
+      "shortText": "Fabrizio Conti",
+      "uuid": "0750ee10-9752-4d68-b067-68126f7d2e08"
+    },
+    {
+      "id": 223,
+      "idCreator": 1,
+      "idText": 223,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "9c0f4217-8650-4277-a7ac-4e1156d56c9f"
+    },
+    {
+      "id": 224,
+      "idCreator": 1,
+      "idText": 224,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Fabrizio Conti",
+      "shortText": "Fabrizio Conti",
+      "uuid": "9b5b2171-67e8-4ea3-bd8a-a3ca3ff57f68"
+    },
+    {
+      "id": 224,
+      "idCreator": 1,
+      "idText": 224,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "177ea87a-ade2-4067-99d7-99d849e8e855"
+    },
+    {
+      "id": 225,
+      "idCreator": 1,
+      "idText": 225,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explore canyon",
+      "shortText": "Explore canyon",
+      "uuid": "a327f3e4-fb78-4db0-83aa-9d5f7dfb8a73"
+    },
+    {
+      "id": 226,
+      "idCreator": 1,
+      "idText": 226,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Way to Desert",
+      "shortText": "Way to Desert",
+      "uuid": "add8442d-6210-4498-bc41-12ff6fcca4b3"
+    },
+    {
+      "id": 227,
+      "idCreator": 1,
+      "idText": 227,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Infinite desert",
+      "shortText": "Infinite desert",
+      "uuid": "56e4f783-4ccb-41c7-88da-b27b0612074c"
+    },
+    {
+      "id": 227,
+      "idCreator": 1,
+      "idText": 227,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "32e0d884-b023-4837-b330-d7285db537aa"
+    },
+    {
+      "id": 228,
+      "idCreator": 1,
+      "idText": 228,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Another exploration awaits you.\n\nAre you ready?",
+      "shortText": "Another exploration awaits you.\n\nAre you ready?",
+      "uuid": "b2416206-88a6-41f2-bba4-1b8db657e2e3"
+    },
+    {
+      "id": 228,
+      "idCreator": 1,
+      "idText": 228,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un'altra esplorazione ti attende.\n\nSei pronto?",
+      "shortText": "Un'altra esplorazione ti attende.\n\nSei pronto?",
+      "uuid": "e9e5dcd8-d542-4b64-8f22-6dda9075d411"
+    },
+    {
+      "id": 229,
+      "idCreator": 1,
+      "idText": 229,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "NEOM",
+      "shortText": "NEOM",
+      "uuid": "a928972f-5d55-43bb-b08c-2c9c919b4a15"
+    },
+    {
+      "id": 229,
+      "idCreator": 1,
+      "idText": 229,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "52aebaa2-81eb-4e50-a77d-2c84e0ba467b"
+    },
+    {
+      "id": 226,
+      "idCreator": 1,
+      "idText": 226,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "e44f4cee-6815-46ee-ba29-6d8ce230c0c4"
+    },
+    {
+      "id": 230,
+      "idCreator": 1,
+      "idText": 230,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mihaela Claudia Puscas",
+      "shortText": "Mihaela Claudia Puscas",
+      "uuid": "2ecc1368-8b1a-4957-9a3c-6b605ae166a0"
+    },
+    {
+      "id": 230,
+      "idCreator": 1,
+      "idText": 230,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "0ffb2884-e184-4dfb-8393-d9b63389ad14"
+    },
+    {
+      "id": 231,
+      "idCreator": 1,
+      "idText": 231,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />You earn a sad point.",
+      "shortText": "This desert is always the same with every step you take. It never changes! The only option is to go back. <br /><br />You earn a sad point.",
+      "uuid": "3ff7f360-2f83-4e12-a077-31fd3e0ed09e"
+    },
+    {
+      "id": 231,
+      "idCreator": 1,
+      "idText": 231,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Guadagni un punto tristessa.",
+      "shortText": "Questo deserto sempre sempre uguale ogni passo che fai. Non cambia mai! L'unica possibilità è tornare indietro. <br /><br />Guadagni un punto tristessa.",
+      "uuid": "8b727840-7220-437d-b59f-89c5aa6b3577"
     }
   ],
   "title": "Paths Tutorial",

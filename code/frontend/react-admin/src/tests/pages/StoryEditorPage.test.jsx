@@ -284,6 +284,39 @@ describe('StoryEditorPage', () => {
     expect(createEntity).toHaveBeenCalledWith('story-123', 'difficulties', expect.any(Object))
   })
 
+  it('the event weather condition stores the rule id, never its card id', async () => {
+    // Regression: the weather options once led with idCard, so picking a rule wrote
+    // its card id into event.idWeather and the engine blocked the event forever
+    // (idWeather is compared with match.currentWeatherId, a RULE id).
+    createEntity.mockResolvedValue({ uuid: 'new-evt' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'weather-rules') return Promise.resolve([
+        { uuid: 'we-1', id: 1, idCard: 5 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /^Events$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Eve/i }))
+
+    await userEvent.click(screen.getByTitle('Select Weather (condition)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    const optionRow = selectBtn.closest('tr')
+    expect(within(optionRow).getAllByText('#1').length).toBeGreaterThan(0)
+    expect(within(optionRow).queryByText('#5')).not.toBeInTheDocument()
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'events',
+      expect.objectContaining({ idWeather: 1 }))
+  })
+
   it('deletes a text entity and refreshes texts', async () => {
     let textsCalls = 0
     listEntities.mockImplementation((uuid, type) => {

@@ -9,6 +9,7 @@ import TurnstileWidget from '../components/ui/TurnstileWidget'
 import { TURNSTILE_APPEARANCE } from '../utils/turnstile'
 import useAntibot from '../hooks/useAntibot'
 import { storyHasActiveMatch } from '../utils/matchStatus'
+import LoadingCard from '@/components/layout/LoadingCard'
 
 const HERO_IMG = {
   url: 'https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80',
@@ -102,9 +103,7 @@ export default function HomePage() {
           </div>
         </div>
       ) : loading ? (
-        <div className="stories-section-center stories-loading">
-          <i className="fas fa-spinner fa-spin me-2" />{t('home.loading')}
-        </div>
+        <LoadingCard story={null} maxWidth="500px" />
       ) : (
         <StoryCatalog stories={stories} matches={matches} onStoryClick={handleStoryClick} />
       )}

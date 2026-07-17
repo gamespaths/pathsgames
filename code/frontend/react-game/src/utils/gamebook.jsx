@@ -109,6 +109,9 @@ export function selectedTraitCount(playerStats) {
  * gate and MovementCard stay in agreement on how a move's cost is computed.
  */
 export function movementEnergyCost(location, locationCosts = {}) {
+  if (locationCosts==null){
+    return 0
+  }
   const resolved = location?.uuid != null ? locationCosts[location.uuid] : undefined
   return resolved ?? location?.energyCost ?? 0
 }

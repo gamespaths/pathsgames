@@ -49,14 +49,27 @@ describe('MapPage', () => {
     expect(screen.queryByText('game.map.oneWay')).toBeNull()
   })
 
-  it('clicking an explored node selects it; unexplored nodes are inert', () => {
+  it('clicking an explored node or an unexplored neighbor selects it; a far "?" is inert', () => {
     const onSelectNode = vi.fn()
-    render(<MapPage gameData={GAME_DATA} onSelectNode={onSelectNode} onClose={vi.fn()} />)
+    // node 7 is unexplored AND does not border the current location (edge 3→7
+    // comes from the /locations payload): nothing to show → stays inert.
+    const matchLocations = {
+      locations: [
+        { idLocation: 3, neighbors: [{ idLocation: 7, direction: 'NORTH', totalEnergyCost: 2 }] },
+      ],
+    }
+    render(<MapPage gameData={GAME_DATA} matchLocations={matchLocations}
+      onSelectNode={onSelectNode} onClose={vi.fn()} />)
     fireEvent.click(screen.getByTestId('map-node-3'))
     expect(onSelectNode).toHaveBeenCalledTimes(1)
     expect(onSelectNode).toHaveBeenCalledWith(expect.objectContaining({ id: 3 }))
-    fireEvent.click(screen.getByTestId('map-node-5'))
-    expect(onSelectNode).toHaveBeenCalledTimes(1) // unexplored: no selection
+    // unexplored "?" bordering the current location: selected too (the right
+    // page shows its neighbor/movement card)
+    fireEvent.click(screen.getByTestId('map-node-6'))
+    expect(onSelectNode).toHaveBeenCalledTimes(2)
+    expect(onSelectNode).toHaveBeenCalledWith(expect.objectContaining({ id: 6, visited: false }))
+    fireEvent.click(screen.getByTestId('map-node-7'))
+    expect(onSelectNode).toHaveBeenCalledTimes(2) // far unexplored: no selection
   })
 
   it('the gold ring follows selectedId and defaults to the character location', () => {
@@ -119,6 +132,23 @@ describe('MapPage', () => {
     expect(screen.getByTestId('map-node-1').className).toContain('game-map-node--current')
     expect(screen.getByTestId('map-node-3').className).not.toContain('game-map-node--unknown')
     expect(screen.getByTestId('map-node-5').className).toContain('game-map-node--unknown')
+  })
+
+  it('marks only the far "?" (not bordering the player) with the --far modifier', () => {
+    // node 7 is unexplored and reached only through visited location 3: no
+    // dashed ring. Nodes 5/6 are unexplored but border the player → ring kept.
+    const matchLocations = {
+      locations: [
+        { idLocation: 3, neighbors: [{ idLocation: 7, direction: 'NORTH', totalEnergyCost: 2 }] },
+      ],
+    }
+    render(<MapPage gameData={GAME_DATA} matchLocations={matchLocations} onClose={vi.fn()} />)
+    expect(screen.getByTestId('map-node-7').className).toContain('game-map-node--far')
+    expect(screen.getByTestId('map-node-7').className).toContain('game-map-node--unknown')
+    expect(screen.getByTestId('map-node-5').className).not.toContain('game-map-node--far')
+    expect(screen.getByTestId('map-node-6').className).not.toContain('game-map-node--far')
+    // visited nodes never carry it
+    expect(screen.getByTestId('map-node-1').className).not.toContain('game-map-node--far')
   })
 
   it('shows the LOCATION card photo on visited nodes (not the neighbor-link card)', () => {

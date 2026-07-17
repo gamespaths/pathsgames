@@ -26,6 +26,7 @@ import PlayerCards from './cards/PlayerCards'
 import MapCard from './cards/MapCard'
 import MatchLogCard from '@/features/matches/MatchLogCard'
 import MapPage from '@/components/layout/Map'
+import LoadingCard from '@/components/layout/LoadingCard'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { buildCardToSleep } from '@/utils/loadoutCards'
 
@@ -104,8 +105,11 @@ export function statChangeItems(result, characterUuid, t = (k) => k) {
 }
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
+  const LOADING_TIMEOUT_MS = 1000; //TODO change into constant env vars!
+
   const { t, lang } = useTranslation()
   const { user } = useGuestUser()
+  const [loading, setLoading] = useState(false)
 
   const { actualLocationCard, playerStats, locations, actions, endGameCard } = gameData ?? {}
   const storyCard = story?.card ?? null
@@ -242,6 +246,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }, [matchUuid, user?.accessToken, lang])
 
   function refreshComponents(){
+    setLoading(true);
+    setMatchLocations({})
+    setLocationCosts({})
     setPreviewLeft(null)
     setPreviewModal(null)
     setPreviewRight(null)
@@ -251,8 +258,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     const el = document.getElementById('cardPreviewModal')
     const Modal = window.bootstrap?.Modal
     if (el && Modal) Modal.getOrCreateInstance(el).hide()
+    setTimeout(() => setLoading(false), LOADING_TIMEOUT_MS);
   }
   function handleReloadClockWeatherAndMatchData() {
+    setLoading(true);
     // Sleep may advance the clock (when all characters are done): refresh the
     // clock chrome AND reload the board so stats/energy/location reflect it.
     refreshClock()
@@ -265,7 +274,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     onReload?.()
     handleBackOrClose()
     refreshComponents();
+
   }
+  
   // `side` ('left' | 'right') is supplied by each card's `previewSide` prop.
   // A right preview always renders inline on the right page (desktop) / bottom
   // of the stack (mobile). A left/default preview keeps its behaviour: the (i)
@@ -302,10 +313,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // handleBackOrClose() inside the reload would close it again, hence the preview comes after.
   function handleEventExecuted(result) {
     handleReloadClockWeatherAndMatchData()
+    setLoading(true);
     const narrative = lastEffectCard(result)
     if (narrative) {
       handleSelectionPreviewFull(narrative, 'effect', null, statChangeItems(result, playerUuid, t), true, {}, 'right')
     }
+    setLoading(false);
   }
   function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
     //setEndGameCard(card);
@@ -322,15 +335,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // character's own location), enter the play view: left = current location,
   // right = the movement/actions board (the base non-statistics view).
   function enterCurrentLocationView() {
+    setLoading(true);
     setMapView(false);
     setMapSelected(null);
     setStatisticsCards(false);
     setPreviewLeft(null);
     setPreviewRight(null);
     setShowGoToSleepCard(false);
+    setLoading(false);
   }
 
   const handleEndGame = async (action) => {
+    setLoading(true);
     if (ending) return
     setEnding(true)
     setEndError(null)
@@ -345,6 +361,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     } finally {
       setEnding(false)
     }
+    setLoading(false);
   }
 
   if (gameEnded) {
@@ -399,7 +416,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       // returns to the previous view (previewLeft/statistics stay untouched).
       <MapPage gameData={gameData} matchLocations={matchLocations}
         selectedId={mapSelected?.id ?? null}
-        onSelectNode={setMapSelected}
+        onSelectNode={(val) => {setMapSelected(val); scrollMobileIntoView('.book-mobile-right'); } }
         onClose={() => { setMapView(false); setMapSelected(null) }} />
     ) : previewLeft ? (
       <Card variant="page"
@@ -414,7 +431,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         {...previewLeft.additionalProps}
       />
     ) : actualLocationCard ? <LocationCard locationsActive={gameData.info.locationsActive}
-        location={actualLocationCard} card={actualLocationCard} story={story} />
+        location={actualLocationCard} card={actualLocationCard} story={story} loading={loading}/>
     : storyCard && <Card variant="page" card={storyCard} loading={storyCard===undefined} story={story} />
 
   const cardCharacteristics = buildCardCharacteristics(story, playerStats, clock , weather)
@@ -442,14 +459,24 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     setTimeout(() => { document.querySelector('button[aria-label="Sleep"]')?.click(); }, 100);
   }
 
+  // The node selected on the map, resolved for the right page: an explored node
+  // carries its own location card, while an unexplored ("?") one is fog-gated
+  // (card: null) — it falls back to the matching move-target neighbor from
+  // gameData.locations, the same object (link card, cost, backend verdict) the
+  // board's MovementCard renders.
+  const mapSelectedNeighbor = mapSelected && !mapSelected.visited
+    ? (locations ?? []).find(l => l.idLocation === mapSelected.id) ?? null
+    : null
+  const mapSelectedLocation = mapSelectedNeighbor ?? mapSelected
+
   const rightContent =
     previewRight ? previewRightContent
     // Step 0.28.5 — while the map fills the left page, the right page shows
     // the location selected on the map, else the current location.
-    : mapView ? (mapSelected
-        ? <MovementCard variant="page" location={mapSelected} viewFromMap={true}
-            isNeighbor={mapSelected.isNeighbor ?? false}
-            totalEnergyCost={mapSelected.uuid != null ? locationCosts[mapSelected.uuid] : undefined}
+    : mapView ? (mapSelected 
+        ? <MovementCard variant="page" location={mapSelectedLocation} viewFromMap={true}
+            isNeighbor={mapSelectedNeighbor != null || (mapSelected.isNeighbor ?? false)}
+            totalEnergyCost={mapSelectedLocation.uuid != null ? locationCosts[mapSelectedLocation.uuid] : undefined}
             playerStats={playerStats} story={story}
             matchUuid={matchUuid} accessToken={user?.accessToken}
             onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
@@ -537,9 +564,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         onClose={() => setPreviewRight({ kind: 'close' })}
         closeLabel={`${t('game.closeBook')}${story?.title ?? story?.card?.title ? ' ' + (story?.title ?? story?.card?.title) : ''}`}
         left={leftContent}
-        right={rightContent}
+        right={loading ? <LoadingCard story={story} /> : rightContent}
         mobile={
-          <GameBookMobile left={leftContent} right={rightContent} endError={endError} />
+          <GameBookMobile
+            left={leftContent}
+            right={loading ? <LoadingCard story={story} /> :rightContent}
+            endError={endError} />
         }
       />
       {/* Mobile (i) preview: the big card shown in a Bootstrap modal. */}
@@ -548,4 +578,3 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     </>
   )
 }
-

@@ -86,7 +86,7 @@ export default function ActionCard({
       childrenIntoImage={costBadge}
       actionWithInfo={true}
       infoLabel={t('game.event.action')}
-      infoIconClassName={"fas " + actionIcon}
+      infoIconClassName={!locked ? "fas " + actionIcon : undefined}
 
     />
   )

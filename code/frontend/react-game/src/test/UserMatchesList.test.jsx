@@ -29,10 +29,10 @@ describe('UserMatchesList', () => {
     getStory.mockResolvedValue(STORY)
   })
 
-  it('shows loading state initially', () => {
+  it('shows the LoadingCard initially', () => {
     listMatches.mockReturnValue(new Promise(() => {}))
     wrap(<UserMatchesList accessToken="tok" />)
-    expect(screen.getByText(/matches\.loading/)).toBeInTheDocument()
+    expect(screen.getByText('game.loadingCard.title')).toBeInTheDocument()
   })
 
   it('renders match cards after load', async () => {

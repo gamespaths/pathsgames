@@ -639,7 +639,9 @@ export default function StoryEditorPage() {
 
   const weatherRulesOptions = makeReferenceOptions({
     entities: weatherRulesRef,
-    idKeys: ['idCard', 'idWeather', 'id', 'id_weather'],
+    // The option value is what the engine compares with match.currentWeatherId, so it
+    // must be the rule's own id — never idCard, which every rule also carries.
+    idKeys: ['idWeather', 'id', 'id_weather'],
     textIdKeys: ['idText', 'idTextDescription'],
   })
 

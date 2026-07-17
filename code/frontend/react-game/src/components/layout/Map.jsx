@@ -172,11 +172,16 @@ export default function MapPage({ gameData, matchLocations, selectedId = null, o
       + (n.id === ringId ? ' game-map-node--current' : '')
       + (n.safe ? ' game-map-node--safe' : '')
       + (n.visited ? '' : ' game-map-node--unknown')
+      // far "?" — not bordering the character's location: no dashed ring
+      + (!n.visited && !n.isNeighbor ? ' game-map-node--far' : '')
     const style = { left: `${n.x}px`, top: `${n.y}px` }
     if (n.visited && n.urlImage) style.backgroundImage = `url("${n.urlImage}")`
-    // clicking an explored location selects it (its card opens on the right
-    // page); a drag never counts as a click (movedRef)
-    const clickable = n.visited && typeof onSelectNode === 'function'
+    // clicking a location selects it (its card opens on the right page):
+    // explored nodes always; "?" nodes only when they border the character's
+    // location — their own card is still fog-gated, so the right page shows
+    // the NEIGHBOR (movement) card instead. A drag never counts as a click
+    // (movedRef).
+    const clickable = (n.visited || n.isNeighbor) && typeof onSelectNode === 'function'
     return (
       <div key={n.id} className={cls} style={style}
         title={n.visited ? (n.name || '') : t('game.map.unexplored')}

@@ -134,7 +134,7 @@ export default function Card({
     <div className={cardClasses}>
       {isPage && loading && (
         <div className="book-page-loading">
-          <i className="fas fa-spinner fa-spin fa-2x" style={{ color: 'var(--color-gold)' }} />
+          <i className="fas fa-spinner fa-spin fa-5x" style={{ color: 'var(--color-gold-shine)' }} />
         </div>
       )}
       { /* Title  */}
@@ -149,10 +149,11 @@ export default function Card({
           { onClose && <button className="float-left book-page-nav book-page-nav--back" onClick={onClose} aria-label={t('card.back')}>
           <i className="fas fa-arrow-left" />
         </button>}
-        <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
+        
         { onForward && <button className="float-right book-page-nav book-page-nav--forward" onClick={onForward} aria-label={t('card.forward')}>
           <i className="fas fa-arrow-right" />
         </button>}
+        <SafeHtml key={card?.uuid ?? card?.title ?? String(name ?? '')} value={name} />
       </h2>}
 
       {/* ── children Into Image ── */}

@@ -800,7 +800,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.5);
 }
 
 .book-page-title {
@@ -1944,6 +1944,19 @@ html, body {
   color: var(--color-gold);
   font-family: var(--font-heading);
 }
+/* ErrorCard: its own overlay ABOVE the book (.book-overlay is z-index 1050),
+   so transient gameplay errors stay visible over the open board. */
+.error-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 4, 0, 0.85);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
 .game-page-wrap {
   min-height: calc(100vh - 112px);
   display: flex;
@@ -2610,8 +2623,9 @@ html, body {
   box-shadow: 0 4px 10px rgba(0,0,0,.35);
 }
 .game-map-node__icon { font-size: 1.6rem; color: var(--color-brown-mid); }
-/* explored locations are clickable (they open their card on the right page) */
-.game-map-node:not(.game-map-node--unknown) { cursor: pointer; }
+/* clickable locations open their card on the right page: explored nodes and
+   the "?" ones bordering the character (Map.jsx sets role=button on those) */
+.game-map-node[role="button"] { cursor: pointer; }
 .game-map-node--current {
   border-color: var(--color-gold-shine);
   box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65);
@@ -2633,6 +2647,21 @@ html, body {
   color: var(--color-brown-mid);
   text-shadow: 0 3px 8px rgba(0,0,0,.8);
   font-weight:700;
+}
+/* a far "?" — an unexplored location that does not border the character's one —
+   drops the dashed brown ring; only the reachable "?" neighbors keep it. The
+   transparent border (not none) preserves the node's geometry. Two classes so
+   it also beats the green --safe border. */
+.game-map-node--unknown.game-map-node--far {
+  border-color: transparent;
+}
+/* a selected "?" keeps the gold selection ring: the --unknown rule above would
+   otherwise win the border/shadow (same specificity, later in the sheet). The
+   border stays dashed so the node still reads as unexplored. */
+.game-map-node--unknown.game-map-node--current {
+  border-color: var(--color-gold-shine);
+  box-shadow: 0 0 0 3px var(--color-gold-deep), 0 0 18px 5px rgba(200,150,10,.65),
+    inset 0 0 14px rgba(0,0,0,.55);
 }
 
 .game-map-node--safe {

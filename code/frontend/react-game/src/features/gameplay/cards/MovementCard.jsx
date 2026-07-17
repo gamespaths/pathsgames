@@ -97,12 +97,15 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
       card={location?.card ?? { title: location?.name, description: location?.description,
         urlImage: location?.urlImage, awesomeIcon: location?.awesomeIcon }}
       entityType="movement"
+      
       onAction={canMove ? handleMove : undefined}
       actionLabel={t('game.movement.action')}
       actionIcon={location?.awesomeIcon ?? location?.card?.awesomeIcon ?? "fa-walking"}
-      locked={locked}
-      lockInfo={lockInfo}
+      
+      locked={locked && !viewFromMap}
+      lockInfo={lockInfo   }
       lockedIcon={lockedIcon}
+      
       onPreview={() => {
         //handleSelectionPreviewFull(card, type, lockReason, statistics , showModal=true , additionalProps={})
         onPreview(location?.card ?? null, 'movement', lockInfoFull ?? null, null, true,
@@ -113,18 +116,22 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
                 , /* extraContent: moveInfo, extraContentClassName: '' */ }
             : { extraContent: (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) 
                 , actionLabelChildren: costBadge }, previewSide)
-      }} hidePreview={!isNeighbor  }
+      }} hidePreview={!isNeighbor || (viewFromMap && locked)   }
       story={story}
       flagInformationCard={!viewFromMap  }
       actionOnlyIfPreview={!viewFromMap}
       actionWithInfo={true}
-      childrenIntoImage={!viewFromMap  ? costBadge : null}
       actionLabelChildren={viewFromMap ? costBadge : null}
+      childrenIntoImage={!viewFromMap  ? costBadge : null}
       infoIconClassName={!canMove ? null 
         : (location?.awesomeIcon!=null && location?.awesomeIcon !== '') ? location?.awesomeIcon 
         : (location?.card?.awesomeIcon != null && location?.card?.awesomeIcon !== '') ? location?.card?.awesomeIcon 
         : "fas fa-location-arrow"}
       infoLabel={t('game.movement.action')}
+
+      //from MAP neighbor locked -> no locked but show extraContent
+      extraContent={ viewFromMap && locked ? (<>{lockInfoFull}<div className='display-inline-flex'>{costBadge}</div></>) : null }
+
       //flagShowFullStatistics={false}
       //statistics={costItems}
     />
