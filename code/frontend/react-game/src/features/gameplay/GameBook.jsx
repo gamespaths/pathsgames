@@ -145,6 +145,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // locations with their directional neighbors), consumed by MapPage.
   const [matchLocations, setMatchLocations] = useState(null)
   const prevWeatherUuidRef = useRef(null)
+  // Step 29 — true while an executed event is showing its effect card on the
+  // right page. If the SAME event also changed the weather, the async weather
+  // reload must NOT cover the effect: it attaches a forward arrow to it instead.
+  const eventEffectActiveRef = useRef(false)
   const [activeAction, setActiveAction] = useState(null)//used into endGame overlay and in future: action overlay
   // Set right before a sleep/movement reload so the effect below scrolls the
   // freshly-loaded board (the new card) back to the top on mobile.
@@ -196,7 +200,20 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     const prevUuid = prevWeatherUuidRef.current
     prevWeatherUuidRef.current = weather.uuid
     if (prevUuid === null || weather.uuid === prevUuid) return
-    setPreviewRight({ kind: 'weather' })
+    // Step 29 — if the weather changed as part of an event that also narrated an
+    // effect card (still shown on the right page), don't cover it: attach a
+    // forward arrow (→) to the effect card that opens the new weather page.
+    // Otherwise (e.g. a sleep-driven change) show the weather page directly.
+    const duringEvent = eventEffectActiveRef.current
+    eventEffectActiveRef.current = false
+    setPreviewRight(prev =>
+      duringEvent && prev && prev.kind === 'preview'
+        ? { ...prev, additionalProps: { ...prev.additionalProps,
+            // The effect only leads forward to the weather: drop its back arrow.
+            onClose: undefined,
+            onForward: () => setPreviewRight({ kind: 'weather' }) } }
+        : { kind: 'weather' }
+    )
   }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mobile: when the player opens a right-page preview (the close prompt, an
@@ -315,6 +332,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     handleReloadClockWeatherAndMatchData()
     setLoading(true);
     const narrative = lastEffectCard(result)
+    // Arm the weather effect: if this event also changes the weather, the async
+    // reload will attach a forward arrow to this card instead of covering it.
+    eventEffectActiveRef.current = !!narrative
     if (narrative) {
       handleSelectionPreviewFull(narrative, 'effect', null, statChangeItems(result, playerUuid, t), true, {}, 'right')
     }

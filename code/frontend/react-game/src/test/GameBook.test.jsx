@@ -14,6 +14,7 @@ vi.mock('../api/matches', () => ({
   getMatchLocations: vi.fn(() => Promise.resolve({ matchUuid: 'm1', locations: [] })),
   sleepCharacter: vi.fn(),
   startMovement: vi.fn(),
+  executeEvent: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, onClose }) => (
@@ -31,10 +32,11 @@ vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div d
 // the close overlay / story page Card has no entityType → game-card. The book
 // overlay (weather change / close) exposes `onClose` as the top-left back button.
 vi.mock('../components/layout/Card', () => ({
-  default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose, actionLabel }) => (
+  default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose, onForward, actionLabel }) => (
     <div data-testid={entityType ? 'config-card' : 'game-card'}>
       {card?.title}{card?.description && <span>{card.description}</span>}{children}{childrenIntoImage}
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
+      {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
       {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
       {onAction && <button data-testid={entityType ? `action-${entityType}` : 'game-card-action'} onClick={onAction}>{actionLabel}</button>}
     </div>
@@ -54,7 +56,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 }))
 
 import GameBook, { lastEffectCard, statChangeItems } from '../features/gameplay/GameBook'
-import { endMatch, sleepCharacter, startMovement } from '../api/matches'
+import { endMatch, sleepCharacter, startMovement, executeEvent, getMatchWeather } from '../api/matches'
 
 const GAME_DATA = {
   actualLocationCard: { name: 'Entrance', title: 'Entrance' },
@@ -299,6 +301,46 @@ describe('GameBook', () => {
     // Back arrow dismisses the overlay (the page-back button goes away).
     fireEvent.click(screen.getByTestId('page-back'))
     await waitFor(() => expect(screen.queryByTestId('page-back')).not.toBeInTheDocument())
+  })
+
+  // Step 29 — when an executed event BOTH narrates an effect card AND changes the
+  // weather, the async weather reload must not cover the effect: it attaches a
+  // forward arrow (→) to it that opens the new weather page.
+  it('event with effect + weather change shows the effect first, then the weather via the forward arrow', async () => {
+    getMatchWeather
+      .mockResolvedValueOnce({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+      .mockResolvedValue({ uuid: 'w2', card: { title: 'Rainy' }, costMoveSafeLocation: 0 })
+    // The executed event answers with one applied effect carrying its own card.
+    executeEvent.mockResolvedValue({ effects: [{ card: { title: 'EffectNarrative' } }] })
+    const gd = { ...GAME_DATA, actions: [{ uuid: 'a2', name: 'Explore', available: true, card: { title: 'Explore' } }] }
+    render(<GameBook gameData={gd} matchUuid="m1" story={STORY} onReload={vi.fn()} onClose={vi.fn()} />)
+    // Open the action's (i) preview (right page) → then fire its execute button.
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    // The effect card lands on the right page; once the weather reload resolves it
+    // gains a forward arrow instead of being replaced by the weather page.
+    await waitFor(() => expect(screen.getByText('EffectNarrative')).toBeInTheDocument(), { timeout: 4000 })
+    await waitFor(() => expect(screen.getByTestId('page-forward')).toBeInTheDocument(), { timeout: 4000 })
+    expect(screen.queryByText('Rainy')).not.toBeInTheDocument()   // weather is NOT shown yet
+    // In the effect+weather case the effect only leads forward: no back arrow.
+    expect(screen.queryByTestId('page-back')).not.toBeInTheDocument()
+    // The forward arrow opens the new weather page.
+    fireEvent.click(screen.getByTestId('page-forward'))
+    expect(screen.getByText('Rainy')).toBeInTheDocument()
+  })
+
+  // Step 29 — an executed event that narrates an effect but does NOT change the
+  // weather keeps only the effect card, with no forward arrow.
+  it('event with effect but no weather change shows the effect without a forward arrow', async () => {
+    // Weather resolves to the same uuid throughout → no change.
+    getMatchWeather.mockResolvedValue({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+    executeEvent.mockResolvedValue({ effects: [{ card: { title: 'EffectNarrative' } }] })
+    const gd = { ...GAME_DATA, actions: [{ uuid: 'a2', name: 'Explore', available: true, card: { title: 'Explore' } }] }
+    render(<GameBook gameData={gd} matchUuid="m1" story={STORY} onReload={vi.fn()} onClose={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    await waitFor(() => expect(screen.getByText('EffectNarrative')).toBeInTheDocument(), { timeout: 4000 })
+    expect(screen.queryByTestId('page-forward')).not.toBeInTheDocument()
   })
 
   it('enters statistics view and shows entity cards when characteristics preview is clicked', async () => {
