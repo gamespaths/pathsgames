@@ -305,7 +305,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	- Gameplay actions
 		- POST `/gameplay/{uuid_match}/action/ask-help`: To send a message to all characters to ask help
 		- POST `/gameplay/{uuid_match}/action/help-player`: To help a player in same location
-		- POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
+		✅ POST `/gameplay/{uuid_match}/action/execute-event`: Execute an event 
 		- POST `/gameplay/{uuid_match}/action/select-choice`: Send an choice option selected 
 		✅ POST `/gameplay/{uuid_match}/action/sleep`: Send a sleep *action*
 		- POST `/gameplay/{uuid_match}/action/pass`: Send a pass *action* (could run gameover)
