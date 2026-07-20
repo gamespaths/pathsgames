@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.RecoveryStorePort;
 import games.paths.core.port.match.RecoveryStorePort.ClassBonusView;
 import games.paths.core.port.match.RecoveryStorePort.LocationSafety;
@@ -16,9 +17,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.*;
 
 @DisplayName("TimeStartRecoveryService")
@@ -82,6 +86,87 @@ class TimeStartRecoveryServiceTest {
         assertEquals(0, TimeStartRecoveryService.clamp(5, 0, -1));
     }
 
+    // ── Step 30 edge states during recovery ─────────────────────────────────
+
+    @Nested
+    @DisplayName("Edge states (Step 30)")
+    class EdgeStates {
+
+        private RecoveryStorePort store;
+        private EdgeStateStorePort edgeStore;
+
+        private List<RecoveryRecap> run(RecoveryCharacter c) {
+            store = mock(RecoveryStorePort.class);
+            edgeStore = mock(EdgeStateStorePort.class);
+            when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
+            when(store.findCharacters(1L)).thenReturn(List.of(c));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null)));
+            when(store.findClassBonuses(9L)).thenReturn(List.of(new ClassBonusView(5L, "sad", 60)));
+            when(store.findStateLocations(1L)).thenReturn(List.of());
+            return new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L);
+        }
+
+        /** cos 10, sad 0/50, at an UNSAFE location so nothing heals. */
+        private RecoveryCharacter frail(int life, boolean coma) {
+            return new RecoveryCharacter(10L, "char-a", 5L, 100L,
+                    3, 2, 10, 10, life, 0, 100, 100, 50, coma);
+        }
+
+        @Test
+        @DisplayName("A positive class sad bonus can overflow during what is nominally healing")
+        void classBonusOverflowsSadness() {
+            run(frail(30, false));
+
+            // sad 0 + bonus 60 = 60 >= cap 50 → discharge: sad 0, life 30 - cos(10) = 20.
+            verify(store).updateCharacterStats(1L, 10L, 10, 20, 0);
+            verify(edgeStore).setSleeping(1L, 10L);
+            verify(edgeStore).logEdgeState(eq(1L), eq(10L), eq(null), eq(4),
+                    contains(EdgeStateStorePort.MSG_SADNESS_OVERFLOW));
+        }
+
+        @Test
+        @DisplayName("An overflow that empties the life bar comas and stamps clock_in_coma")
+        void overflowCascadesIntoComa() {
+            run(frail(8, false));
+
+            verify(edgeStore).setComa(1L, 10L, 4);
+            verify(edgeStore).logEdgeState(eq(1L), eq(10L), eq(null), eq(4),
+                    startsWith(EdgeStateStorePort.MSG_COMA));
+            // Single player: that one coma is the whole party.
+            verify(edgeStore).logEdgeState(eq(1L), eq(null), eq(null), eq(4),
+                    contains(EdgeStateStorePort.MSG_ALL_PLAYER_COMA));
+        }
+
+        @Test
+        @DisplayName("A character already in coma is not re-stamped every time-start")
+        void alreadyComaIsNotRestamped() {
+            run(frail(0, true));
+
+            verify(edgeStore, never()).setComa(anyLong(), anyLong(), anyInt());
+            verify(edgeStore, never()).logEdgeState(anyLong(), any(), any(), anyInt(),
+                    startsWith(EdgeStateStorePort.MSG_COMA));
+            // Still counted as down, so the party row is written.
+            verify(edgeStore).logEdgeState(eq(1L), eq(null), eq(null), eq(4),
+                    contains(EdgeStateStorePort.MSG_ALL_PLAYER_COMA));
+        }
+
+        @Test
+        @DisplayName("A healthy recovery touches the edge store not at all")
+        void healthyRecoveryIsQuiet() {
+            store = mock(RecoveryStorePort.class);
+            edgeStore = mock(EdgeStateStorePort.class);
+            when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
+            when(store.findCharacters(1L)).thenReturn(List.of(frail(30, false)));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null)));
+            when(store.findClassBonuses(9L)).thenReturn(List.of());
+            when(store.findStateLocations(1L)).thenReturn(List.of());
+
+            new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L);
+
+            verifyNoInteractions(edgeStore);
+        }
+    }
+
     // ── full time-start flow ────────────────────────────────────────────────
 
     @Nested
@@ -96,10 +181,10 @@ class TimeStartRecoveryServiceTest {
             long idStory = 9L;
             long idLocation = 100L;
 
-            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 2)));
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 2, 0)));
             when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
                     10L, "char-a", 5L, idLocation,
-                    3, 2, 4, 10, 20, 8, 100, 100, 100)));
+                    3, 2, 4, 10, 20, 8, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
                     new LocationSafety(idLocation, 1, 3, 777))); // secure_param=1 -> safe, counterTime=3
             when(store.findClassBonuses(idStory)).thenReturn(List.of(
@@ -131,10 +216,10 @@ class TimeStartRecoveryServiceTest {
             long idMatch = 1L;
             long idStory = 9L;
             long idLocation = 100L;
-            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0)));
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 0)));
             when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
                     10L, "char-a", null, idLocation,
-                    1, 1, 1, 10, 10, 10, 100, 100, 100)));
+                    1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
                     new LocationSafety(idLocation, 0, 1, 777))); // unsafe, counter already at 1
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
@@ -155,10 +240,10 @@ class TimeStartRecoveryServiceTest {
             long idMatch = 1L;
             long idStory = 9L;
             long idLocation = 100L;
-            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0)));
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 0)));
             when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
                     10L, "char-a", null, idLocation,
-                    1, 1, 1, 10, 10, 10, 100, 100, 100)));
+                    1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
                     new LocationSafety(idLocation, 0, 5, null))); // counterTime=5
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
@@ -181,10 +266,10 @@ class TimeStartRecoveryServiceTest {
             long idMatch = 1L;
             long idStory = 9L;
             long idLocation = 100L;
-            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0)));
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 0)));
             when(store.findCharacters(idMatch)).thenReturn(List.of(new RecoveryCharacter(
                     10L, "char-a", null, idLocation,
-                    1, 1, 1, 10, 10, 10, 100, 100, 100)));
+                    1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
                     new LocationSafety(idLocation, 0, 5, null)));
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
@@ -209,6 +294,6 @@ class TimeStartRecoveryServiceTest {
     }
 
     private static TimeStartRecoveryService service(RecoveryStorePort store) {
-        return new TimeStartRecoveryService(store);
+        return new TimeStartRecoveryService(store, mock(EdgeStateStorePort.class));
     }
 }

@@ -262,4 +262,5 @@ class CharacterPersistenceAdapter(CharacterPersistencePort, CharacterReadPort):
             "id_location": entity.id_location,
             "is_sleeping": entity.is_sleeping,
             "is_coma": entity.is_coma,
+            "clock_in_coma": entity.clock_in_coma or 0,
         }

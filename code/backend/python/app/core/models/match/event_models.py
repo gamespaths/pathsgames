@@ -159,5 +159,34 @@ class EventExecutionResult:
     characteristic_changes: List[EntityChange] = field(default_factory=list)
     location_changes: List[LocationChange] = field(default_factory=list)
     effects: List[AppliedEffect] = field(default_factory=list)
-    # Always empty in v0.29.0 — the Step 30 choice engine fills it.
+    # Always empty until the choice engine (step 31) fills it.
     pending_choices: List[Dict[str, Any]] = field(default_factory=list)
+    # Step 30. Never None in practice; see EdgeStateOutcome.none().
+    edge_state: "EdgeStateOutcome" = field(default_factory=lambda: EdgeStateOutcome())
+
+
+@dataclass
+class EdgeStateOutcome:
+    """Step 30 — what the edge rules did, and the party epilogue when everyone is down.
+
+    The epilogue is kept apart from ``executed_event_uuids`` / ``effects`` on purpose:
+    merged in, the frontend would render it as if it were part of the chain the player
+    chose, when in fact it is the engine answering their collapse.
+    """
+
+    sadness_overflow_uuids: List[str] = field(default_factory=list)
+    coma_uuids: List[str] = field(default_factory=list)
+    all_players_in_coma: bool = False
+    # None when the story authors no epilogue, or it was already spent.
+    coma_event_uuid: Optional[str] = None
+    coma_event_card: Optional[Dict[str, Any]] = None
+    coma_executed_event_uuids: List[str] = field(default_factory=list)
+    coma_effects: List[AppliedEffect] = field(default_factory=list)
+
+    @staticmethod
+    def none() -> "EdgeStateOutcome":
+        return EdgeStateOutcome()
+
+    def anything(self) -> bool:
+        """True when anything at all happened — the frontend shows a card only then."""
+        return bool(self.sadness_overflow_uuids or self.coma_uuids or self.all_players_in_coma)

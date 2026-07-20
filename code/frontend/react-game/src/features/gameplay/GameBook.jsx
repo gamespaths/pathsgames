@@ -21,6 +21,8 @@ import GoToSleepCard from './cards/GoToSleepCard'
 import MovementCard from './cards/MovementCard'
 import ActionCard from './cards/ActionCard'
 import WeatherCard from './cards/WeatherCard'
+import ComaCard from './cards/ComaCard'
+import SadnessCard from './cards/SadnessCard'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import MapCard from './cards/MapCard'
@@ -338,6 +340,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     if (narrative) {
       handleSelectionPreviewFull(narrative, 'effect', null, statChangeItems(result, playerUuid, t), true, {}, 'right')
     }
+    // Step 30 — an edge state outranks the effect narrative: falling into a coma or being
+    // crushed by sadness is the news, not whatever the effect said on the way there. The
+    // party collapse outranks a personal one, since it ends everyone's turn at once.
+    const edge = result?.edgeState
+    if (edge?.allPlayersInComa) {
+      setPreviewRight({ kind: 'coma', allPlayers: true, card: edge.comaEventCard ?? null })
+    } else if (edge?.comaUuids?.includes(playerUuid)) {
+      setPreviewRight({ kind: 'coma', allPlayers: false, card: null })
+    } else if (edge?.sadnessOverflowUuids?.includes(playerUuid)) {
+      setPreviewRight({ kind: 'sad' })
+    }
     setLoading(false);
   }
   function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
@@ -411,6 +424,12 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       : previewRight?.kind === 'matchlog'
         ? <MatchLogCard matchUuid={matchUuid} accessToken={user?.accessToken}
             story={story} onBack={closeRight} />
+      : previewRight?.kind === 'coma'
+        ? <ComaCard story={story} allPlayers={previewRight.allPlayers}
+            comaEventCard={previewRight.card} onBack={closeRight} />
+      : previewRight?.kind === 'sad'
+        ? <SadnessCard story={story} lifeLost={playerStats?.constitution ?? null}
+            onBack={closeRight} />
 //      : previewRight?.kind === 'sleep'
 //        ? <GoToSleepCard story={story} playerStats={playerStats} t={t} 
 //            onPreview={handleSelectionPreviewFull} onSlept={handleReloadClockWeatherAndMatchData} />

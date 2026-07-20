@@ -15,7 +15,7 @@
 #   3. Clearing the coma hands back a character that can ACT: it is also woken up, and its
 #      life is lifted to at least 1 — otherwise the engine would drop it straight back in.
 #
-# Point 3 is the reason the admin flag exists at all: the in-game rescue is Step 38, so
+# Point 3 is the reason the admin flag exists at all: the in-game rescue is step 59, so
 # until then this endpoint is the only way out of a coma.
 #
 # Tags: events, step29, admin, flags

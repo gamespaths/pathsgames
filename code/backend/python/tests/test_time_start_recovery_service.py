@@ -10,7 +10,7 @@ from app.core.services.match.time_start_recovery_service import (
 def test_safe_location_recovers_energy_life_and_reduces_sadness():
     # secureParam=3, difficultyEnergy=2, p=5
     # energy += DEX+P; life += COS+secureParam; sad -= INT+secureParam
-    energy, life, sad = compute_recovery(
+    energy, life, sad, _raw = compute_recovery(
         3, 2, 4, 10, 20, 8, 100, 100, 100, True, 5, 2, 0, 0, 0)
     assert energy == 10 + 3 + 5   # DEX + P
     assert life == 20 + 4 + 3     # COS + secureParam (not P)
@@ -19,7 +19,7 @@ def test_safe_location_recovers_energy_life_and_reduces_sadness():
 
 def test_unsafe_location_recovers_energy_by_difficulty_only():
     # safe=False: energy += difficulty_energy only; life and sad unchanged
-    energy, life, sad = compute_recovery(
+    energy, life, sad, _raw = compute_recovery(
         3, 2, 4, 10, 20, 8, 100, 100, 100, False, 0, 5, 0, 0, 0)
     assert energy == 10 + 5  # 15 — no DEX
     assert life == 20
@@ -27,7 +27,7 @@ def test_unsafe_location_recovers_energy_by_difficulty_only():
 
 
 def test_clamps_to_caps_and_floors_at_zero():
-    energy, life, sad = compute_recovery(
+    energy, life, sad, _raw = compute_recovery(
         50, 50, 50, 90, 90, 3, 100, 100, 100, True, 10, 10, 0, 0, 0)
     assert energy == 100
     assert life == 100
@@ -35,7 +35,7 @@ def test_clamps_to_caps_and_floors_at_zero():
 
 
 def test_class_bonuses_added_before_clamp():
-    energy, life, sad = compute_recovery(
+    energy, life, sad, _raw = compute_recovery(
         1, 1, 1, 10, 10, 20, 100, 100, 100, True, 0, 0, 5, 7, -2)
     assert energy == 10 + 1 + 5
     assert life == 10 + 1 + 7

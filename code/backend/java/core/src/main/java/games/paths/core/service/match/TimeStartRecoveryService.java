@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.RecoveryStorePort;
 import games.paths.core.port.match.RecoveryStorePort.ClassBonusView;
 import games.paths.core.port.match.RecoveryStorePort.LocationSafety;
@@ -34,14 +35,22 @@ import java.util.Set;
  * existing counter &gt; 0 is decremented; when it reaches zero the location's
  * id_event_if_counter_zero is logged as pending (execution wired in Step 29).</p>
  *
- * <p>See {@code documentation_v0/Step26_TimeStartRecovery.md}.</p>
+ * <p>Step 30: every recovered character then goes through {@link EdgeStateEvaluator}. A
+ * recovery is not only healing — an unsafe location restores no life at all, and a positive
+ * class {@code sad} bonus can push sadness over its cap — so the same overflow and coma rules
+ * that guard event execution apply here too.</p>
+ *
+ * <p>See {@code documentation_v0/Step26_TimeStartRecovery.md} and
+ * {@code documentation_v0/Step30_EdgeStates.md}.</p>
  */
 public class TimeStartRecoveryService {
 
     private final RecoveryStorePort store;
+    private final EdgeStateStorePort edgeStore;
 
-    public TimeStartRecoveryService(RecoveryStorePort store) {
+    public TimeStartRecoveryService(RecoveryStorePort store, EdgeStateStorePort edgeStore) {
         this.store = store;
+        this.edgeStore = edgeStore;
     }
 
     /**
@@ -104,8 +113,9 @@ public class TimeStartRecoveryService {
             }
         }
 
-        // 2. Recover each character (recovery + class bonus + clamp).
+        // 2. Recover each character (recovery + class bonus + clamp + Step 30 edge states).
         List<RecoveryRecap> recaps = new ArrayList<>();
+        List<Boolean> comaAfter = new ArrayList<>();
         for (RecoveryCharacter c : characters) {
             LocationSafety s = c.idLocation() == null ? null : safetyByLocation.get(c.idLocation());
             int secureParam = s == null ? 0 : nz(s.secureParam());
@@ -122,14 +132,33 @@ public class TimeStartRecoveryService {
                     sumBonus(bonuses, "life"),
                     sumBonus(bonuses, "sad"));
 
+            // A recovery can still push a character over an edge: a positive class sad bonus
+            // raises sadness, and an unsafe location never heals. Evaluate before the write so
+            // the corrected values land in the same UPDATE.
+            EdgeStateEvaluator.Verdict verdict = EdgeStateEvaluator.evaluate(
+                    new EdgeStateEvaluator.CharacterState(
+                            c.id(), result.life(), result.sadUnclamped(), c.sadMax(),
+                            c.constitution(), c.isComa()));
+
             int energyDelta = result.energy() - c.energy();
-            int lifeDelta = result.life() - c.life();
-            int sadDelta = result.sad() - c.sad();
-            store.updateCharacterStats(idMatch, c.id(), result.energy(), result.life(), result.sad());
+            int lifeDelta = verdict.lifeAfter() - c.life();
+            int sadDelta = verdict.sadAfter() - c.sad();
+            store.updateCharacterStats(idMatch, c.id(),
+                    result.energy(), verdict.lifeAfter(), verdict.sadAfter());
             store.logRecovery(idMatch, c.id(),
                     "recovery safe=" + safe + " p=" + p
                             + " dEnergy=" + energyDelta + " dLife=" + lifeDelta + " dSad=" + sadDelta);
+            EdgeStateEvaluator.persist(edgeStore, idMatch, verdict, ctx.currentClock(), null);
             recaps.add(new RecoveryRecap(c.uuid(), energyDelta, lifeDelta, sadDelta));
+            comaAfter.add(verdict.comaTriggered() || c.isComa());
+        }
+
+        // The whole party can go under during a recovery just as during an event. The row is
+        // written here; running the story epilogue is the event engine's job, which owns the
+        // chain runner and a result object to carry a card back in.
+        if (EdgeStateEvaluator.allInComa(comaAfter)) {
+            edgeStore.logEdgeState(idMatch, null, null, ctx.currentClock(),
+                    EdgeStateStorePort.MSG_ALL_PLAYER_COMA + " " + idMatch);
         }
 
         // 3. Decrement location counters; flag zeros (event execution deferred to Step 29).
@@ -177,7 +206,8 @@ public class TimeStartRecoveryService {
         return new StatTriple(
                 clamp(newEnergy, 0, energyMax),
                 clamp(newLife, 0, lifeMax),
-                clamp(newSad, 0, sadMax));
+                clamp(newSad, 0, sadMax),
+                newSad);
     }
 
     public static int clamp(int value, int min, int max) {
@@ -214,8 +244,12 @@ public class TimeStartRecoveryService {
         return v == null ? 0 : v;
     }
 
-    /** Final recovered stats. */
-    public record StatTriple(int energy, int life, int sad) {
+    /**
+     * Final recovered stats. {@code sadUnclamped} is the raw sadness before the cap, which the
+     * Step 30 overflow rule reads: a positive class {@code sad} bonus can push a character over
+     * the cap during what is nominally a recovery.
+     */
+    public record StatTriple(int energy, int life, int sad, int sadUnclamped) {
     }
 
     /** Per-character recovery summary surfaced in the time-advance response. */

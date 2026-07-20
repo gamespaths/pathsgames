@@ -1,0 +1,186 @@
+openapi: 3.0.3
+
+info:
+  title: Paths Games - Edge states (Step 30)
+  description: |
+    # Edge states — sadness overflow and coma
+
+    Step 30 does not add an endpoint. It adds two engine rules and one object,
+    `edgeState`, to the response of
+    `POST /api/gameplay/{uuidMatch}/action/execute-event`
+    (see `v0.29.0-events-api.yaml` for the endpoint itself).
+
+    ## The two rules, in order
+
+    The order matters, because the first can cause the second in the same pass.
+
+    1. **Sadness overflow** — when `sad >= sad_max`, the character loses COS
+       (its constitution) life points, `sad` resets to `0`, and `is_sleeping` is raised.
+       Sadness therefore never rests at its cap: reaching it always discharges.
+       A non-positive `sad_max` disables the rule instead of firing it on every event.
+    2. **Coma** — when `life <= 0`, `is_coma` and `is_sleeping` are raised and
+       `clock_in_coma` is stamped with the match clock. A character already in coma is
+       not re-stamped, so the clock keeps meaning "when they went down".
+
+    Because rule 1 subtracts life, one event can push a character over the sadness cap
+    and into a coma at once. Both rules run wherever stats change: event execution and
+    the Step 26 time-start recovery (where a positive class `sad` bonus can overflow a
+    character during what is nominally healing).
+
+    They deliberately do NOT run on `PUT /api/admin/match/{uuid}/player/{uuid}/stats`.
+    That is a god-mode tool whose purpose is to force a state; a forced state
+    self-corrects at the next event or time-start rather than being overruled on write.
+
+    ## All players in coma
+
+    When every character of the match is comatose, the engine runs the story's
+    `list_stories.id_event_all_player_coma` through the normal chain runner and reports it
+    under `edgeState`, separately from the event the player triggered — the epilogue is the
+    engine answering their collapse, not part of the chain they chose. It is resolved at
+    most once per execution, and a `ONCE` epilogue fires at most once per match. A story
+    that authors no epilogue is legal: the collapse is still logged.
+
+    **Out of scope, deferred to step 59:** moving `gaming_match.status` to `GAMEOVER`, and
+    the `ask-help` / `help-player` rescue endpoints. `gameOver` stays a flag.
+
+    ## Audit rows
+
+    Every edge writes a `log_events` row, which surfaces on
+    `GET /api/matches/{uuid}/logs`:
+
+    | Message prefix | Written when | id_character_match |
+    | --- | --- | --- |
+    | `SADNESS_OVERFLOW` | sadness reached its cap | the character |
+    | `COMA` | life reached zero | the character |
+    | `ALL_PLAYER_COMA` | every character is down | the actor, or null from recovery |
+
+    None of these may start with `EVENT_EXECUTED`, which is the prefix the engine scans to
+    decide that a `ONCE` event is spent. Note that `ALL_PLAYER_COMA` *contains* `COMA`:
+    match these with `startsWith`, never `contains`.
+
+    ## Database
+
+    No migration: every column already exists —
+    `gaming_character_instance.sad`, `sad_max`, `life`, `is_coma`, `is_sleeping`,
+    `clock_in_coma`, and `list_stories.id_event_all_player_coma`.
+
+    See `documentation_v0/Step30_EdgeStates.md`.
+  version: 0.30.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development (public port)
+
+tags:
+  - name: Gameplay
+    description: Player actions inside a running match
+
+paths: {}
+
+components:
+  schemas:
+
+    EdgeStateOutcome:
+      type: object
+      description: |
+        Added to `ExecuteEventResponse` in v0.30.0. Never null: a quiet execution returns
+        empty lists and `allPlayersInComa: false`.
+      properties:
+        sadnessOverflowUuids:
+          type: array
+          description: Characters whose sadness reached its cap during this execution.
+          items:
+            type: string
+          example: ["3f2a1b4c-0000-4000-8000-000000000001"]
+        comaUuids:
+          type: array
+          description: >
+            Characters who NEWLY entered a coma. A character already comatose is absent,
+            even if this event hurt them further.
+          items:
+            type: string
+        allPlayersInComa:
+          type: boolean
+          description: >
+            True when every character of the match is comatose after this execution. Does
+            not by itself end the match — the GAMEOVER transition is step 59.
+          example: true
+        comaEventUuid:
+          type: string
+          nullable: true
+          description: >
+            The story's `id_event_all_player_coma` that was run. Null when the story
+            authors none, when the id is dangling, or when a `ONCE` epilogue was already
+            spent earlier in the match.
+          example: "9a7c2d10-0000-4000-8000-00000000000c"
+        comaEventCard:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+          description: The epilogue event's own card — the narrative to render.
+        comaExecutedEventUuids:
+          type: array
+          description: >
+            The epilogue chain in execution order. Kept out of the top-level
+            `executedEventUuids` so the board can tell the two apart.
+          items:
+            type: string
+        comaEffects:
+          type: array
+          description: The epilogue's applied effects, each with its own card.
+          items:
+            $ref: '#/components/schemas/AppliedEffect'
+      required:
+        - sadnessOverflowUuids
+        - comaUuids
+        - allPlayersInComa
+
+    AppliedEffect:
+      type: object
+      description: >
+        One applied `list_events_effects` row. Identical to the schema of the same name in
+        `v0.29.0-events-api.yaml`; repeated here so this file reads on its own.
+      properties:
+        eventUuid:
+          type: string
+        effectUuid:
+          type: string
+        statistic:
+          type: string
+          example: life
+        value:
+          type: integer
+          example: -5
+        target:
+          type: string
+          enum: [ONLY_ONE, ALL]
+        targetClass:
+          type: integer
+          nullable: true
+        characterUuids:
+          type: array
+          items:
+            type: string
+        card:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+
+    CardInfo:
+      type: object
+      description: Story card as rendered by the frontend.
+      properties:
+        uuid:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        urlImage:
+          type: string
+          nullable: true
+        awesomeIcon:
+          type: string
+          nullable: true

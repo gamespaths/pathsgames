@@ -82,8 +82,14 @@ def time_service():
 
 
 @pytest.fixture
-def service(store, time_service):
-    return EventService(store, content_read_port=None, time_service=time_service)
+def service(store, edge_store, time_service):
+    return EventService(store, edge_store=edge_store, content_read_port=None,
+                        time_service=time_service)
+
+
+@pytest.fixture
+def edge_store():
+    return MagicMock()
 
 
 def run(service):
@@ -385,7 +391,7 @@ def test_flag_end_time_advances_the_clock_once_after_the_chain(service, store, t
     assert r.current_clock == 8  # the response carries the NEW clock
 
 
-def test_coma_short_circuits_the_chain_and_the_time_end(service, store, time_service):
+def test_coma_short_circuits_the_chain_and_the_time_end(service, store, edge_store, time_service):
     a = _event(id=1, uuid="event-1", id_event_next=2, flag_end_time=1)
     b = _event(id=2, uuid="event-2")
     store.find_event_by_story_and_uuid.return_value = a
@@ -398,5 +404,5 @@ def test_coma_short_circuits_the_chain_and_the_time_end(service, store, time_ser
     assert r.coma_triggered is True and r.forced_sleep is True
     assert r.time_ended is False  # flag_end_time must not fire on coma
     assert r.executed_event_uuids == ["event-1"]  # the chain stopped
-    store.set_character_coma.assert_called_once_with(MATCH_ID, CHAR_ID)
+    edge_store.set_coma.assert_called_once_with(MATCH_ID, CHAR_ID, 7)
     time_service.force_time_end.assert_not_called()

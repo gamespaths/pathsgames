@@ -55,11 +55,11 @@ class TimeStorePort(TurnCycleStorePort):
 
     @abstractmethod
     def load_recovery_context(self, id_match: int) -> Optional[Dict[str, Any]]:
-        """Return {"id_story", "difficulty_energy"} for the match, or None."""
+        """Return {"id_story", "difficulty_energy", "current_clock"} for the match, or None."""
 
     @abstractmethod
     def find_recovery_characters(self, id_match: int) -> List[Dict[str, Any]]:
-        """Per-character recovery inputs (stats, caps, id_class, id_location)."""
+        """Per-character recovery inputs (stats, caps, id_class, id_location, is_coma)."""
 
     @abstractmethod
     def find_location_safety(self, id_story: int) -> List[Dict[str, Any]]:

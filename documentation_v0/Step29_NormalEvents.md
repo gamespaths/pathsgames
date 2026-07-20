@@ -201,9 +201,11 @@ verdict, no location-capacity check. Rules, applied per recipient:
 ### Coma short-circuits everything
 
 Life at zero → `is_coma = true`, `is_sleeping = true`, log, **return**. The chain stops and
-`flag_end_time` does **not** fire. This is Step 29's whole scope for coma: raise the flags. Rescue,
-group coma and the game-over transition are Step 38 — which is also why `gameOver` here is only a
-flag and never moves `gaming_match.status`.
+`flag_end_time` does **not** fire. This is Step 29's whole scope for coma: raise the flags — no
+`clock_in_coma` stamp yet (that gap is closed in
+[Step30_EdgeStates.md](./Step30_EdgeStates.md)) and no sadness-overflow rule. The all-players-in-coma
+story epilogue also arrives in Step 30. Rescue and the game-over transition remain step 59 — which
+is also why `gameOver` here is only a flag and never moves `gaming_match.status`.
 
 ### Turns
 

@@ -207,6 +207,20 @@
       "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
       "safeLocation": "Ti trovi in un luogo sicuro. Recupererai:"
     },
+    "sad": {
+      "title": "La tristezza ti travolge",
+      "description": "La tua tristezza ha raggiunto il limite. Perdi punti vita pari alla tua costituzione, la tristezza torna a zero e sei costretto a dormire.",
+      "close": "Chiudi"
+    },
+    "coma": {
+      "title": "Sei in coma",
+      "description": "La tua vita è scesa a zero. Non puoi agire finché un altro personaggio non ti soccorre.",
+      "close": "Chiudi"
+    },
+    "allComa": {
+      "title": "Sono caduti tutti",
+      "description": "Tutti i personaggi sono in coma. Nessuno può più agire."
+    },
     "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
     "location": {
       "clockCounter": "Contatore tempo"

@@ -489,6 +489,8 @@ def _character_summary(item):
         "idLocation": item.get("idLocation"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
+        # Step 30 — the clock at which the coma opened; 0 while not comatose.
+        "clockInComa": int(item.get("clockInComa", 0)),
         "classUuid": item.get("classUuid"),
         "traitUuids": item.get("traitUuids", []),
     }
@@ -520,6 +522,8 @@ def _character_full(item):
         "locationUuid": item.get("locationUuid"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
+        # Step 30 — the clock at which the coma opened; 0 while not comatose.
+        "clockInComa": int(item.get("clockInComa", 0)),
         "traitUuids": item.get("traitUuids") or [],
         "food": int(item.get("food", 0)),
         "magic": int(item.get("magic", 0)),
@@ -2055,6 +2059,62 @@ def _start_movement(user, match_uuid, body):
 
 # ── Step 29 — normal (player-triggered) events ─────────────────────────────
 
+def _log_edge_state(match, character, id_event, message):
+    """A Step 30 audit row on the match event log.
+
+    ``character`` may be None for the party-wide row, which belongs to the match rather
+    than to any one character.
+    """
+    match.setdefault('eventLog', []).append({
+        "characterUuid": character.get('uuid') if character else None,
+        "idEvent": id_event,
+        "clock": _nz(match.get('currentClock')),
+        "timestamp": _ts_ms(),
+        "message": message,
+    })
+
+
+def _resolve_all_player_coma(match, match_uuid, caller, touched, edge_state, events_by_id,
+                             ctx, story, raw_cards, raw_texts, lang, already_resolved):
+    """Decide whether the all-players-in-coma epilogue runs, and return its event.
+
+    Returns None — and the chain simply stops — when the party is not fully down, when the
+    epilogue was already resolved this request, when the story authors none, when the id is
+    dangling, or when a ONCE epilogue was already spent earlier in the match.
+
+    Moving the match to GAMEOVER is deliberately NOT done here: that, and the rescue
+    endpoints, belong to step 59.
+    """
+    if already_resolved:
+        return None
+
+    # The touched copies carry the flags this execution just raised; everyone else is read
+    # as stored. Both are needed — a character nothing touched may already be comatose.
+    roster = []
+    for c in _match_characters(match_uuid):
+        roster.append(touched.get(c.get('uuid'), c))
+    if not _events.all_in_coma(roster):
+        return None
+
+    edge_state['allPlayersInComa'] = True
+    _log_edge_state(match, caller, None, f"{_events.MSG_ALL_PLAYER_COMA} {match_uuid}")
+
+    coma_event_id = story.get('idEventAllPlayerComa')
+    if not coma_event_id:
+        return None  # a story need not author an epilogue
+    coma_event = events_by_id.get(_events._nz(coma_event_id))
+    if coma_event is None:
+        return None  # dangling idEventAllPlayerComa
+    if str(coma_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+            and _events._nz(coma_event.get('id')) in ctx['consumedEventIds']:
+        return None  # a ONCE epilogue fires once per match, not once per collapse
+
+    edge_state['comaEventUuid'] = coma_event.get('uuid')
+    edge_state['comaEventCard'] = _resolve_card_from_raw(
+        raw_cards, raw_texts, coma_event.get('idCard'), lang)
+    return coma_event
+
+
 def _execute_event(user, match_uuid, body, lang='en'):
     """POST /api/gameplay/{uuidMatch}/action/execute-event.
 
@@ -2121,12 +2181,22 @@ def _execute_event(user, match_uuid, body, lang='en'):
     touched = {caller.get('uuid'): caller}
     flags = {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
              'movementApplied': False,
-             'comaTriggered': False, 'gameOver': False, 'endTime': False}
+             'comaTriggered': False, 'gameOver': False, 'endTime': False,
+             # Step 30 — a sadness overflow forces sleep without a coma, so this cannot be
+             # derived from comaTriggered alone.
+             'forcedSleep': False}
+    # Step 30 — the epilogue is kept apart from executedEventUuids / effects so the board
+    # can tell the narrative the player triggered from the engine's answer to the collapse.
+    edge_state = {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False,
+                  'comaEventUuid': None, 'comaEventCard': None,
+                  'comaExecutedEventUuids': [], 'comaEffects': []}
     visited = set()
     raw_cards = story.get('raw_cards') or []
     raw_texts = story.get('raw_texts') or []
 
     current = event
+    epilogue_phase = False
+    all_coma_resolved = False
     while current is not None:
         event_id = _events._nz(current.get('id'))
         visited.add(event_id)
@@ -2182,11 +2252,38 @@ def _execute_event(user, match_uuid, body, lang='en'):
         if end_game_id is not None and _events._nz(end_game_id) == event_id:
             flags['gameOver'] = True
 
-        # Coma: Step 29 only raises the flags and stops. Rescue and game over are Step 38.
+        # Step 30 edge states: sadness overflow, then coma, over every character this
+        # event touched. Only touched characters can have changed.
         for c in touched.values():
-            if _nz(c.get('life')) <= 0 and _nz(c.get('isComa')) != 1:
+            v = _events.evaluate_edge_state(c)
+            if not v['anything']:
+                continue
+            if v['sadnessOverflow']:
+                stat_changes.append({
+                    "characterUuid": c.get('uuid'), "statistic": "life",
+                    "before": _nz(c.get('life')), "after": v['lifeAfter'],
+                    "delta": v['lifeAfter'] - _nz(c.get('life')),
+                })
+                stat_changes.append({
+                    "characterUuid": c.get('uuid'), "statistic": "sad",
+                    "before": _nz(c.get('sad')), "after": 0, "delta": -_nz(c.get('sad')),
+                })
+                c['life'] = v['lifeAfter']
+                # Resetting sad is also the idempotency latch: the next event of the chain
+                # re-runs this block and finds nothing left to fire.
+                c['sad'] = 0
+                c['isSleeping'] = 1
+                edge_state['sadnessOverflowUuids'].append(c.get('uuid'))
+                if c.get('uuid') == caller.get('uuid'):
+                    flags['forcedSleep'] = True
+                _log_edge_state(match, c, event_id,
+                                f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
+            if v['comaTriggered']:
                 c['isComa'] = 1
                 c['isSleeping'] = 1
+                c['clockInComa'] = _nz(match.get('currentClock'))
+                edge_state['comaUuids'].append(c.get('uuid'))
+                _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
                 if c.get('uuid') == caller.get('uuid'):
                     flags['comaTriggered'] = True
 
@@ -2199,8 +2296,22 @@ def _execute_event(user, match_uuid, body, lang='en'):
             "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
         })
 
-        if flags['comaTriggered']:
-            break  # coma stops the chain, and flag_end_time with it
+        if flags['comaTriggered'] and not epilogue_phase:
+            # Coma stops the chain, and flag_end_time with it — but if the WHOLE party is
+            # down the story epilogue runs first. The actor is necessarily one of the
+            # comatose (a comatose character is rejected before an execution even starts),
+            # so this break is exactly where the party collapse can be detected.
+            coma_event = _resolve_all_player_coma(
+                match, match_uuid, caller, touched, edge_state, events_by_id, ctx,
+                story, raw_cards, raw_texts, lang, all_coma_resolved)
+            all_coma_resolved = True
+            if coma_event is None:
+                break
+            edge_state['comaEventMark'] = len(executed_uuids)
+            edge_state['comaEffectMark'] = len(applied_effects)
+            epilogue_phase = True
+            current = coma_event
+            continue
 
         nxt = current.get('idEventNext')
         if not nxt or _events._nz(nxt) <= 0:
@@ -2230,9 +2341,21 @@ def _execute_event(user, match_uuid, body, lang='en'):
     else:
         db_utils.put_item(match)
 
+    # The epilogue is sliced off the tail so the board can tell it from the player's chain.
+    if edge_state['comaEventUuid'] is None:
+        chain_event_uuids, chain_effects = executed_uuids, applied_effects
+        coma_event_uuids, coma_effects = [], []
+    else:
+        mark_e = edge_state['comaEventMark']
+        mark_f = edge_state['comaEffectMark']
+        chain_event_uuids, coma_event_uuids = executed_uuids[:mark_e], executed_uuids[mark_e:]
+        chain_effects, coma_effects = applied_effects[:mark_f], applied_effects[mark_f:]
+
     changed = any([time_ended, flags['itemAdded'], flags['itemRemoved'],
                    flags['weatherApplied'], flags['movementApplied'],
                    flags['comaTriggered'], flags['gameOver'],
+                   edge_state['sadnessOverflowUuids'], edge_state['comaUuids'],
+                   edge_state['allPlayersInComa'],
                    stat_changes, registry_changes, trait_changes, characteristic_changes])
 
     return _ok({
@@ -2240,7 +2363,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "eventUuid": event.get('uuid'),
         "eventType": event.get('type'),
         "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
-        "executedEventUuids": executed_uuids,
+        "executedEventUuids": chain_event_uuids,
         "energySpent": energy_spent,
         "coinSpent": coin_spent,
         "newEnergy": _nz(caller.get('energy')),
@@ -2253,7 +2376,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "itemRemoved": flags['itemRemoved'],
         "weatherApplied": flags['weatherApplied'],
         "movementApplied": flags['movementApplied'],
-        "forcedSleep": time_ended or flags['comaTriggered'],
+        "forcedSleep": time_ended or flags['comaTriggered'] or flags['forcedSleep'],
         "comaTriggered": flags['comaTriggered'],
         "gameOver": flags['gameOver'],
         "refreshRecommended": bool(changed),
@@ -2263,9 +2386,18 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "itemChanges": item_changes,
         "characteristicChanges": characteristic_changes,
         "locationChanges": location_changes,
-        "effects": applied_effects,
-        # Always empty in v0.29.0 — the Step 30 choice engine fills it.
+        "effects": chain_effects,
+        # Always empty until the choice engine (step 31) fills it.
         "pendingChoices": [],
+        "edgeState": {
+            "sadnessOverflowUuids": edge_state['sadnessOverflowUuids'],
+            "comaUuids": edge_state['comaUuids'],
+            "allPlayersInComa": edge_state['allPlayersInComa'],
+            "comaEventUuid": edge_state['comaEventUuid'],
+            "comaEventCard": edge_state['comaEventCard'],
+            "comaExecutedEventUuids": coma_event_uuids,
+            "comaEffects": coma_effects,
+        },
     })
 
 

@@ -103,6 +103,7 @@ def _character_summary_to_camel(p):
         "idLocation": p.id_location,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
+        "clockInComa": p.clock_in_coma,
     }
 
 
@@ -131,6 +132,7 @@ def _character_full_to_camel(p):
         "locationUuid": p.location_uuid,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,
+        "clockInComa": p.clock_in_coma,
         "traitUuids": list(p.trait_uuids),
         "food": p.food,
         "magic": p.magic,

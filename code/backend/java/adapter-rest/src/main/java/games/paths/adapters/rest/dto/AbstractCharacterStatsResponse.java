@@ -36,6 +36,7 @@ public abstract class AbstractCharacterStatsResponse {
     private Long idLocation;
     private Boolean isSleeping;
     private Boolean isComa;
+    private Integer clockInComa;
     private List<String> traitUuids = new ArrayList<>();
     private List<ItemInstanceResponse> items = new ArrayList<>();
 
@@ -62,6 +63,7 @@ public abstract class AbstractCharacterStatsResponse {
         this.idLocation = m.getIdLocation();
         this.isSleeping = m.getIsSleeping();
         this.isComa = m.getIsComa();
+        this.clockInComa = m.getClockInComa();
         this.traitUuids = m.getTraitUuids() != null ? new ArrayList<>(m.getTraitUuids()) : new ArrayList<>();
         this.items = new ArrayList<>();
         if (m.getItems() != null) {
@@ -107,6 +109,8 @@ public abstract class AbstractCharacterStatsResponse {
     public void setIsSleeping(Boolean isSleeping) { this.isSleeping = isSleeping; }
     public Boolean getIsComa() { return isComa; }
     public void setIsComa(Boolean isComa) { this.isComa = isComa; }
+    public Integer getClockInComa() { return clockInComa; }
+    public void setClockInComa(Integer clockInComa) { this.clockInComa = clockInComa; }
     public List<String> getTraitUuids() { return traitUuids; }
     public void setTraitUuids(List<String> traitUuids) { this.traitUuids = traitUuids != null ? traitUuids : new ArrayList<>(); }
     public List<ItemInstanceResponse> getItems() { return items; }

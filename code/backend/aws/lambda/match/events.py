@@ -360,3 +360,74 @@ def _csv_ids(value):
         except ValueError:
             pass  # authored noise
     return out
+
+
+# ── Step 30: edge states (sadness overflow, coma) ───────────────────────────
+#
+# Mirrors EdgeStateEvaluator.java / edge_state_evaluator.py. Two rules, in a deliberate
+# order, because the first can cause the second:
+#
+#   1. Sadness overflow — sad >= sadMax costs COS life, resets sad to 0, forces sleep.
+#   2. Coma            — life <= 0 raises isComa/isSleeping and stamps clockInComa.
+#
+# The cascade is the point of evaluating them together: the life the coma rule reads is the
+# life AFTER the overflow subtraction, so one event can push a character over the sadness
+# cap and into a coma in a single pass.
+#
+# Unlike the Java and Python engines this reads the CLAMPED sad straight off the character
+# dict rather than carrying a shadow pre-clamp field. The verdict is identical — clamping a
+# number at or above the cap yields the cap — and the characters here are the very dicts
+# that get written to DynamoDB, so a shadow key would be persisted as a real column.
+
+# None of these may start with MSG_EVENT_EXECUTED: consumedEventIds is built by scanning
+# the event log for that prefix, so an edge-state row bearing it would silently consume a
+# ONCE event the player never triggered.
+MSG_SADNESS_OVERFLOW = "SADNESS_OVERFLOW"
+MSG_COMA = "COMA"
+# Note that this value CONTAINS MSG_COMA: match with startswith, never with `in`.
+MSG_ALL_PLAYER_COMA = "ALL_PLAYER_COMA"
+
+
+def evaluate_edge_state(char):
+    """The verdict for one character, as a dict. Nothing is mutated here.
+
+    ``alreadyComa`` suppresses only the coma *trigger* — the log row and the clockInComa
+    stamp — never the arithmetic: a comatose character caught by a target=ALL sadness
+    effect still takes the life hit.
+    """
+    life = _nz(char.get("life"))
+    sad_max = _nz(char.get("sadMax"))
+    already_coma = _nz(char.get("isComa")) == 1
+    # A non-positive cap makes every comparison true and would drain COS life on every
+    # single event. sadMax comes from story import and nothing forces it positive.
+    overflow = sad_max > 0 and _nz(char.get("sad")) >= sad_max
+    sad = _clamp(_nz(char.get("sad")), 0, sad_max)
+    forced_sleep = False
+
+    if overflow:
+        life = max(0, life - _nz(char.get("constitution")))
+        sad = 0
+        forced_sleep = True
+
+    coma_triggered = life <= 0 and not already_coma
+    if coma_triggered:
+        forced_sleep = True
+
+    return {
+        "sadnessOverflow": overflow,
+        "comaTriggered": coma_triggered,
+        "forcedSleep": forced_sleep,
+        "lifeAfter": life,
+        "sadAfter": sad,
+        "anything": overflow or coma_triggered,
+    }
+
+
+def all_in_coma(characters):
+    """True when every character of the match is comatose.
+
+    An empty roster is NOT all-in-coma — the guard lives here so no call site forgets it.
+    """
+    if not characters:
+        return False
+    return all(_nz(c.get("isComa")) == 1 for c in characters)

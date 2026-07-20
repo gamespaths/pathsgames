@@ -65,6 +65,13 @@ class EventStorePort(ABC):
         ...
 
     @abstractmethod
+    def find_id_event_all_player_coma(self, id_story: int) -> Optional[int]:
+        """list_stories.id_event_all_player_coma — the Step 30 epilogue.
+
+        None is legal: a story need not author one.
+        """
+
+    @abstractmethod
     def find_item_uuids_by_id(self, id_story: int) -> Dict[int, str]:
         ...
 
@@ -91,10 +98,6 @@ class EventStorePort(ABC):
     def update_backpack(self, id_match: int, id_character: int,
                         resources: Dict[str, int]) -> None:
         ...
-
-    @abstractmethod
-    def set_character_coma(self, id_match: int, id_character: int) -> None:
-        """is_coma = 1 and is_sleeping = 1."""
 
     @abstractmethod
     def set_character_characteristics(self, id_match: int, id_character: int,

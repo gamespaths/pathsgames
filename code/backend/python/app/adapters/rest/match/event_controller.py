@@ -7,6 +7,7 @@ GET /api/match/{uuid}/info carries an `available` flag and, when false, the same
 this endpoint would return as its error code.
 """
 import time
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -109,6 +110,22 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
         "locationChanges": [_location_to_camel(c) for c in r.location_changes],
         "effects": [_effect_to_camel(e) for e in r.effects],
         "pendingChoices": r.pending_choices,
+        "edgeState": _edge_state_to_camel(r.edge_state),
+    }
+
+
+def _edge_state_to_camel(e) -> Optional[Dict[str, Any]]:
+    """Step 30. The epilogue stays separate from the top-level events and effects."""
+    if e is None:
+        return None
+    return {
+        "sadnessOverflowUuids": list(e.sadness_overflow_uuids),
+        "comaUuids": list(e.coma_uuids),
+        "allPlayersInComa": e.all_players_in_coma,
+        "comaEventUuid": e.coma_event_uuid,
+        "comaEventCard": e.coma_event_card,
+        "comaExecutedEventUuids": list(e.coma_executed_event_uuids),
+        "comaEffects": [_effect_to_camel(x) for x in e.coma_effects],
     }
 
 

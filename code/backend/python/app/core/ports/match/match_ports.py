@@ -294,7 +294,7 @@ class CharacterPersistencePort(ABC):
     def update_character_flags(self, match_id: int, character_id: int,
                                sleeping: Optional[bool], coma: Optional[bool]) -> None:
         """Admin: persist the character's state flags. None = leave the flag as it is. Waking a
-        character out of a coma is what a rescue will do on its own in Step 38; until then this
+        character out of a coma is what a rescue will do on its own in step 59; until then this
         is the only way back."""
 
     @abstractmethod

@@ -168,6 +168,15 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<Long> findIdEventAllPlayerComa(long idStory) {
+        return storyReadPort.findStoryById(idStory)
+                .map(StoryEntity::getIdEventAllPlayerComa)
+                .filter(java.util.Objects::nonNull)
+                .map(Integer::longValue);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<Long, String> findItemUuidsById(long idStory) {
         Map<Long, String> out = new HashMap<>();
         for (ItemEntity i : storyReadPort.findItemsByStoryId(idStory)) {
@@ -291,16 +300,6 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                     b.setMagic(stats.magic());
                     b.setCoin(stats.coin());
                     backpackRepository.save(b);
-                });
-    }
-
-    @Override
-    public void setCharacterComa(long idMatch, long idCharacter) {
-        characterRepository.findById(new GamingCharacterInstanceEntityId(idCharacter, idMatch))
-                .ifPresent(c -> {
-                    c.setIsComa(true);
-                    c.setIsSleeping(true);
-                    characterRepository.save(c);
                 });
     }
 

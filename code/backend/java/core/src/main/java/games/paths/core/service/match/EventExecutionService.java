@@ -4,6 +4,7 @@ import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
@@ -38,9 +39,11 @@ import java.util.Set;
  *       cost nothing: the player already paid to start the chain. The single exception is
  *       the ONCE invariant, which is a data rule rather than an eligibility one.</li>
  *   <li><b>Coma short-circuits everything.</b> When life reaches zero the chain stops and
- *       {@code flag_end_time} does not fire: Step 29 only raises the flags, Step 38 owns
- *       the consequences.</li>
- *   <li><b>{@code gameOver} is only a flag.</b> Moving the match to GAMEOVER is Step 38.</li>
+ *       {@code flag_end_time} does not fire. Step 30 added what happens next: the sadness
+ *       and coma rules of {@link EdgeStateEvaluator}, and — once every character is down —
+ *       the story's {@code id_event_all_player_coma} epilogue.</li>
+ *   <li><b>{@code gameOver} is only a flag.</b> Moving the match to GAMEOVER is step 59,
+ *       together with the rescue endpoints.</li>
  *   <li><b>Forced movement bypasses Step 28.</b> An effect's {@code id_location} (v0.29.3)
  *       moves its recipients with no neighbor, energy or availability check; only a cost-0
  *       movement log row is written per moved character.</li>
@@ -65,15 +68,18 @@ public class EventExecutionService implements EventExecutionPort {
     private static final int MAX_CHAIN = 32;
 
     private final EventExecutionStorePort store;
+    private final EdgeStateStorePort edgeStore;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
     private final TimeAdvancementService timeAdvancementService;
 
     public EventExecutionService(EventExecutionStorePort store,
+                                 EdgeStateStorePort edgeStore,
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
                                  TimeAdvancementService timeAdvancementService) {
         this.store = store;
+        this.edgeStore = edgeStore;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
         this.timeAdvancementService = timeAdvancementService;
@@ -109,6 +115,9 @@ public class EventExecutionService implements EventExecutionPort {
         Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
         deductCosts(x, event);
         runChain(x, event);
+        // Before the time-end branch, not after: forceTimeEnd flushes and latches x.flushed,
+        // which would freeze the epilogue's own stat changes out of the database.
+        resolveAllPlayerComa(x);
         if (x.endTime && !x.comaTriggered) {
             forceTimeEnd(x);
         }
@@ -138,15 +147,13 @@ public class EventExecutionService implements EventExecutionPort {
     // ── the chain ───────────────────────────────────────────────────────────
 
     private void runChain(Exec x, EventEntity first) {
-        Map<Long, EventEntity> eventsById = store.findEventsById(x.match.idStory());
-        Map<Long, List<EventEffectEntity>> effectsByEvent = store.findEffectsByEventId(x.match.idStory());
-        Long endGameId = store.findIdEventEndGame(x.match.idStory()).orElse(null);
-
         EventEntity current = first;
         while (current != null) {
-            applyEvent(x, current, effectsByEvent, endGameId);
-            if (x.comaTriggered) {
-                return; // coma stops the chain, and flag_end_time with it
+            applyEvent(x, current, x.effectsByEvent(), x.endGameId());
+            // Coma stops the chain, and flag_end_time with it — but not the all-players-in-coma
+            // epilogue, which by definition runs only once everyone is already down.
+            if (x.comaTriggered && !x.epiloguePhase) {
+                return;
             }
             Integer next = current.getIdEventNext();
             if (next == null || next <= 0) {
@@ -156,7 +163,7 @@ public class EventExecutionService implements EventExecutionPort {
             if (x.visited.contains(nextId) || x.visited.size() >= MAX_CHAIN) {
                 return; // authored loop, or a chain long enough to be a bug
             }
-            EventEntity nextEvent = eventsById.get(nextId);
+            EventEntity nextEvent = x.eventsById().get(nextId);
             if (nextEvent == null) {
                 return; // dangling idEventNext
             }
@@ -183,7 +190,7 @@ public class EventExecutionService implements EventExecutionPort {
         x.endTime = x.endTime || nz(event.getFlagEndTime()) == 1;
         x.gameOver = x.gameOver || (endGameId != null && endGameId == eventId);
 
-        checkComa(x);
+        checkEdgeStates(x, eventId);
         store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
                 EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
     }
@@ -273,7 +280,7 @@ public class EventExecutionService implements EventExecutionPort {
             }
             case "sad" -> {
                 before = c.sad;
-                c.sad = TimeStartRecoveryService.clamp(c.sad + delta, 0, c.sadMax);
+                c.setSad(c.sad + delta);
                 after = c.sad;
             }
             case "exp" -> {
@@ -431,22 +438,101 @@ public class EventExecutionService implements EventExecutionPort {
                 from == null ? null : x.locationUuids().get(from), targetUuid));
     }
 
-    // ── coma & time-end ─────────────────────────────────────────────────────
+    // ── edge states & time-end ──────────────────────────────────────────────
 
     /**
-     * Step 29 only raises the flags: life at zero sets {@code is_coma} and {@code is_sleeping}
-     * and returns. Rescue, group coma and game over are Step 38.
+     * Step 30: run the sadness-overflow and coma rules over every character this event
+     * touched. Only touched characters can have changed, so {@code living} is the right set.
+     *
+     * <p>Resetting {@code sad} and latching {@code comaSet} here is what makes the rules
+     * idempotent for the rest of the chain: the next event of the chain re-runs this method
+     * and finds nothing left to fire.</p>
      */
-    private void checkComa(Exec x) {
+    private void checkEdgeStates(Exec x, Long idEvent) {
         for (Live c : x.living.values()) {
-            if (c.life <= 0 && !c.comaSet) {
+            EdgeStateEvaluator.Verdict v = EdgeStateEvaluator.evaluate(
+                    new EdgeStateEvaluator.CharacterState(
+                            c.id, c.life, c.sadUnclamped, c.sadMax, c.constitution, c.comaSet));
+            if (!v.anything()) {
+                continue;
+            }
+            if (v.sadnessOverflow()) {
+                x.statChanges.add(new StatChange(c.uuid, "life", c.life, v.lifeAfter(),
+                        v.lifeAfter() - c.life));
+                x.statChanges.add(new StatChange(c.uuid, "sad", c.sad, 0, -c.sad));
+                c.life = v.lifeAfter();
+                c.setSad(0);
+                x.sadnessOverflowUuids.add(c.uuid);
+            }
+            if (v.comaTriggered()) {
                 c.comaSet = true;
-                store.setCharacterComa(x.match.id(), c.id);
+                x.comaUuids.add(c.uuid);
                 if (c.id == x.actor.id()) {
                     x.comaTriggered = true;
-                    x.forcedSleep = true;
                 }
             }
+            if (v.forcedSleep() && c.id == x.actor.id()) {
+                x.forcedSleep = true;
+            }
+            EdgeStateEvaluator.persist(edgeStore, x.match.id(), v, x.currentClock, idEvent);
+        }
+    }
+
+    /**
+     * The all-players-in-coma epilogue: run the story's {@code id_event_all_player_coma} so
+     * the frontend has something to show once nobody can act any more.
+     *
+     * <p>This cannot live inside the chain. {@code runChain} unwinds as soon as the actor
+     * falls into a coma, and the actor is necessarily one of the comatose — a comatose
+     * character is rejected by the availability check before an execution even starts. So by
+     * the time everyone is down, the chain is already returning.</p>
+     *
+     * <p>Moving the match to {@code GAMEOVER} is deliberately NOT done here: that, and the
+     * rescue endpoints, belong to step 59.</p>
+     */
+    private void resolveAllPlayerComa(Exec x) {
+        if (x.allComaResolved) {
+            return;
+        }
+        // Latched before any work, so a re-entry from inside the epilogue is a no-op.
+        x.allComaResolved = true;
+
+        List<Boolean> comaFlags = new ArrayList<>();
+        for (EventActorView v : x.allCharacters()) {
+            Live touched = x.living.get(v.id());
+            // Deliberately not x.live(v): that would query the backpack of every character in
+            // the match and enrol them all in the flush, writing rows nothing has changed.
+            comaFlags.add(touched != null ? touched.comaSet : v.isComa());
+        }
+        if (!EdgeStateEvaluator.allInComa(comaFlags)) {
+            return;
+        }
+        x.allPlayersInComa = true;
+        edgeStore.logEdgeState(x.match.id(), x.actor.id(), null, x.currentClock,
+                EdgeStateStorePort.MSG_ALL_PLAYER_COMA + " " + x.match.id());
+
+        Long comaEventId = store.findIdEventAllPlayerComa(x.match.idStory()).orElse(null);
+        if (comaEventId == null) {
+            return; // a story need not author an epilogue
+        }
+        EventEntity comaEvent = x.eventsById().get(comaEventId);
+        if (comaEvent == null) {
+            return; // dangling id_event_all_player_coma
+        }
+        if (EventAvailabilityChecker.TYPE_ONCE.equalsIgnoreCase(comaEvent.getType())
+                && x.ctx.consumedEventIds().contains(comaEventId)) {
+            return; // a ONCE epilogue fires once per match, not once per collapse
+        }
+
+        x.comaEventUuid = comaEvent.getUuid();
+        x.comaEventCard = resolveCard(x, comaEvent.getIdCard());
+        x.comaEventMark = x.executedEventUuids.size();
+        x.comaEffectMark = x.effects.size();
+        x.epiloguePhase = true;
+        try {
+            runChain(x, comaEvent);
+        } finally {
+            x.epiloguePhase = false;
         }
     }
 
@@ -490,21 +576,57 @@ public class EventExecutionService implements EventExecutionPort {
     private EventExecutionResult buildResult(Exec x) {
         flush(x);
         Live actor = x.live(x.actor);
+        EdgeStateOutcome edgeState = buildEdgeState(x);
         boolean changed = x.timeEnded || x.itemAdded || x.itemRemoved || x.weatherApplied
                 || x.movementApplied || x.forcedSleep || x.comaTriggered || x.gameOver
+                || edgeState.anything()
                 || !x.statChanges.isEmpty() || !x.registryChanges.isEmpty()
                 || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty();
 
         return new EventExecutionResult(
                 x.match.uuid(), x.event.getUuid(), x.event.getType(),
                 resolveCard(x, x.event.getIdCard()),
-                new ArrayList<>(x.executedEventUuids),
+                chainEventUuids(x),
                 x.energySpent, x.coinSpent, actor.energy, actor.coin, x.currentClock,
                 false, // turnConsumed — v0.29.0 never touches the turn queue
                 x.timeEnded, x.itemAdded, x.itemRemoved, x.weatherApplied, x.movementApplied,
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
-                x.characteristicChanges, x.locationChanges, x.effects, List.of());
+                x.characteristicChanges, x.locationChanges, chainEffects(x), List.of(),
+                edgeState);
+    }
+
+    /** The events the player's own chain ran — the epilogue's are sliced off the tail. */
+    private static List<String> chainEventUuids(Exec x) {
+        List<String> all = new ArrayList<>(x.executedEventUuids);
+        return x.comaEventUuid == null ? all : new ArrayList<>(all.subList(0, x.comaEventMark));
+    }
+
+    private static List<AppliedEffect> chainEffects(Exec x) {
+        return x.comaEventUuid == null
+                ? x.effects
+                : new ArrayList<>(x.effects.subList(0, x.comaEffectMark));
+    }
+
+    private static EdgeStateOutcome buildEdgeState(Exec x) {
+        if (x.sadnessOverflowUuids.isEmpty() && x.comaUuids.isEmpty() && !x.allPlayersInComa) {
+            return EdgeStateOutcome.none();
+        }
+        List<String> all = new ArrayList<>(x.executedEventUuids);
+        List<String> comaEvents = x.comaEventUuid == null
+                ? List.of()
+                : new ArrayList<>(all.subList(x.comaEventMark, all.size()));
+        List<AppliedEffect> comaEffects = x.comaEventUuid == null
+                ? List.of()
+                : new ArrayList<>(x.effects.subList(x.comaEffectMark, x.effects.size()));
+        return new EdgeStateOutcome(
+                new ArrayList<>(x.sadnessOverflowUuids),
+                new ArrayList<>(x.comaUuids),
+                x.allPlayersInComa,
+                x.comaEventUuid,
+                x.comaEventCard,
+                comaEvents,
+                comaEffects);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -607,10 +729,28 @@ public class EventExecutionService implements EventExecutionPort {
         boolean gameOver;
         boolean flushed;
 
+        // ── Step 30 edge states ──
+        final List<String> sadnessOverflowUuids = new ArrayList<>();
+        final List<String> comaUuids = new ArrayList<>();
+        boolean allPlayersInComa;
+        /** The epilogue has been decided — set before any work, so re-entry is a no-op. */
+        boolean allComaResolved;
+        /** True while the all-players-in-coma chain runs, relaxing the coma guard in runChain. */
+        boolean epiloguePhase;
+        String comaEventUuid;
+        CardInfo comaEventCard;
+        /** Where the epilogue's own events and effects start, so buildResult can slice them out. */
+        int comaEventMark;
+        int comaEffectMark;
+
         private List<EventActorView> allCharacters;
         private Map<Long, String> itemUuids;
         private Map<Long, String> traitUuids;
         private Map<Long, String> locationUuids;
+        private Map<Long, EventEntity> eventsById;
+        private Map<Long, List<EventEffectEntity>> effectsByEvent;
+        private Long endGameId;
+        private boolean endGameIdLoaded;
 
         Exec(MatchEventView match, EventActorView actor, EventCheckContext ctx,
              String lang, EventEntity event) {
@@ -620,6 +760,33 @@ public class EventExecutionService implements EventExecutionPort {
             this.lang = lang;
             this.event = event;
             this.currentClock = match.currentClock();
+        }
+
+        /**
+         * The story's events and effects, loaded once and shared by the main chain and the
+         * all-players-in-coma epilogue — so the epilogue costs no extra query.
+         */
+        Map<Long, EventEntity> eventsById() {
+            if (eventsById == null) {
+                eventsById = store.findEventsById(match.idStory());
+            }
+            return eventsById;
+        }
+
+        Map<Long, List<EventEffectEntity>> effectsByEvent() {
+            if (effectsByEvent == null) {
+                effectsByEvent = store.findEffectsByEventId(match.idStory());
+            }
+            return effectsByEvent;
+        }
+
+        /** Null is a legal value here, hence the separate loaded flag. */
+        Long endGameId() {
+            if (!endGameIdLoaded) {
+                endGameId = store.findIdEventEndGame(match.idStory()).orElse(null);
+                endGameIdLoaded = true;
+            }
+            return endGameId;
         }
 
         /** Lazily loaded: only a target=ALL effect needs the other characters. */
@@ -679,7 +846,7 @@ public class EventExecutionService implements EventExecutionPort {
                 Live a = live(actor);
                 a.energy = fresh.energy();
                 a.life = fresh.life();
-                a.sad = fresh.sad();
+                a.setSad(fresh.sad());
             });
         }
     }
@@ -687,12 +854,16 @@ public class EventExecutionService implements EventExecutionPort {
     /** In-memory, mutable view of one character for the duration of an execution. */
     private static final class Live {
         final long id;
+        final String uuid;
         int dexterity;
         int intelligence;
         int constitution;
         int energy;
         int life;
         int sad;
+        /** The raw sadness before the cap, so the Step 30 overflow rule reads what the
+         *  effect really added rather than what the column can hold. */
+        int sadUnclamped;
         int exp;
         final int energyMax;
         final int lifeMax;
@@ -707,12 +878,12 @@ public class EventExecutionService implements EventExecutionPort {
 
         Live(EventActorView v, BackpackStats backpack) {
             this.id = v.id();
+            this.uuid = v.uuid();
             this.dexterity = v.dexterity();
             this.intelligence = v.intelligence();
             this.constitution = v.constitution();
             this.energy = v.energy();
             this.life = v.life();
-            this.sad = v.sad();
             this.exp = v.exp();
             this.energyMax = v.energyMax();
             this.lifeMax = v.lifeMax();
@@ -723,6 +894,16 @@ public class EventExecutionService implements EventExecutionPort {
             this.characteristics = new LinkedHashSet<>(
                     games.paths.core.model.match.MatchTraitCodec.split(v.characteristics()));
             this.comaSet = v.isComa();
+            setSad(v.sad());
+        }
+
+        /**
+         * The only door to {@code sad}: it keeps the raw and the capped value in step, so no
+         * future effect type can bypass the Step 30 overflow check by writing the field.
+         */
+        void setSad(int raw) {
+            this.sadUnclamped = raw;
+            this.sad = TimeStartRecoveryService.clamp(raw, 0, sadMax);
         }
     }
 }

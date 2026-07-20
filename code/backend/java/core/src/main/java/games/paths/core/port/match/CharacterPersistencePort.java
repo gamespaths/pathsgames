@@ -33,7 +33,7 @@ public interface CharacterPersistencePort {
 
     /**
      * Admin: persist the character's state flags. A null flag is left as it is.
-     * Waking a character out of a coma is what a rescue will do on its own in Step 38; until
+     * Waking a character out of a coma is what a rescue will do on its own in step 59; until
      * then this is the only way back.
      */
     void updateCharacterFlags(Long matchId, Long characterId,

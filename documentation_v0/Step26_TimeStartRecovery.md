@@ -122,9 +122,9 @@ No other fields or status codes change.
 | Class | Package | Purpose |
 |-------|---------|---------|
 | `TimeStartRecoveryService` | `core/.../service/match/` | Pure recovery logic: `applyAtTimeStart(idMatch)` orchestrator + `computeRecovery(...)` static pure math method |
-| `TimeStartRecoveryService.StatTriple` | same file | Record holding computed `(energy, life, sad)` |
+| `TimeStartRecoveryService.StatTriple` | same file | Record holding computed `(energy, life, sad)`; gained `sadUnclamped` in v0.30.0 so the edge-state rules ([Step30_EdgeStates.md](./Step30_EdgeStates.md)) can read the pre-clamp value recovery actually computed |
 | `TimeStartRecoveryService.RecoveryRecap` | same file | Record `(characterUuid, energyDelta, lifeDelta, sadDelta)` |
-| `RecoveryStorePort` | `core/.../port/match/` | Outbound port with nested records: `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView` |
+| `RecoveryStorePort` | `core/.../port/match/` | Outbound port with nested records: `RecoveryMatchContext`, `RecoveryCharacter`, `LocationSafety`, `ClassBonusView`, `StateLocationView`. v0.30.0: `RecoveryCharacter` gained `isComa`, `RecoveryMatchContext` gained `currentClock` — both feed the edge-state coma stamp ([Step30_EdgeStates.md](./Step30_EdgeStates.md)) |
 | `RecoveryStoreAdapter` | `core/.../persistence/match/` | SQLite/PostgreSQL implementation of `RecoveryStorePort` |
 | `LogEventsEntity` + `LogEventsEntityId` | `core/.../entity/match/` | JPA entity writing to the existing `log_events` table (audit recovery and counter-zero events) |
 

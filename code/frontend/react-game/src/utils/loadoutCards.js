@@ -42,6 +42,19 @@ export function buildEndGameCard(t) {
 }
 
 /**
+ * Step 30 — "you are sad": sadness reached its cap, so the character lost COS life
+ * points, sadness reset to zero and they were forced to sleep.
+ */
+export function buildCardSad(t) {
+  return metaCard('sad', t('game.sad.title'), t('game.sad.description'));
+}
+
+/** Step 30 — "you are in coma": life reached zero. Only a rescue brings them back. */
+export function buildCardComa(t) {
+  return metaCard('coma', t('game.coma.title'), t('game.coma.description'));
+}
+
+/**
  * Step 27 — weather card shown after the sleep card. `weather` is the
  * GET /api/matches/{uuid}/weather payload (or null when none is set). The
  * description appends the energy delta applied to every character at time-start.

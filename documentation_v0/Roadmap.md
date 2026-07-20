@@ -42,12 +42,13 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
 | 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events, `available` flag on match-info, `execute-event` endpoint |
+| 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story epilogue |
 
 | Steps | Phase |
 | -- | -- |
-| 28-33 | Game mechanics — movement, events, choices |
+| 28-33 | Game mechanics — movement, events, choices & Edge states |
 | 34-38 | Game mechanics — inventory, resources, registry, missions, experience |
-| 39-40 | Edge states, logging, snapshots |
+| 40 | Logging & snapshots |
 | 41 | Frontend: single-player game board and gameplay UI |
 | 42 | **Launch beta version with guest and single-player game** |
 | 43-48 | User registration, Google SSO, profile management, guest linking |
@@ -69,22 +70,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-30. Edge states — coma, sadness overflow, game over
-    - Implement sadness overflow: when sadness equals or > max , character loses COS life points, sadness resets to zero, forced sleep (backend)
-        - insert log on events logs table 
-        - on frontend show a card with "you're sed" with card from data/images.json
-    - Implement coma trigger: when life reaches zero or below, character enters coma state (is_coma=true, is_sleeping=true) (backend)
-        - insert log  on events logs table 
-        - on frontend show a card with "you're in coma" with card from data/images.json
-    - Implement group coma detection: when all characters are comatose, trigger story-defined group_coma event (backend)
-        - insert log  on events logs table 
-        - on frontend run event and show event_effect card (and movement?)
-    - Write backend unit tests for sadness overflow, coma trigger, rescue mechanics, group coma transitions (backend tests)
-
 31. Choice engine — event-bound choices, availability & presentation
     - il campo id_event su choices deve essere obbligatorio. quando un evento viene eseguito consuma energia/once ma se ha almeno una choice, al posto del event_Effect. presenterà le scelte disponiible, utente può anche scegliere di non fare nulla e terminare l'evento oppure l'utente sceglie tra quelle disponibili (verranno mostrate anche quelle non possibili ma lui sceglie tra quelle possibili) e poi si scatenerà la list_choices_effects della scelta selezionata. Se evento nessuna choices farà il giro che c'è già del event_effect
         - Sì — e questa versione ha una proprietà che mi convince: "non fare nulla" costa comunque (energia spesa, ONCE consumato all'esecuzione), quindi sbirciare le opzioni e ritirarsi non è gratis. È un buon deterrente anti-abuso, coerente e semplice. Mi piace.
-        modifiche documentali che avevamo individuato (Step09 sull'invariante list_choices, Step22 sulla regola di validazione, il nuovo Step30_ChoiceEngine.md, e la nota nel changelog Step29) 
+        modifiche documentali che avevamo individuato (Step09 sull'invariante list_choices, Step22 sulla regola di validazione, il nuovo Step31_ChoiceEngine.md, e la nota nel changelog Step29) 
     - list_choices.id_event is mandatory and id_location is deprecated/unused — a choice always belongs to an event (backend)
     - When an event is executed it always consumes energy/ONCE first (Step 29 flow); if it has ≥1 choice, presenting the options REPLACES applying list_events_effects; with 0 choices it keeps the existing list_events_effects flow (backend)
     - execute-event returns status CHOICES_PENDING + choices[] for a choice-event (energy/ONCE already spent, reflected in the response) vs status APPLIED for the no-choice flow; it writes the EVENT_EXECUTED marker on open. Choices are NOT nested into GET /match/{uuid_match}/info (no dual-source / no narrative pre-leak) (backend)
@@ -326,19 +315,19 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Transition match status from CREATED to RUNNING, set timestamp_start (backend)
     - Broadcast MATCH_STARTED event to all connected players via WebSocket (backend)
     - Write backend unit tests for start validation, multi-character initialization, turn queue, and status transition (backend tests)
-59. Added from ex step38: Edge states — coma, sadness overflow, game over
+60. Added from ex step38: Edge states — coma, sadness overflow, game over
     - Implement POST /gameplay/{uuid_match}/action/ask-help endpoint to send help request to all characters (backend)
     - Implement POST /gameplay/{uuid_match}/action/help-player endpoint for coma rescue in same location (backend)
     - Implement game over condition: match status transitions to GAMEOVER with timestamp when unrecoverable (backend)
     - Write backend unit tests for sadness overflow, coma trigger, ask-help, rescue mechanics, group coma, and game over transitions (backend tests)
-60. Frontend: Multiplayer lobby UI
-    - Build full multiplayer lobby page with real-time player list updated via WebSocket (frontend)
-    - Build character selection carousel for each player with live status badges (SELECTING, READY) (frontend)
-    - Implement lobby chat/quick-message area for pre-game communication (frontend)
-    - Build countdown overlay displayed when all players are ready (frontend)
-    - Build match creator controls: start button, kick player, cancel match (frontend)
-    - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
-    - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
+    - Frontend: Multiplayer lobby UI (ex Step60)
+        - Build full multiplayer lobby page with real-time player list updated via WebSocket (frontend)
+        - Build character selection carousel for each player with live status badges (SELECTING, READY) (frontend)
+        - Implement lobby chat/quick-message area for pre-game communication (frontend)
+        - Build countdown overlay displayed when all players are ready (frontend)
+        - Build match creator controls: start button, kick player, cancel match (frontend)
+        - Implement responsive layout handling 2-10 player lobbies with scrollable player cards (frontend)
+        - Write frontend unit tests for lobby components, real-time updates, creator controls, and responsive layouts (frontend tests)
 61. Multiplayer turn cycle — turn order and active player
     - Turn cycle engine for multi-player (see step 24)
     - Extend turn engine to manage multiple characters with priority-based ordering in gaming_turn_queue (backend)
@@ -694,15 +683,16 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.29.0 (here only due changes)
+- **Document Version**: 0.30.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
+    | 0.30.0 | step 30 (edge states) marked complete; removed its "Next steps" entry | July 20, 2026 |
     | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: July 17, 2026 (v0.29.3)
+- **Last Updated**: July 20, 2026 (v0.30.0)
 - **Status**: In progress
 
 

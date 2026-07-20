@@ -188,7 +188,8 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 )
                 if d is not None and d.energy is not None:
                     difficulty_energy = d.energy
-            return {"id_story": m.id_story, "difficulty_energy": difficulty_energy}
+            return {"id_story": m.id_story, "difficulty_energy": difficulty_energy,
+                    "current_clock": m.current_clock or 0}
 
     def find_recovery_characters(self, id_match: int) -> List[dict]:
         with self.session_factory() as session:
@@ -202,6 +203,8 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 "dexterity": c.dexterity, "intelligence": c.intelligence,
                 "constitution": c.constitution, "energy": c.energy, "life": c.life, "sad": c.sad,
                 "energy_max": c.energy_max, "life_max": c.life_max, "sad_max": c.sad_max,
+                # Step 30: without this every time-start would re-stamp clock_in_coma.
+                "is_coma": bool(c.is_coma),
             } for c in rows]
 
     def find_location_safety(self, id_story: int) -> List[dict]:

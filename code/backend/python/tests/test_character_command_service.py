@@ -548,7 +548,7 @@ def test_change_statistics_no_max_values_no_cap():
     assert call_args[7] == 777
 
 
-# ── Step 29 / admin — the state flags (the only way out of a coma until Step 38) ─────────
+# ── Step 29 / admin — the state flags (the only way out of a coma until step 59) ─────────
 
 def _flags_env(**char_over):
     service, match_p, char_p = _change_stats_env()

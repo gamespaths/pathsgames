@@ -50,8 +50,13 @@ info:
     Stats are clamped: `energy ≤ energy_max`, `life ≤ life_max`, `sad ≤ sad_max`, and
     nothing falls below zero. If life reaches zero the character enters coma
     (`is_coma=true`, `is_sleeping=true`) and everything stops — the chain does not
-    continue and `flag_end_time` does not fire. Step 29 only raises the flags; rescue and
-    game over are Step 38, so `gameOver` here is a flag and never moves the match status.
+    continue and `flag_end_time` does not fire.
+
+    Step 30 added what happens around that coma — the sadness-overflow rule, the
+    `clock_in_coma` stamp and the all-players-in-coma epilogue — reported in the
+    `edgeState` object; see `v0.30.0-edge-states-api.yaml`. Rescue and the move to
+    `GAMEOVER` are step 59, so `gameOver` here is still a flag and never moves the match
+    status.
 
     ## Notes
 
@@ -61,7 +66,7 @@ info:
     - `turnConsumed` is part of the contract but is **always false** in v0.29.0: an event
       neither requires nor consumes a turn, exactly like Step 28 movement. Turn semantics
       are revisited in Step 61 (multiplayer turn engine).
-    - `pendingChoices` is always empty: the Step 30 choice engine fills it.
+    - `pendingChoices` is always empty: the choice engine (step 31) fills it.
     - Each executed event appends a `log_events` row, which surfaces as an `EVENT` entry
       on `GET /api/matches/{uuid}/logs`.
 
@@ -224,7 +229,7 @@ components:
           description: The actor's life reached zero; the chain stopped there.
         gameOver:
           type: boolean
-          description: An executed event is the story's `idEventEndGame`. A flag only — Step 38 owns the transition.
+          description: An executed event is the story's `idEventEndGame`. A flag only — step 59 owns the transition.
         refreshRecommended:
           type: boolean
           description: Something changed; reload `GET /api/match/{uuid}/info`.

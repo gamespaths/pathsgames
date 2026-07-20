@@ -221,6 +221,20 @@
       "unsafeLocation": "You are not in a safe location. You recover ",
       "safeLocation": "You are in a safe location. You recover "
     },
+    "sad": {
+      "title": "Sadness overwhelms you",
+      "description": "Your sadness reached its limit. You lose life points equal to your constitution, your sadness resets to zero and you are forced to sleep.",
+      "close": "Close"
+    },
+    "coma": {
+      "title": "You are in a coma",
+      "description": "Your life reached zero. You cannot act until another character rescues you.",
+      "close": "Close"
+    },
+    "allComa": {
+      "title": "Everyone has fallen",
+      "description": "Every character is in a coma. Nobody can act any more."
+    },
     "location": {
       "clockCounter": "Location time counter"
     },

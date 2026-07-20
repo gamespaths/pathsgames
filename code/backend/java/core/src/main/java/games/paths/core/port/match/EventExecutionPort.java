@@ -83,8 +83,38 @@ public interface EventExecutionPort {
                                 List<CharacteristicChange> characteristicChanges,
                                 List<LocationChange> locationChanges,
                                 List<AppliedEffect> effects,
-                                /** Always empty in v0.29.0 — Step 30 fills it. */
-                                List<PendingChoice> pendingChoices) {
+                                /** Always empty until the choice engine (step 31) fills it. */
+                                List<PendingChoice> pendingChoices,
+                                /** Step 30. Never null; see {@link EdgeStateOutcome#none()}. */
+                                EdgeStateOutcome edgeState) {
+    }
+
+    /**
+     * What the Step 30 edge rules did (sadness overflow, coma) and, when the whole party is
+     * down, the story epilogue that was run for it.
+     *
+     * <p>The epilogue is kept apart from {@code executedEventUuids} / {@code effects} on
+     * purpose: merged in, the frontend would render it as if it were part of the chain the
+     * player chose, when in fact it is the engine answering their collapse.</p>
+     */
+    record EdgeStateOutcome(List<String> sadnessOverflowUuids,
+                            List<String> comaUuids,
+                            boolean allPlayersInComa,
+                            /** Null when the story authors no epilogue, or it was already spent. */
+                            String comaEventUuid,
+                            CardInfo comaEventCard,
+                            List<String> comaExecutedEventUuids,
+                            List<AppliedEffect> comaEffects) {
+
+        public static EdgeStateOutcome none() {
+            return new EdgeStateOutcome(List.of(), List.of(), false, null, null,
+                    List.of(), List.of());
+        }
+
+        /** True when anything at all happened — the frontend shows a card only then. */
+        public boolean anything() {
+            return !sadnessOverflowUuids.isEmpty() || !comaUuids.isEmpty() || allPlayersInComa;
+        }
     }
 
     record StatChange(String characterUuid, String statistic, int before, int after, int delta) {
@@ -124,7 +154,7 @@ public interface EventExecutionPort {
                          CardInfo card) {
     }
 
-    /** Placeholder for the Step 30 choice engine. */
+    /** Placeholder for the choice engine (step 31). */
     record PendingChoice(String uuid, Integer priority, CardInfo card) {
     }
 

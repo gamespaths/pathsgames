@@ -2,6 +2,7 @@ package games.paths.adapters.rest.dto;
 
 import games.paths.core.port.match.EventExecutionPort.AppliedEffect;
 import games.paths.core.port.match.EventExecutionPort.CharacteristicChange;
+import games.paths.core.port.match.EventExecutionPort.EdgeStateOutcome;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
 import games.paths.core.port.match.EventExecutionPort.ItemChange;
 import games.paths.core.port.match.EventExecutionPort.LocationChange;
@@ -53,6 +54,7 @@ public class ExecuteEventResponse {
     private List<LocationChangeDto> locationChanges;
     private List<AppliedEffectDto> effects;
     private List<PendingChoiceDto> pendingChoices;
+    private EdgeStateOutcomeDto edgeState;
 
     public static ExecuteEventResponse fromModel(EventExecutionResult m) {
         ExecuteEventResponse d = new ExecuteEventResponse();
@@ -109,6 +111,7 @@ public class ExecuteEventResponse {
         for (PendingChoice c : m.pendingChoices()) {
             d.pendingChoices.add(PendingChoiceDto.fromModel(c));
         }
+        d.edgeState = EdgeStateOutcomeDto.fromModel(m.edgeState());
         return d;
     }
 
@@ -347,7 +350,61 @@ public class ExecuteEventResponse {
         public void setCard(CardInfoResponse card) { this.card = card; }
     }
 
-    /** Always empty in v0.29.0 — the Step 30 choice engine fills it. */
+    public EdgeStateOutcomeDto getEdgeState() { return edgeState; }
+    public void setEdgeState(EdgeStateOutcomeDto edgeState) { this.edgeState = edgeState; }
+
+    /**
+     * Step 30 edge states: who overflowed on sadness, who fell into a coma, and — when the
+     * whole party is down — the story epilogue that was run.
+     *
+     * <p>The epilogue's events and effects are kept out of the top-level
+     * {@code executedEventUuids} / {@code effects}, so the board can tell the narrative the
+     * player triggered apart from the engine's answer to their collapse.</p>
+     */
+    public static class EdgeStateOutcomeDto {
+        private List<String> sadnessOverflowUuids;
+        private List<String> comaUuids;
+        private boolean allPlayersInComa;
+        private String comaEventUuid;
+        private CardInfoResponse comaEventCard;
+        private List<String> comaExecutedEventUuids;
+        private List<AppliedEffectDto> comaEffects;
+
+        public static EdgeStateOutcomeDto fromModel(EdgeStateOutcome m) {
+            if (m == null) {
+                return null;
+            }
+            EdgeStateOutcomeDto d = new EdgeStateOutcomeDto();
+            d.sadnessOverflowUuids = new ArrayList<>(m.sadnessOverflowUuids());
+            d.comaUuids = new ArrayList<>(m.comaUuids());
+            d.allPlayersInComa = m.allPlayersInComa();
+            d.comaEventUuid = m.comaEventUuid();
+            d.comaEventCard = CardInfoResponse.fromModel(m.comaEventCard());
+            d.comaExecutedEventUuids = new ArrayList<>(m.comaExecutedEventUuids());
+            d.comaEffects = new ArrayList<>();
+            for (AppliedEffect e : m.comaEffects()) {
+                d.comaEffects.add(AppliedEffectDto.fromModel(e));
+            }
+            return d;
+        }
+
+        public List<String> getSadnessOverflowUuids() { return sadnessOverflowUuids; }
+        public void setSadnessOverflowUuids(List<String> v) { this.sadnessOverflowUuids = v; }
+        public List<String> getComaUuids() { return comaUuids; }
+        public void setComaUuids(List<String> comaUuids) { this.comaUuids = comaUuids; }
+        public boolean isAllPlayersInComa() { return allPlayersInComa; }
+        public void setAllPlayersInComa(boolean v) { this.allPlayersInComa = v; }
+        public String getComaEventUuid() { return comaEventUuid; }
+        public void setComaEventUuid(String comaEventUuid) { this.comaEventUuid = comaEventUuid; }
+        public CardInfoResponse getComaEventCard() { return comaEventCard; }
+        public void setComaEventCard(CardInfoResponse v) { this.comaEventCard = v; }
+        public List<String> getComaExecutedEventUuids() { return comaExecutedEventUuids; }
+        public void setComaExecutedEventUuids(List<String> v) { this.comaExecutedEventUuids = v; }
+        public List<AppliedEffectDto> getComaEffects() { return comaEffects; }
+        public void setComaEffects(List<AppliedEffectDto> v) { this.comaEffects = v; }
+    }
+
+    /** Always empty until the choice engine (step 31) fills it. */
     public static class PendingChoiceDto {
         private String uuid;
         private Integer priority;

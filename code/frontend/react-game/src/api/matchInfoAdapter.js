@@ -56,6 +56,11 @@ function toPlayerStats(player) {
     sadnessMax: player.sadMax ?? 0,
     weightMax: player.weightMax ?? 0,
     weight: player.weight ?? 0,
+    // Step 30 — constitution is what a sadness overflow costs in life; isComa/isSleeping
+    // say whether the character can act at all.
+    constitution: player.constitution ?? 0,
+    isComa: !!player.isComa,
+    isSleeping: !!player.isSleeping,
     items: Array.isArray(player.items) ? player.items : [],
     // Selection uuids — used by utils/gamebook to resolve the matching story
     // entity (class/character/trait/difficulty) and its card. /info currently

@@ -38,6 +38,8 @@ public class CharacterInstanceInfo {
 
     private Boolean isSleeping;
     private Boolean isComa;
+    /** Step 30 — the match clock at which the coma opened; 0 while not comatose. */
+    private Integer clockInComa;
 
     private List<String> traitUuids = new ArrayList<>();
 
@@ -110,6 +112,8 @@ public class CharacterInstanceInfo {
 
     public Boolean getIsComa() { return isComa; }
     public void setIsComa(Boolean isComa) { this.isComa = isComa; }
+    public Integer getClockInComa() { return clockInComa; }
+    public void setClockInComa(Integer clockInComa) { this.clockInComa = clockInComa; }
 
     public List<String> getTraitUuids() { return traitUuids; }
     public void setTraitUuids(List<String> traitUuids) {

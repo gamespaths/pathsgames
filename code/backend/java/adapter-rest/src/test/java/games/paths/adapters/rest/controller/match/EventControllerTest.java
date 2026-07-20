@@ -62,7 +62,11 @@ class EventControllerTest {
                 List.of(new EventExecutionPort.LocationChange("char-1", "loc-a", "loc-b")),
                 List.of(new AppliedEffect("evt-1", "eff-1", "life", -5, "ONLY_ONE", null,
                         List.of("char-1"), card("A wound"))),
-                List.of());
+                List.of(),
+                new EventExecutionPort.EdgeStateOutcome(
+                        List.of("char-1"), List.of("char-1"), true,
+                        "evt-coma", card("Everyone is down"),
+                        List.of("evt-coma"), List.of()));
     }
 
     @Test

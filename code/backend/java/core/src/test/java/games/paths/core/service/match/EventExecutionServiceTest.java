@@ -5,6 +5,7 @@ import games.paths.core.entity.story.EventEntity;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionException;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionException.Code;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
@@ -48,6 +49,7 @@ class EventExecutionServiceTest {
     private static final long LOC = 100L;
 
     private EventExecutionStorePort store;
+    private EdgeStateStorePort edgeStore;
     private UserAccessPort userAccessPort;
     private ContentQueryPort contentQueryPort;
     private TimeAdvancementService timeAdvancementService;
@@ -56,10 +58,11 @@ class EventExecutionServiceTest {
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        edgeStore = mock(EdgeStateStorePort.class);
         userAccessPort = mock(UserAccessPort.class);
         contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
-        service = new EventExecutionService(store, userAccessPort, contentQueryPort, timeAdvancementService);
+        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));

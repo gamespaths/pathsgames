@@ -13,8 +13,11 @@ Rules worth stating, because they are easy to get wrong:
   nothing: the player already paid to start the chain. The single exception is the ONCE
   invariant, which is a data rule rather than an eligibility one.
 * **Coma short-circuits everything.** When life reaches zero the chain stops and
-  ``flag_end_time`` does not fire: Step 29 only raises the flags, Step 38 owns the rest.
-* **game_over is only a flag.** Moving the match to GAMEOVER is Step 38.
+  ``flag_end_time`` does not fire. Step 30 added what happens next: the sadness and coma
+  rules of :mod:`edge_state_evaluator`, and — once every character is down — the story's
+  ``id_event_all_player_coma`` epilogue.
+* **game_over is only a flag.** Moving the match to GAMEOVER is step 59, together with the
+  rescue endpoints.
 * **Forced movement bypasses Step 28.** An effect's ``id_location`` (v0.29.3) moves its
   recipients with no neighbor, energy or availability check; only a cost-0 movement log
   row is written per moved character.
@@ -22,11 +25,12 @@ Rules worth stating, because they are easy to get wrong:
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.event_models import (
-    AppliedEffect, EntityChange, EventCheckContext, EventError, EventExecutionResult,
-    LocationChange, RegistryChange, StatChange,
+    AppliedEffect, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
+    EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
+from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventPort, EventStorePort
-from app.core.services.match import event_availability
+from app.core.services.match import edge_state_evaluator, event_availability
 
 ADD = "ADD"
 REMOVE = "REMOVE"
@@ -67,7 +71,6 @@ class _Live:
         self.constitution = view.get("constitution") or 0
         self.energy = view.get("energy") or 0
         self.life = view.get("life") or 0
-        self.sad = view.get("sad") or 0
         self.exp = view.get("exp") or 0
         self.energy_max = view.get("energy_max") or 0
         self.life_max = view.get("life_max") or 0
@@ -80,19 +83,33 @@ class _Live:
         self.backpack_dirty = False
         self.characteristics_dirty = False
         self.coma_set = bool(view.get("is_coma"))
+        # The raw sadness before the cap, so the Step 30 overflow rule reads what the effect
+        # really added rather than what the column can hold. set_sad is the only door to
+        # ``sad``, so no future effect type can bypass the check by writing the field.
+        self.sad = 0
+        self.sad_unclamped = 0
+        self.set_sad(view.get("sad") or 0)
+
+    def set_sad(self, raw: int) -> None:
+        self.sad_unclamped = raw
+        self.sad = _clamp(raw, 0, self.sad_max)
 
     def get(self, name: str) -> int:
         return getattr(self, _FIELD.get(name, name))
 
     def set(self, name: str, value: int) -> None:
+        if _FIELD.get(name, name) == "sad":
+            self.set_sad(value)
+            return
         setattr(self, _FIELD.get(name, name), value)
 
 
 class EventService(EventPort):
 
-    def __init__(self, store: EventStorePort, content_read_port=None,
-                 time_service=None) -> None:
+    def __init__(self, store: EventStorePort, edge_store: EdgeStateStorePort = None,
+                 content_read_port=None, time_service=None) -> None:
         self.store = store
+        self.edge_store = edge_store
         # Resolves the localized cards (nullable: the cards are then left None).
         self.content_read_port = content_read_port
         # TimeAdvancementService, for an event carrying flag_end_time (nullable: time then
@@ -131,6 +148,9 @@ class EventService(EventPort):
         x = _Exec(self, match, actor, ctx, lang or "en", event)
         self._deduct_costs(x, event)
         self._run_chain(x, event)
+        # Before the time-end branch, not after: _force_time_end flushes and latches
+        # x.flushed, which would freeze the epilogue's own stat changes out of the database.
+        self._resolve_all_player_coma(x)
         if x.end_time and not x.coma_triggered:
             self._force_time_end(x)
         return self._build_result(x)
@@ -153,15 +173,17 @@ class EventService(EventPort):
     # ── the chain ───────────────────────────────────────────────────────────
 
     def _run_chain(self, x: "_Exec", first: Dict[str, Any]) -> None:
-        events_by_id = self.store.find_events_by_id(x.match["id_story"])
-        effects_by_event = self.store.find_effects_by_event_id(x.match["id_story"])
-        end_game_id = self.store.find_id_event_end_game(x.match["id_story"])
+        events_by_id = x.events_by_id()
+        effects_by_event = x.effects_by_event()
+        end_game_id = x.end_game_id()
 
         current: Optional[Dict[str, Any]] = first
         while current:
             self._apply_event(x, current, effects_by_event, end_game_id)
-            if x.coma_triggered:
-                return  # coma stops the chain, and flag_end_time with it
+            # Coma stops the chain, and flag_end_time with it — but not the
+            # all-players-in-coma epilogue, which runs only once everyone is already down.
+            if x.coma_triggered and not x.epilogue_phase:
+                return
 
             nxt = current.get("id_event_next")
             if not nxt or nxt <= 0:
@@ -191,7 +213,7 @@ class EventService(EventPort):
         x.end_time = x.end_time or (event.get("flag_end_time") or 0) == 1
         x.game_over = x.game_over or (end_game_id is not None and end_game_id == event_id)
 
-        self._check_coma(x)
+        self._check_edge_states(x, event_id)
         self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
                                       x.current_clock, f"{MSG_EVENT_EXECUTED} {event_id}")
 
@@ -361,16 +383,88 @@ class EventService(EventPort):
 
     # ── coma & time end ─────────────────────────────────────────────────────
 
-    def _check_coma(self, x: "_Exec") -> None:
-        """Step 29 only raises the flags: life at zero sets is_coma and is_sleeping and
-        returns. Rescue, group coma and game over are Step 38."""
+    def _check_edge_states(self, x: "_Exec", id_event: Optional[int]) -> None:
+        """Step 30: run the sadness-overflow and coma rules over every character this event
+        touched. Only touched characters can have changed, so ``living`` is the right set.
+
+        Resetting ``sad`` and latching ``coma_set`` here is what makes the rules idempotent
+        for the rest of the chain: the next event re-runs this and finds nothing to fire.
+        """
         for live in x.living.values():
-            if live.life <= 0 and not live.coma_set:
+            v = edge_state_evaluator.evaluate(edge_state_evaluator.CharacterState(
+                live.id, live.life, live.sad_unclamped, live.sad_max, live.constitution,
+                live.coma_set))
+            if not v.anything():
+                continue
+            if v.sadness_overflow:
+                x.stat_changes.append(StatChange(
+                    character_uuid=live.uuid, statistic="life", before=live.life,
+                    after=v.life_after, delta=v.life_after - live.life))
+                x.stat_changes.append(StatChange(
+                    character_uuid=live.uuid, statistic="sad", before=live.sad,
+                    after=0, delta=-live.sad))
+                live.life = v.life_after
+                live.set_sad(0)
+                x.sadness_overflow_uuids.append(live.uuid)
+            if v.coma_triggered:
                 live.coma_set = True
-                self.store.set_character_coma(x.match["id"], live.id)
+                x.coma_uuids.append(live.uuid)
                 if live.id == x.actor["id"]:
                     x.coma_triggered = True
-                    x.forced_sleep = True
+            if v.forced_sleep and live.id == x.actor["id"]:
+                x.forced_sleep = True
+            edge_state_evaluator.persist(self.edge_store, x.match["id"], v, x.current_clock,
+                                         id_event)
+
+    def _resolve_all_player_coma(self, x: "_Exec") -> None:
+        """The all-players-in-coma epilogue: run the story's id_event_all_player_coma so the
+        frontend has something to show once nobody can act any more.
+
+        This cannot live inside the chain. _run_chain unwinds as soon as the actor falls into
+        a coma, and the actor is necessarily one of the comatose — a comatose character is
+        rejected by the availability check before an execution even starts. So by the time
+        everyone is down, the chain is already returning.
+
+        Moving the match to GAMEOVER is deliberately NOT done here: that, and the rescue
+        endpoints, belong to step 59.
+        """
+        if x.all_coma_resolved:
+            return
+        # Latched before any work, so a re-entry from inside the epilogue is a no-op.
+        x.all_coma_resolved = True
+
+        flags = []
+        for view in x.all_characters():
+            touched = x.living.get(view["id"])
+            # Deliberately not x.live(view): that would query the backpack of every character
+            # in the match and enrol them all in the flush, writing rows nothing changed.
+            flags.append(touched.coma_set if touched else bool(view.get("is_coma")))
+        if not edge_state_evaluator.all_in_coma(flags):
+            return
+
+        x.all_players_in_coma = True
+        edge_state_evaluator.log_all_player_coma(
+            self.edge_store, x.match["id"], x.actor["id"], x.current_clock)
+
+        coma_event_id = self.store.find_id_event_all_player_coma(x.match["id_story"])
+        if coma_event_id is None:
+            return  # a story need not author an epilogue
+        coma_event = x.events_by_id().get(coma_event_id)
+        if not coma_event:
+            return  # dangling id_event_all_player_coma
+        if (coma_event.get("type") or "").strip().upper() == "ONCE" \
+                and coma_event_id in x.ctx.consumed_event_ids:
+            return  # a ONCE epilogue fires once per match, not once per collapse
+
+        x.coma_event_uuid = coma_event.get("uuid")
+        x.coma_event_card = x.resolve_card(coma_event.get("id_card"))
+        x.coma_event_mark = len(x.executed_event_uuids)
+        x.coma_effect_mark = len(x.effects)
+        x.epilogue_phase = True
+        try:
+            self._run_chain(x, coma_event)
+        finally:
+            x.epilogue_phase = False
 
     def _force_time_end(self, x: "_Exec") -> None:
         if self.time_service is None:
@@ -415,18 +509,19 @@ class EventService(EventPort):
     def _build_result(self, x: "_Exec") -> EventExecutionResult:
         self._flush(x)
         actor = x.live(x.actor)
+        edge_state = self._build_edge_state(x)
         changed = any([
             x.time_ended, x.item_added, x.item_removed, x.weather_applied,
             x.movement_applied, x.forced_sleep,
             x.coma_triggered, x.game_over, x.stat_changes, x.registry_changes,
-            x.trait_changes, x.characteristic_changes,
+            x.trait_changes, x.characteristic_changes, edge_state.anything(),
         ])
         return EventExecutionResult(
             match_uuid=x.match["uuid"],
             event_uuid=x.event.get("uuid"),
             event_type=x.event.get("type"),
             card=x.resolve_card(x.event.get("id_card")),
-            executed_event_uuids=list(x.executed_event_uuids),
+            executed_event_uuids=self._chain_event_uuids(x),
             energy_spent=x.energy_spent,
             coin_spent=x.coin_spent,
             new_energy=actor.energy,
@@ -448,8 +543,41 @@ class EventService(EventPort):
             item_changes=x.item_changes,
             characteristic_changes=x.characteristic_changes,
             location_changes=x.location_changes,
-            effects=x.effects,
+            effects=self._chain_effects(x),
             pending_choices=[],
+            edge_state=edge_state,
+        )
+
+    @staticmethod
+    def _chain_event_uuids(x: "_Exec") -> List[str]:
+        """The events the player's own chain ran — the epilogue's are sliced off the tail."""
+        if x.coma_event_uuid is None:
+            return list(x.executed_event_uuids)
+        return list(x.executed_event_uuids[:x.coma_event_mark])
+
+    @staticmethod
+    def _chain_effects(x: "_Exec") -> List[AppliedEffect]:
+        if x.coma_event_uuid is None:
+            return x.effects
+        return x.effects[:x.coma_effect_mark]
+
+    @staticmethod
+    def _build_edge_state(x: "_Exec") -> EdgeStateOutcome:
+        if not x.sadness_overflow_uuids and not x.coma_uuids and not x.all_players_in_coma:
+            return EdgeStateOutcome.none()
+        coma_events: List[str] = []
+        coma_effects: List[AppliedEffect] = []
+        if x.coma_event_uuid is not None:
+            coma_events = list(x.executed_event_uuids[x.coma_event_mark:])
+            coma_effects = x.effects[x.coma_effect_mark:]
+        return EdgeStateOutcome(
+            sadness_overflow_uuids=list(x.sadness_overflow_uuids),
+            coma_uuids=list(x.coma_uuids),
+            all_players_in_coma=x.all_players_in_coma,
+            coma_event_uuid=x.coma_event_uuid,
+            coma_event_card=x.coma_event_card,
+            coma_executed_event_uuids=coma_events,
+            coma_effects=coma_effects,
         )
 
     @staticmethod
@@ -502,6 +630,45 @@ class _Exec:
         self.coma_triggered = False
         self.game_over = False
         self.flushed = False
+
+        # ── Step 30 edge states ──
+        self.sadness_overflow_uuids: List[str] = []
+        self.coma_uuids: List[str] = []
+        self.all_players_in_coma = False
+        # The epilogue has been decided — set before any work, so re-entry is a no-op.
+        self.all_coma_resolved = False
+        # True while the all-players-in-coma chain runs, relaxing the coma guard in _run_chain.
+        self.epilogue_phase = False
+        self.coma_event_uuid: Optional[str] = None
+        self.coma_event_card: Optional[Dict[str, Any]] = None
+        # Where the epilogue's own events and effects start, so _build_result can slice them.
+        self.coma_event_mark = 0
+        self.coma_effect_mark = 0
+        self._events_by_id: Optional[Dict[int, Dict[str, Any]]] = None
+        self._effects_by_event: Optional[Dict[int, List[Dict[str, Any]]]] = None
+        self._end_game_id: Optional[int] = None
+        self._end_game_loaded = False
+
+    def events_by_id(self) -> Dict[int, Dict[str, Any]]:
+        """Loaded once and shared by the main chain and the epilogue, so the epilogue
+        costs no extra query."""
+        if self._events_by_id is None:
+            self._events_by_id = self._service.store.find_events_by_id(self.match["id_story"])
+        return self._events_by_id
+
+    def effects_by_event(self) -> Dict[int, List[Dict[str, Any]]]:
+        if self._effects_by_event is None:
+            self._effects_by_event = self._service.store.find_effects_by_event_id(
+                self.match["id_story"])
+        return self._effects_by_event
+
+    def end_game_id(self) -> Optional[int]:
+        """None is a legal value here, hence the separate loaded flag."""
+        if not self._end_game_loaded:
+            self._end_game_id = self._service.store.find_id_event_end_game(
+                self.match["id_story"])
+            self._end_game_loaded = True
+        return self._end_game_id
 
     def all_characters(self) -> List[Dict[str, Any]]:
         """Lazily loaded: only a target=ALL effect needs the other characters."""

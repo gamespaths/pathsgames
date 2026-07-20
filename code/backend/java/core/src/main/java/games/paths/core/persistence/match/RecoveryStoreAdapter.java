@@ -64,7 +64,8 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
                 }
             }
         }
-        return Optional.of(new RecoveryMatchContext(m.getIdStory(), difficultyEnergy));
+        return Optional.of(new RecoveryMatchContext(m.getIdStory(), difficultyEnergy,
+                nz(m.getCurrentClock())));
     }
 
     @Override
@@ -76,7 +77,8 @@ public class RecoveryStoreAdapter implements RecoveryStorePort {
                     c.getId(), c.getUuid(), c.getIdClass(), c.getIdLocation(),
                     nz(c.getDexterity()), nz(c.getIntelligence()), nz(c.getConstitution()),
                     nz(c.getEnergy()), nz(c.getLife()), nz(c.getSad()),
-                    nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax())));
+                    nz(c.getEnergyMax()), nz(c.getLifeMax()), nz(c.getSadMax()),
+                    Boolean.TRUE.equals(c.getIsComa())));
         }
         return out;
     }

@@ -7,6 +7,7 @@ import games.paths.core.port.match.EventExecutionPort.AppliedEffect;
 import games.paths.core.port.match.EventExecutionPort.EventExecutionResult;
 import games.paths.core.port.match.EventExecutionPort.LocationChange;
 import games.paths.core.port.match.EventExecutionPort.StatChange;
+import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
@@ -53,16 +54,18 @@ class EventExecutionServiceEffectsTest {
     private static final long FAR_ID = 40L;
 
     private EventExecutionStorePort store;
+    private EdgeStateStorePort edgeStore;
     private TimeAdvancementService timeAdvancementService;
     private EventExecutionService service;
 
     @BeforeEach
     void setUp() {
         store = mock(EventExecutionStorePort.class);
+        edgeStore = mock(EdgeStateStorePort.class);
         UserAccessPort userAccessPort = mock(UserAccessPort.class);
         ContentQueryPort contentQueryPort = mock(ContentQueryPort.class);
         timeAdvancementService = mock(TimeAdvancementService.class);
-        service = new EventExecutionService(store, userAccessPort, contentQueryPort, timeAdvancementService);
+        service = new EventExecutionService(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService);
 
         when(userAccessPort.findByUuid(USER_UUID)).thenReturn(Optional.of(
                 new UserAccessPort.UserView(USER_ID, USER_UUID, "player", "USER", 2)));
@@ -236,8 +239,27 @@ class EventExecutionServiceEffectsTest {
             assertEquals(100, writtenAfter(execute(), "energy"));
 
             reset();
+            withEffects(stat("sad", 40, "ONLY_ONE"));
+            assertEquals(40, writtenAfter(execute(), "sad"), "below the cap, sad just lands");
+        }
+
+        @Test
+        @DisplayName("Sadness never rests at its cap: reaching it discharges (Step 30)")
+        void sadnessAtCapOverflows() {
+            // sad 0/50, cos 10, life 30/100 — see the actor() fixture.
             withEffects(stat("sad", 9999, "ONLY_ONE"));
-            assertEquals(50, writtenAfter(execute(), "sad"));
+
+            EventExecutionResult r = execute();
+
+            assertAll(
+                    () -> assertEquals(0, writtenStats(CHAR_ID).sad(), "sadness resets"),
+                    () -> assertEquals(20, writtenStats(CHAR_ID).life(), "life pays COS"),
+                    () -> assertEquals(List.of("char-uuid"),
+                            r.edgeState().sadnessOverflowUuids()),
+                    () -> assertTrue(r.forcedSleep(), "an overflow forces sleep"),
+                    () -> assertFalse(r.comaTriggered(), "life stayed above zero"));
+            verify(edgeStore).setSleeping(MATCH_ID, CHAR_ID);
+            verify(edgeStore, never()).setComa(anyLong(), anyLong(), anyInt());
         }
 
         @Test
@@ -696,7 +718,7 @@ class EventExecutionServiceEffectsTest {
                     () -> assertFalse(r.timeEnded(), "flag_end_time must not fire on coma"),
                     () -> assertEquals(List.of(EVENT_UUID), r.executedEventUuids(),
                             "the chain must stop at the coma"));
-            verify(store).setCharacterComa(MATCH_ID, CHAR_ID);
+            verify(edgeStore).setComa(MATCH_ID, CHAR_ID, 7);
             verify(timeAdvancementService, never()).forceTimeEnd(anyString());
         }
 
@@ -709,8 +731,8 @@ class EventExecutionServiceEffectsTest {
 
             EventExecutionResult r = execute();
 
-            verify(store).setCharacterComa(MATCH_ID, MATE_ID);
-            verify(store, never()).setCharacterComa(MATCH_ID, CHAR_ID);
+            verify(edgeStore).setComa(MATCH_ID, MATE_ID, 7);
+            verify(edgeStore, never()).setComa(MATCH_ID, CHAR_ID, 7);
             assertFalse(r.comaTriggered(), "only the actor's coma short-circuits");
         }
     }

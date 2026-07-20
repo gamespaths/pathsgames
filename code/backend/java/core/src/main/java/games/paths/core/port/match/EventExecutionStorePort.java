@@ -11,12 +11,13 @@ import java.util.Set;
 /**
  * EventExecutionStorePort - outbound port used by {@code EventExecutionService} (Step 29)
  * to read the story's events and the live match state, and to persist everything an event
- * effect can touch: stats, backpack, inventory, traits, characteristics, registry, weather,
- * coma and the {@code log_events} audit row.
+ * effect can touch: stats, backpack, inventory, traits, characteristics, registry, weather
+ * and the {@code log_events} audit row.
  *
  * <p>Step 29 is the first writer of {@code gaming_inventory_items}, the first to upsert a
- * single {@code gaming_state_registry} key, the first to add or remove a trait after join,
- * and the first to ever set {@code is_coma = true}.</p>
+ * single {@code gaming_state_registry} key, and the first to add or remove a trait after
+ * join. The coma and sadness writes moved to {@link EdgeStateStorePort} in Step 30, where
+ * the recovery and admin paths can reach them too.</p>
  *
  * <p>Read-then-write like the other Step 24-28 store ports, keeping the event domain logic
  * framework-free and unit-testable.</p>
@@ -65,6 +66,12 @@ public interface EventExecutionStorePort {
     /** {@code list_stories.id_event_end_game} — drives the {@code gameOver} flag. */
     Optional<Long> findIdEventEndGame(long idStory);
 
+    /**
+     * {@code list_stories.id_event_all_player_coma} — the Step 30 epilogue, run when every
+     * character of the match is comatose. Empty is legal: a story need not author one.
+     */
+    Optional<Long> findIdEventAllPlayerComa(long idStory);
+
     /** Story item id → uuid, for the response payload. */
     Map<Long, String> findItemUuidsById(long idStory);
 
@@ -94,9 +101,6 @@ public interface EventExecutionStorePort {
     void updateCharacterStats(long idMatch, long idCharacter, CharacterStats stats);
 
     void updateBackpack(long idMatch, long idCharacter, BackpackStats stats);
-
-    /** Sets {@code is_coma = true} and {@code is_sleeping = true}. */
-    void setCharacterComa(long idMatch, long idCharacter);
 
     /** Overwrites the CSV of characteristics (null clears it). */
     void setCharacterCharacteristics(long idMatch, long idCharacter, String csv);

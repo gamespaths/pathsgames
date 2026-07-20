@@ -346,6 +346,12 @@ public class CharacterCommandService implements CharacterCommandPort {
             }
         }
 
+        // Deliberately NOT subject to the Step 30 edge rules. This is a god-mode tool whose
+        // whole purpose is to force a state — an admin who sets sadness to its cap means it,
+        // and having the engine immediately discharge it would make the endpoint unusable for
+        // setting up a scenario. Nothing is lost: an event touching the character re-evaluates
+        // the rules, and the time-start recovery sweeps every character anyway, so a forced
+        // state self-corrects at the next clock rather than lingering.
         persistencePort.updateCharacterStats(match.getId(), character.getId(),
                 dex, intel, con, energy, life, sad);
 

@@ -133,6 +133,8 @@ class CharacterInstanceInfo:
     location_uuid: Optional[str] = None
     is_sleeping: int = 0
     is_coma: int = 0
+    # Step 30 — the match clock at which the coma opened; 0 while not comatose.
+    clock_in_coma: int = 0
     trait_uuids: List[str] = field(default_factory=list)
     items: List[ItemInstanceInfo] = field(default_factory=list)
     food: int = 0

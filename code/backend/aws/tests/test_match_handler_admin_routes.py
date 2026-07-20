@@ -222,7 +222,7 @@ def test_change_statistics_skip_minus_one_values(mock_get, mock_put, _jwt):
     # or called with no stat changes
 
 
-# ── Step 29 / admin — the state flags (the only way out of a coma until Step 38) ─────────
+# ── Step 29 / admin — the state flags (the only way out of a coma until step 59) ─────────
 
 COMATOSE = dict(CHARACTER, life=0, isSleeping=1, isComa=1)
 

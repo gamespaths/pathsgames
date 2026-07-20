@@ -141,6 +141,8 @@ export function checkShowToSleepCard({ playerStats, locations = [], actions = []
     .filter(action => !action?.endGame && (action?.energyCost ?? 0) > 0)
   const affordableMovement = moves.some(loc => energy >= movementEnergyCost(loc, locationCosts))
   const affordableAction = acts.some(action => energy >= action.energyCost)
+
+  const allLocationNotAvailable = moves.every(loc => loc?.available === false)
   // Stuck ⇔ no affordable movement and no affordable costed action.
-  return !affordableMovement && !affordableAction
+  return (!affordableMovement && !affordableAction) || allLocationNotAvailable
 }

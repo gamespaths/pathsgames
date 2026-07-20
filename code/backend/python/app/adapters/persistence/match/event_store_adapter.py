@@ -114,6 +114,11 @@ class EventStoreAdapter(EventStorePort):
             s = session.query(StoryEntity).filter(StoryEntity.id == id_story).first()
             return s.id_event_end_game if s else None
 
+    def find_id_event_all_player_coma(self, id_story: int) -> Optional[int]:
+        with self.session_factory() as session:
+            s = session.query(StoryEntity).filter(StoryEntity.id == id_story).first()
+            return s.id_event_all_player_coma if s else None
+
     def find_item_uuids_by_id(self, id_story: int) -> Dict[int, str]:
         with self.session_factory() as session:
             rows = session.query(ItemEntity).filter(ItemEntity.id_story == id_story).all()
@@ -221,18 +226,6 @@ class EventStoreAdapter(EventStorePort):
             b.magic = resources.get("magic", b.magic)
             b.coin = resources.get("coin", b.coin)
             b.ts_update = _now_iso()
-            session.commit()
-
-    def set_character_coma(self, id_match: int, id_character: int) -> None:
-        with self.session_factory() as session:
-            c = session.query(GamingCharacterInstanceEntity).filter(
-                GamingCharacterInstanceEntity.id_match == id_match,
-                GamingCharacterInstanceEntity.id == id_character).first()
-            if not c:
-                return
-            c.is_coma = 1
-            c.is_sleeping = 1
-            c.ts_update = _now_iso()
             session.commit()
 
     def set_character_characteristics(self, id_match: int, id_character: int,

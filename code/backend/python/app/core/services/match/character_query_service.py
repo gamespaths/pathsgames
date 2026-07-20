@@ -82,6 +82,7 @@ def build_character_infos(
             location_uuid=loc["uuid"] if loc else None,
             is_sleeping=c["is_sleeping"],
             is_coma=c["is_coma"],
+            clock_in_coma=c.get("clock_in_coma") or 0,
             trait_uuids=trait_uuids,
             items=items,
             food=backpack.get("food", 0),

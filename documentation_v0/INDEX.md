@@ -45,6 +45,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step27_WeatherSystem.md` | 29 | Weather random selection algorithm and effects | weather |
 | `Step28_MovementSystem.md` | 118 | **Biggest file.** Movement: adjacency, energy cost formula, validation order, fog-of-war, location cards, match logs timeline | movement, adjacency, energy, fog of war, logs |
 | `Step29_NormalEvents.md` | 13 | Normal (player-triggered) events: schema V0.29.0, check procedure, execution, `available` flag, logs | events, execute-event, effects |
+| `Step30_EdgeStates.md` | 20 | Edge states: sadness overflow, coma, `clock_in_coma` stamp, all-players-in-coma story epilogue. No new endpoint, no migration | sadness, coma, edge state, game over, epilogue |
 
 Note: there is no `Step20_AdminEndpoint.md` despite older references — the admin-port split
 (8044) is described in `Step19_SinglePlayerMatchUtils.md` and `Step20_GameWebSiteFirstRun.md`.

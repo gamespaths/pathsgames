@@ -244,6 +244,13 @@ export async function getMatchLocations(uuidMatch, accessToken, lang) {
  * changes, and the flags (`timeEnded`, `comaTriggered`, `gameOver`, …). When
  * `refreshRecommended` is true the caller should reload match-info.
  *
+ * Step 30 adds `edgeState`: `sadnessOverflowUuids` and `comaUuids` say who was pushed over
+ * an edge, and `allPlayersInComa` that the whole party is down — in which case
+ * `comaEventCard` carries the story's own epilogue card. The epilogue's events and effects
+ * are kept in `comaExecutedEventUuids` / `comaEffects`, deliberately NOT merged into the
+ * top-level `executedEventUuids` / `effects`, so the board can tell the narrative the
+ * player triggered from the engine's answer to their collapse.
+ *
  * Throws on a backend error: 409 with `ONCE_ALREADY_CONSUMED` / `NOT_ENOUGH_ENERGY` /
  * `WRONG_LOCATION` / …, or 404 `MATCH_NOT_FOUND` / `EVENT_NOT_FOUND`.
  */

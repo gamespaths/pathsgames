@@ -157,6 +157,7 @@ final class CharacterMapper {
         info.setIdLocation(c.getIdLocation());
         info.setIsSleeping(c.getIsSleeping());
         info.setIsComa(c.getIsComa());
+        info.setClockInComa(c.getClockInComa());
         info.setTraitUuids(traitUuids != null ? new ArrayList<>(traitUuids) : new ArrayList<>());
         if (backpack != null) {
             info.setFood(backpack.getFood());

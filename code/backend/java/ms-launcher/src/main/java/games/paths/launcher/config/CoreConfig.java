@@ -209,8 +209,10 @@ public class CoreConfig {
 
     @Bean
     public games.paths.core.service.match.TimeStartRecoveryService timeStartRecoveryService(
-            games.paths.core.port.match.RecoveryStorePort recoveryStorePort) {
-        return new games.paths.core.service.match.TimeStartRecoveryService(recoveryStorePort);
+            games.paths.core.port.match.RecoveryStorePort recoveryStorePort,
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort) {
+        return new games.paths.core.service.match.TimeStartRecoveryService(
+                recoveryStorePort, edgeStateStorePort);
     }
 
     /**
@@ -248,15 +250,20 @@ public class CoreConfig {
     }
 
     // ───── Step 29: Normal events (player-triggered actions) ─────
+    // ───── Step 30: Edge states (sadness overflow, coma) ─────
+    // EdgeStateStoreAdapter itself is @Repository and component-scanned, like every other
+    // store adapter; only the port→service beans are declared here.
 
     @Bean
     public games.paths.core.port.match.EventExecutionPort eventExecutionPort(
             games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
+            games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
             games.paths.core.service.match.TimeAdvancementService timeAdvancementService) {
         return new games.paths.core.service.match.EventExecutionService(
-                eventExecutionStorePort, userAccessPort, contentQueryPort, timeAdvancementService);
+                eventExecutionStorePort, edgeStateStorePort, userAccessPort, contentQueryPort,
+                timeAdvancementService);
     }
 
     // ───── Step 21: Character template & class selection ─────

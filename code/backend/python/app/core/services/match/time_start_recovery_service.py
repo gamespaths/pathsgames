@@ -15,12 +15,15 @@ secure_param > 0):
 from typing import Any, Dict, List
 
 from app.core.models.match.time_models import RecoveryItem
+from app.core.ports.match.edge_state_ports import EdgeStateStorePort
 from app.core.ports.match.time_ports import TimeStorePort
+from app.core.services.match import edge_state_evaluator
 
 
 class TimeStartRecoveryService:
-    def __init__(self, store: TimeStorePort) -> None:
+    def __init__(self, store: TimeStorePort, edge_store: EdgeStateStorePort = None) -> None:
         self.store = store
+        self.edge_store = edge_store
 
     def apply_at_time_start(self, id_match: int) -> List[RecoveryItem]:
         ctx = self.store.load_recovery_context(id_match)
@@ -32,6 +35,7 @@ class TimeStartRecoveryService:
 
         id_story = ctx["id_story"]
         difficulty_energy = _nz(ctx.get("difficulty_energy"))
+        current_clock = _nz(ctx.get("current_clock"))
 
         safety_by_location: Dict[int, Dict[str, Any]] = {
             s["id_location"]: s for s in self.store.find_location_safety(id_story)
@@ -76,28 +80,43 @@ class TimeStartRecoveryService:
 
         # 2. Recover each character.
         recaps: List[RecoveryItem] = []
+        coma_after: List[bool] = []
         for c in characters:
             s = safety_by_location.get(c.get("id_location"))
             secure_param = _nz(s.get("secure_param")) if s else 0
             safe = secure_param > 0
             p = secure_param + difficulty_energy
             bonuses = [b for b in all_bonuses if b.get("id_class") == c.get("id_class")]
-            energy, life, sad = compute_recovery(
+            energy, life, sad, sad_unclamped = compute_recovery(
                 _nz(c.get("dexterity")), _nz(c.get("intelligence")), _nz(c.get("constitution")),
                 _nz(c.get("energy")), _nz(c.get("life")), _nz(c.get("sad")),
                 _nz(c.get("energy_max")), _nz(c.get("life_max")), _nz(c.get("sad_max")),
                 safe, p, difficulty_energy,
                 _sum_bonus(bonuses, "energy"), _sum_bonus(bonuses, "life"), _sum_bonus(bonuses, "sad"),
             )
+            # A recovery can still push a character over an edge: a positive class sad bonus
+            # raises sadness, and an unsafe location never heals. Evaluate before the write so
+            # the corrected values land in the same UPDATE.
+            v = edge_state_evaluator.evaluate(edge_state_evaluator.CharacterState(
+                c["id"], life, sad_unclamped, _nz(c.get("sad_max")),
+                _nz(c.get("constitution")), bool(c.get("is_coma"))))
+
             energy_delta = energy - _nz(c.get("energy"))
-            life_delta = life - _nz(c.get("life"))
-            sad_delta = sad - _nz(c.get("sad"))
-            self.store.update_character_stats(id_match, c["id"], energy, life, sad)
+            life_delta = v.life_after - _nz(c.get("life"))
+            sad_delta = v.sad_after - _nz(c.get("sad"))
+            self.store.update_character_stats(id_match, c["id"], energy, v.life_after,
+                                              v.sad_after)
             self.store.log_recovery(
                 id_match, c["id"],
                 f"recovery safe={safe} p={p} dEnergy={energy_delta} dLife={life_delta} dSad={sad_delta}",
             )
+            edge_state_evaluator.persist(self.edge_store, id_match, v, current_clock, None)
             recaps.append(RecoveryItem(c["uuid"], energy_delta, life_delta, sad_delta))
+            coma_after.append(v.coma_triggered or bool(c.get("is_coma")))
+
+        if edge_state_evaluator.all_in_coma(coma_after):
+            edge_state_evaluator.log_all_player_coma(self.edge_store, id_match, None,
+                                                     current_clock)
 
         # 3. Decrement counters; flag zeros (event execution deferred to Step 29).
         for id_location, current in counter_by_location.items():
@@ -138,6 +157,7 @@ def compute_recovery(dexterity: int, intelligence: int, constitution: int,
         _clamp(new_energy, 0, energy_max),
         _clamp(new_life, 0, life_max),
         _clamp(new_sad, 0, sad_max),
+        new_sad,
     )
 
 

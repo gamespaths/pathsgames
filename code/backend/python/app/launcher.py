@@ -52,6 +52,7 @@ from app.adapters.rest.match.time_clock_controller import TimeClockController
 from app.adapters.persistence.match.movement_store_adapter import MovementStoreAdapter
 from app.core.services.match.movement_service import MovementService
 from app.adapters.rest.match.movement_controller import MovementController
+from app.adapters.persistence.match.edge_state_store_adapter import EdgeStateStoreAdapter
 from app.adapters.persistence.match.event_store_adapter import EventStoreAdapter
 from app.core.services.match.event_service import EventService
 from app.adapters.rest.match.event_controller import EventController
@@ -187,8 +188,11 @@ turn_cycle_controller = TurnCycleController(turn_cycle_service)
 # Step 25 — time advancement & clock cycle.
 time_store_adapter = TimeStoreAdapter(SessionLocal)
 domain_event_publisher = InProcessDomainEventPublisher()
+# Step 30 — the edge-state store is shared by the recovery and the event engine.
+edge_state_store_adapter = EdgeStateStoreAdapter(SessionLocal)
 time_advancement_service = TimeAdvancementService(time_store_adapter, domain_event_publisher,
-                                                  weather_service=weather_selection_service)
+                                                  weather_service=weather_selection_service,
+                                                  edge_store=edge_state_store_adapter)
 time_clock_controller = TimeClockController(time_advancement_service)
 
 # Step 28 — movement system (single-player). The controller is mounted on the
@@ -199,8 +203,10 @@ movement_controller = MovementController(movement_service)
 # Step 29 — normal events (player-triggered actions). The time service is held as the
 # concrete class: force_time_end is deliberately absent from the port so REST cannot skip
 # a time unit.
-event_service = EventService(event_store_adapter, story_match_read_adapter,
-                             time_advancement_service)
+event_service = EventService(event_store_adapter,
+                             edge_store=edge_state_store_adapter,
+                             content_read_port=story_match_read_adapter,
+                             time_service=time_advancement_service)
 event_controller = EventController(event_service)
 
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)

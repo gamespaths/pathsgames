@@ -28,10 +28,10 @@ DEFAULT_LANG = "en"
 class TimeAdvancementService(TimeAdvancementPort):
     def __init__(self, store: TimeStorePort, event_publisher: DomainEventPublisher,
                  recovery_service: "TimeStartRecoveryService | None" = None,
-                 weather_service=None) -> None:
+                 weather_service=None, edge_store=None) -> None:
         self.store = store
         self.event_publisher = event_publisher
-        self.recovery_service = recovery_service or TimeStartRecoveryService(store)
+        self.recovery_service = recovery_service or TimeStartRecoveryService(store, edge_store)
         # Step 27 — optional weather selection engine (may be None in tests).
         self.weather_service = weather_service
 

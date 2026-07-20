@@ -47,9 +47,15 @@ public interface RecoveryStorePort {
     /** Audit a counter-zero event (pending execution; wired in Step 29). */
     void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero, String message);
 
-    record RecoveryMatchContext(long idStory, int difficultyEnergy) {
+    /** {@code currentClock} is what a Step 30 coma stamps into {@code clock_in_coma}. */
+    record RecoveryMatchContext(long idStory, int difficultyEnergy, int currentClock) {
     }
 
+    /**
+     * {@code isComa} is load-bearing for Step 30: recovery runs over every character at every
+     * time-start, comatose ones included, so without it each pass would re-stamp
+     * {@code clock_in_coma} and the clock of the original collapse would be lost.
+     */
     record RecoveryCharacter(long id,
                              String uuid,
                              Long idClass,
@@ -62,7 +68,8 @@ public interface RecoveryStorePort {
                              int sad,
                              int energyMax,
                              int lifeMax,
-                             int sadMax) {
+                             int sadMax,
+                             boolean isComa) {
     }
 
     record LocationSafety(long idLocation,
