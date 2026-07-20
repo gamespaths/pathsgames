@@ -28,6 +28,10 @@ MSG_COMA = "COMA"
 # with ``in``, or a party row reads as a personal one.
 MSG_ALL_PLAYER_COMA = "ALL_PLAYER_COMA"
 
+# v0.30.1 — a comatose character rested in a safe location and woke from the coma. Also
+# contains MSG_COMA, so the startswith-not-in rule applies here too.
+MSG_COMA_RECOVERED = "COMA_RECOVERED"
+
 
 class EdgeStateStorePort(ABC):
 
@@ -42,6 +46,11 @@ class EdgeStateStorePort(ABC):
     @abstractmethod
     def set_sleeping(self, id_match: int, id_character: int) -> None:
         """Raise is_sleeping alone — a sadness overflow forces sleep without coma."""
+
+    @abstractmethod
+    def clear_coma(self, id_match: int, id_character: int) -> None:
+        """v0.30.1 — clear is_coma. A safe-location recovery has lifted life above zero
+        before this is called."""
 
     @abstractmethod
     def log_edge_state(self, id_match: int, id_character: Optional[int],

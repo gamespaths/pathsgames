@@ -82,12 +82,28 @@ class EdgeStateStoreAdapterTest {
     }
 
     @Test
+    @DisplayName("clearComa lowers is_coma and leaves is_sleeping alone")
+    void clearComaLowersTheFlag() {
+        GamingCharacterInstanceEntity c = character();
+        c.setIsComa(true);
+        c.setIsSleeping(true);
+        when(characterRepository.findById(any())).thenReturn(Optional.of(c));
+
+        adapter.clearComa(1L, 3L);
+
+        GamingCharacterInstanceEntity saved = saved();
+        assertEquals(false, saved.getIsComa());
+        assertTrue(saved.getIsSleeping(), "waking is the recovery's job, not this write's");
+    }
+
+    @Test
     @DisplayName("A missing character is a no-op, not a crash")
     void missingCharacterIsIgnored() {
         when(characterRepository.findById(any())).thenReturn(Optional.empty());
 
         adapter.setComa(1L, 3L, 12);
         adapter.setSleeping(1L, 3L);
+        adapter.clearComa(1L, 3L);
 
         verify(characterRepository, never()).save(any());
     }

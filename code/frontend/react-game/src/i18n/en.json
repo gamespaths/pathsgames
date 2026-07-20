@@ -222,18 +222,18 @@
       "safeLocation": "You are in a safe location. You recover "
     },
     "sad": {
-      "title": "Sadness overwhelms you",
+      "title": "Sadness over limit",
       "description": "Your sadness reached its limit. You lose life points equal to your constitution, your sadness resets to zero and you are forced to sleep.",
       "close": "Close"
     },
     "coma": {
-      "title": "You are in a coma",
-      "description": "Your life reached zero. You cannot act until another character rescues you.",
+      "title": "You're in a coma",
+      "description": "Your life reached zero. <br /><br />You cannot act until another character rescues you or you have to sleep in safe location. <br /><br />When all players in a game are in a coma, a special event occurs.",
       "close": "Close"
     },
     "allComa": {
       "title": "Everyone has fallen",
-      "description": "Every character is in a coma. Nobody can act any more."
+      "description": "Every character is in a coma. Nobody can act any more. When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs."
     },
     "location": {
       "clockCounter": "Location time counter"
@@ -260,7 +260,7 @@
       "reasonFull": {
         "CHARACTER_CANNOT_ACT": "You cannot move right now.",
         "MATCH_NOT_RUNNING": "The match is not running, so you cannot move.",
-        "COMA": "You are in a coma: you cannot move until someone helps you.",
+        "COMA": "You are in a coma: you cannot move.",
         "SLEEPING": "You are asleep and cannot move.",
         "NOT_A_NEIGHBOR": "This location is not next to the one you are standing on.",
         "MOVEMENT_CONDITION_NOT_MET": "The way is barred: something is still missing to open it.",

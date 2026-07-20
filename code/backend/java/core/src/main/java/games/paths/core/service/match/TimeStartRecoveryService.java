@@ -150,7 +150,19 @@ public class TimeStartRecoveryService {
                             + " dEnergy=" + energyDelta + " dLife=" + lifeDelta + " dSad=" + sadDelta);
             EdgeStateEvaluator.persist(edgeStore, idMatch, verdict, ctx.currentClock(), null);
             recaps.add(new RecoveryRecap(c.uuid(), energyDelta, lifeDelta, sadDelta));
-            comaAfter.add(verdict.comaTriggered() || c.isComa());
+
+            // v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery
+            // has already lifted its life above zero (life += COS + secure_param, both ≥ 1), so
+            // the guard cannot leave it awake-but-dead to re-coma next clock. Independent of the
+            // others: one character waking does not require the rest of the location to wake.
+            boolean stillComa = verdict.comaTriggered() || c.isComa();
+            if (c.isComa() && safe && verdict.lifeAfter() > 0) {
+                edgeStore.clearComa(idMatch, c.id());
+                edgeStore.logEdgeState(idMatch, c.id(), null, ctx.currentClock(),
+                        EdgeStateStorePort.MSG_COMA_RECOVERED + " " + c.id());
+                stillComa = false;
+            }
+            comaAfter.add(stillComa);
         }
 
         // The whole party can go under during a recovery just as during an event. The row is

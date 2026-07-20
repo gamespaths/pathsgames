@@ -84,7 +84,7 @@ export function resolveSelectionEntity(story, playerStats, gameData, type, index
   const cfg = SELECTION_CONFIG?.[type]
   if (!cfg) {console.log("type not found", type , story);return null;}
   const list = story?.[cfg.storyList]
-  if (!Array.isArray(list)) {console.log("list not found for type", type, story);return null;}
+  if (!Array.isArray(list)) { /*console.log("list not found for type", type, story);*/return null;}
   const raw = playerStats?.[cfg.uuidField]
   let uuid = Array.isArray(raw) ? raw[index] : raw
   if (!uuid) { 

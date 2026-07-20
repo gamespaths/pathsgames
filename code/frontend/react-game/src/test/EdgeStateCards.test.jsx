@@ -11,8 +11,8 @@ vi.mock('@/utils/loadoutCards', () => ({
 
 let captured = {}
 vi.mock('@/components/layout/Card', () => ({
-  default: ({ card, onPreview, onClose, variant, entityType, statItemsToPageContent, hidePreview }) => {
-    captured = { card, onPreview, onClose, variant, entityType, statItemsToPageContent, hidePreview }
+  default: ({ card, onPreview, onClose, onForward, variant, entityType, statItemsToPageContent, hidePreview }) => {
+    captured = { card, onPreview, onClose, onForward, variant, entityType, statItemsToPageContent, hidePreview }
     return (
       <div data-testid="card">
         <span data-testid="card-title">{card?.title}</span>
@@ -21,6 +21,7 @@ vi.mock('@/components/layout/Card', () => ({
         <span data-testid="card-entity">{entityType}</span>
         {onPreview && <button data-testid="preview-btn" onClick={onPreview}>preview</button>}
         {onClose && <button data-testid="close-btn" onClick={onClose}>back</button>}
+        {onForward && <button data-testid="forward-btn" onClick={onForward}>forward</button>}
       </div>
     )
   },
@@ -124,5 +125,33 @@ describe('ComaCard (Step 30)', () => {
     expect(screen.getByTestId('card-variant')).toHaveTextContent('board')
     fireEvent.click(screen.getByTestId('preview-btn'))
     expect(onPreview.mock.calls[0][1]).toBe('coma')
+  })
+})
+
+describe('Edge cards defer the weather via a forward arrow (v0.30.x)', () => {
+  it('SadnessCard renders a forward arrow when onForward is given', () => {
+    const onForward = vi.fn()
+    render(<SadnessCard story={STORY} onBack={vi.fn()} onForward={onForward} />)
+
+    fireEvent.click(screen.getByTestId('forward-btn'))
+    expect(onForward).toHaveBeenCalled()
+  })
+
+  it('SadnessCard has no forward arrow without onForward', () => {
+    render(<SadnessCard story={STORY} onBack={vi.fn()} />)
+    expect(screen.queryByTestId('forward-btn')).toBeNull()
+  })
+
+  it('ComaCard renders a forward arrow when onForward is given', () => {
+    const onForward = vi.fn()
+    render(<ComaCard story={STORY} onBack={vi.fn()} onForward={onForward} />)
+
+    fireEvent.click(screen.getByTestId('forward-btn'))
+    expect(onForward).toHaveBeenCalled()
+  })
+
+  it('ComaCard has no forward arrow without onForward', () => {
+    render(<ComaCard story={STORY} onBack={vi.fn()} />)
+    expect(screen.queryByTestId('forward-btn')).toBeNull()
   })
 })

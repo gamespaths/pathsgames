@@ -38,6 +38,14 @@ public interface EdgeStateStorePort {
     String MSG_ALL_PLAYER_COMA = "ALL_PLAYER_COMA";
 
     /**
+     * v0.30.1 — a comatose character rested in a safe location and woke from the coma.
+     *
+     * <p>Also <em>contains</em> {@link #MSG_COMA}, so the {@code startsWith}-not-{@code contains}
+     * rule applies here too.</p>
+     */
+    String MSG_COMA_RECOVERED = "COMA_RECOVERED";
+
+    /**
      * Enter coma: {@code is_coma = true}, {@code is_sleeping = true} and
      * {@code clock_in_coma = clockInComa}.
      *
@@ -48,6 +56,13 @@ public interface EdgeStateStorePort {
 
     /** Raise {@code is_sleeping} alone — a sadness overflow forces sleep without coma. */
     void setSleeping(long idMatch, long idCharacter);
+
+    /**
+     * v0.30.1 — clear {@code is_coma} (leaving {@code is_sleeping} as the recovery found it,
+     * already false at time-start). A character resting in a safe location has had its life
+     * lifted above zero by the recovery before this is called.
+     */
+    void clearComa(long idMatch, long idCharacter);
 
     /**
      * Append a {@code log_events} row. {@code idCharacter} and {@code idEvent} are both

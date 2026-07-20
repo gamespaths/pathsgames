@@ -366,7 +366,7 @@ Stored as explicit boolean columns in `gaming_character_instance`: `is_sleeping`
 |-------|---------|-------------|---------------------|
 | **ACTIVE** | `is_sleeping=false, is_coma=false` | Character is awake, can perform actions | → `SLEEPING`, → `COMA` |
 | **SLEEPING** | `is_sleeping=true, is_coma=false` | Character is asleep (zero energy or voluntary) | → `ACTIVE` (at time start) |
-| **COMA** | `is_sleeping=true, is_coma=true` | Character is in coma (life ≤ 0). Also counts as sleeping. `clock_in_coma` tracks duration. | → `ACTIVE` (rescued by another character or item) |
+| **COMA** | `is_sleeping=true, is_coma=true` | Character is in coma (life ≤ 0). Also counts as sleeping. `clock_in_coma` tracks duration. | → `ACTIVE` (safe-location rest at time start, rescue, or item) |
 
 ```
                   ┌──────────┐
@@ -382,7 +382,7 @@ Stored as explicit boolean columns in `gaming_character_instance`: `is_sleeping`
          │    └──────────┘   └──┬───┘
          │                      │
          └──────────────────────┘
-              characterHelpCOMA() or item restores life > 0
+              safe-location rest (v0.30.1), characterHelpCOMA(), or item restores life > 0
 ```
 
 
@@ -526,7 +526,7 @@ These are **system invariants** — conditions that must hold true at all times 
 | **INV-17** | Turn order is recalculated at **every** time start using the formula: `(DES×3 + INT×2 + COS×1) × 1000 + LIFE×10 + ID` | `timeCalculateCharactersSort()` wipes and repopulates `gaming_turn_queue` |
 | **INV-18** | Weather is determined **once** at time start and remains fixed for the entire time | `timeCalculateNewWeather()` runs only in `execStartNewTime()` |
 | **INV-19** | A sleeping character **cannot** perform any actions (except being rescued) | All action endpoints check `is_sleeping=false` and `is_coma=false` |
-| **INV-20** | A comatose character **cannot** wake up alone — requires external rescue (another character spends energy based on `cost_help_coma` from difficulty, or an item restores life) | `characterHelpCOMA()` validates rescuer is in same location, awake, has energy |
+| **INV-20** | A comatose character leaves COMA in one of two ways: **(a) passively** — resting in a **safe location** (`secure_param > 0`) restores life above zero at time start and clears the coma (v0.30.1); **(b) actively** — external rescue (another character spends energy based on `cost_help_coma`, or an item restores life). In an **unsafe** location no life is recovered, so the passive path never fires there and rescue remains the only way out. | Passive path: the time-start recovery clears `is_coma` when a comatose character recovered life > 0 in a safe location, logging `COMA_RECOVERED`. Active path (step 59): `characterHelpCOMA()` validates the rescuer is in the same location, awake, has energy |
 
 
 ### 5.4 Movement Invariants

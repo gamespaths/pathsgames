@@ -1356,6 +1356,15 @@ def _apply_time_start_recovery(match, match_uuid, story):
             "sadDelta": sad - _nz(c.get('sad')),
         })
         c['energy'], c['life'], c['sad'] = energy, life, sad
+        # v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery has
+        # already lifted its life above zero (life += COS + secure_param, both >= 1), so it
+        # cannot wake awake-but-dead to re-coma next clock. Independent of the others in the
+        # location. NOTE: this backend's recovery does not run the full edge evaluator (Java and
+        # Python do); the wake is the one edge rule the recovery path needs.
+        if _nz(c.get('isComa')) == 1 and safe and life > 0:
+            c['isComa'] = 0
+            _log_edge_state(match, c, None,
+                            f"{_events.MSG_COMA_RECOVERED} {c.get('uuid')}")
         db_utils.put_item(c)
 
     # Re-seed location counters that were pre-created with 0 (match created before

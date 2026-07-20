@@ -208,14 +208,20 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // Otherwise (e.g. a sleep-driven change) show the weather page directly.
     const duringEvent = eventEffectActiveRef.current
     eventEffectActiveRef.current = false
-    setPreviewRight(prev =>
-      duringEvent && prev && prev.kind === 'preview'
-        ? { ...prev, additionalProps: { ...prev.additionalProps,
-            // The effect only leads forward to the weather: drop its back arrow.
-            onClose: undefined,
-            onForward: () => setPreviewRight({ kind: 'weather' }) } }
-        : { kind: 'weather' }
-    )
+    setPreviewRight(prev => {
+      if (duringEvent && prev && prev.kind === 'preview') {
+        return { ...prev, additionalProps: { ...prev.additionalProps,
+          // The effect only leads forward to the weather: drop its back arrow.
+          onClose: undefined,
+          onForward: () => setPreviewRight({ kind: 'weather' }) } }
+      }
+      // Step 30 — a coma or sadness card is the important news; the weather waits behind a
+      // forward arrow (→) on it rather than covering it. The card keeps its close arrow.
+      if (duringEvent && prev && (prev.kind === 'coma' || prev.kind === 'sad')) {
+        return { ...prev, onForward: () => setPreviewRight({ kind: 'weather' }) }
+      }
+      return { kind: 'weather' }
+    })
   }, [weather]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mobile: when the player opens a right-page preview (the close prompt, an
@@ -345,10 +351,15 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // party collapse outranks a personal one, since it ends everyone's turn at once.
     const edge = result?.edgeState
     if (edge?.allPlayersInComa) {
+      // Arm the weather effect: a coma is the news, so a weather change from the same
+      // event must not cover it — it attaches a forward arrow instead (like an effect card).
+      eventEffectActiveRef.current = true
       setPreviewRight({ kind: 'coma', allPlayers: true, card: edge.comaEventCard ?? null })
     } else if (edge?.comaUuids?.includes(playerUuid)) {
+      eventEffectActiveRef.current = true
       setPreviewRight({ kind: 'coma', allPlayers: false, card: null })
     } else if (edge?.sadnessOverflowUuids?.includes(playerUuid)) {
+      eventEffectActiveRef.current = true
       setPreviewRight({ kind: 'sad' })
     }
     setLoading(false);
@@ -426,10 +437,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             story={story} onBack={closeRight} />
       : previewRight?.kind === 'coma'
         ? <ComaCard story={story} allPlayers={previewRight.allPlayers}
-            comaEventCard={previewRight.card} onBack={closeRight} />
+            comaEventCard={previewRight.card} onBack={closeRight}
+            onForward={previewRight.onForward} />
       : previewRight?.kind === 'sad'
         ? <SadnessCard story={story} lifeLost={playerStats?.constitution ?? null}
-            onBack={closeRight} />
+            onBack={closeRight} onForward={previewRight.onForward} />
 //      : previewRight?.kind === 'sleep'
 //        ? <GoToSleepCard story={story} playerStats={playerStats} t={t} 
 //            onPreview={handleSelectionPreviewFull} onSlept={handleReloadClockWeatherAndMatchData} />
@@ -554,6 +566,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} showGrid2={true}
                                   className="m-1 display-inline-grid flex-direction-column display-grid2" />}
           />
+          {playerStats?.isComa && <ComaCard story={story} onPreview={handleSelectionPreviewFull} previewSide="right"/>}
+
           {/* Show the sleep card only when the player is energy-stuck: every
               available movement and action costs more energy than they have. */}
           {(checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) || (showGoToSleepCard)) &&
@@ -563,7 +577,6 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           {/* Step 27 — current weather card (in both render points). }
           <WeatherCard weather={weather} story={story} onPreview={handleSelectionPreviewFull} /> {  
           removed (for now) because weathere card is on cardCharacteristics */}
-
           { /* Step 28 — for every neighbor-location render a move-target card */ }
           { (locations ?? []).map(loc => (
             <MovementCard key={loc.uuid ?? loc.idLocation} location={loc}

@@ -127,6 +127,30 @@ The Match Stays RUNNING After A Party Collapse
     ${info}=    Get Match Info    ${TOKEN}    ${MATCH_UUID}    200    lang=en
     Should Be Equal    ${info.json()}[match][status]    RUNNING
 
+Sleeping In A Safe Location Wakes A Comatose Character
+    [Documentation]    v0.30.1 — the in-game way out of a coma: rest where it is safe.
+    ...                The character is forced into a coma via the admin endpoint at the
+    ...                start location (which the seeded story authors as safe), then sleeps.
+    ...                Sleeping advances the clock, the time-start recovery lifts life above
+    ...                zero, and the coma flag is cleared.
+    [Tags]    events    step30    edge    coma
+    ${before}=    Reset Character    life=1    sad=0
+    # Drive life to zero and set the coma flag directly, leaving the character asleep so the
+    # next sleep/time-start actually fires the recovery.
+    ${body}=    Create Dictionary    life=${0}    coma=${True}    sleeping=${True}
+    ${resp}=    POST On Session    admin_session
+    ...    /api/admin/matches/${MATCH_UUID}/player/${CHARACTER_MATCH_UUID}/changeStatistics
+    ...    json=${body}    expected_status=200
+
+    ${down}=    Get Character State
+    Should Be True    ${down}[isComa]    msg=setup failed: the character is not comatose
+
+    Sleep Action    ${TOKEN}    ${MATCH_UUID}    200
+
+    ${after}=    Get Character State
+    Should Not Be True    ${after}[isComa]    msg=resting in a safe location must clear the coma
+    Should Be True    ${after}[life] > 0    msg=a woken character must have life to act with
+
 The Admin Endpoint Is Deliberately Not Subject To The Rules
     [Documentation]    A god-mode tool must set exactly what it was asked to set. A forced
     ...                state self-corrects at the next event or time-start instead.

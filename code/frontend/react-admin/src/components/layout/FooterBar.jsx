@@ -5,7 +5,7 @@ export default function FooterBar() {
       <span className="pg-footer-separator">|</span>
       <span>Paths Games Admin Panel</span>
       <span className="pg-footer-separator">|</span>
-      <span>Version: 0.30.0</span>
+      <span>Version: 0.30.1</span>
     </footer>
   )
 }

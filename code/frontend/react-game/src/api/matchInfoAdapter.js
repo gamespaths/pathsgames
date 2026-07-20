@@ -78,7 +78,6 @@ function toPlayerStats(player) {
 
     intelligence: player.intelligence ?? 0,
     dexterity: player.dexterity ?? 0,
-    constitution: player.constitution ?? 0,
   }
 }
 

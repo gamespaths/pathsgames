@@ -22,7 +22,8 @@ from dataclasses import dataclass
 from typing import Iterable, Optional
 
 from app.core.ports.match.edge_state_ports import (
-    MSG_ALL_PLAYER_COMA, MSG_COMA, MSG_SADNESS_OVERFLOW, EdgeStateStorePort,
+    MSG_ALL_PLAYER_COMA, MSG_COMA, MSG_COMA_RECOVERED, MSG_SADNESS_OVERFLOW,
+    EdgeStateStorePort,
 )
 
 

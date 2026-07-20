@@ -49,6 +49,15 @@ public class EdgeStateStoreAdapter implements EdgeStateStorePort {
     }
 
     @Override
+    public void clearComa(long idMatch, long idCharacter) {
+        characterRepository.findById(new GamingCharacterInstanceEntityId(idCharacter, idMatch))
+                .ifPresent(c -> {
+                    c.setIsComa(false);
+                    characterRepository.save(c);
+                });
+    }
+
+    @Override
     public void logEdgeState(long idMatch, Long idCharacter, Long idEvent, int clock, String message) {
         LogEventsEntity e = new LogEventsEntity();
         e.setId(logEventsRepository.findMaxId() + 1);

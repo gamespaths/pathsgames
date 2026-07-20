@@ -13,6 +13,12 @@ The deliberate boundary: Step 30 raises the flags and runs the epilogue narrativ
 deferred to **step 59** of the roadmap. `gameOver` stays a boolean flag driven only by
 `list_stories.id_event_end_game`, exactly as before this step.
 
+Until **v0.30.1**, that also meant a comatose character had no in-game way out at all — the only
+thing that ever cleared `is_coma` was the admin `changeStatistics` endpoint (§1, table below).
+v0.30.1 opens a narrow **passive** exit — resting in a safe location — without touching either
+deferred piece: rescue (step 59) remains the **active** way out, for a character stuck somewhere
+unsafe. See "v0.30.1 — Waking from coma" below.
+
 ---
 
 ## 1. Scope
@@ -70,6 +76,33 @@ returned. The epilogue therefore runs in `executeEvent`, right after `runChain` 
 **before** the time-end branch — `forceTimeEnd` flushes stats to disk and latches a `flushed`
 guard, and running the epilogue after that point would freeze its stat changes out of the
 database.
+
+### v0.30.1 — Waking from coma
+
+Added to the Step 26 time-start recovery, on all three backends. The rule:
+
+> For each character at recovery: **if it was comatose, and its location is safe
+> (`secure_param > 0`), and its life after recovery is `> 0`** → clear `is_coma` and write a
+> `COMA_RECOVERED` audit row (see the table below). `is_sleeping` is left untouched — it is
+> already `false` by the time recovery runs, because the time-advance step wakes every character
+> **before** recovery is computed.
+
+**Why the `life > 0` guard can never leave a "woke but still dead" flicker.** A safe recovery
+always adds `COS + secure_param` to life, and both terms are `≥ 1`; life is floored at `0`, and a
+comatose character's life is exactly `0` going in. So one safe recovery pass always lands life at
+`≥ 1` — there is no reachable state where `is_coma` is cleared and life is still `≤ 0`. In an
+**unsafe** location the recovery heals no life, the guard fails, and the character stays
+comatose: collapsing somewhere dangerous and resting there does not save you.
+
+**Independent per character.** The rule runs per character, not per party — one character waking
+does not require, or wait for, anyone else at the same location to wake. A character that wakes
+immediately stops counting toward "all players in coma" (above), so a party where one member
+recovers is correctly no longer all-in-coma, even though the rest are still down.
+
+**Trigger.** Recovery runs at time-start, driven by the sleep action (or an event with
+`flag_end_time`). A comatose character *can* still issue the sleep action — `sleep` only checks
+the match is `RUNNING` — and counts as "done" for the party, so the clock advances and this rule
+gets its chance to run even for a party that is entirely comatose.
 
 ---
 
@@ -136,23 +169,30 @@ the life hit.
 
 ### Audit rows (`log_events`)
 
-Three new message prefixes, all constants on `EdgeStateStorePort`:
+Four message prefixes, all constants on `EdgeStateStorePort` (three from v0.30.0, one added in
+v0.30.1):
 
 | Prefix | Written when | `id_character_match` |
 |---|---|---|
 | `SADNESS_OVERFLOW` | a character's sadness reached its cap | the character |
 | `COMA` | a character's life reached zero | the character |
 | `ALL_PLAYER_COMA` | every character of the match is comatose | the actor's row from event execution; **null** when written from the recovery path |
+| `COMA_RECOVERED` *(v0.30.1)* | a comatose character woke at time-start recovery (safe location, post-recovery life `> 0`) | the character |
 
-Two constraints worth stating plainly:
+Three constraints worth stating plainly:
 
-- **None of the three may start with `EVENT_EXECUTED`** — that literal prefix is what the
+- **None of the four may start with `EVENT_EXECUTED`** — that literal prefix is what the
   engine scans to decide a `ONCE` event is spent (Step 29 §2). An edge-state row that
   accidentally carried it would silently consume a `ONCE` event the player never triggered.
 - **`ALL_PLAYER_COMA` *contains* `COMA`** as a substring. Any code that classifies these rows
   must match with `startsWith`, never `contains` — this bit both the Java `MatchLogsService`
   branch and the AWS equivalent, so it is called out explicitly at both message-constant
   declarations.
+- *(v0.30.1)* **`COMA_RECOVERED` goes one step further than `ALL_PLAYER_COMA`: it *starts with*
+  `COMA`, not merely contains it.** A classifier that fixed the bullet above by switching to a
+  bare `startsWith("COMA")` now also matches the wake-up row — the opposite event from "went
+  into coma." Code that needs to tell "entered coma" apart from "woke from coma" must match the
+  `COMA` prefix **exactly**, not with `startsWith`.
 
 The party row (`ALL_PLAYER_COMA`) carries a null `id_event` always, and a null
 `id_character_match` specifically when it is written by the time-start recovery path (there is
@@ -234,6 +274,25 @@ All green as of this step, except Robot (see below).
   seeded story sets no `id_event_all_player_coma`, which is legal. The authored-epilogue path
   is covered by the unit tests of all three backends, which can seed a story that has one.
 
+### v0.30.1 additions (waking from coma)
+
+All green.
+
+- **Java**: `mvn test` green. `EdgeStateStoreAdapterTest` gained `clearComaLowersTheFlag`;
+  `TimeStartRecoveryServiceTest` gained `safeSleepWakesFromComa`, `oneWakesWhileAnotherStays`,
+  `unsafeSleepDoesNotWake`.
+- **Python**: 904 tests green. `test_time_start_recovery_service.py` gained
+  `test_safe_sleep_wakes_from_coma`, `test_waking_is_independent_of_the_others_still_down`,
+  `test_unsafe_sleep_never_wakes`.
+- **AWS**: 522 tests green. `test_time_advancement_handler.py` gained
+  `test_sleep_in_a_safe_location_wakes_from_coma`,
+  `test_sleep_in_an_unsafe_location_does_not_wake_from_coma`.
+- **Robot**: `code/tests/robot/tests/30_edge_states/edge_states.robot` gained
+  `Sleeping In A Safe Location Wakes A Comatose Character`. **Executed and green on LOCAL_JAVA,
+  LOCAL_JAVA_POSTGRES and LOCAL_PYTHON** (465 tests each, 0 failures) — same caveat as v0.30.0:
+  not run against the deployed AWS environment, since `run_robot_with_aws_serverless.sh` tests
+  whatever is currently deployed and does not redeploy first.
+
 ---
 
 ## Bug fixed on the way in
@@ -264,11 +323,12 @@ feature) were corrected to "step 59" — the roadmap number that now carries res
 
 # Version Control
 
-- **Document Version**: 0.30.0
+- **Document Version**: 0.30.1
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.30.0 | Edge states: sadness overflow and coma rules (`EdgeStateEvaluator`), `clock_in_coma` stamping, all-players-in-coma story epilogue, `edgeState` on `ExecuteEventResponse`. No new endpoint, no migration. | July 20, 2026 |
+  | 0.30.1 | Waking from coma: resting in a safe location clears `is_coma` at time-start recovery once post-recovery life is `> 0`; new `COMA_RECOVERED` audit prefix (`startsWith`-collides with `COMA`); wake is independent per character. Closes the softlock where nothing in-game ever cleared `is_coma`. No new endpoint, no migration. | July 20, 2026 |
 
 - **Last Updated**: July 20, 2026
 - **Status**: Complete

@@ -200,3 +200,65 @@ def test_no_reseed_when_already_activated():
 def test_returns_empty_without_context():
     store = FakeRecoveryStore(None, [], [], [], [])
     assert TimeStartRecoveryService(store).apply_at_time_start(1) == []
+
+
+# ── v0.30.1 — wake from coma by resting in a safe location ────────────────────
+
+from unittest.mock import MagicMock
+from app.core.ports.match.edge_state_ports import MSG_COMA_RECOVERED, MSG_ALL_PLAYER_COMA
+
+
+def _coma_char(cid, uuid, id_location, life=0):
+    """cos 10, sad 0/50, comatose."""
+    return {
+        "id": cid, "uuid": uuid, "id_class": None, "id_location": id_location,
+        "dexterity": 3, "intelligence": 2, "constitution": 10,
+        "energy": 10, "life": life, "sad": 0,
+        "energy_max": 100, "life_max": 100, "sad_max": 50, "is_coma": 1,
+    }
+
+
+def _run_with_edge(characters, secure_param):
+    store = FakeRecoveryStore(
+        context={"id_story": 9, "difficulty_energy": 0, "current_clock": 4},
+        characters=characters,
+        safety=[{"id_location": 100, "secure_param": secure_param, "counter_time": None,
+                 "id_event_if_counter_zero": None}],
+        bonuses=[],
+        state_locations=[],
+    )
+    edge = MagicMock()
+    TimeStartRecoveryService(store, edge).apply_at_time_start(1)
+    return store, edge
+
+
+def test_safe_sleep_wakes_from_coma():
+    # safe recovery lifts life 0 -> 0 + cos(10) + secure(2) = 12, then the coma clears.
+    store, edge = _run_with_edge([_coma_char(10, "char-a", 100)], secure_param=2)
+
+    edge.clear_coma.assert_called_once_with(1, 10)
+    msg = edge.log_edge_state.call_args_list[-1][0][4]
+    assert msg.startswith(MSG_COMA_RECOVERED)
+    # It woke, so the party is not all-in-coma.
+    assert not any(c[0][4].startswith(MSG_ALL_PLAYER_COMA)
+                   for c in edge.log_edge_state.call_args_list)
+
+
+def test_waking_is_independent_of_the_others_still_down():
+    waker = _coma_char(10, "char-a", 100)          # safe location
+    elsewhere = _coma_char(20, "char-b", None)     # no location -> unsafe -> stays
+    store, edge = _run_with_edge([waker, elsewhere], secure_param=2)
+
+    edge.clear_coma.assert_called_once_with(1, 10)
+    # One is up, so the party is NOT all-in-coma.
+    assert not any(c[0][4].startswith(MSG_ALL_PLAYER_COMA)
+                   for c in edge.log_edge_state.call_args_list)
+
+
+def test_unsafe_sleep_never_wakes():
+    store, edge = _run_with_edge([_coma_char(10, "char-a", 100)], secure_param=0)
+
+    edge.clear_coma.assert_not_called()
+    # Still down and alone -> the party collapse row is written.
+    assert any(c[0][4].startswith(MSG_ALL_PLAYER_COMA)
+               for c in edge.log_edge_state.call_args_list)

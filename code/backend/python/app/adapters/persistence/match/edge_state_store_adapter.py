@@ -46,6 +46,17 @@ class EdgeStateStoreAdapter(EdgeStateStorePort):
             c.ts_update = _now_iso()
             session.commit()
 
+    def clear_coma(self, id_match: int, id_character: int) -> None:
+        with self.session_factory() as session:
+            c = session.query(GamingCharacterInstanceEntity).filter(
+                GamingCharacterInstanceEntity.id_match == id_match,
+                GamingCharacterInstanceEntity.id == id_character).first()
+            if not c:
+                return
+            c.is_coma = 0
+            c.ts_update = _now_iso()
+            session.commit()
+
     def log_edge_state(self, id_match: int, id_character: Optional[int],
                        id_event: Optional[int], clock: int, message: str) -> None:
         with self.session_factory() as session:

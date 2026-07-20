@@ -42,7 +42,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
 | 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events, `available` flag on match-info, `execute-event` endpoint |
-| 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story epilogue |
+| 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story event |
 
 | Steps | Phase |
 | -- | -- |
@@ -683,16 +683,17 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.30.0 (here only due changes)
+- **Document Version**: 0.30.1 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
     | 0.30.0 | step 30 (edge states) marked complete; removed its "Next steps" entry | July 20, 2026 |
+    | 0.30.1 | edge states: waking from coma on safe-location rest (see [Step30_EdgeStates.md](./Step30_EdgeStates.md)) | July 20, 2026 |
     | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: July 20, 2026 (v0.30.0)
+- **Last Updated**: July 20, 2026 (v0.30.1)
 - **Status**: In progress
 
 

@@ -18,6 +18,7 @@ export default function SadnessCard({
   lifeLost = null,
   onPreview,
   onBack = null,
+  onForward = null,
   previewSide = 'left',
 }) {
   const { t } = useTranslation()
@@ -36,6 +37,7 @@ export default function SadnessCard({
         story={story}
         loading={false}
         onClose={onBack}
+        onForward={onForward ?? undefined}
         statItemsToPageContent={statItems}
         hidePreview
       />

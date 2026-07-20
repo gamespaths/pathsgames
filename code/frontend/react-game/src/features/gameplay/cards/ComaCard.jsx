@@ -20,7 +20,9 @@ export default function ComaCard({
   comaEventCard = null,
   onPreview,
   onBack = null,
+  onForward = null,
   previewSide = 'left',
+  locked=false,lockInfo='',lockedIcon=''
 }) {
   const { t } = useTranslation()
 
@@ -46,7 +48,9 @@ export default function ComaCard({
         story={story}
         loading={false}
         onClose={onBack}
+        onForward={onForward ?? undefined}
         hidePreview
+        locked={locked} lockInfo={lockInfo} lockedIcon={lockedIcon}
       />
     )
   }
@@ -58,6 +62,7 @@ export default function ComaCard({
       story={story}
       flagInformationCard={true}
       onPreview={() => onPreview?.(card, 'coma', null, [], true, null, previewSide)}
+      locked={locked} lockInfo={lockInfo} lockedIcon={lockedIcon}
     />
   )
 }

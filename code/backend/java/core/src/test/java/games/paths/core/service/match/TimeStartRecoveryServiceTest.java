@@ -112,6 +112,55 @@ class TimeStartRecoveryServiceTest {
                     3, 2, 10, 10, life, 0, 100, 100, 50, coma);
         }
 
+        /** Run the roster at a SAFE location (secure_param=2) — recovery heals life. */
+        private void runSafe(RecoveryCharacter... roster) {
+            store = mock(RecoveryStorePort.class);
+            edgeStore = mock(EdgeStateStorePort.class);
+            when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
+            when(store.findCharacters(1L)).thenReturn(List.of(roster));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 2, null, null)));
+            when(store.findClassBonuses(9L)).thenReturn(List.of());
+            when(store.findStateLocations(1L)).thenReturn(List.of());
+            new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L);
+        }
+
+        @Test
+        @DisplayName("v0.30.1 — a comatose character resting in a safe location wakes")
+        void safeSleepWakesFromComa() {
+            // life 0, coma; safe recovery lifts life to 0 + cos(10) + secure(2) = 12.
+            runSafe(frail(0, true));
+
+            verify(edgeStore).clearComa(1L, 10L);
+            verify(edgeStore).logEdgeState(eq(1L), eq(10L), eq(null), eq(4),
+                    startsWith(EdgeStateStorePort.MSG_COMA_RECOVERED));
+            // It woke, so the party is not all-in-coma and no collapse row is written.
+            verify(edgeStore, never()).logEdgeState(anyLong(), any(), any(), anyInt(),
+                    contains(EdgeStateStorePort.MSG_ALL_PLAYER_COMA));
+        }
+
+        @Test
+        @DisplayName("v0.30.1 — waking is independent of the others still down")
+        void oneWakesWhileAnotherStays() {
+            RecoveryCharacter waker = frail(0, true);          // in the safe location 100
+            RecoveryCharacter elsewhere = new RecoveryCharacter( // still comatose, no location
+                    20L, "char-b", 5L, null, 3, 2, 10, 10, 0, 0, 100, 100, 50, true);
+            runSafe(waker, elsewhere);
+
+            verify(edgeStore).clearComa(1L, 10L);
+            verify(edgeStore, never()).clearComa(1L, 20L);
+            // One is up, so the party is NOT all-in-coma.
+            verify(edgeStore, never()).logEdgeState(anyLong(), any(), any(), anyInt(),
+                    contains(EdgeStateStorePort.MSG_ALL_PLAYER_COMA));
+        }
+
+        @Test
+        @DisplayName("v0.30.1 — an unsafe location never wakes a comatose character")
+        void unsafeSleepDoesNotWake() {
+            run(frail(0, true));  // run() uses an UNSAFE location
+
+            verify(edgeStore, never()).clearComa(anyLong(), anyLong());
+        }
+
         @Test
         @DisplayName("A positive class sad bonus can overflow during what is nominally healing")
         void classBonusOverflowsSadness() {

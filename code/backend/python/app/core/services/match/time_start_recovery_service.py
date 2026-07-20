@@ -112,7 +112,19 @@ class TimeStartRecoveryService:
             )
             edge_state_evaluator.persist(self.edge_store, id_match, v, current_clock, None)
             recaps.append(RecoveryItem(c["uuid"], energy_delta, life_delta, sad_delta))
-            coma_after.append(v.coma_triggered or bool(c.get("is_coma")))
+
+            # v0.30.1 — a comatose character who rested in a safe location wakes. Safe recovery
+            # has already lifted life above zero (life += COS + secure_param, both >= 1), so the
+            # guard cannot leave it awake-but-dead to re-coma next clock. Independent of the
+            # others: one character waking does not require the rest of the location to wake.
+            still_coma = v.coma_triggered or bool(c.get("is_coma"))
+            if bool(c.get("is_coma")) and safe and v.life_after > 0:
+                self.edge_store.clear_coma(id_match, c["id"])
+                self.edge_store.log_edge_state(
+                    id_match, c["id"], None, current_clock,
+                    f"{edge_state_evaluator.MSG_COMA_RECOVERED} {c['id']}")
+                still_coma = False
+            coma_after.append(still_coma)
 
         if edge_state_evaluator.all_in_coma(coma_after):
             edge_state_evaluator.log_all_player_coma(self.edge_store, id_match, None,

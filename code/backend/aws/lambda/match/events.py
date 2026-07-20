@@ -386,6 +386,8 @@ MSG_SADNESS_OVERFLOW = "SADNESS_OVERFLOW"
 MSG_COMA = "COMA"
 # Note that this value CONTAINS MSG_COMA: match with startswith, never with `in`.
 MSG_ALL_PLAYER_COMA = "ALL_PLAYER_COMA"
+# v0.30.1 — a comatose character rested in a safe location and woke. Contains MSG_COMA.
+MSG_COMA_RECOVERED = "COMA_RECOVERED"
 
 
 def evaluate_edge_state(char):

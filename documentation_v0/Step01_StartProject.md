@@ -67,6 +67,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Recovery at Time Start: At the beginning of each Time, characters recover stats based on their current location's Safety Parameter:	
 			- In a Safe Location: Gain DES + P energy, COS + secure_param life, and lose INT + secure_param sadness (P = secure_param + difficulty.energy).
 			- In an Unsafe Location: Gain only difficulty.energy (no DES, no life recovery or sadness reduction).
+		- Coma: if a player is on safe location and in coma, execute "to sleep" action recover life/sadness and wake up (coma status is removed).
 	- Turn Management & Concurrency (The Turn Loop): The game uses a dynamic turn system managed via WebSockets to ensure real-time updates:
 		- Turn sequence: Calculated at the start of every Time Unit using a specific formula. The character with the highest value acts first. In case of a tie, the id_character_match acts as a tie-breaker.
 		- Action Flow: Active characters act in sequence. A player can perform multiple actions during their turn as long as they have energy.
