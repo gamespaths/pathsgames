@@ -978,6 +978,18 @@
       "linkCopyright": "https://unsplash.com/photos/a-desert-landscape-with-a-mountain-in-the-background-kjbXI-Qk9kI",
       "urlImage": "https://plus.unsplash.com/premium_photo-1733493684029-f0ff53ae6be1?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "42ded828-5c0e-4c76-bcca-b316c04c875a"
+    },
+    {
+      "id": 83,
+      "idCard": 83,
+      "idCreator": 1,
+      "idTextCopyright": 238,
+      "idTextDescription": 237,
+      "idTextName": 236,
+      "idTextTitle": 236,
+      "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-medical-paper-with-a-graph-on-it-eqTmD-baDkU",
+      "urlImage": "https://images.unsplash.com/photo-1724395261682-c8b152dc5b9b?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f4b19f2e-ce66-403a-b0b4-ae52e4e28e01"
     }
   ],
   "category": "adventure",
@@ -1464,6 +1476,18 @@
       "statistics": "SAD",
       "uuid": "02ef9a06-7731-4bb4-98d5-fa830647fa92",
       "value": 1
+    },
+    {
+      "id": 5,
+      "idEvent": 7,
+      "idLocation": 4,
+      "idTextDescription": 236,
+      "idTextName": 236,
+      "idWeather": "",
+      "statistics": "LIFE",
+      "target": "ALL",
+      "uuid": "1df34eaa-09fb-4016-aac2-c27cc6c1db6f",
+      "value": 1
     }
   ],
   "events": [
@@ -1557,6 +1581,16 @@
       "idTextName": 226,
       "id_card": 80,
       "uuid": "6c124bec-625b-4522-a1b0-539c49c7c5da"
+    },
+    {
+      "id": 7,
+      "idCard": 83,
+      "idSpecificLocation": "",
+      "idTextDescription": 237,
+      "idTextName": 236,
+      "idWeather": "",
+      "id_card": 83,
+      "uuid": "bff0f83f-8aa6-41c4-a8f8-a9419096f335"
     }
   ],
   "globalRandomEvents": [],
@@ -1564,7 +1598,7 @@
   "id": 101,
   "idCard": 1,
   "idCreator": 1,
-  "idEventAllPlayerComa": 0,
+  "idEventAllPlayerComa": 7,
   "idEventEndGame": 1,
   "idImage": 0,
   "idLocationAllPlayerComa": 1,
@@ -6040,6 +6074,56 @@
       "longText": "Un grandissimo e sconfinato deserto.<br /><br />Meglio starci alla larga e tornare i luoghi più piacevoli.",
       "shortText": "Un grandissimo e sconfinato deserto.<br /><br />Meglio starci alla larga e tornare i luoghi più piacevoli.",
       "uuid": "3aac9ecf-b4bd-4feb-86e6-68d1d053ce4c"
+    },
+    {
+      "id": 236,
+      "idCreator": 1,
+      "idText": 236,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "All in coma",
+      "shortText": "All in coma",
+      "uuid": "5c93fd59-d208-4615-8f86-d49386d572e7"
+    },
+    {
+      "id": 237,
+      "idCreator": 1,
+      "idText": 237,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Your life reached zero.<br /><br />When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs.<br /><br />This is a tutorial, and the game restarts from a safe location so players can sleep and recover health and energy.",
+      "shortText": "Your life reached zero.<br /><br />When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs.<br /><br />This is a tutorial, and the game restarts from a safe location so players can sleep and recover health and energy.",
+      "uuid": "33e40c99-a061-4c30-b87c-45d5348404d1"
+    },
+    {
+      "id": 237,
+      "idCreator": 1,
+      "idText": 237,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Quanto tutti i giocatori sono con zero punti vitalità cadono in coma. Quanto tutti i giocatori di una partita sono in coma accade un evento speciale. Questo è un tutorial e la partita riparte da un luogo sicuro così i giocatori possono dormire e recuperare vitalità ed energia.",
+      "shortText": "Quanto tutti i giocatori sono con zero punti vitalità cadono in coma. Quanto tutti i giocatori di una partita sono in coma accade un evento speciale. Questo è un tutorial e la partita riparte da un luogo sicuro così i giocatori possono dormire e recuperare vitalità ed energia.",
+      "uuid": "a734bd7d-0add-4f84-8d39-bfffdfb0b3c6"
+    },
+    {
+      "id": 238,
+      "idCreator": 1,
+      "idText": 238,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Joachim Schnürle",
+      "shortText": "Joachim Schnürle",
+      "uuid": "df237ece-19c1-4ad8-ae70-3aba6972b5c9"
+    },
+    {
+      "id": 238,
+      "idCreator": 1,
+      "idText": 238,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "92088bef-40c1-46d0-aa05-efcc2ab59595"
     }
   ],
   "title": "Paths Tutorial",
