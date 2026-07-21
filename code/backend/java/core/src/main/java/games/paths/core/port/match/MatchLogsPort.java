@@ -20,6 +20,12 @@ public interface MatchLogsPort {
     /** Hard cap on the page size, mirroring the admin match list. */
     int MAX_LIMIT = 200;
 
+    /** Timeline order: oldest entry first. The default when no {@code order} is given. */
+    String ORDER_ASC = "asc";
+
+    /** Timeline order: newest entry first. */
+    String ORDER_DESC = "desc";
+
     /**
      * Returns one page of the consolidated log for the given match. Checks ownership —
      * only the match creator can call this.
@@ -27,11 +33,12 @@ public interface MatchLogsPort {
      * @param lang   language used to resolve the entry cards; defaults to {@code en}
      * @param limit  page size, clamped to [1, {@value #MAX_LIMIT}]; {@code null} → {@value #DEFAULT_LIMIT}
      * @param cursor opaque token from a previous {@code nextCursor}; {@code null} → first page
+     * @param order  {@value #ORDER_DESC} for newest first; anything else → {@value #ORDER_ASC}
      * @throws games.paths.core.port.match.TurnCyclePort.TurnCycleException
      *         with MATCH_NOT_FOUND when the match is unknown or not owned by userUuid.
      */
     MatchLogsResult getMatchLogs(String uuidMatch, String userUuid, String lang,
-                                 Integer limit, String cursor);
+                                 Integer limit, String cursor, String order);
 
     /**
      * Admin variant — same payload, no ownership check.
@@ -40,18 +47,20 @@ public interface MatchLogsPort {
      *         with MATCH_NOT_FOUND when the match is unknown.
      */
     MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
-                                         Integer limit, String cursor);
+                                         Integer limit, String cursor, String order);
 
     /**
      * One page of the consolidated log.
      *
-     * @param logs       the entries on this page, oldest first
+     * @param logs       the entries on this page — oldest first in {@value #ORDER_ASC},
+     *                   newest first in {@value #ORDER_DESC}
      * @param nextCursor token to fetch the following page, or {@code null} on the last page
      * @param limit      the effective (clamped) page size that produced this page
      * @param total      the total number of entries in the whole timeline
+     * @param order      the effective order this page was cut with
      */
     record MatchLogsResult(String matchUuid, int currentClock, List<LogEntry> logs,
-                           String nextCursor, int limit, int total) {}
+                           String nextCursor, int limit, int total, String order) {}
 
     /**
      * Single log entry. All fields except {@code type} and {@code timestamp} are nullable;

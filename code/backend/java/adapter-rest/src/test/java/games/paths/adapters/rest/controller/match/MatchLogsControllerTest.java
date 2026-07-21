@@ -42,14 +42,14 @@ class MatchLogsControllerTest {
 
     @Test
     void logs_returns200WithTheConsolidatedTimeline() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null)).thenReturn(
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
                 new MatchLogsResult("m1", 3, List.of(
                         new LogEntry("WEATHER", 1, "2024-01-01T10:00:00Z", 7L,
                                 null, null, null, null, null, null, null, 300, card("Storm")),
                         new LogEntry("MOVEMENT", null, "2024-01-01T11:00:00Z", null,
                                 10L, "char-uuid", "Ranger", 100L, 200L, 4, null,
                                 400, card("Dark Forest"))),
-                        null, 50, 2));
+                        null, 50, 2, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
                 .andExpect(status().isOk())
@@ -72,21 +72,22 @@ class MatchLogsControllerTest {
     }
 
     @Test
-    void logs_passesLangLimitAndCursorThroughToThePort() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", "it", 10, "cur"))
-                .thenReturn(new MatchLogsResult("m1", 0, List.of(), "next", 10, 30));
+    void logs_passesLangLimitCursorAndOrderThroughToThePort() throws Exception {
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", "it", 10, "cur", "desc"))
+                .thenReturn(new MatchLogsResult("m1", 0, List.of(), "next", 10, 30, "desc"));
 
-        mockMvc.perform(authed(get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur")))
+        mockMvc.perform(authed(get("/api/matches/m1/logs?lang=it&limit=10&cursor=cur&order=desc")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nextCursor").value("next"))
                 .andExpect(jsonPath("$.limit").value(10))
-                .andExpect(jsonPath("$.total").value(30));
+                .andExpect(jsonPath("$.total").value(30))
+                .andExpect(jsonPath("$.order").value("desc"));
     }
 
     @Test
     void logs_returns200WithEmptyListWhenNothingLoggedYet() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null))
-                .thenReturn(new MatchLogsResult("m1", 0, List.of(), null, 50, 0));
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null))
+                .thenReturn(new MatchLogsResult("m1", 0, List.of(), null, 50, 0, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
                 .andExpect(status().isOk())
@@ -103,7 +104,7 @@ class MatchLogsControllerTest {
 
     @Test
     void logs_returns404WhenTheMatchIsUnknownOrNotOwned() throws Exception {
-        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null)).thenThrow(
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenThrow(
                 new TurnCycleException(TurnCycleException.Code.MATCH_NOT_FOUND,
                         "Match not found or not accessible"));
 

@@ -122,18 +122,28 @@ describe('matchApi', () => {
     expect(res.locations).toHaveLength(1)
   })
 
-  it('getMatchLogs defaults to empty params', async () => {
+  it('getMatchLogs asks for the newest entries first by default', async () => {
     mockGet.mockResolvedValue({ data: { logs: [], nextCursor: null } })
     await matchApi.getMatchLogs('m1')
-    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', { params: {} })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
+      params: { order: 'desc' },
+    })
   })
 
   it('getMatchLogs forwards cursor pagination params', async () => {
     mockGet.mockResolvedValue({ data: { logs: [{ type: 'WEATHER' }], nextCursor: 'n1', total: 1 } })
     const res = await matchApi.getMatchLogs('m1', { limit: 10, cursor: 'c9', lang: 'en' })
     expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
-      params: { limit: 10, cursor: 'c9', lang: 'en' },
+      params: { order: 'desc', limit: 10, cursor: 'c9', lang: 'en' },
     })
     expect(res.nextCursor).toBe('n1')
+  })
+
+  it('getMatchLogs lets the caller override the order', async () => {
+    mockGet.mockResolvedValue({ data: { logs: [], nextCursor: null } })
+    await matchApi.getMatchLogs('m1', { order: 'asc' })
+    expect(mockGet).toHaveBeenCalledWith('/api/admin/matches/m1/logs', {
+      params: { order: 'asc' },
+    })
   })
 })

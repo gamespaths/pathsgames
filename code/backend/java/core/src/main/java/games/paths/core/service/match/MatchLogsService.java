@@ -17,12 +17,14 @@ import games.paths.core.port.story.ContentQueryPort;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /**
  * MatchLogsService - assembles the consolidated match log from the four append-only
- * log tables (Step 28.7). Returns a timeline sorted by timestamp ascending.
+ * log tables (Step 28.7). Returns a timeline sorted by timestamp ascending, or newest
+ * first when the caller asks for {@code order=desc}.
  *
  * <p>Log types assembled:
  * <ul>
@@ -69,7 +71,7 @@ public class MatchLogsService implements MatchLogsPort {
 
     @Override
     public MatchLogsResult getMatchLogs(String uuidMatch, String userUuid, String lang,
-                                        Integer limit, String cursor) {
+                                        Integer limit, String cursor, String order) {
         MatchSummary match = requireMatch(uuidMatch);
         long userId = userAccessPort.findByUuid(userUuid)
                 .map(UserAccessPort.UserView::id)
@@ -77,20 +79,31 @@ public class MatchLogsService implements MatchLogsPort {
         if (match.idUserCreator() != userId) {
             throw notFound();
         }
-        return buildResult(match, lang, limit, cursor);
+        return buildResult(match, lang, limit, cursor, order);
     }
 
     @Override
     public MatchLogsResult getMatchLogsForAdmin(String uuidMatch, String lang,
-                                                Integer limit, String cursor) {
-        return buildResult(requireMatch(uuidMatch), lang, limit, cursor);
+                                                Integer limit, String cursor, String order) {
+        return buildResult(requireMatch(uuidMatch), lang, limit, cursor, order);
     }
 
     // ── internal ─────────────────────────────────────────────────────────────
 
+    /** Only {@code desc} flips the timeline; anything else (null, junk) keeps {@code asc}. */
+    private static String normalizeOrder(String order) {
+        return order != null && ORDER_DESC.equalsIgnoreCase(order.trim()) ? ORDER_DESC : ORDER_ASC;
+    }
+
     private MatchLogsResult buildResult(MatchSummary match, String lang,
-                                        Integer limit, String cursor) {
+                                        Integer limit, String cursor, String order) {
         List<LogEntry> all = assembleTimeline(match);
+        String effectiveOrder = normalizeOrder(order);
+        // Reversed before the page is cut, so the cursor keeps walking away from the first
+        // entry: with `desc` the following pages move towards the older entries.
+        if (ORDER_DESC.equals(effectiveOrder)) {
+            Collections.reverse(all);
+        }
 
         int effectiveLimit = clampLimit(limit);
         int offset = decodeCursor(cursor);
@@ -102,7 +115,7 @@ public class MatchLogsService implements MatchLogsPort {
         String nextCursor = end < all.size() ? encodeCursor(end) : null;
 
         return new MatchLogsResult(match.uuid(), match.currentClock(), page,
-                nextCursor, effectiveLimit, all.size());
+                nextCursor, effectiveLimit, all.size(), effectiveOrder);
     }
 
     /** The whole timeline, sorted by timestamp ascending, with no enrichment yet. */

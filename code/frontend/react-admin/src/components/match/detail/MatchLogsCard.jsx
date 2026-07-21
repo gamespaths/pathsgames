@@ -6,7 +6,8 @@ import ErrorAlert from '../../common/ErrorAlert'
  * MatchLogsCard — Step 28.7 consolidated log timeline panel.
  *
  * Shows the entries returned by GET /api/admin/matches/:uuid/logs, rendered as a
- * single table sorted by timestamp ascending. Each entry is colour-coded by type
+ * single table, newest entry first (the API is called with order=desc since
+ * v0.30.3). Each entry is colour-coded by type
  * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY).
  *
  * v0.28.7 — the endpoint is cursor-paginated: `entries` accumulates the pages

@@ -23,6 +23,7 @@ public class MatchLogsResponse {
     private String nextCursor;
     private int limit;
     private int total;
+    private String order;
 
     public static MatchLogsResponse fromModel(MatchLogsPort.MatchLogsResult model) {
         MatchLogsResponse r = new MatchLogsResponse();
@@ -31,6 +32,7 @@ public class MatchLogsResponse {
         r.nextCursor = model.nextCursor();
         r.limit = model.limit();
         r.total = model.total();
+        r.order = model.order();
         if (model.logs() != null) {
             for (LogEntry e : model.logs()) {
                 r.logs.add(LogEntryDto.fromModel(e));
@@ -45,6 +47,7 @@ public class MatchLogsResponse {
     public String getNextCursor() { return nextCursor; }
     public int getLimit() { return limit; }
     public int getTotal() { return total; }
+    public String getOrder() { return order; }
 
     /** Single entry in the log timeline. */
     public static class LogEntryDto {

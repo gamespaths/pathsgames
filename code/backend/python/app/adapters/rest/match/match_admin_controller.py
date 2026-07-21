@@ -171,15 +171,18 @@ class MatchAdminController:
         return JSONResponse(status_code=200, content=_locations_to_camel(uuid_match, locations))
 
     def get_admin_match_logs(self, uuid_match: str, lang: str = "en",
-                             limit: Optional[int] = None, cursor: Optional[str] = None):
+                             limit: Optional[int] = None, cursor: Optional[str] = None,
+                             order: Optional[str] = None):
         """GET /api/admin/matches/{uuid}/logs — consolidated log timeline (Step 28.7).
         No ownership check; served on admin port 8044.
-        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
+        ?order=asc (default) starts from the oldest entry, ?order=desc from the newest."""
         if not uuid_match or not uuid_match.strip():
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit, cursor)
+        result = self.match_logs_service.get_match_logs_for_admin(uuid_match, lang, limit,
+                                                                  cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", f"Match not found: {uuid_match}", 404)
         return JSONResponse(status_code=200, content=result)

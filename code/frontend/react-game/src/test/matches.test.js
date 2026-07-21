@@ -5,7 +5,7 @@ import {
   joinMatch, getMatchPlayers, getCharacter,
   startMatch, passTurn, getTurnSequence,
   getMatchClock, sleepCharacter,
-  startMovement, getMatchLocations,
+  startMovement, getMatchLocations, getMatchLogs,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -189,6 +189,28 @@ describe('matches api', () => {
       const res = await getMatchLocations('m1', 'tok')
       expect(get).toHaveBeenCalledWith('/api/match/m1/locations', expect.any(Object))
       expect(res.locations).toEqual([{ idLocation: 1 }])
+    })
+
+    it('getMatchLogs asks for the newest entries first by default', async () => {
+      get.mockResolvedValue({ data: { logs: [], nextCursor: null } })
+      await getMatchLogs('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { order: 'desc' } }))
+    })
+
+    it('getMatchLogs forwards limit, cursor and lang alongside the order', async () => {
+      get.mockResolvedValue({ data: { logs: [], nextCursor: 'n1' } })
+      const res = await getMatchLogs('m1', 'tok', { limit: 10, cursor: 'c9', lang: 'it' })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { limit: 10, cursor: 'c9', lang: 'it', order: 'desc' } }))
+      expect(res.nextCursor).toBe('n1')
+    })
+
+    it('getMatchLogs lets the caller ask for the oldest entries first', async () => {
+      get.mockResolvedValue({ data: { logs: [] } })
+      await getMatchLogs('m1', 'tok', { order: 'asc' })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.objectContaining({ params: { order: 'asc' } }))
     })
   })
 })

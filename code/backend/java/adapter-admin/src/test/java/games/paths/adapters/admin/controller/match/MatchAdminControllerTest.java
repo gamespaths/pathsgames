@@ -330,12 +330,12 @@ class MatchAdminControllerTest {
 
     @Test
     void getAdminMatchLogs_returns200WithTheTimeline() throws Exception {
-        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null)).thenReturn(
+        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null, null)).thenReturn(
                 new games.paths.core.port.match.MatchLogsPort.MatchLogsResult("m1", 2, List.of(
                         new games.paths.core.port.match.MatchLogsPort.LogEntry(
                                 "SLEEP", 1, "2024-01-01T10:00:00Z", null, 10L,
                                 "char-uuid", "Ranger", null, null, null, null, null, null)),
-                        null, 50, 1));
+                        null, 50, 1, "asc"));
 
         mockMvc.perform(get("/api/admin/matches/m1/logs"))
                 .andExpect(status().isOk())
@@ -348,21 +348,22 @@ class MatchAdminControllerTest {
     }
 
     @Test
-    void getAdminMatchLogs_passesLangLimitAndCursorThroughToThePort() throws Exception {
-        when(matchLogsPort.getMatchLogsForAdmin("m1", "it", 10, "cur")).thenReturn(
+    void getAdminMatchLogs_passesLangLimitCursorAndOrderThroughToThePort() throws Exception {
+        when(matchLogsPort.getMatchLogsForAdmin("m1", "it", 10, "cur", "desc")).thenReturn(
                 new games.paths.core.port.match.MatchLogsPort.MatchLogsResult(
-                        "m1", 2, List.of(), "next", 10, 42));
+                        "m1", 2, List.of(), "next", 10, 42, "desc"));
 
-        mockMvc.perform(get("/api/admin/matches/m1/logs?lang=it&limit=10&cursor=cur"))
+        mockMvc.perform(get("/api/admin/matches/m1/logs?lang=it&limit=10&cursor=cur&order=desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nextCursor").value("next"))
                 .andExpect(jsonPath("$.limit").value(10))
-                .andExpect(jsonPath("$.total").value(42));
+                .andExpect(jsonPath("$.total").value(42))
+                .andExpect(jsonPath("$.order").value("desc"));
     }
 
     @Test
     void getAdminMatchLogs_returns404WhenTheMatchIsUnknown() throws Exception {
-        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null)).thenThrow(
+        when(matchLogsPort.getMatchLogsForAdmin("m1", null, null, null, null)).thenThrow(
                 new games.paths.core.port.match.TurnCyclePort.TurnCycleException(
                         games.paths.core.port.match.TurnCyclePort.TurnCycleException.Code.MATCH_NOT_FOUND,
                         "Match not found"));

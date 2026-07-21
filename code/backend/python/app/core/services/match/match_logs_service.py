@@ -1,7 +1,10 @@
 """Step 28.7 — match logs service (Python backend).
 
 Returns a consolidated timeline of all logged events for a match:
-WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY. Sorted by timestamp ascending.
+WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY. Sorted by timestamp ascending
+by default; `order=desc` flips the whole timeline (newest entry first) before the
+page is cut, so the cursor still walks away from the first returned entry. Entries
+with no timestamp sit at the end in `asc`, hence at the front in `desc`.
 
 v0.28.7 — the timeline is cursor-paginated (opaque base64 offset token, same envelope
 convention as the paginated admin match list) and the entries on the returned page are
@@ -39,6 +42,15 @@ _MSG_SLEEP = "ACTION_SLEEP"
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
 _CURSOR_PREFIX = "offset:"
+ORDER_ASC = "asc"
+ORDER_DESC = "desc"
+
+
+def normalize_order(order: Optional[str]) -> str:
+    """Only `desc` flips the timeline; anything else (None, junk) keeps `asc`."""
+    if order and str(order).strip().lower() == ORDER_DESC:
+        return ORDER_DESC
+    return ORDER_ASC
 
 
 def clamp_limit(limit: Optional[int]) -> int:
@@ -75,8 +87,8 @@ class MatchLogsService:
         self.content_query_service = content_query_service
 
     def get_match_logs(self, uuid_match: str, user_uuid: str, lang: str = "en",
-                       limit: Optional[int] = None,
-                       cursor: Optional[str] = None) -> Optional[Dict[str, Any]]:
+                       limit: Optional[int] = None, cursor: Optional[str] = None,
+                       order: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Returns one page of logs if the user owns the match, else None (→ 404)."""
         with self.session_factory() as session:
             match = (session.query(GamingMatchEntity)
@@ -91,23 +103,28 @@ class MatchLogsService:
                     return None
             except Exception:
                 return None
-            return self._build_result(session, match, lang, limit, cursor)
+            return self._build_result(session, match, lang, limit, cursor, order)
 
     def get_match_logs_for_admin(self, uuid_match: str, lang: str = "en",
-                                 limit: Optional[int] = None,
-                                 cursor: Optional[str] = None) -> Optional[Dict[str, Any]]:
+                                 limit: Optional[int] = None, cursor: Optional[str] = None,
+                                 order: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Admin variant — no ownership check. Returns None when match is unknown."""
         with self.session_factory() as session:
             match = (session.query(GamingMatchEntity)
                      .filter(GamingMatchEntity.uuid == uuid_match).first())
             if match is None:
                 return None
-            return self._build_result(session, match, lang, limit, cursor)
+            return self._build_result(session, match, lang, limit, cursor, order)
 
     # ── internal ─────────────────────────────────────────────────────────────
 
-    def _build_result(self, session, match, lang, limit, cursor) -> Dict[str, Any]:
+    def _build_result(self, session, match, lang, limit, cursor, order=None) -> Dict[str, Any]:
         entries = self._assemble_timeline(session, match)
+        effective_order = normalize_order(order)
+        # Reversed before the page is cut, so the cursor keeps walking away from the
+        # first entry: with `desc` "load more" moves towards the older entries.
+        if effective_order == ORDER_DESC:
+            entries.reverse()
 
         effective_limit = clamp_limit(limit)
         offset = min(decode_cursor(cursor), len(entries))
@@ -121,6 +138,7 @@ class MatchLogsService:
             "nextCursor": encode_cursor(end) if end < len(entries) else None,
             "limit": effective_limit,
             "total": len(entries),
+            "order": effective_order,
         }
 
     def _assemble_timeline(self, session, match) -> List[Dict[str, Any]]:

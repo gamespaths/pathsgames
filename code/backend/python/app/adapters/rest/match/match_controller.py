@@ -292,9 +292,11 @@ class MatchController:
         return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
 
     def get_match_logs(self, uuid_match: str, request: Request, lang: str = "en",
-                       limit: Optional[int] = None, cursor: Optional[str] = None):
+                       limit: Optional[int] = None, cursor: Optional[str] = None,
+                       order: Optional[str] = None):
         """GET /api/matches/{uuid_match}/logs — Step 28.7 consolidated log timeline.
-        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=."""
+        v0.28.7 — cursor-paginated (?limit=&cursor=) with cards resolved in ?lang=.
+        ?order=asc (default) starts from the oldest entry, ?order=desc from the newest."""
         user_uuid = getattr(request.state, "user_uuid", None)
         if not user_uuid:
             return _error("UNAUTHENTICATED", "User identity is missing", 401)
@@ -302,7 +304,8 @@ class MatchController:
             return _error("INVALID_INPUT", "Match uuid is required", 400)
         if self.match_logs_service is None:
             return _error("NOT_IMPLEMENTED", "Match logs service not wired", 501)
-        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit, cursor)
+        result = self.match_logs_service.get_match_logs(uuid_match, user_uuid, lang, limit,
+                                                        cursor, order)
         if result is None:
             return _error("MATCH_NOT_FOUND", "Match not found or not accessible", 404)
         return JSONResponse(status_code=200, content=result)

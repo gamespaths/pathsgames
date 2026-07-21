@@ -16,7 +16,9 @@ import { getMatchLogs } from '@/api/matches'
  * CLOCK_ADVANCE entries are filtered out: they carry no card and no actor, so
  * they would only add empty tiles to the timeline.
  *
- * The endpoint is cursor-paginated; "load more" appends the next page.
+ * The endpoint is cursor-paginated; "load more" appends the next page. Since
+ * v0.30.3 the timeline arrives newest-first (order=desc), so the most recent entry
+ * opens the page and "load more" walks back into the past.
  *
  * Used on the book's RIGHT page, next to the story card on the left:
  *   - GuestUserModal — when (i) is clicked on a MatchCard;

@@ -1543,6 +1543,15 @@ def _ms_to_iso(ts_ms):
 LOGS_DEFAULT_LIMIT = 50
 LOGS_MAX_LIMIT = 200
 _CURSOR_PREFIX = 'offset:'
+LOGS_ORDER_ASC = 'asc'
+LOGS_ORDER_DESC = 'desc'
+
+
+def _normalize_logs_order(order):
+    """Only `desc` flips the timeline; anything else (None, junk) keeps `asc`."""
+    if order and str(order).strip().lower() == LOGS_ORDER_DESC:
+        return LOGS_ORDER_DESC
+    return LOGS_ORDER_ASC
 
 
 def _clamp_logs_limit(limit):
@@ -1678,9 +1687,16 @@ def _enrich_match_logs(page, match, match_uuid, lang):
     return out
 
 
-def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None):
-    """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7)."""
+def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None, order=None):
+    """One page of the consolidated log (Step 28.7, paginated + enriched in v0.28.7).
+
+    `order=desc` flips the whole timeline (newest first) before the page is cut, so the
+    cursor keeps walking away from the first returned entry — with `desc` "load more"
+    moves towards the older entries."""
     entries = _assemble_match_logs(match, match_uuid)
+    effective_order = _normalize_logs_order(order)
+    if effective_order == LOGS_ORDER_DESC:
+        entries.reverse()
 
     effective_limit = _clamp_logs_limit(limit)
     offset = min(_decode_logs_cursor(cursor), len(entries))
@@ -1694,10 +1710,11 @@ def _build_match_logs(match, match_uuid, lang='en', limit=None, cursor=None):
         "nextCursor": _encode_logs_cursor(end) if end < len(entries) else None,
         "limit": effective_limit,
         "total": len(entries),
+        "order": effective_order,
     }
 
 
-def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None):
+def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None, order=None):
     """GET /api/matches/{uuid}/logs — consolidated log timeline, owner-only (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
@@ -1707,17 +1724,17 @@ def _get_match_logs(user, match_uuid, lang='en', limit=None, cursor=None):
     # Owner check
     if user is None or match.get('userCreatorUuid') != user.get('uuid'):
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor, order))
 
 
-def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None):
+def _get_admin_match_logs(match_uuid, lang='en', limit=None, cursor=None, order=None):
     """GET /api/admin/matches/{uuid}/logs — admin log timeline, no ownership check (Step 28.7)."""
     if not match_uuid or not match_uuid.strip():
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
     match = db_utils.get_item(f'MATCH#{match_uuid}')
     if match is None:
         return _err(404, 'MATCH_NOT_FOUND', f'Match not found: {match_uuid}')
-    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor))
+    return _ok(_build_match_logs(match, match_uuid, lang, limit, cursor, order))
 
 
 def _get_admin_match_weather(match_uuid):
@@ -2559,7 +2576,7 @@ def lambda_handler(event, context):
         if path.endswith('/logs') and method == 'GET':
             qs = (event.get('queryStringParameters') or {})
             return _get_admin_match_logs(match_uuid, qs.get('lang') or 'en',
-                                         qs.get('limit'), qs.get('cursor'))
+                                         qs.get('limit'), qs.get('cursor'), qs.get('order'))
         if path.endswith('/locations') and method == 'GET':
             lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
             return _get_admin_locations(match_uuid, lang)
@@ -2627,7 +2644,7 @@ def lambda_handler(event, context):
             match_uuid = segments[3] if len(segments) > 4 else ''
         qs = (event.get('queryStringParameters') or {})
         return _get_match_logs(user, match_uuid, qs.get('lang') or 'en',
-                               qs.get('limit'), qs.get('cursor'))
+                               qs.get('limit'), qs.get('cursor'), qs.get('order'))
 
     if path.startswith('/api/match/') and path.endswith('/info') and method == 'GET':
         params = (event.get('pathParameters') or {})

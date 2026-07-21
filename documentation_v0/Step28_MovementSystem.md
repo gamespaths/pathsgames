@@ -1815,8 +1815,8 @@ character names**, using the same envelope convention as the paginated admin mat
 
 | Port | Method | Path | Auth | Description |
 |------|--------|------|------|-------------|
-| 8042 | GET | `/api/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Bearer (owner-only) | Match log timeline, one page |
-| 8044 | GET | `/api/admin/matches/{uuidMatch}/logs?limit=&cursor=&lang=` | Admin token | Admin log timeline, one page (no ownership check) |
+| 8042 | GET | `/api/matches/{uuidMatch}/logs?limit=&cursor=&lang=&order=` | Bearer (owner-only) | Match log timeline, one page |
+| 8044 | GET | `/api/admin/matches/{uuidMatch}/logs?limit=&cursor=&lang=&order=` | Admin token | Admin log timeline, one page (no ownership check) |
 
 Query params (all optional, both endpoints):
 - `limit` — page size, default `50`, clamped to `[1, 200]`.
@@ -1824,6 +1824,13 @@ Query params (all optional, both endpoints):
   page. An unreadable cursor silently restarts from the first page; a cursor past the end
   of the timeline returns an empty page (never an error).
 - `lang` — language used to resolve entry cards, default `en`.
+- `order` — `asc` | `desc`, default `asc` (v0.30.3). Case-insensitive, trimmed; any unknown
+  or missing value falls back to `asc`. The timeline is reversed **before** the page is cut,
+  so a `desc` cursor keeps walking away from the first entry the caller already saw — "load
+  more" under `desc` moves towards older events. Entries without a timestamp sort last in
+  `asc`, so they appear first in `desc`. The reversal is a list `reverse()`, not a
+  descending sort, so entries sharing an identical timestamp (weather/movement/clock written
+  in the same instant) are still genuinely inverted, not left in place.
 
 ## Response Shape
 
@@ -1847,14 +1854,16 @@ Query params (all optional, both endpoints):
   ],
   "nextCursor": "b2Zmc2V0OjUw",
   "limit": 50,
-  "total": 73
+  "total": 73,
+  "order": "asc"
 }
 ```
 
-All entries are sorted by `timestamp` ascending. `nextCursor` is `null` on the last page.
-`total` is the size of the whole timeline (not just the returned page); `limit` is the
-effective (clamped) page size that produced the page. Together they let the caller show
-progress ("Showing N of `total`").
+Entries are sorted by `timestamp`, direction controlled by `order` (default ascending, see
+below — v0.30.3). `nextCursor` is `null` on the last page. `total` is the size of the whole
+timeline (not just the returned page); `limit` is the effective (clamped) page size that
+produced the page; `order` (v0.30.3) is the effective order the page was cut with. Together
+they let the caller show progress ("Showing N of `total`").
 
 ### Card and character enrichment (v0.28.7)
 
@@ -1867,6 +1876,18 @@ Enrichment lookups run **once per page** (never once per entry):
 - `characterName` is the `title` of the character template's card, resolved in `lang`.
 - Any field an entry type doesn't apply to stays `null`/absent (unchanged from the first
   cut of this feature).
+
+### Chronological order (v0.30.3)
+
+Both endpoints accept `order=asc|desc` (default `asc`, retro-compatible with the original
+behaviour). The reversal happens **before** pagination cuts the page, so `nextCursor` under
+`desc` walks towards older events rather than re-visiting the same tail; the response's
+`order` field always reflects the order actually used to cut the returned page.
+`react-game`'s `src/api/matches.js` `getMatchLogs` and `react-admin`'s `src/api/matchApi.js`
+`getMatchLogs` both default to
+`order: 'desc'` on the client side (most-recent-first timelines in the game log viewer and
+the admin console), while the server-side default stays `asc` for any caller that omits the
+parameter.
 
 ## Log Data Sources
 
@@ -1948,6 +1969,17 @@ Sleep actions were not previously logged. This version adds:
 | Unit Test | `test_match_logs_service.py` (Python) + matching controller/admin-controller test additions, extended for pagination/enrichment |
 | Unit Test | `test_match_handler_logs.py` (AWS), extended for pagination/enrichment |
 | Unit Test | `MatchDetailPage.test.jsx` (react-admin) — coverage for "Load more", Card/Character columns, error state |
+| Java Core | `MatchLogsPort` — v0.30.3 adds `ORDER_ASC`/`ORDER_DESC` constants, `order` param on `getMatchLogs`/`getMatchLogsForAdmin`, `order` field on `MatchLogsResult` |
+| Java Core | `MatchLogsService` — v0.30.3 adds `normalizeOrder()` (case-insensitive/trim, unknown → `asc`) and reverses the assembled timeline with `Collections.reverse()` before pagination |
+| Java REST | `MatchLogsController` / Java Admin `MatchAdminController` — v0.30.3 forward `@RequestParam order` |
+| Java REST | `MatchLogsResponse` — v0.30.3 gains `order` field/getter |
+| OpenAPI | `v0.28.7-match-logs-api.yaml` — v0.30.3 adds `order` query param (enum `asc`/`desc`, default `asc`) on both endpoints + `order` property on `MatchLogsResponse` |
+| Python | `match_logs_service.py` — v0.30.3 adds `normalize_order()`, `ORDER_ASC`/`ORDER_DESC` constants, reverse step in `_build_result` |
+| Python | `match_controller.py` / `match_admin_controller.py` — v0.30.3 forward `order` query param |
+| AWS | `lambda/match/handler.py` — v0.30.3 adds `_normalize_logs_order()`, `LOGS_ORDER_ASC`/`LOGS_ORDER_DESC`, reverse step in `_build_match_logs`, `order` in the payload; both routes read `qs.get('order')` |
+| react-game | `src/api/matches.js` — v0.30.3 `getMatchLogs(uuid, token, { limit, cursor, lang, order = 'desc' })` |
+| react-admin | `src/api/matchApi.js` — v0.30.3 `getMatchLogs(uuid, params)` merges `{ order: 'desc', ...params }` |
+| Unit Test | v0.30.3: `MatchLogsServiceTest` nested `order=asc|desc` group (7 tests), `MatchLogsControllerTest`, `MatchAdminControllerTest` (Java); +6 tests in `test_match_logs_service.py` + controller tests (Python, 978 pass total); +6 tests in `tests/test_match_handler_logs.py` (AWS, 603 pass total); new tests in `src/test/matches.test.js` (react-game); updated/new tests in `src/tests/api/matchApi.test.js` (react-admin) |
 | Java DB (seed) | `adapter-postgres/.../dev/R__insert_dev_test_data.sql` — collateral fix, see below |
 
 ## Collateral fix: PostgreSQL seed weather/location cards had no title
@@ -2075,7 +2107,7 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
 
 # Version Control
 
-- **Document Version**: 0.28.7
+- **Document Version**: 0.30.3
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2090,8 +2122,9 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
   | 0.28.7 | Match Logs API **extended** (still v0.28.7, no version bump): both endpoints are now **cursor-paginated** (`?limit=&cursor=&lang=`, same opaque `offset:<n>` base64 token and `{nextCursor, limit, total}` envelope as `GET /api/admin/matches`) and their entries are **enriched** — WEATHER carries its own `idCard`/`card`, MOVEMENT carries the destination location's `idCard`/`card` plus `characterUuid`/`characterName`, SLEEP/RECOVERY carry `characterUuid`/`characterName`. Java: `MatchLogsPort`/`MatchLogsStorePort`/`MatchLogsService`/`CoreConfig` gain the pagination + lookup surface (`MatchLogsService` now depends on `ContentQueryPort`; character template PK is `id_tipo`). Python: `match_logs_service.py` gains `clamp_limit`/`encode_cursor`/`decode_cursor` and a `content_query_service` dependency, wired in `launcher.py`. AWS: `_build_match_logs` split into `_assemble_match_logs` + `_enrich_match_logs` + `_clamp_logs_limit`/`_encode_logs_cursor`/`_decode_logs_cursor`; AWS gap narrows (still no RECOVERY, still no numeric `idCharacterMatch`, but now has card/character enrichment). react-admin: `MatchLogsCard.jsx` gains **Card** and **Character** columns plus a "Load more" button (same accumulate-pages pattern as `MatchesPage`); `getMatchLogs(uuid, params)` takes `{ limit, cursor, lang }`. Collateral PostgreSQL seed fix: weather cards `90010`-`90012`/`91010`-`91012` and tutorial location cards `90002`/`90003` resolved with a null title (missing `list_texts` rows `800`-`802` and missing `id_text_title` on the location cards) — fixed in `R__insert_dev_test_data.sql`; this also fixed pre-existing null titles on the weather and locations APIs on PostgreSQL. OpenAPI `v0.28.7-match-logs-api.yaml` updated. Robot suite `29_match_logs/match_logs.robot` 11 → 16 tests (card/character/pagination coverage); `Get Match Logs`/`Get Admin Match Logs` keywords gain `limit`/`cursor`/`lang` via `Build Logs Params`. Test status: `mvn clean test` BUILD SUCCESS, Python 749 pass, AWS (unit) 436 pass, react-admin (vitest) 437 pass, Robot LOCAL_JAVA / LOCAL_JAVA_POSTGRES / LOCAL_PYTHON 437/437. | July 12, 2026 |
   | 0.29.1 | Movement availability verdict on `GET /api/match/{uuid}/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, mirroring the event verdict pattern (Step 29 §4). New pure checker (`MovementAvailabilityChecker.java` / `movement_availability.py` / AWS `lambda/match/movements.py`) shared by `/info` and `POST movements/start`, so the two can never diverge; same 8 codes and same check order as §3. `MatchQueryService` (and Python/AWS counterparts) load the check context once per request, no query per neighbor. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo` schema updated. No schema change. | July 13, 2026 |
   | 0.29.3 | Cross-reference only (full documentation in Step29): forced movement via `list_events_effects.id_location` bypasses this entire document's check procedure (§3 adjacency, §4 energy cost, the 0.29.1 availability verdict, location-capacity) and writes a cost-0 `log_movements` row per move, keeping the §6.2 timeline and §14/§15 fog-of-war visited set consistent. See [Step29_NormalEvents.md — "Forced movement (v0.29.3)"](./Step29_NormalEvents.md). | July 17, 2026 |
+  | 0.30.3 | Match Logs API gains an `order` query param (`asc`/`desc`, default `asc`, retro-compatible) on both `GET /api/matches/{uuid}/logs` and `GET /api/admin/matches/{uuid}/logs`; case-insensitive/trimmed, unknown values fall back to `asc`. The timeline is reversed with a list `reverse()` (not a descending sort) **before** pagination, so same-timestamp entries are genuinely inverted and the `desc` cursor keeps walking towards older events. Response gains an `order` field reporting the effective order used to cut the page. Java: `MatchLogsPort` (`ORDER_ASC`/`ORDER_DESC`, `order` param, `MatchLogsResult.order`), `MatchLogsService.normalizeOrder()` + `Collections.reverse()`, `MatchLogsController`/`MatchAdminController` `@RequestParam order`, `MatchLogsResponse.order`; OpenAPI `v0.28.7-match-logs-api.yaml` updated. Python: `match_logs_service.py` `normalize_order()` + reverse in `_build_result`, both controllers forward `order`. AWS: `handler.py` `_normalize_logs_order()` + reverse in `_build_match_logs`, both routes read `qs.get('order')`. Frontend clients now request `desc` by default (most-recent-first): `react-game/src/api/matches.js` `getMatchLogs(..., { order = 'desc' })`, `react-admin/src/api/matchApi.js` `getMatchLogs` merges `{ order: 'desc', ...params }`; the server-side default for callers that omit the param stays `asc`. Test status: Java `MatchLogsServiceTest` +7 (`order=asc|desc` nested group) plus controller tests, Python +6 (978 pass), AWS +6 (`tests/test_match_handler_logs.py`, 603 pass), react-game new tests in `src/test/matches.test.js`, react-admin updated `src/tests/api/matchApi.test.js`. | July 21, 2026 |
 
-- **Last Updated**: July 17, 2026
+- **Last Updated**: July 21, 2026
 - **Status**: Complete
 
 # < Paths Games />

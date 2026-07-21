@@ -5,7 +5,8 @@ info:
     Step 28.7 — consolidated match log endpoint.
 
     Returns a unified timeline of all logged events for a match, ordered by
-    timestamp ascending. Log types included in v0.28.7:
+    timestamp ascending by default (`?order=desc` returns the newest entry first).
+    Log types included in v0.28.7:
 
     - **WEATHER**: weather selected at every time-start (from `log_weather`)
     - **MOVEMENT**: character movements (from `log_movements`)
@@ -58,7 +59,7 @@ paths:
       description: |
         Returns the full log timeline for the given match. Only the match
         creator can access this endpoint (returns 404 for other users).
-        Entries are sorted by timestamp ascending.
+        Entries are sorted by timestamp ascending, or newest first with `?order=desc`.
       parameters:
         - name: uuidMatch
           in: path
@@ -79,6 +80,14 @@ paths:
           required: false
           description: Language used to resolve the entry cards.
           schema: { type: string, default: en }
+        - name: order
+          in: query
+          required: false
+          description: |
+            `asc` (default) returns the oldest entry first; `desc` returns the newest
+            first. The whole timeline is reversed before the page is cut, so `nextCursor`
+            always walks away from the first returned entry. Unknown values fall back to `asc`.
+          schema: { type: string, enum: [asc, desc], default: asc }
       responses:
         '200':
           description: One page of the log timeline
@@ -114,6 +123,14 @@ paths:
           required: false
           description: Language used to resolve the entry cards.
           schema: { type: string, default: en }
+        - name: order
+          in: query
+          required: false
+          description: |
+            `asc` (default) returns the oldest entry first; `desc` returns the newest
+            first. The whole timeline is reversed before the page is cut, so `nextCursor`
+            always walks away from the first returned entry. Unknown values fall back to `asc`.
+          schema: { type: string, enum: [asc, desc], default: asc }
       responses:
         '200':
           description: One page of the log timeline
@@ -140,7 +157,7 @@ components:
           description: Current clock value of the match
         logs:
           type: array
-          description: Timeline entries on this page, sorted by timestamp ascending
+          description: Timeline entries on this page, in the requested `order`
           items: { $ref: '#/components/schemas/LogEntry' }
         nextCursor:
           type: string
@@ -152,6 +169,10 @@ components:
         total:
           type: integer
           description: Total number of entries in the whole timeline
+        order:
+          type: string
+          enum: [asc, desc]
+          description: Effective order this page was cut with
     LogEntry:
       type: object
       required: [type, timestamp]

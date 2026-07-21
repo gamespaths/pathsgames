@@ -220,20 +220,21 @@ public class MatchAdminController {
     /**
      * GET /api/admin/matches/{uuidMatch}/logs — admin consolidated log timeline
      * (Step 28.7): weather selections, movements, sleep actions, clock advances and
-     * recovery summaries, ordered by timestamp ascending. No ownership check.
-     * Served on admin port 8044.
+     * recovery summaries, ordered by timestamp ascending — {@code ?order=desc} returns
+     * the newest entry first instead. No ownership check. Served on admin port 8044.
      */
     @GetMapping("/{uuidMatch}/logs")
     public ResponseEntity<Object> getAdminMatchLogs(@PathVariable String uuidMatch,
                                                     @RequestParam(required = false) String lang,
                                                     @RequestParam(required = false) Integer limit,
-                                                    @RequestParam(required = false) String cursor) {
+                                                    @RequestParam(required = false) String cursor,
+                                                    @RequestParam(required = false) String order) {
         if (isBlank(uuidMatch)) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_INPUT", "Match uuid is required");
         }
         try {
             return ResponseEntity.ok(MatchLogsResponse.fromModel(
-                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor)));
+                    matchLogsPort.getMatchLogsForAdmin(uuidMatch, lang, limit, cursor, order)));
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }

@@ -1,7 +1,8 @@
 *** Settings ***
 # ---------------------------------------------------------------------------
 # matches.resource — keywords for the Step 19 match endpoints.
-#   GET /api/matches/{uuidMatch}/logs   — Step 28.7 (Get Match Logs keyword)
+#   GET /api/matches/{uuidMatch}/logs   — Step 28.7 (Get Match Logs keyword),
+#                                         ?order=asc|desc since v0.30.3
 #
 # Authenticated (Bearer access token issued by /api/auth/guest):
 #   POST /api/matches                  → 201, MatchSummary
@@ -87,10 +88,11 @@ Get Match Logs
     [Documentation]    GET /api/matches/{uuidMatch}/logs (Step 28.7) — consolidated log timeline.
     ...                Owner-only; returns WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY entries.
     ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    ...                v0.30.3 — optional ${order}: asc (server default, oldest first) or desc.
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
-    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}    ${order}=${EMPTY}
     ${headers}=    Get Auth Headers    ${token}
-    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}    ${order}
     ${response}=    GET On Session    public_session    /api/matches/${match_uuid}/logs
     ...    headers=${headers}
     ...    params=${params}
@@ -101,10 +103,11 @@ Get Admin Match Logs
     [Documentation]    GET /api/admin/matches/{uuidMatch}/logs (Step 28.7) — admin log timeline.
     ...                No ownership check; served on admin port 8044.
     ...                v0.28.7 — cursor-paginated: optional ${limit} / ${cursor} / ${lang} params.
+    ...                v0.30.3 — optional ${order}: asc (server default, oldest first) or desc.
     [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
-    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}
+    ...            ${limit}=${EMPTY}    ${cursor}=${EMPTY}    ${lang}=${EMPTY}    ${order}=${EMPTY}
     ${headers}=    Get Auth Headers    ${token}
-    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}
+    ${params}=    Build Logs Params    ${limit}    ${cursor}    ${lang}    ${order}
     ${response}=    GET On Session    admin_session    /api/admin/matches/${match_uuid}/logs
     ...    headers=${headers}
     ...    params=${params}
@@ -113,11 +116,12 @@ Get Admin Match Logs
 
 Build Logs Params
     [Documentation]    Query params dict for the logs endpoints, omitting empty values.
-    [Arguments]    ${limit}    ${cursor}    ${lang}
+    [Arguments]    ${limit}    ${cursor}    ${lang}    ${order}=${EMPTY}
     ${params}=    Create Dictionary
     IF    '${limit}' != ''     Set To Dictionary    ${params}    limit=${limit}
     IF    '${cursor}' != ''    Set To Dictionary    ${params}    cursor=${cursor}
     IF    '${lang}' != ''      Set To Dictionary    ${params}    lang=${lang}
+    IF    '${order}' != ''     Set To Dictionary    ${params}    order=${order}
     RETURN    ${params}
 
 Create Match With Loadout

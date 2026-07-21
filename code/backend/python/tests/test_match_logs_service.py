@@ -112,7 +112,7 @@ def test_get_match_logs_empty_on_fresh_match(session_factory):
     result = MatchLogsService(session_factory).get_match_logs(MATCH_UUID, USER_UUID)
     assert result == {
         "matchUuid": MATCH_UUID, "currentClock": 0, "logs": [],
-        "nextCursor": None, "limit": 50, "total": 0,
+        "nextCursor": None, "limit": 50, "total": 0, "order": "asc",
     }
 
 
@@ -264,6 +264,65 @@ def test_garbage_cursor_restarts_from_the_first_page(session_factory):
     result = MatchLogsService(session_factory).get_match_logs_for_admin(
         MATCH_UUID, limit=2, cursor="not-a-cursor")
     assert result["logs"][0]["clock"] == 0
+
+
+# ── order=asc|desc ──────────────────────────────────────────────────────────
+
+def test_normalize_order_accepts_only_desc():
+    from app.core.services.match.match_logs_service import normalize_order
+    assert normalize_order(None) == "asc"
+    assert normalize_order("") == "asc"
+    assert normalize_order("nonsense") == "asc"
+    assert normalize_order("asc") == "asc"
+    assert normalize_order("desc") == "desc"
+    assert normalize_order("  DESC ") == "desc"
+
+
+def test_desc_starts_from_the_newest_entry(session_factory):
+    _seed_match(session_factory)
+    _seed_clock_entries(session_factory, 5)
+    result = MatchLogsService(session_factory).get_match_logs_for_admin(
+        MATCH_UUID, order="desc")
+    assert result["order"] == "desc"
+    assert [e["clock"] for e in result["logs"]] == [4, 3, 2, 1, 0]
+
+
+def test_desc_cursor_walks_towards_the_older_entries(session_factory):
+    _seed_match(session_factory)
+    _seed_clock_entries(session_factory, 5)
+    service = MatchLogsService(session_factory)
+    page1 = service.get_match_logs_for_admin(MATCH_UUID, limit=2, order="desc")
+    page2 = service.get_match_logs_for_admin(MATCH_UUID, limit=2, order="desc",
+                                             cursor=page1["nextCursor"])
+    assert [e["clock"] for e in page1["logs"]] == [4, 3]
+    assert [e["clock"] for e in page2["logs"]] == [2, 1]
+
+
+def test_desc_reverses_entries_of_every_type(session_factory):
+    _seed_match(session_factory)
+    _seed_logs(session_factory)
+    result = MatchLogsService(session_factory).get_match_logs_for_admin(
+        MATCH_UUID, order="desc")
+    assert [e["type"] for e in result["logs"]] == [
+        "RECOVERY", "CLOCK_ADVANCE", "SLEEP", "MOVEMENT", "WEATHER",
+    ]
+
+
+def test_unknown_order_falls_back_to_ascending(session_factory):
+    _seed_match(session_factory)
+    _seed_clock_entries(session_factory, 3)
+    result = MatchLogsService(session_factory).get_match_logs_for_admin(
+        MATCH_UUID, order="sideways")
+    assert result["order"] == "asc"
+    assert [e["clock"] for e in result["logs"]] == [0, 1, 2]
+
+
+def test_owner_endpoint_honours_the_order_too(session_factory):
+    _seed_match(session_factory)
+    _seed_clock_entries(session_factory, 3)
+    result = MatchLogsService(session_factory).get_match_logs(
+        MATCH_UUID, USER_UUID, order="desc")
+    assert [e["clock"] for e in result["logs"]] == [2, 1, 0]
 
 
 # ── v0.28.7: card + character enrichment ────────────────────────────────────

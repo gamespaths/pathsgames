@@ -64,7 +64,7 @@ class MatchLogsServiceTest {
 
     /** First page, default limit, no lang — the common case in these tests. */
     private MatchLogsResult admin() {
-        return service.getMatchLogsForAdmin(MATCH_UUID, null, null, null);
+        return service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, null);
     }
 
     private static CardInfo card(String title) {
@@ -79,7 +79,7 @@ class MatchLogsServiceTest {
         @Test
         @DisplayName("returns result when user owns the match")
         void ownerCanRead() {
-            MatchLogsResult result = service.getMatchLogs(MATCH_UUID, USER_UUID, null, null, null);
+            MatchLogsResult result = service.getMatchLogs(MATCH_UUID, USER_UUID, null, null, null, null);
             assertEquals(MATCH_UUID, result.matchUuid());
             assertEquals(2, result.currentClock());
             assertNotNull(result.logs());
@@ -90,7 +90,7 @@ class MatchLogsServiceTest {
         void unknownMatch() {
             when(store.findMatchByUuid("unknown")).thenReturn(Optional.empty());
             TurnCycleException ex = assertThrows(TurnCycleException.class,
-                    () -> service.getMatchLogs("unknown", USER_UUID, null, null, null));
+                    () -> service.getMatchLogs("unknown", USER_UUID, null, null, null, null));
             assertEquals(TurnCycleException.Code.MATCH_NOT_FOUND, ex.getCode());
         }
 
@@ -100,7 +100,7 @@ class MatchLogsServiceTest {
             when(userAccessPort.findByUuid("other-user"))
                     .thenReturn(Optional.of(new UserAccessPort.UserView(99L, "other-user", "x", "PLAYER", 2)));
             TurnCycleException ex = assertThrows(TurnCycleException.class,
-                    () -> service.getMatchLogs(MATCH_UUID, "other-user", null, null, null));
+                    () -> service.getMatchLogs(MATCH_UUID, "other-user", null, null, null, null));
             assertEquals(TurnCycleException.Code.MATCH_NOT_FOUND, ex.getCode());
         }
 
@@ -109,7 +109,7 @@ class MatchLogsServiceTest {
         void unknownUser() {
             when(userAccessPort.findByUuid("ghost")).thenReturn(Optional.empty());
             assertThrows(TurnCycleException.class,
-                    () -> service.getMatchLogs(MATCH_UUID, "ghost", null, null, null));
+                    () -> service.getMatchLogs(MATCH_UUID, "ghost", null, null, null, null));
         }
     }
 
@@ -130,7 +130,7 @@ class MatchLogsServiceTest {
         void unknownMatch() {
             when(store.findMatchByUuid("x")).thenReturn(Optional.empty());
             assertThrows(TurnCycleException.class,
-                    () -> service.getMatchLogsForAdmin("x", null, null, null));
+                    () -> service.getMatchLogsForAdmin("x", null, null, null, null));
         }
     }
 
@@ -304,7 +304,7 @@ class MatchLogsServiceTest {
             when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 300, "it"))
                     .thenReturn(card("Temporale"));
 
-            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, "it", null, null);
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, "it", null, null, null);
             assertEquals("Temporale", r.logs().get(0).card().title());
         }
 
@@ -364,7 +364,7 @@ class MatchLogsServiceTest {
         @DisplayName("first page is capped at the requested limit and exposes a nextCursor")
         void firstPage() {
             seedClockEntries(5);
-            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null);
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null, null);
             assertEquals(2, r.logs().size());
             assertEquals(2, r.limit());
             assertEquals(5, r.total());
@@ -377,9 +377,9 @@ class MatchLogsServiceTest {
         @DisplayName("nextCursor walks the timeline to the end, then goes null")
         void walkPages() {
             seedClockEntries(5);
-            MatchLogsResult page1 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null);
-            MatchLogsResult page2 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page1.nextCursor());
-            MatchLogsResult page3 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page2.nextCursor());
+            MatchLogsResult page1 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null, null);
+            MatchLogsResult page2 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page1.nextCursor(), null);
+            MatchLogsResult page3 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page2.nextCursor(), null);
 
             assertEquals(2, page2.logs().get(0).clock());
             assertEquals(3, page2.logs().get(1).clock());
@@ -392,8 +392,8 @@ class MatchLogsServiceTest {
         @DisplayName("last exact page has no nextCursor")
         void exactPageHasNoCursor() {
             seedClockEntries(4);
-            MatchLogsResult page1 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null);
-            MatchLogsResult page2 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page1.nextCursor());
+            MatchLogsResult page1 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null, null);
+            MatchLogsResult page2 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, page1.nextCursor(), null);
             assertEquals(2, page2.logs().size());
             assertNull(page2.nextCursor());
         }
@@ -403,7 +403,7 @@ class MatchLogsServiceTest {
         void offsetPastEnd() {
             seedClockEntries(2);
             MatchLogsResult r = service.getMatchLogsForAdmin(
-                    MATCH_UUID, null, 2, MatchLogsService.encodeCursor(99));
+                    MATCH_UUID, null, 2, MatchLogsService.encodeCursor(99), null);
             assertEquals(0, r.logs().size());
             assertNull(r.nextCursor());
             assertEquals(2, r.total());
@@ -413,7 +413,7 @@ class MatchLogsServiceTest {
         @DisplayName("a garbage cursor restarts from the first page")
         void garbageCursorRestarts() {
             seedClockEntries(3);
-            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, "not-a-cursor");
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, "not-a-cursor", null);
             assertEquals(0, r.logs().get(0).clock());
         }
 
@@ -422,11 +422,11 @@ class MatchLogsServiceTest {
         void limitClamping() {
             seedClockEntries(1);
             assertEquals(MatchLogsService.DEFAULT_LIMIT,
-                    service.getMatchLogsForAdmin(MATCH_UUID, null, null, null).limit());
+                    service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, null).limit());
             assertEquals(MatchLogsService.MAX_LIMIT,
-                    service.getMatchLogsForAdmin(MATCH_UUID, null, 9999, null).limit());
-            assertEquals(1, service.getMatchLogsForAdmin(MATCH_UUID, null, 0, null).limit());
-            assertEquals(1, service.getMatchLogsForAdmin(MATCH_UUID, null, -5, null).limit());
+                    service.getMatchLogsForAdmin(MATCH_UUID, null, 9999, null, null).limit());
+            assertEquals(1, service.getMatchLogsForAdmin(MATCH_UUID, null, 0, null, null).limit());
+            assertEquals(1, service.getMatchLogsForAdmin(MATCH_UUID, null, -5, null, null).limit());
         }
 
         @Test
@@ -442,7 +442,7 @@ class MatchLogsServiceTest {
         @DisplayName("enrichment queries run once per page, not once per entry")
         void enrichmentIsBatched() {
             seedClockEntries(5);
-            service.getMatchLogsForAdmin(MATCH_UUID, null, 5, null);
+            service.getMatchLogsForAdmin(MATCH_UUID, null, 5, null, null);
             verify(store, times(1)).findWeatherIdCards(STORY_ID);
             verify(store, times(1)).findLocationIdCards(STORY_ID);
             verify(store, times(1)).findCharactersByMatch(MATCH_ID);
@@ -455,6 +455,91 @@ class MatchLogsServiceTest {
             assertEquals(0, r.total());
             assertNull(r.nextCursor());
             verify(store, never()).findWeatherIdCards(anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("order=asc|desc")
+    class Ordering {
+
+        /** Seeds `count` clock entries with ascending timestamps. */
+        private void seedClockEntries(int count) {
+            List<ClockLogEntry> rows = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                rows.add(new ClockLogEntry(i + 1L, i, String.format("2026-01-01T00:%02d:00Z", i)));
+            }
+            when(store.findClockLog(MATCH_ID)).thenReturn(rows);
+        }
+
+        @Test
+        @DisplayName("no order given keeps the oldest entry first")
+        void defaultsToAscending() {
+            seedClockEntries(3);
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, null);
+            assertEquals("asc", r.order());
+            assertEquals(0, r.logs().get(0).clock());
+            assertEquals(2, r.logs().get(2).clock());
+        }
+
+        @Test
+        @DisplayName("desc starts from the newest entry")
+        void descStartsFromTheNewest() {
+            seedClockEntries(3);
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, "desc");
+            assertEquals("desc", r.order());
+            assertEquals(2, r.logs().get(0).clock());
+            assertEquals(1, r.logs().get(1).clock());
+            assertEquals(0, r.logs().get(2).clock());
+        }
+
+        @Test
+        @DisplayName("desc is case-insensitive and trimmed")
+        void descIsCaseInsensitive() {
+            seedClockEntries(2);
+            assertEquals("desc",
+                    service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, "  DESC ").order());
+        }
+
+        @Test
+        @DisplayName("an unknown order falls back to ascending")
+        void unknownOrderFallsBack() {
+            seedClockEntries(3);
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, "sideways");
+            assertEquals("asc", r.order());
+            assertEquals(0, r.logs().get(0).clock());
+        }
+
+        @Test
+        @DisplayName("desc reverses entries of every type, not only within one source")
+        void descReversesAcrossTypes() {
+            when(store.findWeatherLog(MATCH_ID)).thenReturn(
+                    List.of(new WeatherLogEntry(1L, 1, 5L, "2026-01-01T00:02:00Z")));
+            when(store.findMovementLog(MATCH_ID)).thenReturn(
+                    List.of(new MovementLogEntry(2L, 1L, 1L, 2L, 3, "2026-01-01T00:01:00Z")));
+            MatchLogsResult r = service.getMatchLogsForAdmin(MATCH_UUID, null, null, null, "desc");
+            assertEquals("WEATHER", r.logs().get(0).type());
+            assertEquals("MOVEMENT", r.logs().get(1).type());
+        }
+
+        @Test
+        @DisplayName("with desc the cursor walks towards the older entries")
+        void descCursorWalksBackwards() {
+            seedClockEntries(5);
+            MatchLogsResult page1 = service.getMatchLogsForAdmin(MATCH_UUID, null, 2, null, "desc");
+            MatchLogsResult page2 = service.getMatchLogsForAdmin(
+                    MATCH_UUID, null, 2, page1.nextCursor(), "desc");
+            assertEquals(4, page1.logs().get(0).clock());
+            assertEquals(3, page1.logs().get(1).clock());
+            assertEquals(2, page2.logs().get(0).clock());
+            assertEquals(1, page2.logs().get(1).clock());
+        }
+
+        @Test
+        @DisplayName("the owner endpoint honours the order too")
+        void ownerEndpointHonoursOrder() {
+            seedClockEntries(3);
+            MatchLogsResult r = service.getMatchLogs(MATCH_UUID, USER_UUID, null, null, null, "desc");
+            assertEquals(2, r.logs().get(0).clock());
         }
     }
 }

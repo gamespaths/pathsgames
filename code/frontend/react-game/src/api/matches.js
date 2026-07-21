@@ -199,14 +199,20 @@ export async function startMovement(uuidMatch, targetLocationUuid, accessToken) 
  * response's `nextCursor`) to fetch the following page. WEATHER and MOVEMENT
  * entries carry their resolved `card`; character-scoped entries carry
  * `characterUuid` / `characterName`. Returns
- * `{ matchUuid, currentClock, logs, nextCursor, limit, total }`.
+ * `{ matchUuid, currentClock, logs, nextCursor, limit, total, order }`.
+ *
+ * v0.30.3 — the timeline is requested newest-first (`order=desc`): the player sees
+ * what just happened at the top and "load more" walks back into the past. Pass
+ * `order: 'asc'` to get the API's own default (oldest first) instead.
  */
-export async function getMatchLogs(uuidMatch, accessToken, { limit, cursor, lang } = {}) {
+export async function getMatchLogs(uuidMatch, accessToken,
+                                   { limit, cursor, lang, order = 'desc' } = {}) {
   const config = authConfig(accessToken)
   const params = {}
   if (limit != null) params.limit = limit
   if (cursor) params.cursor = cursor
   if (lang) params.lang = lang
+  if (order) params.order = order
   if (Object.keys(params).length) config.params = params
   const res = await apiClient().get(`/api/matches/${uuidMatch}/logs`, config)
   return res.data

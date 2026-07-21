@@ -24,7 +24,9 @@ import java.util.Map;
  * </ul>
  *
  * <p>Returns a chronologically-ordered list of WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE
- * and RECOVERY events for the match. Only the match creator can access this endpoint.</p>
+ * and RECOVERY events for the match. Only the match creator can access this endpoint.
+ * {@code ?order=asc} (the default) starts from the oldest entry, {@code ?order=desc}
+ * from the newest one.</p>
  *
  * <p>See {@code documentation_v0/Step28_MovementSystem.md} §8.</p>
  */
@@ -42,6 +44,7 @@ public class MatchLogsController {
                                                @RequestParam(required = false) String lang,
                                                @RequestParam(required = false) Integer limit,
                                                @RequestParam(required = false) String cursor,
+                                               @RequestParam(required = false) String order,
                                                HttpServletRequest request) {
         String userUuid = userUuid(request);
         if (userUuid == null) {
@@ -52,7 +55,7 @@ public class MatchLogsController {
         }
         try {
             return ResponseEntity.ok(MatchLogsResponse.fromModel(
-                    matchLogsPort.getMatchLogs(uuidMatch, userUuid, lang, limit, cursor)));
+                    matchLogsPort.getMatchLogs(uuidMatch, userUuid, lang, limit, cursor, order)));
         } catch (TurnCyclePort.TurnCycleException ex) {
             return error(HttpStatus.NOT_FOUND, ex.getCode().name(), ex.getMessage());
         }

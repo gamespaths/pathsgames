@@ -37,9 +37,10 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 - `neighbor_card_back.robot` — neighbor return card `idCardBack`
 - `event_location.robot` — event-to-location binding `idSpecificLocation`; guards the AWS stale-alias and Python column-name bugs
 - `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment
+- `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries
 
-**There is no `29_match_logs` directory.** `match_logs.robot`, `neighbor_card_back.robot` and
-`event_location.robot` all live inside `tests/28_movement/`.
+**There is no `29_match_logs` directory.** `match_logs.robot`, `match_logs_order.robot`,
+`neighbor_card_back.robot` and `event_location.robot` all live inside `tests/28_movement/`.
 
 ### `29_events` breakdown
 

@@ -258,6 +258,93 @@ def test_offset_past_the_end_returns_an_empty_page(mock_get, _q, _jwt):
     assert body['total'] == 2
 
 
+# ── order=asc|desc ──────────────────────────────────────────────────────────
+
+def test_normalize_order_accepts_only_desc():
+    from match.handler import _normalize_logs_order
+    assert _normalize_logs_order(None) == 'asc'
+    assert _normalize_logs_order('') == 'asc'
+    assert _normalize_logs_order('nonsense') == 'asc'
+    assert _normalize_logs_order('asc') == 'asc'
+    assert _normalize_logs_order('desc') == 'desc'
+    assert _normalize_logs_order('  DESC ') == 'desc'
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
+@patch('match.handler.db_utils.get_item')
+def test_desc_starts_from_the_newest_entry(mock_get, _q, _jwt):
+    mock_get.side_effect = _get_side(match_item=_clock_match(5))
+    ev = _player_event()
+    ev['queryStringParameters'] = {'order': 'desc'}
+    body = _body(_call(ev))
+
+    assert body['order'] == 'desc'
+    assert [e['clock'] for e in body['logs']] == [4, 3, 2, 1, 0]
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(5))
+@patch('match.handler.db_utils.get_item')
+def test_desc_cursor_walks_towards_the_older_entries(mock_get, _q, _jwt):
+    mock_get.side_effect = _get_side(match_item=_clock_match(5))
+
+    def page(cursor=None):
+        ev = _player_event()
+        ev['queryStringParameters'] = {'limit': '2', 'order': 'desc'}
+        if cursor:
+            ev['queryStringParameters']['cursor'] = cursor
+        return _body(_call(ev))
+
+    p1 = page()
+    p2 = page(p1['nextCursor'])
+    assert [e['clock'] for e in p1['logs']] == [4, 3]
+    assert [e['clock'] for e in p2['logs']] == [2, 1]
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=CLOCK_ITEMS)
+@patch('match.handler.db_utils.get_item')
+def test_desc_reverses_entries_of_every_type(mock_get, _q, _jwt):
+    mock_get.side_effect = _get_side()
+    ev = _player_event()
+    ev['queryStringParameters'] = {'order': 'desc'}
+    body = _body(_call(ev))
+    assert [e['type'] for e in body['logs']] == [
+        'CLOCK_ADVANCE', 'SLEEP', 'MOVEMENT', 'WEATHER',
+    ]
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(3))
+@patch('match.handler.db_utils.get_item')
+def test_unknown_order_falls_back_to_ascending(mock_get, _q, _jwt):
+    mock_get.side_effect = _get_side(match_item=_clock_match(3))
+    ev = _player_event()
+    ev['queryStringParameters'] = {'order': 'sideways'}
+    body = _body(_call(ev))
+
+    assert body['order'] == 'asc'
+    assert [e['clock'] for e in body['logs']] == [0, 1, 2]
+
+
+@patch('match.handler._check_admin_ip', return_value=None)
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'admin-uuid-001', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.query_by_pk', return_value=_clock_items(3))
+@patch('match.handler.db_utils.get_item')
+def test_admin_endpoint_honours_the_order_too(mock_get, _q, _jwt, _ip):
+    mock_get.side_effect = _get_side(match_item=_clock_match(3), user=ADMIN_USER)
+    ev = _admin_event()
+    ev['queryStringParameters'] = {'order': 'desc'}
+    body = _body(_call(ev))
+    assert [e['clock'] for e in body['logs']] == [2, 1, 0]
+
+
 # ── v0.28.7: card + character enrichment ────────────────────────────────────
 
 STORY = {
