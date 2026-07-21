@@ -82,8 +82,11 @@ export default function EntityTable({ entities, columns, texts = [], relationOpt
             {displayed.length === 0 && (
               <tr><td colSpan={visibleColumns.length + 2 + (hasIdCardColumn ? 1 : 0) + (hasIdCardBackColumn ? 1 : 0)} className="text-center py-8 text-white/20">No items found.</td></tr>
             )}
-            {displayed.map(ent => (
-              <tr key={ent.uuid || ent.id}>
+            {displayed.map((ent, idx) => (
+              // Index fallback: entities are rendered reversed, so a row without both
+              // uuid and id would otherwise get an undefined key and React could not
+              // track it across re-renders (edit/delete would hit the wrong row).
+              <tr key={ent.uuid || ent.id || idx}>
                 <td>
                   <span
                     className="font-mono text-white/60"

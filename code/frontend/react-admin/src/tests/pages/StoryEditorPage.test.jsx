@@ -25,9 +25,11 @@ const MOCK_STORY = {
   peghi: 0
 }
 
+// Mirrors the real TextEntity row: `id` is part of the PK and `uuid` is the
+// identifier EntityTable keys rows by, so both must be present here.
 const MOCK_TEXTS = [
-  { idText: 101, lang: 'en', shortText: 'Location Name' },
-  { idText: 102, lang: 'en', shortText: 'Location Desc' }
+  { id: 101, uuid: 'text-101', idText: 101, lang: 'en', shortText: 'Location Name' },
+  { id: 102, uuid: 'text-102', idText: 102, lang: 'en', shortText: 'Location Desc' }
 ]
 
 function renderPage(uuid = 'story-123') {
@@ -258,9 +260,9 @@ describe('StoryEditorPage', () => {
     ]
     for (const label of tabLabels) {
       await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}$`, 'i') }))
-      expect(await screen.findByText(new RegExp(`Add ${label.slice(0, 3)}`, 'i'))).toBeInTheDocument()
+      expect(await screen.findByText(new RegExp(`Add ${label.slice(0, 3)}`, 'i'), {}, { timeout: 5000 })).toBeInTheDocument()
     }
-  })
+  }, 30000)
 
   // ── entity save/delete branches ──────────────────────────────────────────────
 

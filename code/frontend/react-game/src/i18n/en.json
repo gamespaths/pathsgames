@@ -228,12 +228,12 @@
     },
     "coma": {
       "title": "You're in a coma",
-      "description": "Your life reached zero. <br /><br />You cannot act until another character rescues you or you have to sleep in safe location. <br /><br />When all players in a game are in a coma, a special event occurs.",
+      "description": "Your life reached zero. <br /><br />You cannot act and you cannot move until another character rescues you or you get sleeping in a safe location. <br /><br />When all players in a game are in a coma, a special event occurs: could be Game over.",
       "close": "Close"
     },
     "allComa": {
       "title": "Everyone has fallen",
-      "description": "Every character is in a coma. Nobody can act any more. When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs."
+      "description": "Every character is in a coma. Nobody can act any more. When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs: could be Game over."
     },
     "location": {
       "clockCounter": "Location time counter"
@@ -291,7 +291,7 @@
       "reasonFull": {
         "CHARACTER_CANNOT_ACT": "You cannot act right now.",
         "SLEEPING": "You are asleep and cannot act.",
-        "COMA": "You are in a coma: you cannot act until someone helps you.",
+        "COMA": "You are in a coma: you cannot act.",
         "EVENT_NOT_EXECUTABLE_TYPE": "You cannot execute this action type for now.",
         "ONCE_ALREADY_CONSUMED": "You have already done this, it cannot be repeated.",
         "WRONG_LOCATION": "This action belongs to another location.",

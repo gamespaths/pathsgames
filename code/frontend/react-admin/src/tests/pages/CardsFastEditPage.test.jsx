@@ -499,4 +499,146 @@ describe('CardsFastEditPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /Save Text/i })).not.toBeInTheDocument())
   })
+
+  // ── extra coverage: saveAll failures, delete failure, card modal, desc alignment ──
+
+  it('saveAll reports per-row failures and still finishes', async () => {
+    storyApi.updateEntity.mockRejectedValue(new Error('bulk-boom'))
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    const links = screen.getAllByLabelText('Copyright Link')
+    fireEvent.change(links[0], { target: { value: 'https://a.example' } })
+    fireEvent.change(links[1], { target: { value: 'https://b.example' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save All/i }))
+
+    await waitFor(() => expect(screen.getByText(/bulk-boom/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Saved 0 cards, 2 errors/)).toBeInTheDocument())
+  })
+
+  it('saveAll reports a mixed success/failure summary', async () => {
+    let call = 0
+    storyApi.updateEntity.mockImplementation(() => {
+      call += 1
+      return call === 1 ? Promise.resolve({}) : Promise.reject(new Error('second-fails'))
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    const links = screen.getAllByLabelText('Copyright Link')
+    fireEvent.change(links[0], { target: { value: 'https://a.example' } })
+    fireEvent.change(links[1], { target: { value: 'https://b.example' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save All/i }))
+    await waitFor(() => expect(screen.getByText(/Saved 1 card, 1 error/)).toBeInTheDocument())
+  })
+
+  it('shows an error when deleting a card fails', async () => {
+    storyApi.deleteEntity = vi.fn().mockRejectedValue(new Error('delete-boom'))
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    fireEvent.click(screen.getAllByTitle('Delete unused card')[0])
+    await waitFor(() => expect(screen.getAllByText(/Delete Card/i).length).toBeGreaterThan(0))
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+    await waitFor(() => expect(screen.getByText('delete-boom')).toBeInTheDocument())
+  })
+
+  it('saves the full-card modal and reloads the rows', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    fireEvent.click(screen.getAllByTitle('Edit full card')[0])
+    const saveBtn = await screen.findByRole('button', { name: /^Save$/ })
+    fireEvent.click(saveBtn)
+    await waitFor(() => expect(storyApi.updateEntity).toHaveBeenCalledWith(
+      STORY_UUID, 'cards', 'card-uuid-1', expect.any(Object)
+    ))
+    await waitFor(() => expect(screen.getByText('Card saved')).toBeInTheDocument())
+  })
+
+  it('shows an error when the full-card modal save fails', async () => {
+    storyApi.updateEntity.mockRejectedValue(new Error('modal-boom'))
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    fireEvent.click(screen.getAllByTitle('Edit full card')[0])
+    const saveBtn = await screen.findByRole('button', { name: /^Save$/ })
+    fireEvent.click(saveBtn)
+    await waitFor(() => expect(screen.getByText('modal-boom')).toBeInTheDocument())
+  })
+
+  it('aligns idTextDescription on misaligned entities and warns for unmanaged types', async () => {
+    // locations/items are in DESC_ALIGN_TYPES → patched; choices is not → warning.
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')     return Promise.resolve([mockCards[0]])
+      if (type === 'texts')     return Promise.resolve(mockTexts)
+      if (type === 'creators')  return Promise.resolve(mockCreators)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idCard: 1, idTextDescription: 999 }])
+      if (type === 'items')     return Promise.resolve([{ uuid: 'itm-1', idCard: 1, idTextDescription: 998 }])
+      if (type === 'choices')   return Promise.resolve([{ uuid: 'cho-1', idCard: 1, idTextDescription: 997 }])
+      return Promise.resolve([])
+    })
+    storyApi.updateEntity.mockResolvedValue({})
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    const alignBtn = await screen.findByTitle(/clicca per allineare/i)
+    fireEvent.click(alignBtn)
+
+    await waitFor(() => expect(storyApi.updateEntity).toHaveBeenCalledWith(
+      STORY_UUID, 'locations', 'loc-1', expect.objectContaining({ idTextDescription: 11 })
+    ))
+    expect(storyApi.updateEntity).toHaveBeenCalledWith(
+      STORY_UUID, 'items', 'itm-1', expect.objectContaining({ idTextDescription: 11 })
+    )
+    await waitFor(() => expect(screen.getByText(/non gestite: choices/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Allineate 2/)).toBeInTheDocument())
+    // The align badge disappears once everything is aligned.
+    await waitFor(() => expect(screen.queryByTitle(/clicca per allineare/i)).not.toBeInTheDocument())
+  })
+
+  it('does not show the align badge when every referencing entity already matches', async () => {
+    storyApi.listEntities.mockImplementation((uuid, type) => {
+      if (type === 'cards')     return Promise.resolve([mockCards[0]])
+      if (type === 'texts')     return Promise.resolve(mockTexts)
+      if (type === 'creators')  return Promise.resolve(mockCreators)
+      if (type === 'locations') return Promise.resolve([{ uuid: 'loc-1', idCard: 1, idTextDescription: 11 }])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    expect(screen.queryByTitle(/clicca per allineare/i)).not.toBeInTheDocument()
+  })
+
+  it('creates a replacing Copyright text and immediately saves the card', async () => {
+    storyApi.createEntity = vi.fn().mockResolvedValue({ idText: 77 })
+    storyApi.updateEntity.mockResolvedValue({})
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    fireEvent.click(screen.getAllByTitle('Create a new text and use it as this Copyright Text')[0])
+    const saveText = await screen.findByRole('button', { name: /Save Text/i })
+    fireEvent.click(saveText)
+
+    await waitFor(() => expect(screen.getByText(/saved with new Copyright Text/i)).toBeInTheDocument())
+  })
+
+  it('surfaces a save error raised by the Copyright creator flow', async () => {
+    storyApi.createEntity = vi.fn().mockResolvedValue({ idText: 78 })
+    storyApi.updateEntity.mockRejectedValue(new Error('copyright-save-boom'))
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+
+    fireEvent.click(screen.getAllByTitle('Create a new text and use it as this Copyright Text')[0])
+    const saveText = await screen.findByRole('button', { name: /Save Text/i })
+    fireEvent.click(saveText)
+
+    await waitFor(() => expect(screen.getByText('copyright-save-boom')).toBeInTheDocument())
+  })
+
+  it('navigates back to the story editor', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText(/Cards Fast Edit/i))
+    fireEvent.click(screen.getByRole('button', { name: /Back/i }))
+    await waitFor(() => expect(screen.getByText('Editor')).toBeInTheDocument())
+  })
 })

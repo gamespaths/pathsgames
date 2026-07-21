@@ -354,13 +354,13 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       // Arm the weather effect: a coma is the news, so a weather change from the same
       // event must not cover it — it attaches a forward arrow instead (like an effect card).
       eventEffectActiveRef.current = true
-      setPreviewRight({ kind: 'coma', allPlayers: true, card: edge.comaEventCard ?? null })
+      setPreviewLeft({ kind: 'coma', allPlayers: true, card: edge.comaEventCard ?? null })
     } else if (edge?.comaUuids?.includes(playerUuid)) {
       eventEffectActiveRef.current = true
-      setPreviewRight({ kind: 'coma', allPlayers: false, card: null })
+      setPreviewLeft({ kind: 'coma', allPlayers: false, card: null })
     } else if (edge?.sadnessOverflowUuids?.includes(playerUuid)) {
       eventEffectActiveRef.current = true
-      setPreviewRight({ kind: 'sad' })
+      setPreviewLeft({ kind: 'sad' })
     }
     setLoading(false);
   }
@@ -423,6 +423,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // (kind: 'preview') renders the same page Card the left page uses. Each has a
   // back arrow that clears previewRight.
   const closeRight = () => setPreviewRight(null)
+  const closeLeft = () => setPreviewLeft(null)
   const previewRightContent =
     previewRight?.kind === 'weather'
       ? <WeatherCard weather={weather} story={story} onBack={closeRight} />
@@ -462,7 +463,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // story card. On mobile this is what the stacked left shows — the (i) preview
   // opens in a modal instead (see handleSelectionPreviewFull).
   const leftContent =
-    mapView ? (
+    previewLeft?.kind === 'coma' 
+        ? <ComaCard story={story} allPlayers={previewLeft.allPlayers}
+            comaEventCard={previewLeft.card} onBack={closeLeft}
+            onForward={previewLeft.onForward} />
+    : previewLeft?.kind === 'sad'
+        ? <SadnessCard story={story} lifeLost={playerStats?.constitution ?? null}
+            onBack={closeLeft} onForward={previewLeft.onForward} />
+    : mapView ? (
       // Step 0.28.5 — the world map takes over the left page; its back arrow
       // returns to the previous view (previewLeft/statistics stay untouched).
       <MapPage gameData={gameData} matchLocations={matchLocations}
@@ -530,7 +538,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             totalEnergyCost={mapSelectedLocation.uuid != null ? locationCosts[mapSelectedLocation.uuid] : undefined}
             playerStats={playerStats} story={story}
             matchUuid={matchUuid} accessToken={user?.accessToken}
-            onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
+            onMoved={handleReloadClockWeatherAndMatchData} onError={onError} 
+            />
         : <LocationCard locationsActive={gameData?.info?.locationsActive}
             location={actualLocationCard} card={actualLocationCard} story={story}
             onEnterLocation={enterCurrentLocationView} />)

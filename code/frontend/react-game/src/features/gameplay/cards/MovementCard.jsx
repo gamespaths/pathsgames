@@ -37,8 +37,11 @@ export default function MovementCard({variant=null,isNeighbor=true,viewFromMap=f
   // MOVEMENT_CONDITION_NOT_MET, LOCATION_FULL, …) — causes the board cannot compute on its own.
   // An older payload carries neither: `available` is then null and the local energy check below
   // remains the only gate, exactly as before.
-  const blockedByBackend = location?.available === false
-  const backendReason = blockedByBackend ? (location?.reason ?? null) : null
+  
+  const blockedByBackend = location?.available === false || playerStats.isComa || playerStats.isSleeping
+  const backendReason = playerStats.isComa ? 'COMA' 
+    : playerStats.isSleeping ? 'SLEEPING'
+    : blockedByBackend ? (location?.reason ?? null) : null
   const affordable = energy >= cost
   const canMove = isNeighbor && affordable && !blockedByBackend
   const locked = (!canMove && !viewFromMap) || (!canMove && isNeighbor)

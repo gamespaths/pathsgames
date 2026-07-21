@@ -17,3 +17,13 @@ describe('event-effects entity config', () => {
     expect(field).toMatchObject({ key: 'idLocation', type: 'number' })
   })
 })
+
+describe('location-neighbors entity config', () => {
+  it('hides Card Back ID unless flagBack is YES (1)', () => {
+    const field = STORIES_ENTITIES_FIELDS['location-neighbors'].find(f => f.key === 'idCardBack')
+    expect(field.showIf({ flagBack: 1 })).toBe(true)
+    expect(field.showIf({ flagBack: '1' })).toBe(true)
+    expect(field.showIf({ flagBack: 0 })).toBe(false)
+    expect(field.showIf({})).toBe(false)
+  })
+})
