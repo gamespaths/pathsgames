@@ -80,17 +80,48 @@ A Plain Normal Event Is Available And Executes
         ...    msg=each applied effect carries its OWN card — that is the narrative
     END
 
-An Executed Event Appears On The Match Log Timeline
+An Executed Event Appears On The Match Log Timeline With Its Own Card
     [Documentation]    log_events derives its type from the message prefix and drops what it does
     ...                not recognise, so an executed event needs its own EVENT branch.
+    ...                v0.30.3 — that EVENT entry must also carry the event's own `idEvent`
+    ...                and `card` (previously always null/missing on all three backends: the
+    ...                enrichment step only ever resolved WEATHER's and MOVEMENT's card). The
+    ...                card is cross-checked against the one `/info` already reports for the
+    ...                same event, so the assertion holds on any backend/seed without
+    ...                hard-coding a numeric event id.
     [Tags]    events    step29    logs
+    ${uuid}=    Event Uuid By Cost    1
+    ${events}=    Location Events
+    ${info_card}=    Set Variable    ${None}
+    FOR    ${e}    IN    @{events}
+        IF    $e['uuid'] == '${uuid}'
+            ${info_card}=    Set Variable    ${e}[card]
+            BREAK
+        END
+    END
+    Should Not Be Equal    ${info_card}    ${None}
+    ...    msg=the seeded event must carry its own card for this test to be meaningful
+
+    Execute Event    ${TOKEN}    ${MATCH_UUID}    ${uuid}    200
+
     ${logs}=    Get Match Logs    ${TOKEN}    ${MATCH_UUID}    200
     ${types}=    Create List
+    ${event_entry}=    Set Variable    ${None}
     FOR    ${entry}    IN    @{logs.json()}[logs]
         Append To List    ${types}    ${entry}[type]
+        IF    '${entry}[type]' == 'EVENT' and $event_entry is None
+            ${event_entry}=    Set Variable    ${entry}
+        END
     END
     List Should Contain Value    ${types}    EVENT
     ...    msg=the event executed above must surface as an EVENT entry
+
+    Should Not Be Equal    ${event_entry}[idEvent]    ${None}
+    ...    msg=the EVENT entry must name the event it triggered
+    Should Not Be Equal    ${event_entry}[card]    ${None}
+    ...    msg=the EVENT entry must carry the triggered event's own card
+    Should Be Equal    ${event_entry}[card][title]    ${info_card}[title]
+    ...    msg=the log's card must be the SAME card /info reports for this event
 
 A ONCE Event Can Only Be Executed Once Per Match
     [Documentation]    90011. The second call is refused, and `/info` flips it to unavailable

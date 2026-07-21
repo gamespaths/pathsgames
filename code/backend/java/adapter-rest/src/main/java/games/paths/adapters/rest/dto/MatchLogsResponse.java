@@ -64,6 +64,7 @@ public class MatchLogsResponse {
         private String message;
         private Integer idCard;
         private CardInfoResponse card;
+        private Long idEvent;
 
         public static LogEntryDto fromModel(LogEntry e) {
             LogEntryDto d = new LogEntryDto();
@@ -80,6 +81,7 @@ public class MatchLogsResponse {
             d.message = e.message();
             d.idCard = e.idCard();
             d.card = e.card() == null ? null : CardInfoResponse.fromModel(e.card());
+            d.idEvent = e.idEvent();
             return d;
         }
 
@@ -96,5 +98,6 @@ public class MatchLogsResponse {
         public String getMessage() { return message; }
         public Integer getIdCard() { return idCard; }
         public CardInfoResponse getCard() { return card; }
+        public Long getIdEvent() { return idEvent; }
     }
 }

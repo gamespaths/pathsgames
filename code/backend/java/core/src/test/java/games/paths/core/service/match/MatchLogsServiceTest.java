@@ -57,6 +57,7 @@ class MatchLogsServiceTest {
         when(store.findWeatherIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findLocationIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findCharacterTemplateIdCards(STORY_ID)).thenReturn(Map.of());
+        when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of());
         when(store.findCharactersByMatch(MATCH_ID)).thenReturn(Map.of());
         when(userAccessPort.findByUuid(USER_UUID))
                 .thenReturn(Optional.of(new UserAccessPort.UserView(USER_ID, USER_UUID, "u", "PLAYER", 2)));
@@ -184,7 +185,7 @@ class MatchLogsServiceTest {
         @DisplayName("SLEEP entry from ACTION_SLEEP log_events message")
         void sleepEntry() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
-                    List.of(new EventLogEntry(1L, 2L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP")));
+                    List.of(new EventLogEntry(1L, 2L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP", null)));
             MatchLogsResult r = admin();
             assertEquals(1, r.logs().size());
             LogEntry e = r.logs().get(0);
@@ -198,7 +199,7 @@ class MatchLogsServiceTest {
         void recoveryEntry() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
                     List.of(new EventLogEntry(1L, 2L, null, "2026-01-01T00:03:00Z",
-                            "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1")));
+                            "recovery safe=true p=3 dEnergy=5 dLife=2 dSad=-1", null)));
             MatchLogsResult r = admin();
             assertEquals(1, r.logs().size());
             LogEntry e = r.logs().get(0);
@@ -212,7 +213,7 @@ class MatchLogsServiceTest {
         void counterZeroEntry() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
                     List.of(new EventLogEntry(1L, null, null, "2026-01-01T00:04:00Z",
-                            "counter reached zero at location 5")));
+                            "counter reached zero at location 5", null)));
             MatchLogsResult r = admin();
             assertEquals(1, r.logs().size());
             assertEquals("RECOVERY", r.logs().get(0).type());
@@ -222,7 +223,7 @@ class MatchLogsServiceTest {
         @DisplayName("null log_message is skipped (not added to results)")
         void nullMessageSkipped() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
-                    List.of(new EventLogEntry(1L, null, null, "2026-01-01T00:00:00Z", null)));
+                    List.of(new EventLogEntry(1L, null, null, "2026-01-01T00:00:00Z", null, null)));
             assertEquals(0, admin().logs().size());
         }
 
@@ -230,8 +231,32 @@ class MatchLogsServiceTest {
         @DisplayName("unrecognised log_message is skipped")
         void unknownMessageSkipped() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
-                    List.of(new EventLogEntry(1L, null, null, "2026-01-01T00:00:00Z", "weather event 7")));
+                    List.of(new EventLogEntry(1L, null, null, "2026-01-01T00:00:00Z", "weather event 7", null)));
             assertEquals(0, admin().logs().size());
+        }
+
+        @Test
+        @DisplayName("SADNESS_OVERFLOW / COMA edge-state rows are skipped, not shown as EVENT")
+        void edgeStateMessagesSkipped() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(List.of(
+                    new EventLogEntry(1L, 2L, null, "2026-01-01T00:00:00Z", "SADNESS_OVERFLOW char-1", null),
+                    new EventLogEntry(2L, 2L, null, "2026-01-01T00:00:01Z", "COMA char-1", null)));
+            assertEquals(0, admin().logs().size());
+        }
+
+        @Test
+        @DisplayName("EVENT entry from EVENT_EXECUTED log_events message carries idEvent")
+        void executedEventEntry() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, 2L, 3, "2026-01-01T00:05:00Z",
+                            "EVENT_EXECUTED 42", 42L)));
+            MatchLogsResult r = admin();
+            assertEquals(1, r.logs().size());
+            LogEntry e = r.logs().get(0);
+            assertEquals("EVENT", e.type());
+            assertEquals(42L, e.idEvent());
+            assertEquals(2L, e.idCharacterMatch());
+            assertEquals("EVENT_EXECUTED 42", e.message());
         }
 
         @Test
@@ -296,6 +321,40 @@ class MatchLogsServiceTest {
         }
 
         @Test
+        @DisplayName("EVENT entry carries the triggered event's own card and the character (v0.30.3)")
+        void eventCardAndCharacter() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, 2L, 3, "2026-01-01T00:05:00Z",
+                            "EVENT_EXECUTED 42", 42L)));
+            when(store.findEventIdCards(STORY_ID)).thenReturn(Map.of(42L, 600));
+            when(store.findCharactersByMatch(MATCH_ID)).thenReturn(
+                    Map.of(2L, new CharacterLogView(2L, "char-uuid", 9L)));
+            when(store.findCharacterTemplateIdCards(STORY_ID)).thenReturn(Map.of(9L, 500));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 600, "en"))
+                    .thenReturn(card("A Fork In The Road"));
+            when(contentQueryPort.getCardByStoryIdAndCardId(STORY_ID, 500, "en"))
+                    .thenReturn(card("Ranger"));
+
+            LogEntry e = admin().logs().get(0);
+            assertEquals(600, e.idCard());
+            assertEquals("A Fork In The Road", e.card().title());
+            assertEquals("char-uuid", e.characterUuid());
+            assertEquals("Ranger", e.characterName());
+        }
+
+        @Test
+        @DisplayName("EVENT entry with no matching event card resolves to a null card, not an error")
+        void eventMissingCardIsNull() {
+            when(store.findEventLog(MATCH_ID)).thenReturn(
+                    List.of(new EventLogEntry(1L, null, 3, "2026-01-01T00:05:00Z",
+                            "EVENT_EXECUTED 99", 99L)));
+            // no event → card mapping seeded
+            LogEntry e = admin().logs().get(0);
+            assertNull(e.idCard());
+            assertNull(e.card());
+        }
+
+        @Test
         @DisplayName("cards are resolved in the requested language")
         void cardsUseRequestedLang() {
             when(store.findWeatherLog(MATCH_ID)).thenReturn(
@@ -323,7 +382,7 @@ class MatchLogsServiceTest {
         @DisplayName("SLEEP entry names the character that slept")
         void sleepCharacter() {
             when(store.findEventLog(MATCH_ID)).thenReturn(
-                    List.of(new EventLogEntry(1L, 2L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP")));
+                    List.of(new EventLogEntry(1L, 2L, 0, "2026-01-01T00:01:30Z", "ACTION_SLEEP", null)));
             when(store.findCharactersByMatch(MATCH_ID)).thenReturn(
                     Map.of(2L, new CharacterLogView(2L, "char-uuid", 9L)));
             when(store.findCharacterTemplateIdCards(STORY_ID)).thenReturn(Map.of(9L, 500));
@@ -445,6 +504,7 @@ class MatchLogsServiceTest {
             service.getMatchLogsForAdmin(MATCH_UUID, null, 5, null, null);
             verify(store, times(1)).findWeatherIdCards(STORY_ID);
             verify(store, times(1)).findLocationIdCards(STORY_ID);
+            verify(store, times(1)).findEventIdCards(STORY_ID);
             verify(store, times(1)).findCharactersByMatch(MATCH_ID);
         }
 

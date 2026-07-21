@@ -7,6 +7,7 @@ import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.match.LogMovementEntity;
 import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
@@ -22,6 +23,7 @@ import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import games.paths.core.repository.match.LogWeatherRepository;
 import games.paths.core.repository.story.CharacterTemplateRepository;
+import games.paths.core.repository.story.EventRepository;
 import games.paths.core.repository.story.LocationRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +52,7 @@ class MatchLogsStoreAdapterTest {
     private LocationRepository locationRepository;
     private CharacterTemplateRepository characterTemplateRepository;
     private GamingCharacterInstanceRepository characterInstanceRepository;
+    private EventRepository eventRepository;
     private MatchLogsStoreAdapter adapter;
 
     @BeforeEach
@@ -63,10 +66,11 @@ class MatchLogsStoreAdapterTest {
         locationRepository = mock(LocationRepository.class);
         characterTemplateRepository = mock(CharacterTemplateRepository.class);
         characterInstanceRepository = mock(GamingCharacterInstanceRepository.class);
+        eventRepository = mock(EventRepository.class);
         adapter = new MatchLogsStoreAdapter(matchRepository, logWeatherRepository,
                 logMovementRepository, logClockHistoryRepository, logEventsRepository,
                 weatherRuleRepository, locationRepository, characterTemplateRepository,
-                characterInstanceRepository);
+                characterInstanceRepository, eventRepository);
     }
 
     @Test
@@ -174,7 +178,8 @@ class MatchLogsStoreAdapterTest {
         l.setIdCharacterMatch(6L);
         l.setClock(2);
         l.setTimestamp("2026-01-04T00:00:00");
-        l.setLogMessage("EVENT_EXECUTED#7");
+        l.setLogMessage("EVENT_EXECUTED 7");
+        l.setIdEvent(7L);
         when(logEventsRepository.findByIdMatchOrderByIdAsc(1L)).thenReturn(List.of(l));
 
         List<EventLogEntry> out = adapter.findEventLog(1L);
@@ -185,7 +190,18 @@ class MatchLogsStoreAdapterTest {
         assertEquals(6L, e.idCharacterMatch());
         assertEquals(2, e.clock());
         assertEquals("2026-01-04T00:00:00", e.timestamp());
-        assertEquals("EVENT_EXECUTED#7", e.logMessage());
+        assertEquals("EVENT_EXECUTED 7", e.logMessage());
+        assertEquals(7L, e.idEvent());
+    }
+
+    @Test
+    void findEventIdCards_mapsIdToCard() {
+        EventEntity ev = new EventEntity();
+        ev.setId(60L);
+        ev.setIdCard(404);
+        when(eventRepository.findByIdStory(9L)).thenReturn(List.of(ev));
+
+        assertEquals(Map.of(60L, 404), adapter.findEventIdCards(9L));
     }
 
     @Test
@@ -249,10 +265,12 @@ class MatchLogsStoreAdapterTest {
         when(locationRepository.findByIdStory(4L)).thenReturn(List.of());
         when(characterTemplateRepository.findByIdStory(4L)).thenReturn(List.of());
         when(characterInstanceRepository.findByIdMatch(4L)).thenReturn(List.of());
+        when(eventRepository.findByIdStory(4L)).thenReturn(List.of());
 
         assertTrue(adapter.findWeatherIdCards(4L).isEmpty());
         assertTrue(adapter.findLocationIdCards(4L).isEmpty());
         assertTrue(adapter.findCharacterTemplateIdCards(4L).isEmpty());
         assertTrue(adapter.findCharactersByMatch(4L).isEmpty());
+        assertTrue(adapter.findEventIdCards(4L).isEmpty());
     }
 }

@@ -334,7 +334,7 @@ class MatchAdminControllerTest {
                 new games.paths.core.port.match.MatchLogsPort.MatchLogsResult("m1", 2, List.of(
                         new games.paths.core.port.match.MatchLogsPort.LogEntry(
                                 "SLEEP", 1, "2024-01-01T10:00:00Z", null, 10L,
-                                "char-uuid", "Ranger", null, null, null, null, null, null)),
+                                "char-uuid", "Ranger", null, null, null, null, null, null, null)),
                         null, 50, 1, "asc"));
 
         mockMvc.perform(get("/api/admin/matches/m1/logs"))

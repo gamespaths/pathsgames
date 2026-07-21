@@ -3,6 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import LoadingCard from '@/components/layout/LoadingCard'
 import { getMatchLogs } from '@/api/matches'
+import { buildCardToSleep } from '@/utils/loadoutCards'
 
 /**
  * MatchLogCard — the match history, rendered as a full book reading page.
@@ -11,7 +12,9 @@ import { getMatchLogs } from '@/api/matches'
  * the timeline as a grid of little Cards, one per entry: the entry's own card
  * supplies the title and the image, the event type is overlaid on the image
  * (`childrenIntoImage`) and the date/time — plus the character that acted, when
- * there is one — sits below it (`extraContent`).
+ * there is one — sits below it (`extraContent`). SLEEP entries carry no card of
+ * their own from the API — `resolveEntryCard` fills in the same static "sleep"
+ * card GameBook's own sleep action shows.
  *
  * CLOCK_ADVANCE entries are filtered out: they carry no card and no actor, so
  * they would only add empty tiles to the timeline.
@@ -37,6 +40,7 @@ const TYPE_ICON = {
   SLEEP:         'fa-bed',
   CLOCK_ADVANCE: 'fa-clock',
   RECOVERY:      'fa-heart',
+  EVENT:         'fa-scroll',
 }
 
 /**
@@ -58,20 +62,33 @@ export function formatLogDate(timestamp, lang) {
 }
 
 /**
+ * SLEEP entries carry no card of their own from the API. GameBook's own sleep
+ * action (GoToSleepCard) shows the static "sleep" card from data/images.json —
+ * the match history reuses the very same card, built the same way, so a past
+ * sleep entry looks exactly like it did when it happened.
+ */
+function resolveEntryCard(entry, t) {
+  console.log('resolveEntryCard', entry)
+  if (entry.type === 'SLEEP') return buildCardToSleep(null, null, t)
+  return entry.card ?? null
+}
+
+/**
  * One timeline entry as a little Card: the entry's card gives title + image, the
  * event type is overlaid on the image, and the date (with the actor, when the
- * entry has one) goes underneath. Entries with no card of their own (SLEEP,
- * RECOVERY) fall back to the type label and its icon.
+ * entry has one) goes underneath. Entries with no card of their own (RECOVERY)
+ * fall back to the type label and its icon.
  */
 function LogEntryCard({ entry, lang, t, onPreview }) {
   const typeLabel = t(`matchLog.types.${entry.type}`)
   const actor = entry.characterName || entry.characterUuid
+  const card = resolveEntryCard(entry, t)
 
   return (
     <Card
       variant="little"
-      card={entry.card ?? null}
-      name={entry.card?.title ?? typeLabel}
+      card={card}
+      name={card?.title ?? typeLabel}
       icon={`fas ${TYPE_ICON[entry.type] || 'fa-circle'}`}
       entityType={undefined}
       onPreview={() => onPreview(entry)}
@@ -197,14 +214,14 @@ export default function MatchLogCard({ matchUuid, accessToken, story = null, onB
   )
 
   // (i) on an entry: its card takes over the page. Entries with no card of their
-  // own (SLEEP, RECOVERY) still get a page built from the type label and icon.
+  // own (RECOVERY) still get a page built from the type label and icon.
   if (preview) {
     const typeLabel = t(`matchLog.types.${preview.type}`)
     const actor = preview.characterName || preview.characterUuid
     return (
       <Card
         variant="page"
-        card={preview.card ?? { title: typeLabel, description: null, urlImage: null }}
+        card={resolveEntryCard(preview, t) ?? { title: typeLabel, description: null, urlImage: null }}
         icon={`fas ${TYPE_ICON[preview.type] || 'fa-circle'}`}
         entityType={undefined}
         story={story}

@@ -15,9 +15,13 @@ info:
     - **CLOCK_ADVANCE**: clock increments / time-end triggers (from `log_clock_history`)
     - **RECOVERY**: per-character stat recovery at time-start (from `log_events`
       where `log_message` starts with `recovery` or `counter`)
+    - **EVENT** (Step 29): a player-triggered event execution (from `log_events` where
+      `log_message` starts with `EVENT_EXECUTED`). v0.30.3 — carries `idEvent` and the
+      triggered event's own `idCard`/`card`. Rows the service does not recognise (e.g.
+      the Step 30 edge-state audit messages `SADNESS_OVERFLOW`/`COMA`) are dropped, not
+      shown as garbage.
 
-    Future additions (out of scope for v0.28.7): CHOICE_EXECUTED, ITEM_USED,
-    EVENT_TRIGGERED, REGISTRY_CHANGE.
+    Future additions: CHOICE_EXECUTED, ITEM_USED, REGISTRY_CHANGE.
 
     **Public endpoint** (owner-only): `GET /api/matches/{uuidMatch}/logs`
     **Admin endpoint** (no ownership check, admin port 8044):
@@ -179,7 +183,7 @@ components:
       properties:
         type:
           type: string
-          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY]
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT]
           description: Log entry type
         clock:
           type: integer
@@ -198,11 +202,11 @@ components:
           type: integer
           format: int64
           nullable: true
-          description: "(MOVEMENT, SLEEP, RECOVERY only) ID of the character instance. Always null on AWS."
+          description: "(MOVEMENT, SLEEP, RECOVERY, EVENT only) ID of the character instance. Always null on AWS."
         characterUuid:
           type: string
           nullable: true
-          description: "(v0.28.7; MOVEMENT, SLEEP, RECOVERY) UUID of the character that acted"
+          description: "(v0.28.7; MOVEMENT, SLEEP, RECOVERY, EVENT) UUID of the character that acted"
         characterName:
           type: string
           nullable: true
@@ -224,13 +228,19 @@ components:
         message:
           type: string
           nullable: true
-          description: "(RECOVERY only) Recovery summary message"
+          description: "(RECOVERY, EVENT) Recovery summary message, or the raw EVENT_EXECUTED <id> log line"
+        idEvent:
+          type: integer
+          format: int64
+          nullable: true
+          description: "(v0.30.3; EVENT only) ID of the list_events row that was triggered"
         idCard:
           type: integer
           nullable: true
           description: >-
-            (v0.28.7; WEATHER, MOVEMENT) Story-scoped card id — the weather's own card
-            for WEATHER, the destination location's card for MOVEMENT.
+            (WEATHER, MOVEMENT, EVENT) Story-scoped card id — the weather's own card for
+            WEATHER, the destination location's card for MOVEMENT, the triggered event's
+            own card for EVENT (v0.30.3).
         card:
           nullable: true
           description: "(v0.28.7) The resolved card for idCard, localized via ?lang="

@@ -140,7 +140,8 @@
       "MOVEMENT": "Movimento",
       "SLEEP": "Riposo",
       "CLOCK_ADVANCE": "Scorre il tempo",
-      "RECOVERY": "Recupero"
+      "RECOVERY": "Recupero",
+      "EVENT": "Evento"
     }
   },
   "card": {

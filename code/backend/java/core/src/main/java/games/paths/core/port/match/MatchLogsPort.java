@@ -72,6 +72,8 @@ public interface MatchLogsPort {
      *   <li>SLEEP         — clock, idCharacterMatch, characterUuid, characterName</li>
      *   <li>CLOCK_ADVANCE — clock</li>
      *   <li>RECOVERY      — idCharacterMatch, characterUuid, characterName, message</li>
+     *   <li>EVENT         — idEvent, idCharacterMatch, characterUuid, characterName,
+     *                       message, idCard, card (v0.30.3 — of the triggered event itself)</li>
      * </ul>
      */
     record LogEntry(
@@ -87,6 +89,7 @@ public interface MatchLogsPort {
             Integer energyCost,
             String message,
             Integer idCard,
-            CardInfo card
+            CardInfo card,
+            Long idEvent
     ) {}
 }

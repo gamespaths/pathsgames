@@ -36,6 +36,9 @@ public interface MatchLogsStorePort {
     /** Character template id → {@code id_card}, for every template of the story. */
     Map<Long, Integer> findCharacterTemplateIdCards(long idStory);
 
+    /** Event (list_events) id → its own {@code id_card}, for every event of the story. */
+    Map<Long, Integer> findEventIdCards(long idStory);
+
     /** Character instance id → its uuid and template, for every character of the match. */
     Map<Long, CharacterLogView> findCharactersByMatch(long idMatch);
 
@@ -48,8 +51,10 @@ public interface MatchLogsStorePort {
 
     record ClockLogEntry(long id, Integer clock, String timestamp) {}
 
+    /** {@code idEvent} is the list_events row the message refers to — null on rows the
+     * service does not classify as EVENT (SLEEP, RECOVERY, ...). */
     record EventLogEntry(long id, Long idCharacterMatch, Integer clock,
-                         String timestamp, String logMessage) {}
+                         String timestamp, String logMessage, Long idEvent) {}
 
     /** The character that performed a logged action. */
     record CharacterLogView(long id, String uuid, Long idCharacterTemplate) {}

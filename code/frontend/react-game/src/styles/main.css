@@ -2804,6 +2804,7 @@ html, body {
 .match-log-type--SLEEP         { color: #60a5fa; }
 .match-log-type--CLOCK_ADVANCE { color: #c084fc; }
 .match-log-type--RECOVERY      { color: #2dd4bf; }
+.match-log-type--EVENT         { color: #f87171; }
 
 /* Date (and actor) under each entry card. */
 .match-log-entry-extra {

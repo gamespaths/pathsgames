@@ -6,6 +6,7 @@ import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.match.LogMovementEntity;
 import games.paths.core.entity.match.LogWeatherEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.WeatherRuleEntity;
 import games.paths.core.port.match.MatchLogsStorePort;
@@ -16,6 +17,7 @@ import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import games.paths.core.repository.match.LogWeatherRepository;
 import games.paths.core.repository.story.CharacterTemplateRepository;
+import games.paths.core.repository.story.EventRepository;
 import games.paths.core.repository.story.LocationRepository;
 import games.paths.core.repository.story.WeatherRuleRepository;
 
@@ -32,7 +34,8 @@ import java.util.Optional;
  * MatchLogsStoreAdapter - JPA adapter implementing {@link MatchLogsStorePort}
  * for the Step 28.7 match logs endpoint. Reads from the four append-only log tables
  * and the gaming_match table (for ownership/clock metadata), plus the story-scoped
- * lookups that enrich the entries with cards and characters (v0.28.7).
+ * lookups that enrich the entries with cards and characters (v0.28.7). v0.30.3 adds
+ * {@link #findEventIdCards(long)} so EVENT entries carry the triggered event's own card.
  */
 @Repository
 @Transactional(readOnly = true)
@@ -47,6 +50,7 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
     private final LocationRepository locationRepository;
     private final CharacterTemplateRepository characterTemplateRepository;
     private final GamingCharacterInstanceRepository characterInstanceRepository;
+    private final EventRepository eventRepository;
 
     public MatchLogsStoreAdapter(GamingMatchRepository matchRepository,
                                  LogWeatherRepository logWeatherRepository,
@@ -56,7 +60,8 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
                                  WeatherRuleRepository weatherRuleRepository,
                                  LocationRepository locationRepository,
                                  CharacterTemplateRepository characterTemplateRepository,
-                                 GamingCharacterInstanceRepository characterInstanceRepository) {
+                                 GamingCharacterInstanceRepository characterInstanceRepository,
+                                 EventRepository eventRepository) {
         this.matchRepository = matchRepository;
         this.logWeatherRepository = logWeatherRepository;
         this.logMovementRepository = logMovementRepository;
@@ -66,6 +71,7 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         this.locationRepository = locationRepository;
         this.characterTemplateRepository = characterTemplateRepository;
         this.characterInstanceRepository = characterInstanceRepository;
+        this.eventRepository = eventRepository;
     }
 
     @Override
@@ -111,7 +117,7 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         List<EventLogEntry> out = new ArrayList<>();
         for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
             out.add(new EventLogEntry(l.getId(), l.getIdCharacterMatch(),
-                    l.getClock(), l.getTimestamp(), l.getLogMessage()));
+                    l.getClock(), l.getTimestamp(), l.getLogMessage(), l.getIdEvent()));
         }
         return out;
     }
@@ -140,6 +146,15 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         // The character template's own id column is `id_tipo` (mapped to idTipo).
         for (CharacterTemplateEntity c : characterTemplateRepository.findByIdStory(idStory)) {
             out.put(c.getIdTipo(), c.getIdCard());
+        }
+        return out;
+    }
+
+    @Override
+    public Map<Long, Integer> findEventIdCards(long idStory) {
+        Map<Long, Integer> out = new LinkedHashMap<>();
+        for (EventEntity e : eventRepository.findByIdStory(idStory)) {
+            out.put(e.getId(), e.getIdCard());
         }
         return out;
     }

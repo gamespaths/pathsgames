@@ -10,6 +10,11 @@ v0.28.7 — the timeline is cursor-paginated (opaque base64 offset token, same e
 convention as the paginated admin match list) and the entries on the returned page are
 enriched: WEATHER carries the weather's card, MOVEMENT carries the destination
 location's card, and every character-scoped entry names the character that acted.
+
+v0.30.3 — EVENT entries (Step 29 player-triggered events) carry `idEvent` and the
+triggered event's own card, resolved the same way as WEATHER/MOVEMENT. log_events rows
+the service does not classify (e.g. the Step 30 edge-state audit messages
+`SADNESS_OVERFLOW`/`COMA`) are dropped, not shown as garbage.
 """
 import base64
 from dataclasses import asdict
@@ -25,6 +30,7 @@ from app.adapters.persistence.match.models import (
 )
 from app.adapters.persistence.story.models import (
     CharacterTemplateEntity,
+    EventEntity,
     LocationEntity,
     WeatherRuleEntity,
 )
@@ -197,6 +203,7 @@ class MatchLogsService:
                     "timestamp": e.timestamp,
                     "idCharacterMatch": e.id_character_match,
                     "message": msg,
+                    "idEvent": e.id_event,
                 })
             elif msg.startswith("recovery") or msg.startswith("counter"):
                 entries.append({
@@ -212,9 +219,10 @@ class MatchLogsService:
         return entries
 
     def _enrich(self, session, page, match, lang) -> List[Dict[str, Any]]:
-        """Adds the card of every WEATHER (its own) and MOVEMENT entry (the destination
-        location's), plus the uuid/name of the character behind character-scoped entries.
-        The lookups below run once per page, never once per entry."""
+        """Adds the card of every WEATHER (its own), MOVEMENT (the destination
+        location's) and EVENT entry (the triggered event's own card, v0.30.3), plus the
+        uuid/name of the character behind character-scoped entries. The lookups below
+        run once per page, never once per entry."""
         if not page:
             return []
 
@@ -224,6 +232,8 @@ class MatchLogsService:
                           .filter(LocationEntity.id_story == match.id_story).all()}
         template_cards = {t.id_tipo: t.id_card for t in session.query(CharacterTemplateEntity)
                           .filter(CharacterTemplateEntity.id_story == match.id_story).all()}
+        event_cards = {ev.id: ev.id_card for ev in session.query(EventEntity)
+                       .filter(EventEntity.id_story == match.id_story).all()}
         characters = {c.id: c for c in session.query(GamingCharacterInstanceEntity)
                       .filter(GamingCharacterInstanceEntity.id_match == match.id).all()}
 
@@ -236,6 +246,8 @@ class MatchLogsService:
                 id_card = weather_cards.get(entry["idWeather"])
             elif entry["type"] == _TYPE_MOVEMENT and entry.get("idLocationTo") is not None:
                 id_card = location_cards.get(entry["idLocationTo"])
+            elif entry["type"] == _TYPE_EVENT and entry.get("idEvent") is not None:
+                id_card = event_cards.get(entry["idEvent"])
             entry["idCard"] = id_card
             entry["card"] = self._resolve_card(match.id_story, id_card, lang)
 

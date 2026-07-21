@@ -8,12 +8,13 @@ import ErrorAlert from '../../common/ErrorAlert'
  * Shows the entries returned by GET /api/admin/matches/:uuid/logs, rendered as a
  * single table, newest entry first (the API is called with order=desc since
  * v0.30.3). Each entry is colour-coded by type
- * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY).
+ * (WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT).
  *
  * v0.28.7 — the endpoint is cursor-paginated: `entries` accumulates the pages
- * loaded so far and "Load more" fetches the next one via `onLoadMore`. WEATHER and
- * MOVEMENT entries carry a resolved `card` (shown as thumbnail + title) and every
- * character-scoped entry names the character that acted.
+ * loaded so far and "Load more" fetches the next one via `onLoadMore`. WEATHER,
+ * MOVEMENT and EVENT entries carry a resolved `card` (shown as thumbnail + title;
+ * EVENT's own card since v0.30.3) and every character-scoped entry names the
+ * character that acted.
  *
  * Renders nothing when `entries` is null (admin endpoint not available).
  */
@@ -24,6 +25,7 @@ const TYPE_META = {
   SLEEP:         { icon: 'fa-bed',             style: { background: '#1e3a5f', color: '#60a5fa', border: '1px solid #3b82f6' } },
   CLOCK_ADVANCE: { icon: 'fa-clock',           style: { background: '#2a1a3a', color: '#c084fc', border: '1px solid #a855f7' } },
   RECOVERY:      { icon: 'fa-heart',           style: { background: '#0f2e2e', color: '#2dd4bf', border: '1px solid #14b8a6' } },
+  EVENT:         { icon: 'fa-scroll',          style: { background: '#3a1a1a', color: '#f87171', border: '1px solid #ef4444' } },
 }
 
 const DEFAULT_META = { icon: 'fa-circle', style: { background: '#2a2a2a', color: '#9ca3af', border: '1px solid #4b5563' } }
@@ -75,7 +77,8 @@ function TypeBadge({ type }) {
 
 /**
  * The entry's card: thumbnail (image, or the card's awesome icon as a fallback)
- * next to its title. Only WEATHER and MOVEMENT entries carry one.
+ * next to its title. Only WEATHER, MOVEMENT and EVENT entries carry one
+ * (EVENT since v0.30.3 — the triggered event's own card).
  */
 function CardCell({ entry }) {
   const card = entry.card
@@ -136,6 +139,9 @@ function entryDetail(entry) {
 
     case 'RECOVERY':
       return entry.message ? String(entry.message).slice(0, 60) : '—'
+
+    case 'EVENT':
+      return entry.idEvent != null ? `event #${entry.idEvent}` : '—'
 
     default:
       return '—'

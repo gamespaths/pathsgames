@@ -144,7 +144,8 @@
       "MOVEMENT": "Movement",
       "SLEEP": "Sleep",
       "CLOCK_ADVANCE": "Time passes",
-      "RECOVERY": "Recovery"
+      "RECOVERY": "Recovery",
+      "EVENT": "Event"
     }
   },
   "card": {

@@ -1,8 +1,8 @@
 """Tests for the Step 28.7 match logs service (Python backend).
 
 Exercises :class:`MatchLogsService` against an in-memory SQLite database: the
-consolidated timeline assembles WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE and
-RECOVERY entries from the four append-only log tables, sorted by timestamp.
+consolidated timeline assembles WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY
+and EVENT entries from the four append-only log tables, sorted by timestamp.
 """
 import pytest
 from sqlalchemy import create_engine
@@ -19,6 +19,7 @@ from app.adapters.persistence.match.models import (
 )
 from app.adapters.persistence.story.models import (
     CharacterTemplateEntity,
+    EventEntity,
     LocationEntity,
     WeatherRuleEntity,
 )
@@ -182,6 +183,23 @@ def test_executed_event_is_reported_as_event(session_factory):
     assert [e["type"] for e in logs] == ["EVENT"]
     assert logs[0]["message"] == "EVENT_EXECUTED 90010"
     assert logs[0]["idCharacterMatch"] == 10
+    assert logs[0]["idEvent"] == 90010
+
+
+def test_edge_state_messages_are_skipped_not_shown_as_event(session_factory):
+    """v0.30.3 regression — SADNESS_OVERFLOW/COMA (Step 30 edge-state audit rows) share
+    the log_events table with executed events but must not surface as EVENT entries."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=12, id_match=MATCH_ID, uuid="e12", id_character_match=10,
+                              timestamp=_NOW, log_message="SADNESS_OVERFLOW char-uuid",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.add(LogEventsEntity(id=13, id_match=MATCH_ID, uuid="e13", id_character_match=10,
+                              timestamp=_NOW, log_message="COMA char-uuid",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert logs == []
 
 
 def test_admin_variant_skips_the_ownership_check(session_factory):
@@ -341,11 +359,12 @@ class _FakeContentQueryService:
 
 
 def _seed_story_content(session_factory):
-    """A weather, a location and a character template, each with its own card."""
+    """A weather, a location, a character template and an event, each with its own card."""
     with session_factory() as s:
         s.add(WeatherRuleEntity(id=3, id_story=STORY_ID, uuid="w-3", id_card=300))
         s.add(LocationEntity(id=2, id_story=STORY_ID, uuid="loc-2", id_card=400))
         s.add(CharacterTemplateEntity(id_tipo=9, id_story=STORY_ID, uuid="tpl-9", id_card=500))
+        s.add(EventEntity(id=90010, id_story=STORY_ID, uuid="ev-90010", id_card=600))
         s.add(GamingCharacterInstanceEntity(
             id=10, id_match=MATCH_ID, uuid="char-uuid", id_user=USER_ID,
             id_character_template=9, ts_insert=_NOW, ts_update=_NOW))
@@ -397,6 +416,45 @@ def test_entries_without_a_card_resolve_to_null(session_factory):
     weather = next(e for e in logs if e["type"] == "WEATHER")
     assert weather["idCard"] is None
     assert weather["card"] is None
+
+
+def test_event_entry_carries_its_own_card_and_character(session_factory):
+    """v0.30.3 — the triggered event's card is resolved the same way as WEATHER's own
+    card and MOVEMENT's destination card, previously EVENT entries always had a null
+    card because the enrichment step never looked one up for them."""
+    _seed_match(session_factory)
+    _seed_story_content(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=11, id_match=MATCH_ID, uuid="e11", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=90010,
+                              log_message="EVENT_EXECUTED 90010",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    content = _FakeContentQueryService({500: "Ranger", 600: "A Fork In The Road"})
+
+    logs = MatchLogsService(session_factory, content).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    event = next(e for e in logs if e["type"] == "EVENT")
+    assert event["idEvent"] == 90010
+    assert event["idCard"] == 600
+    assert event["card"]["title"] == "A Fork In The Road"
+    assert event["characterUuid"] == "char-uuid"
+    assert event["characterName"] == "Ranger"
+
+
+def test_event_entry_with_no_matching_card_resolves_to_null(session_factory):
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=11, id_match=MATCH_ID, uuid="e11", id_character_match=10,
+                              clock=4, timestamp=_NOW, id_event=99999,
+                              log_message="EVENT_EXECUTED 99999",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    # no event → card mapping seeded
+    logs = MatchLogsService(session_factory, _FakeContentQueryService({})) \
+        .get_match_logs_for_admin(MATCH_UUID)["logs"]
+    event = next(e for e in logs if e["type"] == "EVENT")
+    assert event["idCard"] is None
+    assert event["card"] is None
 
 
 def test_without_a_content_service_entries_keep_ids_but_carry_no_cards(session_factory):

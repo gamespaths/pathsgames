@@ -271,6 +271,27 @@ describe('MatchDetailPage', () => {
     expect(screen.queryByAltText('Dark Forest')).not.toBeInTheDocument()
   })
 
+  it('shows an EVENT entry with its own card and event id detail (v0.30.3)', async () => {
+    matchApi.getMatchLogs.mockResolvedValue({
+      matchUuid: 'm1', currentClock: 4, nextCursor: null, limit: 50, total: 1,
+      logs: [
+        { type: 'EVENT', clock: 3, timestamp: '2026-07-12T10:04:00Z',
+          idEvent: 42, idCharacterMatch: 1, characterUuid: 'char-1', characterName: 'Ranger',
+          message: 'EVENT_EXECUTED 42',
+          idCard: 600, card: { title: 'A Fork In The Road', urlImage: 'http://img/fork.png' } },
+      ],
+    })
+    renderPage()
+    await screen.findByText('Saturday run')
+    await gotoTab('Logs')
+    await screen.findByTestId('match-logs-panel')
+
+    expect(screen.getAllByText('EVENT').length).toBeGreaterThan(0)
+    expect(screen.getByText('A Fork In The Road')).toBeInTheDocument()
+    expect(screen.getByAltText('A Fork In The Road')).toHaveAttribute('src', 'http://img/fork.png')
+    expect(screen.getByText('event #42')).toBeInTheDocument()
+  })
+
   it('names the character that performed each character-scoped action', async () => {
     renderPage()
     await screen.findByText('Saturday run')

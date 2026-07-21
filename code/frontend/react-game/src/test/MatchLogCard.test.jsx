@@ -61,8 +61,9 @@ describe('MatchLogCard', () => {
     await screen.findByTestId('match-log-card')
     expect(screen.getAllByText('matchLog.types.WEATHER').length).toBeGreaterThan(0)
     expect(screen.getAllByText('matchLog.types.MOVEMENT').length).toBeGreaterThan(0)
-    // SLEEP has no card of its own → the type is both the tile title and the overlay
-    expect(screen.getAllByText('matchLog.types.SLEEP').length).toBe(2)
+    // SLEEP shows GameBook's own sleep card as its title, and the type as the overlay
+    expect(screen.getAllByText('matchLog.types.SLEEP').length).toBe(1)
+    expect(screen.getByText('game.sleep.confirmTitle')).toBeInTheDocument()
   })
 
   it('hides CLOCK_ADVANCE entries', async () => {
@@ -91,6 +92,23 @@ describe('MatchLogCard', () => {
     // no image → the card's awesome icon stands in for the thumbnail
     expect(screen.getByText('Dark Forest')).toBeInTheDocument()
     expect(screen.queryByAltText('Dark Forest')).not.toBeInTheDocument()
+  })
+
+  it('shows an EVENT entry with its own card, icon and label (v0.30.3)', async () => {
+    getMatchLogs.mockResolvedValue({
+      ...PAGE,
+      logs: [{
+        type: 'EVENT', clock: 3, timestamp: '2026-07-12T10:05:00Z',
+        idEvent: 42, idCard: 600, message: 'EVENT_EXECUTED 42',
+        card: { title: 'A Fork In The Road', urlImage: 'http://img/fork.png' },
+        characterUuid: 'char-1', characterName: 'Ranger',
+      }],
+    })
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+    expect(screen.getByText('A Fork In The Road')).toBeInTheDocument()
+    expect(screen.getByText('matchLog.types.EVENT')).toBeInTheDocument()
+    expect(document.querySelector('.fa-scroll')).toBeInTheDocument()
   })
 
   it('names the character that performed the action, next to the date', async () => {
@@ -129,7 +147,7 @@ describe('MatchLogCard', () => {
 
     fireEvent.click(screen.getByText('matchLog.loadMore'))
 
-    await waitFor(() => expect(screen.getAllByText('matchLog.types.SLEEP').length).toBe(2))
+    await waitFor(() => expect(screen.getAllByText('matchLog.types.SLEEP').length).toBe(1))
     // the first page is still there — pages accumulate, they do not replace
     expect(screen.getByText('Thunderstorm')).toBeInTheDocument()
     expect(getMatchLogs).toHaveBeenLastCalledWith('m1', 'tok', { limit: 50, cursor: 'cur-2', lang: 'it' })
@@ -154,15 +172,34 @@ describe('MatchLogCard', () => {
   })
 
   it('previews entries without a card of their own using the type label', async () => {
+    getMatchLogs.mockResolvedValue({
+      ...PAGE,
+      logs: [...PAGE.logs, {
+        type: 'RECOVERY', clock: 2, timestamp: '2026-07-12T10:03:00Z',
+        characterUuid: 'char-1', characterName: 'Ranger', message: 'recovery safe=1',
+      }],
+    })
     render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
     await screen.findByTestId('match-log-card')
 
-    // SLEEP carries no card → the tile title is the type label
-    const sleepTile = screen.getAllByText('matchLog.types.SLEEP')[0].closest('.pg-card')
+    // RECOVERY carries no card → the tile title is the type label
+    const recoveryTile = screen.getAllByText('matchLog.types.RECOVERY')[0].closest('.pg-card')
+    fireEvent.click(recoveryTile.querySelector('button'))
+
+    expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
+    expect(screen.getAllByText('matchLog.types.RECOVERY').length).toBeGreaterThan(0)
+  })
+
+  it('shows a SLEEP entry with the same sleep card GameBook uses (v0.30.3)', async () => {
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+
+    // (i) on the sleep tile → the preview page shows the same card, not just the type label
+    const sleepTile = screen.getByText('game.sleep.confirmTitle').closest('.pg-card')
     fireEvent.click(sleepTile.querySelector('button'))
 
     expect(screen.queryByTestId('match-log-card')).not.toBeInTheDocument()
-    expect(screen.getAllByText('matchLog.types.SLEEP').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('game.sleep.confirmTitle').length).toBeGreaterThan(0)
   })
 
   it('calls onBack when the back arrow is used', async () => {

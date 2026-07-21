@@ -33,15 +33,17 @@ import java.util.Map;
  *   <li>SLEEP — from log_events WHERE log_message='ACTION_SLEEP'</li>
  *   <li>CLOCK_ADVANCE — from log_clock_history</li>
  *   <li>RECOVERY — from log_events WHERE log_message LIKE 'recovery%' or 'counter%'</li>
+ *   <li>EVENT — from log_events WHERE log_message LIKE 'EVENT_EXECUTED%' (Step 29)</li>
  * </ul>
  * </p>
  *
  * <p>v0.28.7 — the timeline is cursor-paginated: the full timeline is assembled and
  * sorted, then only the requested slice is returned and enriched. Enrichment needs at
- * most four extra queries per request (weather cards, location cards, template cards,
- * match characters), regardless of the page size. WEATHER entries carry the weather's
- * card; MOVEMENT entries carry the destination location's card plus the character that
- * moved; SLEEP and RECOVERY entries carry their character.</p>
+ * most five extra queries per request (weather cards, location cards, template cards,
+ * event cards, match characters), regardless of the page size. WEATHER entries carry the
+ * weather's card; MOVEMENT entries carry the destination location's card plus the
+ * character that moved; SLEEP and RECOVERY entries carry their character. v0.30.3 adds
+ * the triggered event's own card to EVENT entries.</p>
  *
  * <p>See {@code documentation_v0/Step28_MovementSystem.md} §8.</p>
  */
@@ -124,18 +126,18 @@ public class MatchLogsService implements MatchLogsPort {
 
         for (WeatherLogEntry w : store.findWeatherLog(match.id())) {
             entries.add(new LogEntry(TYPE_WEATHER, w.clock(), w.timestamp(), w.idWeather(),
-                    null, null, null, null, null, null, null, null, null));
+                    null, null, null, null, null, null, null, null, null, null));
         }
 
         for (MovementLogEntry m : store.findMovementLog(match.id())) {
             entries.add(new LogEntry(TYPE_MOVEMENT, null, m.timestamp(), null,
                     m.idCharacterMatch(), null, null, m.idLocationFrom(), m.idLocationTo(),
-                    m.energyCost(), null, null, null));
+                    m.energyCost(), null, null, null, null));
         }
 
         for (ClockLogEntry c : store.findClockLog(match.id())) {
             entries.add(new LogEntry(TYPE_CLOCK_ADVANCE, c.clock(), c.timestamp(), null,
-                    null, null, null, null, null, null, null, null, null));
+                    null, null, null, null, null, null, null, null, null, null));
         }
 
         // log_events is a shared table and the type is derived from the message prefix, so an
@@ -148,13 +150,14 @@ public class MatchLogsService implements MatchLogsPort {
             }
             if (MSG_SLEEP.equals(msg)) {
                 entries.add(new LogEntry(TYPE_SLEEP, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, null, null, null));
+                        e.idCharacterMatch(), null, null, null, null, null, null, null, null, null));
             } else if (msg.startsWith(EventExecutionStorePort.MSG_EVENT_EXECUTED)) {
                 entries.add(new LogEntry(TYPE_EVENT, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null));
+                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null,
+                        e.idEvent()));
             } else if (msg.startsWith("recovery") || msg.startsWith("counter")) {
                 entries.add(new LogEntry(TYPE_RECOVERY, e.clock(), e.timestamp(), null,
-                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null));
+                        e.idCharacterMatch(), null, null, null, null, null, msg, null, null, null));
             }
         }
 
@@ -164,9 +167,10 @@ public class MatchLogsService implements MatchLogsPort {
     }
 
     /**
-     * Fills in the card of every WEATHER (the weather's own card) and MOVEMENT entry
-     * (the destination location's card), and the uuid/name of the character behind
-     * every character-scoped entry. Lookups are loaded once for the whole page.
+     * Fills in the card of every WEATHER (the weather's own card), MOVEMENT (the
+     * destination location's card) and EVENT entry (the triggered event's own card,
+     * v0.30.3), and the uuid/name of the character behind every character-scoped entry.
+     * Lookups are loaded once for the whole page.
      */
     private List<LogEntry> enrich(List<LogEntry> page, MatchSummary match, String lang) {
         if (page.isEmpty()) {
@@ -175,6 +179,7 @@ public class MatchLogsService implements MatchLogsPort {
         Map<Long, Integer> weatherCards = store.findWeatherIdCards(match.idStory());
         Map<Long, Integer> locationCards = store.findLocationIdCards(match.idStory());
         Map<Long, Integer> templateCards = store.findCharacterTemplateIdCards(match.idStory());
+        Map<Long, Integer> eventCards = store.findEventIdCards(match.idStory());
         Map<Long, CharacterLogView> characters = store.findCharactersByMatch(match.id());
 
         List<LogEntry> out = new ArrayList<>(page.size());
@@ -184,6 +189,8 @@ public class MatchLogsService implements MatchLogsPort {
                 idCard = weatherCards.get(e.idWeather());
             } else if (TYPE_MOVEMENT.equals(e.type()) && e.idLocationTo() != null) {
                 idCard = locationCards.get(e.idLocationTo());
+            } else if (TYPE_EVENT.equals(e.type()) && e.idEvent() != null) {
+                idCard = eventCards.get(e.idEvent());
             }
             CardInfo card = resolveCard(match.idStory(), idCard, lang);
 
@@ -202,7 +209,7 @@ public class MatchLogsService implements MatchLogsPort {
             out.add(new LogEntry(e.type(), e.clock(), e.timestamp(), e.idWeather(),
                     e.idCharacterMatch(), characterUuid, characterName,
                     e.idLocationFrom(), e.idLocationTo(), e.energyCost(), e.message(),
-                    idCard, card));
+                    idCard, card, e.idEvent()));
         }
         return out;
     }

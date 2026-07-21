@@ -45,10 +45,10 @@ class MatchLogsControllerTest {
         when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
                 new MatchLogsResult("m1", 3, List.of(
                         new LogEntry("WEATHER", 1, "2024-01-01T10:00:00Z", 7L,
-                                null, null, null, null, null, null, null, 300, card("Storm")),
+                                null, null, null, null, null, null, null, 300, card("Storm"), null),
                         new LogEntry("MOVEMENT", null, "2024-01-01T11:00:00Z", null,
                                 10L, "char-uuid", "Ranger", 100L, 200L, 4, null,
-                                400, card("Dark Forest"))),
+                                400, card("Dark Forest"), null)),
                         null, 50, 2, "asc"));
 
         mockMvc.perform(authed(get("/api/matches/m1/logs")))
@@ -69,6 +69,25 @@ class MatchLogsControllerTest {
                 .andExpect(jsonPath("$.logs[1].characterUuid").value("char-uuid"))
                 .andExpect(jsonPath("$.logs[1].characterName").value("Ranger"))
                 .andExpect(jsonPath("$.logs[1].card.title").value("Dark Forest"));
+    }
+
+    @Test
+    void logs_eventEntryExposesIdEventAndItsOwnCard() throws Exception {
+        when(matchLogsPort.getMatchLogs("m1", "user-uuid", null, null, null, null)).thenReturn(
+                new MatchLogsResult("m1", 3, List.of(
+                        new LogEntry("EVENT", 3, "2024-01-01T12:00:00Z", null,
+                                10L, "char-uuid", "Ranger", null, null, null,
+                                "EVENT_EXECUTED 42", 600, card("A Fork In The Road"), 42L)),
+                        null, 50, 1, "asc"));
+
+        mockMvc.perform(authed(get("/api/matches/m1/logs")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.logs[0].type").value("EVENT"))
+                .andExpect(jsonPath("$.logs[0].idEvent").value(42))
+                .andExpect(jsonPath("$.logs[0].idCard").value(600))
+                .andExpect(jsonPath("$.logs[0].card.title").value("A Fork In The Road"))
+                .andExpect(jsonPath("$.logs[0].characterUuid").value("char-uuid"))
+                .andExpect(jsonPath("$.logs[0].characterName").value("Ranger"));
     }
 
     @Test

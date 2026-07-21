@@ -124,6 +124,32 @@ def test_get_match_logs_of_another_user_returns_404(mock_get, _jwt):
     assert _body(result)['error'] == 'MATCH_NOT_FOUND'
 
 
+# ── v0.30.3: EVENT filtering + idEvent ───────────────────────────────────────
+
+EVENT_MATCH = {**MATCH, 'eventLog': [
+    {'characterUuid': 'c1', 'idEvent': 90010, 'clock': 3,
+     'timestamp': 5000, 'message': 'EVENT_EXECUTED 90010'},
+    # Step 30 edge-state audit rows share the same list — must not surface as EVENT.
+    {'characterUuid': 'c1', 'idEvent': None, 'clock': 3,
+     'timestamp': 5100, 'message': 'SADNESS_OVERFLOW c1'},
+    {'characterUuid': 'c1', 'idEvent': None, 'clock': 3,
+     'timestamp': 5200, 'message': 'COMA c1'},
+]}
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
+@patch('match.handler.db_utils.get_item')
+def test_edge_state_rows_are_skipped_not_shown_as_event(mock_get, _q, _jwt):
+    mock_get.side_effect = _get_side(match_item=EVENT_MATCH)
+    body = _body(_call(_player_event()))
+    events = [e for e in body['logs'] if e['type'] == 'EVENT']
+    assert len(events) == 1
+    assert events[0]['idEvent'] == 90010
+    assert events[0]['message'] == 'EVENT_EXECUTED 90010'
+
+
 def test_get_match_logs_without_token_returns_401():
     result = _call(make_event('GET', '/api/matches/m1/logs',
                               path_params={'uuidMatch': 'm1'}))
@@ -352,15 +378,18 @@ STORY = {
     'weatherRules': [{'id': 3, 'uuid': 'w-3', 'idCard': 300}],
     'locations': [{'id': 2, 'uuid': 'loc-2', 'idCard': 400}],
     'characterTemplates': [{'uuid': 'tpl-9', 'idCard': 500}],
+    'events': [{'id': 90010, 'idCard': 600}],
     'raw_cards': [
         {'id': 300, 'uuid': 'card-300', 'idTextTitle': 1},
         {'id': 400, 'uuid': 'card-400', 'idTextTitle': 2},
         {'id': 500, 'uuid': 'card-500', 'idTextTitle': 3},
+        {'id': 600, 'uuid': 'card-600', 'idTextTitle': 4},
     ],
     'raw_texts': [
         {'idText': 1, 'lang': 'en', 'shortText': 'Thunderstorm'},
         {'idText': 2, 'lang': 'en', 'shortText': 'Dark Forest'},
         {'idText': 3, 'lang': 'en', 'shortText': 'Ranger'},
+        {'idText': 4, 'lang': 'en', 'shortText': 'A Fork In The Road'},
     ],
 }
 
@@ -404,6 +433,33 @@ def test_movement_entry_names_the_character_that_moved(_get, _q, _jwt):
     movement = next(e for e in body['logs'] if e['type'] == 'MOVEMENT')
     assert movement['characterUuid'] == 'c1'
     assert movement['characterName'] == 'Ranger'
+
+
+ENRICH_EVENT_MATCH = {**ENRICH_MATCH, 'eventLog': EVENT_MATCH['eventLog']}
+
+
+def _enrich_event_side(pk, sk='METADATA'):
+    if pk.startswith('USER#'):
+        return USER
+    if pk.startswith('STORY#'):
+        return STORY
+    if pk.startswith('MATCH#'):
+        return ENRICH_EVENT_MATCH
+    return None
+
+
+@patch('match.handler.jwt_utils.verify_access_token',
+       return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[CHARACTER])
+@patch('match.handler.db_utils.get_item', side_effect=_enrich_event_side)
+def test_event_entry_carries_its_own_card_and_character(_get, _q, _jwt):
+    body = _body(_call(_player_event()))
+    event = next(e for e in body['logs'] if e['type'] == 'EVENT')
+    assert event['idEvent'] == 90010
+    assert event['idCard'] == 600
+    assert event['card']['title'] == 'A Fork In The Road'
+    assert event['characterUuid'] == 'c1'
+    assert event['characterName'] == 'Ranger'
 
 
 @patch('match.handler.jwt_utils.verify_access_token',

@@ -1612,13 +1612,22 @@ def _assemble_match_logs(match, match_uuid):
         })
 
     # Step 29 — EVENT from eventLog (an event the player triggered).
+    #
+    # v0.30.3 — eventLog is a shared list: Step 30 also appends SADNESS_OVERFLOW/COMA
+    # audit rows to it. Only messages the Java/Python backends recognise as an executed
+    # event reach the timeline here too, so all three backends agree on what an EVENT
+    # entry is — anything else is dropped, not shown as garbage.
     for e in (match.get('eventLog') or []):
+        message = e.get('message')
+        if not message or not message.startswith(_events.MSG_EVENT_EXECUTED):
+            continue
         entries.append({
             "type": "EVENT",
             "clock": e.get('clock'),
             "timestamp": _ms_to_iso(e.get('timestamp')),
             "characterUuid": e.get('characterUuid'),
-            "message": e.get('message'),
+            "message": message,
+            "idEvent": e.get('idEvent'),
         })
 
     # SLEEP from sleepLog
@@ -1649,7 +1658,9 @@ def _assemble_match_logs(match, match_uuid):
 def _enrich_match_logs(page, match, match_uuid, lang):
     """v0.28.7 — adds the card of every WEATHER (its own) and MOVEMENT entry (the
     destination location's), plus the name of the character behind character-scoped
-    entries. The story and character lookups run once per page, not per entry."""
+    entries. The story and character lookups run once per page, not per entry.
+
+    v0.30.3 — EVENT entries carry the triggered event's own card, resolved the same way."""
     if not page:
         return []
 
@@ -1662,6 +1673,8 @@ def _enrich_match_logs(page, match, match_uuid, lang):
                       for loc in (story.get('locations') or [])}
     template_cards = {t.get('uuid'): t.get('idCard')
                       for t in (story.get('characterTemplates') or [])}
+    event_cards = {_nz(ev.get('id')): ev.get('idCard')
+                   for ev in (story.get('events') or [])}
     characters = {c.get('uuid'): c for c in _match_characters(match_uuid)}
 
     out = []
@@ -1673,6 +1686,8 @@ def _enrich_match_logs(page, match, match_uuid, lang):
             id_card = weather_cards.get(_nz(entry['idWeather']))
         elif entry['type'] == 'MOVEMENT' and entry.get('idLocationTo') is not None:
             id_card = location_cards.get(_nz(entry['idLocationTo']))
+        elif entry['type'] == 'EVENT' and entry.get('idEvent') is not None:
+            id_card = event_cards.get(_nz(entry['idEvent']))
         entry['idCard'] = id_card
         entry['card'] = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
 
