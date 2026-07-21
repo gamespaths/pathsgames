@@ -138,8 +138,9 @@ def test_admin_change_statistics_route(mock_get, _jwt):
 
 @patch('match.handler.jwt_utils.verify_access_token',
        return_value={'uuid': 'a1', 'source': 'mock', 'role': 'ADMIN'})
+@patch('match.handler.db_utils.query_by_pk', return_value=[])
 @patch('match.handler.db_utils.get_item')
-def test_admin_change_statistics_uuid_from_segments(mock_get, _jwt):
+def test_admin_change_statistics_uuid_from_segments(mock_get, _q, _jwt):
     mock_get.side_effect = _get_side(ADMIN)
     path = '/api/admin/matches/mX/player/pY/changeStatistics'
     result = _call(make_event('POST', path, body={'statistic': 'energy', 'value': 1},
