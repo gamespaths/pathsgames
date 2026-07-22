@@ -66,7 +66,10 @@ info:
     - `turnConsumed` is part of the contract but is **always false** in v0.29.0: an event
       neither requires nor consumes a turn, exactly like Step 28 movement. Turn semantics
       are revisited in Step 61 (multiplayer turn engine).
-    - `pendingChoices` is always empty: the choice engine (step 31) fills it.
+    - `pendingChoices` and `status` belong to the choice engine: since v0.31.0 an event
+      owning `list_choices` rows answers `status: CHOICES_PENDING` with its options
+      instead of applying effects — see `v0.31.0-choices-api.yaml`. With no choices,
+      `status: APPLIED` and everything above is unchanged.
     - Each executed event appends a `log_events` row, which surfaces as an `EVENT` entry
       on `GET /api/matches/{uuid}/logs`.
 
@@ -263,9 +266,13 @@ components:
           description: One entry per `list_events_effects` row that ran.
           items:
             $ref: '#/components/schemas/AppliedEffect'
+        status:
+          type: string
+          enum: [APPLIED, CHOICES_PENDING]
+          description: Added in v0.31.0 — see `v0.31.0-choices-api.yaml`.
         pendingChoices:
           type: array
-          description: Always empty in v0.29.0 — the Step 30 choice engine fills it.
+          description: The options of a choice-event (v0.31.0); empty when `status` is APPLIED.
           items:
             $ref: '#/components/schemas/PendingChoice'
 
@@ -380,14 +387,26 @@ components:
 
     PendingChoice:
       type: object
+      description: Extended in v0.31.0 — the authoritative shape is in `v0.31.0-choices-api.yaml`.
       properties:
         uuid:
           type: string
         priority:
           type: integer
           nullable: true
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
         card:
           $ref: '#/components/schemas/CardInfo'
+        available:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
 
     CardInfo:
       type: object

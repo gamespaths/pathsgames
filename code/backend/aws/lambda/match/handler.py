@@ -312,6 +312,7 @@ def _judge_neighbor(judge, edge, target):
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
+from match import choices as _choices
 from match import events as _events
 from match import movements as _movements
 
@@ -2190,6 +2191,15 @@ def _execute_event(user, match_uuid, body, lang='en'):
         return _err(404, 'EVENT_NOT_FOUND', 'Event not found in this story')
 
     ctx = _events.build_context(match, story, caller)
+
+    # Step 31: an event owning options presents them instead of applying anything. The
+    # availability verdict moves inside the branch — an already-open cycle must bypass
+    # it, having been paid for when it opened.
+    event_choices = _choices.choices_for_event(story, event.get('id'))
+    if event_choices:
+        return _execute_choice_event(match, match_uuid, story, event, event_choices,
+                                     caller, characters, ctx, lang)
+
     available, reason = _events.check(event, ctx)
     if not available:
         return _err(409, reason, f'Event cannot be executed: {reason}')
@@ -2403,6 +2413,8 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "matchUuid": match_uuid,
         "eventUuid": event.get('uuid'),
         "eventType": event.get('type'),
+        # Step 31: the 0-choice flow — effects ran. Choice-events answer CHOICES_PENDING.
+        "status": "APPLIED",
         "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
         "executedEventUuids": chain_event_uuids,
         "energySpent": energy_spent,
@@ -2428,7 +2440,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         "characteristicChanges": characteristic_changes,
         "locationChanges": location_changes,
         "effects": chain_effects,
-        # Always empty until the choice engine (step 31) fills it.
+        # Empty by definition on APPLIED — the options ride on CHOICES_PENDING only.
         "pendingChoices": [],
         "edgeState": {
             "sadnessOverflowUuids": edge_state['sadnessOverflowUuids'],
@@ -2438,6 +2450,110 @@ def _execute_event(user, match_uuid, body, lang='en'):
             "comaEventCard": edge_state['comaEventCard'],
             "comaExecutedEventUuids": coma_event_uuids,
             "comaEffects": coma_effects,
+        },
+    })
+
+
+def _execute_choice_event(match, match_uuid, story, event, event_choices,
+                          caller, characters, ctx, lang='en'):
+    """Step 31 — a choice-event stops at its threshold: pay, mark, present — never apply.
+
+    The whole Step 29 tail (effects, chain, flag_end_time, edge states, epilogue,
+    gameOver) belongs to the resolution, which is Step 32's select-choice.
+
+    An OPEN cycle — EVENT_EXECUTED markers outnumbering CHOICE_SELECTED markers —
+    re-serves the options as a pure read: no verdict, no cost, no marker, no writes.
+    Bypassing the verdict is deliberate: the open already deducted energy and consumed
+    the ONCE, so re-checking would reject the very event the player has paid for.
+    Option availability, in contrast, is re-evaluated fresh on every serve.
+    """
+    event_id = _events._nz(event.get('id'))
+    open_cycle = event_id in ctx['consumedEventIds'] and (
+        _choices.count_log_markers(match, event_id, _events.MSG_EVENT_EXECUTED)
+        > _choices.count_log_markers(match, event_id, _choices.MSG_CHOICE_SELECTED))
+
+    energy_spent = 0
+    coin_spent = 0
+    if not open_cycle:
+        available, reason = _events.check(event, ctx)
+        if not available:
+            return _err(409, reason, f'Event cannot be executed: {reason}')
+        # Pay, once, and write the same marker row the Step 29 flow writes — the ONCE
+        # accounting and the log timeline cannot tell the two flows apart.
+        energy_spent = _events._nz(event.get('costEnery'))
+        coin_spent = _events._nz(event.get('coinCost'))
+        if energy_spent:
+            caller['energy'] = max(0, _nz(caller.get('energy')) - energy_spent)
+        if coin_spent:
+            caller['coin'] = max(0, _nz(caller.get('coin')) - coin_spent)
+        ctx['consumedEventIds'].add(event_id)
+        match.setdefault('eventLog', []).append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+        })
+        db_utils.put_item(caller)
+        db_utils.put_item(match)
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    conditions = _choices.conditions_by_choice(story)
+    cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                         event_choices, conditions)
+    pending = []
+    for choice in event_choices:  # already priority-then-id sorted
+        available, reason = _choices.check_choice(
+            choice, conditions.get(_events._nz(choice.get('id')), []), cctx)
+        pending.append({
+            "uuid": choice.get('uuid'),
+            "priority": choice.get('priority'),
+            "name": _resolve_raw_text(raw_texts, choice.get('idTextName'), lang),
+            "description": _resolve_raw_text(raw_texts, choice.get('idTextDescription'), lang),
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, choice.get('idCard'), lang),
+            "available": available,
+            # The choice's narrative (idTextNarrative) is deliberately absent — it would
+            # leak the outcome of a choice not yet made (Step 32 reveals it).
+            "reason": reason,
+        })
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        "status": "CHOICES_PENDING",
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        # "Index 0 is always the event" holds on a re-fetch too, so the frontend cannot
+        # tell a page refresh from the first open (beside energySpent=0).
+        "executedEventUuids": [event.get('uuid')],
+        "energySpent": energy_spent,
+        "coinSpent": coin_spent,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "currentClock": _nz(match.get('currentClock')),
+        "turnConsumed": False,
+        "timeEnded": False,
+        "itemAdded": False,
+        "itemRemoved": False,
+        "weatherApplied": False,
+        "movementApplied": False,
+        "forcedSleep": False,
+        "comaTriggered": False,
+        "gameOver": False,
+        "refreshRecommended": False,
+        "statChanges": [],
+        "registryChanges": [],
+        "traitChanges": [],
+        "itemChanges": [],
+        "characteristicChanges": [],
+        "locationChanges": [],
+        "effects": [],
+        "pendingChoices": pending,
+        "edgeState": {
+            "sadnessOverflowUuids": [], "comaUuids": [], "allPlayersInComa": False,
+            "comaEventUuid": None, "comaEventCard": None,
+            "comaExecutedEventUuids": [], "comaEffects": [],
         },
     })
 

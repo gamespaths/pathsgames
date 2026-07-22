@@ -153,11 +153,11 @@
   ],
 
   "events": [
-    {"idTextName": 500, "idTextDescription": 500, "type": "FIRST",     "costEnery": 0, "flagEndTime": 0},
-    {"idTextName": 501, "idTextDescription": 501, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
-    {"idTextName": 502, "idTextDescription": 502, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
-    {"idTextName": 503, "idTextDescription": 503, "type": "NORMAL",    "costEnery": 2, "flagEndTime": 0},
-    {"idTextName": 504, "idTextDescription": 504, "type": "AUTOMATIC", "costEnery": 0, "flagEndTime": 1, "keyToAdd": "prison_revolt", "keyValueToAdd": "triggered"}
+    {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",     "costEnery": 0, "flagEndTime": 0},
+    {"id": 2, "idTextName": 501, "idTextDescription": 501, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"id": 3, "idTextName": 502, "idTextDescription": 502, "type": "NORMAL",    "costEnery": 1, "flagEndTime": 0},
+    {"id": 4, "idTextName": 503, "idTextDescription": 503, "type": "NORMAL",    "costEnery": 2, "flagEndTime": 0},
+    {"id": 5, "idTextName": 504, "idTextDescription": 504, "type": "AUTOMATIC", "costEnery": 0, "flagEndTime": 1, "keyToAdd": "prison_revolt", "keyValueToAdd": "triggered"}
   ],
 
   "items": [
@@ -169,11 +169,23 @@
   ],
 
   "choices": [
-    {"idTextName": 600, "idTextDescription": 600, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
-    {"idTextName": 601, "idTextDescription": 601, "priority": 2, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
-    {"idTextName": 602, "idTextDescription": 602, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
-    {"idTextName": 603, "idTextDescription": 603, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
-    {"idTextName": 604, "idTextDescription": 604, "priority": 2, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "OR"}
+    {"id": 1, "idEvent": 2, "idTextName": 600, "idTextDescription": 600, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"id": 2, "idEvent": 2, "idTextName": 601, "idTextDescription": 601, "priority": 2, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"id": 3, "idEvent": 3, "idTextName": 602, "idTextDescription": 602, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"id": 4, "idEvent": 4, "idTextName": 603, "idTextDescription": 603, "priority": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+    {"id": 5, "idEvent": 4, "idTextName": 604, "idTextDescription": 604, "priority": 2, "otherwiseFlag": 1, "isProgress": 0, "logicOperator": "OR"}
+  ],
+
+  "choiceConditions": [
+    {"id": 1, "idChoices": 1, "type": "statistics", "key": "cos", "value": "2", "operator": ">"},
+    {"id": 2, "idChoices": 3, "type": "KEYS", "key": "cittadella_key", "value": "1", "operator": "="}
+  ],
+
+  "choiceEffects": [
+    {"id": 1, "idChoices": 1, "statistics": "energy", "value": 1},
+    {"id": 2, "idChoices": 2, "statistics": "life", "value": 1},
+    {"id": 3, "idChoices": 3, "statistics": "sad", "value": -1},
+    {"id": 4, "idChoices": 4, "statistics": "energy", "value": 1}
   ],
 
   "creators": [

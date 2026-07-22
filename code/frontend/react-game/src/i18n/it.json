@@ -222,6 +222,28 @@
       "title": "Sono caduti tutti",
       "description": "Tutti i personaggi sono in coma. Nessuno può più agire."
     },
+    "choices": {
+      "title": "Scegli la tua strada",
+      "hint": "Hai già pagato per aprire questo. Scegli un'opzione, o vattene — il pedaggio resta pagato.",
+      "do": "Fai",
+      "doNothing": "Non fare nulla",
+      "unavailable": "Non disponibile",
+      "reason": {
+        "LIMIT_SAD_EXCEEDED": "Troppa tristezza",
+        "LIMIT_DEX_NOT_MET": "Destrezza",
+        "LIMIT_INT_NOT_MET": "Intelligenza",
+        "LIMIT_COS_NOT_MET": "Costituzione",
+        "CONDITION_KEYS_NOT_MET": "Non ancora",
+        "CONDITION_ITEM_NOT_MET": "Oggetto",
+        "CONDITION_CLASS_NOT_MET": "Classe",
+        "CONDITION_LOCATION_NOT_MET": "Altrove",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Gruppo",
+        "CONDITION_TRAITS_NOT_MET": "Tratto",
+        "CONDITION_STATISTICS_NOT_MET": "Statistiche",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Statistiche gruppo",
+        "CONDITIONS_NOT_MET": "Bloccato"
+      }
+    },
     "energyEverySleep": "Energia recuperata ogni ciclo di sonno",
     "location": {
       "clockCounter": "Contatore tempo"

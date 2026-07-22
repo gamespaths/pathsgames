@@ -50,7 +50,7 @@ class EventControllerTest {
 
     private static EventExecutionResult result() {
         return new EventExecutionResult(
-                "m1", "evt-1", "ONCE", card("The Stranger"),
+                "m1", "evt-1", "ONCE", "APPLIED", card("The Stranger"),
                 List.of("evt-1", "evt-2"),
                 3, 2, 17, 8, 5,
                 false, true, true, false, true, true, true, false, true, true,
@@ -77,6 +77,7 @@ class EventControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.eventUuid").value("evt-1"))
                 .andExpect(jsonPath("$.eventType").value("ONCE"))
+                .andExpect(jsonPath("$.status").value("APPLIED"))
                 .andExpect(jsonPath("$.card.title").value("The Stranger"))
                 .andExpect(jsonPath("$.executedEventUuids[1]").value("evt-2"))
                 .andExpect(jsonPath("$.energySpent").value(3))
@@ -102,6 +103,38 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.effects[0].card.title").value("A wound"))
                 .andExpect(jsonPath("$.effects[0].characterUuids[0]").value("char-1"))
                 .andExpect(jsonPath("$.pendingChoices").isEmpty());
+    }
+
+    @Test
+    void executeEvent_choicesPendingPayload() throws Exception {
+        // Step 31: a choice-event pays and presents — no effects, options with verdicts.
+        EventExecutionResult pending = new EventExecutionResult(
+                "m1", "evt-1", "NORMAL", "CHOICES_PENDING", card("The Crossroads"),
+                List.of("evt-1"),
+                1, 0, 19, 8, 5,
+                false, false, false, false, false, false, false, false, false, false,
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(),
+                List.of(new EventExecutionPort.PendingChoice("choice-1", 1, "Gold Door",
+                                "The shiny one.", card("Gold"), true, null),
+                        new EventExecutionPort.PendingChoice("choice-2", 2, "Runes",
+                                "For prodigies.", null, false, "CONDITION_STATISTICS_NOT_MET")),
+                EventExecutionPort.EdgeStateOutcome.none());
+        when(eventExecutionPort.executeEvent("m1", "user-uuid", "evt-1", null)).thenReturn(pending);
+
+        mockMvc.perform(authed(post(URL)).contentType(APPLICATION_JSON).content(BODY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CHOICES_PENDING"))
+                .andExpect(jsonPath("$.energySpent").value(1))
+                .andExpect(jsonPath("$.effects").isEmpty())
+                .andExpect(jsonPath("$.statChanges").isEmpty())
+                .andExpect(jsonPath("$.pendingChoices[0].uuid").value("choice-1"))
+                .andExpect(jsonPath("$.pendingChoices[0].name").value("Gold Door"))
+                .andExpect(jsonPath("$.pendingChoices[0].description").value("The shiny one."))
+                .andExpect(jsonPath("$.pendingChoices[0].card.title").value("Gold"))
+                .andExpect(jsonPath("$.pendingChoices[0].available").value(true))
+                .andExpect(jsonPath("$.pendingChoices[1].available").value(false))
+                .andExpect(jsonPath("$.pendingChoices[1].reason").value("CONDITION_STATISTICS_NOT_MET"));
     }
 
     @Test

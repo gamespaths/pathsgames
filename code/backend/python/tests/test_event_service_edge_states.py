@@ -72,6 +72,8 @@ def store():
     s.find_trait_uuids_by_id.return_value = {}
     s.load_check_context.return_value = EventCheckContext(
         id_character=CHAR_ID, id_location=LOC, energy=20, coin=10, id_class=50)
+    # Step 31: a plain event owns no choices — these tests exercise the APPLIED flow.
+    s.find_choices_by_event_id.return_value = []
     return s
 
 

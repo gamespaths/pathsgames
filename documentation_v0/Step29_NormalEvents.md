@@ -147,6 +147,13 @@ a shared constant, never a duplicated literal.
 9. build the response
 ```
 
+> **v0.31.0**: step 7 now branches. An event owning ≥1 `list_choices` row is a **choice-event**:
+> steps 6-9 above are unchanged (cost is still paid, the `EVENT_EXECUTED` marker still written),
+> but step 7 presents the choices instead of applying `list_events_effects`, and steps 8-9 are
+> skipped. The response gains `status`: `APPLIED` for the plain flow above (with `pendingChoices`
+> empty) or `CHOICES_PENDING` for the choice branch. See
+> [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md).
+
 ### Costs, and why chained events are free
 
 The player pays **once**, for the event they asked for. Chained events are **consequences, not
@@ -289,15 +296,16 @@ effect 14 with `idLocation: 3` — see the [v0.29.3 Roadmap entry](./Roadmap.md)
 
 # Version Control
 
-- **Document Version**: 0.29.3
+- **Document Version**: 0.31.0 (here only due changes)
 
   | Version | Description | Date |
   |---------|-------------|------|
   | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
   | 0.29.3 | Forced movement via event effects: `list_events_effects.id_location` (nullable), engine bypasses the whole Step 28 check procedure and writes a cost-0 `log_movements` row per move; `movementApplied`/`locationChanges` on the execute-event response; admin form field; Robot suite 17 → 18 tests | July 17, 2026 |
+  | 0.31.0 | `execute-event` gained `status` (`APPLIED`/`CHOICES_PENDING`): an event owning `list_choices` rows now branches to the Step 31 choice engine instead of applying effects; a plain event keeps this step's flow unchanged and answers `status: APPLIED` with empty `pendingChoices`. See [Step31_ChoiceEngine.md](./Step31_ChoiceEngine.md). | July 22, 2026 |
 
 
-- **Last Updated**: July 17, 2026
+- **Last Updated**: July 22, 2026
 - **Status**: Complete
 
 # < Paths Games />

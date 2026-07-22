@@ -65,7 +65,20 @@ def seed():
             {"idText": 500, "lang": "en", "shortText": "Welcome Event"},
             {"idText": 500, "lang": "it", "shortText": "Evento di Benvenuto"},
             {"idText": 700, "lang": "en", "shortText": "Brave"},
-            {"idText": 700, "lang": "it", "shortText": "Coraggioso"}
+            {"idText": 700, "lang": "it", "shortText": "Coraggioso"},
+            # Step 31 — the choice-events and their options.
+            {"idText": 610, "lang": "en", "shortText": "Crossroads Trial"},
+            {"idText": 610, "lang": "it", "shortText": "La Prova del Bivio"},
+            {"idText": 611, "lang": "en", "shortText": "Sealed Gate"},
+            {"idText": 611, "lang": "it", "shortText": "Il Cancello Sigillato"},
+            {"idText": 612, "lang": "en", "shortText": "Take the plain road"},
+            {"idText": 612, "lang": "it", "shortText": "Prendi la via semplice"},
+            {"idText": 613, "lang": "en", "shortText": "Recite the ancient runes"},
+            {"idText": 613, "lang": "it", "shortText": "Recita le rune antiche"},
+            {"idText": 614, "lang": "en", "shortText": "Bargain with the figure"},
+            {"idText": 614, "lang": "it", "shortText": "Contratta con la figura"},
+            {"idText": 615, "lang": "en", "shortText": "Shrug and improvise"},
+            {"idText": 615, "lang": "it", "shortText": "Alza le spalle e improvvisa"}
         ],
         "difficulties": [
             {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20,
@@ -170,6 +183,44 @@ def seed():
             {"id": 28, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "costEnery": 2, "idCard": 1,
              "effects": [{"idCard": 1, "target": "ONLY_ONE", "idLocation": 3}]},
+            # Step 31 — the choice-engine test-bed: executing these answers CHOICES_PENDING
+            # (cost paid, marker written, effects withheld). Event 30 even carries an effect
+            # that must NEVER run while pending; 31 is ONCE. Cost 2 on 30 keeps the "cost 1"
+            # robot lookup unambiguous (it means event 10).
+            {"id": 30, "idTextName": 610, "idTextDescription": 610, "type": "NORMAL",
+             "idSpecificLocation": 1, "costEnery": 2, "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 99, "target": "ONLY_ONE"}]},
+            {"id": 31, "idTextName": 611, "idTextDescription": 611, "type": "ONCE",
+             "idSpecificLocation": 1, "costEnery": 1, "idCard": 1},
+        ],
+        # Step 31 — the options of the two choice-events above (canonical top-level arrays
+        # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
+        # (unavailable), one OR-combined (available via life > 0), one otherwise fallback.
+        "choices": [
+            {"id": 10, "idEvent": 30, "idCard": 1, "idTextName": 612, "idTextDescription": 612,
+             "priority": 2, "otherwiseFlag": 0, "logicOperator": "AND"},
+            {"id": 11, "idEvent": 30, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
+             "priority": 1, "otherwiseFlag": 0, "logicOperator": "AND"},
+            {"id": 12, "idEvent": 30, "idCard": 1, "idTextName": 614, "idTextDescription": 614,
+             "priority": 3, "otherwiseFlag": 0, "logicOperator": "OR"},
+            {"id": 13, "idEvent": 30, "idCard": 1, "idTextName": 615, "idTextDescription": 615,
+             "priority": 4, "otherwiseFlag": 1, "logicOperator": "AND", "limitDex": 99},
+            {"id": 14, "idEvent": 31, "idCard": 1, "idTextName": 612, "idTextDescription": 612,
+             "priority": 1, "otherwiseFlag": 0, "logicOperator": "AND"},
+            {"id": 15, "idEvent": 31, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
+             "priority": 2, "otherwiseFlag": 0, "logicOperator": "AND", "limitDex": 99},
+        ],
+        "choiceConditions": [
+            {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
+            {"id": 3, "idChoices": 12, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
+            {"id": 4, "idChoices": 12, "type": "statistics", "key": "life", "value": "0", "operator": ">"},
+        ],
+        "choiceEffects": [
+            {"id": 5, "idChoices": 10, "statistics": "energy", "value": 1},
+            {"id": 6, "idChoices": 11, "statistics": "life", "value": 1},
+            {"id": 7, "idChoices": 12, "statistics": "exp", "value": 2},
+            {"id": 8, "idChoices": 14, "statistics": "energy", "value": 1},
+            {"id": 9, "idChoices": 15, "statistics": "life", "value": 1},
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}

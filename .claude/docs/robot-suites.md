@@ -26,6 +26,8 @@ Loaded on demand. Read only when working on E2E tests.
 | `27_weather` | Weather system: random selection, effects, clock-linked roll, log |
 | `28_movement` | Movement system (see breakdown below) |
 | `29_events` | Step 29 normal events (see breakdown below) |
+| `30_edge_states` | Step 30 sadness overflow / coma edge states |
+| `31_choices` | Step 31 choice engine (see breakdown below) |
 
 ### `28_movement` breakdown
 
@@ -51,6 +53,20 @@ Plus (v0.29.3) "A Location Effect Teleports The Character Without Any Movement C
 effect's `id_location` moves the actor with none of the Step 28 movement checks; runs on its
 **own match** (`New Teleport Match` keyword — the teleport would otherwise strand the suite's
 shared character away from the seeded events).
+
+### `31_choices` breakdown
+
+`choices.robot` — the choice engine: a no-choice event answers `status: APPLIED`; a
+choice-event (seeded NORMAL `90030` cost 2, ONCE `90031`) answers `CHOICES_PENDING` with the
+priority-sorted options, effects withheld, cost paid once; per-option `available`/`reason`
+verdicts (one option gated on `INT > 99`, one otherwise fallback); the narrative/`idEventTorun`
+are never leaked; the idempotent re-fetch charges nothing; a ONCE choice-event stays open after
+consuming its ONCE (and `/info` reports it `ONCE_ALREADY_CONSUMED`); `/info` never nests the
+choices; and the `R8_CHOICE_EVENT` import rule (choice needs `idEvent`, forbids `idLocation`)
+plus the validator keys-filter fix (a `statistics` condition imports clean). Choice-events are
+addressed by **behaviour** (a location-bound NORMAL/ONCE event that owns choices), never by
+uuid; each pristine-event test runs on its **own match** (`Fresh Choice Match`), since opening
+a choice-event latches the per-match `EVENT_EXECUTED` marker.
 
 ## Seed data and reports per backend
 

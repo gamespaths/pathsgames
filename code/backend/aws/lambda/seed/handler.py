@@ -254,6 +254,52 @@ SEED_STORIES = [
             {"id": 28, "uuid": "evt-step29-teleport", "name": "Secret Passage",
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "costEnery": 2, "coinCost": 0, "flagEndTime": 0},
+            # Step 31 — the choice-engine test-bed: executing these answers
+            # CHOICES_PENDING (cost paid, marker written, effects withheld). Event 30
+            # even carries an effect row that must NEVER run in Step 31; 31 is ONCE.
+            {"id": 30, "uuid": "evt-step31-choices", "name": "Crossroads Trial",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 610, "idTextDescription": 610,
+             # cost 2 keeps the "cost 1" robot lookup unambiguous (it means event 10).
+             "costEnery": 2, "coinCost": 0, "flagEndTime": 0},
+            {"id": 31, "uuid": "evt-step31-once", "name": "Sealed Gate",
+             "idSpecificLocation": 1, "type": "ONCE", "idCard": 1,
+             "idTextName": 611, "idTextDescription": 611,
+             "costEnery": 1, "coinCost": 0, "flagEndTime": 0},
+        ],
+        # Step 31 — the options of the two choice-events above (top-level arrays keyed by
+        # idChoices, the canonical shape shared with the SQL backends' seeds).
+        "choices": [
+            {"id": 10, "uuid": "ch-step31-plain", "idEvent": 30, "priority": 2,
+             "idTextName": 612, "idTextDescription": 612, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+            {"id": 11, "uuid": "ch-step31-gated", "idEvent": 30, "priority": 1,
+             "idTextName": 613, "idTextDescription": 613, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+            {"id": 12, "uuid": "ch-step31-or", "idEvent": 30, "priority": 3,
+             "idTextName": 614, "idTextDescription": 614, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "OR"},
+            {"id": 13, "uuid": "ch-step31-otherwise", "idEvent": 30, "priority": 4,
+             "idTextName": 615, "idTextDescription": 615, "idCard": 1,
+             "otherwiseFlag": 1, "isProgress": 0, "logicOperator": "AND", "limitDex": 99},
+            {"id": 14, "uuid": "ch-step31-once-plain", "idEvent": 31, "priority": 1,
+             "idTextName": 612, "idTextDescription": 612, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND"},
+            {"id": 15, "uuid": "ch-step31-once-limit", "idEvent": 31, "priority": 2,
+             "idTextName": 613, "idTextDescription": 613, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND", "limitDex": 99},
+        ],
+        "choiceConditions": [
+            {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
+            {"id": 3, "idChoices": 12, "type": "KEYS", "key": "STEP29_GATE", "value": "OPEN", "operator": "="},
+            {"id": 4, "idChoices": 12, "type": "statistics", "key": "life", "value": "0", "operator": ">"},
+        ],
+        "choiceEffects": [
+            {"id": 5, "idChoices": 10, "statistics": "energy", "value": 1},
+            {"id": 6, "idChoices": 11, "statistics": "life", "value": 1},
+            {"id": 7, "idChoices": 12, "statistics": "exp", "value": 2},
+            {"id": 8, "idChoices": 14, "statistics": "energy", "value": 1},
+            {"id": 9, "idChoices": 15, "statistics": "life", "value": 1},
         ],
         # Step 29 — the EFFECT side. Each row's own idCard is the narrative the board shows.
         "eventEffects": [
@@ -282,6 +328,8 @@ SEED_STORIES = [
             # with no neighbor edge at all — no checks, no movement cost, only the event's
             # own energy cost.
             {"id": 14, "idEvent": 28, "idCard": 1, "target": "ONLY_ONE", "idLocation": 3},
+            # Step 31 — withheld on CHOICES_PENDING: must never apply while pending.
+            {"id": 15, "idEvent": 30, "idCard": 1, "statistics": "exp", "value": 99, "target": "ONLY_ONE"},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -378,6 +426,31 @@ SEED_STORIES = [
             {"idText": 801, "lang": "en", "shortText": "Storm", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 801, "lang": "it", "shortText": "Tempesta", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # Step 31 — choice-event and option texts (same 610-615 ids as the SQL seeds)
+            {"idText": 610, "lang": "en", "shortText": "Crossroads Trial", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 610, "lang": "it", "shortText": "La Prova del Bivio", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 611, "lang": "en", "shortText": "Sealed Gate", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 611, "lang": "it", "shortText": "Il Cancello Sigillato", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 612, "lang": "en", "shortText": "Take the plain road", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 612, "lang": "it", "shortText": "Prendi la via semplice", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 613, "lang": "en", "shortText": "Recite the ancient runes", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 613, "lang": "it", "shortText": "Recita le rune antiche", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 614, "lang": "en", "shortText": "Bargain with the figure", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 614, "lang": "it", "shortText": "Contratta con la figura", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 615, "lang": "en", "shortText": "Shrug and improvise", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 615, "lang": "it", "shortText": "Alza le spalle e improvvisa", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 2, "lang": "en",
              "shortText": "A short training adventure in the Academy of Paths. "
@@ -831,6 +904,10 @@ def _seed_stories():
             "events":                   s.get("events", []),
             # Step 29 — the effect side of an event (the event side lives in "events").
             "eventEffects":             s.get("eventEffects", []),
+            # Step 31 — the choice engine reads these off the story item.
+            "choices":                  s.get("choices", []),
+            "choiceConditions":         s.get("choiceConditions", []),
+            "choiceEffects":            s.get("choiceEffects", []),
             # Step 15 fields
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),

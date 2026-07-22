@@ -46,6 +46,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step28_MovementSystem.md` | 118 | **Biggest file.** Movement: adjacency, energy cost formula, validation order, fog-of-war, location cards, match logs timeline | movement, adjacency, energy, fog of war, logs |
 | `Step29_NormalEvents.md` | 13 | Normal (player-triggered) events: schema V0.29.0, check procedure, execution, `available` flag, logs | events, execute-event, effects |
 | `Step30_EdgeStates.md` | 23 | Edge states: sadness overflow, coma, `clock_in_coma` stamp, all-players-in-coma story epilogue; v0.30.1 waking from coma on safe-location rest. No new endpoint, no migration | sadness, coma, edge state, game over, epilogue, coma recovery, wake, `COMA_RECOVERED` |
+| `Step31_ChoiceEngine.md` | 12 | Choice engine: choice-owning events branch `execute-event` to `status: CHOICES_PENDING` + `pendingChoices[]` instead of applying effects; cost/marker paid on open, idempotent re-fetch; `ChoiceAvailabilityChecker` (limits + 8 condition types, AND/OR); `R8_CHOICE_EVENT` validation; choices never nested into `/info`. No new endpoint, no migration | choice, choice engine, execute-event, pendingChoices, CHOICES_PENDING, availability |
 
 Note: there is no `Step20_AdminEndpoint.md` despite older references — the admin-port split
 (8044) is described in `Step19_SinglePlayerMatchUtils.md` and `Step20_GameWebSiteFirstRun.md`.

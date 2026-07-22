@@ -1,0 +1,171 @@
+openapi: 3.0.3
+
+info:
+  title: Paths Games - Choice engine (Step 31)
+  description: |
+    # Choice engine — event-bound choices, availability & presentation
+
+    Step 31 does not add an endpoint. It adds one branch to
+    `POST /api/gameplay/{uuidMatch}/action/execute-event`
+    (see `v0.29.0-events-api.yaml` for the endpoint itself): an event owning at least one
+    `list_choices` row is a **choice-event**, and executing it presents its options
+    instead of applying its effects. Two new response fields carry the branch:
+
+    | Field | Meaning |
+    | --- | --- |
+    | `status` | `APPLIED` (0 choices — the whole v0.29.0 flow, unchanged) or `CHOICES_PENDING` |
+    | `pendingChoices` | the options, one `PendingChoice` each, when `CHOICES_PENDING` |
+
+    ## What a choice-event execution does — and deliberately does not do
+
+    On `CHOICES_PENDING` the engine has:
+
+    1. run the availability check (the same verdict `/info` publishes — a sleeping,
+       comatose, broke or misplaced character is rejected exactly as before);
+    2. **paid the cost**: energy and coins are deducted on open, and the
+       `EVENT_EXECUTED` marker is written — a `ONCE` choice-event is consumed by
+       opening it, not by resolving it;
+    3. **withheld everything else**: `list_events_effects`, the `id_event_next` chain,
+       `flag_end_time`, the edge-state rules and `gameOver` do not run. `effects`,
+       `statChanges` and `edgeState` come back empty; `executedEventUuids` holds just
+       the event itself.
+
+    Paying on open is the design's anti-peek deterrent: opening an event to look at its
+    options and walking away is legal, but it is not free.
+
+    ## Idempotent re-fetch (page refresh)
+
+    A choice-event cycle is **open** while its `EVENT_EXECUTED` markers outnumber its
+    `CHOICE_SELECTED` markers (the latter are written by the Step 32 resolution; in
+    v0.31.0 nothing writes them, so an opened event simply stays open). Re-executing an
+    open choice-event serves the options again as a pure read:
+
+    - no energy or coins are deducted (`energySpent` / `coinSpent` come back `0`);
+    - no new marker row is written;
+    - the availability verdict is **bypassed** — the open already paid, so re-checking
+      could reject the very event the player paid for (`ONCE_ALREADY_CONSUMED`, or
+      `NOT_ENOUGH_ENERGY` once the deduction brought them under the cost);
+    - each option's own `available`/`reason` IS re-evaluated fresh — the world may have
+      changed since the open.
+
+    ## The "do nothing" exit
+
+    Walking away from an open choice-event is purely client-side: no endpoint is called,
+    no effects run, and the cost paid at the open stays paid. The board simply closes the
+    card. Selecting an option (`select-choice`, applying `list_choices_effects`, running
+    `id_event_torun`, writing `CHOICE_SELECTED`) is Step 32.
+
+    ## Per-option availability
+
+    Every option is returned, available or not — the board renders the impossible ones
+    disabled, it never hides them. The verdict is computed per option:
+
+    1. `otherwise_flag = 1` → always available (the fallback option, INV-29); nothing
+       else is evaluated.
+    2. Inline limits, combined in AND: `limit_dex` / `limit_int` / `limit_cos` are
+       **minimum** requirements (stat ≥ limit), `limit_sad` is a **maximum**
+       (sad ≤ limit). A null limit is no constraint.
+    3. The `list_choices_conditions` rows, combined under the choice's `logic_operator`
+       (`AND`, the default, or `OR` — never mixed, INV-31). Condition `type` ∈
+       `KEYS`, `ITEM`, `CLASS`, `LOCATION`, `ALL_IN_SAME_LOC`, `traits`, `statistics`,
+       `statistics_SUM` (case-insensitive), `operator` ∈ `=`, `!=`, `>`, `<`.
+       `statistics` reads the acting character (post-deduction — the player chooses with
+       the energy they actually have left); `statistics_SUM` sums the stat over every
+       character of the match; `ALL_IN_SAME_LOC` requires the whole party in the actor's
+       location. An unknown type, blank key or unparseable value makes that condition
+       NOT met: a typo locks an option visibly, it never unlocks it.
+
+    `reason` names the first failing check under AND (`LIMIT_*`,
+    `CONDITION_<TYPE>_NOT_MET`) or the aggregate `CONDITIONS_NOT_MET` under OR.
+
+    ## What is deliberately NOT returned
+
+    - The choice's **narrative text** (`id_text_narrative`) and its outcome event
+      (`id_event_torun`): they belong to the resolution — returning them here would leak
+      the consequence of a choice not yet made.
+    - Choices on `GET /api/match/{uuid}/info`: the `choices` list there stays empty.
+      Options exist only on the execute-event response, so nothing leaks before an event
+      is opened (and paid for).
+
+    ## Validation (Step 22 addition)
+
+    New whole-story rule `R8_CHOICE_EVENT`, hard-fail on import and on
+    `POST /api/admin/stories/{uuid}/validate-story`: every choice must have a non-null
+    `id_event` and a null `id_location` (a choice belongs to an event; the location
+    binding is deprecated). The entity-local CRUD check rejects only a non-null
+    `idLocation` — a draft choice may exist without its event while authoring.
+
+    ## Database
+
+    No migration: `list_choices`, `list_choices_conditions` and `list_choices_effects`
+    exist since V0.10.4.
+
+    See `documentation_v0/Roadmap.md` (step 31).
+  version: 0.31.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development (public port)
+
+tags:
+  - name: Gameplay
+    description: Player actions inside a running match
+
+paths: {}
+
+components:
+  schemas:
+
+    ExecuteEventStatus:
+      type: string
+      description: |
+        Added to `ExecuteEventResponse` in v0.31.0. `APPLIED` is the 0-choice flow
+        (effects ran, exactly as in v0.29.0/v0.30.0); `CHOICES_PENDING` means the cost
+        was paid, the marker written, and the options in `pendingChoices` await the
+        player (or their refusal, which is client-side only).
+      enum:
+        - APPLIED
+        - CHOICES_PENDING
+
+    PendingChoice:
+      type: object
+      description: |
+        One option of a choice-event, in priority order (ties by id). Replaces the
+        v0.29.0 placeholder. Disabled options are returned too — the board shows them
+        greyed out with their `reason`, it never drops them.
+      properties:
+        uuid:
+          type: string
+          description: The choice's opaque identifier — what Step 32's select-choice will take.
+        priority:
+          type: integer
+          nullable: true
+          description: Authored presentation order, lowest first.
+        name:
+          type: string
+          nullable: true
+          description: Resolved short text of `id_text_name` (requested lang, "en" fallback).
+        description:
+          type: string
+          nullable: true
+          description: Resolved short text of `id_text_description`.
+        card:
+          nullable: true
+          description: The choice's own card (`id_card`), same shape as every card object.
+        available:
+          type: boolean
+          description: The `ChoiceAvailabilityChecker` verdict for the acting character, now.
+        reason:
+          type: string
+          nullable: true
+          description: |
+            Null exactly when `available`. One of `LIMIT_SAD_EXCEEDED`,
+            `LIMIT_DEX_NOT_MET`, `LIMIT_INT_NOT_MET`, `LIMIT_COS_NOT_MET`,
+            `CONDITION_KEYS_NOT_MET`, `CONDITION_ITEM_NOT_MET`,
+            `CONDITION_CLASS_NOT_MET`, `CONDITION_LOCATION_NOT_MET`,
+            `CONDITION_ALL_IN_SAME_LOC_NOT_MET`, `CONDITION_TRAITS_NOT_MET`,
+            `CONDITION_STATISTICS_NOT_MET`, `CONDITION_STATISTICS_SUM_NOT_MET`,
+            `CONDITIONS_NOT_MET`.
+      required:
+        - uuid
+        - available

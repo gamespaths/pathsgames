@@ -70,8 +70,10 @@ A Plain Normal Event Is Available And Executes
     Should Be Equal    ${body}[turnConsumed]     ${False}
     ...    msg=v0.29.0 — execute-event never touches the turn queue
     Should Be True     ${body}[refreshRecommended]
+    Should Be Equal    ${body}[status]    APPLIED
+    ...    msg=a no-choice event applies its effects (Step 31 status)
     Should Be Empty    ${body}[pendingChoices]
-    ...    msg=Step 30 fills pendingChoices, not Step 29
+    ...    msg=only a choice-event fills pendingChoices (Step 31), never a plain one
 
     Should Not Be Empty    ${body}[statChanges]
     Should Not Be Empty    ${body}[effects]

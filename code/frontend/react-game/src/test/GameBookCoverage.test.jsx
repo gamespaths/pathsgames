@@ -193,6 +193,86 @@ describe('GameBook — edge states after an executed event', () => {
   })
 })
 
+describe('GameBook — the Step 31 choice engine', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getMatchWeather.mockResolvedValue({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+    getMatchLocations.mockResolvedValue({ matchUuid: 'm1', locations: [] })
+  })
+
+  async function executeAction() {
+    renderBook()
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+  }
+
+  const PENDING = {
+    status: 'CHOICES_PENDING', effects: [], pendingChoices: [
+      { uuid: 'c1', name: 'Gold Door', available: true, reason: null },
+      { uuid: 'c2', name: 'Runes', available: false, reason: 'CONDITION_STATISTICS_NOT_MET' },
+    ],
+    card: { title: 'The Crossroads' },
+    edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
+  }
+
+  // CHOICES_PENDING puts the event card on the LEFT (entityType "event") and the options
+  // as small cards on the RIGHT (entityType "choice"), plus a "do nothing" card — not the
+  // effect-narrative path (the event applied nothing).
+  it('opens the event card (left) and the options list (right) on CHOICES_PENDING', async () => {
+    executeEvent.mockResolvedValue(PENDING)
+    await executeAction()
+    expect(await screen.findByTestId('cc-event')).toBeInTheDocument()         // event card, left
+    expect(screen.getAllByTestId('cc-choice')).toHaveLength(2)                // one per option
+    expect(screen.getByTestId('cc-choice-none')).toBeInTheDocument()          // the do-nothing card
+  })
+
+  // The "do nothing" card ends the event: the event card and the options list disappear.
+  it('the do-nothing card closes the whole choice-event view', async () => {
+    executeEvent.mockResolvedValue(PENDING)
+    await executeAction()
+    expect(await screen.findByTestId('cc-choice-none')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('action-choice-none'))
+    expect(screen.queryByTestId('cc-choice-none')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cc-event')).not.toBeInTheDocument()
+    expect(screen.queryAllByTestId('cc-choice')).toHaveLength(0)
+  })
+
+  // The event card's back arrow ends the event just like the do-nothing card.
+  it('the event card back arrow closes the choice-event view', async () => {
+    executeEvent.mockResolvedValue(PENDING)
+    await executeAction()
+    expect(await screen.findByTestId('cc-event')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('page-back'))   // the event card's only close arrow
+    expect(screen.queryByTestId('cc-event')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('cc-choice-none')).not.toBeInTheDocument()
+  })
+
+  // The APPLIED flow (the Step 29 default) never opens the choices view.
+  it('keeps the effect-narrative path on an APPLIED event', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED', effects: [], pendingChoices: [],
+      edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
+    })
+    await executeAction()
+    await waitFor(() => expect(executeEvent).toHaveBeenCalled())
+    expect(screen.queryByTestId('cc-choice-none')).not.toBeInTheDocument()
+  })
+
+  // The options list survives the async weather/board reload the same event triggers —
+  // even when the reload reports a weather change, it must not cover the right page.
+  it('keeps the options list after the post-event reload (weather does not cover it)', async () => {
+    getMatchWeather
+      .mockResolvedValueOnce({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+      .mockResolvedValue({ uuid: 'w2', card: { title: 'Rainy' }, costMoveSafeLocation: 0 })
+    executeEvent.mockResolvedValue(PENDING)
+    await executeAction()
+    expect(await screen.findByTestId('cc-choice-none')).toBeInTheDocument()
+    await waitFor(() => expect(getMatchLocations).toHaveBeenCalled())
+    expect(screen.getByTestId('cc-choice-none')).toBeInTheDocument()
+    expect(screen.getAllByTestId('cc-choice')).toHaveLength(2)
+  })
+})
+
 describe('GameBook — map and statistics view', () => {
   beforeEach(() => {
     vi.clearAllMocks()

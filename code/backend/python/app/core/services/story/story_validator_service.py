@@ -80,6 +80,8 @@ class _Graph:
         self.refs: List[tuple] = []          # (rule, entity_type, entity_id, field, target, value)
         self.neighbors: List[tuple] = []     # (entity_id, frm, to, direction)
         self.key_refs: List[tuple] = []      # (entity_id, type, key)
+        # Step 31 — choice id to its raw (idEvent, idLocation), for the R8 binding rule.
+        self.choice_data: Dict[str, tuple] = {}
         self.restrictions: List[tuple] = []  # (entity_type, entity_id, permitted, prohibited)
         self.templates: List[tuple] = []     # (entity_id, lifeMax, energyMax, dex, int, con, sadMax)
         self.event_next: Dict[int, int] = {}
@@ -128,7 +130,24 @@ class StoryValidatorService(StoryValidatorPort):
             self._class_conflict_local(entity_type, eid, data, report)
         elif entity_type == "difficulties":
             self._difficulty_local(entity_type, eid, data, report)
+        elif entity_type == "choices":
+            self._choice_local(entity_type, eid, data, report)
         return report
+
+    def _choice_local(self, entity_type: str, eid, data: Dict[str, Any],
+                      report: StoryValidationReport) -> None:
+        """Step 31 — entity-local choice rule, reachable from the lenient admin CRUD path.
+
+        Only an actively-typed idLocation is rejected here: the binding is deprecated, so
+        writing one is always a mistake. A missing idEvent is deliberately tolerated — a
+        draft choice may exist before its event while authoring; the whole-graph rule
+        closes the gap at import and validate-story.
+        """
+        id_location = _as_int(_get(data, "idLocation"))
+        if id_location is not None and id_location > 0:
+            report.add("R8_CHOICE_EVENT", entity_type, eid, "idLocation",
+                       f"idLocation={id_location} is deprecated — a choice binds to an"
+                       " event (idEvent), never to a location (step 31)")
 
     # ----- rule engine -----
 
@@ -140,6 +159,19 @@ class StoryValidatorService(StoryValidatorPort):
         self._validate_keys(g, report)
         self._validate_templates(g, report)
         self._validate_restrictions(g, report)
+        self._validate_choices(g, report)  # R8 choice-event binding (Step 31)
+
+    def _validate_choices(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 31 — story-wide: every choice belongs to an event, and only to an event."""
+        for cid, (id_event, id_location) in g.choice_data.items():
+            if id_event is None or id_event <= 0:
+                report.add("R8_CHOICE_EVENT", "choices", cid, "idEvent",
+                           f"choice {cid} has no idEvent — every choice must belong"
+                           " to an event (step 31)")
+            if id_location is not None and id_location > 0:
+                report.add("R8_CHOICE_EVENT", "choices", cid, "idLocation",
+                           f"idLocation={id_location} is deprecated — a choice binds to"
+                           " an event (idEvent), never to a location (step 31)")
 
     def _validate_refs(self, g: _Graph, report: StoryValidationReport) -> None:
         universe = {
@@ -208,7 +240,12 @@ class StoryValidatorService(StoryValidatorPort):
                            f"choice {cid} has no option (choice-effects) and no otherwise fallback")
 
     def _validate_keys(self, g: _Graph, report: StoryValidationReport) -> None:
-        for eid, _ctype, key in g.key_refs:
+        for eid, ctype, key in g.key_refs:
+            # Only KEYS conditions read the registry. On every other type `key` means
+            # something else entirely (a stat name for statistics, unused for ITEM), so
+            # matching it against the registry would false-fail legal stories (step 31).
+            if not ctype or str(ctype).strip().upper() != "KEYS":
+                continue
             if key and str(key).strip() and str(key).strip().lower() not in g.key_names:
                 report.add("R4_CONDITION_KEY", "choice-conditions", eid, "key",
                            f"choice-condition references unknown registry key '{key}'")
@@ -295,7 +332,11 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
         for cc in data.get("choiceConditions") or []:
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
-            g.key_refs.append((self._str(_get(cc, "id")), _get(cc, "type"), _get(cc, "key")))
+            ctype = _get(cc, "type")
+            ckey = _get(cc, "key")
+            g.key_refs.append((self._str(_get(cc, "id")),
+                               ctype if ctype is not None else _get(cc, "conditionType"),
+                               ckey if ckey is not None else _get(cc, "conditionKey")))
         for ee in data.get("eventEffects") or []:
             self._collect_event_effect(g, ee)
         for ie in data.get("itemEffects") or []:
@@ -355,7 +396,11 @@ class StoryValidatorService(StoryValidatorPort):
             self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
         for cc in rp.find_entities_for_story(story_id, "list_choices_conditions"):
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
-            g.key_refs.append((self._str(_get(cc, "id")), _get(cc, "type"), _get(cc, "key")))
+            ctype = _get(cc, "type")
+            ckey = _get(cc, "key")
+            g.key_refs.append((self._str(_get(cc, "id")),
+                               ctype if ctype is not None else _get(cc, "conditionType"),
+                               ckey if ckey is not None else _get(cc, "conditionKey")))
         for ee in rp.find_entities_for_story(story_id, "list_events_effects"):
             self._collect_event_effect(g, ee)
         for ie in rp.find_entities_for_story(story_id, "list_items_effects"):
@@ -395,6 +440,8 @@ class StoryValidatorService(StoryValidatorPort):
         self._ref(g, "choices", cid, "idEvent", _EVENT, _as_int(_get(c, "idEvent")))
         self._ref(g, "choices", cid, "idLocation", _LOCATION, _as_int(_get(c, "idLocation")))
         self._ref(g, "choices", cid, "idEventTorun", _EVENT, _as_int(_get(c, "idEventTorun")))
+        # Step 31 (R8): the raw binding values, kept for the choice-event rule.
+        g.choice_data[cid] = (_as_int(_get(c, "idEvent")), _as_int(_get(c, "idLocation")))
         my = _as_int(_get(c, "id"))
         if my is not None:
             g.choice_otherwise[my] = _truthy(_get(c, "otherwiseFlag"))

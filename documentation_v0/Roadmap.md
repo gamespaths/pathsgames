@@ -43,6 +43,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
 | 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events, `available` flag on match-info, `execute-event` endpoint |
 | 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story event |
+| 31 | [Choice engine](./Step31_ChoiceEngine.md) | ✅ | Choice-owning events branch `execute-event` to `CHOICES_PENDING`, `ChoiceAvailabilityChecker`, `R8_CHOICE_EVENT` validation |
 
 | Steps | Phase |
 | -- | -- |
@@ -70,20 +71,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-31. Choice engine — event-bound choices, availability & presentation
-    - il campo id_event su choices deve essere obbligatorio. quando un evento viene eseguito consuma energia/once ma se ha almeno una choice, al posto del event_Effect. presenterà le scelte disponiible, utente può anche scegliere di non fare nulla e terminare l'evento oppure l'utente sceglie tra quelle disponibili (verranno mostrate anche quelle non possibili ma lui sceglie tra quelle possibili) e poi si scatenerà la list_choices_effects della scelta selezionata. Se evento nessuna choices farà il giro che c'è già del event_effect
-        - Sì — e questa versione ha una proprietà che mi convince: "non fare nulla" costa comunque (energia spesa, ONCE consumato all'esecuzione), quindi sbirciare le opzioni e ritirarsi non è gratis. È un buon deterrente anti-abuso, coerente e semplice. Mi piace.
-        modifiche documentali che avevamo individuato (Step09 sull'invariante list_choices, Step22 sulla regola di validazione, il nuovo Step31_ChoiceEngine.md, e la nota nel changelog Step29) 
-    - list_choices.id_event is mandatory and id_location is deprecated/unused — a choice always belongs to an event (backend)
-    - When an event is executed it always consumes energy/ONCE first (Step 29 flow); if it has ≥1 choice, presenting the options REPLACES applying list_events_effects; with 0 choices it keeps the existing list_events_effects flow (backend)
-    - execute-event returns status CHOICES_PENDING + choices[] for a choice-event (energy/ONCE already spent, reflected in the response) vs status APPLIED for the no-choice flow; it writes the EVENT_EXECUTED marker on open. Choices are NOT nested into GET /match/{uuid_match}/info (no dual-source / no narrative pre-leak) (backend)
-    - Each returned option carries an available/reason verdict from a pure ChoiceAvailabilityChecker (twin of EventAvailabilityChecker); non-available options are still returned (shown disabled), never silently dropped (backend)
-    - Evaluate per-option conditions: inline limits (sad/DEX/INT/COS) plus list_choices_conditions (KEYS, ITEM, CLASS, LOCATION, ALL_IN_SAME_LOC, traits, statistics, statistics_SUM), combined with the option's logic_operator (AND/OR) (backend)
-    - Idempotent re-fetch of an already-opened event's options (page refresh): serve the choices again when an EVENT_EXECUTED marker exists and no CHOICE_SELECTED marker yet, WITHOUT re-charging energy or re-consuming ONCE (backend)
-    - Player may end the event without choosing (stateless: no select-choice call, no effects) — the "do nothing" exit is always offered and still costs the energy/ONCE paid at execution (backend)
-    - Add StoryValidator rule: every choice has a non-null id_event and a null id_location (hard-fail on import, lenient on CRUD) (backend)
-    - Write backend unit tests for the ≥1-choice branch vs 0-choice fallback, availability of every condition type + AND/OR, non-available options surfaced, idempotent re-fetch, and the energy/ONCE-on-open accounting (backend tests)
-
 32. Choice resolution — apply effects and outcomes
     - Add id_location & id_weather & id_event to list_choices_effects tables (backend)
     - Implement POST /gameplay/{uuid_match}/action/select-choice endpoint to submit selected option (backend)
@@ -683,18 +670,15 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     > ciao, read all "documentation_v0" for context, i wanna change my roadmap file, now I've 42 step, 13 already done and i started to work to step 14,  I wanna change my roadmap to be 101 step, 14 step should be stories management, from 14 to 42 should be single-player game system with only guess login, I would 42 step be "launch beta version with guess and single player game". since 43 to 84 "multiplayer game with credential login" with all multiplayer systems and game engine. since 85 to 101 test and launch system. all step with 7 subpoint , subpoint for backend and frontend too, add unit test into frontend and backend. 
 
 
-- **Document Version**: 0.30.3 (here only due changes)
+- **Document Version**: 0.31.0 (here only due changes)
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.1.0 | first version of this document | February 3, 2026 |
 	| 0.1.1 | added licence and version control sections, file renamed from "todolist" to "roadmap" | February 5, 2026 |
     | 0.1.2 | update "2. Define the V1 scope" and "3. Define the technology stack" sections | February 10, 2026 |
-    | 0.30.0 | step 30 (edge states) marked complete; removed its "Next steps" entry | July 20, 2026 |
-    | 0.30.1 | edge states: waking from coma on safe-location rest (see [Step30_EdgeStates.md](./Step30_EdgeStates.md)) | July 20, 2026 |
-    | 0.30.3 | Match Logs API (Step 28.7): new `order=asc|desc` query param on `GET /api/matches/{uuid}/logs` and `GET /api/admin/matches/{uuid}/logs` (default `asc`, retro-compatible); frontends now default to `desc` (see [Step28_MovementSystem.md](./Step28_MovementSystem.md)) | July 21, 2026 |
     | X.Y.Z | every step and every new vesion update this file | October 42, 2100 |
 
-- **Last Updated**: July 21, 2026 (v0.30.3)
+- **Last Updated**: July 22, 2026 (v0.31.0)
 - **Status**: In progress
 
 

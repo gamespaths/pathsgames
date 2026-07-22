@@ -395,50 +395,75 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             session.commit()
 
     def save_choices(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """Step 31: only the list_choices rows. Conditions and effects arrive as the
+        canonical TOP-LEVEL choiceConditions / choiceEffects arrays (keyed by idChoices)
+        via save_choice_conditions / save_choice_effects — the nested
+        choices[].conditions/effects shape was a Python-only drift and is gone."""
         with self.session_factory() as session:
             next_ch_id = self._make_id_counter(session, "list_choices", "id", story_id)
-            next_cc_id = self._make_id_counter(session, "list_choices_conditions", "id", story_id)
-            next_ce_id = self._make_id_counter(session, "list_choices_effects", "id", story_id)
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
                     id_card=item.get("idCard"),
                     id_event=item.get("idEvent"),
+                    id_location=item.get("idLocation"),
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
+                    id_text_narrative=item.get("idTextNarrative"),
                     priority=item.get("priority", 0),
-                    is_otherwise=item.get("isOtherwise", 0),
+                    # otherwiseFlag is the canonical key (Java/AWS/demo JSONs);
+                    # isOtherwise stays accepted for older Python-authored payloads.
+                    is_otherwise=item.get("otherwiseFlag", item.get("isOtherwise", 0)),
                     is_progress=item.get("isProgress", 0),
-                    id_event_torun=item.get("idEventToRun")
+                    id_event_torun=item.get("idEventTorun", item.get("idEventToRun")),
+                    limit_sad=item.get("limitSad"),
+                    limit_dex=item.get("limitDex"),
+                    limit_int=item.get("limitInt"),
+                    limit_cos=item.get("limitCos"),
+                    logic_operator=item.get("logicOperator") or "AND",
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_ch_id()
                 ch = ChoiceEntity(**self._coerce_kwargs(ChoiceEntity, kwargs))
                 session.add(ch)
-                session.flush()
+            session.commit()
 
-                for c in item.get("conditions", []):
-                    cc = ChoiceConditionEntity(
-                        id=next_cc_id(),
-                        id_story=story_id,
-                        id_choice=ch.id,
-                        condition_type=c.get("conditionType", c.get("type")),
-                        condition_key=c.get("conditionKey"),
-                        condition_value=c.get("conditionValue"),
-                        condition_operator=c.get("conditionOperator", "AND")
-                    )
-                    session.add(cc)
+    def save_choice_conditions(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        with self.session_factory() as session:
+            next_cc_id = self._make_id_counter(
+                session, "list_choices_conditions", "id", story_id)
+            for c in items:
+                explicit_id = _get_long(c, "id")
+                cc = ChoiceConditionEntity(
+                    id=explicit_id if explicit_id is not None else next_cc_id(),
+                    id_story=story_id,
+                    id_choice=c.get("idChoices", c.get("idChoice")),
+                    condition_type=c.get("type", c.get("conditionType")),
+                    condition_key=c.get("key", c.get("conditionKey")),
+                    condition_value=c.get("value", c.get("conditionValue")),
+                    # The per-row comparator; "=" is the schema default.
+                    condition_operator=c.get("operator", c.get("conditionOperator")) or "=",
+                )
+                session.add(cc)
+            session.commit()
 
-                for ef in item.get("effects", []):
-                    ce = ChoiceEffectEntity(
-                        id=next_ce_id(),
-                        id_story=story_id,
-                        id_choice=ch.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value")),
-                        flag_group=ef.get("flagGroup", 0)
-                    )
-                    session.add(ce)
+    def save_choice_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        with self.session_factory() as session:
+            next_ce_id = self._make_id_counter(
+                session, "list_choices_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                ce = ChoiceEffectEntity(
+                    id=explicit_id if explicit_id is not None else next_ce_id(),
+                    id_story=story_id,
+                    id_choice=ef.get("idChoices", ef.get("idChoice")),
+                    # Canonical rows carry `statistics`/`value` (the Java columns); the
+                    # narrower Python schema stores them as effect_type/effect_value.
+                    effect_type=ef.get("statistics", ef.get("effectType", ef.get("type"))),
+                    effect_value=ef.get("value", ef.get("effectValue")),
+                    flag_group=ef.get("flagGroup", 0),
+                )
+                session.add(ce)
             session.commit()
 
     def save_cards(self, story_id: int, items: List[Dict[str, Any]]) -> None:

@@ -2,6 +2,12 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set
 
+# Step 31 — the two answers of execute-event. APPLIED is the 0-choice flow (effects ran,
+# unchanged); CHOICES_PENDING means the cost was paid, the marker written, and the
+# options in ``pending_choices`` await the player (or their refusal, client-side only).
+STATUS_APPLIED = "APPLIED"
+STATUS_CHOICES_PENDING = "CHOICES_PENDING"
+
 
 class EventError(Exception):
     """Domain error mapped to HTTP status codes by the controller.
@@ -128,6 +134,41 @@ class AppliedEffect:
 
 
 @dataclass
+class ChoiceCheckContext:
+    """Everything the Step 31 per-option verdict needs, pre-loaded once per execute-event.
+
+    ``actor_stats`` carries the full stat vocabulary of the effect engine
+    (life/energy/sad/exp/dex/int/cos/food/magic/coin), read AFTER the open-cost deduction —
+    the player chooses with the energy they actually have left. ``party_locations`` and
+    ``party_stat_sums`` cover every character of the match; the service may leave them
+    empty when no condition needs them.
+    """
+    actor_stats: Dict[str, int] = field(default_factory=dict)
+    id_class: Optional[int] = None
+    id_location: Optional[int] = None
+    owned_item_ids: Set[int] = field(default_factory=set)
+    trait_ids: Set[int] = field(default_factory=set)
+    registry: Dict[str, Optional[str]] = field(default_factory=dict)
+    party_locations: List[Optional[int]] = field(default_factory=list)
+    party_stat_sums: Dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class ChoiceAvailability:
+    """The Step 31 per-option verdict: ``reason`` is None exactly when ``available``."""
+    available: bool
+    reason: Optional[str] = None
+
+    @staticmethod
+    def ok() -> "ChoiceAvailability":
+        return ChoiceAvailability(True, None)
+
+    @staticmethod
+    def no(reason: str) -> "ChoiceAvailability":
+        return ChoiceAvailability(False, reason)
+
+
+@dataclass
 class EventExecutionResult:
     match_uuid: str
     event_uuid: Optional[str]
@@ -158,8 +199,12 @@ class EventExecutionResult:
     item_changes: List[EntityChange] = field(default_factory=list)
     characteristic_changes: List[EntityChange] = field(default_factory=list)
     location_changes: List[LocationChange] = field(default_factory=list)
+    # STATUS_APPLIED or STATUS_CHOICES_PENDING (Step 31).
+    status: str = STATUS_APPLIED
     effects: List[AppliedEffect] = field(default_factory=list)
-    # Always empty until the choice engine (step 31) fills it.
+    # The options of a choice-event; empty when ``status`` is APPLIED. Each option is a
+    # camelCase-ready dict: uuid, priority, name, description, card, available, reason —
+    # the choice's narrative text is deliberately absent (no pre-leak, Step 32 reveals it).
     pending_choices: List[Dict[str, Any]] = field(default_factory=list)
     # Step 30. Never None in practice; see EdgeStateOutcome.none().
     edge_state: "EdgeStateOutcome" = field(default_factory=lambda: EdgeStateOutcome())

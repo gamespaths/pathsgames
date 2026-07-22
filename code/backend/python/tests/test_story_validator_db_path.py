@@ -84,7 +84,8 @@ def _tables():
         "list_class_bonuses": [{"id": 1, "idClass": 1}],
         "list_traits": [{"id": 1, "idClassPermitted": None, "idClassProhibited": None}],
         "list_character_templates": [{"idTipo": 1}],
-        "list_choices": [{"id": 1, "idEvent": 1, "idLocation": 1, "otherwiseFlag": 1}],
+        # No idLocation: since Step 31 (R8) a choice binds to an event only.
+        "list_choices": [{"id": 1, "idEvent": 1, "otherwiseFlag": 1}],
         "list_missions": [{"id": 1}],
         "list_keys": [{"name": "CHAPTER", "value": "1"}],
         "list_choices_effects": [{"id": 1, "idChoices": 1}],

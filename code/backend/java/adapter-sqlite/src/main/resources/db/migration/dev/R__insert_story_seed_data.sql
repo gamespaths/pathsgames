@@ -374,6 +374,56 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value, k
 (90003, 9001, 90003, 'exp',     3,  'items_collected', 'true'),
 (90004, 9001, 90004, 'exp',    10,  'tutorial_complete', 'true');
 
+-- ── Step 31 Choice pack — the choice-engine test-bed ────────────
+-- Two choice-events at the START location (90001): executing them answers
+-- CHOICES_PENDING — cost paid, marker written, effects withheld. Event 90030 even
+-- carries an effect row that must NEVER run in Step 31 (the suite asserts exp is
+-- untouched). 90031 is ONCE: opening it consumes it, yet the re-fetch still serves.
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90180, 9001, 610, 'en', 'Crossroads Trial', 'A hooded figure blocks the path and fans out four cards. "Every road costs something. Choose — or walk away; the toll stays paid."'),
+(90181, 9001, 610, 'it', 'La Prova del Bivio', 'Una figura incappucciata sbarra la strada e apre quattro carte a ventaglio. "Ogni strada ha un prezzo. Scegli — o vattene: il pedaggio resta pagato."'),
+(90182, 9001, 611, 'en', 'Sealed Gate', 'A gate that opens for each traveler exactly once. Beyond it, two paths.'),
+(90183, 9001, 611, 'it', 'Il Cancello Sigillato', 'Un cancello che si apre una sola volta per viandante. Oltre, due sentieri.'),
+(90184, 9001, 612, 'en', 'Take the plain road', 'No requirement: anyone may walk it.'),
+(90185, 9001, 612, 'it', 'Prendi la via semplice', 'Nessun requisito: chiunque può percorrerla.'),
+(90186, 9001, 613, 'en', 'Recite the ancient runes', 'Only a prodigious mind (INT above 99) can read them.'),
+(90187, 9001, 613, 'it', 'Recita le rune antiche', 'Solo una mente prodigiosa (INT oltre 99) può leggerle.'),
+(90188, 9001, 614, 'en', 'Bargain with the figure', 'The gate key OR a beating heart will do.'),
+(90189, 9001, 614, 'it', 'Contratta con la figura', 'Basta la chiave del cancello O un cuore che batte.'),
+(90190, 9001, 615, 'en', 'Shrug and improvise', 'The fallback nobody can be denied.'),
+(90191, 9001, 615, 'it', 'Alza le spalle e improvvisa', 'Il ripiego che non si nega a nessuno.');
+
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90030, 9001, 90001, 610, 610, 90001, 'NORMAL', 2, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),  -- choice-event, 4 options, cost 2 (keeps 'cost 1' unambiguous)
+(90031, 9001, 90001, 611, 611, 90001, 'ONCE',   1, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);  -- ONCE choice-event
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90024, 9001, 90030, 90001, 'exp', 99, 'ONLY_ONE');  -- withheld on CHOICES_PENDING: must never apply
+
+INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90010, 9001, 90030, 2, 612, 612, 0, 0, 'AND', NULL),  -- plain: available (priority 2)
+(90011, 9001, 90030, 1, 613, 613, 0, 0, 'AND', NULL),  -- INT > 99: unavailable, served FIRST (priority 1)
+(90012, 9001, 90030, 3, 614, 614, 0, 0, 'OR',  NULL),  -- OR: one true condition is enough
+(90013, 9001, 90030, 4, 615, 615, 1, 0, 'AND', 99),    -- otherwise: available despite the impossible limit
+(90014, 9001, 90031, 1, 612, 612, 0, 0, 'AND', NULL),  -- plain, on the ONCE event
+(90015, 9001, 90031, 2, 613, 613, 0, 0, 'AND', 99);    -- DEX >= 99: LIMIT_DEX_NOT_MET
+
+INSERT INTO list_choices_conditions (id, id_story, id_choices, type, key, value, operator) VALUES
+(90002, 9001, 90011, 'statistics', 'int',         '99',   '>'),
+(90003, 9001, 90012, 'KEYS',       'STEP29_GATE', 'OPEN', '='),
+(90004, 9001, 90012, 'statistics', 'life',        '0',    '>');
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) VALUES
+(90005, 9001, 90010, 'energy', 1),
+(90006, 9001, 90011, 'life',   1),
+(90007, 9001, 90012, 'exp',    2),
+(90008, 9001, 90014, 'energy', 1),
+(90009, 9001, 90015, 'life',   1);
+
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES
 (90001, 9001, NULL, NULL, 10);

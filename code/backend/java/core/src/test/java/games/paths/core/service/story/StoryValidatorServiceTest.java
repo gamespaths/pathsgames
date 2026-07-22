@@ -234,16 +234,81 @@ class StoryValidatorServiceTest {
         @Test
         void conditionWithUnknownKey() {
             Map<String, Object> s = validStory();
-            s.put("choiceConditions", rows(entity("id", 1, "idChoices", 1, "type", "KEY", "key", "MISSING_KEY")));
+            s.put("choiceConditions", rows(entity("id", 1, "idChoices", 1, "type", "KEYS", "key", "MISSING_KEY")));
             assertTrue(validator().validateImportData(s).getErrors().stream()
                     .anyMatch(e -> "R4_CONDITION_KEY".equals(e.rule())));
         }
 
         @Test
+        void keysTypeIsMatchedCaseInsensitively() {
+            Map<String, Object> s = validStory();
+            s.put("choiceConditions", rows(entity("id", 1, "idChoices", 1, "type", "keys", "key", "MISSING_KEY")));
+            assertTrue(validator().validateImportData(s).getErrors().stream()
+                    .anyMatch(e -> "R4_CONDITION_KEY".equals(e.rule())));
+        }
+
+        @Test
+        void nonKeysConditionKeyIsNotARegistryRef() {
+            // Step 31: on a statistics condition `key` names a STAT, not a registry key —
+            // the pre-filter bug would have false-failed every such imported story.
+            Map<String, Object> s = validStory();
+            s.put("choiceConditions", rows(
+                    entity("id", 1, "idChoices", 1, "type", "statistics", "key", "int", "value", "3", "operator", ">"),
+                    entity("id", 2, "idChoices", 1, "type", "traits", "key", "9")));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.isValid(), () -> "expected valid but got: " + r.getErrors());
+        }
+
+        @Test
         void conditionWithKnownKeyPasses() {
             Map<String, Object> s = validStory();
-            s.put("choiceConditions", rows(entity("id", 1, "idChoices", 1, "type", "KEY", "key", "chapter")));
+            s.put("choiceConditions", rows(entity("id", 1, "idChoices", 1, "type", "KEYS", "key", "chapter")));
             assertTrue(validator().validateImportData(s).isValid());
+        }
+    }
+
+    @Nested
+    @DisplayName("R8 choice-event binding (Step 31)")
+    class ChoiceEventBinding {
+        @Test
+        void choiceWithoutEventFails() {
+            Map<String, Object> s = validStory();
+            s.put("choices", rows(entity("id", 1, "otherwiseFlag", 1)));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                    "R8_CHOICE_EVENT".equals(e.rule()) && "idEvent".equals(e.field())));
+        }
+
+        @Test
+        void choiceWithLocationFails() {
+            // Location 1 exists, so only R8 can complain — the binding itself is deprecated.
+            Map<String, Object> s = validStory();
+            s.put("choices", rows(entity("id", 1, "idEvent", 1, "idLocation", 1, "otherwiseFlag", 1)));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                    "R8_CHOICE_EVENT".equals(e.rule()) && "idLocation".equals(e.field())));
+        }
+
+        @Test
+        void nonPositiveLocationReadsAsNone() {
+            Map<String, Object> s = validStory();
+            s.put("choices", rows(entity("id", 1, "idEvent", 1, "idLocation", 0, "otherwiseFlag", 1)));
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        void crudLocalToleratesADraftWithoutEvent() {
+            // The lenient CRUD path: {priority: 1} must stay creatable while authoring.
+            StoryValidationReport r = validator().validateEntity("choices", entity("priority", 1));
+            assertTrue(r.isValid());
+        }
+
+        @Test
+        void crudLocalRejectsALocation() {
+            StoryValidationReport r = validator().validateEntity("choices",
+                    entity("id", 1, "idEvent", 1, "idLocation", 5));
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                    "R8_CHOICE_EVENT".equals(e.rule()) && "idLocation".equals(e.field())));
         }
     }
 

@@ -157,7 +157,30 @@ def test_various_saves(adapter):
     adapter.save_events(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_items(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_classes(story_id, [{"idTextName": 1, "bonuses": [{"bonusType": "STR", "bonusValue": 10}]}])
-    adapter.save_choices(story_id, [{"idTextName": 1, "conditions": [{"conditionType": "STR", "conditionKey": "val"}], "effects": [{"effectType": "HP", "effectValue": 10}]}])
+    # Step 31 — the canonical TOP-LEVEL choice shape (keyed by idChoices), Java field names.
+    adapter.save_choices(story_id, [{
+        "id": 1, "idEvent": 1, "idTextName": 1, "otherwiseFlag": 1,
+        "logicOperator": "OR", "limitDex": 3, "idTextNarrative": 9,
+    }])
+    adapter.save_choice_conditions(story_id, [
+        {"id": 1, "idChoices": 1, "type": "statistics", "key": "int", "value": "3", "operator": ">"},
+        {"id": 2, "idChoices": 1, "type": "KEYS", "key": "gate", "value": "OPEN"},
+    ])
+    adapter.save_choice_effects(story_id, [
+        {"id": 1, "idChoices": 1, "statistics": "energy", "value": 2}])
+    from app.adapters.persistence.story.models import (
+        ChoiceConditionEntity, ChoiceEffectEntity, ChoiceEntity)
+    with adapter.session_factory() as session:
+        ch = session.query(ChoiceEntity).filter_by(id_story=story_id, id=1).first()
+        assert ch.is_otherwise == 1 and ch.logic_operator == "OR"
+        assert ch.limit_dex == 3 and ch.id_text_narrative == 9
+        conds = session.query(ChoiceConditionEntity).filter_by(
+            id_story=story_id).order_by(ChoiceConditionEntity.id).all()
+        assert [c.condition_type for c in conds] == ["statistics", "KEYS"]
+        assert conds[0].condition_operator == ">"
+        assert conds[1].condition_operator == "="  # the comparator default, not AND
+        eff = session.query(ChoiceEffectEntity).filter_by(id_story=story_id).first()
+        assert eff.id_choice == 1 and eff.effect_type == "energy" and eff.effect_value == 2
     adapter.save_cards(story_id, [{"cardType": "test"}])
     adapter.save_keys(story_id, [{"keyName": "key", "keyValue": "val"}])
     adapter.save_traits(story_id, [{"idTextName": 1}])

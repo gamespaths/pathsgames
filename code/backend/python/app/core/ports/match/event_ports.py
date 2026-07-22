@@ -16,6 +16,13 @@ from app.core.models.match.event_models import EventCheckContext, EventExecution
 # never triggered, so consumed_event_ids must be built from rows bearing this prefix only.
 MSG_EVENT_EXECUTED = "EVENT_EXECUTED"
 
+# Marker of a resolved choice-event cycle (Step 31 only READS it: a choice-event is "open"
+# — serve the options again, charge nothing — while its EVENT_EXECUTED rows outnumber its
+# CHOICE_SELECTED rows). Contract for Step 32, the first writer: the row's message starts
+# with this prefix and its id_event column carries the OWNING EVENT id (not the choice id),
+# so count_log_markers can pair the two markers by event.
+MSG_CHOICE_SELECTED = "CHOICE_SELECTED"
+
 
 class EventPort(ABC):
     @abstractmethod
@@ -147,3 +154,34 @@ class EventStorePort(ABC):
     def log_event_executed(self, id_match: int, id_character: Optional[int], id_event: int,
                            clock: int, message: str) -> None:
         """Message MUST start with MSG_EVENT_EXECUTED — see that constant."""
+
+    # ── choices (Step 31) ───────────────────────────────────────────────────
+
+    @abstractmethod
+    def find_choices_by_event_id(self, id_story: int, id_event: int) -> List[Dict[str, Any]]:
+        """The event's list_choices rows; empty for a plain (Step 29) event.
+
+        Canonical dict keys: id, uuid, id_event, id_card, priority, id_text_name,
+        id_text_description, otherwise_flag, is_progress, logic_operator,
+        limit_sad, limit_dex, limit_int, limit_cos.
+        """
+
+    @abstractmethod
+    def find_choice_conditions_by_choice_id(self, id_story: int) -> Dict[int, List[Dict[str, Any]]]:
+        """Every list_choices_conditions row grouped by id_choices, each list ordered by
+        row id — one read no matter how many options the event has. Canonical dict keys:
+        type, key, value, operator (the adapter maps its column names to these)."""
+
+    @abstractmethod
+    def count_log_markers(self, id_match: int, id_event: int, prefix: str) -> int:
+        """How many log_events rows of the event carry a message starting with prefix —
+        drives the open-cycle detection, see MSG_CHOICE_SELECTED."""
+
+    @abstractmethod
+    def find_trait_ids_by_character(self, id_match: int, id_character: int) -> set:
+        """The story-local trait ids the character holds — the traits condition input."""
+
+    @abstractmethod
+    def resolve_short_text(self, id_story: int, id_text: Optional[int],
+                           lang: str) -> Optional[str]:
+        """The short text of id_text in lang, falling back to "en", None when absent."""

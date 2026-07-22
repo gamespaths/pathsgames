@@ -44,7 +44,7 @@ class StoryValidatorServiceDbPathTest {
         ChoiceEntity c = new ChoiceEntity();
         c.setId(id);
         c.setIdEvent(1);
-        c.setIdLocation(1);
+        // No idLocation: since Step 31 (R8) a choice binds to an event only.
         c.setOtherwiseFlag(1);
         return c;
     }
@@ -75,7 +75,7 @@ class StoryValidatorServiceDbPathTest {
         ChoiceConditionEntity cc = new ChoiceConditionEntity();
         cc.setId(1L);
         cc.setIdChoices(1);
-        cc.setType("KEY");
+        cc.setType("KEYS");
         cc.setKey("CHAPTER");
         when(readPort.findChoiceConditionsByStoryId(1L)).thenReturn(List.of(cc));
 
@@ -150,6 +150,34 @@ class StoryValidatorServiceDbPathTest {
         StoryValidationReport report = service.validateStory(1L);
         assertFalse(report.isValid());
         assertFalse(report.getErrors().isEmpty());
+    }
+
+    @Test
+    void validateStory_dbPath_flagsChoiceWithoutEvent() {
+        stubValidStory();
+        // Step 31 (R8): a choice with no idEvent is orphaned even if otherwise-flagged.
+        ChoiceEntity orphan = new ChoiceEntity();
+        orphan.setId(2L);
+        orphan.setOtherwiseFlag(1);
+        when(readPort.findChoicesByStoryId(1L)).thenReturn(List.of(choice(1), orphan));
+        StoryValidationReport report = service.validateStory(1L);
+        assertTrue(report.getErrors().stream()
+                .anyMatch(e -> "R8_CHOICE_EVENT".equals(e.rule()) && "2".equals(e.entityId())));
+    }
+
+    @Test
+    void validateStory_dbPath_flagsChoiceWithLocation() {
+        stubValidStory();
+        // The location EXISTS, so only R8 can flag it — the deprecated binding itself.
+        ChoiceEntity located = new ChoiceEntity();
+        located.setId(2L);
+        located.setIdEvent(1);
+        located.setIdLocation(1);
+        located.setOtherwiseFlag(1);
+        when(readPort.findChoicesByStoryId(1L)).thenReturn(List.of(choice(1), located));
+        StoryValidationReport report = service.validateStory(1L);
+        assertTrue(report.getErrors().stream()
+                .anyMatch(e -> "R8_CHOICE_EVENT".equals(e.rule()) && "idLocation".equals(e.field())));
     }
 
     @Test

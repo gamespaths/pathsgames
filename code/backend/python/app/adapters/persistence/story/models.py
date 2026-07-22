@@ -330,12 +330,23 @@ class ChoiceEntity(Base):
     uuid = Column(String(36))
     id_card = Column(Integer)
     id_event = Column(Integer)
+    # Deprecated since Step 31 (R8): a choice binds to an event, never to a location.
+    id_location = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
+    # The post-selection narrative — revealed by Step 32, never on the pending options.
+    id_text_narrative = Column(Integer)
     priority = Column(Integer, default=0)
     is_otherwise = Column(Integer, default=0)
     is_progress = Column(Integer, default=0)
     id_event_torun = Column(Integer)
+    # Step 31 inline limits: dex/int/cos are minimums, sad is a maximum. NULL = no limit.
+    limit_sad = Column(Integer)
+    limit_dex = Column(Integer)
+    limit_int = Column(Integer)
+    limit_cos = Column(Integer)
+    # AND (default) or OR — how the list_choices_conditions rows combine (INV-31).
+    logic_operator = Column(String(10), default="AND")
 
 
 class ChoiceConditionEntity(Base):
@@ -348,7 +359,9 @@ class ChoiceConditionEntity(Base):
     condition_type = Column(String(50))
     condition_key = Column(String(255))
     condition_value = Column(String(255))
-    condition_operator = Column(String(10), default="AND")
+    # The per-row COMPARATOR (=, !=, >, <) — the AND/OR combiner lives on the choice
+    # (logic_operator). The old "AND" default conflated the two (fixed in Step 31).
+    condition_operator = Column(String(10), default="=")
 
 
 class ChoiceEffectEntity(Base):

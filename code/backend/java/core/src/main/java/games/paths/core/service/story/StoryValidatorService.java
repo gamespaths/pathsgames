@@ -65,9 +65,43 @@ public class StoryValidatorService implements StoryValidatorPort {
             case "items", "traits" -> validateClassRestrictionLocal(entityType, id, data, report);
             case "difficulties" -> validateDifficultyLocal(entityType, id, data, report);
             case "events" -> validateEventLocal(entityType, id, data, report);
+            case "choices" -> validateChoiceLocal(entityType, id, data, report);
             default -> { /* no entity-local rule */ }
         }
         return report;
+    }
+
+    /**
+     * Step 31 — entity-local choice rule, reachable from the lenient admin CRUD path.
+     *
+     * <p>Only an actively-typed {@code idLocation} is rejected here: the binding is
+     * deprecated, so writing one is always a mistake. A missing {@code idEvent} is
+     * deliberately tolerated — a draft choice may exist before its event while
+     * authoring (the Robot CRUD suite creates {@code {priority: 1}} and expects 201);
+     * the whole-graph rule below closes the gap at import and validate-story.</p>
+     */
+    private void validateChoiceLocal(String type, String id, Map<String, Object> data,
+                                     StoryValidationReport report) {
+        Integer idLocation = asInt(data.get("idLocation"));
+        if (idLocation != null && idLocation > 0) {
+            report.add("R8_CHOICE_EVENT", type, id, "idLocation",
+                    "idLocation=" + idLocation + " is deprecated — a choice binds to an"
+                            + " event (idEvent), never to a location (step 31)");
+        }
+    }
+
+    /** Step 31 — story-wide: every choice belongs to an event, and only to an event. */
+    private void validateChoices(StoryGraph g, StoryValidationReport report) {
+        for (Map.Entry<String, Map<String, Object>> e : g.choiceData.entrySet()) {
+            String id = e.getKey();
+            Integer idEvent = asInt(e.getValue().get("idEvent"));
+            if (idEvent == null || idEvent <= 0) {
+                report.add("R8_CHOICE_EVENT", "choices", id, "idEvent",
+                        "choice " + id + " has no idEvent — every choice must belong"
+                                + " to an event (step 31)");
+            }
+            validateChoiceLocal("choices", id, e.getValue(), report);
+        }
     }
 
     /**
@@ -108,10 +142,11 @@ public class StoryValidatorService implements StoryValidatorPort {
         validateNeighbors(g, report);     // R2
         validateEventChains(g, report);   // R3 cycle
         validateChoiceOptions(g, report); // R4
-        validateKeys(g, report);          // R4 conditions reference valid keys
+        validateKeys(g, report);          // R4 KEYS conditions reference valid keys
         validateTemplates(g, report);     // R6 stat ranges
         validateClassRestrictions(g, report); // R6 permitted != prohibited
         validateEvents(g, report);        // R7 event conditions (Step 29)
+        validateChoices(g, report);       // R8 choice-event binding (Step 31)
     }
 
     private void validateReferences(StoryGraph g, StoryValidationReport report) {
@@ -209,6 +244,12 @@ public class StoryValidatorService implements StoryValidatorPort {
 
     private void validateKeys(StoryGraph g, StoryValidationReport report) {
         for (KeyRef kr : g.keyRefs) {
+            // Only KEYS conditions read the registry. On every other type the `key` column
+            // means something else entirely (a stat name for statistics, unused for ITEM),
+            // so matching it against the registry would false-fail legal stories (step 31).
+            if (kr.type == null || !"KEYS".equalsIgnoreCase(kr.type.trim())) {
+                continue;
+            }
             if (kr.key != null && !kr.key.isBlank()
                     && !g.keyNames.contains(kr.key.trim().toLowerCase())) {
                 report.add("R4_CONDITION_KEY", "choice-conditions", kr.entityId, "key",
@@ -333,6 +374,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "choices", id, "idEvent", Target.EVENT, asInt(c.get("idEvent")));
             ref(g, "choices", id, "idLocation", Target.LOCATION, asInt(c.get("idLocation")));
             ref(g, "choices", id, "idEventTorun", Target.EVENT, asInt(c.get("idEventTorun")));
+            g.choiceData.put(id, c);
             Integer myId = asInt(c.get("id"));
             if (myId != null) {
                 g.choiceOtherwise.put(myId, truthy(c.get("otherwiseFlag")));
@@ -452,6 +494,10 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "choices", id, "idEvent", Target.EVENT, c.getIdEvent());
             ref(g, "choices", id, "idLocation", Target.LOCATION, c.getIdLocation());
             ref(g, "choices", id, "idEventTorun", Target.EVENT, c.getIdEventTorun());
+            Map<String, Object> row = new HashMap<>();
+            row.put("idEvent", c.getIdEvent());
+            row.put("idLocation", c.getIdLocation());
+            g.choiceData.put(id, row);
             if (c.getId() != null) {
                 g.choiceOtherwise.put(c.getId().intValue(), truthy(c.getOtherwiseFlag()));
             }
@@ -631,5 +677,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         final Set<Integer> choicesWithOption = new HashSet<>();
         /** Step 29 — event id to its authored fields, so the entity-local rules can run story-wide. */
         final Map<String, Map<String, Object>> eventData = new HashMap<>();
+        /** Step 31 — choice id to its authored idEvent/idLocation, for the R8 binding rule. */
+        final Map<String, Map<String, Object>> choiceData = new HashMap<>();
     }
 }

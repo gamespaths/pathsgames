@@ -23,6 +23,7 @@ import ActionCard from './cards/ActionCard'
 import WeatherCard from './cards/WeatherCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
+import PendingChoicesList from './cards/PendingChoicesList'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import MapCard from './cards/MapCard'
@@ -130,6 +131,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // (weather | close | endgame); a plain right preview uses kind: 'preview'.
   const [previewLeft, setPreviewLeft] = useState(null)   // { card, type, ... } | null
   const [previewRight, setPreviewRight] = useState(null) // { kind, ... } | null
+  // Step 31 — an open choice-event: the event card fills the LEFT page, its options fill
+  // the RIGHT page (PendingChoicesList). Kept apart from previewLeft/right so an (i)
+  // preview of an option can overlay the RIGHT page and closing it returns to the list.
+  const [pendingChoices, setPendingChoices] = useState(null) // { card, choices } | null
   const [statisticsCards, setStatisticsCards] = useState(false)
   // Step 0.28.5 — the world map view: MapPage on the LEFT page, the current
   // location on the RIGHT page. Opened by MapCard in the statistics list.
@@ -151,6 +156,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // right page. If the SAME event also changed the weather, the async weather
   // reload must NOT cover the effect: it attaches a forward arrow to it instead.
   const eventEffectActiveRef = useRef(false)
+  // Step 31 — mirrors `pendingChoices` so the async weather reload (which runs off a
+  // [weather] effect and can't see the latest state) knows a choice-event owns the right
+  // page and must not cover its options with the weather card.
+  const pendingChoicesRef = useRef(null)
   const [activeAction, setActiveAction] = useState(null)//used into endGame overlay and in future: action overlay
   // Set right before a sleep/movement reload so the effect below scrolls the
   // freshly-loaded board (the new card) back to the top on mobile.
@@ -194,6 +203,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     return () => { cancelled = true }
   }, [matchUuid, user?.accessToken])
 
+  // Step 31 — keep the ref the weather effect reads in sync with the state.
+  useEffect(() => { pendingChoicesRef.current = pendingChoices }, [pendingChoices])
+
   // Show the new weather as a right-page reading page (WeatherCard with a back
   // arrow) when the weather UUID changes (skips the initial load where
   // prevWeatherUuidRef is still null).
@@ -208,6 +220,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // Otherwise (e.g. a sleep-driven change) show the weather page directly.
     const duringEvent = eventEffectActiveRef.current
     eventEffectActiveRef.current = false
+    // Step 31 — a choice-event owns the right page: never let a weather change cover its
+    // options. The weather is still reachable from the stats view; the board (with the
+    // current weather) returns when the choices are closed.
+    if (pendingChoicesRef.current) return
     setPreviewRight(prev => {
       if (duringEvent && prev && prev.kind === 'preview') {
         return { ...prev, additionalProps: { ...prev.additionalProps,
@@ -339,6 +355,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   function handleEventExecuted(result) {
     handleReloadClockWeatherAndMatchData()
     setLoading(true);
+    // Step 31 — a choice-event answers CHOICES_PENDING: cost paid, effects withheld. The
+    // event card fills the LEFT page and its options fill the RIGHT page (as small cards).
+    // Nothing was applied, so there is no effect narrative; arm the effect flag so a
+    // stray weather reload attaches a forward arrow rather than covering the view.
+    if (result?.status === 'CHOICES_PENDING') {
+      eventEffectActiveRef.current = true
+      setPreviewRight(null)
+      setPendingChoices({ card: result.card ?? null, choices: result.pendingChoices ?? [] })
+      setLoading(false)
+      return
+    }
     const narrative = lastEffectCard(result)
     // Arm the weather effect: if this event also changes the weather, the async
     // reload will attach a forward arrow to this card instead of covering it.
@@ -424,6 +451,17 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // back arrow that clears previewRight.
   const closeRight = () => setPreviewRight(null)
   const closeLeft = () => setPreviewLeft(null)
+  // Step 31 — end an open choice-event: drop the event card (left), the options list
+  // (right) and any option preview overlaying it. The back arrow on the event card and
+  // the "do nothing" card both call this; the cost paid on open stays paid.
+  const closeChoices = () => {
+    setPendingChoices(null)
+    setPreviewRight(null)
+    eventEffectActiveRef.current = false
+  }
+  // Step 31 — picking an option. Selection (POST select-choice + its effects) is Step 32;
+  // until then a pick simply ends the event, exactly like the "do nothing" exit.
+  const handleSelectChoice = () => closeChoices()
   const previewRightContent =
     previewRight?.kind === 'weather'
       ? <WeatherCard weather={weather} story={story} onBack={closeRight} />
@@ -463,7 +501,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // story card. On mobile this is what the stacked left shows — the (i) preview
   // opens in a modal instead (see handleSelectionPreviewFull).
   const leftContent =
-    previewLeft?.kind === 'coma' 
+    // Step 31 — an open choice-event: the event card sits here (left), without an execute
+    // button; its back arrow ends the event (and clears the options on the right).
+    pendingChoices
+        ? <Card variant="page"
+            card={{ ...(pendingChoices.card ?? {}),
+                    title: pendingChoices.card?.title || t('game.choices.title') }}
+            entityType="event"
+            loading={false}
+            story={story}
+            onClose={closeChoices}
+            hidePreview />
+    : previewLeft?.kind === 'coma'
         ? <ComaCard story={story} allPlayers={previewLeft.allPlayers}
             comaEventCard={previewLeft.card} onBack={closeLeft}
             onForward={previewLeft.onForward} />
@@ -530,9 +579,15 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
 
   const rightContent =
     previewRight ? previewRightContent
+    // Step 31 — an open choice-event owns the right page: the options as small cards,
+    // plus the "do nothing" exit. An (i) preview of an option overlays via previewRight
+    // (checked first), so closing that overlay returns here to the list.
+    : pendingChoices ? <PendingChoicesList story={story} choices={pendingChoices.choices}
+        onPreview={handleSelectionPreviewFull} onSelect={handleSelectChoice}
+        onDoNothing={closeChoices} />
     // Step 0.28.5 — while the map fills the left page, the right page shows
     // the location selected on the map, else the current location.
-    : mapView ? (mapSelected 
+    : mapView ? (mapSelected
         ? <MovementCard variant="page" location={mapSelectedLocation} viewFromMap={true}
             isNeighbor={mapSelectedNeighbor != null || (mapSelected.isNeighbor ?? false)}
             totalEnergyCost={mapSelectedLocation.uuid != null ? locationCosts[mapSelectedLocation.uuid] : undefined}

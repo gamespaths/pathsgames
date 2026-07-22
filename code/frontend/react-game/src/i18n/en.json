@@ -236,6 +236,28 @@
       "title": "Everyone has fallen",
       "description": "Every character is in a coma. Nobody can act any more. When all players have zero health, they fall into a coma. When all players in a game are in a coma, a special event occurs: could be Game over."
     },
+    "choices": {
+      "title": "Choose your path",
+      "hint": "You have already paid to open this. Choose an option, or walk away — the toll stays paid.",
+      "do": "Do",
+      "doNothing": "Do nothing",
+      "unavailable": "Unavailable",
+      "reason": {
+        "LIMIT_SAD_EXCEEDED": "Too sad",
+        "LIMIT_DEX_NOT_MET": "Dexterity",
+        "LIMIT_INT_NOT_MET": "Intelligence",
+        "LIMIT_COS_NOT_MET": "Constitution",
+        "CONDITION_KEYS_NOT_MET": "Not yet",
+        "CONDITION_ITEM_NOT_MET": "Item",
+        "CONDITION_CLASS_NOT_MET": "Class",
+        "CONDITION_LOCATION_NOT_MET": "Elsewhere",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Party",
+        "CONDITION_TRAITS_NOT_MET": "Trait",
+        "CONDITION_STATISTICS_NOT_MET": "Stats",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Party stats",
+        "CONDITIONS_NOT_MET": "Locked"
+      }
+    },
     "location": {
       "clockCounter": "Location time counter"
     },

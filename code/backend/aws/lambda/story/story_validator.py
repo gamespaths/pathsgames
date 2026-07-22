@@ -100,12 +100,14 @@ def validate_story_dict(data):
                 _CHOICE: choices, _CLASS: classes, _MISSION: missions}
     refs = []          # (rule, etype, eid, field, target, value)
     neighbors = []     # (eid, frm, to, direction)
-    key_refs = []      # (eid, key)
+    key_refs = []      # (eid, type, key)
     restrictions = []  # (etype, eid, permitted, prohibited)
     templates = []     # (eid, lifeMax, energyMax, dex, int, con, sadMax)
     event_next = {}
     choice_otherwise = {}
     choices_with_option = set()
+    # Step 31 — (cid, idEvent, idLocation) per choice, for the R8 binding rule.
+    choice_data = []
 
     def ref(etype, eid, field, target, value):
         v = _as_int(value)
@@ -139,6 +141,9 @@ def validate_story_dict(data):
         ref("choices", str(cid), "idEvent", _EVENT, _field(c, "idEvent"))
         ref("choices", str(cid), "idLocation", _LOCATION, _field(c, "idLocation"))
         ref("choices", str(cid), "idEventTorun", _EVENT, _field(c, "idEventTorun"))
+        # Step 31 (R8): the raw binding values, kept for the choice-event rule.
+        choice_data.append((str(cid), _as_int(_field(c, "idEvent")),
+                            _as_int(_field(c, "idLocation"))))
         my = _as_int(_field(c, "id"))
         if my is not None:
             choice_otherwise[my] = _truthy(_field(c, "otherwiseFlag"))
@@ -149,7 +154,7 @@ def validate_story_dict(data):
         ref("choice-effects", str(_field(ce, "id")), "idChoices", _CHOICE, cid)
     for cc in _arr(data, "choiceConditions"):
         ref("choice-conditions", str(_field(cc, "id")), "idChoices", _CHOICE, _field(cc, "idChoices"))
-        key_refs.append((str(_field(cc, "id")), _field(cc, "key")))
+        key_refs.append((str(_field(cc, "id")), _field(cc, "type"), _field(cc, "key")))
     for ee in _arr(data, "eventEffects"):
         eid = str(_field(ee, "id"))
         ref("event-effects", eid, "idEvent", _EVENT, _field(ee, "idEvent"))
@@ -212,7 +217,21 @@ def validate_story_dict(data):
             errors.append(_err("R4_CHOICE_EMPTY", "choices", str(cid), None,
                                "choice {} has no option (choice-effects) and no otherwise fallback".format(cid)))
 
-    for eid, key in key_refs:
+    # Step 31 (R8): every choice belongs to an event, and only to an event.
+    for cid, id_event, id_location in choice_data:
+        if id_event is None or id_event <= 0:
+            errors.append(_err("R8_CHOICE_EVENT", "choices", cid, "idEvent",
+                               "choice {} has no idEvent — every choice must belong to an event (step 31)".format(cid)))
+        if id_location is not None and id_location > 0:
+            errors.append(_err("R8_CHOICE_EVENT", "choices", cid, "idLocation",
+                               "idLocation={} is deprecated — a choice binds to an event (idEvent), never to a location (step 31)".format(id_location)))
+
+    for eid, ctype, key in key_refs:
+        # Only KEYS conditions read the registry. On every other type `key` means
+        # something else entirely (a stat name for statistics, unused for ITEM), so
+        # matching it against the registry would false-fail legal stories (step 31).
+        if not ctype or str(ctype).strip().upper() != "KEYS":
+            continue
         if key and str(key).strip() and str(key).strip().lower() not in key_names:
             errors.append(_err("R4_CONDITION_KEY", "choice-conditions", eid, "key",
                                "choice-condition references unknown registry key '{}'".format(key)))
@@ -300,6 +319,15 @@ def validate_entity(entity_type, data):
         if mn is not None and mx is not None and mx > 0 and mn > mx:
             errors.append(_err("R6_DIFFICULTY_RANGE", entity_type, eid, "minCharacter",
                                "minCharacter ({}) exceeds maxCharacter ({})".format(mn, mx)))
+    elif entity_type == "choices":
+        # Step 31 — only an actively-typed idLocation is rejected here: the binding is
+        # deprecated, so writing one is always a mistake. A missing idEvent is tolerated
+        # (a draft choice may exist before its event while authoring); the whole-graph
+        # R8 rule closes the gap at import and validate-story.
+        id_location = _as_int(_field(data, "idLocation"))
+        if id_location is not None and id_location > 0:
+            errors.append(_err("R8_CHOICE_EVENT", entity_type, eid, "idLocation",
+                               "idLocation={} is deprecated — a choice binds to an event (idEvent), never to a location (step 31)".format(id_location)))
     return errors
 
 

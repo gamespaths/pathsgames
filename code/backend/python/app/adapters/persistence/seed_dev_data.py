@@ -353,6 +353,74 @@ INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type
 INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
 (90004, 9001, 90004, 'exp', 10);
 
+-- ── Step 31 Choice pack — the choice-engine test-bed ────────────
+-- Two choice-events at the START location (90001): executing them answers
+-- CHOICES_PENDING — cost paid, marker written, effects withheld. Event 90030 even
+-- carries an effect row that must NEVER run in Step 31; 90031 is ONCE.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90180, 9001, 610, 'en', 'Crossroads Trial', 'A hooded figure blocks the path and fans out four cards. "Every road costs something. Choose — or walk away; the toll stays paid."');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90181, 9001, 610, 'it', 'La Prova del Bivio', 'Una figura incappucciata sbarra la strada e apre quattro carte a ventaglio. "Ogni strada ha un prezzo. Scegli — o vattene: il pedaggio resta pagato."');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90182, 9001, 611, 'en', 'Sealed Gate', 'A gate that opens for each traveler exactly once. Beyond it, two paths.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90183, 9001, 611, 'it', 'Il Cancello Sigillato', 'Un cancello che si apre una sola volta per viandante. Oltre, due sentieri.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90184, 9001, 612, 'en', 'Take the plain road', 'No requirement: anyone may walk it.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90185, 9001, 612, 'it', 'Prendi la via semplice', 'Nessun requisito: chiunque può percorrerla.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90186, 9001, 613, 'en', 'Recite the ancient runes', 'Only a prodigious mind (INT above 99) can read them.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90187, 9001, 613, 'it', 'Recita le rune antiche', 'Solo una mente prodigiosa (INT oltre 99) può leggerle.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90188, 9001, 614, 'en', 'Bargain with the figure', 'The gate key OR a beating heart will do.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90189, 9001, 614, 'it', 'Contratta con la figura', 'Basta la chiave del cancello O un cuore che batte.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90190, 9001, 615, 'en', 'Shrug and improvise', 'The fallback nobody can be denied.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90191, 9001, 615, 'it', 'Alza le spalle e improvvisa', 'Il ripiego che non si nega a nessuno.');
+
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+(90030, 9001, 90001, 610, 610, 90001, 'NORMAL', 2, 0, 0);
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+(90031, 9001, 90001, 611, 611, 90001, 'ONCE', 1, 0, 0);
+
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90024, 9001, 90030, 90001, 'exp', 99, 'ONLY_ONE');
+
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90010, 9001, 90030, 2, 612, 612, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90011, 9001, 90030, 1, 613, 613, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90012, 9001, 90030, 3, 614, 614, 0, 0, 'OR', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90013, 9001, 90030, 4, 615, 615, 1, 0, 'AND', 99);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90014, 9001, 90031, 1, 612, 612, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, is_otherwise, is_progress, logic_operator, limit_dex) VALUES
+(90015, 9001, 90031, 2, 613, 613, 0, 0, 'AND', 99);
+
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90002, 9001, 90011, 'statistics', 'int', '99', '>');
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90003, 9001, 90012, 'KEYS', 'STEP29_GATE', 'OPEN', '=');
+INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
+(90004, 9001, 90012, 'statistics', 'life', '0', '>');
+
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+(90005, 9001, 90010, 'energy', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+(90006, 9001, 90011, 'life', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+(90007, 9001, 90012, 'exp', 2);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+(90008, 9001, 90014, 'energy', 1);
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+(90009, 9001, 90015, 'life', 1);
+
 -- ── Story 1 Global Random Events ────────────────────────────────
 INSERT OR IGNORE INTO list_global_random_events (id, id_story, probability) VALUES
 (90001, 9001, 10);

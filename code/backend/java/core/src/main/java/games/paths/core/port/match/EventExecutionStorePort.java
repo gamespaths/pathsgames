@@ -1,5 +1,7 @@
 package games.paths.core.port.match;
 
+import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 
@@ -35,6 +37,18 @@ public interface EventExecutionStorePort {
      * this prefix and nothing else.</p>
      */
     String MSG_EVENT_EXECUTED = "EVENT_EXECUTED";
+
+    /**
+     * Marker of a resolved choice-event cycle. Step 31 only READS it: a choice-event is
+     * "open" (serve the options again, charge nothing) while its
+     * {@link #MSG_EVENT_EXECUTED} rows outnumber its {@code MSG_CHOICE_SELECTED} rows.
+     *
+     * <p>Contract for Step 32, the first writer: the {@code log_events} row's message
+     * starts with this prefix and its {@code id_event} column carries the OWNING EVENT id
+     * (not the choice id) — {@link #countLogMarkers} pairs the two markers by event, and
+     * a row stamped with the choice id would never close the cycle it belongs to.</p>
+     */
+    String MSG_CHOICE_SELECTED = "CHOICE_SELECTED";
 
     // ── resolve ─────────────────────────────────────────────────────────────
 
@@ -140,6 +154,33 @@ public interface EventExecutionStorePort {
      * {@link #MSG_EVENT_EXECUTED} — see that constant.
      */
     void logEventExecuted(long idMatch, Long idCharacter, long idEvent, int clock, String message);
+
+    // ── choices (Step 31) ───────────────────────────────────────────────────
+
+    /** The event's {@code list_choices} rows; empty for a plain (Step 29) event. */
+    List<ChoiceEntity> findChoicesByEventId(long idStory, long idEvent);
+
+    /**
+     * Every {@code list_choices_conditions} row of the story grouped by {@code idChoices},
+     * each list ordered by row id — one read no matter how many options the event has.
+     */
+    Map<Long, List<ChoiceConditionEntity>> findChoiceConditionsByChoiceId(long idStory);
+
+    /**
+     * How many {@code log_events} rows of {@code idEvent} carry a message starting with
+     * {@code prefix}. Drives the open-cycle detection — see {@link #MSG_CHOICE_SELECTED}.
+     */
+    int countLogMarkers(long idMatch, long idEvent, String prefix);
+
+    /** The story-local trait ids the character holds — the {@code traits} condition input. */
+    Set<Long> findTraitIdsByCharacter(long idMatch, long idCharacter);
+
+    /**
+     * The short text of {@code idText} in {@code lang}, falling back to "en", null when
+     * the text does not exist (or {@code idText} is null). Mirrors the resolution the
+     * content APIs use, so an option reads the same everywhere.
+     */
+    String resolveShortText(long idStory, Integer idText, String lang);
 
     // ── records ─────────────────────────────────────────────────────────────
 

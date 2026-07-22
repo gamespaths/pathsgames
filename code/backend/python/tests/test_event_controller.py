@@ -59,6 +59,7 @@ def test_execute_event_returns_the_full_payload(env):
     body = r.json()
     assert body["eventUuid"] == "evt-1"
     assert body["eventType"] == "ONCE"
+    assert body["status"] == "APPLIED"  # Step 31: the 0-choice flow
     assert body["executedEventUuids"] == ["evt-1", "evt-2"]
     assert body["energySpent"] == 3 and body["newCoin"] == 8
     assert body["turnConsumed"] is False  # v0.29.0 never touches the turn queue
@@ -75,6 +76,39 @@ def test_execute_event_returns_the_full_payload(env):
     # The narrative is the EFFECT's card, not the event's.
     assert body["effects"][0]["card"]["title"] == "A wound"
     assert body["pendingChoices"] == []
+
+
+def test_choices_pending_payload(env):
+    # Step 31: a choice-event pays and presents — no effects, options with verdicts.
+    client, port = env
+    port.execute_event.return_value = EventExecutionResult(
+        match_uuid="m1", event_uuid="evt-1", event_type="NORMAL",
+        card={"title": "The Crossroads"},
+        executed_event_uuids=["evt-1"],
+        energy_spent=1, coin_spent=0, new_energy=19, new_coin=8, current_clock=5,
+        status="CHOICES_PENDING",
+        pending_choices=[
+            {"uuid": "choice-1", "priority": 1, "name": "Gold Door",
+             "description": "The shiny one.", "card": {"title": "Gold"},
+             "available": True, "reason": None},
+            {"uuid": "choice-2", "priority": 2, "name": "Runes",
+             "description": "For prodigies.", "card": None,
+             "available": False, "reason": "CONDITION_STATISTICS_NOT_MET"},
+        ],
+    )
+
+    r = client.post(URL, json=BODY, headers=AUTH)
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "CHOICES_PENDING"
+    assert body["energySpent"] == 1
+    assert body["effects"] == [] and body["statChanges"] == []
+    first, second = body["pendingChoices"]
+    assert first["uuid"] == "choice-1" and first["available"] is True
+    assert first["name"] == "Gold Door" and first["card"]["title"] == "Gold"
+    assert second["available"] is False
+    assert second["reason"] == "CONDITION_STATISTICS_NOT_MET"
 
 
 def test_lang_is_forwarded(env):

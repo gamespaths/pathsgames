@@ -443,3 +443,93 @@ def test_log_event_executed_appends_with_the_next_id(session_factory, adapter):
         assert rows[0].clock == 4
         assert rows[1].id_character_match is None
         assert rows[1].log_message.endswith("second")
+
+
+# ── choices (Step 31) ───────────────────────────────────────────────────────
+
+def _seed_choice(session_factory, *, cid, id_event, priority=1, logic="AND", **overrides):
+    with session_factory() as s:
+        from app.adapters.persistence.story.models import ChoiceEntity
+        s.add(ChoiceEntity(id=cid, id_story=9001, uuid=f"choice-{cid}", id_event=id_event,
+                           priority=priority, logic_operator=logic, **overrides))
+        s.commit()
+
+
+def test_find_choices_by_event_id_filters_on_the_event(session_factory, adapter):
+    _seed_choice(session_factory, cid=1, id_event=12, limit_dex=3)
+    _seed_choice(session_factory, cid=2, id_event=13)
+    _seed_choice(session_factory, cid=3, id_event=12)
+    _seed_choice(session_factory, cid=4, id_event=None)
+
+    out = adapter.find_choices_by_event_id(9001, 12)
+
+    assert [c["id"] for c in out] == [1, 3]
+    # The canonical dict carries the Step 31 fields under their canonical names.
+    assert out[0]["otherwise_flag"] == 0 or out[0]["otherwise_flag"] is None
+    assert out[0]["logic_operator"] == "AND"
+    assert out[0]["limit_dex"] == 3
+
+
+def test_find_choice_conditions_by_choice_id_groups_and_orders(session_factory, adapter):
+    from app.adapters.persistence.story.models import ChoiceConditionEntity
+    with session_factory() as s:
+        s.add(ChoiceConditionEntity(id=3, id_story=9001, id_choice=7,
+                                    condition_type="KEYS", condition_key="gate",
+                                    condition_value="OPEN", condition_operator="="))
+        s.add(ChoiceConditionEntity(id=1, id_story=9001, id_choice=7,
+                                    condition_type="statistics", condition_key="int",
+                                    condition_value="3", condition_operator=">"))
+        s.add(ChoiceConditionEntity(id=2, id_story=9001, id_choice=8,
+                                    condition_type="traits", condition_key=None,
+                                    condition_value="9", condition_operator="="))
+        s.add(ChoiceConditionEntity(id=4, id_story=9001, id_choice=None,
+                                    condition_type="KEYS"))
+        s.commit()
+
+    out = adapter.find_choice_conditions_by_choice_id(9001)
+
+    # Ordered by row id, grouped by choice, column names mapped to the canonical keys.
+    assert [c["type"] for c in out[7]] == ["statistics", "KEYS"]
+    assert out[7][0] == {"type": "statistics", "key": "int", "value": "3", "operator": ">"}
+    assert [c["value"] for c in out[8]] == ["9"]
+    assert None not in out
+
+
+def test_count_log_markers_counts_only_the_prefix_of_the_event(session_factory, adapter):
+    from app.core.ports.match.event_ports import MSG_CHOICE_SELECTED
+    adapter.log_event_executed(1, 3, 12, 4, MSG_EVENT_EXECUTED + " 12")
+    adapter.log_event_executed(1, 3, 12, 5, MSG_EVENT_EXECUTED + " 12")   # a second cycle
+    adapter.log_event_executed(1, 3, 12, 5, MSG_CHOICE_SELECTED + " 12")  # other prefix
+    adapter.log_event_executed(1, 3, 13, 5, MSG_EVENT_EXECUTED + " 13")   # other event
+    adapter.log_event_executed(1, 3, 12, 5, "WEATHER something")          # unrelated row
+
+    assert adapter.count_log_markers(1, 12, MSG_EVENT_EXECUTED) == 2
+    assert adapter.count_log_markers(1, 12, MSG_CHOICE_SELECTED) == 1
+    assert adapter.count_log_markers(1, 14, MSG_EVENT_EXECUTED) == 0
+
+
+def test_find_trait_ids_by_character(session_factory, adapter):
+    with session_factory() as s:
+        s.add(GamingCharacterTraitsEntity(id=1, id_match=1, uuid="t-1",
+                                          id_character_match=3, id_traits=9,
+                                          ts_insert=_NOW, ts_update=_NOW))
+        s.add(GamingCharacterTraitsEntity(id=3, id_match=1, uuid="t-3",
+                                          id_character_match=4, id_traits=7,
+                                          ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+
+    assert adapter.find_trait_ids_by_character(1, 3) == {9}
+
+
+def test_resolve_short_text_prefers_the_lang_and_falls_back_to_english(session_factory, adapter):
+    from app.adapters.persistence.story.models import TextEntity
+    with session_factory() as s:
+        s.add(TextEntity(id=1, id_story=9001, id_text=610, lang="it", short_text="La Prova"))
+        s.add(TextEntity(id=2, id_story=9001, id_text=611, lang="en", short_text="The Trial"))
+        s.commit()
+
+    assert adapter.resolve_short_text(9001, 610, "it") == "La Prova"
+    assert adapter.resolve_short_text(9001, 611, "it") == "The Trial"  # en fallback
+    assert adapter.resolve_short_text(9001, 612, "it") is None
+    assert adapter.resolve_short_text(9001, None, "it") is None
+    assert adapter.resolve_short_text(9001, 611, None) == "The Trial"  # blank lang = en

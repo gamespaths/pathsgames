@@ -109,6 +109,12 @@ class StoryImportService(StoryImportPort):
                 ("items", "list_items", "id", self.persistence_port.save_items),
                 ("classes", "list_classes", "id", self.persistence_port.save_classes),
                 ("choices", "list_choices", "id", self.persistence_port.save_choices),
+                # Step 31 — must run AFTER choices: a row points at its owning choice.
+                # Canonical TOP-LEVEL arrays keyed by idChoices, same shape as Java/AWS.
+                ("choiceConditions", "list_choices_conditions", "id",
+                 self.persistence_port.save_choice_conditions),
+                ("choiceEffects", "list_choices_effects", "id",
+                 self.persistence_port.save_choice_effects),
                 ("cards", "list_cards", "id", self.persistence_port.save_cards),
                 ("keys", "list_keys", "id", self.persistence_port.save_keys),
                 ("traits", "list_traits", "id", self.persistence_port.save_traits),

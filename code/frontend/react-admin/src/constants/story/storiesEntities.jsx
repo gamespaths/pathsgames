@@ -243,6 +243,8 @@ export const STORIES_ENTITIES_FIELDS = {
     ],
     choices: [
       { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
+//      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' }, //quiquiqui
       { key: 'idEvent', label: 'Event ID', type: 'number' },
       { key: 'idLocation', label: 'Location ID', type: 'number' },
       { key: 'priority', label: 'Priority', type: 'number' },
@@ -265,6 +267,7 @@ export const STORIES_ENTITIES_FIELDS = {
     ],
     'choice-effects': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idChoices', label: 'Choice ID', type: 'number' },
       { key: 'idScelta', label: 'Scelta ID', type: 'number' },
       { key: 'flagGroup', label: 'Flag Group', type: 'number' },
@@ -443,7 +446,8 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'visibility', label: 'Visibility' },
     ],
     choices: [
-      { key: 'idEvent', label: 'Event ID' },
+      { key: 'idTextName', label: 'Name', type: 'idTextName' },
+      { key: 'idEvent', label: 'Event ID' },      
       { key: 'idLocation', label: 'Location ID' },
       { key: 'priority', label: 'Priority' },
       { key: 'idTextNarrative', label: 'Narrative Text ID' },

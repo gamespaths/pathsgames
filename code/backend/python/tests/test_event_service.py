@@ -71,6 +71,11 @@ def store():
     s.remove_item.return_value = True
     s.add_trait.return_value = True
     s.remove_trait.return_value = True
+    # Step 31: a plain event owns no choices — the tests here exercise the APPLIED flow.
+    s.find_choices_by_event_id.return_value = []
+    s.find_choice_conditions_by_choice_id.return_value = {}
+    s.find_trait_ids_by_character.return_value = set()
+    s.resolve_short_text.return_value = None
     return s
 
 

@@ -7,11 +7,14 @@ import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.match.LogMovementEntity;
+import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryEntity;
+import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.port.match.EventExecutionStorePort;
 import games.paths.core.port.match.WeatherStorePort;
@@ -443,6 +446,80 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         e.setClock(clock);
         e.setLogMessage(message);
         logEventsRepository.save(e);
+    }
+
+    // ── choices (Step 31) ───────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChoiceEntity> findChoicesByEventId(long idStory, long idEvent) {
+        List<ChoiceEntity> out = new ArrayList<>();
+        for (ChoiceEntity c : storyReadPort.findChoicesByStoryId(idStory)) {
+            if (c.getIdEvent() != null && c.getIdEvent().longValue() == idEvent) {
+                out.add(c);
+            }
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, List<ChoiceConditionEntity>> findChoiceConditionsByChoiceId(long idStory) {
+        List<ChoiceConditionEntity> all =
+                new ArrayList<>(storyReadPort.findChoiceConditionsByStoryId(idStory));
+        // Deterministic order inside each option: under AND the FIRST failing row names
+        // the reason the player sees, so it must not depend on the read order.
+        all.sort((a, b) -> Long.compare(nzL(a.getId()), nzL(b.getId())));
+        Map<Long, List<ChoiceConditionEntity>> out = new LinkedHashMap<>();
+        for (ChoiceConditionEntity cc : all) {
+            if (cc.getIdChoices() != null) {
+                out.computeIfAbsent(cc.getIdChoices().longValue(), k -> new ArrayList<>()).add(cc);
+            }
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countLogMarkers(long idMatch, long idEvent, String prefix) {
+        int count = 0;
+        for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
+            String msg = l.getLogMessage();
+            if (msg != null && msg.startsWith(prefix)
+                    && l.getIdEvent() != null && l.getIdEvent() == idEvent) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> findTraitIdsByCharacter(long idMatch, long idCharacter) {
+        Set<Long> out = new HashSet<>();
+        for (GamingCharacterTraitsEntity t : traitsRepository
+                .findByIdMatchAndIdCharacterMatch(idMatch, idCharacter)) {
+            if (t.getIdTraits() != null) {
+                out.add(t.getIdTraits());
+            }
+        }
+        return out;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String resolveShortText(long idStory, Integer idText, String lang) {
+        if (idText == null) {
+            return null;
+        }
+        // Same resolution as ContentQueryService.resolveText: requested lang, then "en".
+        String effectiveLang = (lang == null || lang.isBlank()) ? "en" : lang;
+        Optional<TextEntity> text =
+                storyReadPort.findTextByStoryIdTextAndLang(idStory, idText, effectiveLang);
+        if (text.isEmpty() && !"en".equals(effectiveLang)) {
+            text = storyReadPort.findTextByStoryIdTextAndLang(idStory, idText, "en");
+        }
+        return text.map(TextEntity::getShortText).orElse(null);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

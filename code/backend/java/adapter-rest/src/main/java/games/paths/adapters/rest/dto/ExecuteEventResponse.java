@@ -23,12 +23,17 @@ import java.util.List;
  *
  * <p>{@code refreshRecommended} is true when any flag or list is non-empty: the frontend should
  * reload match-info. {@code turnConsumed} is always false in v0.29.0.</p>
+ *
+ * <p>Step 31: {@code status} tells the two flows apart — {@code APPLIED} (effects ran, as
+ * above) or {@code CHOICES_PENDING} (cost paid, effects withheld, {@code pendingChoices}
+ * holds the options to render, disabled ones included).</p>
  */
 public class ExecuteEventResponse {
 
     private String matchUuid;
     private String eventUuid;
     private String eventType;
+    private String status;
     private CardInfoResponse card;
     private List<String> executedEventUuids;
     private int energySpent;
@@ -61,6 +66,7 @@ public class ExecuteEventResponse {
         d.matchUuid = m.matchUuid();
         d.eventUuid = m.eventUuid();
         d.eventType = m.eventType();
+        d.status = m.status();
         d.card = CardInfoResponse.fromModel(m.card());
         d.executedEventUuids = new ArrayList<>(m.executedEventUuids());
         d.energySpent = m.energySpent();
@@ -121,6 +127,8 @@ public class ExecuteEventResponse {
     public void setEventUuid(String eventUuid) { this.eventUuid = eventUuid; }
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public CardInfoResponse getCard() { return card; }
     public void setCard(CardInfoResponse card) { this.card = card; }
     public List<String> getExecutedEventUuids() { return executedEventUuids; }
@@ -404,17 +412,29 @@ public class ExecuteEventResponse {
         public void setComaEffects(List<AppliedEffectDto> v) { this.comaEffects = v; }
     }
 
-    /** Always empty until the choice engine (step 31) fills it. */
+    /**
+     * One option of a choice-event (Step 31), priority order, disabled ones included.
+     * {@code reason} is null exactly when {@code available}; the choice's narrative text
+     * is deliberately not here — it would leak the outcome of a choice not yet made.
+     */
     public static class PendingChoiceDto {
         private String uuid;
         private Integer priority;
+        private String name;
+        private String description;
         private CardInfoResponse card;
+        private boolean available;
+        private String reason;
 
         public static PendingChoiceDto fromModel(PendingChoice m) {
             PendingChoiceDto d = new PendingChoiceDto();
             d.uuid = m.uuid();
             d.priority = m.priority();
+            d.name = m.name();
+            d.description = m.description();
             d.card = CardInfoResponse.fromModel(m.card());
+            d.available = m.available();
+            d.reason = m.reason();
             return d;
         }
 
@@ -422,7 +442,15 @@ public class ExecuteEventResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public Integer getPriority() { return priority; }
         public void setPriority(Integer priority) { this.priority = priority; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
         public CardInfoResponse getCard() { return card; }
         public void setCard(CardInfoResponse card) { this.card = card; }
+        public boolean isAvailable() { return available; }
+        public void setAvailable(boolean available) { this.available = available; }
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
     }
 }

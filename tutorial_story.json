@@ -1,5 +1,21 @@
 {
   "author": "Paths Games Team",
+  "card": {
+    "alternativeImage": null,
+    "awesomeIcon": "fas fa-chess-rook",
+    "cardType": null,
+    "copyrightText": "Lili Popper on Unsplash",
+    "description": "Welcome to the Paths Alpha tutorial. <br /><br /> This short adventure is designed to teach you the core mechanics of Paths Games while you explore a cursed fortress rising from the mist. <br />You will learn how to manage your Energy, navigate between adjacent locations, and use your character's Traits and Stats to overcome narrative challenges. Step inside and discover how every choice shapes your destiny.",
+    "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
+    "styleDetail": null,
+    "styleImageLarge": null,
+    "styleImageLittle": null,
+    "styleImageMedium": null,
+    "styleMain": null,
+    "title": "Paths Tutorial",
+    "urlImage": "https://images.unsplash.com/photo-1439396874305-9a6ba25de6c6?auto=format&fit=crop&w=1400&q=80",
+    "uuid": "52b424e5-945a-4b50-b16c-c9b83ae957fb"
+  },
   "cards": [
     {
       "alternativeImage": null,
@@ -990,6 +1006,42 @@
       "linkCopyright": "https://unsplash.com/photos/a-close-up-of-a-medical-paper-with-a-graph-on-it-eqTmD-baDkU",
       "urlImage": "https://images.unsplash.com/photo-1724395261682-c8b152dc5b9b?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "f4b19f2e-ce66-403a-b0b4-ae52e4e28e01"
+    },
+    {
+      "id": 84,
+      "idCard": 84,
+      "idCreator": 1,
+      "idTextCopyright": 242,
+      "idTextDescription": 243,
+      "idTextName": 239,
+      "idTextTitle": 239,
+      "linkCopyright": "https://unsplash.com/photos/two-roads-between-trees-u0vgcIOQG08",
+      "urlImage": "https://images.unsplash.com/photo-1429743305873-d4065c15f93e?q=80&w=1467&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "88992eb3-e3f1-4867-bb48-613d0c39f177"
+    },
+    {
+      "id": 85,
+      "idCard": 85,
+      "idCreator": 1,
+      "idTextCopyright": 244,
+      "idTextDescription": 240,
+      "idTextName": 240,
+      "idTextTitle": 240,
+      "linkCopyright": "https://unsplash.com/photos/a-dirt-road-in-the-middle-of-a-forest-2JmNXMtMb3U",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1665311551953-5ee597cb9d47?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "5086f212-46bf-4f2b-947b-24218c1c0f1a"
+    },
+    {
+      "id": 86,
+      "idCard": 86,
+      "idCreator": 1,
+      "idTextCopyright": 245,
+      "idTextDescription": 241,
+      "idTextName": 241,
+      "idTextTitle": 241,
+      "linkCopyright": "https://unsplash.com/photos/pathway-between-forest-trees-YBlIqmme5pE",
+      "urlImage": "https://images.unsplash.com/photo-1527172641749-7bb8ee8ad7ca?q=80&w=1467&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "accfa6ea-c2c6-4827-875e-f805d6ef879e"
     }
   ],
   "category": "adventure",
@@ -1154,7 +1206,26 @@
   ],
   "choiceConditions": [],
   "choiceEffects": [],
-  "choices": [],
+  "choices": [
+    {
+      "id": 1,
+      "idCard": 85,
+      "idEvent": 8,
+      "idTextName": 240,
+      "id_card": 85,
+      "priority": 1,
+      "uuid": "adf8562c-9173-4b20-a927-d6ce483552fc"
+    },
+    {
+      "id": 2,
+      "idCard": 86,
+      "idEvent": 8,
+      "idTextName": 241,
+      "id_card": 86,
+      "priority": 2,
+      "uuid": "49c34c63-89ea-4bfc-a3e9-1910cecfeeac"
+    }
+  ],
   "classBonuses": [
     {
       "id": 1,
@@ -1576,10 +1647,10 @@
     },
     {
       "id": 6,
-      "idCard": 80,
+      "idCard": 81,
       "idTextDescription": 226,
       "idTextName": 226,
-      "id_card": 80,
+      "id_card": 81,
       "uuid": "6c124bec-625b-4522-a1b0-539c49c7c5da"
     },
     {
@@ -1591,6 +1662,17 @@
       "idWeather": "",
       "id_card": 83,
       "uuid": "bff0f83f-8aa6-41c4-a8f8-a9419096f335"
+    },
+    {
+      "costEnery": 1,
+      "id": 8,
+      "idCard": 84,
+      "idSpecificLocation": 4,
+      "idTextDescription": 239,
+      "idTextName": 239,
+      "id_card": 84,
+      "type": "NORMAL",
+      "uuid": "7a47db68-4b87-429e-be16-56d380d47ec3"
     }
   ],
   "globalRandomEvents": [],
@@ -6124,6 +6206,136 @@
       "longText": "",
       "shortText": "",
       "uuid": "92088bef-40c1-46d0-aa05-efcc2ab59595"
+    },
+    {
+      "id": 239,
+      "idCreator": 1,
+      "idText": 239,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Event with choices",
+      "shortText": "Event with choices",
+      "uuid": "9eeee43a-9aac-4409-9e79-b78e189de0d6"
+    },
+    {
+      "id": 240,
+      "idCreator": 1,
+      "idText": 240,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Left",
+      "shortText": "Left",
+      "uuid": "d1d63a6d-4138-4c69-83d2-2ff71f48e1d6"
+    },
+    {
+      "id": 241,
+      "idCreator": 1,
+      "idText": 241,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Right",
+      "shortText": "Right",
+      "uuid": "003e75ae-ee75-4d1a-bf8f-76f3aa9430b4"
+    },
+    {
+      "id": 242,
+      "idCreator": 1,
+      "idText": 242,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Jens Lelie",
+      "shortText": "Jens Lelie",
+      "uuid": "79877df7-8a29-40c3-afe8-75126b3cecf0"
+    },
+    {
+      "id": 242,
+      "idCreator": 1,
+      "idText": 242,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "58c24310-2b06-4e16-a211-1433d9aa4dc2"
+    },
+    {
+      "id": 243,
+      "idCreator": 1,
+      "idText": 243,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This type of event requires the player to make a choice. <br /><br />Depending on the choices made, the story can change and take a different path.",
+      "shortText": "This type of event requires the player to make a choice. <br /><br />Depending on the choices made, the story can change and take a different path.",
+      "uuid": "45eb19ba-73dc-4990-8974-6aa568419afc"
+    },
+    {
+      "id": 243,
+      "idCreator": 1,
+      "idText": 243,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo tipo di evento chiede al giocatore di eseguire una scelta. <br /><br /> In base alle scelte fatte la storia può cambiare e prendere una strada differente.",
+      "shortText": "Questo tipo di evento chiede al giocatore di eseguire una scelta. <br /><br /> In base alle scelte fatte la storia può cambiare e prendere una strada differente.",
+      "uuid": "1ca3b115-0865-41fa-b94a-bfef130e0200"
+    },
+    {
+      "id": 240,
+      "idCreator": 1,
+      "idText": 240,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "cef147b2-7138-4793-8efa-fd91c80456bf"
+    },
+    {
+      "id": 241,
+      "idCreator": 1,
+      "idText": 241,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b12cfb70-6bb1-4f59-839b-5dae267841c2"
+    },
+    {
+      "id": 244,
+      "idCreator": 1,
+      "idText": 244,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Unsplash+ Community",
+      "shortText": "Unsplash+ Community",
+      "uuid": "ee4e4384-3967-490a-94c7-3f3417a315fb"
+    },
+    {
+      "id": 244,
+      "idCreator": 1,
+      "idText": 244,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c989b890-cea8-40c5-9f8a-10ef98a0deaa"
+    },
+    {
+      "id": 245,
+      "idCreator": 1,
+      "idText": 245,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "helloimnik",
+      "shortText": "helloimnik",
+      "uuid": "57996c22-41fc-45eb-b160-490a0c9cabca"
+    },
+    {
+      "id": 245,
+      "idCreator": 1,
+      "idText": 245,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "564e26c3-53d4-4bfb-87d4-19b357fbb6cf"
     }
   ],
   "title": "Paths Tutorial",

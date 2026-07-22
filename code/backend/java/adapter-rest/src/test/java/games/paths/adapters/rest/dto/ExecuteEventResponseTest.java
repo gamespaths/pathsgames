@@ -46,7 +46,7 @@ class ExecuteEventResponseTest {
 
     private static EventExecutionResult fullResult() {
         return new EventExecutionResult(
-                "match-uuid", "evt-1", "ACTION", card("The gate opens"),
+                "match-uuid", "evt-1", "ACTION", "CHOICES_PENDING", card("The gate opens"),
                 List.of("evt-1", "evt-2"),
                 3, 4, 7, 8, 12,
                 false, true, true, true, true, true, true, true, true, true,
@@ -58,7 +58,8 @@ class ExecuteEventResponseTest {
                 List.of(new LocationChange("char-1", "loc-a", "loc-b")),
                 List.of(new AppliedEffect("evt-1", "eff-1", "life", -5, "ALL", 2,
                         List.of("char-1"), card("A blade in the dark"))),
-                List.of(new PendingChoice("choice-1", 9, card("Left or right?"))),
+                List.of(new PendingChoice("choice-1", 9, "Left door", "The safe one.",
+                        card("Left or right?"), false, "LIMIT_DEX_NOT_MET")),
                 EdgeStateOutcome.none());
     }
 
@@ -71,6 +72,7 @@ class ExecuteEventResponseTest {
                 () -> assertEquals("match-uuid", d.getMatchUuid()),
                 () -> assertEquals("evt-1", d.getEventUuid()),
                 () -> assertEquals("ACTION", d.getEventType()),
+                () -> assertEquals("CHOICES_PENDING", d.getStatus()),
                 () -> assertEquals("The gate opens", d.getCard().getTitle()),
                 () -> assertEquals(List.of("evt-1", "evt-2"), d.getExecutedEventUuids()),
                 () -> assertEquals(3, d.getEnergySpent()),
@@ -112,6 +114,11 @@ class ExecuteEventResponseTest {
                 () -> assertEquals("A blade in the dark", d.getEffects().get(0).getCard().getTitle()),
                 () -> assertEquals(1, d.getPendingChoices().size()),
                 () -> assertEquals("choice-1", d.getPendingChoices().get(0).getUuid()),
+                () -> assertEquals("Left door", d.getPendingChoices().get(0).getName()),
+                () -> assertEquals("The safe one.", d.getPendingChoices().get(0).getDescription()),
+                () -> assertEquals("Left or right?", d.getPendingChoices().get(0).getCard().getTitle()),
+                () -> assertFalse(d.getPendingChoices().get(0).isAvailable()),
+                () -> assertEquals("LIMIT_DEX_NOT_MET", d.getPendingChoices().get(0).getReason()),
                 () -> assertNotNull(d.getEdgeState()));
     }
 
@@ -119,7 +126,7 @@ class ExecuteEventResponseTest {
     @DisplayName("An event that changed nothing maps to empty lists, never nulls")
     void quietResultMapsToEmptyLists() {
         EventExecutionResult quiet = new EventExecutionResult(
-                "m", "e", "INFO", null, List.of("e"),
+                "m", "e", "INFO", "APPLIED", null, List.of("e"),
                 0, 0, 0, 0, 0,
                 false, false, false, false, false, false, false, false, false, false,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
@@ -386,19 +393,32 @@ class ExecuteEventResponseTest {
     @DisplayName("PendingChoiceDto maps and round-trips")
     void pendingChoiceDto() {
         PendingChoiceDto from = PendingChoiceDto.fromModel(
-                new PendingChoice("choice-1", 9, card("Left or right?")));
+                new PendingChoice("choice-1", 9, "Left door", "The safe one.",
+                        card("Left or right?"), true, null));
         assertAll(
                 () -> assertEquals("choice-1", from.getUuid()),
                 () -> assertEquals(9, from.getPriority()),
-                () -> assertEquals("Left or right?", from.getCard().getTitle()));
+                () -> assertEquals("Left door", from.getName()),
+                () -> assertEquals("The safe one.", from.getDescription()),
+                () -> assertEquals("Left or right?", from.getCard().getTitle()),
+                () -> assertTrue(from.isAvailable()),
+                () -> assertNull(from.getReason()));
 
         PendingChoiceDto d = new PendingChoiceDto();
         d.setUuid("c");
         d.setPriority(1);
+        d.setName("n");
+        d.setDescription("desc");
         d.setCard(null);
+        d.setAvailable(false);
+        d.setReason("LIMIT_DEX_NOT_MET");
         assertAll(
                 () -> assertEquals("c", d.getUuid()),
                 () -> assertEquals(1, d.getPriority()),
-                () -> assertNull(d.getCard()));
+                () -> assertEquals("n", d.getName()),
+                () -> assertEquals("desc", d.getDescription()),
+                () -> assertNull(d.getCard()),
+                () -> assertFalse(d.isAvailable()),
+                () -> assertEquals("LIMIT_DEX_NOT_MET", d.getReason()));
     }
 }

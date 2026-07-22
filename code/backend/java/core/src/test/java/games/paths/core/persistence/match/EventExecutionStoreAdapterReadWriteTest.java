@@ -7,11 +7,14 @@ import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
 import games.paths.core.entity.match.LogEventsEntity;
+import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.StoryEntity;
+import games.paths.core.entity.story.TextEntity;
 import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static games.paths.core.port.match.EventExecutionStorePort.MSG_CHOICE_SELECTED;
 import static games.paths.core.port.match.EventExecutionStorePort.MSG_EVENT_EXECUTED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -723,5 +727,109 @@ class EventExecutionStoreAdapterReadWriteTest {
         assertEquals(12L, row.getIdEvent());
         assertEquals(5, row.getClock());
         assertEquals(MSG_EVENT_EXECUTED + "#12", row.getLogMessage());
+    }
+
+    // ── choices (Step 31) ───────────────────────────────────────────────────
+
+    private static ChoiceEntity choiceRow(long id, Integer idEvent) {
+        ChoiceEntity c = new ChoiceEntity();
+        c.setId(id);
+        c.setIdEvent(idEvent);
+        return c;
+    }
+
+    private static ChoiceConditionEntity conditionRow(long id, Integer idChoices) {
+        ChoiceConditionEntity c = new ChoiceConditionEntity();
+        c.setId(id);
+        c.setIdChoices(idChoices);
+        return c;
+    }
+
+    private static LogEventsEntity marker(Long idEvent, String message) {
+        LogEventsEntity l = new LogEventsEntity();
+        l.setIdEvent(idEvent);
+        l.setLogMessage(message);
+        return l;
+    }
+
+    @Test
+    void findChoicesByEventId_filtersOnTheEventAndSkipsUnbound() {
+        when(storyReadPort.findChoicesByStoryId(4L)).thenReturn(List.of(
+                choiceRow(1, 12), choiceRow(2, 13), choiceRow(3, 12), choiceRow(4, null)));
+
+        List<ChoiceEntity> out = adapter.findChoicesByEventId(4L, 12L);
+
+        assertEquals(2, out.size());
+        assertEquals(1L, out.get(0).getId());
+        assertEquals(3L, out.get(1).getId());
+    }
+
+    @Test
+    void findChoiceConditionsByChoiceId_groupsAndOrdersById() {
+        when(storyReadPort.findChoiceConditionsByStoryId(4L)).thenReturn(List.of(
+                conditionRow(3, 7), conditionRow(1, 7), conditionRow(2, 8), conditionRow(4, null)));
+
+        Map<Long, List<ChoiceConditionEntity>> out = adapter.findChoiceConditionsByChoiceId(4L);
+
+        assertEquals(2, out.size());
+        // Ordered by row id: under AND the FIRST failing row names the reason.
+        assertEquals(List.of(1L, 3L), out.get(7L).stream().map(ChoiceConditionEntity::getId).toList());
+        assertEquals(List.of(2L), out.get(8L).stream().map(ChoiceConditionEntity::getId).toList());
+    }
+
+    @Test
+    void countLogMarkers_countsOnlyThePrefixOfTheEvent() {
+        when(logEventsRepository.findByIdMatchOrderByIdAsc(1L)).thenReturn(List.of(
+                marker(12L, MSG_EVENT_EXECUTED + " 12"),
+                marker(12L, MSG_EVENT_EXECUTED + " 12"),      // a second cycle
+                marker(12L, MSG_CHOICE_SELECTED + " 12"),     // other prefix: not counted here
+                marker(13L, MSG_EVENT_EXECUTED + " 13"),      // other event
+                marker(12L, "WEATHER something"),             // unrelated row on the event
+                marker(12L, null),                            // no message
+                marker(null, MSG_EVENT_EXECUTED + " ?")));    // no event id
+
+        assertEquals(2, adapter.countLogMarkers(1L, 12L, MSG_EVENT_EXECUTED));
+        assertEquals(1, adapter.countLogMarkers(1L, 12L, MSG_CHOICE_SELECTED));
+        assertEquals(0, adapter.countLogMarkers(1L, 14L, MSG_EVENT_EXECUTED));
+    }
+
+    @Test
+    void findTraitIdsByCharacter_collectsTheHeldIds() {
+        GamingCharacterTraitsEntity held = new GamingCharacterTraitsEntity();
+        held.setIdTraits(9L);
+        GamingCharacterTraitsEntity broken = new GamingCharacterTraitsEntity();
+        broken.setIdTraits(null);
+        when(traitsRepository.findByIdMatchAndIdCharacterMatch(1L, 3L))
+                .thenReturn(List.of(held, broken));
+
+        assertEquals(java.util.Set.of(9L), adapter.findTraitIdsByCharacter(1L, 3L));
+    }
+
+    @Test
+    void resolveShortText_prefersTheLangAndFallsBackToEnglish() {
+        TextEntity it = new TextEntity();
+        it.setShortText("La Prova");
+        TextEntity en = new TextEntity();
+        en.setShortText("The Trial");
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 610, "it")).thenReturn(Optional.of(it));
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 611, "it")).thenReturn(Optional.empty());
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 611, "en")).thenReturn(Optional.of(en));
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 612, "it")).thenReturn(Optional.empty());
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 612, "en")).thenReturn(Optional.empty());
+
+        assertEquals("La Prova", adapter.resolveShortText(4L, 610, "it"));
+        assertEquals("The Trial", adapter.resolveShortText(4L, 611, "it"));
+        assertNull(adapter.resolveShortText(4L, 612, "it"));
+        assertNull(adapter.resolveShortText(4L, null, "it"));
+    }
+
+    @Test
+    void resolveShortText_blankLangReadsAsEnglish() {
+        TextEntity en = new TextEntity();
+        en.setShortText("The Trial");
+        when(storyReadPort.findTextByStoryIdTextAndLang(4L, 610, "en")).thenReturn(Optional.of(en));
+
+        assertEquals("The Trial", adapter.resolveShortText(4L, 610, null));
+        verify(storyReadPort, times(1)).findTextByStoryIdTextAndLang(4L, 610, "en");
     }
 }

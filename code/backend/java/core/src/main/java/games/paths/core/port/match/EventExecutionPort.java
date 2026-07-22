@@ -18,9 +18,25 @@ import java.util.List;
  * {@link EventExecutionResult#turnConsumed()} is part of the contract but is always
  * {@code false}; turn semantics are revisited in Step 61 (multiplayer turn engine).</p>
  *
+ * <p><b>Choices (Step 31).</b> An event owning at least one {@code list_choices} row is a
+ * choice-event: executing it pays the cost and writes the executed marker as usual, but
+ * instead of applying effects it answers {@link #STATUS_CHOICES_PENDING} with every option
+ * and its {@code ChoiceAvailabilityChecker} verdict. Re-executing an open choice-event
+ * serves the options again without re-charging. Resolution (select-choice) is Step 32;
+ * closing the card without choosing is purely client-side — the cost stays paid.</p>
+ *
  * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
  */
 public interface EventExecutionPort {
+
+    /** The 0-choice flow: the event's effects were applied (Step 29, unchanged). */
+    String STATUS_APPLIED = "APPLIED";
+
+    /**
+     * The choice-event flow: cost paid, marker written, effects withheld — the player
+     * must now choose among {@link EventExecutionResult#pendingChoices()} (or walk away).
+     */
+    String STATUS_CHOICES_PENDING = "CHOICES_PENDING";
 
     /**
      * Execute {@code eventUuid} for the caller's character: check, pay, apply the
@@ -56,6 +72,8 @@ public interface EventExecutionPort {
     record EventExecutionResult(String matchUuid,
                                 String eventUuid,
                                 String eventType,
+                                /** {@link #STATUS_APPLIED} or {@link #STATUS_CHOICES_PENDING}. */
+                                String status,
                                 CardInfo card,
                                 /** Chain execution order; index 0 is always {@code eventUuid}. */
                                 List<String> executedEventUuids,
@@ -83,7 +101,7 @@ public interface EventExecutionPort {
                                 List<CharacteristicChange> characteristicChanges,
                                 List<LocationChange> locationChanges,
                                 List<AppliedEffect> effects,
-                                /** Always empty until the choice engine (step 31) fills it. */
+                                /** The options of a choice-event; empty when {@code status} is APPLIED. */
                                 List<PendingChoice> pendingChoices,
                                 /** Step 30. Never null; see {@link EdgeStateOutcome#none()}. */
                                 EdgeStateOutcome edgeState) {
@@ -154,8 +172,20 @@ public interface EventExecutionPort {
                          CardInfo card) {
     }
 
-    /** Placeholder for the choice engine (step 31). */
-    record PendingChoice(String uuid, Integer priority, CardInfo card) {
+    /**
+     * One option of a choice-event (Step 31), sorted by priority then id. {@code name}
+     * and {@code description} are the resolved short texts; the choice's narrative text
+     * is deliberately absent — it belongs to the resolution (Step 32), returning it here
+     * would leak the outcome of a choice not yet made. {@code reason} is a
+     * {@code ChoiceAvailabilityChecker} string, null exactly when {@code available}.
+     */
+    record PendingChoice(String uuid,
+                         Integer priority,
+                         String name,
+                         String description,
+                         CardInfo card,
+                         boolean available,
+                         String reason) {
     }
 
     /** Domain exception mapped to HTTP status codes by the controller. */

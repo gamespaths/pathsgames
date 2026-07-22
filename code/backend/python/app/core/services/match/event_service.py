@@ -25,12 +25,15 @@ Rules worth stating, because they are easy to get wrong:
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.event_models import (
-    AppliedEffect, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
+    STATUS_APPLIED, STATUS_CHOICES_PENDING, AppliedEffect, ChoiceCheckContext,
+    EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
-from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventPort, EventStorePort
-from app.core.services.match import edge_state_evaluator, event_availability
+from app.core.ports.match.event_ports import (
+    MSG_CHOICE_SELECTED, MSG_EVENT_EXECUTED, EventPort, EventStorePort,
+)
+from app.core.services.match import choice_availability, edge_state_evaluator, event_availability
 
 ADD = "ADD"
 REMOVE = "REMOVE"
@@ -141,6 +144,14 @@ class EventService(EventPort):
             raise EventError(EventError.EVENT_NOT_FOUND, "Event not found in this story")
 
         ctx = self.store.load_check_context(match["id"], actor["id"])
+
+        # Step 31: an event owning options presents them instead of applying anything.
+        # The availability verdict moves inside the branch — an already-open cycle must
+        # bypass it, having been paid for when it opened.
+        choices = self.store.find_choices_by_event_id(match["id_story"], event.get("id") or 0)
+        if choices:
+            return self._execute_choice_event(match, actor, ctx, lang or "en", event, choices)
+
         verdict = event_availability.check(event, ctx)
         if not verdict.available:
             raise EventError(verdict.reason, f"Event cannot be executed: {verdict.reason}")
@@ -154,6 +165,154 @@ class EventService(EventPort):
         if x.end_time and not x.coma_triggered:
             self._force_time_end(x)
         return self._build_result(x)
+
+    # ── choices (Step 31) ───────────────────────────────────────────────────
+
+    def _execute_choice_event(self, match: Dict[str, Any], actor: Dict[str, Any],
+                              ctx: EventCheckContext, lang: str, event: Dict[str, Any],
+                              choices: List[Dict[str, Any]]) -> EventExecutionResult:
+        """A choice-event stops at its threshold: pay, mark, present — never apply.
+
+        The whole Step 29 tail (effects, chain, flag_end_time, edge states, epilogue,
+        game_over) belongs to the resolution, which is Step 32.
+
+        An OPEN cycle — EVENT_EXECUTED markers outnumbering CHOICE_SELECTED markers —
+        re-serves the options as a pure read: no verdict, no cost, no marker. Bypassing
+        the verdict is deliberate: the open already deducted energy and consumed the
+        ONCE, so re-checking would reject the very event the player has paid for.
+        Option availability, in contrast, is re-evaluated fresh on every serve.
+        """
+        event_id = event.get("id") or 0
+        x = _Exec(self, match, actor, ctx, lang, event)
+        # The consumed set is already built from EVENT_EXECUTED markers, so the two count
+        # queries run only for an event that was executed at least once.
+        open_cycle = event_id in ctx.consumed_event_ids and (
+            self.store.count_log_markers(match["id"], event_id, MSG_EVENT_EXECUTED)
+            > self.store.count_log_markers(match["id"], event_id, MSG_CHOICE_SELECTED))
+        if not open_cycle:
+            verdict = event_availability.check(event, ctx)
+            if not verdict.available:
+                raise EventError(verdict.reason, f"Event cannot be executed: {verdict.reason}")
+            self._deduct_costs(x, event)
+            # The marker slice of _apply_event, without its effects: same message format,
+            # so the ONCE accounting and the log timeline cannot tell the flows apart.
+            x.visited.add(event_id)
+            x.ctx.consumed_event_ids.add(event_id)
+            self.store.log_event_executed(match["id"], actor["id"], event_id,
+                                          x.current_clock, f"{MSG_EVENT_EXECUTED} {event_id}")
+        # Both paths: "index 0 is always the event" holds on a re-fetch too, so the
+        # frontend cannot tell a page refresh from the first open (beside energy_spent=0).
+        if event.get("uuid"):
+            x.executed_event_uuids.append(event["uuid"])
+        x.status = STATUS_CHOICES_PENDING
+        x.pending_choices = self._build_pending_choices(x, choices)
+        return self._build_result(x)
+
+    def _build_pending_choices(self, x: "_Exec",
+                               choices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Evaluate and shape every option — sorted by priority then id, none dropped."""
+        conditions_by_choice = self.store.find_choice_conditions_by_choice_id(
+            x.match["id_story"])
+        cctx = self._build_choice_context(x, choices, conditions_by_choice)
+        ordered = sorted(choices, key=lambda c: (c.get("priority") or 0, c.get("id") or 0))
+        out: List[Dict[str, Any]] = []
+        for choice in ordered:
+            rows = conditions_by_choice.get(choice.get("id"), [])
+            availability = choice_availability.check(choice, rows, cctx)
+            out.append({
+                "uuid": choice.get("uuid"),
+                "priority": choice.get("priority"),
+                "name": self.store.resolve_short_text(
+                    x.match["id_story"], choice.get("id_text_name"), x.lang),
+                "description": self.store.resolve_short_text(
+                    x.match["id_story"], choice.get("id_text_description"), x.lang),
+                "card": x.resolve_card(choice.get("id_card")),
+                "available": availability.available,
+                "reason": availability.reason,
+            })
+        return out
+
+    def _build_choice_context(self, x: "_Exec", choices: List[Dict[str, Any]],
+                              conditions_by_choice: Dict[int, List[Dict[str, Any]]],
+                              ) -> ChoiceCheckContext:
+        """One context for N options. The party reads (locations, stat sums) and the trait
+        read cost a query each, so they happen only when some condition needs them."""
+        needs_party = False
+        needs_traits = False
+        sum_keys: set = set()
+        for choice in choices:
+            for row in conditions_by_choice.get(choice.get("id"), []):
+                kind = (row.get("type") or "").strip().upper()
+                if kind == "ALL_IN_SAME_LOC":
+                    needs_party = True
+                elif kind == "TRAITS":
+                    needs_traits = True
+                elif kind == "STATISTICS_SUM":
+                    needs_party = True
+                    if (row.get("key") or "").strip():
+                        sum_keys.add(row["key"].strip().lower())
+
+        actor_stats = self._actor_stats_of(x)
+        party_locations: List[Optional[int]] = []
+        party_stat_sums: Dict[str, int] = {}
+        if needs_party:
+            sums_need_backpack = bool(sum_keys & _BACKPACK_STATS)
+            for member in x.all_characters():
+                party_locations.append(x.location_of(member))
+                if member["id"] == x.actor["id"]:
+                    member_stats = actor_stats
+                else:
+                    backpack = None
+                    if sums_need_backpack:
+                        backpack = self.store.find_backpack(x.match["id"], member["id"]) or {}
+                    member_stats = self._view_stats(member, backpack)
+                for key in sum_keys:
+                    party_stat_sums[key] = party_stat_sums.get(key, 0) \
+                        + (member_stats.get(key) or 0)
+        return ChoiceCheckContext(
+            actor_stats=actor_stats,
+            id_class=x.actor.get("id_class"),
+            id_location=x.location_of(x.actor),
+            owned_item_ids=x.ctx.owned_item_ids,
+            trait_ids=self.store.find_trait_ids_by_character(x.match["id"], x.actor["id"])
+            if needs_traits else set(),
+            registry=x.ctx.registry,
+            party_locations=party_locations,
+            party_stat_sums=party_stat_sums,
+        )
+
+    def _actor_stats_of(self, x: "_Exec") -> Dict[str, int]:
+        """The actor as the checker must see them: post-deduction when the open just paid.
+
+        The read-only path must NOT go through ``x.live()`` — that would enrol the actor
+        in the flush and write rows nothing has changed.
+        """
+        enrolled = x.living.get(x.actor["id"])
+        if enrolled is None:
+            backpack = self.store.find_backpack(x.match["id"], x.actor["id"]) or {}
+            return self._view_stats(x.actor, backpack)
+        return {
+            "life": enrolled.life, "energy": enrolled.energy, "sad": enrolled.sad,
+            "exp": enrolled.exp, "dex": enrolled.dexterity, "int": enrolled.intelligence,
+            "cos": enrolled.constitution, "food": enrolled.food, "magic": enrolled.magic,
+            "coin": enrolled.coin,
+        }
+
+    @staticmethod
+    def _view_stats(view: Dict[str, Any],
+                    backpack: Optional[Dict[str, int]]) -> Dict[str, int]:
+        """Backpack None when the caller does not need food/magic/coin for this member."""
+        stats = {
+            "life": view.get("life") or 0, "energy": view.get("energy") or 0,
+            "sad": view.get("sad") or 0, "exp": view.get("exp") or 0,
+            "dex": view.get("dexterity") or 0, "int": view.get("intelligence") or 0,
+            "cos": view.get("constitution") or 0,
+        }
+        if backpack is not None:
+            stats["food"] = backpack.get("food", 0)
+            stats["magic"] = backpack.get("magic", 0)
+            stats["coin"] = backpack.get("coin", 0)
+        return stats
 
     # ── costs ───────────────────────────────────────────────────────────────
 
@@ -543,8 +702,9 @@ class EventService(EventPort):
             item_changes=x.item_changes,
             characteristic_changes=x.characteristic_changes,
             location_changes=x.location_changes,
+            status=x.status,
             effects=self._chain_effects(x),
-            pending_choices=[],
+            pending_choices=x.pending_choices,
             edge_state=edge_state,
         )
 
@@ -620,6 +780,9 @@ class _Exec:
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0
         self.coin_spent = 0
+        # ── Step 31 choices ──
+        self.status = STATUS_APPLIED
+        self.pending_choices: List[Dict[str, Any]] = []
         self.end_time = False
         self.time_ended = False
         self.item_added = False

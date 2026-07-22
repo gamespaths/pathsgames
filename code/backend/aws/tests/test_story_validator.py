@@ -80,8 +80,50 @@ def test_choice_with_effect_passes():
 
 def test_condition_unknown_key():
     s = valid_story()
-    s["choiceConditions"] = [{"id": 1, "idChoices": 1, "type": "KEY", "key": "MISSING"}]
+    s["choiceConditions"] = [{"id": 1, "idChoices": 1, "type": "KEYS", "key": "MISSING"}]
     assert "R4_CONDITION_KEY" in rules(sv.validate_story_dict(s))
+
+
+def test_condition_non_keys_type_is_not_a_registry_ref():
+    # Step 31: on a statistics condition `key` names a STAT, not a registry key — the
+    # pre-filter bug would have false-failed every story using the condition vocabulary.
+    s = valid_story()
+    s["choiceConditions"] = [
+        {"id": 1, "idChoices": 1, "type": "statistics", "key": "int", "value": "3", "operator": ">"},
+        {"id": 2, "idChoices": 1, "type": "traits", "key": "9"},
+    ]
+    assert sv.validate_story_dict(s) == []
+
+
+def test_r8_choice_without_event_fails():
+    s = valid_story()
+    s["choices"] = [{"id": 1, "otherwiseFlag": 1}]
+    errors = sv.validate_story_dict(s)
+    assert any(e["rule"] == "R8_CHOICE_EVENT" and e["field"] == "idEvent" for e in errors)
+
+
+def test_r8_choice_with_location_fails():
+    # The location EXISTS, so only R8 can complain — the binding itself is deprecated.
+    s = valid_story()
+    s["choices"] = [{"id": 1, "idEvent": 1, "idLocation": 1, "otherwiseFlag": 1}]
+    errors = sv.validate_story_dict(s)
+    assert any(e["rule"] == "R8_CHOICE_EVENT" and e["field"] == "idLocation" for e in errors)
+
+
+def test_r8_non_positive_location_reads_as_none():
+    s = valid_story()
+    s["choices"] = [{"id": 1, "idEvent": 1, "idLocation": 0, "otherwiseFlag": 1}]
+    assert sv.validate_story_dict(s) == []
+
+
+def test_r8_crud_local_tolerates_a_draft_without_event():
+    # The lenient CRUD path: {priority: 1} must stay creatable while authoring.
+    assert sv.validate_entity("choices", {"priority": 1}) == []
+
+
+def test_r8_crud_local_rejects_a_location():
+    errors = sv.validate_entity("choices", {"id": 1, "idEvent": 1, "idLocation": 5})
+    assert any(e["rule"] == "R8_CHOICE_EVENT" and e["field"] == "idLocation" for e in errors)
 
 
 def test_item_refers_missing_class():

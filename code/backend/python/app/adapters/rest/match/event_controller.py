@@ -83,6 +83,8 @@ def _result_to_camel(r: EventExecutionResult) -> dict:
         "matchUuid": r.match_uuid,
         "eventUuid": r.event_uuid,
         "eventType": r.event_type,
+        # Step 31: APPLIED (effects ran) or CHOICES_PENDING (options in pendingChoices).
+        "status": r.status,
         "card": r.card,
         "executedEventUuids": r.executed_event_uuids,
         "energySpent": r.energy_spent,

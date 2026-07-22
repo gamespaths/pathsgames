@@ -51,7 +51,19 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_choices(self, story_id: int, choices: List[Dict[str, Any]]) -> None:
         pass
-        
+
+    @abstractmethod
+    def save_choice_conditions(self, story_id: int,
+                               conditions: List[Dict[str, Any]]) -> None:
+        """Step 31 — the canonical TOP-LEVEL choiceConditions array, keyed by idChoices
+        (the shape Java, AWS and the validator read; the old nested choices[].conditions
+        was a Python-only drift)."""
+
+    @abstractmethod
+    def save_choice_effects(self, story_id: int, effects: List[Dict[str, Any]]) -> None:
+        """Step 31 — the canonical TOP-LEVEL choiceEffects array, keyed by idChoices."""
+
+
     @abstractmethod
     def save_cards(self, story_id: int, cards: List[Dict[str, Any]]) -> None:
         pass

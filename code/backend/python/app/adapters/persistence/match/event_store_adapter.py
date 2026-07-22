@@ -18,7 +18,8 @@ from app.adapters.persistence.match.models import (
     LogMovementEntity,
 )
 from app.adapters.persistence.story.models import (
-    EventEffectEntity, EventEntity, ItemEntity, LocationEntity, StoryEntity, TraitEntity,
+    ChoiceConditionEntity, ChoiceEntity, EventEffectEntity, EventEntity, ItemEntity,
+    LocationEntity, StoryEntity, TextEntity, TraitEntity,
 )
 from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
@@ -377,6 +378,61 @@ class EventStoreAdapter(EventStorePort):
                 log_message=message, timestamp=now, ts_insert=now, ts_update=now))
             session.commit()
 
+    # ── choices (Step 31) ───────────────────────────────────────────────────
+
+    def find_choices_by_event_id(self, id_story: int, id_event: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = session.query(ChoiceEntity).filter(
+                ChoiceEntity.id_story == id_story,
+                ChoiceEntity.id_event == id_event).all()
+            return [_choice_dict(c) for c in rows]
+
+    def find_choice_conditions_by_choice_id(self, id_story: int) -> Dict[int, List[Dict[str, Any]]]:
+        with self.session_factory() as session:
+            rows = session.query(ChoiceConditionEntity).filter(
+                ChoiceConditionEntity.id_story == id_story).all()
+            # Ordered by row id: under AND the FIRST failing row names the reason the
+            # player sees, so it must not depend on the read order.
+            rows.sort(key=lambda r: r.id or 0)
+            out: Dict[int, List[Dict[str, Any]]] = {}
+            for r in rows:
+                if r.id_choice is None:
+                    continue
+                out.setdefault(r.id_choice, []).append({
+                    "type": r.condition_type, "key": r.condition_key,
+                    "value": r.condition_value, "operator": r.condition_operator,
+                })
+            return out
+
+    def count_log_markers(self, id_match: int, id_event: int, prefix: str) -> int:
+        with self.session_factory() as session:
+            rows = session.query(LogEventsEntity).filter(
+                LogEventsEntity.id_match == id_match,
+                LogEventsEntity.id_event == id_event).all()
+            return sum(1 for r in rows if (r.log_message or "").startswith(prefix))
+
+    def find_trait_ids_by_character(self, id_match: int, id_character: int) -> set:
+        with self.session_factory() as session:
+            rows = session.query(GamingCharacterTraitsEntity).filter(
+                GamingCharacterTraitsEntity.id_match == id_match,
+                GamingCharacterTraitsEntity.id_character_match == id_character).all()
+            return {r.id_traits for r in rows if r.id_traits is not None}
+
+    def resolve_short_text(self, id_story: int, id_text: Optional[int],
+                           lang: str) -> Optional[str]:
+        if id_text is None:
+            return None
+        effective = lang if lang else "en"
+        with self.session_factory() as session:
+            row = session.query(TextEntity).filter(
+                TextEntity.id_story == id_story, TextEntity.id_text == id_text,
+                TextEntity.lang == effective).first()
+            if row is None and effective != "en":
+                row = session.query(TextEntity).filter(
+                    TextEntity.id_story == id_story, TextEntity.id_text == id_text,
+                    TextEntity.lang == "en").first()
+            return row.short_text if row else None
+
 
 # ── mappers ─────────────────────────────────────────────────────────────────
 
@@ -391,6 +447,19 @@ def _character_dict(c: GamingCharacterInstanceEntity) -> Dict[str, Any]:
         "sad_max": c.sad_max or 0,
         "is_sleeping": bool(c.is_sleeping), "is_coma": bool(c.is_coma),
         "characteristics": c.characteristics,
+    }
+
+
+def _choice_dict(c: ChoiceEntity) -> Dict[str, Any]:
+    """The canonical choice shape of the port: DB column names stay in here."""
+    return {
+        "id": c.id, "uuid": c.uuid, "id_event": c.id_event, "id_card": c.id_card,
+        "priority": c.priority, "id_text_name": c.id_text_name,
+        "id_text_description": c.id_text_description,
+        "otherwise_flag": c.is_otherwise, "is_progress": c.is_progress,
+        "logic_operator": c.logic_operator,
+        "limit_sad": c.limit_sad, "limit_dex": c.limit_dex,
+        "limit_int": c.limit_int, "limit_cos": c.limit_cos,
     }
 
 

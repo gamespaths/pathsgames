@@ -1,5 +1,7 @@
 package games.paths.core.service.match;
 
+import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
 import games.paths.core.model.match.MatchStatuses;
@@ -16,6 +18,7 @@ import games.paths.core.port.match.UserAccessPort;
 import games.paths.core.port.story.ContentQueryPort;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -106,6 +109,16 @@ public class EventExecutionService implements EventExecutionPort {
                         "Event not found in this story"));
 
         EventCheckContext ctx = store.loadCheckContext(match.id(), actor.id());
+
+        // Step 31: an event owning options presents them instead of applying anything.
+        // The availability verdict moves inside the branch — an already-open cycle must
+        // bypass it, having been paid for when it opened.
+        List<ChoiceEntity> choices = store.findChoicesByEventId(match.idStory(),
+                event.getId() == null ? 0L : event.getId());
+        if (!choices.isEmpty()) {
+            return executeChoiceEvent(match, actor, ctx, resolveLang(lang), event, choices);
+        }
+
         EventAvailability verdict = EventAvailabilityChecker.check(event, ctx);
         if (!verdict.available()) {
             throw new EventExecutionException(verdict.reason(),
@@ -142,6 +155,181 @@ public class EventExecutionService implements EventExecutionPort {
             actor.coin = Math.max(0, actor.coin - x.coinSpent);
             actor.backpackDirty = true;
         }
+    }
+
+    // ── choices (Step 31) ───────────────────────────────────────────────────
+
+    /**
+     * A choice-event stops at its threshold: pay, mark, present — never apply. The whole
+     * Step 29 tail (effects, {@code idEventNext} chain, {@code flag_end_time}, edge
+     * states, epilogue, {@code gameOver}) belongs to the resolution, which is Step 32.
+     *
+     * <p>An OPEN cycle — {@code EVENT_EXECUTED} markers outnumbering
+     * {@code CHOICE_SELECTED} markers — re-serves the options as a pure read: no verdict,
+     * no cost, no marker. Bypassing the verdict is deliberate: the open already deducted
+     * energy and consumed the ONCE, so re-checking would reject the very event the player
+     * has paid for ({@code ONCE_ALREADY_CONSUMED}, or {@code NOT_ENOUGH_ENERGY} once the
+     * cost brought them under it). Option availability, in contrast, is re-evaluated
+     * fresh on every serve — the world may have changed since the open.</p>
+     */
+    private EventExecutionResult executeChoiceEvent(MatchEventView match, EventActorView actor,
+                                                    EventCheckContext ctx, String lang,
+                                                    EventEntity event, List<ChoiceEntity> choices) {
+        long eventId = event.getId() == null ? 0L : event.getId();
+        Exec x = new Exec(match, actor, ctx, lang, event);
+        // The consumed set is already built from EVENT_EXECUTED markers, so the two count
+        // queries run only for an event that was executed at least once.
+        boolean openCycle = ctx.consumedEventIds().contains(eventId)
+                && store.countLogMarkers(match.id(), eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED)
+                 > store.countLogMarkers(match.id(), eventId, EventExecutionStorePort.MSG_CHOICE_SELECTED);
+        if (!openCycle) {
+            EventAvailability verdict = EventAvailabilityChecker.check(event, ctx);
+            if (!verdict.available()) {
+                throw new EventExecutionException(verdict.reason(),
+                        "Event cannot be executed: " + verdict.reasonName());
+            }
+            deductCosts(x, event);
+            // The marker slice of applyEvent, without its effects: same message format,
+            // so the ONCE accounting and the log timeline cannot tell the flows apart.
+            x.visited.add(eventId);
+            x.ctx.consumedEventIds().add(eventId);
+            store.logEventExecuted(match.id(), actor.id(), eventId, x.currentClock,
+                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
+        }
+        // Both paths: "index 0 is always the event" holds on a re-fetch too, so the
+        // frontend cannot tell a page refresh from the first open (beside energySpent=0).
+        x.executedEventUuids.add(event.getUuid());
+        x.status = STATUS_CHOICES_PENDING;
+        x.pendingChoices = buildPendingChoices(x, choices);
+        return buildResult(x);
+    }
+
+    /** Evaluate and shape every option — sorted by priority then id, none dropped. */
+    private List<PendingChoice> buildPendingChoices(Exec x, List<ChoiceEntity> choices) {
+        Map<Long, List<ChoiceConditionEntity>> conditionsByChoice =
+                store.findChoiceConditionsByChoiceId(x.match.idStory());
+        ChoiceAvailabilityChecker.ChoiceCheckContext cctx =
+                buildChoiceContext(x, choices, conditionsByChoice);
+        List<ChoiceEntity> ordered = new ArrayList<>(choices);
+        ordered.sort(Comparator
+                .comparingInt((ChoiceEntity c) -> nz(c.getPriority()))
+                .thenComparingLong(c -> c.getId() == null ? 0L : c.getId()));
+        List<PendingChoice> out = new ArrayList<>();
+        for (ChoiceEntity choice : ordered) {
+            List<ChoiceConditionEntity> rows = choice.getId() == null
+                    ? List.of()
+                    : conditionsByChoice.getOrDefault(choice.getId(), List.of());
+            ChoiceAvailabilityChecker.ChoiceAvailability availability =
+                    ChoiceAvailabilityChecker.check(choice, rows, cctx);
+            out.add(new PendingChoice(choice.getUuid(), choice.getPriority(),
+                    store.resolveShortText(x.match.idStory(), choice.getIdTextName(), x.lang),
+                    store.resolveShortText(x.match.idStory(), choice.getIdTextDescription(), x.lang),
+                    resolveCard(x, choice.getIdCard()),
+                    availability.available(), availability.reason()));
+        }
+        return out;
+    }
+
+    /**
+     * One context for N options. The party reads (locations, stat sums) and the trait
+     * read cost a query each, so they happen only when some condition needs them.
+     */
+    private ChoiceAvailabilityChecker.ChoiceCheckContext buildChoiceContext(
+            Exec x, List<ChoiceEntity> choices,
+            Map<Long, List<ChoiceConditionEntity>> conditionsByChoice) {
+        boolean needsParty = false;
+        boolean needsTraits = false;
+        Set<String> sumKeys = new HashSet<>();
+        for (ChoiceEntity choice : choices) {
+            List<ChoiceConditionEntity> rows = choice.getId() == null
+                    ? List.<ChoiceConditionEntity>of()
+                    : conditionsByChoice.getOrDefault(choice.getId(), List.of());
+            for (ChoiceConditionEntity row : rows) {
+                String type = row.getType() == null ? "" : row.getType().trim().toUpperCase();
+                switch (type) {
+                    case "ALL_IN_SAME_LOC" -> needsParty = true;
+                    case "TRAITS" -> needsTraits = true;
+                    case "STATISTICS_SUM" -> {
+                        needsParty = true;
+                        if (row.getKey() != null && !row.getKey().isBlank()) {
+                            sumKeys.add(row.getKey().trim().toLowerCase());
+                        }
+                    }
+                    default -> { /* the other types read the actor-only context */ }
+                }
+            }
+        }
+
+        Map<String, Integer> actorStats = actorStatsOf(x);
+        List<Long> partyLocations = new ArrayList<>();
+        Map<String, Integer> partyStatSums = new HashMap<>();
+        if (needsParty) {
+            boolean sumsNeedBackpack = sumKeys.contains("food") || sumKeys.contains("magic")
+                    || sumKeys.contains("coin");
+            for (EventActorView member : x.allCharacters()) {
+                partyLocations.add(x.locationOf(member));
+                Map<String, Integer> memberStats = member.id() == x.actor.id()
+                        ? actorStats
+                        : viewStats(member, sumsNeedBackpack
+                                ? store.findBackpack(x.match.id(), member.id())
+                                        .orElse(new BackpackStats(0, 0, 0))
+                                : null);
+                for (String key : sumKeys) {
+                    partyStatSums.merge(key, memberStats.getOrDefault(key, 0), Integer::sum);
+                }
+            }
+        }
+        return new ChoiceAvailabilityChecker.ChoiceCheckContext(
+                actorStats, x.actor.idClass(), x.locationOf(x.actor),
+                x.ctx.ownedItemIds(),
+                needsTraits
+                        ? store.findTraitIdsByCharacter(x.match.id(), x.actor.id())
+                        : Set.of(),
+                x.ctx.registry(),
+                partyLocations, partyStatSums);
+    }
+
+    /**
+     * The actor as the checker must see them: post-deduction when the open just paid.
+     * The read-only path must NOT go through {@code x.live()} — that would enrol the
+     * actor in the flush and write rows nothing has changed.
+     */
+    private Map<String, Integer> actorStatsOf(Exec x) {
+        Live enrolled = x.living.get(x.actor.id());
+        if (enrolled == null) {
+            return viewStats(x.actor, store.findBackpack(x.match.id(), x.actor.id())
+                    .orElse(new BackpackStats(0, 0, 0)));
+        }
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("life", enrolled.life);
+        stats.put("energy", enrolled.energy);
+        stats.put("sad", enrolled.sad);
+        stats.put("exp", enrolled.exp);
+        stats.put("dex", enrolled.dexterity);
+        stats.put("int", enrolled.intelligence);
+        stats.put("cos", enrolled.constitution);
+        stats.put("food", enrolled.food);
+        stats.put("magic", enrolled.magic);
+        stats.put("coin", enrolled.coin);
+        return stats;
+    }
+
+    /** Backpack null when the caller does not need food/magic/coin for this member. */
+    private static Map<String, Integer> viewStats(EventActorView v, BackpackStats backpack) {
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("life", v.life());
+        stats.put("energy", v.energy());
+        stats.put("sad", v.sad());
+        stats.put("exp", v.exp());
+        stats.put("dex", v.dexterity());
+        stats.put("int", v.intelligence());
+        stats.put("cos", v.constitution());
+        if (backpack != null) {
+            stats.put("food", backpack.food());
+            stats.put("magic", backpack.magic());
+            stats.put("coin", backpack.coin());
+        }
+        return stats;
     }
 
     // ── the chain ───────────────────────────────────────────────────────────
@@ -584,7 +772,7 @@ public class EventExecutionService implements EventExecutionPort {
                 || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty();
 
         return new EventExecutionResult(
-                x.match.uuid(), x.event.getUuid(), x.event.getType(),
+                x.match.uuid(), x.event.getUuid(), x.event.getType(), x.status,
                 resolveCard(x, x.event.getIdCard()),
                 chainEventUuids(x),
                 x.energySpent, x.coinSpent, actor.energy, actor.coin, x.currentClock,
@@ -592,7 +780,7 @@ public class EventExecutionService implements EventExecutionPort {
                 x.timeEnded, x.itemAdded, x.itemRemoved, x.weatherApplied, x.movementApplied,
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
-                x.characteristicChanges, x.locationChanges, chainEffects(x), List.of(),
+                x.characteristicChanges, x.locationChanges, chainEffects(x), x.pendingChoices,
                 edgeState);
     }
 
@@ -718,6 +906,9 @@ public class EventExecutionService implements EventExecutionPort {
         int currentClock;
         int energySpent;
         int coinSpent;
+        // ── Step 31 choices ──
+        String status = STATUS_APPLIED;
+        List<PendingChoice> pendingChoices = List.of();
         boolean endTime;
         boolean timeEnded;
         boolean itemAdded;
