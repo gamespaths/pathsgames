@@ -16,7 +16,7 @@ let capturedProps = null
 vi.mock('@/components/layout/Card', () => ({
   default: (props) => {
     capturedProps = props
-    const { card, onPreview, onAction, entityType, flagInformationCard, locked, lockInfo } = props
+    const { card, onPreview, onSelect, entityType, flagInformationCard, locked, lockInfo } = props
     return (
       <div data-testid="choice-card">
         <span data-testid="card-title">{card?.title}</span>
@@ -25,7 +25,7 @@ vi.mock('@/components/layout/Card', () => ({
         <span data-testid="locked">{String(!!locked)}</span>
         <span data-testid="lock-info">{lockInfo ?? ''}</span>
         {onPreview && <button data-testid="preview-btn" onClick={onPreview}>preview</button>}
-        {onAction && <button data-testid="action-btn" onClick={onAction}>do</button>}
+        {onSelect && <button data-testid="select-btn" onClick={onSelect}>do</button>}
       </div>
     )
   },
@@ -50,11 +50,11 @@ describe('ChoiceCard (Step 31)', () => {
     expect(screen.getByTestId('card-title').textContent).toBe('The gold door')
     expect(screen.getByTestId('entity-type').textContent).toBe('choice')
     expect(screen.getByTestId('info-flag').textContent).toBe('true')
-    expect(screen.getByTestId('action-btn')).toBeInTheDocument()   // quick Do
+    expect(screen.getByTestId('select-btn')).toBeInTheDocument()   // quick Do (select)
     expect(screen.getByTestId('preview-btn')).toBeInTheDocument()   // (i) lens
     // Convention: never pass `label` to Card.
     expect(capturedProps.label).toBeUndefined()
-    expect(capturedProps.actionLabel).toBe('Do')
+    expect(capturedProps.selectLabel).toBe('Do')
   })
 
   it('falls back to a card built from the option fields when it has no card', () => {
@@ -66,7 +66,7 @@ describe('ChoiceCard (Step 31)', () => {
   it('the Do button selects the option (Step 32 will apply it)', () => {
     const onSelect = vi.fn()
     render(<ChoiceCard choice={AVAILABLE} story={STORY} onPreview={vi.fn()} onSelect={onSelect} />)
-    fireEvent.click(screen.getByTestId('action-btn'))
+    fireEvent.click(screen.getByTestId('select-btn'))
     expect(onSelect).toHaveBeenCalledWith(AVAILABLE)
   })
 
@@ -91,7 +91,7 @@ describe('ChoiceCard (Step 31)', () => {
     render(<ChoiceCard choice={LOCKED} story={STORY} onPreview={vi.fn()} onSelect={vi.fn()} />)
     expect(screen.getByTestId('locked').textContent).toBe('true')
     expect(screen.getByTestId('lock-info').textContent).toBe('Stats')
-    expect(screen.queryByTestId('action-btn')).toBeNull()
+    expect(screen.queryByTestId('select-btn')).toBeNull()
     expect(capturedProps.label).toBeUndefined()
   })
 

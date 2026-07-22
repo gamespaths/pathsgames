@@ -39,13 +39,12 @@ const CHOICES = [
 beforeEach(() => vi.clearAllMocks())
 
 describe('PendingChoicesList (Step 31)', () => {
-  it('renders one card per option plus a do-nothing card', () => {
+  it('renders one card per option', () => {
     render(<PendingChoicesList story={STORY} choices={CHOICES}
       onPreview={vi.fn()} onSelect={vi.fn()} onDoNothing={vi.fn()} />)
     expect(screen.getAllByTestId('choice-card')).toHaveLength(2)
     expect(screen.getByText('Gold Door')).toBeInTheDocument()
     expect(screen.getByText('Runes')).toBeInTheDocument()
-    expect(screen.getByTestId('card-choice-none')).toBeInTheDocument()
   })
 
   it('forwards a pick to onSelect', () => {
@@ -56,7 +55,9 @@ describe('PendingChoicesList (Step 31)', () => {
     expect(onSelect).toHaveBeenCalledWith(CHOICES[0])
   })
 
-  it('the do-nothing card ends the event via onDoNothing', () => {
+  // The inline "do nothing" card is currently disabled in PendingChoicesList (the event
+  // card's back arrow ends the event). Kept skipped so it is ready to re-enable.
+  it.skip('the do-nothing card ends the event via onDoNothing', () => {
     const onDoNothing = vi.fn()
     render(<PendingChoicesList story={STORY} choices={CHOICES}
       onPreview={vi.fn()} onSelect={vi.fn()} onDoNothing={onDoNothing} />)
@@ -64,10 +65,9 @@ describe('PendingChoicesList (Step 31)', () => {
     expect(onDoNothing).toHaveBeenCalledTimes(1)
   })
 
-  it('still offers the do-nothing exit with no options', () => {
+  it('renders nothing but the (empty) grid with no options', () => {
     render(<PendingChoicesList story={STORY} choices={[]}
       onPreview={vi.fn()} onSelect={vi.fn()} onDoNothing={vi.fn()} />)
     expect(screen.queryAllByTestId('choice-card')).toHaveLength(0)
-    expect(screen.getByTestId('card-choice-none')).toBeInTheDocument()
   })
 })
