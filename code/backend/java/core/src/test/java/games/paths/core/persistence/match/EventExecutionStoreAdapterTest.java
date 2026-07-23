@@ -11,6 +11,8 @@ import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.GamingStoryProgressRepository;
+import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +52,8 @@ class EventExecutionStoreAdapterTest {
                 mock(GamingStateRegistryRepository.class),
                 mock(LogEventsRepository.class),
                 logMovementRepository,
+                mock(LogChoicesExecutedRepository.class),
+                mock(GamingStoryProgressRepository.class),
                 storyReadPort,
                 mock(WeatherStorePort.class));
     }

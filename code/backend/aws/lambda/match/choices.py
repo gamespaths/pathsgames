@@ -83,6 +83,32 @@ def conditions_by_choice(story):
     return out
 
 
+def choice_by_uuid(story, choice_uuid):
+    """Step 32 — the option select-choice names, inside the match's own story."""
+    if not choice_uuid or not str(choice_uuid).strip():
+        return None
+    return next((c for c in (story.get("choices") or [])
+                 if c.get("uuid") == choice_uuid), None)
+
+
+def effects_for_choice(story, choice_id):
+    """Step 32 — the option's choiceEffects rows, in authored (id) order, so a later row
+    can build on what an earlier one wrote."""
+    rows = [e for e in (story.get("choiceEffects") or [])
+            if e.get("idChoices") is not None and _nz(e.get("idChoices")) == _nz(choice_id)]
+    rows.sort(key=lambda e: _nz(e.get("id")))
+    return rows
+
+
+def choice_recipients(effect, actor, characters):
+    """Step 32 — INV-46: ``flagGroup`` 1 means every character standing in the ACTOR's
+    location, the same set an event effect's ``target=ALL`` resolves (INV-27), never every
+    character of the match. Anything else is the acting character alone."""
+    if _nz(effect.get("flagGroup")) != 1 or actor.get("idLocation") is None:
+        return [actor]
+    return [c for c in characters if c.get("idLocation") == actor.get("idLocation")]
+
+
 def count_log_markers(match, event_id, prefix):
     """How many eventLog rows of the event carry a message starting with prefix."""
     return sum(

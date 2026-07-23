@@ -151,7 +151,14 @@ def validate_story_dict(data):
         cid = _as_int(_field(ce, "idChoices"))
         if cid is not None:
             choices_with_option.add(cid)
-        ref("choice-effects", str(_field(ce, "id")), "idChoices", _CHOICE, cid)
+        eid = str(_field(ce, "id"))
+        ref("choice-effects", eid, "idChoices", _CHOICE, cid)
+        # v0.32.0 — the effect targets a resolved choice can reach (Step 32). idWeather is
+        # deliberately unchecked: this validator has no weather target, as for the event
+        # effects right below.
+        ref("choice-effects", eid, "idEvent", _EVENT, _field(ce, "idEvent"))
+        ref("choice-effects", eid, "idLocation", _LOCATION, _field(ce, "idLocation"))
+        ref("choice-effects", eid, "idItemTarget", _ITEM, _field(ce, "idItemTarget"))
     for cc in _arr(data, "choiceConditions"):
         ref("choice-conditions", str(_field(cc, "id")), "idChoices", _CHOICE, _field(cc, "idChoices"))
         key_refs.append((str(_field(cc, "id")), _field(cc, "type"), _field(cc, "key")))

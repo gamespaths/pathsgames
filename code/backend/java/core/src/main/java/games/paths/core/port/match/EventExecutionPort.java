@@ -22,10 +22,17 @@ import java.util.List;
  * choice-event: executing it pays the cost and writes the executed marker as usual, but
  * instead of applying effects it answers {@link #STATUS_CHOICES_PENDING} with every option
  * and its {@code ChoiceAvailabilityChecker} verdict. Re-executing an open choice-event
- * serves the options again without re-charging. Resolution (select-choice) is Step 32;
- * closing the card without choosing is purely client-side — the cost stays paid.</p>
+ * serves the options again without re-charging. Closing the card without choosing is
+ * purely client-side — the cost stays paid.</p>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
+ * <p><b>Resolution (Step 32).</b> {@link #selectChoice} closes the cycle the open left
+ * ajar: it applies the option's {@code list_choices_effects}, runs the linked events, and
+ * writes the {@code CHOICE_SELECTED} marker. It charges nothing — energy, coins and the
+ * ONCE were all spent when the event was opened — so its only gate is that a cycle really
+ * is open for that event.</p>
+ *
+ * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
+ * {@code documentation_v0/Step32_ChoiceResolution.md}.</p>
  */
 public interface EventExecutionPort {
 
@@ -44,6 +51,18 @@ public interface EventExecutionPort {
      * returned cards (null → "en").
      */
     EventExecutionResult executeEvent(String matchUuid, String userUuid, String eventUuid, String lang);
+
+    /**
+     * Resolve {@code choiceUuid} — the option the player picked out of an open
+     * choice-event (Step 32): apply its {@code list_choices_effects}, run its
+     * {@code idEventTorun} chain, record the milestone and close the cycle.
+     *
+     * <p>Nothing is charged here. The energy, the coins and the ONCE were spent when the
+     * event was opened, which is exactly why the guard is "a cycle is open for this
+     * event" rather than the Step 29 availability procedure — re-running that would
+     * reject the very event the player has already paid for.</p>
+     */
+    ChoiceResolutionResult selectChoice(String matchUuid, String userUuid, String choiceUuid, String lang);
 
     /**
      * Outcome of the check procedure. {@code reason} reuses {@link EventExecutionException.Code}
@@ -105,6 +124,35 @@ public interface EventExecutionPort {
                                 List<PendingChoice> pendingChoices,
                                 /** Step 30. Never null; see {@link EdgeStateOutcome#none()}. */
                                 EdgeStateOutcome edgeState) {
+    }
+
+    /**
+     * What resolving one option did (Step 32).
+     *
+     * <p>{@code execution} is the very same payload {@code execute-event} returns — the
+     * effects, the stat/registry/item/trait changes, the flags, the edge states — because a
+     * resolved choice does all the same things to the world; only the trigger differs. The
+     * fields around it are what is specific to a choice.</p>
+     *
+     * <p>{@code narrative} is the option's {@code idTextNarrative}, deliberately withheld by
+     * Step 31 (returning it with the options would have leaked the consequence of a choice
+     * not yet made) and revealed here, once the choice is irreversible.</p>
+     *
+     * <p>{@code choiceEventUuid}/{@code choiceEventCard} describe the event an effect's
+     * {@code idEvent} ran inline. It is the card the board shows on its right page: the
+     * event already happened, so the card narrates rather than offers.</p>
+     */
+    record ChoiceResolutionResult(EventExecutionResult execution,
+                                  String choiceUuid,
+                                  /** The event that owned the option. */
+                                  String eventUuid,
+                                  String narrative,
+                                  CardInfo choiceCard,
+                                  /** Null unless an effect row carried an {@code idEvent}. */
+                                  String choiceEventUuid,
+                                  CardInfo choiceEventCard,
+                                  /** True when {@code is_progress} put a milestone row on record. */
+                                  boolean progressRecorded) {
     }
 
     /**
@@ -215,7 +263,22 @@ public interface EventExecutionPort {
             REGISTRY_CONDITION_NOT_MET,
             WEATHER_CONDITION_NOT_MET,
             ITEM_CONDITION_NOT_MET,
-            CLASS_CONDITION_NOT_MET
+            CLASS_CONDITION_NOT_MET,
+            // ── Step 32, produced by select-choice only ──
+            /** No option of this story carries that uuid. */
+            CHOICE_NOT_FOUND,
+            /**
+             * No cycle is open for the option's event: it was never opened, or it has
+             * already been resolved. This is the cost-bypass guard — without it a player
+             * could apply an option's effects without ever paying to open its event, and
+             * apply them again on every call.
+             */
+            CHOICE_NOT_OPEN,
+            /**
+             * The option's own {@code ChoiceAvailabilityChecker} verdict, re-evaluated at
+             * resolution: the world may have moved since the options were served.
+             */
+            CHOICE_NOT_AVAILABLE
         }
 
         private final transient Code code;

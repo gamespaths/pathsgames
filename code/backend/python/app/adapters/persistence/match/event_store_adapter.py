@@ -14,12 +14,12 @@ from typing import Any, Dict, List, Optional
 
 from app.adapters.persistence.match.models import (
     GamingBackpackResourcesEntity, GamingCharacterInstanceEntity, GamingCharacterTraitsEntity,
-    GamingInventoryItemsEntity, GamingMatchEntity, GamingStateRegistryEntity, LogEventsEntity,
-    LogMovementEntity,
+    GamingInventoryItemsEntity, GamingMatchEntity, GamingStateRegistryEntity,
+    GamingStoryProgressEntity, LogChoicesExecutedEntity, LogEventsEntity, LogMovementEntity,
 )
 from app.adapters.persistence.story.models import (
-    ChoiceConditionEntity, ChoiceEntity, EventEffectEntity, EventEntity, ItemEntity,
-    LocationEntity, StoryEntity, TextEntity, TraitEntity,
+    ChoiceConditionEntity, ChoiceEffectEntity, ChoiceEntity, EventEffectEntity, EventEntity,
+    ItemEntity, LocationEntity, StoryEntity, TextEntity, TraitEntity,
 )
 from app.core.models.match.event_models import EventCheckContext
 from app.core.ports.match.event_ports import MSG_EVENT_EXECUTED, EventStorePort
@@ -433,6 +433,56 @@ class EventStoreAdapter(EventStorePort):
                     TextEntity.lang == "en").first()
             return row.short_text if row else None
 
+    # ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    def find_choice_by_story_and_uuid(self, id_story: int,
+                                      choice_uuid: str) -> Optional[Dict[str, Any]]:
+        if not choice_uuid or not choice_uuid.strip():
+            return None
+        with self.session_factory() as session:
+            row = session.query(ChoiceEntity).filter(
+                ChoiceEntity.id_story == id_story,
+                ChoiceEntity.uuid == choice_uuid).first()
+            return _choice_dict(row) if row else None
+
+    def find_choice_effects_by_choice_id(self, id_story: int,
+                                         id_choice: int) -> List[Dict[str, Any]]:
+        with self.session_factory() as session:
+            rows = session.query(ChoiceEffectEntity).filter(
+                ChoiceEffectEntity.id_story == id_story,
+                ChoiceEffectEntity.id_choice == id_choice).all()
+            # Authored order: a later row builds on what an earlier one wrote.
+            rows.sort(key=lambda r: r.id or 0)
+            return [_choice_effect_dict(r) for r in rows]
+
+    def log_choice_executed(self, id_match: int, id_event: int, id_choice: int,
+                            clock: int, message: str) -> None:
+        with self.session_factory() as session:
+            max_id = session.query(LogChoicesExecutedEntity.id).order_by(
+                LogChoicesExecutedEntity.id.desc()).first()
+            now = _now_iso()
+            session.add(LogChoicesExecutedEntity(
+                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id_match=id_match, uuid=str(uuid_lib.uuid4()),
+                id_event=id_event, id_choise=id_choice, clock=clock,
+                log_message=message, ts_insert=now, ts_update=now))
+            session.commit()
+
+    def insert_story_progress(self, id_match: int, id_event: int, id_choice: int,
+                              clock: int) -> None:
+        with self.session_factory() as session:
+            # Match-wide max + 1: the key is (id, id_match), so ids restart per match.
+            max_id = session.query(GamingStoryProgressEntity.id).filter(
+                GamingStoryProgressEntity.id_match == id_match).order_by(
+                GamingStoryProgressEntity.id.desc()).first()
+            now = _now_iso()
+            session.add(GamingStoryProgressEntity(
+                id=((max_id[0] if max_id else 0) or 0) + 1,
+                id_match=id_match, uuid=str(uuid_lib.uuid4()),
+                id_event=id_event, id_choise=id_choice, clock=clock,
+                ts_insert=now, ts_update=now))
+            session.commit()
+
 
 # ── mappers ─────────────────────────────────────────────────────────────────
 
@@ -458,8 +508,22 @@ def _choice_dict(c: ChoiceEntity) -> Dict[str, Any]:
         "id_text_description": c.id_text_description,
         "otherwise_flag": c.is_otherwise, "is_progress": c.is_progress,
         "logic_operator": c.logic_operator,
+        # Step 32 — the narrative the resolution reveals, and the outcome event it runs.
+        "id_text_narrative": c.id_text_narrative, "id_event_torun": c.id_event_torun,
         "limit_sad": c.limit_sad, "limit_dex": c.limit_dex,
         "limit_int": c.limit_int, "limit_cos": c.limit_cos,
+    }
+
+
+def _choice_effect_dict(e: ChoiceEffectEntity) -> Dict[str, Any]:
+    """Step 32 — the canonical effect shape. Deliberately the same key names the event
+    effects use, so _apply_stat / _apply_item / _apply_movement read either table."""
+    return {
+        "id": e.id, "uuid": e.uuid, "id_card": e.id_card,
+        "statistics": e.statistics, "value": e.value, "flag_group": e.flag_group,
+        "key": e.key, "value_to_add": e.value_to_add, "value_to_remove": e.value_to_remove,
+        "id_event": e.id_event, "id_location": e.id_location, "id_weather": e.id_weather,
+        "id_item_target": e.id_item_target, "item_action": e.item_action,
     }
 
 

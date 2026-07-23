@@ -533,3 +533,101 @@ def test_resolve_short_text_prefers_the_lang_and_falls_back_to_english(session_f
     assert adapter.resolve_short_text(9001, 612, "it") is None
     assert adapter.resolve_short_text(9001, None, "it") is None
     assert adapter.resolve_short_text(9001, 611, None) == "The Trial"  # blank lang = en
+
+
+# ── choice resolution (Step 32) ─────────────────────────────────────────────
+
+def _seed_choice_effect(session_factory, *, eid, id_choice, **overrides):
+    with session_factory() as s:
+        from app.adapters.persistence.story.models import ChoiceEffectEntity
+        s.add(ChoiceEffectEntity(id=eid, id_story=9001, uuid=f"ce-{eid}",
+                                 id_choice=id_choice, **overrides))
+        s.commit()
+
+
+def test_find_choice_by_story_and_uuid_finds_the_option(session_factory, adapter):
+    _seed_choice(session_factory, cid=1, id_event=12, id_text_narrative=42,
+                 id_event_torun=13)
+    _seed_choice(session_factory, cid=2, id_event=12)
+
+    found = adapter.find_choice_by_story_and_uuid(9001, "choice-1")
+
+    assert found["id"] == 1 and found["id_event"] == 12
+    # The two fields Step 32 reads and Step 31 deliberately never served.
+    assert found["id_text_narrative"] == 42
+    assert found["id_event_torun"] == 13
+    assert adapter.find_choice_by_story_and_uuid(9001, "nope") is None
+
+
+def test_find_choice_by_story_and_uuid_blank_uuid_is_none(session_factory, adapter):
+    assert adapter.find_choice_by_story_and_uuid(9001, None) is None
+    assert adapter.find_choice_by_story_and_uuid(9001, "  ") is None
+
+
+def test_find_choice_effects_keeps_only_the_options_rows_in_authored_order(
+        session_factory, adapter):
+    _seed_choice_effect(session_factory, eid=9, id_choice=20, statistics="life", value=-2)
+    _seed_choice_effect(session_factory, eid=2, id_choice=20, statistics="exp", value=1)
+    _seed_choice_effect(session_factory, eid=5, id_choice=21, statistics="exp", value=3)
+
+    rows = adapter.find_choice_effects_by_choice_id(9001, 20)
+
+    # Authored order, so a later row builds on the earlier one.
+    assert [r["id"] for r in rows] == [2, 9]
+    assert [r["statistics"] for r in rows] == ["exp", "life"]
+
+
+def test_find_choice_effects_maps_the_whole_v0320_vocabulary(session_factory, adapter):
+    _seed_choice_effect(session_factory, eid=1, id_choice=20, id_card=4, flag_group=1,
+                        statistics="energy", value=2, key="GATE", value_to_add="OPEN",
+                        value_to_remove="SHUT", id_event=7, id_location=8, id_weather=9,
+                        id_item_target=10, item_action="ADD")
+
+    row = adapter.find_choice_effects_by_choice_id(9001, 20)[0]
+
+    # The same key names the event effects use — that is what lets _apply_stat /
+    # _apply_item / _apply_movement read either table.
+    assert row["uuid"] == "ce-1" and row["id_card"] == 4 and row["flag_group"] == 1
+    assert row["statistics"] == "energy" and row["value"] == 2
+    assert row["key"] == "GATE" and row["value_to_add"] == "OPEN"
+    assert row["value_to_remove"] == "SHUT"
+    assert row["id_event"] == 7 and row["id_location"] == 8 and row["id_weather"] == 9
+    assert row["id_item_target"] == 10 and row["item_action"] == "ADD"
+
+
+def test_log_choice_executed_writes_the_history_row(session_factory, adapter):
+    from app.adapters.persistence.match.models import LogChoicesExecutedEntity
+    from app.core.ports.match.event_ports import MSG_CHOICE_SELECTED
+
+    adapter.log_choice_executed(1, 12, 20, 5, f"{MSG_CHOICE_SELECTED} 20")
+    adapter.log_choice_executed(1, 12, 21, 6, f"{MSG_CHOICE_SELECTED} 21")
+
+    with session_factory() as s:
+        rows = s.query(LogChoicesExecutedEntity).order_by(
+            LogChoicesExecutedEntity.id).all()
+    assert [r.id for r in rows] == [1, 2]
+    assert rows[0].id_match == 1
+    assert rows[0].id_event == 12  # the OWNING event, not the option
+    assert rows[0].id_choise == 20
+    assert rows[0].clock == 5
+    assert rows[0].log_message == f"{MSG_CHOICE_SELECTED} 20"
+    assert rows[0].uuid and rows[1].uuid != rows[0].uuid
+
+
+def test_insert_story_progress_numbers_the_milestone_within_its_match(
+        session_factory, adapter):
+    from app.adapters.persistence.match.models import GamingStoryProgressEntity
+
+    adapter.insert_story_progress(1, 12, 20, 5)
+    adapter.insert_story_progress(1, 13, 21, 6)
+    adapter.insert_story_progress(2, 14, 22, 7)
+
+    with session_factory() as s:
+        match_one = s.query(GamingStoryProgressEntity).filter_by(id_match=1).order_by(
+            GamingStoryProgressEntity.id).all()
+        match_two = s.query(GamingStoryProgressEntity).filter_by(id_match=2).all()
+    # The key is (id, id_match), so ids restart per match rather than running globally.
+    assert [r.id for r in match_one] == [1, 2]
+    assert [r.id for r in match_two] == [1]
+    assert match_one[0].id_event == 12 and match_one[0].id_choise == 20
+    assert match_one[0].clock == 5

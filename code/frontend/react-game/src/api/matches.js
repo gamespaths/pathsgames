@@ -270,3 +270,39 @@ export async function executeEvent(uuidMatch, eventUuid, accessToken, lang) {
   )
   return res.data
 }
+
+/* ── Step 32 — choice resolution ──────────────────────────────────────────── */
+
+/**
+ * Resolve one option of an open choice-event
+ * (POST /api/gameplay/{uuid}/action/select-choice).
+ *
+ * The option alone identifies the resolution: a choice knows the event that owns it, so
+ * naming the event too would only create a second version of the truth.
+ *
+ * Resolves to the execute-event payload — the effects, the itemised stat/registry/item/
+ * location changes, the flags, the edge states — plus what only a resolution knows:
+ * `narrative` (the post-selection text Step 31 deliberately withheld, so the options
+ * could not leak the consequence of a choice not yet made), `choiceCard`, and
+ * `choiceEventUuid`/`choiceEventCard` when an effect ran a linked event inline: that card
+ * is what the board narrates with. `progressRecorded` says a narrative milestone was
+ * logged. `energySpent`/`coinSpent` are always 0 — the cost was paid when the event was
+ * opened, and resolving is what that payment bought.
+ *
+ * `status` is `APPLIED` as usual, or `CHOICES_PENDING` when a linked event turned out to
+ * be another choice-event: then `pendingChoices` carries the next set of options.
+ *
+ * Throws on a backend error: 409 with `CHOICE_NOT_OPEN` (the event was never opened, or
+ * has already been resolved) / `CHOICE_NOT_AVAILABLE` (the world moved since the options
+ * were served) / `SLEEPING` / `COMA`, or 404 `CHOICE_NOT_FOUND` / `MATCH_NOT_FOUND`.
+ */
+export async function selectChoice(uuidMatch, choiceUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/action/select-choice`,
+    { choiceUuid },
+    config,
+  )
+  return res.data
+}

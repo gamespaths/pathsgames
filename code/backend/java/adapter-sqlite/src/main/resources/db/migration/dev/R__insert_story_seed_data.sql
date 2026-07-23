@@ -424,6 +424,56 @@ INSERT INTO list_choices_effects (id, id_story, id_choices, statistics, value) V
 (90008, 9001, 90014, 'energy', 1),
 (90009, 9001, 90015, 'life',   1);
 
+-- ── Step 32 Resolution pack — what a selected option does ───────
+-- Event 90032 at the START location is the resolution test-bed: opening it costs 3
+-- (unambiguous for the robot lookup), resolving any of its options costs nothing at all.
+-- 90033 is the outcome event one option runs — it lives nowhere and costs 9, proving a
+-- consequence is never re-checked nor charged.
+INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90192, 9001, 616, 'en', 'The Fork', 'The road splits. One way is yours alone; the other follows a lantern that is already moving.'),
+(90193, 9001, 616, 'it', 'Il Bivio', 'La strada si divide. Una via è solo tua; l''altra segue una lanterna che si sta già muovendo.'),
+(90194, 9001, 617, 'en', 'Beyond The Fork', 'Whatever the lantern was, it left something behind.'),
+(90195, 9001, 617, 'it', 'Oltre Il Bivio', 'Qualunque cosa fosse la lanterna, ha lasciato qualcosa.'),
+(90196, 9001, 618, 'en', 'Press on alone', 'Costs nothing to choose; the toll was paid at the fork.'),
+(90197, 9001, 618, 'it', 'Prosegui da solo', 'Scegliere non costa nulla: il pedaggio è stato pagato al bivio.'),
+(90198, 9001, 619, 'en', 'Follow the lantern', 'It grants, it moves, it changes the sky — and it opens a door.'),
+(90199, 9001, 619, 'it', 'Segui la lanterna', 'Dona, sposta, cambia il cielo — e apre una porta.'),
+-- The narratives: withheld while the options are pending, revealed by the resolution.
+(90200, 9001, 620, 'en', 'You walk on, and the fork closes behind you.', NULL),
+(90201, 9001, 620, 'it', 'Prosegui, e il bivio si chiude alle tue spalle.', NULL),
+(90202, 9001, 621, 'en', 'The lantern leads you into the grove.', NULL),
+(90203, 9001, 621, 'it', 'La lanterna ti conduce nel bosco.', NULL);
+
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location,
+                         type, cost_enery, coin_cost, flag_end_time, id_event_next,
+                         id_weather, registry_key_condition, registry_value_condition,
+                         id_item_condition, id_class_condition) VALUES
+(90032, 9001, 90001, 616, 616, 90001, 'NORMAL', 3, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL),  -- the resolution test-bed
+(90033, 9001, 90001, 617, 617, NULL,  'NORMAL', 9, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);  -- the outcome event: cost 9, never charged
+
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90025, 9001, 90033, 90001, 'exp', 7, 'ONLY_ONE');  -- proves the linked chain really applies
+
+-- id_card is set on every option: the resolution answers with the choice's own card, and
+-- the Robot suite asserts it comes back — the AWS seed has carried one since Step 31.
+INSERT INTO list_choices (id, id_story, id_card, id_event, priority, id_text_name, id_text_description,
+                          id_text_narrative, id_event_torun,
+                          otherwise_flag, is_progress, logic_operator, limit_dex) VALUES
+(90020, 9001, 90001, 90032, 1, 618, 618, 620, NULL,  0, 1, 'AND', NULL),  -- a milestone: is_progress = 1
+(90021, 9001, 90001, 90032, 2, 619, 619, 621, 90033, 0, 0, 'AND', NULL),  -- the whole vocabulary at once
+(90022, 9001, 90001, 90032, 3, 613, 613, NULL, NULL, 0, 0, 'AND', 99);    -- impossible: proves the verdict is re-checked
+
+INSERT INTO list_choices_effects (id, id_story, id_choices, id_card, statistics, value,
+                                  key, value_to_add, id_item_target, item_action,
+                                  id_location, id_weather, id_event) VALUES
+-- id_event is the EFFECT-level link ("Event to Run (effect)" in the admin), distinct from
+-- the choice-level id_event_torun that option 90021 uses: both mechanisms are seeded, so
+-- the Robot suite covers each on its own.
+(90020, 9001, 90020, 90001, 'exp', 5, NULL, NULL, NULL, NULL, NULL, NULL, 90033),
+-- One row, every kind of effect: a registry key, an item, a forced move to the Hidden
+-- Grove (90003, which no neighbor edge reaches), and the inactive Arcane Storm (90004).
+(90021, 9001, 90021, 90001, NULL, 0, 'STEP32_GATE', 'OPEN', 90001, 'ADD', 90003, 90004, NULL);
+
 -- ── Global Random Events ────────────────────────────────────────
 INSERT INTO list_global_random_events (id, id_story, condition_key, condition_value, probability) VALUES
 (90001, 9001, NULL, NULL, 10);

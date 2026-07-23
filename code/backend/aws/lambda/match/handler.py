@@ -2558,6 +2558,483 @@ def _execute_choice_event(match, match_uuid, story, event, event_choices,
     })
 
 
+def _select_choice(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/action/select-choice — Step 32.
+
+    Resolve the option the player picked out of an open choice-event: apply its
+    choiceEffects, run the events they and idEventTorun point at, record the milestone,
+    close the cycle.
+
+    **Nothing is charged.** The energy, the coins and the ONCE were all spent when the
+    event was opened (Step 31), which is what makes the open-cycle count — not the Step 29
+    availability procedure — the right gate here: re-running that procedure would reject
+    the very event the player has already paid for. The count comparison doubles as the
+    cost-bypass guard, since it is false both for an event never opened and for one
+    already resolved.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    choice_uuid = (body or {}).get('choiceUuid')
+    if not choice_uuid or not str(choice_uuid).strip():
+        return _err(400, 'MISSING_CHOICE', 'choiceUuid is required')
+
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    characters = _match_characters(match_uuid)
+    caller = next((c for c in characters if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        # An unknown match and a caller who is not in it are deliberately indistinguishable.
+        return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+
+    if match.get('status') != 'RUNNING':
+        return _err(409, 'MATCH_NOT_RUNNING', _MATCH_NOT_RUNNING_MSG)
+
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+    choice = _choices.choice_by_uuid(story, choice_uuid)
+    if choice is None:
+        return _err(404, 'CHOICE_NOT_FOUND', 'Choice not found in this story')
+
+    # Coma outranks sleep, as everywhere else: a comatose character is also flagged
+    # asleep, and the two are not the same news — one waits, the other needs a rescue.
+    if _nz(caller.get('isComa')) == 1:
+        return _err(409, 'COMA', 'Character is in a coma')
+    if _nz(caller.get('isSleeping')) == 1:
+        return _err(409, 'SLEEPING', 'Character is sleeping')
+
+    # R8 (Step 31) makes idEvent mandatory on import, but the CRUD path is lenient, so an
+    # orphan option can reach the engine — it resolves to no cycle and is rejected.
+    event_id = _events._nz(choice.get('idEvent'))
+    all_events = story.get('events') or []
+    events_by_id = {_events._nz(e.get('id')): e for e in all_events if e.get('id') is not None}
+    event = events_by_id.get(event_id)
+    if event is None:
+        return _err(404, 'EVENT_NOT_FOUND', 'The event owning this choice does not exist')
+
+    if _choices.count_log_markers(match, event_id, _events.MSG_EVENT_EXECUTED) \
+            <= _choices.count_log_markers(match, event_id, _choices.MSG_CHOICE_SELECTED):
+        return _err(409, 'CHOICE_NOT_OPEN',
+                    'No open choice cycle for this event: open it before resolving it')
+
+    ctx = _events.build_context(match, story, caller)
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+
+    # The option's verdict, re-evaluated now rather than trusted from the open: the world
+    # may have moved since the options were served, and an option that has become
+    # impossible must not resolve.
+    conditions = _choices.conditions_by_choice(story)
+    cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                         [choice], conditions)
+    available, reason = _choices.check_choice(
+        choice, conditions.get(_events._nz(choice.get('id')), []), cctx)
+    if not available:
+        return _err(409, 'CHOICE_NOT_AVAILABLE', f'Choice cannot be selected: {reason}')
+
+    return _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
+                           characters, ctx, events_by_id, lang)
+
+
+def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
+                    characters, ctx, events_by_id, lang):
+    """The write half of select-choice, once every guard has passed."""
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    item_uuids = {_events._nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    location_uuids = {_events._nz(l.get('id')): l.get('uuid')
+                      for l in (story.get('locations') or [])}
+
+    acc = _new_accumulator(caller)
+    linked = []
+
+    # ── the option's own effect rows, in authored order ──
+    for effect in _choices.effects_for_choice(story, _events._nz(choice.get('id'))):
+        recipients = _choices.choice_recipients(effect, caller, characters)
+
+        # Weather belongs to the MATCH: once per row, however many characters it targets.
+        id_weather = effect.get('idWeather')
+        if id_weather:
+            match['currentWeatherId'] = _events._nz(id_weather)
+            ctx['currentWeatherId'] = _events._nz(id_weather)
+            acc['flags']['weatherApplied'] = True
+
+        for target_char in recipients:
+            acc['touched'][target_char.get('uuid')] = target_char
+            _events.apply_stat(target_char, effect, acc['statChanges'])
+            added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                acc['itemChanges'])
+            acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
+            acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
+            moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                           acc['locationChanges'], _ts_ms())
+            acc['flags']['movementApplied'] = acc['flags']['movementApplied'] or moved
+
+        _apply_choice_registry(match, ctx, effect, acc['registryChanges'])
+
+        acc['effects'].append({
+            "eventUuid": event.get('uuid'),
+            "effectUuid": effect.get('uuid'),
+            "statistic": effect.get('statistics'),
+            "value": effect.get('value'),
+            "target": "ALL" if _events._nz(effect.get('flagGroup')) == 1 else "ONLY_ONE",
+            "targetClass": None,
+            "characterUuids": [c.get('uuid') for c in recipients],
+            # The row's OWN card is the narrative, exactly as for an event effect.
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+        })
+        if effect.get('idEvent'):
+            linked.append(_events._nz(effect.get('idEvent')))
+
+    # No event ran for those rows, so the Step 30 pass has to be given here — once, over
+    # everyone they touched, exactly where the event flow runs it. A lethal row therefore
+    # does NOT silence its siblings; what a coma stops is the consequences below.
+    _apply_edge_states(match, caller, acc, event_id)
+
+    # ── the consequences: the effect links first, then the option's outcome event ──
+    status = 'APPLIED'
+    pending = []
+    for link in linked + [_events._nz(choice.get('idEventTorun'))]:
+        if acc['flags']['comaTriggered'] or status == 'CHOICES_PENDING':
+            break  # down, or waiting on the player again: the rest is not ours to run
+        status, pending = _run_linked_event(match, match_uuid, story, link, caller,
+                                            characters, ctx, events_by_id, acc,
+                                            item_uuids, location_uuids, lang)
+
+    for c in acc['touched'].values():
+        db_utils.put_item(c)
+
+    # ── close the cycle: the marker, the history row, the milestone ──
+    clock = _nz(match.get('currentClock'))
+    # The CHOICE_SELECTED marker carries the OWNING EVENT's id, never the option's:
+    # count_log_markers pairs it against EVENT_EXECUTED by event, and a row stamped with
+    # the choice id would leave the cycle open for ever.
+    match.setdefault('eventLog', []).append({
+        "characterUuid": caller.get('uuid'),
+        "idEvent": event_id,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": f'{_choices.MSG_CHOICE_SELECTED} {event_id}',
+    })
+    choice_id = _events._nz(choice.get('id'))
+    match.setdefault('choiceLog', []).append({
+        "idEvent": event_id,
+        "idChoise": choice_id,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": f'{_choices.MSG_CHOICE_SELECTED} {choice_id}',
+    })
+    progress_recorded = _events._nz(choice.get('isProgress')) == 1
+    if progress_recorded:
+        match.setdefault('storyProgress', []).append({
+            "idEvent": event_id,
+            "idChoise": choice_id,
+            "clock": clock,
+            "timestamp": _ts_ms(),
+        })
+
+    current_clock = clock
+    time_ended = False
+    if acc['flags']['endTime'] and not acc['flags']['comaTriggered']:
+        for c in _match_characters(match_uuid):
+            c['isSleeping'] = 1
+            db_utils.put_item(c)
+        current_clock, _recovery = _advance_time(match, match_uuid)
+        time_ended = True
+    else:
+        db_utils.put_item(match)
+
+    changed = any([time_ended, acc['flags']['itemAdded'], acc['flags']['itemRemoved'],
+                   acc['flags']['weatherApplied'], acc['flags']['movementApplied'],
+                   acc['flags']['comaTriggered'], acc['flags']['gameOver'],
+                   acc['edgeState']['sadnessOverflowUuids'], acc['edgeState']['comaUuids'],
+                   acc['statChanges'], acc['registryChanges'], acc['traitChanges'],
+                   acc['characteristicChanges']])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        # The event that owned the option — the payload is about it, as on execute-event.
+        "eventUuid": event.get('uuid'),
+        "eventType": event.get('type'),
+        "status": status,
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "executedEventUuids": acc['executedUuids'],
+        # Always 0: the open already paid, and resolving is what that payment bought.
+        "energySpent": 0,
+        "coinSpent": 0,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "currentClock": current_clock,
+        "turnConsumed": False,
+        "timeEnded": time_ended,
+        "itemAdded": acc['flags']['itemAdded'],
+        "itemRemoved": acc['flags']['itemRemoved'],
+        "weatherApplied": acc['flags']['weatherApplied'],
+        "movementApplied": acc['flags']['movementApplied'],
+        "forcedSleep": time_ended or acc['flags']['comaTriggered'] or acc['flags']['forcedSleep'],
+        "comaTriggered": acc['flags']['comaTriggered'],
+        "gameOver": acc['flags']['gameOver'],
+        "refreshRecommended": bool(changed),
+        "statChanges": acc['statChanges'],
+        "registryChanges": acc['registryChanges'],
+        "traitChanges": acc['traitChanges'],
+        "itemChanges": acc['itemChanges'],
+        "characteristicChanges": acc['characteristicChanges'],
+        "locationChanges": acc['locationChanges'],
+        "effects": acc['effects'],
+        "pendingChoices": pending,
+        "edgeState": {
+            "sadnessOverflowUuids": acc['edgeState']['sadnessOverflowUuids'],
+            "comaUuids": acc['edgeState']['comaUuids'],
+            "allPlayersInComa": acc['edgeState']['allPlayersInComa'],
+            "comaEventUuid": None, "comaEventCard": None,
+            "comaExecutedEventUuids": [], "comaEffects": [],
+        },
+        # ── what only a resolution knows ──
+        "choiceUuid": choice.get('uuid'),
+        # Withheld by Step 31 (it would have leaked the consequence of a choice not yet
+        # made), revealed now that the choice is irreversible.
+        "narrative": _resolve_raw_text(raw_texts, choice.get('idTextNarrative'), lang),
+        "choiceCard": _resolve_card_from_raw(raw_cards, raw_texts, choice.get('idCard'), lang),
+        "choiceEventUuid": acc['choiceEventUuid'],
+        "choiceEventCard": acc['choiceEventCard'],
+        "progressRecorded": progress_recorded,
+    })
+
+
+def _new_accumulator(caller):
+    """The mutable state of one resolution, in one dict so the helpers can share it."""
+    return {
+        'statChanges': [], 'registryChanges': [], 'traitChanges': [], 'itemChanges': [],
+        'characteristicChanges': [], 'locationChanges': [], 'effects': [],
+        'executedUuids': [], 'touched': {caller.get('uuid'): caller},
+        # The events THIS resolution has already run. It is what stops a link from
+        # running twice within one call — deliberately NOT the match-wide
+        # consumedEventIds, which only governs the ONCE rule: a NORMAL event stays
+        # re-runnable however many times it has been executed before.
+        'visited': set(),
+        'choiceEventUuid': None, 'choiceEventCard': None,
+        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': [], 'allPlayersInComa': False},
+        'flags': {'itemAdded': False, 'itemRemoved': False, 'weatherApplied': False,
+                  'movementApplied': False, 'comaTriggered': False, 'gameOver': False,
+                  'endTime': False, 'forcedSleep': False},
+    }
+
+
+def _apply_choice_registry(match, ctx, effect, changes):
+    """The registry pair of a choice effect. ``valueToAdd`` sets the key;
+    ``valueToRemove`` clears it, but only when the stored value actually matches — an
+    option must not be able to wipe a key some other branch of the story has since moved
+    on. Written once per row: the registry is match-scoped."""
+    key = effect.get('key')
+    if not key:
+        return
+    old = ctx['registry'].get(key)
+    add = effect.get('valueToAdd')
+    remove = effect.get('valueToRemove')
+    if add:
+        value = add
+    elif remove and remove == old:
+        value = None  # the key reads as unset afterwards
+    else:
+        return
+    _events.apply_registry(match, key, value, changes)
+    ctx['registry'][key] = value
+
+
+def _apply_edge_states(match, caller, acc, event_id):
+    """Step 30 — the sadness-overflow and coma rules over everyone the rows touched."""
+    for c in acc['touched'].values():
+        v = _events.evaluate_edge_state(c)
+        if not v['anything']:
+            continue
+        if v['sadnessOverflow']:
+            acc['statChanges'].append({
+                "characterUuid": c.get('uuid'), "statistic": "life",
+                "before": _nz(c.get('life')), "after": v['lifeAfter'],
+                "delta": v['lifeAfter'] - _nz(c.get('life')),
+            })
+            acc['statChanges'].append({
+                "characterUuid": c.get('uuid'), "statistic": "sad",
+                "before": _nz(c.get('sad')), "after": 0, "delta": -_nz(c.get('sad')),
+            })
+            c['life'] = v['lifeAfter']
+            # Resetting sad is also the idempotency latch for the rest of the resolution.
+            c['sad'] = 0
+            c['isSleeping'] = 1
+            acc['edgeState']['sadnessOverflowUuids'].append(c.get('uuid'))
+            if c.get('uuid') == caller.get('uuid'):
+                acc['flags']['forcedSleep'] = True
+            _log_edge_state(match, c, event_id,
+                            f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
+        if v['comaTriggered']:
+            c['isComa'] = 1
+            c['isSleeping'] = 1
+            c['clockInComa'] = _nz(match.get('currentClock'))
+            acc['edgeState']['comaUuids'].append(c.get('uuid'))
+            _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
+            if c.get('uuid') == caller.get('uuid'):
+                acc['flags']['comaTriggered'] = True
+
+
+def _run_linked_event(match, match_uuid, story, id_event, caller, characters, ctx,
+                      events_by_id, acc, item_uuids, location_uuids, lang):
+    """Run an event a choice points at — ``idEventTorun`` on the option, or ``idEvent`` on
+    one of its effect rows — with its whole ``idEventNext`` chain.
+
+    A linked event is a **consequence**, so it is neither re-checked nor charged (the Step
+    29 chain rule). If it is itself a choice-event the resolution does not apply its
+    effects — they are withheld by definition — but presents its options instead, so a
+    story that chains a choice onto a choice keeps working; the options are served free,
+    the open having already been paid for by the choice that led here.
+
+    Returns ``(status, pendingChoices)``.
+    """
+    if not id_event or id_event <= 0:
+        return 'APPLIED', []
+    linked = events_by_id.get(id_event)
+    if linked is None or id_event in acc['visited']:
+        return 'APPLIED', []  # dangling id, or already run in THIS resolution
+    # Only a ONCE event is barred by having been executed before. Testing every type
+    # against consumedEventIds — as this did until v0.32.0 — silently skipped any NORMAL
+    # link the match had ever run, so an option's "event to run" fired at most once per
+    # match and then quietly stopped, effects still applying.
+    if str(linked.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+            and id_event in ctx['consumedEventIds']:
+        return 'APPLIED', []
+
+    nested = _choices.choices_for_event(story, id_event)
+    if nested:
+        acc['visited'].add(id_event)
+        ctx['consumedEventIds'].add(id_event)
+        if linked.get('uuid'):
+            acc['executedUuids'].append(linked.get('uuid'))
+        match.setdefault('eventLog', []).append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": id_event,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {id_event}',
+        })
+        raw_cards = story.get('raw_cards') or []
+        raw_texts = story.get('raw_texts') or []
+        conditions = _choices.conditions_by_choice(story)
+        cctx = _choices.build_choice_context(match, story, caller, characters, ctx,
+                                             nested, conditions)
+        pending = []
+        for opt in nested:  # already priority-then-id sorted
+            ok, why = _choices.check_choice(
+                opt, conditions.get(_events._nz(opt.get('id')), []), cctx)
+            pending.append({
+                "uuid": opt.get('uuid'),
+                "priority": opt.get('priority'),
+                "name": _resolve_raw_text(raw_texts, opt.get('idTextName'), lang),
+                "description": _resolve_raw_text(raw_texts, opt.get('idTextDescription'), lang),
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, opt.get('idCard'), lang),
+                "available": ok,
+                "reason": why,
+            })
+        return 'CHOICES_PENDING', pending
+
+    if acc['choiceEventUuid'] is None:
+        raw_cards = story.get('raw_cards') or []
+        raw_texts = story.get('raw_texts') or []
+        acc['choiceEventUuid'] = linked.get('uuid')
+        acc['choiceEventCard'] = _resolve_card_from_raw(
+            raw_cards, raw_texts, linked.get('idCard'), lang)
+    _run_event_chain(match, story, linked, caller, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang)
+    return 'APPLIED', []
+
+
+def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang):
+    """Apply an event and its ``idEventNext`` chain: effects, edge states, log. Neither is
+    re-checked nor charged — the whole chain is one consequence."""
+    effects_by_event = _events.effects_by_event(story)
+    end_game_id = story.get('idEventEndGame')
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    # Shared with the caller, so an event already run by an earlier link of the SAME
+    # resolution is not run again — and so the MAX_CHAIN belt spans the whole resolution.
+    visited = acc['visited']
+
+    current = first
+    while current is not None:
+        event_id = _events._nz(current.get('id'))
+        visited.add(event_id)
+        ctx['consumedEventIds'].add(event_id)
+        if current.get('uuid'):
+            acc['executedUuids'].append(current.get('uuid'))
+
+        for effect in effects_by_event.get(event_id, []):
+            recipients = _events.resolve_recipients(effect, caller, characters)
+            id_weather = effect.get('idWeather')
+            if id_weather:
+                match['currentWeatherId'] = _events._nz(id_weather)
+                ctx['currentWeatherId'] = _events._nz(id_weather)
+                acc['flags']['weatherApplied'] = True
+            for target_char in recipients:
+                acc['touched'][target_char.get('uuid')] = target_char
+                _events.apply_stat(target_char, effect, acc['statChanges'])
+                added, removed = _events.apply_item(target_char, effect, item_uuids,
+                                                    acc['itemChanges'])
+                acc['flags']['itemAdded'] = acc['flags']['itemAdded'] or added
+                acc['flags']['itemRemoved'] = acc['flags']['itemRemoved'] or removed
+                _events.apply_traits(target_char, effect, {}, acc['traitChanges'])
+                _events.apply_characteristics(target_char, effect,
+                                              acc['characteristicChanges'])
+                moved = _events.apply_location(match, target_char, effect, location_uuids,
+                                               acc['locationChanges'], _ts_ms())
+                acc['flags']['movementApplied'] = acc['flags']['movementApplied'] or moved
+            key = effect.get('keyToAdd')
+            if key:
+                value = effect.get('keyValueToAdd')
+                _events.apply_registry(match, key, value, acc['registryChanges'])
+                ctx['registry'][key] = value
+            acc['effects'].append({
+                "eventUuid": current.get('uuid'),
+                "effectUuid": effect.get('uuid'),
+                "statistic": effect.get('statistics'),
+                "value": effect.get('value'),
+                "target": effect.get('target'),
+                "targetClass": effect.get('targetClass'),
+                "characterUuids": [c.get('uuid') for c in recipients],
+                "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+            })
+
+        if _events._nz(current.get('flagEndTime')) == 1:
+            acc['flags']['endTime'] = True
+        if end_game_id is not None and _events._nz(end_game_id) == event_id:
+            acc['flags']['gameOver'] = True
+
+        _apply_edge_states(match, caller, acc, event_id)
+        match.setdefault('eventLog', []).append({
+            "characterUuid": caller.get('uuid'),
+            "idEvent": event_id,
+            "clock": _nz(match.get('currentClock')),
+            "timestamp": _ts_ms(),
+            "message": f'{_events.MSG_EVENT_EXECUTED} {event_id}',
+        })
+
+        if acc['flags']['comaTriggered']:
+            return  # coma stops the chain, and flagEndTime with it
+        nxt = current.get('idEventNext')
+        if not nxt or _events._nz(nxt) <= 0:
+            return
+        next_id = _events._nz(nxt)
+        if next_id in visited or len(visited) >= _events.MAX_CHAIN:
+            return  # an authored loop, or a chain long enough to be a bug
+        nxt_event = events_by_id.get(next_id)
+        if nxt_event is None:
+            return  # dangling idEventNext
+        if str(nxt_event.get('type') or '').strip().upper() == _events.TYPE_ONCE \
+                and next_id in ctx['consumedEventIds']:
+            return  # a spent ONCE event stays spent, even mid-chain
+        current = nxt_event
+
+
 def _visited_locations_payload(match, match_uuid, lang='en'):
     """Build the visited-locations payload with character counts, per-neighbor
     totalEnergyCost resolved for the current weather and the resolved location
@@ -2902,6 +3379,21 @@ def lambda_handler(event, context):
             return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
         lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
         return _execute_event(user, match_uuid, body, lang)
+
+    # ── Step 32 — choice resolution ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/select-choice')
+            and method == 'POST'):
+        params = event.get('pathParameters') or {}
+        match_uuid = params.get('uuidMatch') or ''
+        if not match_uuid:
+            segments = path.split('/')  # /api/gameplay/{uuidMatch}/action/select-choice
+            match_uuid = segments[3] if len(segments) > 3 else ''
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _select_choice(user, match_uuid, body, lang)
 
     if (path.startswith('/api/match/') and path.endswith('/locations') and method == 'GET'):
         params = event.get('pathParameters') or {}

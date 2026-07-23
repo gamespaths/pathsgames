@@ -128,6 +128,48 @@ class StoryValidatorServiceTest {
     }
 
     @Nested
+    @DisplayName("Choice-effect references (v0.32.0 resolution targets)")
+    class ChoiceEffectRefs {
+
+        /** The story of {@link #validStory()} plus a weather rule to point at. */
+        private Map<String, Object> storyWithWeather() {
+            Map<String, Object> s = validStory();
+            s.put("weatherRules", rows(entity("id", 1)));
+            return s;
+        }
+
+        @Test
+        @DisplayName("every new target is checked against the story it names")
+        void danglingTargetsAreReported() {
+            Map<String, String> danglers = Map.of(
+                    "idEvent", "idEvent",
+                    "idLocation", "idLocation",
+                    "idWeather", "idWeather",
+                    "idItemTarget", "idItemTarget");
+            for (Map.Entry<String, String> dangler : danglers.entrySet()) {
+                Map<String, Object> s = storyWithWeather();
+                s.put("choiceEffects",
+                        rows(entity("id", 1, "idChoices", 1, dangler.getKey(), 99)));
+                StoryValidationReport r = validator().validateImportData(s);
+                assertFalse(r.isValid(), dangler.getKey() + " should not validate");
+                assertTrue(r.getErrors().stream().anyMatch(e -> dangler.getValue().equals(e.field())),
+                        () -> dangler.getKey() + " missing from: " + r.summary());
+            }
+        }
+
+        @Test
+        @DisplayName("targets that all exist validate clean")
+        void realTargetsPass() {
+            Map<String, Object> s = storyWithWeather();
+            s.put("choiceEffects", rows(entity("id", 1, "idChoices", 1,
+                    "idEvent", 2, "idLocation", 2, "idWeather", 1,
+                    "idItemTarget", 1, "itemAction", "ADD")));
+            StoryValidationReport r = validator().validateImportData(s);
+            assertTrue(r.isValid(), () -> "expected valid, got: " + r.summary());
+        }
+    }
+
+    @Nested
     @DisplayName("R2 location neighbors")
     class Neighbors {
         @Test

@@ -6,8 +6,11 @@ import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.match.GamingStoryProgressEntity;
+import games.paths.core.entity.match.LogChoicesExecutedEntity;
 import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
@@ -29,6 +32,8 @@ import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.GamingStoryProgressRepository;
+import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +65,8 @@ class EventExecutionStoreAdapterReadWriteTest {
     private GamingStateRegistryRepository registryRepository;
     private LogEventsRepository logEventsRepository;
     private LogMovementRepository logMovementRepository;
+    private LogChoicesExecutedRepository logChoicesRepository;
+    private GamingStoryProgressRepository storyProgressRepository;
     private StoryReadPort storyReadPort;
     private WeatherStorePort weatherStorePort;
     private EventExecutionStoreAdapter adapter;
@@ -74,11 +81,14 @@ class EventExecutionStoreAdapterReadWriteTest {
         registryRepository = mock(GamingStateRegistryRepository.class);
         logEventsRepository = mock(LogEventsRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
+        logChoicesRepository = mock(LogChoicesExecutedRepository.class);
+        storyProgressRepository = mock(GamingStoryProgressRepository.class);
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
         adapter = new EventExecutionStoreAdapter(matchRepository, characterRepository,
                 backpackRepository, inventoryRepository, traitsRepository, registryRepository,
-                logEventsRepository, logMovementRepository, storyReadPort, weatherStorePort);
+                logEventsRepository, logMovementRepository, logChoicesRepository,
+                storyProgressRepository, storyReadPort, weatherStorePort);
     }
 
     // ── fixtures ────────────────────────────────────────────────────────────
@@ -831,5 +841,83 @@ class EventExecutionStoreAdapterReadWriteTest {
 
         assertEquals("The Trial", adapter.resolveShortText(4L, 610, null));
         verify(storyReadPort, times(1)).findTextByStoryIdTextAndLang(4L, 610, "en");
+    }
+
+    // ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    private static ChoiceEffectEntity choiceEffectRow(long id, Integer idChoices) {
+        ChoiceEffectEntity e = new ChoiceEffectEntity();
+        e.setId(id);
+        e.setIdChoices(idChoices);
+        return e;
+    }
+
+    @Test
+    void findChoiceByStoryAndUuid_findsTheOptionInsideItsOwnStory() {
+        ChoiceEntity wanted = choiceRow(2L, 12);
+        wanted.setUuid("wanted-uuid");
+        ChoiceEntity other = choiceRow(3L, 12);
+        other.setUuid("other-uuid");
+        when(storyReadPort.findChoicesByStoryId(4L)).thenReturn(List.of(other, wanted));
+
+        assertEquals(2L, adapter.findChoiceByStoryAndUuid(4L, "wanted-uuid").orElseThrow().getId());
+        assertTrue(adapter.findChoiceByStoryAndUuid(4L, "nope").isEmpty());
+    }
+
+    @Test
+    void findChoiceByStoryAndUuid_blankUuidNeverHitsTheStore() {
+        assertTrue(adapter.findChoiceByStoryAndUuid(4L, null).isEmpty());
+        assertTrue(adapter.findChoiceByStoryAndUuid(4L, "  ").isEmpty());
+        verify(storyReadPort, never()).findChoicesByStoryId(anyLong());
+    }
+
+    @Test
+    void findChoiceEffectsByChoiceId_keepsOnlyTheOptionsRowsInAuthoredOrder() {
+        when(storyReadPort.findChoiceEffectsByStoryId(4L)).thenReturn(List.of(
+                choiceEffectRow(9L, 20),
+                choiceEffectRow(2L, 20),
+                choiceEffectRow(5L, 21),      // another option
+                choiceEffectRow(7L, null)));  // orphan row
+
+        List<ChoiceEffectEntity> rows = adapter.findChoiceEffectsByChoiceId(4L, 20L);
+
+        assertEquals(List.of(2L, 9L), rows.stream().map(ChoiceEffectEntity::getId).toList(),
+                "authored order, so a later row builds on the earlier one");
+    }
+
+    @Test
+    void logChoiceExecuted_writesTheHistoryRowWithTheNextId() {
+        when(logChoicesRepository.findMaxId()).thenReturn(6L);
+
+        adapter.logChoiceExecuted(1L, 12L, 20L, 5, MSG_CHOICE_SELECTED + " 20");
+
+        ArgumentCaptor<LogChoicesExecutedEntity> cap =
+                ArgumentCaptor.forClass(LogChoicesExecutedEntity.class);
+        verify(logChoicesRepository).save(cap.capture());
+        LogChoicesExecutedEntity row = cap.getValue();
+        assertEquals(7L, row.getId());
+        assertEquals(1L, row.getIdMatch());
+        assertEquals(12L, row.getIdEvent(), "the OWNING event, not the option");
+        assertEquals(20L, row.getIdChoise());
+        assertEquals(5, row.getClock());
+        assertEquals(MSG_CHOICE_SELECTED + " 20", row.getLogMessage());
+    }
+
+    @Test
+    void insertStoryProgress_numbersTheMilestoneWithinItsMatch() {
+        when(storyProgressRepository.findMaxIdByMatch(1L)).thenReturn(3L);
+
+        adapter.insertStoryProgress(1L, 12L, 20L, 5);
+
+        ArgumentCaptor<GamingStoryProgressEntity> cap =
+                ArgumentCaptor.forClass(GamingStoryProgressEntity.class);
+        verify(storyProgressRepository).save(cap.capture());
+        GamingStoryProgressEntity row = cap.getValue();
+        // The key is (id, id_match), so ids restart per match rather than running globally.
+        assertEquals(4L, row.getId());
+        assertEquals(1L, row.getIdMatch());
+        assertEquals(12L, row.getIdEvent());
+        assertEquals(20L, row.getIdChoise());
+        assertEquals(5, row.getClock());
     }
 }

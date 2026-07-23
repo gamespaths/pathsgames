@@ -344,13 +344,13 @@ INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, conditio
 (90001, 9001, 90003, 'statistics', 'int', '1', '>');
 
 -- ── Story 1 Choice Effects ──────────────────────────────────────
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90001, 9001, 90001, 'exp', 5);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90002, 9001, 90002, 'life', -1);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90003, 9001, 90003, 'exp', 3);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90004, 9001, 90004, 'exp', 10);
 
 -- ── Step 31 Choice pack — the choice-engine test-bed ────────────
@@ -410,16 +410,77 @@ INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, conditio
 INSERT OR IGNORE INTO list_choices_conditions (id, id_story, id_choice, condition_type, condition_key, condition_value, condition_operator) VALUES
 (90004, 9001, 90012, 'statistics', 'life', '0', '>');
 
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90005, 9001, 90010, 'energy', 1);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90006, 9001, 90011, 'life', 1);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90007, 9001, 90012, 'exp', 2);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90008, 9001, 90014, 'energy', 1);
-INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, effect_type, effect_value) VALUES
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, statistics, value) VALUES
 (90009, 9001, 90015, 'life', 1);
+
+-- ── Step 32 Resolution pack — what a selected option does ───────
+-- Event 90032 at the START location is the resolution test-bed: opening it costs 3,
+-- resolving any of its options costs nothing at all. 90033 is the outcome event one
+-- option runs — it lives nowhere and costs 9, proving a consequence is never charged.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90192, 9001, 616, 'en', 'The Fork', 'The road splits.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90193, 9001, 616, 'it', 'Il Bivio', 'La strada si divide.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90194, 9001, 617, 'en', 'Beyond The Fork', 'The lantern left something behind.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90195, 9001, 617, 'it', 'Oltre Il Bivio', 'La lanterna ha lasciato qualcosa.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90196, 9001, 618, 'en', 'Press on alone', 'Costs nothing to choose.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90197, 9001, 618, 'it', 'Prosegui da solo', 'Scegliere non costa nulla.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90198, 9001, 619, 'en', 'Follow the lantern', 'It grants, it moves, it changes the sky.');
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90199, 9001, 619, 'it', 'Segui la lanterna', 'Dona, sposta, cambia il cielo.');
+-- The narratives: withheld while the options are pending, revealed by the resolution.
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90200, 9001, 620, 'en', 'You walk on, and the fork closes behind you.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90201, 9001, 620, 'it', 'Prosegui, e il bivio si chiude alle tue spalle.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90202, 9001, 621, 'en', 'The lantern leads you into the grove.', NULL);
+INSERT OR IGNORE INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALUES
+(90203, 9001, 621, 'it', 'La lanterna ti conduce nel bosco.', NULL);
+
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+(90032, 9001, 90001, 616, 616, 90001, 'NORMAL', 3, 0, 0);
+INSERT OR IGNORE INTO list_events (id, id_story, id_card, id_text_name, id_text_description,
+                                   id_specific_location, type, cost_enery, coin_cost, flag_end_time) VALUES
+(90033, 9001, 90001, 617, 617, NULL, 'NORMAL', 9, 0, 0);
+
+INSERT OR IGNORE INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target) VALUES
+(90025, 9001, 90033, 90001, 'exp', 7, 'ONLY_ONE');
+
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90020, 9001, 90032, 1, 618, 618, 620, NULL, 0, 1, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90021, 9001, 90032, 2, 619, 619, 621, 90033, 0, 0, 'AND', NULL);
+INSERT OR IGNORE INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description,
+                                    id_text_narrative, id_event_torun, is_otherwise, is_progress,
+                                    logic_operator, limit_dex) VALUES
+(90022, 9001, 90032, 3, 613, 613, NULL, NULL, 0, 0, 'AND', 99);
+
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, id_card, statistics, value) VALUES
+(90020, 9001, 90020, 90001, 'exp', 5);
+-- One row, every kind of effect: a registry key, an item, a forced move to the Hidden
+-- Grove (90003, which no neighbor edge reaches), and the inactive Arcane Storm (90004).
+INSERT OR IGNORE INTO list_choices_effects (id, id_story, id_choice, id_card, key, value_to_add,
+                                            id_item_target, item_action, id_location, id_weather) VALUES
+(90021, 9001, 90021, 90001, 'STEP32_GATE', 'OPEN', 90001, 'ADD', 90003, 90004);
 
 -- ── Story 1 Global Random Events ────────────────────────────────
 INSERT OR IGNORE INTO list_global_random_events (id, id_story, probability) VALUES

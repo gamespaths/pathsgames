@@ -354,6 +354,11 @@ class ChoiceConditionEntity(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    # The admin CRUD addresses every entity by uuid (create re-reads by it, update and
+    # delete filter on it). The schema has carried this column since V0.10.4; the model
+    # dropped it, so create/get/update/delete of a choice-condition raised
+    # AttributeError on this backend — the same drift Step 32 fixed on ChoiceEffectEntity.
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_choice = Column(Integer)
     condition_type = Column(String(50))
@@ -365,17 +370,46 @@ class ChoiceConditionEntity(Base):
 
 
 class ChoiceEffectEntity(Base):
+    """Step 32 — what a selected option does, one row per effect.
+
+    Realigned onto the Java column set, the way `EventEffectEntity` was in Step 29 and for
+    the same reason: the old `effect_type`/`effect_value` pair was disjoint from the
+    canonical `statistics`/`value`, so nothing a Java-authored story wrote in those columns
+    survived an import here. The row also gained `uuid` (the response identifies each
+    applied effect by it) and the whole effect vocabulary the resolution engine speaks.
+
+    The inherited `id_card` is the row's NARRATIVE card — that, not the choice's card, is
+    what the board renders for this effect.
+    """
+
     __tablename__ = "list_choices_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     id_choice = Column(Integer)
-    effect_type = Column(String(50))
-    effect_value = Column(Integer)
+    # life, energy, sad, exp, dex, int, cos, food, magic, coin
+    statistics = Column(String(50))
+    value = Column(Integer, default=0)
+    # 1 = every character in the actor's location (INV-46); 0 = the actor alone.
     flag_group = Column(Integer, default=0)
+    # The registry pair: value_to_add SETS the key, value_to_remove clears it — but only
+    # when the stored value still matches, so an option cannot wipe a key the story moved on.
+    key = Column(String(200))
+    value_to_add = Column(String(500))
+    value_to_remove = Column(String(500))
+    # ── v0.32.0 effect targets, twins of the list_events_effects columns ──
+    # EFFECT: runs that event inline, with its whole id_event_next chain.
+    id_event = Column(Integer)
+    # EFFECT: moves the recipients there — no adjacency check, no energy cost.
+    id_location = Column(Integer)
+    # EFFECT: SETS gaming_match.id_current_weather, once per row.
+    id_weather = Column(Integer)
+    id_item_target = Column(Integer)
+    item_action = Column(String(20))
 
 
 class GlobalRandomEventEntity(Base):

@@ -253,3 +253,48 @@ class LogMovementEntity(Base):
     timestamp_start = Column(String(50))
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
+
+
+class LogChoicesExecutedEntity(Base):
+    """Step 32 — the dedicated history of the choices a match resolved.
+
+    Not a duplicate of the ``CHOICE_SELECTED`` marker on ``log_events``: that marker is
+    engine bookkeeping — what ``count_log_markers`` pairs against ``EVENT_EXECUTED`` to
+    decide whether a cycle is still open — while this table is the narrative record the
+    match-log APIs read. ``id_event`` carries the OWNING event, never the option.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` and globally unique; it is
+    assigned explicitly by the adapter (SQLite does not auto-increment it)."""
+
+    __tablename__ = "log_choices_executed"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer)
+    id_event = Column(Integer)
+    # Spelled "choise" in the schema since V0.10.9 — kept as-is, it is the column name.
+    id_choise = Column(Integer)
+    log_message = Column(String(2000))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
+class GamingStoryProgressEntity(Base):
+    """Step 32 — the milestone tracker.
+
+    A row lands here only when the resolved option carries ``is_progress = 1``, marking
+    the narrative as having moved forward. Ordinary choices — the ones that change a stat
+    or open a door but tell no new chapter — resolve without touching this table, which is
+    what keeps it a story outline rather than a second copy of ``log_choices_executed``."""
+
+    __tablename__ = "gaming_story_progress"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    clock = Column(Integer)
+    id_event = Column(Integer)
+    id_choise = Column(Integer)
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)

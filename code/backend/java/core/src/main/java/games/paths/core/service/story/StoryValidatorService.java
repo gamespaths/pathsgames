@@ -385,7 +385,14 @@ public class StoryValidatorService implements StoryValidatorPort {
             if (cid != null) {
                 g.choicesWithOption.add(cid);
             }
-            ref(g, "choice-effects", str(ce.get("id")), "idChoices", Target.CHOICE, cid);
+            String id = str(ce.get("id"));
+            ref(g, "choice-effects", id, "idChoices", Target.CHOICE, cid);
+            // v0.32.0 — the effect targets a resolved choice can reach (Step 32). All four
+            // are EFFECTS, so idWeather here SETS the weather, mirroring the event effects.
+            ref(g, "choice-effects", id, "idEvent", Target.EVENT, asInt(ce.get("idEvent")));
+            ref(g, "choice-effects", id, "idLocation", Target.LOCATION, asInt(ce.get("idLocation")));
+            ref(g, "choice-effects", id, "idWeather", Target.WEATHER, asInt(ce.get("idWeather")));
+            ref(g, "choice-effects", id, "idItemTarget", Target.ITEM, asInt(ce.get("idItemTarget")));
         }
         for (Map<String, Object> cc : list(data, "choiceConditions")) {
             ref(g, "choice-conditions", str(cc.get("id")), "idChoices", Target.CHOICE, asInt(cc.get("idChoices")));
@@ -506,7 +513,14 @@ public class StoryValidatorService implements StoryValidatorPort {
             if (ce.getIdChoices() != null) {
                 g.choicesWithOption.add(ce.getIdChoices());
             }
-            ref(g, "choice-effects", str(ce.getId()), "idChoices", Target.CHOICE, ce.getIdChoices());
+            String id = str(ce.getId());
+            ref(g, "choice-effects", id, "idChoices", Target.CHOICE, ce.getIdChoices());
+            // v0.32.0 — the effect targets a resolved choice can reach (Step 32). All four
+            // are EFFECTS, so idWeather here SETS the weather, mirroring the event effects.
+            ref(g, "choice-effects", id, "idEvent", Target.EVENT, ce.getIdEvent());
+            ref(g, "choice-effects", id, "idLocation", Target.LOCATION, ce.getIdLocation());
+            ref(g, "choice-effects", id, "idWeather", Target.WEATHER, ce.getIdWeather());
+            ref(g, "choice-effects", id, "idItemTarget", Target.ITEM, ce.getIdItemTarget());
         }
         for (ChoiceConditionEntity cc : readPort.findChoiceConditionsByStoryId(storyId)) {
             ref(g, "choice-conditions", str(cc.getId()), "idChoices", Target.CHOICE, cc.getIdChoices());

@@ -884,6 +884,11 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("key", ce.getKey());
             m.put("valueToAdd", ce.getValueToAdd());
             m.put("valueToRemove", ce.getValueToRemove());
+            m.put("idEvent", ce.getIdEvent());
+            m.put("idLocation", ce.getIdLocation());
+            m.put("idWeather", ce.getIdWeather());
+            m.put("idItemTarget", ce.getIdItemTarget());
+            m.put("itemAction", ce.getItemAction());
         } else if (e instanceof ChoiceEntity) {
             ChoiceEntity ch = (ChoiceEntity) e;
             m.put("idEvent", ch.getIdEvent());
@@ -1492,6 +1497,17 @@ public class StoryCrudService implements StoryCrudPort {
             e.setValueToAdd(str(d, "valueToAdd"));
         if (d.containsKey("valueToRemove"))
             e.setValueToRemove(str(d, "valueToRemove"));
+        // v0.32.0 — the effect targets a resolved choice can reach (Step 32).
+        if (d.containsKey("idEvent"))
+            e.setIdEvent(intVal(d, "idEvent"));
+        if (d.containsKey("idLocation"))
+            e.setIdLocation(intVal(d, "idLocation"));
+        if (d.containsKey("idWeather"))
+            e.setIdWeather(intVal(d, "idWeather"));
+        if (d.containsKey("idItemTarget"))
+            e.setIdItemTarget(intVal(d, "idItemTarget"));
+        if (d.containsKey("itemAction"))
+            e.setItemAction(str(d, "itemAction"));
     }
 
     private void applyItemEffectFields(ItemEffectEntity e, Map<String, Object> d) {

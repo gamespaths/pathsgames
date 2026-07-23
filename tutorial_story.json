@@ -812,7 +812,7 @@
       "idCard": 67,
       "idCreator": 1,
       "idTextCopyright": 186,
-      "idTextDescription": 184,
+      "idTextDescription": 259,
       "idTextName": 184,
       "idTextTitle": 184,
       "linkCopyright": "https://unsplash.com/photos/a-rocky-and-grassy-area-J9GVtfElX0I",
@@ -824,7 +824,7 @@
       "idCard": 68,
       "idCreator": 1,
       "idTextCopyright": 191,
-      "idTextDescription": 189,
+      "idTextDescription": 269,
       "idTextName": 189,
       "idTextTitle": 189,
       "linkCopyright": "https://unsplash.com/photos/aerial-view-of-phang-nga-bay-with-mountains-at-sunrise-in-thailand-I3DSUNY61XY",
@@ -836,7 +836,7 @@
       "idCard": 69,
       "idCreator": 1,
       "idTextCopyright": 193,
-      "idTextDescription": 192,
+      "idTextDescription": 263,
       "idTextName": 192,
       "idTextTitle": 192,
       "linkCopyright": "https://unsplash.com/photos/beautiful-mountainous-landscape-hills-new-zealand-summer-green-yellow-vast-view-scenery-otago-stunning-paradise-GA0HYsYYUfA",
@@ -870,7 +870,7 @@
       "idCard": 72,
       "idCreator": 1,
       "idTextCopyright": 201,
-      "idTextDescription": 198,
+      "idTextDescription": 279,
       "idTextName": 198,
       "idTextTitle": 198,
       "linkCopyright": "https://unsplash.com/photos/braies-lake-in-dolomites-mountains-seekofel-in-background-sudtirol-italy-lake-braies-is-also-known-as-lago-di-braies-the-lake-is-surrounded-by-the-mountains-which-are-reflected-in-the-water-dnDfOOL0dmI",
@@ -1024,7 +1024,7 @@
       "idCard": 85,
       "idCreator": 1,
       "idTextCopyright": 244,
-      "idTextDescription": 240,
+      "idTextDescription": 255,
       "idTextName": 240,
       "idTextTitle": 240,
       "linkCopyright": "https://unsplash.com/photos/a-dirt-road-in-the-middle-of-a-forest-2JmNXMtMb3U",
@@ -1036,12 +1036,222 @@
       "idCard": 86,
       "idCreator": 1,
       "idTextCopyright": 245,
-      "idTextDescription": 241,
+      "idTextDescription": 256,
       "idTextName": 241,
       "idTextTitle": 241,
       "linkCopyright": "https://unsplash.com/photos/pathway-between-forest-trees-YBlIqmme5pE",
       "urlImage": "https://images.unsplash.com/photo-1527172641749-7bb8ee8ad7ca?q=80&w=1467&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "accfa6ea-c2c6-4827-875e-f805d6ef879e"
+    },
+    {
+      "id": 87,
+      "idCard": 87,
+      "idCreator": 1,
+      "idTextCopyright": 252,
+      "idTextDescription": 249,
+      "idTextName": 246,
+      "idTextTitle": 246,
+      "linkCopyright": "https://unsplash.com/photos/a-dirt-road-in-the-middle-of-a-desert-zSLu_WNcf8s",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1671659204787-53fc41bc7783?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "9ef35a55-cc30-439d-8616-663e8839e1e6"
+    },
+    {
+      "id": 88,
+      "idCard": 88,
+      "idCreator": 1,
+      "idTextCopyright": 251,
+      "idTextDescription": 250,
+      "idTextName": 247,
+      "idTextTitle": 247,
+      "linkCopyright": "https://unsplash.com/photos/thin-pathway-between-green-trees-5XiJQIvs6AY",
+      "urlImage": "https://images.unsplash.com/photo-1448944356016-9f5ad93875c8?q=80&w=1113&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "08c479a7-08a1-44dc-9462-205db1c313c3"
+    },
+    {
+      "id": 89,
+      "idCard": 89,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 248,
+      "idTextName": 248,
+      "idTextTitle": 248,
+      "uuid": "7fb08cbd-5734-4996-b9ab-c8b73ea616e2"
+    },
+    {
+      "id": 90,
+      "idCard": 90,
+      "idCreator": 1,
+      "idTextCopyright": 258,
+      "idTextDescription": 257,
+      "idTextName": 253,
+      "idTextTitle": 253,
+      "linkCopyright": "https://unsplash.com/photos/brown-dirt-road-between-green-grass-field-under-blue-sky-during-daytime-kuzM3bRRnTg",
+      "urlImage": "https://images.unsplash.com/photo-1603012400802-f067a71529c7?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "9dd6415b-ec09-4089-815f-aa2676e1065c"
+    },
+    {
+      "id": 91,
+      "idCard": 91,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 254,
+      "idTextName": 254,
+      "idTextTitle": 254,
+      "uuid": "86be30fe-8df8-4474-a84b-2fdb454739ed"
+    },
+    {
+      "id": 92,
+      "idCard": 92,
+      "idCreator": 1,
+      "idTextCopyright": 262,
+      "idTextDescription": 261,
+      "idTextName": 260,
+      "idTextTitle": 260,
+      "linkCopyright": "https://unsplash.com/photos/water-droplets-on-black-wooden-fence-bI423DxLEYk",
+      "urlImage": "https://images.unsplash.com/photo-1603262439120-3e17d13bab3f?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "95d8d3cf-23cd-424d-aa9b-d68dfcec67bd"
+    },
+    {
+      "id": 93,
+      "idCard": 93,
+      "idCreator": 1,
+      "idTextCopyright": 272,
+      "idTextDescription": 270,
+      "idTextName": 264,
+      "idTextTitle": 264,
+      "linkCopyright": "https://unsplash.com/photos/tall-pine-trees-in-a-sunlit-forest-clearing-cXtzEBwIQ58",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1758367456256-540461c76c98?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "55314ebc-4600-4e49-9af3-2c7ae86c60a6"
+    },
+    {
+      "id": 94,
+      "idCard": 94,
+      "idCreator": 1,
+      "idTextCopyright": 273,
+      "idTextDescription": 274,
+      "idTextName": 265,
+      "idTextTitle": 265,
+      "linkCopyright": "https://unsplash.com/photos/a-river-running-through-a-lush-green-forest-4Sr9TeXWTzE",
+      "urlImage": "https://images.unsplash.com/photo-1722427690490-fb4013044ef4?q=80&w=1332&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "159e7867-0f43-405d-85c4-acef153e29ad"
+    },
+    {
+      "id": 95,
+      "idCard": 95,
+      "idCreator": 1,
+      "idTextCopyright": 275,
+      "idTextDescription": 284,
+      "idTextName": 266,
+      "idTextTitle": 266,
+      "linkCopyright": "https://unsplash.com/photos/a-mushroom-sitting-on-top-of-a-lush-green-field-s-KComnuwAE",
+      "urlImage": "https://images.unsplash.com/photo-1633065174650-d474cc0e5d04?q=80&w=1091&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "bcc7440b-e709-4a4e-a2be-7cf56608e80a"
+    },
+    {
+      "id": 96,
+      "idCard": 96,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 278,
+      "idTextName": 267,
+      "idTextTitle": 267,
+      "linkCopyright": null,
+      "urlImage": null,
+      "uuid": "06d9bf3d-3409-478b-a93f-e6a3cbc6aeaf"
+    },
+    {
+      "id": 97,
+      "idCard": 97,
+      "idCreator": 1,
+      "idTextCopyright": 276,
+      "idTextDescription": 277,
+      "idTextName": 268,
+      "idTextTitle": 268,
+      "linkCopyright": "https://unsplash.com/photos/a-basket-filled-with-lots-of-different-types-of-mushrooms-u28TbDeMduE",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1675727578994-9d346bb0637b?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "3bb14024-ab84-436e-b897-fbf861c8e787"
+    },
+    {
+      "id": 98,
+      "idCard": 98,
+      "idCreator": 1,
+      "idTextCopyright": 282,
+      "idTextDescription": 283,
+      "idTextName": 280,
+      "idTextTitle": 280,
+      "linkCopyright": "https://unsplash.com/photos/a-forest-filled-with-lots-of-tall-trees-jNmXsyp1Bl0",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1664304417409-ce873a180476?q=80&w=1026&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "7e8da4b9-6a11-4785-840f-9d62945f1b43"
+    },
+    {
+      "id": 99,
+      "idCard": 99,
+      "idCreator": 1,
+      "idTextCopyright": 286,
+      "idTextDescription": 285,
+      "idTextName": 281,
+      "idTextTitle": 281,
+      "linkCopyright": "https://unsplash.com/photos/a-forest-filled-with-lots-of-trees-covered-in-fog-B7bYTB-Wasw",
+      "urlImage": "https://images.unsplash.com/photo-1638358132109-05871b998171?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "689594a9-211a-49a2-9f7e-31e6c3cba6ac"
+    },
+    {
+      "id": 100,
+      "idCard": 100,
+      "idCreator": 1,
+      "idTextCopyright": 3,
+      "idTextDescription": 285,
+      "idTextName": 285,
+      "idTextTitle": 285,
+      "uuid": "165ff42a-42e2-48a0-89f6-d77abf1e3ea6"
+    },
+    {
+      "id": 101,
+      "idCard": 101,
+      "idCreator": 1,
+      "idTextCopyright": 289,
+      "idTextDescription": 288,
+      "idTextName": 287,
+      "idTextTitle": 287,
+      "linkCopyright": "https://unsplash.com/photos/an-old-abandoned-house-in-the-woods-RDnn6PTyupw",
+      "urlImage": "https://images.unsplash.com/photo-1688839951649-d63a8554407e?q=80&w=1472&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "a47db59c-61a2-4bd9-b52b-60ea4e6747ee"
+    },
+    {
+      "id": 102,
+      "idCard": 102,
+      "idCreator": 1,
+      "idTextCopyright": 292,
+      "idTextDescription": 291,
+      "idTextName": 290,
+      "idTextTitle": 290,
+      "linkCopyright": "https://unsplash.com/photos/wooden-bench-in-front-of-a-rustic-forest-gate-hRrdjAPNn5A",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1757338342265-f28b447da793?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "19661e49-53b2-44e0-9f3e-b84ded482b87"
+    },
+    {
+      "id": 103,
+      "idCard": 103,
+      "idCreator": 1,
+      "idTextCopyright": 296,
+      "idTextDescription": 295,
+      "idTextName": 293,
+      "idTextTitle": 293,
+      "linkCopyright": "https://unsplash.com/photos/handmade-stick-teepee-with-tree-stump-seating-in-a-forest-SP8mW-NBbAo",
+      "urlImage": "https://images.unsplash.com/photo-1779633553307-5a0a16773c11?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "89ea87a6-6c85-496e-89e2-004285dbfe7d"
+    },
+    {
+      "id": 104,
+      "idCard": 104,
+      "idCreator": 1,
+      "idTextCopyright": 298,
+      "idTextDescription": 297,
+      "idTextName": 294,
+      "idTextTitle": 294,
+      "linkCopyright": "https://unsplash.com/photos/a-hut-made-of-sticks-stands-in-a-forest-_MCEnIYFzpU",
+      "urlImage": "https://images.unsplash.com/photo-1752485915037-db6b20e08ef2?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0190da11-7ed5-4ed8-bfe5-0fec46c3a0a3"
     }
   ],
   "category": "adventure",
@@ -1050,16 +1260,17 @@
     {
       "constitutionStart": 1,
       "dexterityStart": 0,
-      "energyMax": 4,
+      "energyMax": 8,
       "id": 1,
       "idCard": 25,
       "idClassPermitted": null,
       "idClassProhibited": null,
       "idTextDescription": 120,
       "idTextName": 70,
+      "id_card": 25,
       "id_tipo": 1,
       "intelligenceStart": 0,
-      "lifeMax": 3,
+      "lifeMax": 7,
       "sadMax": 3,
       "texts": {
         "en": {
@@ -1076,16 +1287,17 @@
     {
       "constitutionStart": 0,
       "dexterityStart": 1,
-      "energyMax": 4,
+      "energyMax": 8,
       "id": 2,
       "idCard": 26,
       "idClassPermitted": null,
       "idClassProhibited": 1,
       "idTextDescription": 121,
       "idTextName": 71,
+      "id_card": 26,
       "id_tipo": 2,
       "intelligenceStart": 0,
-      "lifeMax": 4,
+      "lifeMax": 5,
       "sadMax": 2,
       "texts": {
         "en": {
@@ -1102,16 +1314,17 @@
     {
       "constitutionStart": 1,
       "dexterityStart": 0,
-      "energyMax": 3,
+      "energyMax": 8,
       "id": 3,
       "idCard": 27,
       "idClassPermitted": null,
       "idClassProhibited": 6,
       "idTextDescription": 122,
       "idTextName": 72,
+      "id_card": 27,
       "id_tipo": 3,
       "intelligenceStart": 0,
-      "lifeMax": 5,
+      "lifeMax": 9,
       "sadMax": 2,
       "texts": {
         "en": {
@@ -1128,16 +1341,17 @@
     {
       "constitutionStart": 1,
       "dexterityStart": 0,
-      "energyMax": 3,
+      "energyMax": 8,
       "id": 4,
       "idCard": 28,
       "idClassPermitted": null,
       "idClassProhibited": 5,
       "idTextDescription": 123,
       "idTextName": 73,
+      "id_card": 28,
       "id_tipo": 4,
       "intelligenceStart": 0,
-      "lifeMax": 6,
+      "lifeMax": 10,
       "sadMax": 1,
       "texts": {
         "en": {
@@ -1154,16 +1368,17 @@
     {
       "constitutionStart": 0,
       "dexterityStart": 1,
-      "energyMax": 4,
+      "energyMax": 8,
       "id": 5,
       "idCard": 29,
       "idClassPermitted": null,
       "idClassProhibited": 1,
       "idTextDescription": 124,
       "idTextName": 74,
+      "id_card": 29,
       "id_tipo": 5,
       "intelligenceStart": 0,
-      "lifeMax": 2,
+      "lifeMax": 6,
       "sadMax": 4,
       "texts": {
         "en": {
@@ -1180,16 +1395,17 @@
     {
       "constitutionStart": 0,
       "dexterityStart": 0,
-      "energyMax": 4,
+      "energyMax": 8,
       "id": 6,
       "idCard": 30,
       "idClassPermitted": 3,
       "idClassProhibited": null,
       "idTextDescription": 125,
       "idTextName": 75,
+      "id_card": 30,
       "id_tipo": 6,
       "intelligenceStart": 2,
-      "lifeMax": 2,
+      "lifeMax": 8,
       "sadMax": 3,
       "texts": {
         "en": {
@@ -1204,8 +1420,138 @@
       "uuid": "b9844846-22cb-4091-bef3-835937b27b1c"
     }
   ],
-  "choiceConditions": [],
-  "choiceEffects": [],
+  "choiceConditions": [
+    {
+      "id": 1,
+      "idChoices": 6,
+      "type": "CLASS",
+      "uuid": "629d109a-fc21-442b-85a1-e583f4bfe6a9",
+      "value": "5"
+    },
+    {
+      "id": 2,
+      "idChoices": 7,
+      "type": "CLASS",
+      "uuid": "c3827347-3efc-4596-9e52-beb9466ffb84",
+      "value": "4"
+    },
+    {
+      "id": 3,
+      "idChoices": 6,
+      "type": "CLASS",
+      "uuid": "6d0bda70-c52f-42a2-bcfc-5b6979cbd530",
+      "value": "2"
+    },
+    {
+      "id": 4,
+      "idChoices": 7,
+      "type": "CLASS",
+      "uuid": "457b11a7-b467-4f56-9d42-b88817370e85",
+      "value": "6"
+    },
+    {
+      "id": 5,
+      "idChoices": 8,
+      "type": "CLASS",
+      "uuid": "24cdb16e-8dfc-4656-b2a2-d2149592c0c2",
+      "value": "1"
+    },
+    {
+      "id": 6,
+      "idChoices": 8,
+      "type": "CLASS",
+      "uuid": "7aa41805-a53e-4db1-9732-9b1873586984",
+      "value": "3"
+    }
+  ],
+  "choiceEffects": [
+    {
+      "id": 1,
+      "idCard": 87,
+      "idChoices": 1,
+      "idLocation": 9,
+      "idScelta": 1,
+      "idTextName": 246,
+      "id_card": 87,
+      "uuid": "0be9fb5d-dc2f-4ad4-a7c0-cd9d0e840f67"
+    },
+    {
+      "id": 2,
+      "idCard": 88,
+      "idChoices": 2,
+      "idLocation": 11,
+      "idScelta": 2,
+      "idTextName": 247,
+      "idWeather": 3,
+      "id_card": 88,
+      "uuid": "563e9dad-1784-4c01-81d1-ff775e451f71"
+    },
+    {
+      "id": 3,
+      "idCard": 91,
+      "idChoices": 3,
+      "idEvent": 6,
+      "idScelta": 3,
+      "idTextName": 254,
+      "id_card": 91,
+      "statistics": "LIFE",
+      "uuid": "612b3312-a151-428f-953d-6dd3e22412db",
+      "value": -1
+    },
+    {
+      "id": 4,
+      "idCard": 96,
+      "idChoices": 4,
+      "idLocation": 12,
+      "idScelta": 4,
+      "idTextName": 267,
+      "id_card": 96,
+      "uuid": "b9c213cf-d521-4865-8396-eaa8cda65481"
+    },
+    {
+      "id": 5,
+      "idCard": 97,
+      "idChoices": 5,
+      "idScelta": 5,
+      "idTextName": 268,
+      "id_card": 97,
+      "statistics": "LIFE",
+      "uuid": "937d4f74-cc06-4607-9d7b-f0c3a4188b3f",
+      "value": 4
+    },
+    {
+      "id": 6,
+      "idCard": 99,
+      "idChoices": 6,
+      "idScelta": 6,
+      "idTextName": 281,
+      "id_card": 99,
+      "statistics": "SAD",
+      "uuid": "edf62e63-03a9-4d90-8889-74fce4606e8b",
+      "value": 1
+    },
+    {
+      "id": 7,
+      "idCard": 102,
+      "idChoices": 7,
+      "idScelta": 7,
+      "idTextName": 290,
+      "id_card": 102,
+      "statistics": "SAD",
+      "uuid": "e725793f-1a67-4d39-89f1-9f92a30d9b57",
+      "value": 1
+    },
+    {
+      "id": 8,
+      "idCard": 104,
+      "idChoices": 8,
+      "idTextName": 294,
+      "id_card": 104,
+      "statistics": "SAD",
+      "uuid": "195b92b0-3d73-43ea-bc63-398829e094af",
+      "value": 1
+    }
+  ],
   "choices": [
     {
       "id": 1,
@@ -1222,8 +1568,61 @@
       "idEvent": 8,
       "idTextName": 241,
       "id_card": 86,
-      "priority": 2,
+      "priority": 3,
       "uuid": "49c34c63-89ea-4bfc-a3e9-1910cecfeeac"
+    },
+    {
+      "id": 3,
+      "idCard": 90,
+      "idEvent": 8,
+      "idTextName": 253,
+      "id_card": 90,
+      "priority": 2,
+      "uuid": "10464297-098b-4527-8903-b8391a5797cc"
+    },
+    {
+      "id": 4,
+      "idCard": 94,
+      "idEvent": 9,
+      "idTextName": 265,
+      "id_card": 94,
+      "uuid": "9a5e732f-b879-40a0-acff-613fa35c4026"
+    },
+    {
+      "id": 5,
+      "idCard": 95,
+      "idEvent": 9,
+      "idTextName": 266,
+      "id_card": 95,
+      "uuid": "696575bc-fc5d-43cb-9395-efb19a801373"
+    },
+    {
+      "id": 6,
+      "idCard": 98,
+      "idEvent": 9,
+      "idTextName": 280,
+      "id_card": 98,
+      "logicOperator": "OR",
+      "uuid": "ac9f901b-22d6-42d4-8502-fe99f271561a"
+    },
+    {
+      "id": 7,
+      "idCard": 101,
+      "idEvent": 9,
+      "idTextName": 287,
+      "id_card": 101,
+      "logicOperator": "OR",
+      "uuid": "6491ea90-279d-488a-9dcf-19138d4c4857"
+    },
+    {
+      "id": 8,
+      "idCard": 103,
+      "idEvent": 9,
+      "idLocation": "",
+      "idTextName": 293,
+      "id_card": 103,
+      "logicOperator": "OR",
+      "uuid": "8167fa67-288d-4d81-995e-dec756cba8b2"
     }
   ],
   "classBonuses": [
@@ -1389,12 +1788,13 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 4,
+      "energy": 8,
       "expCost": 0,
       "id": 1,
       "idCard": 20,
       "idTextDescription": 38,
       "idTextName": 39,
+      "id_card": 20,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -1418,12 +1818,13 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 3,
+      "energy": 6,
       "expCost": 0,
       "id": 2,
       "idCard": 21,
       "idTextDescription": 41,
       "idTextName": 42,
+      "id_card": 21,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -1447,12 +1848,13 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 2,
+      "energy": 4,
       "expCost": 0,
       "id": 3,
       "idCard": 22,
       "idTextDescription": 44,
       "idTextName": 45,
+      "id_card": 22,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -1476,12 +1878,13 @@
       "costHelpComa": 0,
       "costMaxCharacteristics": 0,
       "dexterity": 0,
-      "energy": 1,
+      "energy": 2,
       "expCost": 0,
       "id": 4,
       "idCard": 23,
       "idTextDescription": 47,
       "idTextName": 48,
+      "id_card": 23,
       "intelligence": 0,
       "life": 0,
       "maxCharacter": 0,
@@ -1667,12 +2070,23 @@
       "costEnery": 1,
       "id": 8,
       "idCard": 84,
-      "idSpecificLocation": 4,
+      "idSpecificLocation": 10,
       "idTextDescription": 239,
       "idTextName": 239,
       "id_card": 84,
       "type": "NORMAL",
       "uuid": "7a47db68-4b87-429e-be16-56d380d47ec3"
+    },
+    {
+      "costEnery": 1,
+      "id": 9,
+      "idCard": 93,
+      "idSpecificLocation": 11,
+      "idTextDescription": 264,
+      "idTextName": 264,
+      "id_card": 93,
+      "type": "NORMAL",
+      "uuid": "cf48f74e-2411-41dc-9e80-ad352eb734ec"
     }
   ],
   "globalRandomEvents": [],
@@ -1716,7 +2130,7 @@
       "uuid": "fcfd4cb6-9a2a-453e-9881-daeb228d2ab8"
     },
     {
-      "direction": "WEST",
+      "direction": "EAST",
       "energyCost": 2,
       "flagBack": 1,
       "id": 2,
@@ -1803,40 +2217,33 @@
     },
     {
       "direction": "WEST",
-      "flagBack": 1,
+      "flagBack": 0,
       "id": 10,
+      "idCardBack": "",
       "idLocationFrom": 9,
       "idLocationTo": 10,
       "idTextName": 188,
       "uuid": "40adfcc0-c705-4128-b80d-dcdd334ef566"
     },
     {
-      "direction": "WEST",
-      "flagBack": 1,
+      "direction": "EAST",
+      "flagBack": 0,
       "id": 11,
-      "idLocationFrom": 10,
-      "idLocationTo": 11,
+      "idCardBack": "",
+      "idLocationFrom": 11,
+      "idLocationTo": 10,
       "idTextName": 190,
       "uuid": "f1b1554f-e756-403b-9ea4-5237769d6781"
     },
     {
       "direction": "SOUTH",
+      "energyCost": 2,
       "flagBack": 1,
       "id": 12,
       "idLocationFrom": 11,
       "idLocationTo": 12,
       "idTextName": 194,
       "uuid": "f15ec6b5-e13f-41bf-8698-aee0b11d8f9b"
-    },
-    {
-      "direction": "EAST",
-      "flagBack": 0,
-      "id": 13,
-      "idCardBack": "",
-      "idLocationFrom": 13,
-      "idLocationTo": 6,
-      "idTextName": 196,
-      "uuid": "c30d5ed6-fce8-45b6-bb89-6463e6965af5"
     },
     {
       "direction": "SOUTH",
@@ -1848,7 +2255,7 @@
       "uuid": "69a92101-f9ef-486d-98a3-b4b4f6859664"
     },
     {
-      "direction": "WEST",
+      "direction": "EAST",
       "flagBack": 1,
       "id": 15,
       "idLocationFrom": 12,
@@ -1857,7 +2264,7 @@
       "uuid": "a9242c9b-6aa6-42a3-b5ea-c33eafc5a8d9"
     },
     {
-      "direction": "WEST",
+      "direction": "SOUTH",
       "flagBack": 1,
       "id": 16,
       "idLocationFrom": 13,
@@ -1875,6 +2282,17 @@
       "idLocationTo": 9,
       "idTextName": 233,
       "uuid": "279ee2aa-a0ac-41b9-bac6-a141368b55f8"
+    },
+    {
+      "direction": "WEST",
+      "flagBack": 1,
+      "id": 18,
+      "idCard": 0,
+      "idLocationFrom": 6,
+      "idLocationTo": 2,
+      "idTextName": 248,
+      "id_card": 0,
+      "uuid": "639dd26e-469c-4020-8697-1d761344920b"
     }
   ],
   "locations": [
@@ -2057,7 +2475,7 @@
       "costEnergyEnter": 2,
       "id": 10,
       "idCard": 67,
-      "idTextDescription": 184,
+      "idTextDescription": 259,
       "idTextName": 184,
       "id_card": 67,
       "uuid": "fbbb5744-1d8a-49be-8f7b-b4ae27e65915"
@@ -2066,7 +2484,7 @@
       "costEnergyEnter": 1,
       "id": 11,
       "idCard": 68,
-      "idTextDescription": 189,
+      "idTextDescription": 269,
       "idTextName": 189,
       "id_card": 68,
       "uuid": "a3887dd8-f690-41fc-bf52-cb139dadcc35"
@@ -2075,7 +2493,7 @@
       "costEnergyEnter": 0,
       "id": 12,
       "idCard": 69,
-      "idTextDescription": 192,
+      "idTextDescription": 263,
       "idTextName": 192,
       "id_card": 69,
       "uuid": "88511e91-54ea-48c4-b8a8-64c6960e2a26"
@@ -2093,7 +2511,7 @@
       "costEnergyEnter": 0,
       "id": 14,
       "idCard": 72,
-      "idTextDescription": 198,
+      "idTextDescription": 279,
       "idTextName": 198,
       "id_card": 72,
       "isSafe": true,
@@ -6223,8 +6641,8 @@
       "idText": 240,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Left",
-      "shortText": "Left",
+      "longText": "East",
+      "shortText": "East",
       "uuid": "d1d63a6d-4138-4c69-83d2-2ff71f48e1d6"
     },
     {
@@ -6233,8 +6651,8 @@
       "idText": 241,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Right",
-      "shortText": "Right",
+      "longText": "West",
+      "shortText": "West",
       "uuid": "003e75ae-ee75-4d1a-bf8f-76f3aa9430b4"
     },
     {
@@ -6336,6 +6754,916 @@
       "longText": "",
       "shortText": "",
       "uuid": "564e26c3-53d4-4bfb-87d4-19b357fbb6cf"
+    },
+    {
+      "id": 246,
+      "idCreator": 1,
+      "idText": 246,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "East way",
+      "shortText": "East way",
+      "uuid": "6c38896e-a969-45ec-b53e-d271333d16fa"
+    },
+    {
+      "id": 247,
+      "idCreator": 1,
+      "idText": 247,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "West way",
+      "shortText": "West way",
+      "uuid": "77365b9a-ead9-4eb3-a491-bb18762b11f6"
+    },
+    {
+      "id": 248,
+      "idCreator": 1,
+      "idText": 248,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Hills to complete",
+      "shortText": "Hills to complete",
+      "uuid": "7570e343-c6a9-4412-9193-0c288142174e"
+    },
+    {
+      "id": 249,
+      "idCreator": 1,
+      "idText": 249,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This choice made you go back: you moved back into the canyon<br /><br/>Some choices have the effect of moving the characters towards a place",
+      "shortText": "This choice made you go back: you moved back into the canyon<br /><br/>Some choices have the effect of moving the characters towards a place",
+      "uuid": "1c430507-5f35-499b-9d84-9df843e43f95"
+    },
+    {
+      "id": 249,
+      "idCreator": 1,
+      "idText": 249,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questa scelta ti ha fatto tornare indietro: ti sei spostato nuovamente nel canyon<br /><br />Alcune scelte hanno come effetto quello di muovere i personaggi verso un luogo",
+      "shortText": "Questa scelta ti ha fatto tornare indietro: ti sei spostato nuovamente nel canyon<br /><br />Alcune scelte hanno come effetto quello di muovere i personaggi verso un luogo",
+      "uuid": "966222d3-cc17-44d6-a1d0-6ac649cd68a6"
+    },
+    {
+      "id": 246,
+      "idCreator": 1,
+      "idText": 246,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "a9f4736f-d010-4260-aedb-5bbdb299e0ee"
+    },
+    {
+      "id": 247,
+      "idCreator": 1,
+      "idText": 247,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b8c175c3-161a-4265-9071-0eaaf6df8e6c"
+    },
+    {
+      "id": 250,
+      "idCreator": 1,
+      "idText": 250,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This choice allowed you to move to a new place without spending energy<br />\n<br />\nSome choices have the effect of moving the characters towards a place<br />\n<br />\nbut some choices can change the weather, it's starting to rain!",
+      "shortText": "This choice allowed you to move to a new place without spending energy<br />\n<br />\nSome choices have the effect of moving the characters towards a place<br />\n<br />\nbut some choices can change the weather, it's starting to rain!",
+      "uuid": "fb60515a-9508-4902-b966-382f0a57539c"
+    },
+    {
+      "id": 250,
+      "idCreator": 1,
+      "idText": 250,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questa scelta ti ha permesso di muoveri veso un nuovo luogo senza spendere energia<br />\n<br />\nAlcune scelte hanno come effetto quello di muovere i personaggi verso un luogo<br />\n<br />\nAlcune scelte possono cambiare il tempo, sta iniziando a piovere!",
+      "shortText": "Questa scelta ti ha permesso di muoveri veso un nuovo luogo senza spendere energia<br />\n<br />\nAlcune scelte hanno come effetto quello di muovere i personaggi verso un luogo<br />\n<br />\nAlcune scelte possono cambiare il tempo, sta iniziando a piovere!",
+      "uuid": "57e17ef5-6ae8-477e-83df-83ed59361a06"
+    },
+    {
+      "id": 251,
+      "idCreator": 1,
+      "idText": 251,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Zack Silver",
+      "shortText": "Zack Silver",
+      "uuid": "40e96ac3-e362-46c7-bbb0-adeed47ae542"
+    },
+    {
+      "id": 251,
+      "idCreator": 1,
+      "idText": 251,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b89391c2-d4f4-4157-b10b-6ea0ce8725f0"
+    },
+    {
+      "id": 252,
+      "idCreator": 1,
+      "idText": 252,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Josh Hild",
+      "shortText": "Josh Hild",
+      "uuid": "4173cfdb-f5a9-4ecf-94e3-313b5b43fb06"
+    },
+    {
+      "id": 252,
+      "idCreator": 1,
+      "idText": 252,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "829c9963-b469-4fb2-8806-2a10bf9778d0"
+    },
+    {
+      "id": 253,
+      "idCreator": 1,
+      "idText": 253,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "North",
+      "shortText": "North",
+      "uuid": "b38e1138-d7a9-4a3d-bfbe-9bda925848fb"
+    },
+    {
+      "id": 254,
+      "idCreator": 1,
+      "idText": 254,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "North to desert",
+      "shortText": "North to desert",
+      "uuid": "1f54ee40-fe09-403b-ae3e-ab40ce20889c"
+    },
+    {
+      "id": 255,
+      "idCreator": 1,
+      "idText": 255,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Choose the path to the Left",
+      "shortText": "Choose the path to the Left",
+      "uuid": "0147dde1-1fb0-4359-84bb-c3c569f15caf"
+    },
+    {
+      "id": 255,
+      "idCreator": 1,
+      "idText": 255,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "292ccf49-3817-4cce-ab4f-8c52896f554e"
+    },
+    {
+      "id": 256,
+      "idCreator": 1,
+      "idText": 256,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Choose the path to the Right",
+      "shortText": "Choose the path to the Right",
+      "uuid": "58a12903-9947-41d8-849d-b7e034f87303"
+    },
+    {
+      "id": 256,
+      "idCreator": 1,
+      "idText": 256,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "2c091f6c-9d10-4ef7-9a17-a9cb6e77a51e"
+    },
+    {
+      "id": 257,
+      "idCreator": 1,
+      "idText": 257,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Choose the path to the North<br />\n<br />\nAre you sure?",
+      "shortText": "Choose the path to the North<br />\n<br />\nAre you sure?",
+      "uuid": "4a47e1ba-f8ae-4514-95e6-bc570014f54f"
+    },
+    {
+      "id": 257,
+      "idCreator": 1,
+      "idText": 257,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "bae8f51b-7ec5-4e76-9f2d-732e6643cd1a"
+    },
+    {
+      "id": 258,
+      "idCreator": 1,
+      "idText": 258,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Thanh Nguyen",
+      "shortText": "Thanh Nguyen",
+      "uuid": "12876039-455b-4c18-8225-a690854bf77d"
+    },
+    {
+      "id": 258,
+      "idCreator": 1,
+      "idText": 258,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "00c68b86-c86a-4763-91d0-326e9e8f63c4"
+    },
+    {
+      "id": 259,
+      "idCreator": 1,
+      "idText": 259,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This place has nowhere nearby to move.<br />\n<br />\nThere's only one event with a choice to make. <br />\n<br />\nWhich direction will you take?",
+      "shortText": "This place has nowhere nearby to move.<br />\n<br />\nThere's only one event with a choice to make. <br />\n<br />\nWhich direction will you take?",
+      "uuid": "e298cd9d-ef7c-4664-af97-0dc62131761a"
+    },
+    {
+      "id": 259,
+      "idCreator": 1,
+      "idText": 259,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo luogo non ha nessun luogo vicino in cui muoversi<br />\n<br />\nC'è solo un evento con una scelta da fare, quale direzione prenderai?",
+      "shortText": "Questo luogo non ha nessun luogo vicino in cui muoversi<br />\n<br />\nC'è solo un evento con una scelta da fare, quale direzione prenderai?",
+      "uuid": "01b1d74a-3041-4d85-bac4-8e304ba81a75"
+    },
+    {
+      "id": 260,
+      "idCreator": 1,
+      "idText": 260,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Rain",
+      "shortText": "Rain",
+      "uuid": "c53d5da0-8bea-4be7-9cc4-ac0b08cc752e"
+    },
+    {
+      "id": 261,
+      "idCreator": 1,
+      "idText": 261,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "It's started raining,<br />\n<br />\nIt's advisable to sleep and wait for a better day.",
+      "shortText": "It's started raining,<br />\n<br />\nIt's advisable to sleep and wait for a better day.",
+      "uuid": "e7cd704e-9b7a-4ef5-939f-daf520458d04"
+    },
+    {
+      "id": 261,
+      "idCreator": 1,
+      "idText": 261,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Ha iniziato a piovere<br />\n<br />\nNel tutorial è consigliato dormire ed aspettare un giorno migliore",
+      "shortText": "Ha iniziato a piovere<br />\n<br />\nNel tutorial è consigliato dormire ed aspettare un giorno migliore",
+      "uuid": "709ce0ff-12c6-4dde-966f-b69f13c57cc7"
+    },
+    {
+      "id": 262,
+      "idCreator": 1,
+      "idText": 262,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Kevin Wang",
+      "shortText": "Kevin Wang",
+      "uuid": "59106d24-eff1-4951-90c5-1688e0ecfe26"
+    },
+    {
+      "id": 262,
+      "idCreator": 1,
+      "idText": 262,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "56eb3945-bad8-4f41-9474-aee3c2200ef3"
+    },
+    {
+      "id": 263,
+      "idCreator": 1,
+      "idText": 263,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "After a long journey we find a river, we can follow the course of the river which turns south",
+      "shortText": "After a long journey we find a river, we can follow the course of the river which turns south",
+      "uuid": "3c123fee-e9cd-4e38-b530-0871b604ce74"
+    },
+    {
+      "id": 263,
+      "idCreator": 1,
+      "idText": 263,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Dopo un lungo viaggio troviamo un fiume , possiamo seguire il corso del fiume che gira verso sud",
+      "shortText": "Dopo un lungo viaggio troviamo un fiume , possiamo seguire il corso del fiume che gira verso sud",
+      "uuid": "470f3f3c-970f-464f-b2f1-a1310a409811"
+    },
+    {
+      "id": 264,
+      "idCreator": 1,
+      "idText": 264,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Explore the forest",
+      "shortText": "Explore the forest",
+      "uuid": "954c5bc7-e975-40af-8973-e04df2a87e4e"
+    },
+    {
+      "id": 265,
+      "idCreator": 1,
+      "idText": 265,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Follow the river",
+      "shortText": "Follow the river",
+      "uuid": "5c0e4432-4ad0-4bf3-b3cd-21b159968750"
+    },
+    {
+      "id": 266,
+      "idCreator": 1,
+      "idText": 266,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search food",
+      "shortText": "Search food",
+      "uuid": "59e95515-22c4-4089-acdf-3d1b21e74282"
+    },
+    {
+      "id": 267,
+      "idCreator": 1,
+      "idText": 267,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Follow the river",
+      "shortText": "Follow the river",
+      "uuid": "37de6f41-801b-474b-aee3-84fbdb26f0bf"
+    },
+    {
+      "id": 268,
+      "idCreator": 1,
+      "idText": 268,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mushrooms",
+      "shortText": "Mushrooms",
+      "uuid": "ce5166d3-53a6-419f-850d-15448f56c411"
+    },
+    {
+      "id": 269,
+      "idCreator": 1,
+      "idText": 269,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Along the way, you'll find yourself in a beautiful forest.<br />\n<br />\nThere's usually a lot to explore in a forest.",
+      "shortText": "Along the way, you'll find yourself in a beautiful forest.<br />\n<br />\nThere's usually a lot to explore in a forest.",
+      "uuid": "17d74fd4-7406-436a-9f6f-98c06cda3b22"
+    },
+    {
+      "id": 269,
+      "idCreator": 1,
+      "idText": 269,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "lungo il cammino trovate in una bellissima foresta <br />\n<br />\ndi solito in una foresta c'è molto da esplorare",
+      "shortText": "lungo il cammino trovate in una bellissima foresta <br />\n<br />\ndi solito in una foresta c'è molto da esplorare",
+      "uuid": "ff3c5d0f-2b4b-442a-a83d-0a9926c41ebe"
+    },
+    {
+      "id": 270,
+      "idCreator": 1,
+      "idText": 270,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This special action will allow you to choose which part of the forest to explore.<br />\n<br />\nLike other events in this tutorial, it's an event with multiple choices to make. Each choice can have positive or negative consequences.",
+      "shortText": "This special action will allow you to choose which part of the forest to explore.<br />\n<br />\nLike other events in this tutorial, it's an event with multiple choices to make. Each choice can have positive or negative consequences.",
+      "uuid": "62ba8bd1-6c5d-424b-b228-5bdde6bd6e6e"
+    },
+    {
+      "id": 270,
+      "idCreator": 1,
+      "idText": 270,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questa azione speciale ti permetterà di scegliere quale parte della foresta esplorare. <br />\n<br />\nCome altri eventi in questo tutorial è un evento con diverse scelte da fare. Ogni scelta può avere conseguenze buone o ",
+      "shortText": "Questa azione speciale ti permetterà di scegliere quale parte della foresta esplorare. <br />\n<br />\nCome altri eventi in questo tutorial è un evento con diverse scelte da fare. Ogni scelta può avere conseguenze buone o ",
+      "uuid": "4d4dfc1b-bf1b-4179-b433-5012aae8340b"
+    },
+    {
+      "id": 271,
+      "idCreator": 1,
+      "idText": 271,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Alexandra Marta",
+      "shortText": "Alexandra Marta",
+      "uuid": "6bf7ab3f-5ed9-4b55-a589-bda35c57928c"
+    },
+    {
+      "id": 271,
+      "idCreator": 1,
+      "idText": 271,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "3f12c92e-93ef-4309-8533-5a67eec5cf7f"
+    },
+    {
+      "id": 272,
+      "idCreator": 1,
+      "idText": 272,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
+      "uuid": "403bcb0d-3632-4472-b087-9439b2eb3b57"
+    },
+    {
+      "id": 272,
+      "idCreator": 1,
+      "idText": 272,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c48b64bd-a025-4f8e-b57e-b7c7311dd483"
+    },
+    {
+      "id": 273,
+      "idCreator": 1,
+      "idText": 273,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Juho Luomala",
+      "shortText": "Juho Luomala",
+      "uuid": "75520809-ec8c-4bc5-9cf7-5b6d964526ba"
+    },
+    {
+      "id": 273,
+      "idCreator": 1,
+      "idText": 273,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "6dbd8c00-8d54-4402-afdc-f51f8fc3eeb4"
+    },
+    {
+      "id": 274,
+      "idCreator": 1,
+      "idText": 274,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You find a small stream that you can follow",
+      "shortText": "You find a small stream that you can follow",
+      "uuid": "350d0fb7-bcf1-45a2-aee6-13f549c14530"
+    },
+    {
+      "id": 274,
+      "idCreator": 1,
+      "idText": 274,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovi un piccolo torrente che puoi seguire",
+      "shortText": "Trovi un piccolo torrente che puoi seguire",
+      "uuid": "81eba801-67e0-41e3-a4cd-ad6639d5b6ae"
+    },
+    {
+      "id": 275,
+      "idCreator": 1,
+      "idText": 275,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Anton Atanasov",
+      "shortText": "Anton Atanasov",
+      "uuid": "2d764a38-2b17-4e96-900e-c0a4c395d280"
+    },
+    {
+      "id": 275,
+      "idCreator": 1,
+      "idText": 275,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c460cd66-66c7-4ad8-8fc1-6cccb0346633"
+    },
+    {
+      "id": 276,
+      "idCreator": 1,
+      "idText": 276,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Anna Jakutajc-Wojtalik",
+      "shortText": "Anna Jakutajc-Wojtalik",
+      "uuid": "2eba826c-5fa8-4906-a6f8-5a759fbd3e60"
+    },
+    {
+      "id": 276,
+      "idCreator": 1,
+      "idText": 276,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "29fc8db7-106e-4fd2-b43f-7753efb2ae81"
+    },
+    {
+      "id": 277,
+      "idCreator": 1,
+      "idText": 277,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Find some edible mushrooms.<br />\n<br />\nSome choices can cause the player to gain or lose health points.",
+      "shortText": "Find some edible mushrooms.<br />\n<br />\nSome choices can cause the player to gain or lose health points.",
+      "uuid": "58d20ce5-a30e-42ed-b969-093b0980d4a2"
+    },
+    {
+      "id": 277,
+      "idCreator": 1,
+      "idText": 277,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Trovi un po' di funghi commestibili<br />\n<br />\nAlcune scelte possono portare il giocatore a guadagnare o perdere punti vita<br />\n",
+      "shortText": "Trovi un po' di funghi commestibili<br />\n<br />\nAlcune scelte possono portare il giocatore a guadagnare o perdere punti vita<br />\n",
+      "uuid": "462a523b-bc11-4bb2-8268-81f6f1e8b148"
+    },
+    {
+      "id": 278,
+      "idCreator": 1,
+      "idText": 278,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Follow the river<br />\n<br />\nSome choices can move to new places",
+      "shortText": "Follow the river<br />\n<br />\nSome choices can move to new places",
+      "uuid": "e79fce7b-fd94-49df-97d9-e054628fc8f4"
+    },
+    {
+      "id": 278,
+      "idCreator": 1,
+      "idText": 278,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Alcune scelte possono muoversi in nuovi luoghi",
+      "shortText": "Alcune scelte possono muoversi in nuovi luoghi",
+      "uuid": "4cd4b984-1efa-42b0-91f0-544c25a64833"
+    },
+    {
+      "id": 279,
+      "idCreator": 1,
+      "idText": 279,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "During your journey, you'll find a small lake and a small house.<br />\n<br />\nThis place is safe, so resting here will give you much more health and help you recover wounds.<br />\n<br />\nin the future there will be a rule in this place that there will always be good weather",
+      "shortText": "During your journey, you'll find a small lake and a small house.<br />\n<br />\nThis place is safe, so resting here will give you much more health and help you recover wounds.<br />\n<br />\nin the future there will be a rule in this place that there will always be good weather",
+      "uuid": "0966a072-5127-44cb-8fb3-831f4fe1372a"
+    },
+    {
+      "id": 279,
+      "idCreator": 1,
+      "idText": 279,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Durante il viaggio trovi un laghetto e una casetta.<br />\n<br />\nQuesto luogo è sicuro quindi riposare qui ti farà guadagnare molta più vita e recuperarai ferite<br />\n<br />\nin futuro in questo luogo ci sarà una regola che ci sarà sempre bel tempo<br />\n",
+      "shortText": "Durante il viaggio trovi un laghetto e una casetta.<br />\n<br />\nQuesto luogo è sicuro quindi riposare qui ti farà guadagnare molta più vita e recuperarai ferite<br />\n<br />\nin futuro in questo luogo ci sarà una regola che ci sarà sempre bel tempo<br />\n",
+      "uuid": "2f578456-29d2-41a8-a05e-a950c6be9cc0"
+    },
+    {
+      "id": 280,
+      "idCreator": 1,
+      "idText": 280,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Forest spirit",
+      "shortText": "Forest spirit",
+      "uuid": "6fa69d43-5a53-4b19-ae5b-ade5d5af4598"
+    },
+    {
+      "id": 281,
+      "idCreator": 1,
+      "idText": 281,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Forest spirit",
+      "shortText": "Forest spirit",
+      "uuid": "818948e5-853e-4359-a6b0-d2353298c839"
+    },
+    {
+      "id": 282,
+      "idCreator": 1,
+      "idText": 282,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "7aa4da43-f0b6-4693-a5b2-62cbdc48b88b"
+    },
+    {
+      "id": 282,
+      "idCreator": 1,
+      "idText": 282,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "7beeea6c-d4ee-48ed-bb7c-90a5f3bb9861"
+    },
+    {
+      "id": 283,
+      "idCreator": 1,
+      "idText": 283,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You can attempt to communicate with forest spirits.<br />\n<br />\nOnly paladins and elves can make this choice.",
+      "shortText": "You can attempt to communicate with forest spirits.<br />\n<br />\nOnly paladins and elves can make this choice.",
+      "uuid": "f705f95b-99f8-4df6-921f-54c954c4a2dd"
+    },
+    {
+      "id": 283,
+      "idCreator": 1,
+      "idText": 283,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "puoi cercare di comunicare con spiriti della foresta<br />\n<br />\nSolo paladini ed elfi possono eseguire questa scelta",
+      "shortText": "puoi cercare di comunicare con spiriti della foresta<br />\n<br />\nSolo paladini ed elfi possono eseguire questa scelta",
+      "uuid": "f8af4555-57d7-4e90-999e-964d1ae4cc72"
+    },
+    {
+      "id": 284,
+      "idCreator": 1,
+      "idText": 284,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You look for something in the forest that can be useful for your adventure",
+      "shortText": "You look for something in the forest that can be useful for your adventure",
+      "uuid": "ca776b99-a290-41e8-8126-1dec212757a3"
+    },
+    {
+      "id": 284,
+      "idCreator": 1,
+      "idText": 284,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Cercare qualcosa nella foresta che ti possa essere utile per l'avventura<br />\n",
+      "shortText": "Cercare qualcosa nella foresta che ti possa essere utile per l'avventura<br />\n",
+      "uuid": "01b2b053-b339-421d-a95a-7ee15f293cfb"
+    },
+    {
+      "id": 285,
+      "idCreator": 1,
+      "idText": 285,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "While you search for the spirit, it seems like something frightened is moving away from you.<br />\n<br />\nYou gain a sadness point.",
+      "shortText": "While you search for the spirit, it seems like something frightened is moving away from you.<br />\n<br />\nYou gain a sadness point.",
+      "uuid": "9c859c55-ff59-4233-89a0-cac637d77e0e"
+    },
+    {
+      "id": 285,
+      "idCreator": 1,
+      "idText": 285,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mentre cerchi lo spirito ti sembra che qualcosa di spaventato si allonani da te<br />\n<br />\nGuadagni un punto tristezza",
+      "shortText": "Mentre cerchi lo spirito ti sembra che qualcosa di spaventato si allonani da te<br />\n<br />\nGuadagni un punto tristezza",
+      "uuid": "a3155676-aa58-4b63-827f-75500ba71cb7"
+    },
+    {
+      "id": 286,
+      "idCreator": 1,
+      "idText": 286,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Pascal Debrunner",
+      "shortText": "Pascal Debrunner",
+      "uuid": "8239e102-3efb-4bd7-ab86-1af456f41dcf"
+    },
+    {
+      "id": 286,
+      "idCreator": 1,
+      "idText": 286,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "f19e0f89-88e6-43b3-8272-8eba964a91a9"
+    },
+    {
+      "id": 287,
+      "idCreator": 1,
+      "idText": 287,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Abandoned house",
+      "shortText": "Abandoned house",
+      "uuid": "890f7c38-a706-4136-be2d-af2337fbc771"
+    },
+    {
+      "id": 288,
+      "idCreator": 1,
+      "idText": 288,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "While exploring the forest, you find an abandoned building.<br />\n<br />\nOnly rouges and bards can make this choice",
+      "shortText": "While exploring the forest, you find an abandoned building.<br />\n<br />\nOnly rouges and bards can make this choice",
+      "uuid": "611ac2d1-fb9c-4c88-b51b-574a20cd3b3e"
+    },
+    {
+      "id": 288,
+      "idCreator": 1,
+      "idText": 288,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mentre esplori la foresti trovi un edificio abbandonato.<br />\n<br />\nSolo ladri ed bardi possono eseguire questa scelta",
+      "shortText": "Mentre esplori la foresti trovi un edificio abbandonato.<br />\n<br />\nSolo ladri ed bardi possono eseguire questa scelta",
+      "uuid": "8fade41e-2d46-43ef-b7d5-ec317ad3898f"
+    },
+    {
+      "id": 289,
+      "idCreator": 1,
+      "idText": 289,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Peter Herrmann",
+      "shortText": "Peter Herrmann",
+      "uuid": "604206cf-63bb-4fea-88db-7f04dcfd5596"
+    },
+    {
+      "id": 289,
+      "idCreator": 1,
+      "idText": 289,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c83c8bc2-f287-42e6-92ee-ab8b216cc64a"
+    },
+    {
+      "id": 290,
+      "idCreator": 1,
+      "idText": 290,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Abandoned house",
+      "shortText": "Abandoned house",
+      "uuid": "342e0ecc-1098-4969-b9d5-f07689349bb3"
+    },
+    {
+      "id": 291,
+      "idCreator": 1,
+      "idText": 291,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The building has been abandoned for years, and you won't find anything of interest.<br />\n<br />\nThe abandoned, self-contained atmosphere makes you feel very sad.",
+      "shortText": "The building has been abandoned for years, and you won't find anything of interest.<br />\n<br />\nThe abandoned, self-contained atmosphere makes you feel very sad.",
+      "uuid": "f20d046c-333e-481a-ab4c-c4439eaf88b0"
+    },
+    {
+      "id": 291,
+      "idCreator": 1,
+      "idText": 291,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "L'edificio è abbandonato da anni, non trovi nulla di interessante. <br />\n<br />\nL'ambiente abbandonato e selfaggio ti fa sentire molto triste.",
+      "shortText": "L'edificio è abbandonato da anni, non trovi nulla di interessante. <br />\n<br />\nL'ambiente abbandonato e selfaggio ti fa sentire molto triste.",
+      "uuid": "ffed9ae9-73f5-4dc1-86ef-f96fa0554250"
+    },
+    {
+      "id": 292,
+      "idCreator": 1,
+      "idText": 292,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
+      "uuid": "4f9de604-1113-4934-9a3c-6c0c05401ea0"
+    },
+    {
+      "id": 292,
+      "idCreator": 1,
+      "idText": 292,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "dd9bdcd8-11bd-4f63-9cc2-8e6c245b42bd"
+    },
+    {
+      "id": 293,
+      "idCreator": 1,
+      "idText": 293,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Protective camp",
+      "shortText": "Protective camp",
+      "uuid": "dc06ca21-1d5f-401c-ae1e-c83842906106"
+    },
+    {
+      "id": 294,
+      "idCreator": 1,
+      "idText": 294,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Camp destroyed",
+      "shortText": "Camp destroyed",
+      "uuid": "462e8be3-4cdd-4e91-b6a5-3cccbd488888"
+    },
+    {
+      "id": 295,
+      "idCreator": 1,
+      "idText": 295,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "You attempt to build a base camp to make this place safe.<br />\n<br />\nOnly knights and mages can make this choice",
+      "shortText": "You attempt to build a base camp to make this place safe.<br />\n<br />\nOnly knights and mages can make this choice",
+      "uuid": "2c87ae6b-a0f3-452e-b250-595ab2da6af9"
+    },
+    {
+      "id": 295,
+      "idCreator": 1,
+      "idText": 295,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Tenti di costruire un campo base per rendere questo luogo sicuro<br />\n<br />\nSolo cavalieri ed maghi possono eseguire questa scelta",
+      "shortText": "Tenti di costruire un campo base per rendere questo luogo sicuro<br />\n<br />\nSolo cavalieri ed maghi possono eseguire questa scelta",
+      "uuid": "ec6ea817-61a1-4444-8581-0a51b536cc39"
+    },
+    {
+      "id": 296,
+      "idCreator": 1,
+      "idText": 296,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Y",
+      "shortText": "Y",
+      "uuid": "5c6afc2b-ceba-45fe-97ad-59642089c0cb"
+    },
+    {
+      "id": 296,
+      "idCreator": 1,
+      "idText": 296,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d31febe4-ccd6-4bb1-b172-91f2547ded88"
+    },
+    {
+      "id": 297,
+      "idCreator": 1,
+      "idText": 297,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The camp you attempted to build collapses, partly due to the rain.<br />\n<br />\nThis makes you sad, and you lose a point.",
+      "shortText": "The camp you attempted to build collapses, partly due to the rain.<br />\n<br />\nThis makes you sad, and you lose a point.",
+      "uuid": "c4bbb96d-e080-4de4-a600-1f30b7eec2c2"
+    },
+    {
+      "id": 297,
+      "idCreator": 1,
+      "idText": 297,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il campo che hai tentato di costruire crolla anche a causa delle pioggia.<br />\n<br />\nLa cosa ti rende triste e perdi un punto",
+      "shortText": "Il campo che hai tentato di costruire crolla anche a causa delle pioggia.<br />\n<br />\nLa cosa ti rende triste e perdi un punto",
+      "uuid": "50839b5c-e65f-4711-93c6-d925c0f9621b"
+    },
+    {
+      "id": 298,
+      "idCreator": 1,
+      "idText": 298,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Bo Schoonejans",
+      "shortText": "Bo Schoonejans",
+      "uuid": "db25f5af-565f-4ff4-9eca-e83df93f5281"
+    },
+    {
+      "id": 298,
+      "idCreator": 1,
+      "idText": 298,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "d891dd43-de1c-4de0-ba85-1e790aeefc1a"
     }
   ],
   "title": "Paths Tutorial",
@@ -6455,85 +7783,4 @@
     },
     {
       "constitution": 0,
-      "costNegative": 0,
-      "costPositive": 0,
-      "dexterity": 1,
-      "energy": 0,
-      "id": 5,
-      "idCard": 42,
-      "idClassPermitted": null,
-      "idClassProhibited": 5,
-      "idTextDescription": 130,
-      "idTextName": 86,
-      "intelligence": 0,
-      "life": 0,
-      "sad": -1,
-      "texts": {
-        "en": {
-          "description": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.",
-          "name": "Coward"
-        },
-        "it": {
-          "description": "La sopravvivenza prima di tutto. La prontezza nel fuggire permette di evitare colpi che abbatterebbero i più audaci",
-          "name": "Codardo"
-        }
-      },
-      "uuid": "fc54095e-ae0e-49ae-8641-c26dbf81fac9",
-      "weight": 0
-    },
-    {
-      "constitution": -1,
-      "costNegative": 0,
-      "costPositive": 0,
-      "dexterity": 0,
-      "energy": 0,
-      "id": 6,
-      "idCard": 43,
-      "idClassPermitted": null,
-      "idClassProhibited": 3,
-      "idTextDescription": 131,
-      "idTextName": 87,
-      "intelligence": 0,
-      "life": 1,
-      "sad": 0,
-      "texts": {
-        "en": {
-          "description": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.",
-          "name": "Ancident"
-        },
-        "it": {
-          "description": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria\n",
-          "name": "Divino"
-        }
-      },
-      "uuid": "89a8c863-4f1e-44bc-ab43-d14a6a66fafe",
-      "weight": 0
-    }
-  ],
-  "uuid": "story-001",
-  "versionMax": null,
-  "versionMin": "0.19.3",
-  "visibility": "PUBLIC",
-  "weatherRules": [
-    {
-      "costMoveNotSafeLocation": 1,
-      "costMoveSafeLocation": 1,
-      "id": 1,
-      "idCard": 48,
-      "idText": 135,
-      "id_card": 48,
-      "probability": 50,
-      "uuid": "9efa0012-39cf-4c8b-bc83-505faf9ed0d1"
-    },
-    {
-      "costMoveNotSafeLocation": 3,
-      "costMoveSafeLocation": 3,
-      "id": 2,
-      "idCard": 49,
-      "idText": 136,
-      "id_card": 49,
-      "probability": 50,
-      "uuid": "34c34e37-2875-4684-8a54-0bc77e1adcc2"
-    }
-  ]
-}
+      "costNega

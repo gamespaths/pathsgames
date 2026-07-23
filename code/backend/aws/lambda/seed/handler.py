@@ -266,6 +266,18 @@ SEED_STORIES = [
              "idSpecificLocation": 1, "type": "ONCE", "idCard": 1,
              "idTextName": 611, "idTextDescription": 611,
              "costEnery": 1, "coinCost": 0, "flagEndTime": 0},
+            # Step 32 — the resolution test-bed. Opening 32 costs 3 (unambiguous for the
+            # robot lookup); resolving one of its options costs nothing at all.
+            {"id": 32, "uuid": "evt-step32-resolve", "name": "The Fork",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "idTextName": 616, "idTextDescription": 616,
+             "costEnery": 3, "coinCost": 0, "flagEndTime": 0},
+            # The outcome event an option runs. It lives nowhere (no idSpecificLocation)
+            # and costs 9: a consequence is never charged for, and the robot proves it.
+            {"id": 33, "uuid": "evt-step32-outcome", "name": "Beyond The Fork",
+             "idSpecificLocation": None, "type": "NORMAL", "idCard": 1,
+             "idTextName": 617, "idTextDescription": 617,
+             "costEnery": 9, "coinCost": 0, "flagEndTime": 0},
         ],
         # Step 31 — the options of the two choice-events above (top-level arrays keyed by
         # idChoices, the canonical shape shared with the SQL backends' seeds).
@@ -288,6 +300,21 @@ SEED_STORIES = [
             {"id": 15, "uuid": "ch-step31-once-limit", "idEvent": 31, "priority": 2,
              "idTextName": 613, "idTextDescription": 613, "idCard": 1,
              "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND", "limitDex": 99},
+            # Step 32 — the three options of event 32, one per thing a resolution can do.
+            # idTextNarrative is what Step 31 withholds and the resolution reveals.
+            {"id": 20, "uuid": "ch-step32-progress", "idEvent": 32, "priority": 1,
+             "idTextName": 618, "idTextDescription": 618, "idTextNarrative": 620,
+             "idCard": 1, "otherwiseFlag": 0, "isProgress": 1, "logicOperator": "AND"},
+            # Everything at once: a registry key, an item, a forced move, the weather, and
+            # an event run inline — so one resolution exercises the whole vocabulary.
+            {"id": 21, "uuid": "ch-step32-world", "idEvent": 32, "priority": 2,
+             "idTextName": 619, "idTextDescription": 619, "idTextNarrative": 621,
+             "idCard": 1, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND",
+             "idEventTorun": 33},
+            # Impossible for anyone: proves select-choice re-checks the verdict.
+            {"id": 22, "uuid": "ch-step32-locked", "idEvent": 32, "priority": 3,
+             "idTextName": 613, "idTextDescription": 613, "idCard": 1,
+             "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND", "limitDex": 99},
         ],
         "choiceConditions": [
             {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
@@ -300,6 +327,14 @@ SEED_STORIES = [
             {"id": 7, "idChoices": 12, "statistics": "exp", "value": 2},
             {"id": 8, "idChoices": 14, "statistics": "energy", "value": 1},
             {"id": 9, "idChoices": 15, "statistics": "life", "value": 1},
+            # Step 32 — what each option does when resolved.
+            # idEvent is the EFFECT-level link ("Event to Run (effect)"), distinct from
+            # the choice-level idEventTorun option 21 uses: both mechanisms are seeded.
+            {"id": 20, "idChoices": 20, "idCard": 1, "statistics": "exp", "value": 5,
+             "idEvent": 33},
+            {"id": 21, "idChoices": 21, "idCard": 1, "key": "STEP32_GATE",
+             "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
+             "idLocation": 3, "idWeather": 3},
         ],
         # Step 29 — the EFFECT side. Each row's own idCard is the narrative the board shows.
         "eventEffects": [
@@ -324,6 +359,10 @@ SEED_STORIES = [
             {"id": 11, "idEvent": 26, "idCard": 1, "statistics": "food",  "value": 3, "target": "ONLY_ONE"},
             {"id": 12, "idEvent": 26, "idCard": 1, "statistics": "magic", "value": 2, "target": "ONLY_ONE"},
             {"id": 13, "idEvent": 26, "idCard": 1, "statistics": "coin",  "value": 9, "target": "ONLY_ONE"},
+            # Step 32 — the outcome event (33) an option runs: proves the linked chain
+            # really applies, and that its own cost was never charged.
+            {"id": 20, "idEvent": 33, "idCard": 1, "statistics": "exp", "value": 7,
+             "target": "ONLY_ONE"},
             # v0.29.3 — forced movement: sends the actor to the Hidden Grove (3), a location
             # with no neighbor edge at all — no checks, no movement cost, only the event's
             # own energy cost.
@@ -451,6 +490,36 @@ SEED_STORIES = [
             {"idText": 615, "lang": "en", "shortText": "Shrug and improvise", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 615, "lang": "it", "shortText": "Alza le spalle e improvvisa", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 616, "lang": "en", "shortText": "The Fork", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 616, "lang": "it", "shortText": "Il Bivio", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 617, "lang": "en", "shortText": "Beyond The Fork", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 617, "lang": "it", "shortText": "Oltre Il Bivio", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 618, "lang": "en", "shortText": "Press on alone", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 618, "lang": "it", "shortText": "Prosegui da solo", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 619, "lang": "en", "shortText": "Follow the lantern", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 619, "lang": "it", "shortText": "Segui la lanterna", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            # Step 32 — the narratives. Withheld while the options are pending, revealed
+            # by the resolution: a robot case asserts exactly that.
+            {"idText": 620, "lang": "en",
+             "shortText": "You walk on, and the fork closes behind you.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 620, "lang": "it",
+             "shortText": "Prosegui, e il bivio si chiude alle tue spalle.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 621, "lang": "en",
+             "shortText": "The lantern leads you into the grove.", "longText": None,
+             "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
+            {"idText": 621, "lang": "it",
+             "shortText": "La lanterna ti conduce nel bosco.", "longText": None,
              "idTextCopyright": None, "linkCopyright": None, "idCreator": None},
             {"idText": 2, "lang": "en",
              "shortText": "A short training adventure in the Academy of Paths. "

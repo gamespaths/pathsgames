@@ -326,10 +326,7 @@ class StoryValidatorService(StoryValidatorPort):
         for c in data.get("choices") or []:
             self._collect_choice(g, c)
         for ce in data.get("choiceEffects") or []:
-            cid = _as_int(_get(ce, "idChoices"))
-            if cid is not None:
-                g.choices_with_option.add(cid)
-            self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
+            self._collect_choice_effect(g, ce)
         for cc in data.get("choiceConditions") or []:
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
             ctype = _get(cc, "type")
@@ -390,10 +387,7 @@ class StoryValidatorService(StoryValidatorPort):
         for c in choices:
             self._collect_choice(g, c)
         for ce in rp.find_entities_for_story(story_id, "list_choices_effects"):
-            cid = _as_int(_get(ce, "idChoices"))
-            if cid is not None:
-                g.choices_with_option.add(cid)
-            self._ref(g, "choice-effects", self._str(_get(ce, "id")), "idChoices", _CHOICE, cid)
+            self._collect_choice_effect(g, ce)
         for cc in rp.find_entities_for_story(story_id, "list_choices_conditions"):
             self._ref(g, "choice-conditions", self._str(_get(cc, "id")), "idChoices", _CHOICE, _as_int(_get(cc, "idChoices")))
             ctype = _get(cc, "type")
@@ -445,6 +439,19 @@ class StoryValidatorService(StoryValidatorPort):
         my = _as_int(_get(c, "id"))
         if my is not None:
             g.choice_otherwise[my] = _truthy(_get(c, "otherwiseFlag"))
+
+    def _collect_choice_effect(self, g, ce):
+        """v0.32.0 — a choice effect names the option it belongs to and, since Step 32, the
+        things a resolution can reach. idWeather is deliberately unchecked: this validator
+        has no weather target, exactly as for the event effects."""
+        cid = _as_int(_get(ce, "idChoices"))
+        if cid is not None:
+            g.choices_with_option.add(cid)
+        eid = self._str(_get(ce, "id"))
+        self._ref(g, "choice-effects", eid, "idChoices", _CHOICE, cid)
+        self._ref(g, "choice-effects", eid, "idEvent", _EVENT, _as_int(_get(ce, "idEvent")))
+        self._ref(g, "choice-effects", eid, "idLocation", _LOCATION, _as_int(_get(ce, "idLocation")))
+        self._ref(g, "choice-effects", eid, "idItemTarget", _ITEM, _as_int(_get(ce, "idItemTarget")))
 
     def _collect_event_effect(self, g, ee):
         eid = self._str(_get(ee, "id"))

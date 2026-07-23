@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from app.core.models.match.event_models import (
     STATUS_APPLIED, STATUS_CHOICES_PENDING, AppliedEffect, ChoiceCheckContext,
-    EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
+    ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
     EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
 from app.core.ports.match.edge_state_ports import MSG_ALL_PLAYER_COMA, EdgeStateStorePort
@@ -207,6 +207,255 @@ class EventService(EventPort):
         x.status = STATUS_CHOICES_PENDING
         x.pending_choices = self._build_pending_choices(x, choices)
         return self._build_result(x)
+
+    # ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    def select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
+                      lang: str = "en") -> ChoiceResolutionResult:
+        """Resolve one option of an open choice-event: apply its list_choices_effects, run
+        the events they and id_event_torun point at, record the milestone, close the cycle.
+
+        **Nothing is charged.** The energy, the coins and the ONCE were all spent when the
+        event was opened (Step 31), which is what makes the open-cycle count — not the Step
+        29 availability procedure — the right gate here: re-running that procedure would
+        reject the very event the player has already paid for. The count comparison doubles
+        as the cost-bypass guard, since it is false both for an event never opened and for
+        one already resolved.
+        """
+        user_id = self.store.find_user_id_by_uuid(user_uuid)
+        if user_id is None:
+            raise self._not_found()
+        match = self.store.find_match_for_event(match_uuid)
+        if not match:
+            raise self._not_found()
+        actor = self.store.find_character_by_match_and_user(match["id"], user_id)
+        if not actor:
+            raise self._not_found()
+        if match.get("status") != "RUNNING":
+            raise EventError(EventError.MATCH_NOT_RUNNING, "Match is not RUNNING")
+
+        choice = self.store.find_choice_by_story_and_uuid(match["id_story"], choice_uuid)
+        if not choice:
+            raise EventError(EventError.CHOICE_NOT_FOUND, "Choice not found in this story")
+
+        ctx = self.store.load_check_context(match["id"], actor["id"])
+        # Coma outranks sleep, as everywhere else: a comatose character is also flagged
+        # asleep, and the two are not the same news — one waits, the other needs a rescue.
+        if ctx.coma:
+            raise EventError(EventError.COMA, "Character is in a coma")
+        if ctx.sleeping:
+            raise EventError(EventError.SLEEPING, "Character is sleeping")
+
+        # R8 (Step 31) makes id_event mandatory on import, but the CRUD path is lenient, so
+        # an orphan option can reach the engine — it resolves to no cycle and is rejected.
+        event_id = choice.get("id_event") or 0
+        events_by_id = self.store.find_events_by_id(match["id_story"])
+        event = events_by_id.get(event_id)
+        if not event:
+            raise EventError(EventError.EVENT_NOT_FOUND,
+                             "The event owning this choice does not exist")
+        if self.store.count_log_markers(match["id"], event_id, MSG_EVENT_EXECUTED) \
+                <= self.store.count_log_markers(match["id"], event_id, MSG_CHOICE_SELECTED):
+            raise EventError(EventError.CHOICE_NOT_OPEN,
+                             "No open choice cycle for this event: open it before resolving it")
+
+        x = _Exec(self, match, actor, ctx, lang or "en", event)
+        x.seed_events_by_id(events_by_id)  # already read above — do not pay for it twice
+
+        self._require_still_available(x, choice)
+
+        choice_id = choice.get("id") or 0
+        self._apply_choice_effects(x, choice_id, event_id, event)
+        # The option's own outcome event, last: every effect row has set the stage (a key
+        # written, an item granted) that the outcome event is authored to read.
+        if not x.coma_triggered and x.status != STATUS_CHOICES_PENDING:
+            self._run_linked_event(x, choice.get("id_event_torun"))
+
+        self._resolve_all_player_coma(x)
+        if x.end_time and not x.coma_triggered:
+            self._force_time_end(x)
+
+        self._write_resolution_markers(x, choice, event_id, choice_id)
+
+        return ChoiceResolutionResult(
+            execution=self._build_result(x),
+            choice_uuid=choice.get("uuid"),
+            event_uuid=event.get("uuid"),
+            narrative=self.store.resolve_short_text(
+                match["id_story"], choice.get("id_text_narrative"), x.lang),
+            choice_card=x.resolve_card(choice.get("id_card")),
+            choice_event_uuid=x.choice_event_uuid,
+            choice_event_card=x.choice_event_card,
+            progress_recorded=x.progress_recorded,
+        )
+
+    def _require_still_available(self, x: "_Exec", choice: Dict[str, Any]) -> None:
+        """The option's verdict, re-evaluated now rather than trusted from the open: the
+        world may have moved since the options were served — an item spent, a stat drained,
+        a key flipped — and an option that has become impossible must not resolve."""
+        conditions_by_choice = self.store.find_choice_conditions_by_choice_id(
+            x.match["id_story"])
+        rows = conditions_by_choice.get(choice.get("id"), [])
+        cctx = self._build_choice_context(x, [choice], conditions_by_choice)
+        verdict = choice_availability.check(choice, rows, cctx)
+        if not verdict.available:
+            raise EventError(EventError.CHOICE_NOT_AVAILABLE,
+                             f"Choice cannot be selected: {verdict.reason}")
+
+    def _apply_choice_effects(self, x: "_Exec", choice_id: int, event_id: int,
+                              event: Dict[str, Any]) -> None:
+        """Every list_choices_effects row of the option, in authored (id) order, then the
+        events those rows link to.
+
+        The two phases mirror ``_apply_event`` exactly, and for the same reason. All the
+        rows land first, then the Step 30 rules get their single pass over whoever they
+        touched — so a lethal row does **not** silence its siblings, any more than a lethal
+        effect silences the other effects of its event. What a coma does stop is the
+        consequences: a character who can no longer act does not act out what follows.
+
+        The links run after every row for the same reason the outcome event does: an event
+        authored to read a key the option writes must find it already written.
+        """
+        linked: List[int] = []
+        for effect in self.store.find_choice_effects_by_choice_id(x.match["id_story"], choice_id):
+            self._apply_choice_effect(x, effect, event)
+            if effect.get("id_event"):
+                linked.append(effect["id_event"])
+        # No _apply_event ran for these rows, so the edge pass has to be given here — once,
+        # over everyone the rows touched, exactly where _apply_event would have run it.
+        self._check_edge_states(x, event_id)
+        for link in linked:
+            if x.coma_triggered or x.status == STATUS_CHOICES_PENDING:
+                return  # down, or waiting on the player again: the rest is not ours to run
+            self._run_linked_event(x, link)
+
+    def _apply_choice_effect(self, x: "_Exec", effect: Dict[str, Any],
+                             event: Dict[str, Any]) -> None:
+        """One list_choices_effects row. The vocabulary is the event effects' own — the
+        helpers are literally the same methods, the Step 32 model realignment having given
+        the two tables the same column names — with two differences that come from the
+        table rather than from the engine:
+
+        * who it lands on is ``flag_group``, not ``target``/``target_class``;
+        * the registry pair is ``key``/``value_to_add`` plus a ``value_to_remove`` that
+          events have no equivalent of.
+
+        ``id_event`` is collected rather than run here — see ``_apply_choice_effects``.
+        """
+        recipients = self._resolve_choice_recipients(x, effect)
+
+        # Weather belongs to the MATCH: once per row, however many characters it targets.
+        id_weather = effect.get("id_weather")
+        if id_weather:
+            self.store.set_current_weather(x.match["id"], id_weather)
+            x.weather_applied = True
+
+        touched: List[str] = []
+        for recipient in recipients:
+            touched.append(recipient.get("uuid"))
+            self._apply_stat(x, recipient, effect)
+            self._apply_item(x, recipient, effect)
+            self._apply_movement(x, recipient, effect)
+        self._apply_choice_registry(x, effect, event)
+
+        # The row's OWN card is the narrative, exactly as for an event effect.
+        x.effects.append(AppliedEffect(
+            event_uuid=event.get("uuid"),
+            effect_uuid=effect.get("uuid"),
+            statistic=effect.get("statistics"),
+            value=effect.get("value"),
+            target="ALL" if (effect.get("flag_group") or 0) == 1 else TARGET_ONLY_ONE,
+            target_class=None,
+            character_uuids=touched,
+            card=x.resolve_card(effect.get("id_card")),
+        ))
+
+    def _resolve_choice_recipients(self, x: "_Exec",
+                                   effect: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """INV-46: flag_group = 1 means every character standing in the ACTOR's location —
+        the same set an event effect's target=ALL resolves (INV-27), never every character
+        of the match. Anything else is the acting character alone."""
+        actor_location = x.location_of(x.actor)
+        if (effect.get("flag_group") or 0) != 1 or actor_location is None:
+            return [x.actor]
+        return [c for c in x.all_characters() if x.location_of(c) == actor_location]
+
+    def _apply_choice_registry(self, x: "_Exec", effect: Dict[str, Any],
+                               event: Dict[str, Any]) -> None:
+        """The registry pair of a choice effect. ``value_to_add`` sets the key;
+        ``value_to_remove`` clears it, but only when the stored value actually matches — an
+        option must not be able to wipe a key some other branch of the story has since moved
+        on. Written once per row by the actor: the registry is match-scoped."""
+        key = effect.get("key")
+        if not key:
+            return
+        old = x.ctx.registry.get(key)
+        add = effect.get("value_to_add")
+        remove = effect.get("value_to_remove")
+        if add:
+            value = add
+        elif remove and remove == old:
+            value = None  # clears both value columns — the key reads as unset afterwards
+        else:
+            return
+        self.store.upsert_registry(x.match["id"], key, value, x.actor["id"],
+                                   event.get("id"), x.current_clock)
+        x.ctx.registry[key] = value
+        x.registry_changes.append(RegistryChange(key, old, value))
+
+    def _run_linked_event(self, x: "_Exec", id_event: Optional[int]) -> None:
+        """Run an event a choice points at — ``id_event_torun`` on the option, or
+        ``id_event`` on one of its effect rows.
+
+        A linked event is a **consequence**, so it is neither re-checked nor charged (the
+        Step 29 chain rule). If it is itself a choice-event the resolution does not apply
+        its effects — they are withheld by definition — but presents its options instead,
+        so a story that chains a choice onto a choice keeps working; the options are served
+        free, the open having already been paid for by the choice that led here.
+        """
+        if not id_event or id_event <= 0:
+            return
+        linked = x.events_by_id().get(id_event)
+        if not linked or id_event in x.visited:
+            return  # dangling id, or already run in this resolution
+        if (linked.get("type") or "").strip().upper() == "ONCE" \
+                and id_event in x.ctx.consumed_event_ids:
+            return  # a spent ONCE stays spent, whoever points at it
+
+        nested = self.store.find_choices_by_event_id(x.match["id_story"], id_event)
+        if nested:
+            x.visited.add(id_event)
+            x.ctx.consumed_event_ids.add(id_event)
+            if linked.get("uuid") and linked["uuid"] not in x.executed_event_uuids:
+                x.executed_event_uuids.append(linked["uuid"])
+            self.store.log_event_executed(x.match["id"], x.actor["id"], id_event,
+                                          x.current_clock, f"{MSG_EVENT_EXECUTED} {id_event}")
+            x.status = STATUS_CHOICES_PENDING
+            x.pending_choices = self._build_pending_choices(x, nested)
+            return
+
+        if x.choice_event_uuid is None:
+            x.choice_event_uuid = linked.get("uuid")
+            x.choice_event_card = x.resolve_card(linked.get("id_card"))
+        self._run_chain(x, linked)
+
+    def _write_resolution_markers(self, x: "_Exec", choice: Dict[str, Any],
+                                  event_id: int, choice_id: int) -> None:
+        """Close the cycle. All three rows describe a resolution that has already happened —
+        the effects and the linked events ran first, so a failure midway leaves no marker
+        claiming otherwise.
+
+        The CHOICE_SELECTED marker carries the OWNING EVENT's id, never the option's:
+        count_log_markers pairs it against EVENT_EXECUTED by event, and a row stamped with
+        the choice id would leave the cycle open for ever.
+        """
+        self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
+                                      x.current_clock, f"{MSG_CHOICE_SELECTED} {event_id}")
+        self.store.log_choice_executed(x.match["id"], event_id, choice_id, x.current_clock,
+                                       f"{MSG_CHOICE_SELECTED} {choice_id}")
+        if (choice.get("is_progress") or 0) == 1:
+            self.store.insert_story_progress(x.match["id"], event_id, choice_id, x.current_clock)
+            x.progress_recorded = True
 
     def _build_pending_choices(self, x: "_Exec",
                                choices: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -783,6 +1032,11 @@ class _Exec:
         # ── Step 31 choices ──
         self.status = STATUS_APPLIED
         self.pending_choices: List[Dict[str, Any]] = []
+        # ── Step 32 resolution ──
+        # The event an effect's id_event ran: the card the board narrates with.
+        self.choice_event_uuid: Optional[str] = None
+        self.choice_event_card: Optional[Dict[str, Any]] = None
+        self.progress_recorded = False
         self.end_time = False
         self.time_ended = False
         self.item_added = False
@@ -818,6 +1072,11 @@ class _Exec:
         if self._events_by_id is None:
             self._events_by_id = self._service.store.find_events_by_id(self.match["id_story"])
         return self._events_by_id
+
+    def seed_events_by_id(self, events_by_id: Dict[int, Dict[str, Any]]) -> None:
+        """Hand over a map the caller has already read — select_choice needs it to resolve
+        the owning event before the accumulator even exists."""
+        self._events_by_id = events_by_id
 
     def effects_by_event(self) -> Dict[int, List[Dict[str, Any]]]:
         if self._effects_by_event is None:

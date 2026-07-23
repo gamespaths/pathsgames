@@ -191,6 +191,98 @@ class EventControllerTest {
         }
     }
 
+    // ── select-choice (Step 32) ─────────────────────────────────────────────
+
+    private static final String CHOICE_URL = "/api/gameplay/m1/action/select-choice";
+    private static final String CHOICE_BODY = "{\"choiceUuid\":\"ch-1\"}";
+
+    private static EventExecutionPort.ChoiceResolutionResult resolution() {
+        return new EventExecutionPort.ChoiceResolutionResult(
+                result(), "ch-1", "evt-1", "You push the door open.", card("Open the door"),
+                "evt-linked", card("Beyond the door"), true);
+    }
+
+    @Test
+    void selectChoice_returns200WithTheExecutionBlockAndTheChoiceFields() throws Exception {
+        when(eventExecutionPort.selectChoice("m1", "user-uuid", "ch-1", null))
+                .thenReturn(resolution());
+
+        mockMvc.perform(authed(post(CHOICE_URL)).contentType(APPLICATION_JSON).content(CHOICE_BODY))
+                .andExpect(status().isOk())
+                // the choice-specific block
+                .andExpect(jsonPath("$.choiceUuid").value("ch-1"))
+                .andExpect(jsonPath("$.eventUuid").value("evt-1"))
+                .andExpect(jsonPath("$.narrative").value("You push the door open."))
+                .andExpect(jsonPath("$.choiceCard.title").value("Open the door"))
+                .andExpect(jsonPath("$.choiceEventUuid").value("evt-linked"))
+                .andExpect(jsonPath("$.choiceEventCard.title").value("Beyond the door"))
+                .andExpect(jsonPath("$.progressRecorded").value(true))
+                // …carried on top of the whole execute-event payload, so the board has one path
+                .andExpect(jsonPath("$.matchUuid").value("m1"))
+                .andExpect(jsonPath("$.status").value("APPLIED"))
+                .andExpect(jsonPath("$.statChanges[0].statistic").value("life"))
+                .andExpect(jsonPath("$.registryChanges[0].key").value("GATE"))
+                .andExpect(jsonPath("$.itemChanges[0].itemUuid").value("item-1"))
+                .andExpect(jsonPath("$.locationChanges[0].toLocationUuid").value("loc-b"))
+                .andExpect(jsonPath("$.effects[0].card.title").value("A wound"))
+                .andExpect(jsonPath("$.edgeState.allPlayersInComa").value(true));
+    }
+
+    @Test
+    void selectChoice_passesTheLangThrough() throws Exception {
+        when(eventExecutionPort.selectChoice("m1", "user-uuid", "ch-1", "it"))
+                .thenReturn(resolution());
+
+        mockMvc.perform(authed(post(CHOICE_URL)).param("lang", "it")
+                        .contentType(APPLICATION_JSON).content(CHOICE_BODY))
+                .andExpect(status().isOk());
+
+        verify(eventExecutionPort).selectChoice("m1", "user-uuid", "ch-1", "it");
+    }
+
+    @Test
+    void selectChoice_unauthenticated() throws Exception {
+        mockMvc.perform(post(CHOICE_URL).contentType(APPLICATION_JSON).content(CHOICE_BODY))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void selectChoice_missingOrBlankChoiceUuid() throws Exception {
+        for (String body : List.of("{}", "{\"choiceUuid\":\"  \"}")) {
+            mockMvc.perform(authed(post(CHOICE_URL)).contentType(APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("MISSING_CHOICE"));
+        }
+    }
+
+    @Test
+    void selectChoice_notFoundCodes() throws Exception {
+        for (Code code : List.of(Code.MATCH_NOT_FOUND, Code.EVENT_NOT_FOUND, Code.CHOICE_NOT_FOUND)) {
+            expectChoice(code, status().isNotFound());
+        }
+    }
+
+    @Test
+    void selectChoice_conflictCodes() throws Exception {
+        // Both Step 32 states are things the player can act on: open the event, or change
+        // the world — never a missing entity, hence 409 and not 404.
+        for (Code code : List.of(Code.CHOICE_NOT_OPEN, Code.CHOICE_NOT_AVAILABLE,
+                Code.MATCH_NOT_RUNNING, Code.SLEEPING, Code.COMA)) {
+            expectChoice(code, status().isConflict());
+        }
+    }
+
+    private void expectChoice(Code code, org.springframework.test.web.servlet.ResultMatcher status)
+            throws Exception {
+        doThrow(new EventExecutionException(code, "nope"))
+                .when(eventExecutionPort).selectChoice(anyString(), anyString(), anyString(), any());
+
+        mockMvc.perform(authed(post(CHOICE_URL)).contentType(APPLICATION_JSON).content(CHOICE_BODY))
+                .andExpect(status)
+                .andExpect(jsonPath("$.error").value(code.name()));
+    }
+
     /**
      * Re-stubs with doThrow, not when(...).thenThrow: the latter would CALL the already-stubbed
      * mock while building the matcher and blow up in the test instead of in the controller.

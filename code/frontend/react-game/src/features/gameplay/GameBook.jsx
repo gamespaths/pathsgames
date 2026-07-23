@@ -4,7 +4,7 @@ import LocationCard from './cards/LocationCard'
 import PlayerStats from './cards/PlayerStats'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
-import { endMatch, getMatchClock, getMatchWeather, getMatchLocations } from '../../api/matches'
+import { endMatch, getMatchClock, getMatchWeather, getMatchLocations, selectChoice } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
@@ -135,6 +135,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // the RIGHT page (PendingChoicesList). Kept apart from previewLeft/right so an (i)
   // preview of an option can overlay the RIGHT page and closing it returns to the list.
   const [pendingChoices, setPendingChoices] = useState(null) // { card, choices } | null
+  // Step 32 — true while select-choice is in flight, so a double click cannot resolve the
+  // same option twice (the second call would answer CHOICE_NOT_OPEN anyway, but the board
+  // should not have to learn that from an error).
+  const [choiceInFlight, setChoiceInFlight] = useState(false)
   const [statisticsCards, setStatisticsCards] = useState(false)
   // Step 0.28.5 — the world map view: MapPage on the LEFT page, the current
   // location on the RIGHT page. Opened by MapCard in the statistics list.
@@ -459,9 +463,61 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     setPreviewRight(null)
     eventEffectActiveRef.current = false
   }
-  // Step 31 — picking an option. Selection (POST select-choice + its effects) is Step 32;
-  // until then a pick simply ends the event, exactly like the "do nothing" exit.
-  const handleSelectChoice = () => closeChoices()
+  // Step 32 — picking an option: POST select-choice, then narrate what it did.
+  //
+  // The board reloads first (the resolution may have moved the character, changed the
+  // weather or written a key), which puts the LEFT page back on the current location —
+  // the roadmap's "riparte dalla current location", and the whole of what the id_location
+  // case needs. The RIGHT page then shows the linked event's card when the option ran
+  // one, else the effect narrative, exactly as an executed event does.
+  const handleSelectChoice = async (choice) => {
+    if (!choice?.uuid || choiceInFlight) return
+    setChoiceInFlight(true)
+    try {
+      const result = await selectChoice(matchUuid, choice.uuid, user?.accessToken, lang)
+      handleReloadClockWeatherAndMatchData()
+      setLoading(true)
+      // A linked choice-event: the story chained one choice onto another, so the options
+      // list is re-armed rather than closed.
+      if (result?.status === 'CHOICES_PENDING') {
+        eventEffectActiveRef.current = true
+        setPreviewRight(null)
+        setPendingChoices({ card: result.card ?? null, choices: result.pendingChoices ?? [] })
+        return
+      }
+      closeChoices()
+      // The event an effect ran inline wins over the last effect card: the roadmap asks
+      // for "la card del evento" on the right page.
+      const narrative = result?.choiceEventCard ?? lastEffectCard(result)
+      // Arm the weather effect: if the option also changed the weather, the async reload
+      // attaches a forward arrow to this card instead of covering it — "prima id_event,
+      // poi id_weather".
+      eventEffectActiveRef.current = !!narrative
+      if (narrative) {
+        handleSelectionPreviewFull(narrative, 'event', null,
+          statChangeItems(result, playerUuid, t), true, {}, 'right')
+      }
+      // Step 30 — an edge state outranks the narrative: falling into a coma or being
+      // crushed by sadness is the news, not whatever the option said on the way there.
+      const edge = result?.edgeState
+      if (edge?.allPlayersInComa) {
+        eventEffectActiveRef.current = true
+        setPreviewLeft({ kind: 'coma', allPlayers: true, card: edge.comaEventCard ?? null })
+      } else if (edge?.comaUuids?.includes(playerUuid)) {
+        eventEffectActiveRef.current = true
+        setPreviewLeft({ kind: 'coma', allPlayers: false, card: null })
+      } else if (edge?.sadnessOverflowUuids?.includes(playerUuid)) {
+        eventEffectActiveRef.current = true
+        setPreviewLeft({ kind: 'sad' })
+      }
+    } catch (e) {
+      // The option stays on screen: the cycle is still open, so retrying is legal.
+      onError?.(e?.response?.data?.error || e?.message || 'select-choice-failed')
+    } finally {
+      setChoiceInFlight(false)
+      setLoading(false)
+    }
+  }
   const previewRightContent =
     previewRight?.kind === 'weather'
       ? <WeatherCard weather={weather} story={story} onBack={closeRight} />
@@ -584,7 +640,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // (checked first), so closing that overlay returns here to the list.
     : pendingChoices ? <PendingChoicesList story={story} choices={pendingChoices.choices}
         onPreview={handleSelectionPreviewFull} onSelect={handleSelectChoice}
-        onDoNothing={closeChoices} />
+        busy={choiceInFlight} onDoNothing={closeChoices} />
     // Step 0.28.5 — while the map fills the left page, the right page shows
     // the location selected on the map, else the current location.
     : mapView ? (mapSelected

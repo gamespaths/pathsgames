@@ -272,3 +272,41 @@ def test_unknown_types_and_operator_default():
     # A missing operator defaults to =.
     assert ch.check_choice(choice(), [cond("KEYS", "gate", "OPEN", None)],
                            cctx(registry={"gate": "OPEN"})) == (True, None)
+
+
+# ── Step 32 lookups ─────────────────────────────────────────────────────────
+
+def test_choice_by_uuid_finds_the_option_and_tolerates_a_blank():
+    story = {"choices": [{"id": 1, "uuid": "ch-1"}, {"id": 2, "uuid": "ch-2"}]}
+
+    assert ch.choice_by_uuid(story, "ch-2")["id"] == 2
+    assert ch.choice_by_uuid(story, "nope") is None
+    assert ch.choice_by_uuid(story, None) is None
+    assert ch.choice_by_uuid(story, "  ") is None
+
+
+def test_effects_for_choice_keeps_the_options_rows_in_authored_order():
+    story = {"choiceEffects": [
+        {"id": 9, "idChoices": 20}, {"id": 2, "idChoices": 20},
+        {"id": 5, "idChoices": 21}, {"id": 7, "idChoices": None},
+    ]}
+
+    rows = ch.effects_for_choice(story, 20)
+
+    # Authored order, so a later row builds on what an earlier one wrote.
+    assert [r["id"] for r in rows] == [2, 9]
+
+
+def test_choice_recipients_is_location_scoped_under_flag_group():
+    """INV-46: the group is who stands where the actor stands, not the whole match."""
+    actor = {"uuid": "a", "idLocation": 1}
+    here = {"uuid": "b", "idLocation": 1}
+    away = {"uuid": "c", "idLocation": 2}
+    party = [actor, here, away]
+
+    assert ch.choice_recipients({"flagGroup": 1}, actor, party) == [actor, here]
+    assert ch.choice_recipients({"flagGroup": 0}, actor, party) == [actor]
+    assert ch.choice_recipients({}, actor, party) == [actor]
+    # An unplaced actor has no location to share: the row lands on them alone.
+    unplaced = {"uuid": "a", "idLocation": None}
+    assert ch.choice_recipients({"flagGroup": 1}, unplaced, party) == [unplaced]

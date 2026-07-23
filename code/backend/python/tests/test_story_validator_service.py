@@ -256,3 +256,28 @@ def test_validate_story_by_uuid_not_found():
     rp = MagicMock()
     rp.find_story_by_uuid.return_value = None
     assert StoryValidatorService(rp).validate_story_by_uuid("ghost") is None
+
+
+# ── choice-effect references (v0.32.0 resolution targets) ───────────────────
+
+@pytest.mark.parametrize("field", ["idEvent", "idLocation", "idItemTarget"])
+def test_dangling_choice_effect_target_is_reported(field):
+    """Every new target is checked against the story it names.
+
+    idWeather is deliberately absent: this validator has no weather target, exactly as
+    for the event effects.
+    """
+    s = valid_story()
+    s["choiceEffects"] = [{"id": 1, "idChoices": 1, field: 99}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid(), f"{field} should not validate"
+    assert any(e.field_name == field for e in report.errors), \
+        f"{field} missing from: {[e.field_name for e in report.errors]}"
+
+
+def test_real_choice_effect_targets_pass():
+    s = valid_story()
+    s["choiceEffects"] = [{"id": 1, "idChoices": 1, "idEvent": 2, "idLocation": 2,
+                           "idWeather": 1, "idItemTarget": 1, "itemAction": "ADD"}]
+    report = validator().validate_import_data(s)
+    assert report.is_valid(), f"expected valid, got: {[e.field_name for e in report.errors]}"

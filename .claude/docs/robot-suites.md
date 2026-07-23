@@ -28,6 +28,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `29_events` | Step 29 normal events (see breakdown below) |
 | `30_edge_states` | Step 30 sadness overflow / coma edge states |
 | `31_choices` | Step 31 choice engine (see breakdown below) |
+| `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 
 ### `28_movement` breakdown
 
@@ -67,6 +68,22 @@ plus the validator keys-filter fix (a `statistics` condition imports clean). Cho
 addressed by **behaviour** (a location-bound NORMAL/ONCE event that owns choices), never by
 uuid; each pristine-event test runs on its **own match** (`Fresh Choice Match`), since opening
 a choice-event latches the per-match `EVENT_EXECUTED` marker.
+
+### `32_choice_resolution` breakdown
+
+`choice_resolution.robot` (11 tests) — `POST /api/gameplay/{uuid}/action/select-choice`:
+an option's effects land and its narrative (withheld by Step 31) is revealed, while energy
+and coins stay untouched — the open already paid; the cost-bypass guard from both sides
+(`CHOICE_NOT_OPEN` before an open **and** after a resolution); `CHOICE_NOT_AVAILABLE` when
+the verdict is re-evaluated at pick time; `CHOICE_NOT_FOUND` / `MISSING_CHOICE`; the rich
+option applying the whole v0.32.0 vocabulary at once (registry key, item, forced move to a
+location no neighbor edge reaches, weather, and a linked event run inline and never charged
+for); `is_progress` recording a milestone and an ordinary option not; and reopening a
+*resolved* choice-event charging afresh — unlike the Step 31 re-fetch of a still-open cycle.
+The test-bed (seeded NORMAL `90032` cost 3, outcome event `90033` cost 9) is addressed by
+**behaviour** (the location-bound choice-event whose options carry a narrative), never by
+uuid; every case runs on its **own match** (`Fresh Resolution Match`), since opening latches
+the `EVENT_EXECUTED` marker and resolving latches the `CHOICE_SELECTED` one.
 
 ## Seed data and reports per backend
 

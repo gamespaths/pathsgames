@@ -242,6 +242,14 @@
       "do": "Do",
       "doNothing": "Do nothing",
       "unavailable": "Unavailable",
+      "resolving": "Loading",
+      "error": {
+        "CHOICE_NOT_OPEN": "This event is no longer open — reopen it to choose again.",
+        "CHOICE_NOT_AVAILABLE": "That option is no longer possible.",
+        "CHOICE_NOT_FOUND": "That option does not exist in this story.",
+        "SLEEPING": "You are asleep and cannot choose.",
+        "COMA": "You are in a coma and cannot choose."
+      },
       "reason": {
         "LIMIT_SAD_EXCEEDED": "Too sad",
         "LIMIT_DEX_NOT_MET": "Dexterity",
@@ -256,6 +264,21 @@
         "CONDITION_STATISTICS_NOT_MET": "Stats",
         "CONDITION_STATISTICS_SUM_NOT_MET": "Party stats",
         "CONDITIONS_NOT_MET": "Locked"
+      },
+      "longReason": {
+        "LIMIT_SAD_EXCEEDED": "Your character is too sad",
+        "LIMIT_DEX_NOT_MET": "Your character's dexterity is too low",
+        "LIMIT_INT_NOT_MET": "Your character's intelligence is too low",
+        "LIMIT_COS_NOT_MET": "Your character's constitution is too low",
+        "CONDITION_KEYS_NOT_MET": "You are missing some keys",
+        "CONDITION_ITEM_NOT_MET": "You are missing an item",
+        "CONDITION_CLASS_NOT_MET": "Your class does not meet the requirement",
+        "CONDITION_LOCATION_NOT_MET": "You are in the wrong location",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Not all party members are in this location",
+        "CONDITION_TRAITS_NOT_MET": "Your character does not have the required trait",
+        "CONDITION_STATISTICS_NOT_MET": "Your character's stats do not meet the requirement",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Your party's stats do not meet the requirement",
+        "CONDITIONS_NOT_MET": "You do not meet the requirements"
       }
     },
     "location": {

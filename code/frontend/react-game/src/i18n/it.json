@@ -69,7 +69,7 @@
       "title": "Bonus",
       "lifeMax": "Vita",
       "energyMax": "Energia",
-      "sadMax": "Felicità",
+      "sadMax": "Tristezza",
       "dexterityStart": "Destrezza",
       "intelligenceStart": "Intelligenza",
       "constitutionStart": "Fisico",
@@ -88,7 +88,7 @@
       "totals": {
         "life": "Vita",
         "energy": "Energia",
-        "sad": "Felicità",
+        "sad": "Tristezza",
         "dexterity": "Destrezza",
         "intelligence": "Intelligenza",
         "constitution": "Fisico",
@@ -166,7 +166,7 @@
     "stats": {
       "life": "Vita",
       "energy": "Energia",
-      "sadness": "Felicità",
+      "sadness": "Tristezza",
       "experience": "EXP",
       "food": "Cibo",
       "magic": "Magia",
@@ -205,7 +205,7 @@
       "confirm": "Dormi",
       "cancel": "Annulla",
       "sleeping": "Sta dormendo",
-      "unsafeLocation": "Non ti trovi in un luogo sicuro, quindi recupererai solo l'energia scelta nella difficoltà:",
+      "unsafeLocation": "Non ti trovi in un luogo sicuro, recupererai",
       "safeLocation": "Ti trovi in un luogo sicuro. Recupererai:"
     },
     "sad": {
@@ -225,9 +225,17 @@
     "choices": {
       "title": "Scegli la tua strada",
       "hint": "Hai già pagato per aprire questo. Scegli un'opzione, o vattene — il pedaggio resta pagato.",
-      "do": "Fai",
+      "do": "Scegli",
       "doNothing": "Non fare nulla",
       "unavailable": "Non disponibile",
+      "resolving": "Loading",
+      "error": {
+        "CHOICE_NOT_OPEN": "Questo evento non è più aperto: riaprilo per scegliere di nuovo.",
+        "CHOICE_NOT_AVAILABLE": "Questa opzione non è più possibile.",
+        "CHOICE_NOT_FOUND": "Questa opzione non esiste in questa storia.",
+        "SLEEPING": "Stai dormendo e non puoi scegliere.",
+        "COMA": "Sei in coma e non puoi scegliere."
+      },
       "reason": {
         "LIMIT_SAD_EXCEEDED": "Troppa tristezza",
         "LIMIT_DEX_NOT_MET": "Destrezza",
@@ -241,6 +249,21 @@
         "CONDITION_TRAITS_NOT_MET": "Tratto",
         "CONDITION_STATISTICS_NOT_MET": "Statistiche",
         "CONDITION_STATISTICS_SUM_NOT_MET": "Statistiche gruppo",
+        "CONDITIONS_NOT_MET": "Bloccato"
+      },
+      "longReason": {
+        "LIMIT_SAD_EXCEEDED": "Il personaggio ha troppa tristezza",
+        "LIMIT_DEX_NOT_MET": "Il personaggio ha poca destrezza",
+        "LIMIT_INT_NOT_MET": "Il personaggio ha poca intelligenza",
+        "LIMIT_COS_NOT_MET": "Il personaggio ha poca costituzione",
+        "CONDITION_KEYS_NOT_MET": "Manca un registro per eseguire questa scelta",
+        "CONDITION_ITEM_NOT_MET": "Manca un oggetto per eseguire questa scelta",
+        "CONDITION_CLASS_NOT_MET": "La classe del personaggio non può eseguire questa scelta",
+        "CONDITION_LOCATION_NOT_MET": "Il personaggio non si trova nel luogo corretto",
+        "CONDITION_ALL_IN_SAME_LOC_NOT_MET": "Tutti i personaggi devono trovarsi in questo luogo",
+        "CONDITION_TRAITS_NOT_MET": "Il personaggio non ha il tratto richiesto",
+        "CONDITION_STATISTICS_NOT_MET": "Le statistiche del personaggio non soddisfano il requisito",
+        "CONDITION_STATISTICS_SUM_NOT_MET": "Le statistiche del gruppo non soddisfano il requisito",
         "CONDITIONS_NOT_MET": "Bloccato"
       }
     },

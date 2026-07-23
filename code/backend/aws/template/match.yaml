@@ -228,6 +228,15 @@ Resources:
       RouteKey: "POST /api/gameplay/{uuidMatch}/action/execute-event"
       Target: !Sub "integrations/${MatchIntegration}"
 
+  # Step 32 — choice resolution (player API). Without this route API Gateway answers 404
+  # before the lambda is ever reached, whatever the handler does.
+  SelectChoiceRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiId
+      RouteKey: "POST /api/gameplay/{uuidMatch}/action/select-choice"
+      Target: !Sub "integrations/${MatchIntegration}"
+
   GetLocationsRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:

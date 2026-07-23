@@ -11,6 +11,8 @@ import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateLocationsRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.GamingStoryProgressRepository;
+import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 
@@ -41,7 +43,10 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     private final GamingInventoryItemsRepository inventoryRepository;
     private final LogEventsRepository logEventsRepository;
     private final LogMovementRepository logMovementRepository;
+    private final LogChoicesExecutedRepository logChoicesRepository;
+    private final GamingStoryProgressRepository storyProgressRepository;
 
+    @SuppressWarnings("java:S107") // one collaborator per table a match delete has to clear
     public MatchPersistenceAdapter(GamingMatchRepository matchRepository,
                                    GamingStateLocationsRepository locationsRepository,
                                    GamingStateRegistryRepository registryRepository,
@@ -50,7 +55,9 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
                                    GamingCharacterTraitsRepository characterTraitsRepository,
                                    GamingInventoryItemsRepository inventoryRepository,
                                    LogEventsRepository logEventsRepository,
-                                   LogMovementRepository logMovementRepository) {
+                                   LogMovementRepository logMovementRepository,
+                                   LogChoicesExecutedRepository logChoicesRepository,
+                                   GamingStoryProgressRepository storyProgressRepository) {
         this.matchRepository = matchRepository;
         this.locationsRepository = locationsRepository;
         this.registryRepository = registryRepository;
@@ -60,6 +67,8 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         this.inventoryRepository = inventoryRepository;
         this.logEventsRepository = logEventsRepository;
         this.logMovementRepository = logMovementRepository;
+        this.logChoicesRepository = logChoicesRepository;
+        this.storyProgressRepository = storyProgressRepository;
     }
 
     /** Removes the per-match character rows (traits, inventory, backpack, instance) for the given match ids. */
@@ -71,6 +80,11 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
         // PostgreSQL), so they must be cleared before the instances themselves are deleted.
         logEventsRepository.deleteByMatchIdIn(matchIds);
         logMovementRepository.deleteByMatchIdIn(matchIds);
+        // Step 32 — the choice history and the milestone rows. They hang off the match, not
+        // off a character, but SQLite does not enforce the schema's ON DELETE CASCADE, so a
+        // delete that skipped them would leave orphans behind on the dev database.
+        logChoicesRepository.deleteByMatchIdIn(matchIds);
+        storyProgressRepository.deleteByMatchIdIn(matchIds);
         characterRepository.deleteByMatchIdIn(matchIds);
     }
 

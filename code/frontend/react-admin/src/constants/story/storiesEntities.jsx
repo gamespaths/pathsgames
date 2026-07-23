@@ -246,7 +246,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
 //      { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' }, //quiquiqui
       { key: 'idEvent', label: 'Event ID', type: 'number' },
-      { key: 'idLocation', label: 'Location ID', type: 'number' },
+      //{ key: 'idLocation', label: 'Location ID', type: 'number' }, deprecated
       { key: 'priority', label: 'Priority', type: 'number' },
       { key: 'idTextNarrative', label: 'Narrative Text ID', type: 'number' },
       { key: 'idEventTorun', label: 'Event to Run ID', type: 'number' },
@@ -266,17 +266,26 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'operator', label: 'Operator', type: 'select', options: CHOICE_CONDITION_OPERATOR_OPTIONS },
     ],
     'choice-effects': [
-      { key: 'idCard', label: 'Card ID', type: 'number' },
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
       { key: 'idTextName', label: 'Name Text ID', type: 'number' },
       { key: 'idChoices', label: 'Choice ID', type: 'number' },
       { key: 'idScelta', label: 'Scelta ID', type: 'number' },
-      { key: 'flagGroup', label: 'Flag Group', type: 'number' },
-      { key: 'statistics', label: 'Statistic', type: 'text' },
+      // v0.32.0 — INV-46: 1 = every character in the actor's location, anything else = the actor alone.
+      { key: 'flagGroup', label: 'Flag Group (1 = whole location)', type: 'number' },
+      { key: 'statistics', label: 'Statistic', type: 'select', options: EVENT_EFFECT_STATISTICS_OPTIONS },
       { key: 'value', label: 'Value', type: 'number' },
       { key: 'idText', label: 'Text ID', type: 'number' },
-      { key: 'key', label: 'Key', type: 'text' },
-      { key: 'valueToAdd', label: 'Value to Add', type: 'text' },
-      { key: 'valueToRemove', label: 'Value to Remove', type: 'text' },
+      { key: 'key', label: 'Registry Key', type: 'text' },
+      { key: 'valueToAdd', label: 'Registry Value to Write', type: 'text' },
+      // Clears the key only when the stored value still matches.
+      { key: 'valueToRemove', label: 'Registry Value to Clear (must match)', type: 'text' },
+      // v0.32.0 (Step 32) — the effect targets a resolved choice can reach. Twins of the
+      // list_events_effects columns above, so the engine applies both the same way.
+      { key: 'idItemTarget', label: 'Item Target ID', type: 'number' },
+      { key: 'itemAction', label: 'Item Action', type: 'select', options: ITEM_ACTION_OPTIONS },
+      { key: 'idLocation', label: 'Move To Location ID (effect)', type: 'number' }, //quiquiqui
+      { key: 'idWeather', label: 'Weather to Set (effect)', type: 'number' },
+      { key: 'idEvent', label: 'Event to Run (effect)', type: 'number' },
     ],
     'weather-rules': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -448,7 +457,7 @@ export const STORIES_ENTITIES_COLUMNS = {
     choices: [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },
       { key: 'idEvent', label: 'Event ID' },      
-      { key: 'idLocation', label: 'Location ID' },
+      //quiquiqui { key: 'idLocation', label: 'Location ID' }, //deprecated, use choice-conditions instead
       { key: 'priority', label: 'Priority' },
       { key: 'idTextNarrative', label: 'Narrative Text ID' },
       { key: 'logicOperator', label: 'Logic Op.' },

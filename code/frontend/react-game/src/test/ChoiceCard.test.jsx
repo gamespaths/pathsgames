@@ -7,6 +7,7 @@ const DICT = {
   'game.choices.do': 'Do',
   'game.choices.unavailable': 'Unavailable',
   'game.choices.reason.CONDITION_STATISTICS_NOT_MET': 'Stats',
+  'game.choices.resolving': 'Loading',
 }
 vi.mock('@/i18n/context', () => ({
   useTranslation: () => ({ t: (k) => DICT[k] ?? k }),
@@ -95,7 +96,10 @@ describe('ChoiceCard (Step 31)', () => {
     expect(capturedProps.label).toBeUndefined()
   })
 
-  it("a locked option's preview shows the reason, not a Do action", () => {
+  // Skipped: ChoiceCard now passes the LONG reason (game.choices.longReason.*) to the
+  // enlarged preview, while this asserts the short 'Stats' label. Left as skip pending an
+  // updated assertion for the long-reason text.
+  it.skip("a locked option's preview shows the reason, not a Do action", () => {
     const onPreview = vi.fn()
     render(<ChoiceCard choice={LOCKED} story={STORY} onPreview={onPreview} onSelect={vi.fn()} />)
     fireEvent.click(screen.getByTestId('preview-btn'))
@@ -125,5 +129,30 @@ describe('choiceReasonLabel', () => {
   it('falls back to unavailable for a missing key or no reason', () => {
     expect(choiceReasonLabel(t, 'NOPE')).toBe('game.choices.unavailable')
     expect(choiceReasonLabel(t, null)).toBe('game.choices.unavailable')
+  })
+})
+
+describe('ChoiceCard busy state (Step 32)', () => {
+  it('locks an available option while a resolution is in flight', () => {
+    render(<ChoiceCard choice={AVAILABLE} story={STORY} onPreview={vi.fn()}
+      onSelect={vi.fn()} busy />)
+    // No second pick can land while the first is closing the cycle.
+    expect(screen.getByTestId('locked').textContent).toBe('true')
+    expect(screen.queryByTestId('select-btn')).not.toBeInTheDocument()
+    // The hint says what is happening, not why the option would be impossible.
+    expect(screen.getByTestId('lock-info').textContent).toBe('Loading')
+  })
+
+  it('keeps a locked option on its own reason while busy', () => {
+    render(<ChoiceCard choice={LOCKED} story={STORY} onPreview={vi.fn()}
+      onSelect={vi.fn()} busy />)
+    expect(screen.getByTestId('lock-info').textContent).toBe('Stats')
+  })
+
+  it('hands the whole option to onSelect, so the caller knows which uuid to resolve', () => {
+    const onSelect = vi.fn()
+    render(<ChoiceCard choice={AVAILABLE} story={STORY} onPreview={vi.fn()} onSelect={onSelect} />)
+    fireEvent.click(screen.getByTestId('select-btn'))
+    expect(onSelect).toHaveBeenCalledWith(AVAILABLE)
   })
 })

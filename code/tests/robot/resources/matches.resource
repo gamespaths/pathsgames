@@ -447,6 +447,22 @@ Admin Get Locations
     ...    headers=${headers}    expected_status=${expected_status}
     RETURN    ${response}
 
+Select Choice
+    [Documentation]    POST /api/gameplay/{uuidMatch}/action/select-choice — resolve one option of
+    ...                an open choice-event (Step 32). Charges nothing: the energy, the coins and
+    ...                the ONCE were all spent when the event was opened, which is why the only
+    ...                gate is that a cycle really is open for that event.
+    [Arguments]    ${token}    ${match_uuid}    ${choice_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    choiceUuid=${choice_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/select-choice
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
 Execute Event
     [Documentation]    POST /api/gameplay/{uuidMatch}/action/execute-event — trigger a NORMAL/ONCE
     ...                event (Step 29). Whether it can be triggered is already on match-info:

@@ -40,6 +40,8 @@ export const LOCK_REASON_ICONS = {
   WEATHER_CONDITION_NOT_MET: 'fas fa-cloud-sun',
   ITEM_CONDITION_NOT_MET: 'fas fa-flask',
   CLASS_CONDITION_NOT_MET: 'fas fa-hat-wizard',
+
+  LOADING : 'fas fa-spinner fa-spin',
 }
 
 /** The icon for a refusal code; `fa-ban` when the code is unknown or absent. */

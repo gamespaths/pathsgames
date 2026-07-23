@@ -142,6 +142,56 @@ def test_save_entity_and_update_entity(adapter, session_factory):
         text_ent = session.query(TextEntity).filter_by(uuid=text_uuid).first()
         assert text_ent is None
 
+def test_admin_create_of_a_choice_condition_stores_every_field(adapter, session_factory):
+    """The admin sends short/plural keys (idChoices, type, key, value, operator) that do
+    NOT match the DB columns' own camelCase (idChoice, conditionType, ...). Without the
+    alias map the generic save_entity stored an orphaned, empty row — under OR, with no
+    effective conditions, that would open the option to everyone. This pins the fix.
+    """
+    from app.adapters.persistence.story.models import ChoiceConditionEntity
+    story_id = adapter.save_story({"uuid": "test-choice-cond"})
+
+    adapter.save_entity(story_id, "list_choices_conditions", {
+        "uuid": "cc-uuid-1", "idChoices": 42, "type": "CLASS",
+        "value": "1", "operator": "=",
+    })
+
+    with session_factory() as session:
+        row = session.query(ChoiceConditionEntity).filter_by(
+            id_story=story_id, uuid="cc-uuid-1").first()
+        assert row is not None, "the row must exist (no uuid crash)"
+        assert row.id_choice == 42, "the choice link must be stored, not orphaned"
+        assert row.condition_type == "CLASS"
+        assert row.condition_value == "1"
+        assert row.condition_operator == "="
+
+    # Update by uuid maps the short keys too.
+    adapter.update_entity(story_id, "list_choices_conditions", "cc-uuid-1",
+                          {"value": "2", "operator": "!="})
+    with session_factory() as session:
+        row = session.query(ChoiceConditionEntity).filter_by(uuid="cc-uuid-1").first()
+        assert row.condition_value == "2" and row.condition_operator == "!="
+
+
+def test_admin_create_of_a_choice_effect_links_the_choice(adapter, session_factory):
+    """The effect fields already match, but id_choice used the plural idChoices too."""
+    from app.adapters.persistence.story.models import ChoiceEffectEntity
+    story_id = adapter.save_story({"uuid": "test-choice-eff"})
+
+    adapter.save_entity(story_id, "list_choices_effects", {
+        "uuid": "ce-uuid-1", "idChoices": 7, "statistics": "life", "value": -3,
+        "idEvent": 99,
+    })
+
+    with session_factory() as session:
+        row = session.query(ChoiceEffectEntity).filter_by(
+            id_story=story_id, uuid="ce-uuid-1").first()
+        assert row is not None
+        assert row.id_choice == 7, "the effect must attach to its choice"
+        assert row.statistics == "life" and row.value == -3
+        assert row.id_event == 99
+
+
 def test_various_saves(adapter):
     story_id = adapter.save_story({"uuid": "test-uuid-6"})
     
@@ -167,7 +217,10 @@ def test_various_saves(adapter):
         {"id": 2, "idChoices": 1, "type": "KEYS", "key": "gate", "value": "OPEN"},
     ])
     adapter.save_choice_effects(story_id, [
-        {"id": 1, "idChoices": 1, "statistics": "energy", "value": 2}])
+        {"id": 1, "idChoices": 1, "statistics": "energy", "value": 2, "idCard": 4,
+         "flagGroup": 1, "key": "gate", "valueToAdd": "OPEN",
+         "idEvent": 7, "idLocation": 8, "idWeather": 9,
+         "idItemTarget": 10, "itemAction": "ADD"}])
     from app.adapters.persistence.story.models import (
         ChoiceConditionEntity, ChoiceEffectEntity, ChoiceEntity)
     with adapter.session_factory() as session:
@@ -180,7 +233,13 @@ def test_various_saves(adapter):
         assert conds[0].condition_operator == ">"
         assert conds[1].condition_operator == "="  # the comparator default, not AND
         eff = session.query(ChoiceEffectEntity).filter_by(id_story=story_id).first()
-        assert eff.id_choice == 1 and eff.effect_type == "energy" and eff.effect_value == 2
+        # Step 32 realigned the model onto the canonical column names, so an effect the
+        # Java side authored now survives the import intact — including the new targets.
+        assert eff.id_choice == 1 and eff.statistics == "energy" and eff.value == 2
+        assert eff.uuid and eff.id_card == 4 and eff.flag_group == 1
+        assert eff.key == "gate" and eff.value_to_add == "OPEN"
+        assert eff.id_event == 7 and eff.id_location == 8 and eff.id_weather == 9
+        assert eff.id_item_target == 10 and eff.item_action == "ADD"
     adapter.save_cards(story_id, [{"cardType": "test"}])
     adapter.save_keys(story_id, [{"keyName": "key", "keyValue": "val"}])
     adapter.save_traits(story_id, [{"idTextName": 1}])

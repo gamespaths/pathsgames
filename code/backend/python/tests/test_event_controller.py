@@ -1,4 +1,4 @@
-"""Step 29 — tests for the FastAPI event controller."""
+"""Step 29 / Step 32 — tests for the FastAPI event controller."""
 from unittest.mock import MagicMock
 
 import pytest
@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.adapters.rest.match.event_controller import EventController
 from app.core.models.match.event_models import (
-    AppliedEffect, EntityChange, EventError, EventExecutionResult, LocationChange,
-    RegistryChange, StatChange,
+    AppliedEffect, ChoiceResolutionResult, EntityChange, EventError,
+    EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
 
 URL = "/api/gameplay/m1/action/execute-event"
@@ -158,3 +158,110 @@ def test_conflict_codes(env, code):
     r = client.post(URL, json=BODY, headers=AUTH)
     assert r.status_code == 409
     assert r.json()["error"] == code
+
+
+# ── select-choice (Step 32) ─────────────────────────────────────────────────
+
+CHOICE_URL = "/api/gameplay/m1/action/select-choice"
+CHOICE_BODY = {"choiceUuid": "ch-1"}
+
+
+def _resolution() -> ChoiceResolutionResult:
+    return ChoiceResolutionResult(
+        execution=_result(),
+        choice_uuid="ch-1", event_uuid="evt-owner",
+        narrative="You push the door open.",
+        choice_card={"title": "Open the door"},
+        choice_event_uuid="evt-linked",
+        choice_event_card={"title": "Beyond the door"},
+        progress_recorded=True,
+    )
+
+
+def test_select_choice_returns_the_execution_block_and_the_choice_fields(env):
+    client, port = env
+    port.select_choice.return_value = _resolution()
+
+    r = client.post(CHOICE_URL, json=CHOICE_BODY, headers=AUTH)
+
+    assert r.status_code == 200
+    body = r.json()
+    # the choice-specific block
+    assert body["choiceUuid"] == "ch-1"
+    assert body["eventUuid"] == "evt-owner"  # the event that OWNED the option
+    assert body["narrative"] == "You push the door open."
+    assert body["choiceCard"]["title"] == "Open the door"
+    assert body["choiceEventUuid"] == "evt-linked"
+    assert body["choiceEventCard"]["title"] == "Beyond the door"
+    assert body["progressRecorded"] is True
+    # …carried on top of the whole execute-event payload, so the board has one code path
+    assert body["matchUuid"] == "m1"
+    assert body["status"] == "APPLIED"
+    assert body["statChanges"][0]["statistic"] == "life"
+    assert body["registryChanges"][0]["key"] == "GATE"
+    assert body["itemChanges"][0]["itemUuid"] == "item-1"
+    assert body["locationChanges"][0]["toLocationUuid"] == "loc-b"
+    assert body["effects"][0]["card"]["title"] == "A wound"
+    assert body["edgeState"] is not None
+
+
+def test_select_choice_passes_the_lang_through(env):
+    client, port = env
+    port.select_choice.return_value = _resolution()
+
+    client.post(CHOICE_URL + "?lang=it", json=CHOICE_BODY, headers=AUTH)
+
+    port.select_choice.assert_called_once_with("m1", "user-uuid", "ch-1", "it")
+
+
+def test_select_choice_unauthenticated(env):
+    client, _ = env
+    r = client.post(CHOICE_URL, json=CHOICE_BODY)
+    assert r.status_code == 401
+    assert r.json()["error"] == "UNAUTHENTICATED"
+
+
+@pytest.mark.parametrize("body", [{}, {"choiceUuid": "  "}])
+def test_select_choice_missing_choice_uuid(env, body):
+    client, _ = env
+    r = client.post(CHOICE_URL, json=body, headers=AUTH)
+    assert r.status_code == 400
+    assert r.json()["error"] == "MISSING_CHOICE"
+
+
+@pytest.mark.parametrize("code", [
+    EventError.MATCH_NOT_FOUND, EventError.EVENT_NOT_FOUND, EventError.CHOICE_NOT_FOUND,
+])
+def test_select_choice_not_found_codes(env, code):
+    client, port = env
+    port.select_choice.side_effect = EventError(code, "nope")
+    r = client.post(CHOICE_URL, json=CHOICE_BODY, headers=AUTH)
+    assert r.status_code == 404
+    assert r.json()["error"] == code
+
+
+@pytest.mark.parametrize("code", [
+    # Both Step 32 states are things the player can act on: open the event, or change the
+    # world — never a missing entity, hence 409 and not 404.
+    EventError.CHOICE_NOT_OPEN, EventError.CHOICE_NOT_AVAILABLE,
+    EventError.MATCH_NOT_RUNNING, EventError.SLEEPING, EventError.COMA,
+])
+def test_select_choice_conflict_codes(env, code):
+    client, port = env
+    port.select_choice.side_effect = EventError(code, "nope")
+    r = client.post(CHOICE_URL, json=CHOICE_BODY, headers=AUTH)
+    assert r.status_code == 409
+    assert r.json()["error"] == code
+
+
+@pytest.mark.parametrize("url,error", [
+    (URL, "MISSING_EVENT"),
+    (CHOICE_URL, "MISSING_CHOICE"),
+])
+def test_malformed_body_reads_as_an_empty_one(env, url, error):
+    """A body that is not JSON at all must not 500 — it is simply a request that named
+    nothing, which is what the 400 already says."""
+    client, _ = env
+    r = client.post(url, content=b"not json", headers={**AUTH, "content-type": "application/json"})
+    assert r.status_code == 400
+    assert r.json()["error"] == error

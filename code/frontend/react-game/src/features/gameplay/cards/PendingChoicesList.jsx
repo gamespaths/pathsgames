@@ -12,9 +12,12 @@ import ChoiceCard from './ChoiceCard'
  *
  * The whole list disappears when the choice-event is closed (`onDoNothing`, or the event
  * card's back arrow in the parent).
+ *
+ * Step 32 — `busy` is true while a select-choice call is in flight: every option locks,
+ * so a second click cannot resolve a cycle the first one is already closing.
  */
 export default function PendingChoicesList({
-  story, choices = [], onPreview, onSelect, onDoNothing,
+  story, choices = [], onPreview, onSelect, onDoNothing, busy = false,
 }) {
   const { t } = useTranslation()
 
@@ -23,13 +26,14 @@ export default function PendingChoicesList({
       <div className="config-cards-area selection-list">
         {choices.map((choice) => (
           <ChoiceCard
-            
+
             key={choice.uuid ?? choice.name}
             choice={choice}
             story={story}
             onPreview={onPreview}
             previewSide="right"
             onSelect={onSelect}
+            busy={busy}
           />
         ))}
 

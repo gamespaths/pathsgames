@@ -12,7 +12,8 @@ instead of applying `list_events_effects` it presents the choices. A 0-choice ev
 Step 29 flow unchanged, byte for byte.
 
 Selecting an option, applying `list_choices_effects`, running `id_event_torun` and writing the
-`CHOICE_SELECTED` marker are all **Step 32** (choice resolution) — not this step.
+`CHOICE_SELECTED` marker are all [**Step 32**](./Step32_ChoiceResolution.md) (choice
+resolution) — not this step.
 
 ---
 
@@ -49,7 +50,7 @@ options **included** — the board renders the impossible ones greyed out, it ne
 
 | Field | Meaning |
 |---|---|
-| `uuid` | The choice's opaque id — what Step 32's `select-choice` will take. |
+| `uuid` | The choice's opaque id — what [Step 32](./Step32_ChoiceResolution.md)'s `select-choice` takes. |
 | `priority` | Authored presentation order, lowest first. |
 | `name` | Resolved short text of `id_text_name` (requested `lang`, `en` fallback). |
 | `description` | Resolved short text of `id_text_description`. |
@@ -59,14 +60,15 @@ options **included** — the board renders the impossible ones greyed out, it ne
 
 **Deliberately excluded**: the choice's narrative text (`id_text_narrative`) and its outcome
 event (`id_event_torun`) — returning either here would leak the consequence of a choice not yet
-made. Both belong to Step 32's resolution response.
+made. Both belong to [Step 32](./Step32_ChoiceResolution.md)'s resolution response.
 
 ## 3. Idempotent re-fetch (page refresh)
 
 A choice-event **cycle is open** while its `EVENT_EXECUTED` markers outnumber its
 `CHOICE_SELECTED` markers — a count comparison, not a boolean flag (`MSG_CHOICE_SELECTED =
-"CHOICE_SELECTED"` is defined and read starting this step; only Step 32 ever *writes* it, and its
-log row carries the **owning event's** id, not the choice's).
+"CHOICE_SELECTED"` is defined and read starting this step; only
+[Step 32](./Step32_ChoiceResolution.md) ever *writes* it, and its log row carries the **owning
+event's** id, not the choice's).
 
 Re-executing an open choice-event serves the options again as a **pure read**:
 
@@ -145,7 +147,8 @@ false-failed otherwise-legal stories.
 `PendingChoicesCard` (new) renders the options on the reading page when `status ==
 CHOICES_PENDING`: available options are selectable-looking, disabled ones are greyed with their
 `reason`, and a client-side "do nothing" button closes the card without calling any endpoint —
-the cost already paid at open stays paid either way. Selecting an option is Step 32.
+the cost already paid at open stays paid either way. Selecting an option is
+[Step 32](./Step32_ChoiceResolution.md).
 
 ---
 
@@ -185,7 +188,7 @@ Python and AWS mirror the Java engine and validator described above; see
   | 0.31.0 | Choice engine: choice-owning events branch `execute-event` to `status: CHOICES_PENDING` + `pendingChoices[]` instead of applying effects; cost/marker paid on open, idempotent re-fetch; `ChoiceAvailabilityChecker` (limits + 8 condition types, AND/OR); `R8_CHOICE_EVENT` validation rule; `R4_CONDITION_KEY` fix; choices never nested into `/info`; react-game `PendingChoicesCard` | July 22, 2026 |
 
 - **Last Updated**: July 22, 2026
-- **Status**: Complete — resolution (select-choice, `list_choices_effects`, `id_event_torun`, `CHOICE_SELECTED`) is Step 32
+- **Status**: Complete — resolution (select-choice, `list_choices_effects`, `id_event_torun`, `CHOICE_SELECTED`) is [Step 32](./Step32_ChoiceResolution.md)
 
 
 

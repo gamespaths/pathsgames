@@ -1,10 +1,15 @@
-"""Step 29 — FastAPI controller for normal (player-triggered) events.
+"""Step 29 / Step 32 — FastAPI controller for normal events and choice resolution.
 
   POST /api/gameplay/{uuid_match}/action/execute-event  -> 200 | 400 | 401 | 404 | 409
+  POST /api/gameplay/{uuid_match}/action/select-choice  -> 200 | 400 | 401 | 404 | 409
+
+Both live here because they are two halves of one transaction against one port: the first
+opens a choice-event and pays for it, the second spends what was paid.
 
 Whether an event can be triggered at all is already known to the client: every event on
 GET /api/match/{uuid}/info carries an `available` flag and, when false, the same `reason`
-this endpoint would return as its error code.
+this endpoint would return as its error code. The same holds for an option, whose
+`available`/`reason` ride on the execute-event response that served it.
 """
 import time
 from typing import Any, Dict, Optional
@@ -13,8 +18,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from app.core.models.match.event_models import (
-    AppliedEffect, EntityChange, EventError, EventExecutionResult, LocationChange,
-    RegistryChange, StatChange,
+    AppliedEffect, ChoiceResolutionResult, EntityChange, EventError,
+    EventExecutionResult, LocationChange, RegistryChange, StatChange,
 )
 from app.core.ports.match.event_ports import EventPort
 
@@ -35,6 +40,11 @@ _STATUS_BY_CODE = {
     EventError.WEATHER_CONDITION_NOT_MET: 409,
     EventError.ITEM_CONDITION_NOT_MET: 409,
     EventError.CLASS_CONDITION_NOT_MET: 409,
+    # Step 32 — an unknown option is missing; the other two are states the player can
+    # act on (open the event, or change the world) and retry, hence 409 and not 404.
+    EventError.CHOICE_NOT_FOUND: 404,
+    EventError.CHOICE_NOT_OPEN: 409,
+    EventError.CHOICE_NOT_AVAILABLE: 409,
 }
 
 
@@ -131,6 +141,28 @@ def _edge_state_to_camel(e) -> Optional[Dict[str, Any]]:
     }
 
 
+def _resolution_to_camel(r: ChoiceResolutionResult) -> dict:
+    """The whole execute-event payload, plus what only a resolution knows.
+
+    Same shape by construction, so the board runs one code path over both. `eventUuid`
+    keeps its meaning — the event the payload is about — which here is the event that
+    owned the option. `energySpent`/`coinSpent` are always 0: the open already paid.
+    """
+    body = _result_to_camel(r.execution)
+    body.update({
+        "choiceUuid": r.choice_uuid,
+        "eventUuid": r.event_uuid,
+        # Withheld by Step 31 (it would have leaked the consequence of a choice not yet
+        # made), revealed now that the choice is irreversible.
+        "narrative": r.narrative,
+        "choiceCard": r.choice_card,
+        "choiceEventUuid": r.choice_event_uuid,
+        "choiceEventCard": r.choice_event_card,
+        "progressRecorded": r.progress_recorded,
+    })
+    return body
+
+
 class EventController:
     def __init__(self, event_port: EventPort):
         self.event_port = event_port
@@ -138,6 +170,10 @@ class EventController:
         self.router.add_api_route(
             "/api/gameplay/{uuid_match}/action/execute-event",
             self.execute_event, methods=["POST"],
+        )
+        self.router.add_api_route(
+            "/api/gameplay/{uuid_match}/action/select-choice",
+            self.select_choice, methods=["POST"],
         )
 
     async def execute_event(self, uuid_match: str, request: Request, lang: str = "en"):
@@ -156,3 +192,20 @@ class EventController:
         except EventError as exc:
             return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 409))
         return JSONResponse(status_code=200, content=_result_to_camel(result))
+
+    async def select_choice(self, uuid_match: str, request: Request, lang: str = "en"):
+        user_uuid = getattr(request.state, "user_uuid", None)
+        if not user_uuid:
+            return _error("UNAUTHENTICATED", "User identity is missing", 401)
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        choice_uuid = (body or {}).get("choiceUuid")
+        if not choice_uuid or not str(choice_uuid).strip():
+            return _error("MISSING_CHOICE", "choiceUuid is required", 400)
+        try:
+            result = self.event_port.select_choice(uuid_match, user_uuid, choice_uuid, lang)
+        except EventError as exc:
+            return _error(exc.code, exc.message, _STATUS_BY_CODE.get(exc.code, 409))
+        return JSONResponse(status_code=200, content=_resolution_to_camel(result))

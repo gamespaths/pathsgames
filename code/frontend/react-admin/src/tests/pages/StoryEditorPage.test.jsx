@@ -594,4 +594,31 @@ describe('StoryEditorPage', () => {
     expect(await screen.findByText('Select End Game Event')).toBeInTheDocument()
     await userEvent.click(within(screen.getByText('Select End Game Event').closest('.pg-modal')).getByText('Select'))
   })
+
+  // Step 32 — the v0.32.0 choice-effect targets must offer the same pickers their
+  // event-effect twins do: an author picks a location, never types a raw id.
+  it('offers entity pickers for the new choice-effect targets', async () => {
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'locations') return Promise.resolve([{ idLocation: 1, idTextName: 101, uuid: 'loc-1' }])
+      if (type === 'events') return Promise.resolve([{ idEvent: 2, idTextName: 101, uuid: 'ev-2' }])
+      if (type === 'choice-effects') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+
+    await userEvent.click(screen.getByText('Choice Effects'))
+    await userEvent.click(await screen.findByText(/New Choice Effects|New Entity|Add/i))
+
+    // Each target renders the selector trigger, not a bare number input.
+    for (const label of [
+      /Select Move To Location ID \(effect\)/i,
+      /Select Event to Run \(effect\)/i,
+      /Select Weather to Set \(effect\)/i,
+      /Select Item Target ID/i,
+    ]) {
+      expect(await screen.findByTitle(label)).toBeInTheDocument()
+    }
+  })
 })

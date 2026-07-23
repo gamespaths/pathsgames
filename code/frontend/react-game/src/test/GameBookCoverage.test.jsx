@@ -20,6 +20,7 @@ vi.mock('../api/matches', () => ({
   sleepCharacter: vi.fn(),
   startMovement: vi.fn(),
   executeEvent: vi.fn(),
+  selectChoice: vi.fn(),
 }))
 vi.mock('../components/book/Book', () => ({
   default: ({ left, right, onClose }) => (
@@ -48,13 +49,15 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 // the branch behind it can be fired from a test.
 vi.mock('../components/layout/Card', () => ({
   default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose,
-              onForward, actionsList }) => (
+              onForward, actionsList, onSelect, locked, lockInfo }) => (
     <div data-testid={entityType ? `cc-${entityType}` : 'game-card'}>
       <span>{card?.title}</span>{children}{childrenIntoImage}
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
       {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
       {onAction && <button data-testid={`action-${entityType}`} onClick={onAction}>action</button>}
+      {onSelect && <button data-testid={`select-${entityType}`} onClick={onSelect}>select</button>}
+      {locked && <span data-testid={`locked-${entityType}`}>{lockInfo}</span>}
       {(actionsList ?? []).map((a, i) => (
         <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}</button>
       ))}
@@ -63,7 +66,7 @@ vi.mock('../components/layout/Card', () => ({
 }))
 
 import GameBook from '../features/gameplay/GameBook'
-import { executeEvent, getMatchLocations, getMatchWeather } from '../api/matches'
+import { executeEvent, getMatchLocations, getMatchWeather, selectChoice } from '../api/matches'
 
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }
 
@@ -259,6 +262,126 @@ describe('GameBook — the Step 31 choice engine', () => {
     await waitFor(() => expect(getMatchLocations).toHaveBeenCalled())
     expect(screen.getAllByTestId('cc-choice')).toHaveLength(2)
     expect(screen.getAllByTestId('cc-choice')).toHaveLength(2)
+  })
+})
+
+describe('GameBook — the Step 32 choice resolution', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getMatchWeather.mockResolvedValue({ uuid: 'w1', card: { title: 'Sunny' }, costMoveSafeLocation: 0 })
+    getMatchLocations.mockResolvedValue({ matchUuid: 'm1', locations: [] })
+  })
+
+  const PENDING = {
+    status: 'CHOICES_PENDING', effects: [], pendingChoices: [
+      { uuid: 'c1', name: 'Gold Door', available: true, reason: null },
+    ],
+    card: { title: 'The Crossroads' },
+    edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
+  }
+
+  const RESOLVED = {
+    status: 'APPLIED', choiceUuid: 'c1', eventUuid: 'e1',
+    narrative: 'You push the door open.',
+    effects: [{ effectUuid: 'ef1', card: { title: 'A wound' } }],
+    statChanges: [], pendingChoices: [],
+    edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
+  }
+
+  async function openChoices() {
+    executeEvent.mockResolvedValue(PENDING)
+    renderBook()
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    expect(await screen.findByTestId('cc-choice')).toBeInTheDocument()
+  }
+
+  it('resolves the picked option through select-choice and closes the options', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue(RESOLVED)
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    await waitFor(() => expect(selectChoice).toHaveBeenCalledWith('m1', 'c1', 'tok', 'en'))
+    // The options are gone and the LEFT page is back on the current location: the
+    // roadmap's "riparte dalla current location". What is left on the right is the
+    // narrative card, which is the point of the whole exchange.
+    await waitFor(() => expect(screen.queryAllByTestId('cc-choice')).toHaveLength(0))
+    expect(screen.getByText('A wound')).toBeInTheDocument()
+  })
+
+  it('narrates with the linked event card when an effect ran one', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      choiceEventUuid: 'evt-linked',
+      choiceEventCard: { title: 'Beyond the door' },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    // The event's own card wins over the last effect card — "la card del evento".
+    expect(await screen.findByText('Beyond the door')).toBeInTheDocument()
+    expect(screen.queryByText('A wound')).not.toBeInTheDocument()
+  })
+
+  it('falls back to the last effect card when no event was linked', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue(RESOLVED)
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('A wound')).toBeInTheDocument()
+  })
+
+  it('re-arms the options when a linked event is itself a choice-event', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue({
+      status: 'CHOICES_PENDING',
+      card: { title: 'A deeper fork' },
+      pendingChoices: [
+        { uuid: 'c9', name: 'Deeper', available: true, reason: null },
+        { uuid: 'c8', name: 'Back', available: true, reason: null },
+      ],
+      effects: [], statChanges: [],
+      edgeState: { comaUuids: [], sadnessOverflowUuids: [] },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    await waitFor(() => expect(screen.getAllByTestId('cc-choice')).toHaveLength(2))
+    expect(screen.getByTestId('cc-event')).toBeInTheDocument()
+  })
+
+  it('keeps the options open and reports the error when the resolution is refused', async () => {
+    const onError = vi.fn()
+    executeEvent.mockResolvedValue(PENDING)
+    render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY} onError={onError} />)
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+    expect(await screen.findByTestId('cc-choice')).toBeInTheDocument()
+
+    selectChoice.mockRejectedValue({ response: { data: { error: 'CHOICE_NOT_OPEN' } } })
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('CHOICE_NOT_OPEN'))
+    // The cycle may still be open, so retrying is legal: the list stays put.
+    expect(screen.getAllByTestId('cc-choice')).toHaveLength(1)
+  })
+
+  it('shows a coma over the narrative when the option put the party down', async () => {
+    await openChoices()
+    selectChoice.mockResolvedValue({
+      ...RESOLVED,
+      edgeState: {
+        comaUuids: [], sadnessOverflowUuids: [], allPlayersInComa: true,
+        comaEventCard: { title: 'All asleep forever' },
+      },
+    })
+
+    fireEvent.click(screen.getByTestId('select-choice'))
+
+    expect(await screen.findByText('All asleep forever')).toBeInTheDocument()
   })
 })
 

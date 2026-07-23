@@ -11,6 +11,28 @@ from app.adapters.persistence.story.models import (
     MissionEntity, MissionStepEntity, CreatorEntity, CardEntity, KeyEntity
 )
 
+# Distinguishes "the caller sent this column as null" from "the caller did not send it".
+_MISSING = object()
+
+# Admin/import keys that differ from a column's own camelCase, per table. Mirrors the
+# aliases the dedicated save_choice_* methods already accept, so the generic CRUD path
+# stores the same rows the import path does. Order is the fallback order tried.
+_ADMIN_KEY_ALIASES = {
+    "list_choices_conditions": {
+        "id_choice": ("idChoices",),
+        "condition_type": ("type",),
+        "condition_key": ("key",),
+        "condition_value": ("value",),
+        "condition_operator": ("operator",),
+    },
+    "list_choices_effects": {
+        # The effect fields (statistics/value/key/idEvent/…) already match the columns'
+        # own camelCase; only the choice link uses the story-relative plural.
+        "id_choice": ("idChoices",),
+    },
+}
+
+
 def _get_long(data, *keys):
     """Try multiple keys to extract an integer value from data dict."""
     if data is None:
@@ -404,6 +426,10 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             for item in items:
                 kwargs = dict(
                     id_story=story_id,
+                    # Step 32: a choice MUST carry a uuid — select-choice addresses an
+                    # option by it, so a null one makes every option unresolvable. Every
+                    # other save_* has always generated it; list_choices was the gap.
+                    uuid=item.get("uuid") or str(__import__('uuid').uuid4()),
                     id_card=item.get("idCard"),
                     id_event=item.get("idEvent"),
                     id_location=item.get("idLocation"),
@@ -437,6 +463,7 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 cc = ChoiceConditionEntity(
                     id=explicit_id if explicit_id is not None else next_cc_id(),
                     id_story=story_id,
+                    uuid=c.get("uuid") or str(__import__('uuid').uuid4()),
                     id_choice=c.get("idChoices", c.get("idChoice")),
                     condition_type=c.get("type", c.get("conditionType")),
                     condition_key=c.get("key", c.get("conditionKey")),
@@ -456,12 +483,22 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 ce = ChoiceEffectEntity(
                     id=explicit_id if explicit_id is not None else next_ce_id(),
                     id_story=story_id,
+                    uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+                    id_card=ef.get("idCard"),
                     id_choice=ef.get("idChoices", ef.get("idChoice")),
-                    # Canonical rows carry `statistics`/`value` (the Java columns); the
-                    # narrower Python schema stores them as effect_type/effect_value.
-                    effect_type=ef.get("statistics", ef.get("effectType", ef.get("type"))),
-                    effect_value=ef.get("value", ef.get("effectValue")),
+                    # Step 32 realigned the model onto the canonical column names; the old
+                    # effectType/effectValue spellings stay readable for older story files.
+                    statistics=ef.get("statistics", ef.get("effectType", ef.get("type"))),
+                    value=ef.get("value", ef.get("effectValue")),
                     flag_group=ef.get("flagGroup", 0),
+                    key=ef.get("key"),
+                    value_to_add=ef.get("valueToAdd"),
+                    value_to_remove=ef.get("valueToRemove"),
+                    id_event=ef.get("idEvent"),
+                    id_location=ef.get("idLocation"),
+                    id_weather=ef.get("idWeather"),
+                    id_item_target=ef.get("idItemTarget"),
+                    item_action=ef.get("itemAction"),
                 )
                 session.add(ce)
             session.commit()
@@ -637,30 +674,45 @@ class StoryPersistenceAdapter(StoryPersistencePort):
             }
         return self._TABLE_MODEL_MAP
 
+    def _value_for_column(self, table_name: str, col_name: str, data: Dict[str, Any]):
+        """The incoming value for a column, or the ``_MISSING`` sentinel when absent.
+
+        The generic path pulls each column from the camelCase spelling OF THAT COLUMN.
+        For the choice sub-tables the admin form (and the canonical import shape) use
+        DIFFERENT keys — the story-relative ``idChoices`` for the ``id_choice`` link, and
+        the short ``type``/``key``/``value``/``operator`` for the ``condition_*`` columns.
+        Without these aliases an admin-created choice-condition landed with every one of
+        those columns NULL: an orphaned, empty row that (under OR, with no effective
+        conditions) would have opened the option to everyone. The import path already
+        accepted both spellings; this brings the admin CRUD into line.
+        """
+        for key in (self._to_camel(col_name), col_name,
+                    *_ADMIN_KEY_ALIASES.get(table_name, {}).get(col_name, ())):
+            if key in data:
+                return data[key]
+        return _MISSING
+
     def save_entity(self, story_id: int, table_name: str, data: Dict[str, Any]) -> None:
         model = self._get_model_map().get(table_name)
         if not model:
             return
         with self.session_factory() as session:
             kwargs = {"id_story": story_id}
-            
+
             # Handle ID (Step 17: generate next ID if not provided)
             id_col = "id_tipo" if table_name == "list_character_templates" else "id"
             explicit_id = _get_long(data, "id", "id_tipo", "idTipo")
             if explicit_id is None:
                 explicit_id = self.next_scoped_id(table_name, id_col, story_id)
             kwargs[id_col] = explicit_id
-            
+
             for col in model.__table__.columns:
                 col_name = col.name
                 if col_name in ("id", "id_story", "id_tipo"):
                     continue
-                # Try camelCase key from data
-                camel_key = self._to_camel(col_name)
-                if camel_key in data:
-                    kwargs[col_name] = data[camel_key]
-                elif col_name in data:
-                    kwargs[col_name] = data[col_name]
+                value = self._value_for_column(table_name, col_name, data)
+                if value is not _MISSING:
+                    kwargs[col_name] = value
             session.add(model(**kwargs))
             session.commit()
 
@@ -679,11 +731,9 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                 col_name = col.name
                 if col_name in ("id", "id_story", "uuid"):
                     continue
-                camel_key = self._to_camel(col_name)
-                if camel_key in data:
-                    setattr(entity, col_name, data[camel_key])
-                elif col_name in data:
-                    setattr(entity, col_name, data[col_name])
+                value = self._value_for_column(table_name, col_name, data)
+                if value is not _MISSING:
+                    setattr(entity, col_name, value)
             session.commit()
 
     def delete_entity_by_uuid(self, table_name: str, uuid: str) -> None:

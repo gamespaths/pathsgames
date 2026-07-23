@@ -6,7 +6,9 @@ publisher (pub/sub), nothing to do with the events of a story.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
-from app.core.models.match.event_models import EventCheckContext, EventExecutionResult
+from app.core.models.match.event_models import (
+    ChoiceResolutionResult, EventCheckContext, EventExecutionResult,
+)
 
 # Marker every log_events row written by an executed event starts with.
 #
@@ -29,6 +31,19 @@ class EventPort(ABC):
     def execute_event(self, match_uuid: str, user_uuid: str, event_uuid: str,
                       lang: str = "en") -> EventExecutionResult:
         """Check, pay, apply the whole id_event_next chain, log."""
+
+    @abstractmethod
+    def select_choice(self, match_uuid: str, user_uuid: str, choice_uuid: str,
+                      lang: str = "en") -> ChoiceResolutionResult:
+        """Step 32 — resolve the option the player picked out of an open choice-event:
+        apply its list_choices_effects, run its id_event_torun chain, record the milestone
+        and close the cycle.
+
+        Nothing is charged here. The energy, the coins and the ONCE were spent when the
+        event was opened, which is exactly why the guard is "a cycle is open for this
+        event" rather than the Step 29 availability procedure — re-running that would
+        reject the very event the player has already paid for.
+        """
 
 
 class EventStorePort(ABC):
@@ -185,3 +200,29 @@ class EventStorePort(ABC):
     def resolve_short_text(self, id_story: int, id_text: Optional[int],
                            lang: str) -> Optional[str]:
         """The short text of id_text in lang, falling back to "en", None when absent."""
+
+    # ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    @abstractmethod
+    def find_choice_by_story_and_uuid(self, id_story: int,
+                                      choice_uuid: str) -> Optional[Dict[str, Any]]:
+        """The option select-choice names, resolved inside the match's own story."""
+
+    @abstractmethod
+    def find_choice_effects_by_choice_id(self, id_story: int,
+                                         id_choice: int) -> List[Dict[str, Any]]:
+        """The list_choices_effects rows of one option, ordered by row id — so a later row
+        can build on what an earlier one wrote, as find_effects_by_event_id guarantees for
+        the event effects."""
+
+    @abstractmethod
+    def log_choice_executed(self, id_match: int, id_event: int, id_choice: int,
+                            clock: int, message: str) -> None:
+        """Append the log_choices_executed row of a resolved option. id_event is the OWNING
+        event, matching the MSG_CHOICE_SELECTED marker written alongside."""
+
+    @abstractmethod
+    def insert_story_progress(self, id_match: int, id_event: int, id_choice: int,
+                              clock: int) -> None:
+        """Append a gaming_story_progress row — the narrative milestone of an option
+        carrying is_progress = 1. Ordinary options never reach this."""

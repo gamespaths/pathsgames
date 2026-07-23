@@ -1586,4 +1586,33 @@ class StoryCrudServiceCompleteTest {
         data.put("name", "k");
         assertNotNull(service.createEntity("s", "keys", data));
     }
+
+    // =========================================================================
+    // choice-effects — i target v0.32.0 (Step 32)
+    // =========================================================================
+
+    @Test
+    void choiceEffect_v0320TargetsRoundTrip() {
+        setupStory();
+        ChoiceEffectEntity saved = base(new ChoiceEffectEntity());
+        when(persistencePort.saveChoiceEffect(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("idChoices", 3);
+        data.put("idEvent", 7);
+        data.put("idLocation", 8);
+        data.put("idWeather", 9);
+        data.put("idItemTarget", 10);
+        data.put("itemAction", "REMOVE");
+
+        Map<String, Object> out = service.createEntity("s", "choice-effects", data);
+
+        // Scritti sull'entità e riletti sulla mappa: authoring e engine leggono lo stesso.
+        assertEquals(7, out.get("idEvent"));
+        assertEquals(8, out.get("idLocation"));
+        assertEquals(9, out.get("idWeather"));
+        assertEquals(10, out.get("idItemTarget"));
+        assertEquals("REMOVE", out.get("itemAction"));
+        assertNotNull(saved);
+    }
 }

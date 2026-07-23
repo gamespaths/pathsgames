@@ -43,7 +43,8 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 28 | [Movement System](./Step28_MovementSystem.md) | ✅ | Movement System with Adjacency, Energy Cost & Validation |
 | 29 | [Normal events](./Step29_NormalEvents.md) | ✅ | Normal events, `available` flag on match-info, `execute-event` endpoint |
 | 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story event |
-| 31 | [Choice engine](./Step31_ChoiceEngine.md) | ✅ | Choice-owning events branch `execute-event` to `CHOICES_PENDING`, `ChoiceAvailabilityChecker`, `R8_CHOICE_EVENT` validation |
+| 31 | [Choice engine](./Step31_ChoiceEngine.md) | ✅ | Choice-owning events branch `execute-event` to `CHOICES_PENDING` & `ChoiceAvailabilityChecker`
+| 32 | [Choice resolution](./Step32_ChoiceResolution.md) | ✅ | Select choice engine applies choices effects |
 
 | Steps | Phase |
 | -- | -- |
@@ -71,17 +72,6 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-32. Choice resolution — apply effects and outcomes
-    - Add id_location & id_weather & id_event to list_choices_effects tables (backend)
-    - Implement POST /gameplay/{uuid_match}/action/select-choice endpoint to submit selected option (backend)
-    - Guard against cost bypass: select-choice requires a prior EVENT_EXECUTED marker for that event and no CHOICE_SELECTED marker yet; it re-validates option availability but does NOT re-charge energy or re-consume ONCE (already paid at execute-event) (backend)
-    - Validate selected option is still available and character can act (not sleeping, not comatose, has turn) (backend)
-    - Apply the selected option's list_choices_effects: stat modifications (single or group based on flag_group), key updates, item changes; the event's own list_events_effects and id_event_next are skipped for a choice-event (backend)
-    - Execute linked event (id_event_torun) with its full effect chain based on choice result, then write the CHOICE_SELECTED marker (backend)
-    - Handle is_progress flag: insert into gaming_story_progress for narrative milestone tracking (backend)
-    - Log choice execution in log_choices_executed with event, choice, and timestamp (backend)
-    - Write backend unit tests for choice submission, cost-bypass guard, effect application, event chaining, progress tracking, and error cases (backend tests)
-
 33. Location entry events — automatic triggers
     - Implement event trigger evaluation on location entry: AUTOMATIC_FIRST_ENTRY for first visit (backend)
     - Implement AUTOMATIC_SUBSEQUENT_ENTRY trigger for repeat visits using gaming_state_locations.flag_already_actived (backend)
@@ -100,6 +90,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Apply item effects from list_items_effects: modify life, energy, sadness, stats, add/remove traits (backend)
     - Create log_item_usage record with character, item, effects, and timestamp (backend)
     - Write backend unit tests for inventory listing, item usage, discard, class restrictions, effect application, and weight calculation (backend tests)
+    - manage effect (event and coices) add/remove items!
 35. Resource management — food, magic, coins, weight
     - Implement GET /matches/{uuid}/characters/{uuid}/resources endpoint returning food, magic, coins, total weight (backend)
     - Implement resource modification through events and choices: add/subtract food, magic, coins respecting minimums (backend)
@@ -116,6 +107,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Implement registry query service for condition evaluation: check key existence, value comparison (=, >, <, !=) (backend)
     - Build frontend registry display component showing visible keys as card collection organized by group (frontend)
     - Write backend unit tests for registry CRUD, value types, condition queries, and phase tracking (backend tests)
+    - manage effect (event and coices) add/remove keys!
 37. Mission tracking and progression
     - Implement GET /match/{uuid_match}/missions/active endpoint listing active and completed missions (backend)
     - Implement GET /match/{uuid_match}/missions/{uuid_mission}/progress endpoint returning mission details with all steps (backend)

@@ -78,7 +78,21 @@ def seed():
             {"idText": 614, "lang": "en", "shortText": "Bargain with the figure"},
             {"idText": 614, "lang": "it", "shortText": "Contratta con la figura"},
             {"idText": 615, "lang": "en", "shortText": "Shrug and improvise"},
-            {"idText": 615, "lang": "it", "shortText": "Alza le spalle e improvvisa"}
+            {"idText": 615, "lang": "it", "shortText": "Alza le spalle e improvvisa"},
+            # Step 32 — the resolution test-bed.
+            {"idText": 616, "lang": "en", "shortText": "The Fork"},
+            {"idText": 616, "lang": "it", "shortText": "Il Bivio"},
+            {"idText": 617, "lang": "en", "shortText": "Beyond The Fork"},
+            {"idText": 617, "lang": "it", "shortText": "Oltre Il Bivio"},
+            {"idText": 618, "lang": "en", "shortText": "Press on alone"},
+            {"idText": 618, "lang": "it", "shortText": "Prosegui da solo"},
+            {"idText": 619, "lang": "en", "shortText": "Follow the lantern"},
+            {"idText": 619, "lang": "it", "shortText": "Segui la lanterna"},
+            # The narratives: withheld while the options are pending, revealed on resolution.
+            {"idText": 620, "lang": "en", "shortText": "You walk on, and the fork closes behind you."},
+            {"idText": 620, "lang": "it", "shortText": "Prosegui, e il bivio si chiude alle tue spalle."},
+            {"idText": 621, "lang": "en", "shortText": "The lantern leads you into the grove."},
+            {"idText": 621, "lang": "it", "shortText": "La lanterna ti conduce nel bosco."}
         ],
         "difficulties": [
             {"uuid": "tut-diff-1", "idTextDescription": 300, "expCost": 1, "maxWeight": 20,
@@ -192,6 +206,15 @@ def seed():
              "effects": [{"idCard": 1, "statistics": "exp", "value": 99, "target": "ONLY_ONE"}]},
             {"id": 31, "idTextName": 611, "idTextDescription": 611, "type": "ONCE",
              "idSpecificLocation": 1, "costEnery": 1, "idCard": 1},
+            # Step 32 — the resolution test-bed. Opening 32 costs 3 (unambiguous for the
+            # robot lookup); resolving one of its options costs nothing at all. 33 is the
+            # outcome event an option runs: it lives nowhere and costs 9, proving a
+            # consequence is neither re-checked nor charged.
+            {"id": 32, "idTextName": 616, "idTextDescription": 616, "type": "NORMAL",
+             "idSpecificLocation": 1, "costEnery": 3, "idCard": 1},
+            {"id": 33, "idTextName": 617, "idTextDescription": 617, "type": "NORMAL",
+             "costEnery": 9, "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 7, "target": "ONLY_ONE"}]},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
@@ -209,6 +232,18 @@ def seed():
              "priority": 1, "otherwiseFlag": 0, "logicOperator": "AND"},
             {"id": 15, "idEvent": 31, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
              "priority": 2, "otherwiseFlag": 0, "logicOperator": "AND", "limitDex": 99},
+            # Step 32 — the three options of event 32, one per thing a resolution can do.
+            # idTextNarrative is what Step 31 withholds and the resolution reveals.
+            {"id": 20, "idEvent": 32, "idCard": 1, "idTextName": 618, "idTextDescription": 618,
+             "idTextNarrative": 620, "priority": 1, "otherwiseFlag": 0, "isProgress": 1,
+             "logicOperator": "AND"},
+            {"id": 21, "idEvent": 32, "idCard": 1, "idTextName": 619, "idTextDescription": 619,
+             "idTextNarrative": 621, "idEventTorun": 33, "priority": 2, "otherwiseFlag": 0,
+             "isProgress": 0, "logicOperator": "AND"},
+            # Impossible for anyone: proves select-choice re-checks the verdict.
+            {"id": 22, "idEvent": 32, "idCard": 1, "idTextName": 613, "idTextDescription": 613,
+             "priority": 3, "otherwiseFlag": 0, "isProgress": 0, "logicOperator": "AND",
+             "limitDex": 99},
         ],
         "choiceConditions": [
             {"id": 2, "idChoices": 11, "type": "statistics", "key": "int", "value": "99", "operator": ">"},
@@ -221,6 +256,16 @@ def seed():
             {"id": 7, "idChoices": 12, "statistics": "exp", "value": 2},
             {"id": 8, "idChoices": 14, "statistics": "energy", "value": 1},
             {"id": 9, "idChoices": 15, "statistics": "life", "value": 1},
+            # Step 32 — what each option does when resolved.
+            # idEvent is the EFFECT-level link ("Event to Run (effect)"), distinct from
+            # the choice-level idEventTorun option 21 uses: both mechanisms are seeded.
+            {"id": 20, "idChoices": 20, "idCard": 1, "statistics": "exp", "value": 5,
+             "idEvent": 33},
+            # One row, every kind of effect: a registry key, an item, a forced move to
+            # location 3 (which no neighbor edge reaches) and the inactive weather 3.
+            {"id": 21, "idChoices": 21, "idCard": 1, "key": "STEP32_GATE",
+             "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
+             "idLocation": 3, "idWeather": 3},
         ],
         "items": [
             {"idTextName": 400, "idTextDescription": 400, "weight": 1}

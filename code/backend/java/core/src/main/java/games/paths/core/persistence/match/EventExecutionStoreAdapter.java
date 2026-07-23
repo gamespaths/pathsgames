@@ -5,9 +5,12 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntityId;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingStateRegistryEntity;
+import games.paths.core.entity.match.GamingStoryProgressEntity;
+import games.paths.core.entity.match.LogChoicesExecutedEntity;
 import games.paths.core.entity.match.LogEventsEntity;
 import games.paths.core.entity.match.LogMovementEntity;
 import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
@@ -25,6 +28,8 @@ import games.paths.core.repository.match.GamingCharacterTraitsRepository;
 import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.GamingStateRegistryRepository;
+import games.paths.core.repository.match.GamingStoryProgressRepository;
+import games.paths.core.repository.match.LogChoicesExecutedRepository;
 import games.paths.core.repository.match.LogEventsRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.springframework.stereotype.Repository;
@@ -63,6 +68,8 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
     private final GamingStateRegistryRepository registryRepository;
     private final LogEventsRepository logEventsRepository;
     private final LogMovementRepository logMovementRepository;
+    private final LogChoicesExecutedRepository logChoicesRepository;
+    private final GamingStoryProgressRepository storyProgressRepository;
     private final StoryReadPort storyReadPort;
     private final WeatherStorePort weatherStorePort;
 
@@ -75,6 +82,8 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
                                       GamingStateRegistryRepository registryRepository,
                                       LogEventsRepository logEventsRepository,
                                       LogMovementRepository logMovementRepository,
+                                      LogChoicesExecutedRepository logChoicesRepository,
+                                      GamingStoryProgressRepository storyProgressRepository,
                                       StoryReadPort storyReadPort,
                                       WeatherStorePort weatherStorePort) {
         this.matchRepository = matchRepository;
@@ -85,6 +94,8 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
         this.registryRepository = registryRepository;
         this.logEventsRepository = logEventsRepository;
         this.logMovementRepository = logMovementRepository;
+        this.logChoicesRepository = logChoicesRepository;
+        this.storyProgressRepository = storyProgressRepository;
         this.storyReadPort = storyReadPort;
         this.weatherStorePort = weatherStorePort;
     }
@@ -520,6 +531,61 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
             text = storyReadPort.findTextByStoryIdTextAndLang(idStory, idText, "en");
         }
         return text.map(TextEntity::getShortText).orElse(null);
+    }
+
+    // ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ChoiceEntity> findChoiceByStoryAndUuid(long idStory, String choiceUuid) {
+        if (choiceUuid == null || choiceUuid.isBlank()) {
+            return Optional.empty();
+        }
+        for (ChoiceEntity c : storyReadPort.findChoicesByStoryId(idStory)) {
+            if (choiceUuid.equals(c.getUuid())) {
+                return Optional.of(c);
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChoiceEffectEntity> findChoiceEffectsByChoiceId(long idStory, long idChoice) {
+        List<ChoiceEffectEntity> out = new ArrayList<>();
+        for (ChoiceEffectEntity ce : storyReadPort.findChoiceEffectsByStoryId(idStory)) {
+            if (ce.getIdChoices() != null && ce.getIdChoices().longValue() == idChoice) {
+                out.add(ce);
+            }
+        }
+        // Authored order: a later row can build on what an earlier one wrote, the same
+        // guarantee findEffectsByEventId gives the event effects.
+        out.sort((a, b) -> Long.compare(nzL(a.getId()), nzL(b.getId())));
+        return out;
+    }
+
+    @Override
+    public void logChoiceExecuted(long idMatch, long idEvent, long idChoice, int clock, String message) {
+        LogChoicesExecutedEntity e = new LogChoicesExecutedEntity();
+        e.setId(logChoicesRepository.findMaxId() + 1);
+        e.setIdMatch(idMatch);
+        e.setIdEvent(idEvent);
+        e.setIdChoise(idChoice);
+        e.setClock(clock);
+        e.setLogMessage(message);
+        logChoicesRepository.save(e);
+    }
+
+    @Override
+    public void insertStoryProgress(long idMatch, long idEvent, long idChoice, int clock) {
+        GamingStoryProgressEntity e = new GamingStoryProgressEntity();
+        // Match-wide max + 1: the key is (id, id_match), so ids restart per match.
+        e.setId(storyProgressRepository.findMaxIdByMatch(idMatch) + 1);
+        e.setIdMatch(idMatch);
+        e.setIdEvent(idEvent);
+        e.setIdChoise(idChoice);
+        e.setClock(clock);
+        storyProgressRepository.save(e);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

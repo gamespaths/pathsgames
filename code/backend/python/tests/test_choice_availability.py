@@ -274,3 +274,21 @@ def test_unknown_type_locks_never_unlocks():
 def test_missing_operator_defaults_to_equals():
     assert ca.check(choice(), [cond("KEYS", "gate", "OPEN", None)],
                     ctx(registry={"gate": "OPEN"})).available
+
+
+# ── the user's scenario: CLASS = 1 OR CLASS = 2 ─────────────────────────────
+
+def test_or_over_two_class_rows_is_the_way_to_say_one_class_or_the_other():
+    c = choice(logic_operator="OR")
+    rows = [cond("CLASS", None, "1", "="), cond("CLASS", None, "2", "=")]
+    assert ca.check(c, rows, ctx(id_class=1)).available, "class 1 satisfies the first row"
+    assert ca.check(c, rows, ctx(id_class=2)).available, "class 2 satisfies the second row"
+    blocked(ca.check(c, rows, ctx(id_class=3)), ca.CONDITIONS_NOT_MET)
+
+
+def test_and_over_two_class_rows_can_never_pass():
+    # A character has one class, so class=1 AND class=2 is unsatisfiable.
+    c = choice()  # AND by default
+    rows = [cond("CLASS", None, "1", "="), cond("CLASS", None, "2", "=")]
+    blocked(ca.check(c, rows, ctx(id_class=1)), ca.CONDITION_CLASS_NOT_MET)
+    blocked(ca.check(c, rows, ctx(id_class=2)), ca.CONDITION_CLASS_NOT_MET)

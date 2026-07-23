@@ -36,9 +36,9 @@ info:
     ## Idempotent re-fetch (page refresh)
 
     A choice-event cycle is **open** while its `EVENT_EXECUTED` markers outnumber its
-    `CHOICE_SELECTED` markers (the latter are written by the Step 32 resolution; in
-    v0.31.0 nothing writes them, so an opened event simply stays open). Re-executing an
-    open choice-event serves the options again as a pure read:
+    `CHOICE_SELECTED` markers (the latter are written by the Step 32 resolution — see
+    `v0.32.0-choice-resolution-api.yaml`). Re-executing an open choice-event serves the
+    options again as a pure read:
 
     - no energy or coins are deducted (`energySpent` / `coinSpent` come back `0`);
     - no new marker row is written;
@@ -52,8 +52,8 @@ info:
 
     Walking away from an open choice-event is purely client-side: no endpoint is called,
     no effects run, and the cost paid at the open stays paid. The board simply closes the
-    card. Selecting an option (`select-choice`, applying `list_choices_effects`, running
-    `id_event_torun`, writing `CHOICE_SELECTED`) is Step 32.
+    card. Selecting an option is `POST /api/gameplay/{uuidMatch}/action/select-choice` —
+    see `v0.32.0-choice-resolution-api.yaml`.
 
     ## Per-option availability
 
@@ -98,7 +98,8 @@ info:
     ## Database
 
     No migration: `list_choices`, `list_choices_conditions` and `list_choices_effects`
-    exist since V0.10.4.
+    exist since V0.10.4. (V0.32.0 later widens `list_choices_effects` with the targets a
+    resolution can reach.)
 
     See `documentation_v0/Roadmap.md` (step 31).
   version: 0.31.0
@@ -136,7 +137,7 @@ components:
       properties:
         uuid:
           type: string
-          description: The choice's opaque identifier — what Step 32's select-choice will take.
+          description: The choice's opaque identifier — what `select-choice` takes (Step 32).
         priority:
           type: integer
           nullable: true

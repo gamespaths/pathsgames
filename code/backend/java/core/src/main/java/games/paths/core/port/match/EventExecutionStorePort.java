@@ -1,6 +1,7 @@
 package games.paths.core.port.match;
 
 import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
@@ -181,6 +182,30 @@ public interface EventExecutionStorePort {
      * content APIs use, so an option reads the same everywhere.
      */
     String resolveShortText(long idStory, Integer idText, String lang);
+
+    // ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    /** The option {@code select-choice} names, resolved inside the match's own story. */
+    Optional<ChoiceEntity> findChoiceByStoryAndUuid(long idStory, String choiceUuid);
+
+    /**
+     * The {@code list_choices_effects} rows of one option, ordered by row id — a later
+     * row can therefore build on what an earlier one wrote, the same guarantee
+     * {@link #findEffectsByEventId} gives the event effects.
+     */
+    List<ChoiceEffectEntity> findChoiceEffectsByChoiceId(long idStory, long idChoice);
+
+    /**
+     * Append the {@code log_choices_executed} row of a resolved option. {@code idEvent} is
+     * the OWNING event, matching the {@link #MSG_CHOICE_SELECTED} marker written alongside.
+     */
+    void logChoiceExecuted(long idMatch, long idEvent, long idChoice, int clock, String message);
+
+    /**
+     * Append a {@code gaming_story_progress} row — the narrative milestone of an option
+     * carrying {@code is_progress = 1}. Ordinary options never reach this.
+     */
+    void insertStoryProgress(long idMatch, long idEvent, long idChoice, int clock);
 
     // ── records ─────────────────────────────────────────────────────────────
 

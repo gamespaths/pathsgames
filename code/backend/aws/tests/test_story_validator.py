@@ -212,3 +212,27 @@ def test_validate_entity_local_rules():
     # empty inputs are lenient
     assert sv.validate_entity("", {}) == []
     assert sv.validate_entity("items", None) == []
+
+
+# ── choice-effect references (v0.32.0 resolution targets) ───────────────────
+
+def test_dangling_choice_effect_targets_are_reported():
+    """Every new target is checked against the story it names.
+
+    idWeather is deliberately absent: this validator has no weather target, exactly as
+    for the event effects.
+    """
+    for field in ("idEvent", "idLocation", "idItemTarget"):
+        s = valid_story()
+        s["choiceEffects"] = [{"id": 1, "idChoices": 1, field: 99}]
+        errors = sv.validate_story_dict(s)
+        assert errors, f"{field} should not validate"
+        assert any(e["field"] == field for e in errors), \
+            f"{field} missing from: {[e['field'] for e in errors]}"
+
+
+def test_real_choice_effect_targets_pass():
+    s = valid_story()
+    s["choiceEffects"] = [{"id": 1, "idChoices": 1, "idEvent": 2, "idLocation": 2,
+                           "idWeather": 1, "idItemTarget": 1, "itemAction": "ADD"}]
+    assert sv.validate_story_dict(s) == []

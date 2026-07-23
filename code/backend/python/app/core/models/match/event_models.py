@@ -36,6 +36,15 @@ class EventError(Exception):
     WEATHER_CONDITION_NOT_MET = "WEATHER_CONDITION_NOT_MET"
     ITEM_CONDITION_NOT_MET = "ITEM_CONDITION_NOT_MET"
     CLASS_CONDITION_NOT_MET = "CLASS_CONDITION_NOT_MET"
+    # ── Step 32, produced by select-choice only ──
+    # No option of this story carries that uuid.
+    CHOICE_NOT_FOUND = "CHOICE_NOT_FOUND"
+    # No cycle is open for the option's event: never opened, or already resolved. This is
+    # the cost-bypass guard — without it an option's effects could be applied without ever
+    # paying to open its event, and applied again on every call.
+    CHOICE_NOT_OPEN = "CHOICE_NOT_OPEN"
+    # The option's own verdict, re-evaluated at resolution: the world may have moved on.
+    CHOICE_NOT_AVAILABLE = "CHOICE_NOT_AVAILABLE"
 
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
@@ -208,6 +217,34 @@ class EventExecutionResult:
     pending_choices: List[Dict[str, Any]] = field(default_factory=list)
     # Step 30. Never None in practice; see EdgeStateOutcome.none().
     edge_state: "EdgeStateOutcome" = field(default_factory=lambda: EdgeStateOutcome())
+
+
+@dataclass
+class ChoiceResolutionResult:
+    """Step 32 — what resolving one option did.
+
+    ``execution`` is the very same payload execute-event returns, because a resolved
+    choice does all the same things to the world; only the trigger differs. The fields
+    around it are what is specific to a choice.
+
+    ``narrative`` is the option's post-selection text, deliberately withheld by Step 31
+    (returning it with the options would have leaked the consequence of a choice not yet
+    made) and revealed here, once the choice is irreversible.
+
+    ``choice_event_uuid`` / ``choice_event_card`` describe the event an effect's
+    ``id_event`` ran inline: the card the board narrates with, the event having already
+    happened.
+    """
+    execution: EventExecutionResult
+    choice_uuid: Optional[str]
+    # The event that owned the option.
+    event_uuid: Optional[str]
+    narrative: Optional[str] = None
+    choice_card: Optional[Dict[str, Any]] = None
+    choice_event_uuid: Optional[str] = None
+    choice_event_card: Optional[Dict[str, Any]] = None
+    # True when is_progress put a milestone row on record.
+    progress_recorded: bool = False
 
 
 @dataclass

@@ -857,6 +857,23 @@ export default function StoryEditorPage() {
         options: keysOptions,
         valueType: 'string',
       },
+      // v0.32.0 (Step 32) — the effect targets a resolved choice can reach. Each one gets
+      // the very same picker its event-effects twin uses: the two tables speak one QUIQUIQUI
+      // vocabulary, so an author must not have to type a raw id here and pick there.
+      idItemTarget: {
+        options: itemsOptions,
+      },
+      idLocation: {
+        options: locationOptions,
+      },
+      // On an effect idWeather SETS the match weather. The value is the rule's own id.
+      idWeather: {
+        options: weatherRulesOptions,
+      },
+      // The event this effect runs inline, with its whole idEventNext chain.
+      idEvent: {
+        options: eventOptions,
+      },
     },
     'weather-rules': {
       idCard: {
@@ -1179,8 +1196,8 @@ export default function StoryEditorPage() {
             onOpenIdCardForm={handleOpenCardFromEntityTable}
             onDuplicateCardBack={handleDuplicateCardBack}
             showCardBackColumn={activeTab === 'location-neighbors'}
-            // Loc Neighbors shows a 4th column (Direction); other tabs keep 3.
-            maxColumns={activeTab === 'location-neighbors' ? 4 : 3}
+            // Loc Neighbors shows a 4th column (Direction); other tabs keep 7.
+            maxColumns={activeTab === 'location-neighbors' ? 4 : 7} //quiquiqui
             onEdit={(ent) => setModal({ type: 'form', entity: normalizeEntityForForm(ent, activeTab), entityTab: activeTab })}
             onDelete={(ent) => setModal({ type: 'delete', entity: ent, entityTab: activeTab })}
           />

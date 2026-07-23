@@ -529,6 +529,38 @@ class ChoiceAvailabilityCheckerTest {
         }
 
         @Test
+        @DisplayName("OR over two CLASS rows: class 1 OR class 2 — the real use case")
+        void orTwoClasses() {
+            // logicOperator is per-choice, all-OR: available when the actor's class is
+            // EITHER of the two. This is the only way to say "one class or the other",
+            // since a character has a single class, so AND (class=1 AND class=2) is
+            // impossible — see andTwoClassesIsImpossible below.
+            ChoiceEntity c = choice();
+            c.setLogicOperator("OR");
+            ChoiceConditionEntity classOne = cond("CLASS", null, "1", "=");
+            ChoiceConditionEntity classTwo = cond("CLASS", null, "2", "=");
+
+            assertTrue(check(c, ctx(b -> b.idClass = 1L), classOne, classTwo).available(),
+                    "class 1 satisfies the first row");
+            assertTrue(check(c, ctx(b -> b.idClass = 2L), classOne, classTwo).available(),
+                    "class 2 satisfies the second row");
+            assertBlocked(check(c, ctx(b -> b.idClass = 3L), classOne, classTwo),
+                    CONDITIONS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("AND over two CLASS rows can never pass — a character has one class")
+        void andTwoClassesIsImpossible() {
+            ChoiceEntity c = choice(); // AND by default
+            assertBlocked(check(c, ctx(b -> b.idClass = 1L),
+                    cond("CLASS", null, "1", "="), cond("CLASS", null, "2", "=")),
+                    CONDITION_CLASS_NOT_MET);
+            assertBlocked(check(c, ctx(b -> b.idClass = 2L),
+                    cond("CLASS", null, "1", "="), cond("CLASS", null, "2", "=")),
+                    CONDITION_CLASS_NOT_MET);
+        }
+
+        @Test
         @DisplayName("OR: a single passing row is enough")
         void orOneTrue() {
             ChoiceEntity c = choice();

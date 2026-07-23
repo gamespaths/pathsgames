@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.entity.story.ChoiceConditionEntity;
+import games.paths.core.entity.story.ChoiceEffectEntity;
 import games.paths.core.entity.story.ChoiceEntity;
 import games.paths.core.entity.story.EventEffectEntity;
 import games.paths.core.entity.story.EventEntity;
@@ -332,6 +333,291 @@ public class EventExecutionService implements EventExecutionPort {
         return stats;
     }
 
+    // ── choice resolution (Step 32) ─────────────────────────────────────────
+
+    /**
+     * Resolve one option of an open choice-event: apply its {@code list_choices_effects},
+     * run the events they and {@code idEventTorun} point at, record the milestone, close
+     * the cycle.
+     *
+     * <p><b>Nothing is charged.</b> The energy, the coins and the ONCE were all spent when
+     * the event was opened (Step 31), which is what makes the open-cycle count — not the
+     * Step 29 availability procedure — the right gate here: re-running that procedure would
+     * reject the very event the player has already paid for. The count comparison doubles
+     * as the cost-bypass guard, since it is false both for an event never opened and for one
+     * already resolved.</p>
+     */
+    @Override
+    public ChoiceResolutionResult selectChoice(String matchUuid, String userUuid,
+                                               String choiceUuid, String lang) {
+        long userId = requireUser(userUuid);
+        MatchEventView match = requireMatch(matchUuid);
+        EventActorView actor = store.findCharacterByMatchAndUser(match.id(), userId)
+                .orElseThrow(EventExecutionService::notFound);
+
+        if (!MatchStatuses.RUNNING.equals(match.status())) {
+            throw new EventExecutionException(EventExecutionException.Code.MATCH_NOT_RUNNING,
+                    "Match is not RUNNING");
+        }
+
+        ChoiceEntity choice = store.findChoiceByStoryAndUuid(match.idStory(), choiceUuid)
+                .orElseThrow(() -> new EventExecutionException(
+                        EventExecutionException.Code.CHOICE_NOT_FOUND,
+                        "Choice not found in this story"));
+
+        EventCheckContext ctx = store.loadCheckContext(match.id(), actor.id());
+        // Coma outranks sleep, as everywhere else: a comatose character is also flagged
+        // asleep, and the two are not the same news — one waits, the other needs a rescue.
+        if (ctx.coma()) {
+            throw new EventExecutionException(EventExecutionException.Code.COMA,
+                    "Character is in a coma");
+        }
+        if (ctx.sleeping()) {
+            throw new EventExecutionException(EventExecutionException.Code.SLEEPING,
+                    "Character is sleeping");
+        }
+
+        // R8 (Step 31) makes idEvent mandatory on import, but the CRUD path is lenient, so
+        // an orphan option can reach the engine — it resolves to no cycle and is rejected.
+        long eventId = choice.getIdEvent() == null ? 0L : choice.getIdEvent().longValue();
+        Map<Long, EventEntity> eventsById = store.findEventsById(match.idStory());
+        EventEntity event = eventsById.get(eventId);
+        if (event == null) {
+            throw new EventExecutionException(EventExecutionException.Code.EVENT_NOT_FOUND,
+                    "The event owning this choice does not exist");
+        }
+        if (store.countLogMarkers(match.id(), eventId, EventExecutionStorePort.MSG_EVENT_EXECUTED)
+                <= store.countLogMarkers(match.id(), eventId,
+                        EventExecutionStorePort.MSG_CHOICE_SELECTED)) {
+            throw new EventExecutionException(EventExecutionException.Code.CHOICE_NOT_OPEN,
+                    "No open choice cycle for this event: open it before resolving it");
+        }
+
+        Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
+        x.eventsById = eventsById; // already read above — do not pay for the map twice
+
+        requireStillAvailable(x, choice);
+
+        long choiceId = choice.getId() == null ? 0L : choice.getId();
+        applyChoiceEffects(x, choiceId, eventId, event);
+        // The option's own outcome event, last: every effect row has set the stage (a key
+        // written, an item granted) that the outcome event is authored to read.
+        if (!x.comaTriggered && !STATUS_CHOICES_PENDING.equals(x.status)) {
+            runLinkedEvent(x, choice.getIdEventTorun());
+        }
+
+        resolveAllPlayerComa(x);
+        if (x.endTime && !x.comaTriggered) {
+            forceTimeEnd(x);
+        }
+
+        writeResolutionMarkers(x, choice, eventId, choiceId);
+
+        return new ChoiceResolutionResult(buildResult(x), choice.getUuid(), event.getUuid(),
+                store.resolveShortText(match.idStory(), choice.getIdTextNarrative(), x.lang),
+                resolveCard(x, choice.getIdCard()),
+                x.choiceEventUuid, x.choiceEventCard,
+                x.progressRecorded);
+    }
+
+    /**
+     * The option's verdict, re-evaluated now rather than trusted from the open: the world
+     * may have moved since the options were served — an item spent, a stat drained, a key
+     * flipped by another action — and an option that has become impossible must not resolve.
+     */
+    private void requireStillAvailable(Exec x, ChoiceEntity choice) {
+        Map<Long, List<ChoiceConditionEntity>> conditionsByChoice =
+                store.findChoiceConditionsByChoiceId(x.match.idStory());
+        List<ChoiceConditionEntity> rows = choice.getId() == null
+                ? List.of()
+                : conditionsByChoice.getOrDefault(choice.getId(), List.of());
+        ChoiceAvailabilityChecker.ChoiceAvailability verdict = ChoiceAvailabilityChecker.check(
+                choice, rows, buildChoiceContext(x, List.of(choice), conditionsByChoice));
+        if (!verdict.available()) {
+            throw new EventExecutionException(EventExecutionException.Code.CHOICE_NOT_AVAILABLE,
+                    "Choice cannot be selected: " + verdict.reason());
+        }
+    }
+
+    /**
+     * Every {@code list_choices_effects} row of the option, in authored (id) order, then the
+     * events those rows link to.
+     *
+     * <p>The two phases mirror {@code applyEvent} exactly, and for the same reason. All the
+     * rows land first, then the Step 30 rules get their single pass over whoever they
+     * touched — so a lethal row does <b>not</b> silence its siblings, any more than a lethal
+     * effect silences the other effects of its event. What a coma does stop is the
+     * consequences: a character who can no longer act does not act out what follows.</p>
+     *
+     * <p>The links run after every row for the same reason the outcome event does: an event
+     * authored to read a key the option writes must find it already written.</p>
+     */
+    private void applyChoiceEffects(Exec x, long choiceId, long eventId, EventEntity event) {
+        List<Integer> linked = new ArrayList<>();
+        for (ChoiceEffectEntity effect : store.findChoiceEffectsByChoiceId(x.match.idStory(), choiceId)) {
+            applyChoiceEffect(x, effect, event);
+            if (effect.getIdEvent() != null && effect.getIdEvent() > 0) {
+                linked.add(effect.getIdEvent());
+            }
+        }
+        // No applyEvent ran for these rows, so the edge pass has to be given here — once,
+        // over everyone the rows touched, exactly where applyEvent would have run it.
+        checkEdgeStates(x, eventId);
+        for (Integer link : linked) {
+            if (x.comaTriggered || STATUS_CHOICES_PENDING.equals(x.status)) {
+                return; // down, or waiting on the player again: the rest is not ours to run
+            }
+            runLinkedEvent(x, link);
+        }
+    }
+
+    /**
+     * One {@code list_choices_effects} row. The vocabulary is the event effects' own — the
+     * helpers are literally the same methods — with two differences that come from the
+     * table rather than from the engine:
+     *
+     * <ul>
+     *   <li>who it lands on is {@code flag_group}, not {@code target}/{@code target_class};</li>
+     *   <li>the registry pair is {@code key}/{@code value_to_add} plus a
+     *       {@code value_to_remove} that events have no equivalent of.</li>
+     * </ul>
+     *
+     * <p>{@code id_event} is collected rather than run here — see
+     * {@link #applyChoiceEffects} for why the links wait until every row has landed.</p>
+     */
+    private void applyChoiceEffect(Exec x, ChoiceEffectEntity effect, EventEntity event) {
+        List<EventActorView> recipients = resolveChoiceRecipients(x, effect);
+
+        // Weather belongs to the MATCH: once per row, however many characters it targets.
+        if (effect.getIdWeather() != null && effect.getIdWeather() > 0) {
+            store.setCurrentWeather(x.match.id(), effect.getIdWeather().longValue());
+            x.weatherApplied = true;
+        }
+
+        List<String> touched = new ArrayList<>();
+        for (EventActorView recipient : recipients) {
+            touched.add(recipient.uuid());
+            applyStat(x, recipient, effect.getStatistics(), nz(effect.getValue()));
+            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction());
+            applyMove(x, recipient, effect.getIdLocation());
+        }
+        applyChoiceRegistryEffect(x, effect, event);
+
+        // The row's OWN card is the narrative, exactly as for an event effect.
+        x.effects.add(new AppliedEffect(event.getUuid(), effect.getUuid(),
+                effect.getStatistics(), effect.getValue(),
+                nz(effect.getFlagGroup()) == 1 ? "ALL" : TARGET_ONLY_ONE, null, touched,
+                resolveCard(x, effect.getIdCard())));
+    }
+
+    /**
+     * INV-46: {@code flag_group = 1} means every character standing in the actor's location
+     * — the same set an event effect's {@code target=ALL} resolves (INV-27), never every
+     * character of the match. Anything else is the acting character alone.
+     */
+    private List<EventActorView> resolveChoiceRecipients(Exec x, ChoiceEffectEntity effect) {
+        Long actorLocation = x.locationOf(x.actor);
+        if (nz(effect.getFlagGroup()) != 1 || actorLocation == null) {
+            return List.of(x.actor);
+        }
+        List<EventActorView> group = new ArrayList<>();
+        for (EventActorView c : x.allCharacters()) {
+            if (actorLocation.equals(x.locationOf(c))) {
+                group.add(c);
+            }
+        }
+        return group;
+    }
+
+    /**
+     * The registry pair of a choice effect. {@code value_to_add} sets the key;
+     * {@code value_to_remove} clears it, but only when the stored value actually matches —
+     * an option must not be able to wipe a key some other branch of the story has since
+     * moved on. Written once per row by the actor: the registry is match-scoped.
+     */
+    private void applyChoiceRegistryEffect(Exec x, ChoiceEffectEntity effect, EventEntity event) {
+        String key = effect.getKey();
+        if (blank(key)) {
+            return;
+        }
+        String old = x.ctx.registry().get(key);
+        String add = effect.getValueToAdd();
+        String remove = effect.getValueToRemove();
+        String value;
+        if (!blank(add)) {
+            value = add;
+        } else if (!blank(remove) && remove.equals(old)) {
+            value = null; // clears both value columns — the key reads as unset afterwards
+        } else {
+            return;
+        }
+        store.upsertRegistry(x.match.id(), key, value, x.actor.id(), event.getId(), x.currentClock);
+        x.ctx.registry().put(key, value);
+        x.registryChanges.add(new RegistryChange(key, old, value));
+    }
+
+    /**
+     * Run an event a choice points at — {@code idEventTorun} on the option, or
+     * {@code id_event} on one of its effect rows.
+     *
+     * <p>A linked event is a <b>consequence</b>, so it is neither re-checked nor charged
+     * (the Step 29 chain rule). If it is itself a choice-event the resolution does not
+     * apply its effects — they are withheld by definition — but presents its options
+     * instead, so a story that chains a choice onto a choice keeps working; the options are
+     * served free, the open having already been paid for by the choice that led here.</p>
+     */
+    private void runLinkedEvent(Exec x, Integer idEvent) {
+        if (idEvent == null || idEvent <= 0) {
+            return;
+        }
+        long linkedId = idEvent.longValue();
+        EventEntity linked = x.eventsById().get(linkedId);
+        if (linked == null || x.visited.contains(linkedId)) {
+            return; // dangling id, or already run in this resolution
+        }
+        if (EventAvailabilityChecker.TYPE_ONCE.equalsIgnoreCase(linked.getType())
+                && x.ctx.consumedEventIds().contains(linkedId)) {
+            return; // a spent ONCE stays spent, whoever points at it
+        }
+        List<ChoiceEntity> nested = store.findChoicesByEventId(x.match.idStory(), linkedId);
+        if (!nested.isEmpty()) {
+            x.visited.add(linkedId);
+            x.ctx.consumedEventIds().add(linkedId);
+            x.executedEventUuids.add(linked.getUuid());
+            store.logEventExecuted(x.match.id(), x.actor.id(), linkedId, x.currentClock,
+                    EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + linkedId);
+            x.status = STATUS_CHOICES_PENDING;
+            x.pendingChoices = buildPendingChoices(x, nested);
+            return;
+        }
+        if (x.choiceEventUuid == null) {
+            x.choiceEventUuid = linked.getUuid();
+            x.choiceEventCard = resolveCard(x, linked.getIdCard());
+        }
+        runChain(x, linked);
+    }
+
+    /**
+     * Close the cycle. Order matters only in that all three rows describe a resolution that
+     * has already happened — the effects and the linked events ran first, so a failure
+     * midway leaves no marker claiming otherwise.
+     *
+     * <p>The {@code CHOICE_SELECTED} marker carries the OWNING EVENT's id, never the
+     * option's: {@link EventExecutionStorePort#countLogMarkers} pairs it against
+     * {@code EVENT_EXECUTED} by event, and a row stamped with the choice id would leave the
+     * cycle open for ever.</p>
+     */
+    private void writeResolutionMarkers(Exec x, ChoiceEntity choice, long eventId, long choiceId) {
+        store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + eventId);
+        store.logChoiceExecuted(x.match.id(), eventId, choiceId, x.currentClock,
+                EventExecutionStorePort.MSG_CHOICE_SELECTED + " " + choiceId);
+        if (nz(choice.getIsProgress()) == 1) {
+            store.insertStoryProgress(x.match.id(), eventId, choiceId, x.currentClock);
+            x.progressRecorded = true;
+        }
+    }
+
     // ── the chain ───────────────────────────────────────────────────────────
 
     private void runChain(Exec x, EventEntity first) {
@@ -398,12 +684,12 @@ public class EventExecutionService implements EventExecutionPort {
         List<String> touched = new ArrayList<>();
         for (EventActorView recipient : recipients) {
             touched.add(recipient.uuid());
-            applyStatEffect(x, recipient, effect);
-            applyItemEffect(x, recipient, effect);
+            applyStat(x, recipient, effect.getStatistics(), nz(effect.getValue()));
+            applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction());
             applyTraitEffects(x, recipient, effect, event);
             applyCharacteristicEffects(x, recipient, effect);
             applyRegistryEffect(x, recipient, effect, event);
-            applyMovementEffect(x, recipient, effect);
+            applyMove(x, recipient, effect.getIdLocation());
         }
 
         x.effects.add(new AppliedEffect(event.getUuid(), effect.getUuid(),
@@ -445,13 +731,17 @@ public class EventExecutionService implements EventExecutionPort {
         return narrowed;
     }
 
-    /** life/energy/sad/dex/int/cos/exp on the character; food/magic/coin on the backpack. */
-    private void applyStatEffect(Exec x, EventActorView recipient, EventEffectEntity effect) {
-        String stat = effect.getStatistics();
+    /**
+     * life/energy/sad/dex/int/cos/exp on the character; food/magic/coin on the backpack.
+     *
+     * <p>Takes the statistic and the delta rather than an effect row, so the Step 32 choice
+     * effects — a different table, the same vocabulary — move a stat through exactly this
+     * code and cannot drift from it.</p>
+     */
+    private void applyStat(Exec x, EventActorView recipient, String stat, int delta) {
         if (stat == null || stat.isBlank()) {
             return;
         }
-        int delta = nz(effect.getValue());
         Live c = x.live(recipient);
         int before;
         int after;
@@ -517,9 +807,8 @@ public class EventExecutionService implements EventExecutionPort {
                 before, after, after - before));
     }
 
-    private void applyItemEffect(Exec x, EventActorView recipient, EventEffectEntity effect) {
-        Integer idItem = effect.getIdItemTarget();
-        String action = effect.getItemAction();
+    /** ADD or REMOVE one unit of {@code idItem}. Shared with the Step 32 choice effects. */
+    private void applyItem(Exec x, EventActorView recipient, Integer idItem, String action) {
         if (idItem == null || idItem <= 0 || action == null) {
             return;
         }
@@ -603,9 +892,11 @@ public class EventExecutionService implements EventExecutionPort {
      * move to the location the recipient already stands in. The tracked position is updated,
      * so a later effect of the same chain resolves {@code target=ALL} where the recipient
      * now stands.
+     *
+     * <p>Shared verbatim with the Step 32 choice effects: an option that relocates the party
+     * relocates it by the same rules an event does.</p>
      */
-    private void applyMovementEffect(Exec x, EventActorView recipient, EventEffectEntity effect) {
-        Integer idLocation = effect.getIdLocation();
+    private void applyMove(Exec x, EventActorView recipient, Integer idLocation) {
         if (idLocation == null || idLocation <= 0) {
             return;
         }
@@ -909,6 +1200,11 @@ public class EventExecutionService implements EventExecutionPort {
         // ── Step 31 choices ──
         String status = STATUS_APPLIED;
         List<PendingChoice> pendingChoices = List.of();
+        // ── Step 32 resolution ──
+        /** The event an effect's {@code id_event} ran: the card the board narrates with. */
+        String choiceEventUuid;
+        CardInfo choiceEventCard;
+        boolean progressRecorded;
         boolean endTime;
         boolean timeEnded;
         boolean itemAdded;
