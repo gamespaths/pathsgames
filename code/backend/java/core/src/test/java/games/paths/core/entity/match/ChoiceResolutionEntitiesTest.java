@@ -157,7 +157,9 @@ class ChoiceResolutionEntitiesTest {
         assertEquals(log.hashCode(), new LogChoicesExecutedEntityId(1L, 2L).hashCode());
         assertNotEquals(log, new LogChoicesExecutedEntityId(1L, 3L));
         // Same numbers, different tables: AbstractMatchScopedEntityId compares getClass().
-        assertNotEquals(log, progress);
+        // The (Object) cast keeps the cross-type check the point of this line while telling
+        // the analyzer it is deliberate, not an accidental dissimilar-type comparison.
+        assertNotEquals((Object) log, progress);
         assertEquals(progress, new GamingStoryProgressEntityId(1L, 2L));
     }
 
