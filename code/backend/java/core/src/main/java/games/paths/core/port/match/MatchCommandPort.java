@@ -107,6 +107,8 @@ public interface MatchCommandPort {
             MAINTENANCE_MODE,
             STORY_HAS_NO_LOCATIONS,
             TURNSTILE_VALIDATION_FAILED,
+            // v0.32.1 — the creator already owns a non-terminal match on this story
+            ACTIVE_MATCH_ALREADY_EXISTS,
             // Step 23 — trait selection validation on the creator loadout
             TRAIT_NOT_FOUND,
             TRAIT_DUPLICATED,

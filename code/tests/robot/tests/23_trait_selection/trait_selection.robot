@@ -276,6 +276,11 @@ Suite Setup Trait Selection
 Create Fresh Match
     [Documentation]    Creates a new single-player match (no loadout traits) and
     ...                returns its uuid.
+    ...                v0.32.1 — each match belongs to its own guest: one user may own
+    ...                only one active match per story (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ...                ${TOKEN} is rebound for the rest of the test, so the caller keeps
+    ...                using it to act on the match it just got.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_step23
     Status Should Be    ${match}    201
     RETURN    ${match.json()}[uuid]

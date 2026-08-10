@@ -147,6 +147,9 @@ Suite Setup Logs Order
 New Ordered Logs Match
     [Documentation]    A started match with a slept character: the timeline holds at
     ...                least a WEATHER and a SLEEP entry, so it has an order to assert.
+    # v0.32.1 — its own guest: one user may own only one active match per story
+    # (409 ACTIVE_MATCH_ALREADY_EXISTS). ${TOKEN} is rebound for the rest of the test.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match With Rng Seed    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    42
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]

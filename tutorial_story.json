@@ -1559,7 +1559,7 @@
       "idEvent": 8,
       "idTextName": 240,
       "id_card": 85,
-      "priority": 1,
+      "priority": 3,
       "uuid": "adf8562c-9173-4b20-a927-d6ce483552fc"
     },
     {
@@ -1568,7 +1568,7 @@
       "idEvent": 8,
       "idTextName": 241,
       "id_card": 86,
-      "priority": 3,
+      "priority": 1,
       "uuid": "49c34c63-89ea-4bfc-a3e9-1910cecfeeac"
     },
     {
@@ -7783,4 +7783,94 @@
     },
     {
       "constitution": 0,
-      "costNega
+      "costNegative": 0,
+      "costPositive": 0,
+      "dexterity": 1,
+      "energy": 0,
+      "id": 5,
+      "idCard": 42,
+      "idClassPermitted": null,
+      "idClassProhibited": 5,
+      "idTextDescription": 130,
+      "idTextName": 86,
+      "intelligence": 0,
+      "life": 0,
+      "sad": -1,
+      "texts": {
+        "en": {
+          "description": "Survival above all else. The readiness to flee allows you to avoid blows that would strike down the boldest.",
+          "name": "Coward"
+        },
+        "it": {
+          "description": "La sopravvivenza prima di tutto. La prontezza nel fuggire permette di evitare colpi che abbatterebbero i più audaci",
+          "name": "Codardo"
+        }
+      },
+      "uuid": "fc54095e-ae0e-49ae-8641-c26dbf81fac9",
+      "weight": 0
+    },
+    {
+      "constitution": -1,
+      "costNegative": 0,
+      "costPositive": 0,
+      "dexterity": 0,
+      "energy": 0,
+      "id": 6,
+      "idCard": 43,
+      "idClassPermitted": null,
+      "idClassProhibited": 3,
+      "idTextDescription": 131,
+      "idTextName": 87,
+      "intelligence": 0,
+      "life": 1,
+      "sad": 0,
+      "texts": {
+        "en": {
+          "description": "The blood of a forgotten era flows through your veins, awakening lost knowledge and legendary resilience.",
+          "name": "Ancident"
+        },
+        "it": {
+          "description": "Il sangue di un'epoca dimenticata scorre nelle vene, risvegliando conoscenze perdute e una tempra leggendaria\n",
+          "name": "Divino"
+        }
+      },
+      "uuid": "89a8c863-4f1e-44bc-ab43-d14a6a66fafe",
+      "weight": 0
+    }
+  ],
+  "uuid": "story-001",
+  "versionMax": null,
+  "versionMin": "0.19.3",
+  "visibility": "PUBLIC",
+  "weatherRules": [
+    {
+      "costMoveNotSafeLocation": 1,
+      "costMoveSafeLocation": 1,
+      "id": 1,
+      "idCard": 48,
+      "idText": 135,
+      "id_card": 48,
+      "probability": 50,
+      "uuid": "9efa0012-39cf-4c8b-bc83-505faf9ed0d1"
+    },
+    {
+      "costMoveNotSafeLocation": 3,
+      "costMoveSafeLocation": 3,
+      "id": 2,
+      "idCard": 49,
+      "idText": 136,
+      "id_card": 49,
+      "probability": 50,
+      "uuid": "34c34e37-2875-4684-8a54-0bc77e1adcc2"
+    },
+    {
+      "costMoveSafeLocation": 2,
+      "id": 3,
+      "idCard": 92,
+      "idText": 260,
+      "id_card": 92,
+      "probability": 0,
+      "uuid": "dffc8ac8-a0a0-4c8d-ac99-8522c8a68fa6"
+    }
+  ]
+}

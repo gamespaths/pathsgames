@@ -108,11 +108,47 @@ describe('HomePage — story click with active match check', () => {
     expect(mockOpenGuestModal).not.toHaveBeenCalled()
   })
 
-  it('falls back to StartBookModal when listMatches throws', async () => {
+  it('opens GuestUserModal when a PAUSED match exists for that story (v0.32.1)', async () => {
+    const list = [{ uuid: 'm3', storyUuid: 's1', status: 'PAUSED' }]
+    listMatches.mockResolvedValue(list)
+    wrap(<HomePage />)
+    fireEvent.click(await screen.findByText('Forest Path'))
+    await waitFor(() => expect(mockOpenGuestModal).toHaveBeenCalledWith(list))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+  })
+
+  it('fails closed when listMatches throws: no StartBookModal, an error banner instead (v0.32.1)', async () => {
     listMatches.mockRejectedValue(new Error('Network error'))
     wrap(<HomePage />)
     fireEvent.click(await screen.findByText('Forest Path'))
+    expect(await screen.findByText('home.matchesError')).toBeInTheDocument()
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(mockOpenGuestModal).not.toHaveBeenCalled()
+  })
+
+  it('retries the match list from the error banner (v0.32.1)', async () => {
+    listMatches.mockRejectedValueOnce(new Error('Network error'))
+    listMatches.mockResolvedValue([])
+    wrap(<HomePage />)
+    await screen.findByText('home.matchesError')
+    fireEvent.click(screen.getByText('startMatch.retry'))
+    await waitFor(() => expect(listMatches).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByText('home.matchesError')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByText('Forest Path'))
     expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+  })
+
+  it('a click during the load awaits the single in-flight request (v0.32.1)', async () => {
+    let resolveMatches
+    listMatches.mockReturnValue(new Promise(res => { resolveMatches = res }))
+    wrap(<HomePage />)
+    fireEvent.click(await screen.findByText('Forest Path'))
+    // still pending: nothing opened, and no second request was fired
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    expect(listMatches).toHaveBeenCalledTimes(1)
+    resolveMatches([])
+    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(listMatches).toHaveBeenCalledTimes(1)
   })
 
   it('offers a retry (instead of blocking) and never calls getStories on widget error', async () => {

@@ -148,16 +148,21 @@ def create_env():
     user / maintenance flag."""
     with patch('match.handler.jwt_utils.verify_access_token') as mock_jwt, \
          patch('match.handler.db_utils.get_item') as mock_get, \
+         patch('match.handler.db_utils.query_gsi') as mock_query, \
          patch('match.handler.db_utils.put_item') as mock_put:
         mock_jwt.return_value = {'uuid': 'player-uuid-001', 'source': 'mock', 'role': 'PLAYER'}
 
+        # v0.32.1 — the duplicate-match guard queries GSI1; no existing match by default.
+        mock_query.return_value = []
+
         state = {'user': PLAYER_USER, 'story': None, 'maintenance': False}
 
-        def configure(*, user=None, story=None, maintenance=False):
+        def configure(*, user=None, story=None, maintenance=False, user_matches=None):
             if user is not None:
                 state['user'] = user
             state['story'] = story
             state['maintenance'] = maintenance
+            mock_query.return_value = user_matches or []
 
         def get_side(pk, sk='METADATA'):
             if pk == 'USER#player-uuid-001':
@@ -169,7 +174,8 @@ def create_env():
             return None
 
         mock_get.side_effect = get_side
-        yield {'put': mock_put, 'configure': configure, 'jwt': mock_jwt, 'get': mock_get}
+        yield {'put': mock_put, 'configure': configure, 'jwt': mock_jwt, 'get': mock_get,
+               'query': mock_query}
 
 
 def test_create_match_turnstile_failure_returns_400(create_env):
@@ -304,6 +310,45 @@ def test_create_match_difficulty_not_found_returns_404(create_env):
     result = lambda_handler(event, {})
     assert result['statusCode'] == 404
     assert _body(result)['error'] == 'DIFFICULTY_NOT_FOUND'
+
+
+def test_create_match_active_match_exists_returns_409(create_env):
+    """v0.32.1 — a non-terminal match on the same story blocks a second one."""
+    create_env['configure'](story=STORY_ITEM, user_matches=[
+        {'storyUuid': 'story-uuid-1', 'status': 'RUNNING'},
+    ])
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 409
+    assert _body(result)['error'] == 'ACTIVE_MATCH_ALREADY_EXISTS'
+    create_env['put'].assert_not_called()
+
+
+def test_create_match_paused_match_also_blocks(create_env):
+    """PAUSED is suspended, not over: it keeps occupying the story slot."""
+    create_env['configure'](story=STORY_ITEM, user_matches=[
+        {'storyUuid': 'story-uuid-1', 'status': 'PAUSED'},
+    ])
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 409
+
+
+def test_create_match_ended_or_other_story_does_not_block(create_env):
+    """An ENDED match, or an active one on another story, leaves the slot free."""
+    create_env['configure'](story=STORY_ITEM, user_matches=[
+        {'storyUuid': 'story-uuid-1', 'status': 'ENDED'},
+        {'storyUuid': 'other-story', 'status': 'RUNNING'},
+    ])
+    from match.handler import lambda_handler
+    event = _player_event('POST', '/api/matches', body={
+        'storyUuid': 'story-uuid-1', 'difficultyUuid': 'diff-uuid-1'})
+    result = lambda_handler(event, {})
+    assert result['statusCode'] == 201
 
 
 def test_create_match_no_locations_returns_400(create_env):

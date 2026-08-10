@@ -33,6 +33,31 @@ Create Guest Session And Get Token
     Set Test Variable    ${GUEST_TOKEN}    ${token}
     RETURN    ${token}
 
+New Guest Token
+    [Documentation]    v0.32.1 — returns the accessToken of a brand-new guest, without
+    ...                touching any test/suite variable (so it is legal inside a Suite
+    ...                Setup, unlike Create Guest Session And Get Token).
+    ...                Needed wherever a suite creates more than one match on the same
+    ...                story: one user may own only one active match per story
+    ...                (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ${response}=    POST On Session    public_session    /api/auth/guest
+    Status Should Be    ${response}    201
+    RETURN    ${response.json()}[accessToken]
+
+Use A Fresh Guest Token
+    [Documentation]    v0.32.1 — mints a new guest and rebinds \${TOKEN} to it, so the
+    ...                caller keeps using \${TOKEN} for the match it is about to create.
+    ...                The rebinding is test-scoped inside a test and suite-scoped when
+    ...                called from a Suite Setup, where test variables are illegal.
+    ${token}=    New Guest Token
+    ${test_name}=    Get Variable Value    ${TEST NAME}    ${EMPTY}
+    IF    '${test_name}' == ''
+        Set Suite Variable    ${TOKEN}    ${token}
+    ELSE
+        Set Test Variable    ${TOKEN}    ${token}
+    END
+    RETURN    ${token}
+
 Guest Login Response Should Be Valid
     [Documentation]    Validates the shape of the GuestLoginResponse body.
     [Arguments]    ${response}

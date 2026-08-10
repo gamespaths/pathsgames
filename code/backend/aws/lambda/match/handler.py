@@ -16,6 +16,10 @@ DynamoDB layout:
   PK = MATCH#{uuid}, SK = METADATA
     Match metadata + embedded ``locations`` / ``registry`` lists.
     GSI1_PK = USER_MATCHES#{userUuid}, GSI1_SK = MATCH#{tsInsertMs}#{uuid}
+      v0.32.1 — also backs the duplicate-match guard of POST /api/matches: the
+      creator's own partition is queried and filtered on storyUuid + status, so
+      a second active match on the same story answers 409
+      ACTIVE_MATCH_ALREADY_EXISTS.
     GSI2_PK = MATCH,                   GSI2_SK = {tsInsertMs:020d}#{uuid}
       v0.28.1 "by type" index — backs the paginated admin list
       (GET /api/admin/matches) as a single Query instead of a full Scan.
@@ -71,6 +75,10 @@ _API_GAMEPLAY_PATH = "/api/gameplay/"
 # ENDED or GAMEOVER; only stopped matches may be deleted by an admin.
 MATCH_STATUSES = ["CREATED", "RUNNING", "PAUSED", "ENDED", "GAMEOVER"]
 TERMINAL_STATUSES = {"ENDED", "GAMEOVER"}
+# v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
+# its creator's slot on the story, so a second one cannot be created. PAUSED counts:
+# an admin-paused match is not over, it is suspended.
+ACTIVE_STATUSES = {"CREATED", "RUNNING", "PAUSED"}
 
 
 def _err(status, code, message):
@@ -603,6 +611,16 @@ def _resolve_and_validate_traits(story, clazz, difficulty, trait_uuids):
 
 # ─── domain operations ───────────────────────────────────────────────────────
 
+def _has_active_match_for_story(user, story_uuid):
+    """v0.32.1 — True when the caller already owns a non-terminal match on that
+    story. Reads the user's own GSI1 partition (the same access path as
+    `_list_user_matches`, which is fully paginated) and filters in memory:
+    `storyUuid` is not part of GSI1_SK, so it cannot narrow the key condition."""
+    items = db_utils.query_gsi('GSI1', f'USER_MATCHES#{user["uuid"]}') or []
+    return any(i.get('storyUuid') == story_uuid and i.get('status') in ACTIVE_STATUSES
+               for i in items)
+
+
 def _create_match(user, body):
     story_uuid = (body or {}).get('storyUuid')
     difficulty_uuid = (body or {}).get('difficultyUuid')
@@ -643,6 +661,16 @@ def _create_match(user, body):
         return _err(400, 'STORY_HAS_NO_LOCATIONS', 'Story has no locations defined')
 
     keys = story.get('keys') or []
+
+    # v0.32.1 — one active match per user and story. It runs last, after every 404
+    # and 400: a malformed request keeps reporting its own error whatever the state
+    # is, and the state conflict is the only thing left to refuse. Still before
+    # anything is written — a rejected creation persists nothing. GSI1 already holds
+    # the caller's matches with `status` and `storyUuid` projected, so this is a
+    # Query on the user's own partition — never a Scan.
+    if _has_active_match_for_story(user, story_uuid):
+        return _err(409, 'ACTIVE_MATCH_ALREADY_EXISTS',
+                    'An active match already exists for this user and story')
 
     now_ms = _ts_ms()
     match_uuid = _new_match_uuid()

@@ -68,6 +68,7 @@ export default function Card({
   /* page variant (variant="page" — the book reading page) */
   loading, onClose, onForward, entity, entityType,
   extraContent=null, extraContentClassName=null, statItemsToPageContent=null, descriptionTag=false,
+  additionalCardClasses,
 }) {
   //if (lockInfo) { console.log(card.title,"lockInfo",lockInfo);} 
   const { t } = useTranslation()
@@ -131,7 +132,7 @@ export default function Card({
   ].filter(Boolean).join(' ')
   
   return (
-    <div className={cardClasses}>
+    <div className={`${cardClasses} ${additionalCardClasses ?? ''}`}>
       {isPage && loading && (
         <div className="book-page-loading">
           <i className="fas fa-spinner fa-spin fa-5x" style={{ color: 'var(--color-gold-shine)' }} />

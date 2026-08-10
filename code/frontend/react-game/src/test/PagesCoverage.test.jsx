@@ -82,24 +82,27 @@ describe('HomePage — story click and book dismissal', () => {
     getStories.mockResolvedValue([STORY])
   })
 
-  // The active-match list may still be loading when a story is clicked: the page
-  // fetches it on demand rather than guessing.
-  it('fetches the match list on demand when it has not loaded yet', async () => {
-    listMatches.mockReturnValueOnce(new Promise(() => {}))   // the mount fetch never settles
-    listMatches.mockResolvedValue([])                        // the on-demand one does
+  // v0.32.1 — the active-match list may still be loading when a story is clicked:
+  // the page awaits the single in-flight request instead of firing a second one.
+  it('awaits the in-flight match list instead of refetching it', async () => {
+    let resolveMatches
+    listMatches.mockReturnValue(new Promise(res => { resolveMatches = res }))
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
+    resolveMatches([])
     expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
-    expect(listMatches).toHaveBeenCalledTimes(2)
+    expect(listMatches).toHaveBeenCalledTimes(1)
   })
 
-  // A failing on-demand fetch must not block the player: the book opens anyway.
-  it('opens the book anyway when the on-demand match fetch fails', async () => {
-    listMatches.mockReturnValueOnce(new Promise(() => {}))
+  // v0.32.1 — a failing fetch fails closed: without the list we cannot tell
+  // whether a match already exists, so the book stays shut.
+  it('does not open the book when the match fetch fails', async () => {
     listMatches.mockRejectedValue(new Error('offline'))
     render(<MemoryRouter><HomePage /></MemoryRouter>)
     fireEvent.click(await screen.findByText('Forest Path'))
-    expect(await screen.findByTestId('start-book-modal')).toBeInTheDocument()
+    expect(await screen.findByText('home.matchesError')).toBeInTheDocument()
+    expect(screen.queryByTestId('start-book-modal')).not.toBeInTheDocument()
   })
 
   // Closing the book clears the selected story and returns to the catalog.

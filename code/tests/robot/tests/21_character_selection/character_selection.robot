@@ -192,6 +192,11 @@ Get Players From Non Participant Returns 404
 
 Create Fresh Joinable Match
     [Documentation]    Creates a new CREATED (joinable) single-player match and returns its uuid.
+    ...                v0.32.1 — each match belongs to its own guest: one user may own
+    ...                only one active match per story (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ...                ${TOKEN} is rebound for the rest of the test, so the caller keeps
+    ...                using it to act on the match it just got.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_step21
     Status Should Be    ${match}    201
     RETURN    ${match.json()}[uuid]

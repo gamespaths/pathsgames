@@ -88,6 +88,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '409':
+          description: >-
+            v0.32.1 — ACTIVE_MATCH_ALREADY_EXISTS: the caller already owns a
+            non-terminal match (CREATED, RUNNING or PAUSED) on this story. Only
+            one active match per user and story is allowed; the client can find
+            the existing match with GET /api/matches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '503':
           description: Server is in maintenance mode
           content:

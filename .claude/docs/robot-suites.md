@@ -14,7 +14,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `15_story_content` | Story content APIs |
 | `16_content_detail` | Content detail APIs |
 | `17_admin_crud` | Admin CRUD for all story entities |
-| `19_match` | Match creation and end flow |
+| `19_match` | Match creation and end flow; `duplicate_match_guard.robot` (v0.32.1, see below) |
 | `20_admin_match` | Admin match control (stop/pause/resume) |
 | `20_website` | Website/Turnstile captcha flow |
 | `21_character_selection` | Character join, stat formula, backpack/traits |
@@ -29,6 +29,22 @@ Loaded on demand. Read only when working on E2E tests.
 | `30_edge_states` | Step 30 sadness overflow / coma edge states |
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
+
+### `19_match` breakdown
+
+`match_creation.robot` + `match_end.robot`, plus `duplicate_match_guard.robot`
+(v0.32.1, 6 tests) — `POST /api/matches` answers 409 `ACTIVE_MATCH_ALREADY_EXISTS`
+when the caller already owns a **CREATED / RUNNING / PAUSED** match on that story:
+a paused match still blocks, an `Admin Stop Match` (→ ENDED) frees the story, another
+guest is never blocked, a different story is not blocked (skipped when the seed's
+second story has no locations), and an unknown story still answers 404 — the guard
+runs last. Every case runs on **its own guest**, and the suite teardown stops and
+deletes the matches it created.
+
+Because of that guard, any suite creating two matches for one guest on the same story
+now mints a guest per match via `Use A Fresh Guest Token` (`resources/auth.resource`;
+rebinds `${TOKEN}`, test-scoped in a test and suite-scoped in a Suite Setup). Already
+applied to 19_match, 20_website, 21, 23, 24, 25, 26, 27 and 28.
 
 ### `28_movement` breakdown
 

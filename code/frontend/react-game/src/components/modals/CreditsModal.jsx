@@ -5,8 +5,9 @@ import images from '../../data/images.json'
 /**
  * CreditsModal — image-credits modal.
  *
- * Renders every entry from `src/data/images.json` as a Card inside a
- * responsive grid (3 columns on desktop, 2 on tablet, 1 on phone).
+ * Renders every entry from `src/data/images.json` as a small Card
+ * (`pg-card--small`, the 100×150 grid card used across the game) inside a
+ * wrapping row that fits as many per line as the modal width allows.
  * `images.json` mixes two shapes — `{urlImage, copyrightText, linkCopyright,
  * description}` and `{url, author, authorLink}` — so each entry is normalised
  * into a single Card `card` payload.
@@ -53,7 +54,8 @@ export default function CreditsModal() {
               {images.map(img => (
                 <Card
                   key={img.id}
-                  variant="little"
+                  additionalCardClasses="pg-card--medium2"
+                  variant="small"
                   card={toCard(img)}
                   name={img.id}
                   imageAlt={img.id}

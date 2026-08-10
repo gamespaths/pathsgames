@@ -87,6 +87,22 @@ class MatchPersistenceAdapter(MatchPersistencePort):
             )
             return [self._match_to_dict(r) for r in rows]
 
+    def has_active_match_for_story(self, user_id: int, story_id: int,
+                                   statuses) -> bool:
+        # v0.32.1 — duplicate-match guard. Only the existence matters, so the
+        # query stops at the first row instead of materialising the whole list.
+        if user_id is None or story_id is None or not statuses:
+            return False
+        with self.session_factory() as session:
+            row = (
+                session.query(GamingMatchEntity.id)
+                .filter(GamingMatchEntity.id_user_creator == user_id)
+                .filter(GamingMatchEntity.id_story == story_id)
+                .filter(GamingMatchEntity.status.in_(list(statuses)))
+                .first()
+            )
+            return row is not None
+
     def find_all_matches(self) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
             rows = (

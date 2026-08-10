@@ -16,6 +16,11 @@ ALL = [CREATED, RUNNING, PAUSED, ENDED, GAMEOVER]
 # Terminal statuses — a match in one of these is "stopped" and deletable.
 TERMINAL = {ENDED, GAMEOVER}
 
+# v0.32.1 — active (non-terminal) statuses. A match in one of these still occupies
+# its creator's slot on the story, so a second one cannot be created. PAUSED counts:
+# an admin-paused match is not over, it is suspended.
+ACTIVE = {CREATED, RUNNING, PAUSED}
+
 
 def is_valid(status) -> bool:
     """Returns True when status is one of the valid match statuses."""
@@ -25,3 +30,8 @@ def is_valid(status) -> bool:
 def is_terminal(status) -> bool:
     """Returns True when status is a terminal (stopped) status."""
     return status in TERMINAL
+
+
+def is_active(status) -> bool:
+    """Returns True when status is an active (non-terminal) status."""
+    return status in ACTIVE

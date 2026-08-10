@@ -99,6 +99,15 @@ public class MatchPersistenceAdapter implements MatchPersistencePort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveMatchForStory(Long userId, Long storyId, List<String> statuses) {
+        if (userId == null || storyId == null || statuses == null || statuses.isEmpty()) {
+            return false;
+        }
+        return matchRepository.existsByIdUserCreatorAndIdStoryAndStatusIn(userId, storyId, statuses);
+    }
+
+    @Override
     public void saveLocations(List<GamingStateLocationsEntity> entities) {
         if (entities == null || entities.isEmpty()) {
             return;

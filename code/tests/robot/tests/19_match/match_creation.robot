@@ -229,7 +229,10 @@ Create Match With Loadout Persists Character Class Traits And Flag
         Append To List    ${traits}    ${trait}
     END
     ${expected_traits}=    Get Length    ${traits}
-    ${response}=    Create Match With Loadout    ${TOKEN}    ${story}    ${difficulty}
+    # v0.32.1 — its own guest: ${TOKEN} already owns the match created above, and one
+    # user may own only one active match per story (409 ACTIVE_MATCH_ALREADY_EXISTS).
+    ${token}=    New Guest Token
+    ${response}=    Create Match With Loadout    ${token}    ${story}    ${difficulty}
     ...    ${character}    ${class}    ${traits}    ${1}
     Status Should Be    ${response}    201
     ${body}=    Set Variable    ${response.json()}
@@ -237,7 +240,7 @@ Create Match With Loadout Persists Character Class Traits And Flag
     Should Be Equal As Strings    ${body}[characterTemplateUuid]    ${character}
     Should Be Equal As Strings    ${body}[classUuid]    ${class}
     Length Should Be    ${body}[traitUuids]    ${expected_traits}
-    ${info}=    Get Match Info    ${TOKEN}    ${body}[uuid]
+    ${info}=    Get Match Info    ${token}    ${body}[uuid]
     Status Should Be    ${info}    200
     ${match}=    Set Variable    ${info.json()}[match]
     Should Be Equal As Integers    ${match}[singlePlayer]    1

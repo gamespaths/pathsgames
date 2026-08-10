@@ -23,6 +23,13 @@ public final class MatchStatuses {
     /** Terminal statuses — a match in one of these is "stopped" and deletable. */
     public static final Set<String> TERMINAL = Set.of(ENDED, GAMEOVER);
 
+    /**
+     * Active (non-terminal) statuses — a match in one of these still occupies its
+     * creator's slot on the story, so a second one cannot be created (v0.32.1).
+     * {@code PAUSED} counts: an admin-paused match is not over, it is suspended.
+     */
+    public static final Set<String> ACTIVE = Set.of(CREATED, RUNNING, PAUSED);
+
     private MatchStatuses() {
     }
 
@@ -34,5 +41,10 @@ public final class MatchStatuses {
     /** Returns true when {@code status} is a terminal (stopped) status. */
     public static boolean isTerminal(String status) {
         return status != null && TERMINAL.contains(status);
+    }
+
+    /** Returns true when {@code status} is an active (non-terminal) status. */
+    public static boolean isActive(String status) {
+        return status != null && ACTIVE.contains(status);
     }
 }

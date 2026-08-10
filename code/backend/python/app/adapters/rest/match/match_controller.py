@@ -23,6 +23,8 @@ _STATUS_BY_CODE = {
     MatchCreationError.USER_NOT_FOUND: status.HTTP_404_NOT_FOUND,
     MatchCreationError.USER_BANNED: status.HTTP_403_FORBIDDEN,
     MatchCreationError.MAINTENANCE_MODE: status.HTTP_503_SERVICE_UNAVAILABLE,
+    # v0.32.1 — duplicate active match on the same story
+    MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS: status.HTTP_409_CONFLICT,
     # Step 23 — trait selection validation on the creator loadout
     MatchCreationError.TRAIT_NOT_FOUND: status.HTTP_400_BAD_REQUEST,
     MatchCreationError.TRAIT_DUPLICATED: status.HTTP_400_BAD_REQUEST,

@@ -101,6 +101,34 @@ def test_find_matches_by_user_id(session_factory):
     assert adapter.find_matches_by_user_id(404) == []
 
 
+def test_has_active_match_for_story(session_factory):
+    """v0.32.1 — the guard matches on user, story and status together."""
+    adapter = MatchPersistenceAdapter(session_factory)
+    adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7,
+                        "status": "RUNNING"})
+    adapter.save_match({"id_story": 5, "id_difficulty": 2, "id_user_creator": 7,
+                        "status": "ENDED"})
+
+    active = ["CREATED", "RUNNING", "PAUSED"]
+    assert adapter.has_active_match_for_story(7, 1, active)
+    # same story, another user
+    assert not adapter.has_active_match_for_story(9, 1, active)
+    # same user, another story
+    assert not adapter.has_active_match_for_story(7, 404, active)
+    # the ENDED match no longer occupies its slot
+    assert not adapter.has_active_match_for_story(7, 5, active)
+
+
+def test_has_active_match_for_story_missing_arguments(session_factory):
+    adapter = MatchPersistenceAdapter(session_factory)
+    adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7,
+                        "status": "RUNNING"})
+    assert not adapter.has_active_match_for_story(None, 1, ["RUNNING"])
+    assert not adapter.has_active_match_for_story(7, None, ["RUNNING"])
+    assert not adapter.has_active_match_for_story(7, 1, None)
+    assert not adapter.has_active_match_for_story(7, 1, [])
+
+
 def test_find_all_matches(session_factory):
     adapter = MatchPersistenceAdapter(session_factory)
     adapter.save_match({"id_story": 1, "id_difficulty": 2, "id_user_creator": 7})

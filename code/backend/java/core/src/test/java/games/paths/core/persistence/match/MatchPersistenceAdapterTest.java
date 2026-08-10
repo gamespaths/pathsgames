@@ -76,6 +76,23 @@ class MatchPersistenceAdapterTest {
     }
 
     @Test
+    void hasActiveMatchForStory_delegatesToRepository() {
+        when(matchRepository.existsByIdUserCreatorAndIdStoryAndStatusIn(7L, 2L, List.of("CREATED")))
+                .thenReturn(true);
+        assertTrue(adapter.hasActiveMatchForStory(7L, 2L, List.of("CREATED")));
+        verify(matchRepository).existsByIdUserCreatorAndIdStoryAndStatusIn(7L, 2L, List.of("CREATED"));
+    }
+
+    @Test
+    void hasActiveMatchForStory_falseOnMissingArguments() {
+        assertFalse(adapter.hasActiveMatchForStory(null, 2L, List.of("CREATED")));
+        assertFalse(adapter.hasActiveMatchForStory(7L, null, List.of("CREATED")));
+        assertFalse(adapter.hasActiveMatchForStory(7L, 2L, null));
+        assertFalse(adapter.hasActiveMatchForStory(7L, 2L, List.of()));
+        verify(matchRepository, never()).existsByIdUserCreatorAndIdStoryAndStatusIn(any(), any(), any());
+    }
+
+    @Test
     void saveLocations_skipsWhenNullOrEmpty() {
         adapter.saveLocations(null);
         adapter.saveLocations(List.of());

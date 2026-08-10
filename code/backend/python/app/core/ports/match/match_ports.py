@@ -84,6 +84,13 @@ class MatchPersistencePort(ABC):
         ...
 
     @abstractmethod
+    def has_active_match_for_story(self, user_id: int, story_id: int,
+                                   statuses) -> bool:
+        """v0.32.1 — True when ``user_id`` already owns a match on ``story_id``
+        whose status is one of ``statuses``. Backs the duplicate-match guard of
+        match creation. Returns False when any argument is missing."""
+
+    @abstractmethod
     def find_all_matches(self) -> List[Dict[str, Any]]:
         """Return every ``gaming_match`` row, newest first."""
 

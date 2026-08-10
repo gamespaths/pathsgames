@@ -28,6 +28,7 @@
 
 .pg-card--small  { width: 100px; flex: 0 0 100px; aspect-ratio: 2 / 3; }
 .pg-card--medium { width: 150px; flex: 0 0 150px; aspect-ratio: 2 / 3; }
+.pg-card--medium2 { width: 175px; flex: 0 0 175px; aspect-ratio: 2 / 3; }
 .pg-card--home   { width: 225px; flex: 0 0 225px; aspect-ratio: 2 / 3; }
 .pg-card--large  { width: 100%;  flex: 1; min-height: 0; aspect-ratio: 2 / 3; }
 .pg-card--grid   { flex: 1; min-width: 0;          aspect-ratio: 2 / 3; }
@@ -543,6 +544,28 @@ html, body {
   color: var(--color-gold-light);
   border: 1px solid var(--color-gold-dark);
 }
+/* v0.32.1 — an admin-paused match: it blocks a new run but cannot be resumed,
+   so it gets its own badge instead of the "resume" one. */
+.story-card-status--paused {
+  background: rgba(20, 12, 4, 0.82);
+  color: var(--color-parchment-dark);
+  border: 1px solid var(--color-stone);
+}
+
+/* v0.32.1 — the card is waiting for the match list before it can open */
+.story-card--pending { cursor: progress; }
+.story-card--pending .story-card-img { filter: grayscale(40%) brightness(0.7); }
+.story-card-pending-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 10, 2, 0.45);
+  color: var(--color-gold-light);
+  font-size: 1.6rem;
+}
 
 /* Play icon on hover, centred */
 .story-card-play-icon {
@@ -673,7 +696,7 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 20px; /*aaa*/
+  padding: 20px; /*quiquiqui ex 20px*/
   overflow: hidden;
 }
 
@@ -2325,16 +2348,14 @@ html, body {
 }
 
 /* CreditsModal — grid of credit cards (3 per row desktop, 2 tablet, 1 phone) */
+/* The credits use the small (100 × 150) card, so the row simply wraps around
+   their fixed width instead of stretching them over a column grid. */
 .credits-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
   gap: 14px;
-}
-@media (max-width: 991px) {
-  .credits-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 575px) {
-  .credits-grid { grid-template-columns: 1fr; }
 }
 
 /* ═══════════════════════════════════════════

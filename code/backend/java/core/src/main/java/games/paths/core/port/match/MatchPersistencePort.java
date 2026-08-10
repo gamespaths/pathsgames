@@ -17,6 +17,18 @@ public interface MatchPersistencePort {
 
     Optional<GamingMatchEntity> findMatchByUuid(String uuid);
 
+    /**
+     * v0.32.1 — true when {@code userId} already owns a match on {@code storyId}
+     * whose status is one of {@code statuses}. Used by match creation to refuse a
+     * duplicate active match instead of silently opening a second one.
+     *
+     * @param userId   the creator's numeric id
+     * @param storyId  the story's numeric id
+     * @param statuses the statuses that count as occupying the slot
+     * @return {@code false} when any argument is null or no such match exists
+     */
+    boolean hasActiveMatchForStory(Long userId, Long storyId, List<String> statuses);
+
     void saveLocations(List<GamingStateLocationsEntity> entities);
 
     void saveRegistry(List<GamingStateRegistryEntity> entities);

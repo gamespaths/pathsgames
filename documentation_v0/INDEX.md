@@ -33,7 +33,7 @@ Every Step file follows the same skeleton, so grep for these headings:
 | `Step16_ContentDetailAPIs.md` | 25 | Cards, texts, creators detail APIs | cards, texts, creators |
 | `Step17_StoryAdminCRUD.md` | 33 | Admin CRUD for all story entities | admin, CRUD |
 | `Step18_GameMainFrontend.md` | 36 | react-game frontend: structure, design system, API client + mock fallback, guest identity | react-game, frontend, design system |
-| `Step19_SinglePlayerMatchCreation.md` | 34 | Single-player match creation | match, create |
+| `Step19_SinglePlayerMatchCreation.md` | 34 | Single-player match creation. **§6.1 (v0.32.1)**: one active match per user and story — 409 `ACTIVE_MATCH_ALREADY_EXISTS` (CREATED/RUNNING/**PAUSED**), checked last after every 404/400; react-game click gate + fail-closed match list | match, create, duplicate match, ACTIVE_MATCH_ALREADY_EXISTS, 409, active statuses |
 | `Step19_SinglePlayerMatchUtils.md` | 18 | Admin match control, match lifecycle | match lifecycle, stop, pause, resume |
 | `Step20_GameWebSiteFirstRun.md` | 71 | First run + match end flow, cookie consent, Turnstile antibot, **react-game color palette / design system** | turnstile, cookie, end match, palette, styles |
 | `Step21_CharacterSelection.md` | 32 | Character template and class selection | character, class, template |

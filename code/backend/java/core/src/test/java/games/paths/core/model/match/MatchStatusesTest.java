@@ -26,6 +26,24 @@ class MatchStatusesTest {
     }
 
     @Test
+    void isActive_trueForCreatedRunningAndPaused() {
+        assertTrue(MatchStatuses.isActive("CREATED"));
+        assertTrue(MatchStatuses.isActive("RUNNING"));
+        assertTrue(MatchStatuses.isActive("PAUSED"));
+        assertFalse(MatchStatuses.isActive("ENDED"));
+        assertFalse(MatchStatuses.isActive("GAMEOVER"));
+        assertFalse(MatchStatuses.isActive(null));
+    }
+
+    @Test
+    void activeAndTerminalPartitionAllStatuses() {
+        assertEquals(MatchStatuses.ALL.size(),
+                MatchStatuses.ACTIVE.size() + MatchStatuses.TERMINAL.size());
+        MatchStatuses.ALL.forEach(s ->
+                assertNotEquals(MatchStatuses.isActive(s), MatchStatuses.isTerminal(s)));
+    }
+
+    @Test
     void isTerminal_trueOnlyForEndedAndGameover() {
         assertTrue(MatchStatuses.isTerminal("ENDED"));
         assertTrue(MatchStatuses.isTerminal("GAMEOVER"));

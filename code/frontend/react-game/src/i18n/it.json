@@ -11,7 +11,9 @@
     "loading": "Caricamento storie…",
     "noStories": "Nessuna storia disponibile.",
     "badgeResume": "Riprendi",
-    "badgeCompleted": "Completata"
+    "badgeCompleted": "Completata",
+    "badgePaused": "In pausa",
+    "matchesError": "Non è stato possibile caricare le tue partite, quindi non puoi iniziarne una nuova ora."
   },
   "antibot": {
     "blocked": "Antibot attivato — queste avventure sono solo per umani!",
@@ -105,6 +107,7 @@
     "running": "Avvio della partita in corso…",
     "created": "Partita creata, il libro della storia si sta caricando…",
     "error": "Impossibile creare la partita.",
+    "errorActiveMatch": "Hai già una partita in corso per questa storia. Riprendila dalle tue partite.",
     "retry": "Riprova",
     "home": "Torna alla home"
   },

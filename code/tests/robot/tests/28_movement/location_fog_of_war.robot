@@ -124,6 +124,9 @@ Suite Setup Fog Of War
 
 Running Match With Character
     [Documentation]    Creates, joins and starts a match; returns the match uuid.
+    # v0.32.1 — its own guest: one user may own only one active match per story
+    # (409 ACTIVE_MATCH_ALREADY_EXISTS). ${TOKEN} is rebound for the rest of the test.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    robottest_fog
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]

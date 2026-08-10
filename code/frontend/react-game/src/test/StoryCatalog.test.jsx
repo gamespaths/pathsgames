@@ -64,4 +64,24 @@ describe('StoryCatalog', () => {
     expect(screen.getByText('home.badgeCompleted')).toBeInTheDocument()
     expect(container.querySelectorAll('.story-card-status')).toHaveLength(2)
   })
+
+  it('badges a PAUSED match with its own label, not Resume (v0.32.1)', () => {
+    const matches = [{ uuid: 'm1', storyUuid: 's1', status: 'PAUSED' }]
+    const { container } = render(
+      <StoryCatalog stories={STORIES} matches={matches} onStoryClick={vi.fn()} />
+    )
+    expect(screen.getByText('home.badgePaused')).toBeInTheDocument()
+    expect(screen.queryByText('home.badgeResume')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.story-card-status--paused')).toHaveLength(1)
+  })
+
+  it('marks only the clicked story as pending while its match list loads (v0.32.1)', () => {
+    const { container } = render(
+      <StoryCatalog stories={STORIES} pendingStoryUuid="s2" onStoryClick={vi.fn()} />
+    )
+    const pending = container.querySelectorAll('.story-card--pending')
+    expect(pending).toHaveLength(1)
+    expect(pending[0].textContent).toContain('Dragon Keep')
+    expect(container.querySelectorAll('.story-card-pending-overlay')).toHaveLength(1)
+  })
 })

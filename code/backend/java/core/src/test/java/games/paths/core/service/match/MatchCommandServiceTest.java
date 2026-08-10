@@ -11,6 +11,7 @@ import games.paths.core.entity.story.TraitEntity;
 import games.paths.core.entity.story.StoryDifficultyEntity;
 import games.paths.core.entity.story.StoryEntity;
 import games.paths.core.model.match.MatchCreateCommand;
+import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.MatchSummary;
 import games.paths.core.port.match.MatchCommandPort;
 import games.paths.core.port.match.MatchPersistencePort;
@@ -23,13 +24,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -277,6 +281,55 @@ class MatchCommandServiceTest {
         }
 
         @Test
+        @DisplayName("v0.32.1 — an active match on the same story → ACTIVE_MATCH_ALREADY_EXISTS")
+        void activeMatchAlreadyExists() {
+            when(systemModePort.isMaintenance()).thenReturn(false);
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryByUuid("s")).thenReturn(Optional.of(story(2L, "s")));
+            when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "d"))
+                    .thenReturn(Optional.of(difficulty(3L, "d", 5)));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc-uuid", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            when(persistencePort.hasActiveMatchForStory(eq(7L), eq(2L), anyList())).thenReturn(true);
+
+            MatchCommandPort.MatchCreationException ex = assertThrows(
+                    MatchCommandPort.MatchCreationException.class,
+                    () -> service.createMatch(cmd("u", "s", "d")));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.ACTIVE_MATCH_ALREADY_EXISTS,
+                    ex.getCode());
+            // a rejected creation writes nothing
+            verify(persistencePort, never()).saveMatch(any());
+        }
+
+        @Test
+        @DisplayName("v0.32.1 — the guard asks for CREATED, RUNNING and PAUSED")
+        void activeMatchGuardStatuses() {
+            when(systemModePort.isMaintenance()).thenReturn(false);
+            when(userAccessPort.findByUuid("u")).thenReturn(Optional.of(activeUser()));
+            when(storyReadPort.findStoryByUuid("s")).thenReturn(Optional.of(story(2L, "s")));
+            when(storyReadPort.findDifficultyByStoryIdAndUuid(2L, "d"))
+                    .thenReturn(Optional.of(difficulty(3L, "d", 5)));
+            when(storyReadPort.findLocationsByStoryId(2L))
+                    .thenReturn(List.of(location(10L, "loc-uuid", 0)));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+            when(persistencePort.saveMatch(any())).thenAnswer(inv -> {
+                GamingMatchEntity m = inv.getArgument(0);
+                m.setId(99L);
+                m.setUuid("match-uuid");
+                return m;
+            });
+
+            service.createMatch(cmd("u", "s", "d"));
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<String>> statuses = ArgumentCaptor.forClass(List.class);
+            verify(persistencePort).hasActiveMatchForStory(eq(7L), eq(2L), statuses.capture());
+            assertEquals(Set.of(MatchStatuses.CREATED, MatchStatuses.RUNNING, MatchStatuses.PAUSED),
+                    Set.copyOf(statuses.getValue()));
+        }
+
+        @Test
         @DisplayName("locations null → STORY_HAS_NO_LOCATIONS")
         void nullLocations() {
             when(systemModePort.isMaintenance()).thenReturn(false);
@@ -450,9 +503,11 @@ class MatchCommandServiceTest {
         @Test
         @DisplayName("Code enum has expected entries")
         void codes() {
-            assertEquals(12, MatchCommandPort.MatchCreationException.Code.values().length);
+            assertEquals(13, MatchCommandPort.MatchCreationException.Code.values().length);
             assertEquals(MatchCommandPort.MatchCreationException.Code.USER_BANNED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("USER_BANNED"));
+            assertEquals(MatchCommandPort.MatchCreationException.Code.ACTIVE_MATCH_ALREADY_EXISTS,
+                    MatchCommandPort.MatchCreationException.Code.valueOf("ACTIVE_MATCH_ALREADY_EXISTS"));
             assertEquals(MatchCommandPort.MatchCreationException.Code.TRAIT_COST_EXCEEDED,
                     MatchCommandPort.MatchCreationException.Code.valueOf("TRAIT_COST_EXCEEDED"));
         }

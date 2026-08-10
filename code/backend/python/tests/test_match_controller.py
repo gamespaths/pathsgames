@@ -144,6 +144,7 @@ def test_create_match_passes_loadout_to_command(env):
         (MatchCreationError.USER_NOT_FOUND, 404),
         (MatchCreationError.USER_BANNED, 403),
         (MatchCreationError.MAINTENANCE_MODE, 503),
+        (MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS, 409),
         (MatchCreationError.STORY_HAS_NO_LOCATIONS, 400),
         (MatchCreationError.INVALID_INPUT, 400),
     ],

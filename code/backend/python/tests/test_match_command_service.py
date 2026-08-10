@@ -28,6 +28,8 @@ def _build_service(
     story_read.find_locations_by_story_id.return_value = locations
     story_read.find_keys_by_story_id.return_value = keys
     persistence.save_match.return_value = saved_match
+    # v0.32.1 — no duplicate-match guard hit by default (a bare MagicMock would be truthy)
+    persistence.has_active_match_for_story.return_value = False
 
     return MatchCommandService(story_read, persistence, user_access, system_mode), {
         "story_read": story_read,
@@ -149,6 +151,41 @@ def test_difficulty_not_found():
     with pytest.raises(MatchCreationError) as exc:
         service.create_match(MatchCreateCommand("u", "s", "d"))
     assert exc.value.code == MatchCreationError.DIFFICULTY_NOT_FOUND
+
+
+def test_active_match_already_exists():
+    """v0.32.1 — a non-terminal match on the same story blocks a second one."""
+    service, mocks = _build_service(
+        user=_user(),
+        story=_story(),
+        difficulty=_difficulty(),
+        locations=[{"id": 10, "uuid": "loc", "counter_time": 0}],
+        keys=[],
+        saved_match=_saved(),
+    )
+    mocks["persistence"].has_active_match_for_story.return_value = True
+    with pytest.raises(MatchCreationError) as exc:
+        service.create_match(MatchCreateCommand("u", "s", "d"))
+    assert exc.value.code == MatchCreationError.ACTIVE_MATCH_ALREADY_EXISTS
+    # a rejected creation writes nothing
+    mocks["persistence"].save_match.assert_not_called()
+
+
+def test_active_match_guard_asks_for_created_running_and_paused():
+    """v0.32.1 — the guard is called with user id, story id and the ACTIVE set."""
+    service, mocks = _build_service(
+        user=_user(),
+        story=_story(),
+        difficulty=_difficulty(),
+        locations=[{"id": 10, "uuid": "loc", "counter_time": 0}],
+        keys=[],
+        saved_match=_saved(),
+    )
+    service.create_match(MatchCreateCommand("u", "s", "d"))
+    args = mocks["persistence"].has_active_match_for_story.call_args[0]
+    assert args[0] == 7
+    assert args[1] == 2
+    assert set(args[2]) == {"CREATED", "RUNNING", "PAUSED"}
 
 
 def test_no_locations_none():

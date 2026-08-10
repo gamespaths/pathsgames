@@ -174,6 +174,19 @@ class MatchControllerTest {
     }
 
     @Test
+    void createMatch_activeMatchAlreadyExists_returns409() throws Exception {
+        when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
+                MatchCommandPort.MatchCreationException.Code.ACTIVE_MATCH_ALREADY_EXISTS,
+                "An active match already exists for this user and story"));
+
+        mockMvc.perform(authed(post("/api/matches"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"storyUuid\":\"s\",\"difficultyUuid\":\"d\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ACTIVE_MATCH_ALREADY_EXISTS"));
+    }
+
+    @Test
     void createMatch_maintenance_returns503() throws Exception {
         when(commandPort.createMatch(any())).thenThrow(new MatchCommandPort.MatchCreationException(
                 MatchCommandPort.MatchCreationException.Code.MAINTENANCE_MODE, "maintenance"));

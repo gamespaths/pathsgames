@@ -108,6 +108,16 @@ public class MatchCommandService implements MatchCommandPort {
         }
         List<KeyEntity> keys = storyReadPort.findKeysByStoryId(story.getId());
 
+        // v0.32.1 — one active match per user and story. It runs last, after every
+        // 404 and 400: a malformed request keeps reporting its own error whatever
+        // the state is, and the state conflict is the only thing left to refuse.
+        // Still before anything is written — a rejected creation persists nothing.
+        if (persistencePort.hasActiveMatchForStory(user.id(), story.getId(),
+                List.copyOf(MatchStatuses.ACTIVE))) {
+            throw new MatchCreationException(MatchCreationException.Code.ACTIVE_MATCH_ALREADY_EXISTS,
+                    "An active match already exists for this user and story");
+        }
+
         GamingMatchEntity match = new GamingMatchEntity();
         match.setIdStory(story.getId());
         match.setIdDifficulty(difficulty.getId());

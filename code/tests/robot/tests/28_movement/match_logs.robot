@@ -250,6 +250,9 @@ Suite Setup Logs
 
 New Logs Match
     [Documentation]    Creates a CREATED match with rngSeed=42 and joins one character.
+    # v0.32.1 — its own guest: one user may own only one active match per story
+    # (409 ACTIVE_MATCH_ALREADY_EXISTS). ${TOKEN} is rebound for the rest of the test.
+    ${token}=    Use A Fresh Guest Token
     ${match}=    Create Match With Rng Seed    ${TOKEN}    ${STORY_UUID}    ${DIFFICULTY_UUID}    42
     Status Should Be    ${match}    201
     ${match_uuid}=    Set Variable    ${match.json()}[uuid]
