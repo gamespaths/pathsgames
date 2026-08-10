@@ -108,10 +108,13 @@ def test_mock_user_not_in_db_returns_401(mock_jwt, mock_get):
     assert result['statusCode'] == 401
 
 
+@patch('match.handler.db_utils.query_gsi', return_value=[])
 @patch('match.handler.db_utils.put_item')
 @patch('match.handler.db_utils.get_item')
 @patch('match.handler.jwt_utils.verify_access_token')
-def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put):
+def test_jwt_user_not_in_db_uses_synthetic_user(mock_jwt, mock_get, mock_put, mock_query):
+    # query_gsi is patched because the v0.32.1 duplicate-match guard reads GSI1
+    # before creating: unpatched it would reach the real DynamoDB client.
     mock_jwt.return_value = {'uuid': 'jwt-uuid', 'source': 'jwt', 'role': 'PLAYER', 'username': 'j'}
 
     def get_side(pk, sk='METADATA'):
