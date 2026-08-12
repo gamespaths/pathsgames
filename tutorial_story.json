@@ -882,7 +882,7 @@
       "idCard": 73,
       "idCreator": 1,
       "idTextCopyright": 202,
-      "idTextDescription": 199,
+      "idTextDescription": 305,
       "idTextName": 199,
       "idTextTitle": 199,
       "linkCopyright": "https://unsplash.com/photos/aerial-view-of-a-coastal-river-delta-with-mangrove-forests-ijhhIWPLBwI",
@@ -1252,6 +1252,66 @@
       "linkCopyright": "https://unsplash.com/photos/a-hut-made-of-sticks-stands-in-a-forest-_MCEnIYFzpU",
       "urlImage": "https://images.unsplash.com/photo-1752485915037-db6b20e08ef2?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "0190da11-7ed5-4ed8-bfe5-0fec46c3a0a3"
+    },
+    {
+      "id": 105,
+      "idCard": 105,
+      "idCreator": 1,
+      "idTextCopyright": 301,
+      "idTextDescription": 300,
+      "idTextName": 299,
+      "idTextTitle": 299,
+      "linkCopyright": "https://unsplash.com/photos/a-bunch-of-flowers-that-are-in-the-grass-4x0-u0lnDBo",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1696839222576-025c743ace4a?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "69e206db-64a7-4359-a3f5-0271cf65592e"
+    },
+    {
+      "id": 106,
+      "idCard": 106,
+      "idCreator": 1,
+      "idTextCopyright": 306,
+      "idTextDescription": 304,
+      "idTextName": 302,
+      "idTextTitle": 302,
+      "linkCopyright": "https://unsplash.com/photos/a-bunch-of-fish-that-are-in-the-water-7EUlg5tBS3Q",
+      "urlImage": "https://images.unsplash.com/photo-1645543338148-88b06557b2a8?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "33baa96d-dc94-4c99-849e-8841877d7a3f"
+    },
+    {
+      "id": 107,
+      "idCard": 107,
+      "idCreator": 1,
+      "idTextCopyright": 309,
+      "idTextDescription": 308,
+      "idTextName": 307,
+      "idTextTitle": 307,
+      "linkCopyright": "https://unsplash.com/photos/the-ocean-glows-with-bioluminescence-at-night-vbjTOqe5TnI",
+      "urlImage": "https://images.unsplash.com/photo-1746424919573-94ee564f8da0?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "ab1c98cd-8a07-4729-b0f9-1d5617fd415f"
+    },
+    {
+      "id": 108,
+      "idCard": 108,
+      "idCreator": 1,
+      "idTextCopyright": 312,
+      "idTextDescription": 311,
+      "idTextName": 310,
+      "idTextTitle": 310,
+      "linkCopyright": "https://unsplash.com/photos/a-body-of-water-with-trees-in-the-background-3ULbf_Pg87c",
+      "urlImage": "https://images.unsplash.com/photo-1648136176848-01b846042ba2?q=80&w=1026&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "f3416085-77fa-4e63-9275-31af55015e9c"
+    },
+    {
+      "id": 109,
+      "idCard": 109,
+      "idCreator": 1,
+      "idTextCopyright": 314,
+      "idTextDescription": 315,
+      "idTextName": 313,
+      "idTextTitle": 313,
+      "linkCopyright": "https://unsplash.com/photos/wooden-picnic-table-and-bench-by-a-forest-lake-F4DRFnQqHpc",
+      "urlImage": "https://images.unsplash.com/photo-1785867428023-eb618071575e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "6c8af6fe-cd7c-4906-aa8f-9819282293e5"
     }
   ],
   "category": "adventure",
@@ -1962,6 +2022,66 @@
       "target": "ALL",
       "uuid": "1df34eaa-09fb-4016-aac2-c27cc6c1db6f",
       "value": 1
+    },
+    {
+      "id": 6,
+      "idCard": 105,
+      "idEvent": 10,
+      "idTextDescription": 299,
+      "idTextName": 299,
+      "id_card": 105,
+      "statistics": "LIFE",
+      "target": "ALL",
+      "uuid": "1a8cd00f-10ba-4762-928c-552f8bb2dc7b",
+      "value": 1
+    },
+    {
+      "id": 7,
+      "idCard": 106,
+      "idEvent": 11,
+      "idTextDescription": 303,
+      "idTextName": 303,
+      "id_card": 106,
+      "statistics": "ENERGY",
+      "target": "ALL",
+      "uuid": "a1886f53-a556-410b-8a85-1ff88ab9134a",
+      "value": 1
+    },
+    {
+      "id": 8,
+      "idCard": 107,
+      "idEvent": 12,
+      "idTextDescription": 307,
+      "idTextName": 307,
+      "id_card": 107,
+      "statistics": "ENERGY",
+      "target": "ALL",
+      "uuid": "aa84f433-a061-49be-b9c8-b745f67f2897",
+      "value": 1
+    },
+    {
+      "id": 9,
+      "idCard": 108,
+      "idEvent": 13,
+      "idTextDescription": 310,
+      "idTextName": 310,
+      "id_card": 108,
+      "statistics": "ENERGY",
+      "target": "ALL",
+      "uuid": "a9dbdb93-c24b-4bbc-b5e3-ff6872de2590",
+      "value": -1
+    },
+    {
+      "id": 10,
+      "idCard": 109,
+      "idEvent": 14,
+      "idTextDescription": 313,
+      "idTextName": 313,
+      "id_card": 109,
+      "statistics": "LIFE",
+      "target": "ALL",
+      "uuid": "34f1c0b4-fa1d-48e0-a234-ecffb7a6496b",
+      "value": 1
     }
   ],
   "events": [
@@ -2087,6 +2207,56 @@
       "id_card": 93,
       "type": "NORMAL",
       "uuid": "cf48f74e-2411-41dc-9e80-ad352eb734ec"
+    },
+    {
+      "id": 10,
+      "idCard": 105,
+      "idSpecificLocation": 6,
+      "idTextDescription": 299,
+      "idTextName": 299,
+      "id_card": 105,
+      "type": "AUTOMATIC",
+      "uuid": "ee063cea-c725-47ed-80cb-cec9b77b285c"
+    },
+    {
+      "id": 11,
+      "idCard": 106,
+      "idSpecificLocation": 15,
+      "idTextDescription": 302,
+      "idTextName": 302,
+      "id_card": 106,
+      "type": "AUTOMATIC",
+      "uuid": "660cab91-2420-403e-be1f-d2ab1846f893"
+    },
+    {
+      "id": 12,
+      "idCard": 107,
+      "idSpecificLocation": 13,
+      "idTextDescription": 307,
+      "idTextName": 307,
+      "id_card": 107,
+      "type": "AUTOMATIC",
+      "uuid": "ce4b0473-005d-406b-88a9-787f107b9016"
+    },
+    {
+      "id": 13,
+      "idCard": 108,
+      "idSpecificLocation": 12,
+      "idTextDescription": 310,
+      "idTextName": 310,
+      "id_card": 108,
+      "type": "AUTOMATIC",
+      "uuid": "a224ea55-e34f-42ae-b8a9-f0278b34a817"
+    },
+    {
+      "id": 14,
+      "idCard": 109,
+      "idSpecificLocation": 12,
+      "idTextDescription": 313,
+      "idTextName": 313,
+      "id_card": 109,
+      "type": "AUTOMATIC",
+      "uuid": "bf903b7c-8ed7-4380-a1bc-18cb9ea82687"
     }
   ],
   "globalRandomEvents": [],
@@ -2130,16 +2300,16 @@
       "uuid": "fcfd4cb6-9a2a-453e-9881-daeb228d2ab8"
     },
     {
-      "direction": "EAST",
+      "direction": "WEST",
       "energyCost": 2,
       "flagBack": 1,
       "id": 2,
-      "idCard": 52,
-      "idCardBack": 56,
-      "idLocationFrom": 15,
-      "idLocationTo": 2,
+      "idCard": 73,
+      "idCardBack": 52,
+      "idLocationFrom": 2,
+      "idLocationTo": 15,
       "idTextName": 140,
-      "id_card": 52,
+      "id_card": 73,
       "uuid": "088f1c34-b065-4342-8472-1c9d98efc72b"
     },
     {
@@ -2287,11 +2457,12 @@
       "direction": "WEST",
       "flagBack": 1,
       "id": 18,
-      "idCard": 0,
+      "idCard": 52,
+      "idCardBack": 62,
       "idLocationFrom": 6,
       "idLocationTo": 2,
       "idTextName": 248,
-      "id_card": 0,
+      "id_card": 52,
       "uuid": "639dd26e-469c-4020-8697-1d761344920b"
     }
   ],
@@ -2438,6 +2609,7 @@
       "counterTime": 5,
       "id": 6,
       "idCard": 62,
+      "idEventIfCounterZero": 10,
       "idTextDescription": 208,
       "idTextName": 174,
       "id_card": 62,
@@ -2493,6 +2665,8 @@
       "costEnergyEnter": 0,
       "id": 12,
       "idCard": 69,
+      "idEventIfCharacterStartTime": 14,
+      "idEventNotFirstTime": 13,
       "idTextDescription": 263,
       "idTextName": 192,
       "id_card": 69,
@@ -2502,6 +2676,7 @@
       "costEnergyEnter": 0,
       "id": 13,
       "idCard": 71,
+      "idEventIfCharacterEnterFirstTime": 12,
       "idTextDescription": 195,
       "idTextName": 195,
       "id_card": 71,
@@ -2522,6 +2697,8 @@
       "costEnergyEnter": 1,
       "id": 15,
       "idCard": 73,
+      "idEventIfCharacterEnterFirstTime": "",
+      "idEventIfFirstTime": 11,
       "idTextDescription": 199,
       "idTextName": 199,
       "id_card": 73,
@@ -6031,8 +6208,8 @@
       "idText": 208,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.",
-      "shortText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.",
+      "longText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.<br />\n<br />\nSome locations have a timer; when it reaches zero, special events occur even if no one is there. Try sleeping multiple times to decrease the time counter.",
+      "shortText": "You stand on windswept hills. <br />Here you can interact with the environment through Actions—these are special opportunities to test yourself and gain rewards. <br />Each action costs Energy and its success depends on your character's statistics. <br />Try an action to see what happens and how the game resolves your choices. <br />Pay attention to the results—they tell you a story about what your character accomplished. Some actions might seem easy, others challenging.<br />\n<br />\nSome locations have a timer; when it reaches zero, special events occur even if no one is there. Try sleeping multiple times to decrease the time counter.",
       "uuid": "6a0322e7-3a68-4de4-ad5c-ddbafda2bbab"
     },
     {
@@ -6041,8 +6218,8 @@
       "idText": 208,
       "idTextCopyright": 3,
       "lang": "it",
-      "longText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.",
-      "shortText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.",
+      "longText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.<br />\n<br />\nAlcuni luoghi prevedono un contatore, quanto questo arriva a zero, succedono eventi speciali anche se nessuno si trova in quel luogo. Prova a dormire più volte per far diminuire il contatore del tempo.",
+      "shortText": "Ti trovi su colline ventose. <br />Qui puoi interagire con l'ambiente attraverso le Azioni—queste sono opportunità speciali per mettere alla prova te stesso e guadagnare ricompense. <br />Ogni azione costa Energia e il suo successo dipende dalle statistiche del tuo personaggio. <br />Prova un'azione per vedere cosa succede e come il gioco risolve le tue scelte. <br />Presta attenzione ai risultati—ti raccontano una storia su ciò che il tuo personaggio ha realizzato. Alcune azioni potrebbero sembrare facili, altre più difficili.<br />\n<br />\nAlcuni luoghi prevedono un contatore, quanto questo arriva a zero, succedono eventi speciali anche se nessuno si trova in quel luogo. Prova a dormire più volte per far diminuire il contatore del tempo.",
       "uuid": "5565e8c2-a3a8-44ad-993c-e4082c484751"
     },
     {
@@ -7664,6 +7841,336 @@
       "longText": "",
       "shortText": "",
       "uuid": "d891dd43-de1c-4de0-ba85-1e790aeefc1a"
+    },
+    {
+      "id": 299,
+      "idCreator": 1,
+      "idText": 299,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Alchemical Flora",
+      "shortText": "Alchemical Flora",
+      "uuid": "0407980e-11d1-4b08-8d4e-1e0a1cfdfc50"
+    },
+    {
+      "id": 300,
+      "idCreator": 1,
+      "idText": 300,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Sun-drenched hillsides nurture extraordinary botanicals like Moonroses and Twilight Grass, which bloom only under specific celestial alignments. Harvested at their peak, these rare specimens serve as crucial ingredients for legendary elixirs, potent antidotes, and powerful mana restorations.<br />\n<br />\nThis is a special event; it triggers when the location's timer reaches zero, even if no one is present at that location.",
+      "shortText": "Sun-drenched hillsides nurture extraordinary botanicals like Moonroses and Twilight Grass, which bloom only under specific celestial alignments. Harvested at their peak, these rare specimens serve as crucial ingredients for legendary elixirs, potent antidotes, and powerful mana restorations.<br />\n<br />\nThis is a special event; it triggers when the location's timer reaches zero, even if no one is present at that location.",
+      "uuid": "fc9dbebf-80e9-472c-85bb-13fdc71ade8c"
+    },
+    {
+      "id": 300,
+      "idCreator": 1,
+      "idText": 300,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "I pendii soleggiati custodiscono specie botaniche straordinarie come la Rosa di Luna e l'Erba del Crepuscolo, che sbocciano solo sotto specifiche congiunzioni celesti. Raccolti nel loro momento di massimo splendore, questi rari esemplari diventano ingredienti fondamentali per elisir leggendari, potenti antidoti e pozioni di rigenerazione magica.<br />\n<br />\nQuesto è un evento speciale, l'evento si scatena quando il contatore del luogo è a zero anche se nessuno si trova in quel luogo.",
+      "shortText": "I pendii soleggiati custodiscono specie botaniche straordinarie come la Rosa di Luna e l'Erba del Crepuscolo, che sbocciano solo sotto specifiche congiunzioni celesti. Raccolti nel loro momento di massimo splendore, questi rari esemplari diventano ingredienti fondamentali per elisir leggendari, potenti antidoti e pozioni di rigenerazione magica.<br />\n<br />\nQuesto è un evento speciale, l'evento si scatena quando il contatore del luogo è a zero anche se nessuno si trova in quel luogo.",
+      "uuid": "50d0d8a7-3aa8-4c4f-a54a-6284baa5124b"
+    },
+    {
+      "id": 301,
+      "idCreator": 1,
+      "idText": 301,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Annie Spratt",
+      "shortText": "Annie Spratt",
+      "uuid": "ff2b5937-c2c5-4da1-9ec1-494316d828f6"
+    },
+    {
+      "id": 301,
+      "idCreator": 1,
+      "idText": 301,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "14e244e1-2424-4fec-b6f2-1f6f9ccb4711"
+    },
+    {
+      "id": 299,
+      "idCreator": 1,
+      "idText": 299,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "b7653978-5982-46ff-95b7-b2d67b6a7a93"
+    },
+    {
+      "id": 302,
+      "idCreator": 1,
+      "idText": 302,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The Golden Migration",
+      "shortText": "The Golden Migration",
+      "uuid": "b399400d-d4da-4cdb-9d3f-b587bb6f4c62"
+    },
+    {
+      "id": 303,
+      "idCreator": 1,
+      "idText": 303,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The Golden Migration",
+      "shortText": "The Golden Migration",
+      "uuid": "de1c5e17-4c78-4d05-a2d6-720865860887"
+    },
+    {
+      "id": 304,
+      "idCreator": 1,
+      "idText": 304,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This is a special event that triggers only when a character enters a location for the first time. This event will not happen again if you return.<br />\n<br />\nThe delta's shallow waters illuminate with the arrival of Golden Shoals, legendary fish that swim upstream only once a decade. Their glowing scales purify the river of all poisons and curses, while catching them brings immense prosperity and nourishment to all surrounding communities. ",
+      "shortText": "This is a special event that triggers only when a character enters a location for the first time. This event will not happen again if you return.<br />\n<br />\nThe delta's shallow waters illuminate with the arrival of Golden Shoals, legendary fish that swim upstream only once a decade. Their glowing scales purify the river of all poisons and curses, while catching them brings immense prosperity and nourishment to all surrounding communities. ",
+      "uuid": "cd003b6a-a3da-41c1-a06a-f6a8dddbb1a4"
+    },
+    {
+      "id": 304,
+      "idCreator": 1,
+      "idText": 304,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo è un evento speciale che viene eseguito solo quando un personaggio entra per la prima volta in un luogo. Questo evento non ricapita se tornerai<br />\n<br />\nI fondali del delta si illuminano con l'arrivo dei Banchi Dorati, pesci leggendari che risalgono le acque solo una volta ogni decade. Le loro scaglie luminose purificano le acque da qualsiasi veleno o maledizione, mentre la loro cattura porta un'immensa prosperità e nutrimento a tutte le comunità della zona.",
+      "shortText": "Questo è un evento speciale che viene eseguito solo quando un personaggio entra per la prima volta in un luogo. Questo evento non ricapita se tornerai<br />\n<br />\nI fondali del delta si illuminano con l'arrivo dei Banchi Dorati, pesci leggendari che risalgono le acque solo una volta ogni decade. Le loro scaglie luminose purificano le acque da qualsiasi veleno o maledizione, mentre la loro cattura porta un'immensa prosperità e nutrimento a tutte le comunità della zona.",
+      "uuid": "edbf76a8-56d8-4ac5-bdd7-1b709fa67f06"
+    },
+    {
+      "id": 302,
+      "idCreator": 1,
+      "idText": 302,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "La Migrazione Dorata",
+      "shortText": "La Migrazione Dorata",
+      "uuid": "969cf4a0-0c60-4e56-bb8c-534f11d939b1"
+    },
+    {
+      "id": 305,
+      "idCreator": 1,
+      "idText": 305,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A vast and tranquil region where the main river splits into countless winding channels before meeting the sea. Its fertile lands and lush marshes are home to unique wildlife, peaceful trading routes, and hidden natural wonders.",
+      "shortText": "A vast and tranquil region where the main river splits into countless winding channels before meeting the sea. Its fertile lands and lush marshes are home to unique wildlife, peaceful trading routes, and hidden natural wonders.",
+      "uuid": "134863da-8651-40e6-846f-1d8724db8c5a"
+    },
+    {
+      "id": 305,
+      "idCreator": 1,
+      "idText": 305,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Una vasta e tranquilla regione dove il fiume principale si divide in innumerevoli canali tortuosi prima di tuffarsi nel mare. Le sue terre fertili e le lussureggianti paludi ospitano una fauna unica, pacifiche vie commerciali e nascoste meraviglie naturali.",
+      "shortText": "Una vasta e tranquilla regione dove il fiume principale si divide in innumerevoli canali tortuosi prima di tuffarsi nel mare. Le sue terre fertili e le lussureggianti paludi ospitano una fauna unica, pacifiche vie commerciali e nascoste meraviglie naturali.",
+      "uuid": "b52b182e-bf53-431c-a51d-d0206aee639f"
+    },
+    {
+      "id": 306,
+      "idCreator": 1,
+      "idText": 306,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Alan Rodriguez",
+      "shortText": "Alan Rodriguez",
+      "uuid": "f8d0aa06-4649-4aa9-8054-c68d1f025ff4"
+    },
+    {
+      "id": 306,
+      "idCreator": 1,
+      "idText": 306,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "8cd6ea1c-a68c-432e-b454-bd8751fa853c"
+    },
+    {
+      "id": 307,
+      "idCreator": 1,
+      "idText": 307,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Glowing Tide Feast",
+      "shortText": "Glowing Tide Feast",
+      "uuid": "1f752ddf-5378-4c1d-9b93-68c3bb4b8e75"
+    },
+    {
+      "id": 307,
+      "idCreator": 1,
+      "idText": 307,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Marea Fluorescente",
+      "shortText": "Marea Fluorescente",
+      "uuid": "313ae9ce-48b6-4e18-ae4b-0e0f480ac238"
+    },
+    {
+      "id": 308,
+      "idCreator": 1,
+      "idText": 308,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This is an automatic special event that triggers upon entering a location. If you leave and return, this type of event will happen again.<br />\n<br />\nDuring warm summer nights, banks of Sweet Algae and glowing water-fruits wash ashore along the banks of the large river, carried by the gentle current. This aquatic flora is incredibly nourishing and delicious, regenerates within hours, and can be easily gathered by hand without harming any river wildlife.",
+      "shortText": "This is an automatic special event that triggers upon entering a location. If you leave and return, this type of event will happen again.<br />\n<br />\nDuring warm summer nights, banks of Sweet Algae and glowing water-fruits wash ashore along the banks of the large river, carried by the gentle current. This aquatic flora is incredibly nourishing and delicious, regenerates within hours, and can be easily gathered by hand without harming any river wildlife.",
+      "uuid": "9081a671-2c53-43bb-9e30-cb9ddde18ea0"
+    },
+    {
+      "id": 308,
+      "idCreator": 1,
+      "idText": 308,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo è un evento speciale automatico quando si entra in una location, se esci e ritorni questo tipo di evento ricapita.<br />\n<br />\nDurante le calde notti d'estate, lungo le rive del grande fiume affiorano banchi di Alghe Dolci e frutti d'acqua luminosi spinti a riva dalla corrente. Questa vegetazione acquatica, oltre a essere incredibilmente nutriente e deliziosa, si rigenera in poche ore e può essere raccolta a mani nude senza recare alcun danno alla fauna del fiume.",
+      "shortText": "Questo è un evento speciale automatico quando si entra in una location, se esci e ritorni questo tipo di evento ricapita.<br />\n<br />\nDurante le calde notti d'estate, lungo le rive del grande fiume affiorano banchi di Alghe Dolci e frutti d'acqua luminosi spinti a riva dalla corrente. Questa vegetazione acquatica, oltre a essere incredibilmente nutriente e deliziosa, si rigenera in poche ore e può essere raccolta a mani nude senza recare alcun danno alla fauna del fiume.",
+      "uuid": "2274f053-cf8e-42c1-bee6-a8a89af65286"
+    },
+    {
+      "id": 309,
+      "idCreator": 1,
+      "idText": 309,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Victoria Wang",
+      "shortText": "Victoria Wang",
+      "uuid": "937e47c5-cf41-41a4-ab86-ddf4014fae79"
+    },
+    {
+      "id": 309,
+      "idCreator": 1,
+      "idText": 309,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "21b1653e-d08b-4e22-80a7-4923ad173668"
+    },
+    {
+      "id": 310,
+      "idCreator": 1,
+      "idText": 310,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Flash River Flood",
+      "shortText": "Flash River Flood",
+      "uuid": "0963559d-8ebd-4f5c-8236-f8c94021b331"
+    },
+    {
+      "id": 311,
+      "idCreator": 1,
+      "idText": 311,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This event triggers when a character returns; it will not happen on your first visit.<br />\n<br />\nDriven by sudden glacial snowmelt upstream or distant downpours, the river violently bursts its banks. The water levels surge in minutes, flooding nearby paths, washing away riverside campsites, and forcing anyone in the area into a desperate scramble for higher ground to avoid being swept away by the raging current.",
+      "shortText": "This event triggers when a character returns; it will not happen on your first visit.<br />\n<br />\nDriven by sudden glacial snowmelt upstream or distant downpours, the river violently bursts its banks. The water levels surge in minutes, flooding nearby paths, washing away riverside campsites, and forcing anyone in the area into a desperate scramble for higher ground to avoid being swept away by the raging current.",
+      "uuid": "9c2a1c51-1881-49e5-bcbf-93cfa7fc01f7"
+    },
+    {
+      "id": 311,
+      "idCreator": 1,
+      "idText": 311,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo è un evento che si scatena quando un personaggio torna, la prima volta non capita<br />\n<br />\nA causa di un improvviso scioglimento dei ghiacciai a monte o di violenti temporali lontani, il fiume straripa con furia travolgendo le sponde. Il livello dell'acqua sale rapidamente, inondando i sentieri, distruggendo gli accampamenti lungo la riva e costringendo chiunque si trovi in zona a una fuga disperata verso i terreni più alti per non essere travolto dalla corrente.",
+      "shortText": "Questo è un evento che si scatena quando un personaggio torna, la prima volta non capita<br />\n<br />\nA causa di un improvviso scioglimento dei ghiacciai a monte o di violenti temporali lontani, il fiume straripa con furia travolgendo le sponde. Il livello dell'acqua sale rapidamente, inondando i sentieri, distruggendo gli accampamenti lungo la riva e costringendo chiunque si trovi in zona a una fuga disperata verso i terreni più alti per non essere travolto dalla corrente.",
+      "uuid": "00cfc589-4977-41a6-8acc-d826662d4aaf"
+    },
+    {
+      "id": 310,
+      "idCreator": 1,
+      "idText": 310,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Piena Improvvisa",
+      "shortText": "Piena Improvvisa",
+      "uuid": "6a573200-8db0-40e0-a9fe-6758cc21d9b7"
+    },
+    {
+      "id": 312,
+      "idCreator": 1,
+      "idText": 312,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Els B",
+      "shortText": "Els B",
+      "uuid": "d62b3549-20af-445a-8245-63c56d91758b"
+    },
+    {
+      "id": 312,
+      "idCreator": 1,
+      "idText": 312,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "888d25a2-03c9-4313-8d61-61087c70e4ca"
+    },
+    {
+      "id": 313,
+      "idCreator": 1,
+      "idText": 313,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Breakfast",
+      "shortText": "Breakfast",
+      "uuid": "7c2ed39a-4837-49a0-be9a-9472ea4f7e04"
+    },
+    {
+      "id": 314,
+      "idCreator": 1,
+      "idText": 314,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Tatiana Rudneva",
+      "shortText": "Tatiana Rudneva",
+      "uuid": "0a5309ee-01e5-40d3-8826-b4b44cec6df5"
+    },
+    {
+      "id": 314,
+      "idCreator": 1,
+      "idText": 314,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c64d1029-20e9-4f86-bbba-cb44fee0b57a"
+    },
+    {
+      "id": 315,
+      "idCreator": 1,
+      "idText": 315,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This type of event occurs every time you sleep in a location.<br />\n<br />\nYou wake to the gentle sound of flowing water. Unpacking your travel supplies, you find fresh ingredients and, enjoying the peaceful river air, prepare a nourishing meal that energizes you for the day ahead.",
+      "shortText": "This type of event occurs every time you sleep in a location.<br />\n<br />\nYou wake to the gentle sound of flowing water. Unpacking your travel supplies, you find fresh ingredients and, enjoying the peaceful river air, prepare a nourishing meal that energizes you for the day ahead.",
+      "uuid": "c4821798-1bff-4b9a-a159-f4a7bbbc6dea"
+    },
+    {
+      "id": 315,
+      "idCreator": 1,
+      "idText": 315,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo tipo di evento capita ogni volta che dormi in un luogo.<br />\n<br />\nTi risvegli al dolce suono dell'acqua corrente. Tra le ceste da viaggio ritrovi provviste ancora fresche e, grazie al clima mite del fiume, riesci a preparare un pasto nutriente e rigenerante che dona energia per tutta la giornata.",
+      "shortText": "Questo tipo di evento capita ogni volta che dormi in un luogo.<br />\n<br />\nTi risvegli al dolce suono dell'acqua corrente. Tra le ceste da viaggio ritrovi provviste ancora fresche e, grazie al clima mite del fiume, riesci a preparare un pasto nutriente e rigenerante che dona energia per tutta la giornata.",
+      "uuid": "f04b2f35-7118-469d-a0ea-4737932dcd51"
+    },
+    {
+      "id": 313,
+      "idCreator": 1,
+      "idText": 313,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Colazione",
+      "shortText": "Colazione",
+      "uuid": "6cd14a43-7865-4d1a-8fc1-8dd6cf569cb2"
     }
   ],
   "title": "Paths Tutorial",

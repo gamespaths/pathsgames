@@ -682,12 +682,22 @@ def _create_match(user, body):
     raw_seed = (body or {}).get('rngSeed')
     rng_seed = int(raw_seed) if raw_seed is not None else secrets.randbits(63)
 
+    # Step 33 — the party starts IN the starting location, it never "enters" it. Seeding it
+    # as already visited is what makes walking BACK there fire idEventNotFirstTime instead
+    # of announcing as a discovery the place the story opened in. idLocationStart is
+    # story-level, so this is deterministic however many players join, in whatever order.
+    id_location_start = story.get('idLocationStart')
     location_states = []
     for loc in locations:
+        loc_id = int(loc.get('id', 0))
         location_states.append({
-            "idLocation": int(loc.get('id', 0)),
+            "idLocation": loc_id,
             "uuid": str(uuid_lib.uuid4()),
             "flagAlreadyActived": 0,
+            # Not flagAlreadyActived, which means "this location's counter has been
+            # consumed" and latches the counter re-seed: overloading it would break both.
+            "flagVisited": 1 if (id_location_start is not None
+                                 and loc_id == _nz(id_location_start)) else 0,
             "clockCounter": int(loc.get('counterTime') or loc.get('counter_time') or 0),
         })
 
@@ -1411,7 +1421,11 @@ def _apply_time_start_recovery(match, match_uuid, story):
         if counter_time > 0:
             ls['clockCounter'] = counter_time
 
-    # Decrement location counters on the embedded match state; flag zeros.
+    # Decrement location counters on the embedded match state; flag zeros and collect the
+    # events they owe. A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one
+    # and flagAlreadyActived latches it, so the event fires exactly once per match.
+    pending = []
+    clock = _nz(match.get('currentClock'))
     for ls in (match.get('locations') or []):
         current = _nz(ls.get('clockCounter'))
         if current <= 0:
@@ -1419,10 +1433,68 @@ def _apply_time_start_recovery(match, match_uuid, story):
         nxt = current - 1
         ls['clockCounter'] = nxt
         if nxt == 0:
-            loc = story_locations.get(_nz(ls.get('idLocation')))
-            ls['pendingEvent'] = (loc or {}).get('idEventIfCounterZero')
+            id_location = _nz(ls.get('idLocation'))
+            loc = story_locations.get(id_location) or {}
+            id_event = loc.get('idEventIfCounterZero')
+            ls['pendingEvent'] = id_event
             ls['flagAlreadyActived'] = 1
-    return recaps
+            # Step 33 — the row the other two backends have always written. Without it the
+            # AWS timeline said nothing at all when a counter ran out.
+            message = f'counter reached zero at location {id_location}'
+            if id_event is not None:
+                message += f'; pending event {_nz(id_event)}'
+            match.setdefault('eventLog', []).append({
+                "characterUuid": None,
+                "idEvent": _nz(id_event) if id_event is not None else None,
+                "idLocation": id_location,
+                "clock": clock,
+                "timestamp": _ts_ms(),
+                "message": message,
+            })
+            _add_pending_automatic(pending, _events.TRIGGER_COUNTER_ZERO, id_location,
+                                   id_event, _nominal_actor(characters, id_location), loc)
+
+    # Step 33 — a time unit BEGINNING where a character stands is its own trigger,
+    # independent of any counter. One entry per occupied location, not per character: the
+    # event describes the place, and the nominal actor is who it happens to.
+    for id_location in occupied_ids:
+        loc = story_locations.get(id_location) or {}
+        _add_pending_automatic(pending, _events.TRIGGER_CHARACTER_START_TIME, id_location,
+                               loc.get('idEventIfCharacterStartTime'),
+                               _nominal_actor(characters, id_location), loc)
+
+    # Deterministic across locations: priorityAutomaticEvent first, then location id.
+    pending.sort(key=lambda p: (p['priority'], p['idLocation']))
+    return recaps, pending
+
+
+def _add_pending_automatic(out, trigger, id_location, id_event, id_actor_uuid, loc):
+    """Skips a null or non-positive event id — an unauthored trigger is not a trigger."""
+    if id_event is None or _nz(id_event) <= 0:
+        return
+    out.append({
+        "trigger": trigger,
+        "idLocation": id_location,
+        "idEvent": _nz(id_event),
+        "actorUuid": id_actor_uuid,
+        "priority": _nz(loc.get('priorityAutomaticEvent')),
+    })
+
+
+def _nominal_actor(characters, id_location):
+    """The lowest-id character standing in a location, or None when nobody is.
+
+    An automatic location event belongs to the place, not to a player, but its effects
+    still have to resolve ``target = ONLY_ONE`` against somebody and ``target = ALL``
+    against everyone *there*. Picking the lowest id makes that choice deterministic;
+    picking nobody, when the place is empty, is equally correct — the world still changes,
+    it just changes around no one.
+    """
+    here = [c for c in (characters or []) if _nz(c.get('idLocation')) == id_location]
+    if not here:
+        return None
+    here.sort(key=lambda c: str(c.get('uuid') or ''))
+    return here[0].get('uuid')
 
 
 # ─── Step 27 — weather selection & effects ───────────────────────────────────
@@ -1648,13 +1720,26 @@ def _assemble_match_logs(match, match_uuid):
     # entry is — anything else is dropped, not shown as garbage.
     for e in (match.get('eventLog') or []):
         message = e.get('message')
-        if not message or not message.startswith(_events.MSG_EVENT_EXECUTED):
+        if not message:
+            continue
+        if message.startswith(_events.MSG_EVENT_EXECUTED):
+            entry_type = "EVENT"
+        elif message.startswith('counter'):
+            # Step 33 — a counter running out and a character healing are unrelated
+            # events, so COUNTER_ZERO is its own type. The location rides in
+            # idLocationTo so it enriches like a MOVEMENT does. Until v0.33.0 this
+            # backend wrote no row at all when a counter ran out.
+            entry_type = "COUNTER_ZERO"
+        elif message.startswith(_events.MSG_AUTOMATIC_EVENT):
+            entry_type = "AUTOMATIC_EVENT"
+        else:
             continue
         entries.append({
-            "type": "EVENT",
+            "type": entry_type,
             "clock": e.get('clock'),
             "timestamp": _ms_to_iso(e.get('timestamp')),
             "characterUuid": e.get('characterUuid'),
+            "idLocationTo": e.get('idLocation'),
             "message": message,
             "idEvent": e.get('idEvent'),
         })
@@ -1717,6 +1802,12 @@ def _enrich_match_logs(page, match, match_uuid, lang):
             id_card = location_cards.get(_nz(entry['idLocationTo']))
         elif entry['type'] == 'EVENT' and entry.get('idEvent') is not None:
             id_card = event_cards.get(_nz(entry['idEvent']))
+        elif entry['type'] == 'AUTOMATIC_EVENT' and entry.get('idEvent') is not None:
+            # Step 33 — the event's own card, like a player-triggered one.
+            id_card = event_cards.get(_nz(entry['idEvent']))
+        elif entry['type'] == 'COUNTER_ZERO' and entry.get('idLocationTo') is not None:
+            # Step 33 — a counter belongs to a place, so the place's card names it.
+            id_card = location_cards.get(_nz(entry['idLocationTo']))
         entry['idCard'] = id_card
         entry['card'] = _resolve_card_from_raw(raw_cards, raw_texts, id_card, lang)
 
@@ -1847,7 +1938,11 @@ def _advance_time(match, match_uuid):
 
     # Step 26: per-character recovery, class bonuses and location counters.
     story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
-    recovery = _apply_time_start_recovery(match, match_uuid, story)
+    recovery, pending = _apply_time_start_recovery(match, match_uuid, story)
+    # Step 33: the events that pass collected — counters that reached zero, and the
+    # locations whose idEventIfCharacterStartTime fires because a time unit began with
+    # somebody standing there.
+    fired = _run_pending_automatic_events(match, match_uuid, story, pending)
     # Step 27: select the weather for the new time unit and apply its energy delta.
     _apply_weather_at_time_start(match, match_uuid, story)
 
@@ -1878,7 +1973,7 @@ def _advance_time(match, match_uuid):
 
     db_utils.put_item(match)
     # A TimeAdvanced domain event would be published here (WebSocket broadcast: Step 64).
-    return new_clock, recovery
+    return new_clock, recovery, fired
 
 
 def _sleep(user, match_uuid):
@@ -1917,8 +2012,15 @@ def _sleep(user, match_uuid):
 
     current_clock = _nz(match.get('currentClock'))
     recovery = []
+    counter_zero = []
     if triggered:
-        current_clock, recovery = _advance_time(match, match_uuid)
+        current_clock, recovery, fired = _advance_time(match, match_uuid)
+        # Step 33 — the same events, told to THIS player. The caller is the only recipient
+        # with an open request; the rest learn about it over the broadcast once Steps 49-54
+        # land, through this very path called once per player.
+        story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+        counter_zero = _describe_for_recipient(match, match_uuid, story,
+                                               caller.get('uuid'), fired, current_clock)
 
     return _ok({
         "matchUuid": match.get('uuid'),
@@ -1927,6 +2029,10 @@ def _sleep(user, match_uuid):
         "timeEndTriggered": triggered,
         "currentClock": current_clock,
         "recovery": recovery,
+        # Step 33 — what happened in the world while the party slept. A LIST: several
+        # counters can run out on one time-start. Already filtered for this caller: `card`
+        # is absent entirely when visibility is ANONYMOUS.
+        "counterZero": counter_zero,
     })
 
 
@@ -2114,6 +2220,14 @@ def _start_movement(user, match_uuid, body):
     match['movementLog'] = movement_log
     db_utils.put_item(match)
 
+    # Step 33 — the move is committed, so the arrival is real: ask the destination what it
+    # does about somebody walking in. Deliberately after both writes, because the trigger
+    # resolution reads the character's new position back.
+    automatic_events = []
+    _resolve_arrival(match, match_uuid, story, caller.get('uuid'), _nz(target.get('id')),
+                     'en', 0, automatic_events)
+    db_utils.put_item(match)
+
     return _ok({
         "matchUuid": match.get('uuid'),
         "characterUuid": caller.get('uuid'),
@@ -2124,6 +2238,9 @@ def _start_movement(user, match_uuid, body):
         "energySpent": total_cost,
         "newEnergy": new_energy,
         "currentClock": _nz(match.get('currentClock')),
+        # What the destination did about the arrival. The board already has the new
+        # location for its left page; these belong on the right.
+        "automaticEvents": automatic_events,
     })
 
 
@@ -2415,7 +2532,7 @@ def _execute_event(user, match_uuid, body, lang='en'):
         for c in _match_characters(match_uuid):
             c['isSleeping'] = 1
             db_utils.put_item(c)
-        current_clock, _recovery = _advance_time(match, match_uuid)
+        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
         time_ended = True
     else:
         db_utils.put_item(match)
@@ -2768,7 +2885,7 @@ def _resolve_choice(match, match_uuid, story, event, event_id, choice, caller,
         for c in _match_characters(match_uuid):
             c['isSleeping'] = 1
             db_utils.put_item(c)
-        current_clock, _recovery = _advance_time(match, match_uuid)
+        current_clock, _recovery, _fired = _advance_time(match, match_uuid)
         time_ended = True
     else:
         db_utils.put_item(match)
@@ -2892,7 +3009,7 @@ def _apply_edge_states(match, caller, acc, event_id):
             c['sad'] = 0
             c['isSleeping'] = 1
             acc['edgeState']['sadnessOverflowUuids'].append(c.get('uuid'))
-            if c.get('uuid') == caller.get('uuid'):
+            if caller is not None and c.get('uuid') == caller.get('uuid'):
                 acc['flags']['forcedSleep'] = True
             _log_edge_state(match, c, event_id,
                             f"{_events.MSG_SADNESS_OVERFLOW} {c.get('uuid')}")
@@ -2902,7 +3019,7 @@ def _apply_edge_states(match, caller, acc, event_id):
             c['clockInComa'] = _nz(match.get('currentClock'))
             acc['edgeState']['comaUuids'].append(c.get('uuid'))
             _log_edge_state(match, c, event_id, f"{_events.MSG_COMA} {c.get('uuid')}")
-            if c.get('uuid') == caller.get('uuid'):
+            if caller is not None and c.get('uuid') == caller.get('uuid'):
                 acc['flags']['comaTriggered'] = True
 
 
@@ -3039,7 +3156,8 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
 
         _apply_edge_states(match, caller, acc, event_id)
         match.setdefault('eventLog', []).append({
-            "characterUuid": caller.get('uuid'),
+            # Step 33 — an automatic event in an empty location has no actor at all.
+            "characterUuid": caller.get('uuid') if caller else None,
             "idEvent": event_id,
             "clock": _nz(match.get('currentClock')),
             "timestamp": _ts_ms(),
@@ -3061,6 +3179,270 @@ def _run_event_chain(match, story, first, caller, characters, ctx, events_by_id,
                 and next_id in ctx['consumedEventIds']:
             return  # a spent ONCE event stays spent, even mid-chain
         current = nxt_event
+
+
+def _visited_location_ids(match, match_uuid):
+    """The locations the party has ever been to — current positions plus every endpoint in
+    the match's movementLog. The same set Step 28 derives for fog of war, and what decides
+    whether a counter-zero notice may name the place it happened in."""
+    ids = []
+    for c in _match_characters(match_uuid):
+        loc = c.get('idLocation')
+        if loc is not None and _nz(loc) not in ids:
+            ids.append(_nz(loc))
+    for m in (match.get('movementLog') or []):
+        for loc in (m.get('idLocationFrom'), m.get('idLocationTo')):
+            if loc is not None and _nz(loc) not in ids:
+                ids.append(_nz(loc))
+    return ids
+
+
+# ── Step 33 — automatic location events ──────────────────────────────────────
+
+def _location_triggers(story, id_location):
+    """The trigger columns of one story location, or None when it is unknown."""
+    for l in (story.get('locations') or []):
+        if _nz(l.get('id')) == id_location:
+            return l
+    return None
+
+
+def _flag_visited(match, id_location):
+    """``flagVisited`` on the embedded location state. 0 when there is no row —
+    a location nobody has been to."""
+    for ls in (match.get('locations') or []):
+        if _nz(ls.get('idLocation')) == id_location:
+            return _nz(ls.get('flagVisited'))
+    return 0
+
+
+def _mark_location_visited(match, id_location):
+    """Latch the location as visited by the party. Idempotent."""
+    for ls in (match.get('locations') or []):
+        if _nz(ls.get('idLocation')) == id_location:
+            ls['flagVisited'] = 1
+            return
+
+
+def _log_automatic_event(match, actor_uuid, id_location, id_event, clock, message):
+    match.setdefault('eventLog', []).append({
+        "characterUuid": actor_uuid,
+        "idEvent": id_event,
+        "idLocation": id_location,
+        "clock": clock,
+        "timestamp": _ts_ms(),
+        "message": message,
+    })
+
+
+def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, depth, out):
+    """The dispatch table of an arrival.
+
+    The order is fixed rather than authored: the history trigger (first or subsequent —
+    never both) comes before the occupancy one, which is orthogonal to it and may fire
+    alongside either.
+
+    ``flagVisited`` is latched AFTER the triggers have been read, so the first arrival
+    still evaluates as a first arrival; and it is latched even when the location authors
+    no trigger at all, because the flag describes the party's history, not what happened
+    to fire.
+    """
+    clock = _nz(match.get('currentClock'))
+    if depth >= _events.MAX_ENTRY_DEPTH:
+        _log_automatic_event(
+            match, actor_uuid, id_location, None, clock,
+            f'{_events.MSG_AUTOMATIC_EVENT} aborted: entry depth '
+            f'{_events.MAX_ENTRY_DEPTH} exceeded at location {id_location} — the story '
+            f'loops a forced movement back on itself')
+        return
+    triggers = _location_triggers(story, id_location)
+    visited = _flag_visited(match, id_location) == 1
+    if triggers is not None:
+        history_event = (triggers.get('idEventNotFirstTime') if visited
+                         else triggers.get('idEventIfFirstTime'))
+        history_trigger = (_events.TRIGGER_SUBSEQUENT_ENTRY if visited
+                           else _events.TRIGGER_FIRST_ENTRY)
+        _run_automatic_event(match, match_uuid, story, actor_uuid, history_event,
+                             id_location, history_trigger, lang, depth, out)
+
+        others = [c for c in _match_characters(match_uuid)
+                  if _nz(c.get('idLocation')) == id_location
+                  and c.get('uuid') != actor_uuid]
+        if not others:
+            _run_automatic_event(match, match_uuid, story, actor_uuid,
+                                 triggers.get('idEventIfCharacterEnterFirstTime'),
+                                 id_location, _events.TRIGGER_FIRST_IN_LOCATION, lang,
+                                 depth, out)
+    _mark_location_visited(match, id_location)
+
+
+def _run_automatic_event(match, match_uuid, story, actor_uuid, id_event, id_location,
+                         trigger, lang, depth, out):
+    """Run one automatic event and its whole ``idEventNext`` chain.
+
+    What makes it different from ``_execute_event``:
+
+    * **Nobody pays.** No energy, no coins — the player did not ask for this.
+    * **No availability verdict.** The type gate would refuse it outright (AUTOMATIC is
+      not in EXECUTABLE_TYPES), and the sleep/coma guards would refuse it on behalf of a
+      character that never volunteered.
+    * **The actor may be absent.** A counter-zero fuse belongs to a location, and the
+      location may be empty. Effects that need a recipient are then skipped while
+      registry, weather and the chain still run.
+    * **It may not own choices.** There is no response to carry the options and no
+      select-choice could ever close the cycle, so the event is refused and logged instead
+      of wedging the match with a decision nobody can answer.
+    """
+    if id_event is None or _nz(id_event) <= 0:
+        return  # a null column is simply not a trigger
+    id_event = _nz(id_event)
+    clock = _nz(match.get('currentClock'))
+    if str(match.get('status') or '') != 'RUNNING':
+        return
+
+    events_by_id = {_nz(e.get('id')): e for e in (story.get('events') or [])}
+    event = events_by_id.get(id_event)
+    if event is None:
+        return  # dangling id: authored noise, not an error
+    if _choices.choices_for_event(story, id_event):
+        _log_automatic_event(
+            match, actor_uuid, id_location, id_event, clock,
+            f'{_events.MSG_AUTOMATIC_EVENT} skipped {id_event} ({trigger}): '
+            f'an automatic event may not own choices')
+        return
+
+    characters = _match_characters(match_uuid)
+    classes_by_uuid = {c.get('uuid'): c.get('id') for c in (story.get('classes') or [])}
+    for c in characters:
+        c['classId'] = classes_by_uuid.get(c.get('classUuid'))
+    actor = next((c for c in characters if c.get('uuid') == actor_uuid), None)
+    ctx = _events.build_context(match, story, actor)
+
+    acc = _new_accumulator(actor) if actor is not None else _new_accumulator_no_actor()
+    item_uuids = {_nz(i.get('id')): i.get('uuid') for i in (story.get('items') or [])}
+    location_uuids = {_nz(l.get('id')): l.get('uuid') for l in (story.get('locations') or [])}
+
+    _run_event_chain(match, story, event, actor, characters, ctx, events_by_id, acc,
+                     item_uuids, location_uuids, lang)
+
+    for touched in acc['touched'].values():
+        if touched is not None:
+            db_utils.put_item(touched)
+    db_utils.put_item(match)
+
+    _log_automatic_event(
+        match, actor_uuid, id_location, id_event, _nz(match.get('currentClock')),
+        f'{_events.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}')
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    out.append({
+        "trigger": trigger,
+        "idLocation": id_location,
+        "eventUuid": event.get('uuid'),
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, event.get('idCard'), lang),
+        "effects": list(acc['effects']),
+        "statChanges": list(acc['statChanges']),
+        "locationChanges": list(acc['locationChanges']),
+        "gameOver": bool(acc['flags']['gameOver']),
+    })
+
+    # The events this one caused by pushing somebody somewhere: a forced move is an
+    # arrival like any other.
+    for change in list(acc['locationChanges']):
+        moved_uuid = change.get('characterUuid')
+        moved_to = location_uuids_inverse(location_uuids, change.get('toLocationUuid'))
+        if moved_to is not None:
+            _resolve_arrival(match, match_uuid, story, moved_uuid, moved_to, lang,
+                             depth + 1, out)
+
+
+def location_uuids_inverse(location_uuids, uuid):
+    """Location uuid back to its story id; None when unknown."""
+    if not uuid:
+        return None
+    for loc_id, loc_uuid in location_uuids.items():
+        if loc_uuid == uuid:
+            return loc_id
+    return None
+
+
+def _new_accumulator_no_actor():
+    """The accumulator of an automatic event nobody is present for."""
+    acc = _new_accumulator({'uuid': None})
+    acc['touched'] = {}
+    return acc
+
+
+def _run_pending_automatic_events(match, match_uuid, story, pending, lang='en'):
+    """Run the events a time-start collected — counter-zero fuses and
+    idEventIfCharacterStartTime — in the order the recovery pass produced them."""
+    out = []
+    for p in (pending or []):
+        _run_automatic_event(match, match_uuid, story, p.get('actorUuid'),
+                             p.get('idEvent'), p.get('idLocation'), p.get('trigger'),
+                             lang, 0, out)
+    return out
+
+
+def _describe_for_recipient(match, match_uuid, story, recipient_uuid, fired, clock,
+                            lang='en'):
+    """Describe an already-run list of automatic events TO ONE RECIPIENT (fog of war).
+
+    Deliberately separate from running them: the engine produces the list once and
+    unfiltered, and the telling is per person, because every player has their own visited
+    set. Single-player is simply the one-recipient case — filtering while the list is
+    assembled would bake it in and force a rewrite when the broadcast lands.
+
+    Each entry carries three cards (v0.33.1): `card` is the EVENT's — what happened;
+    `cardEffects` are the effect rows it applied, each with its own card, which is the
+    narrative the board renders; `cardLocation` is the place. Until v0.33.1 only the place
+    travelled, so the player woke to a name instead of the news.
+    """
+    if not fired:
+        return []
+    here = None
+    visited = set()
+    if recipient_uuid is not None:
+        recipient = next((c for c in _match_characters(match_uuid)
+                          if c.get('uuid') == recipient_uuid), None)
+        if recipient is not None:
+            here = _nz(recipient.get('idLocation'))
+        visited = set(_visited_location_ids(match, match_uuid))
+
+    raw_cards = story.get('raw_cards') or []
+    raw_texts = story.get('raw_texts') or []
+    out = []
+    for f in fired:
+        id_location = f.get('idLocation')
+        if here is not None and here == id_location:
+            visibility = _events.VISIBILITY_FULL
+        elif id_location in visited:
+            visibility = _events.VISIBILITY_NAMED
+        else:
+            visibility = _events.VISIBILITY_ANONYMOUS
+        # The cards are resolved only when the recipient may see them: a name that never
+        # leaves the server cannot leak. The event's card and its effect rows already ride
+        # on the fired event — only the location card costs a lookup.
+        card = None
+        card_location = None
+        card_effects = []
+        if visibility != _events.VISIBILITY_ANONYMOUS:
+            loc = _location_triggers(story, id_location) or {}
+            card_location = _resolve_card_from_raw(raw_cards, raw_texts, loc.get('idCard'), lang)
+            card = f.get('card')
+            card_effects = list(f.get('effects') or [])
+        out.append({
+            "trigger": f.get('trigger'),
+            "idLocation": id_location,
+            "card": card,
+            "cardLocation": card_location,
+            "cardEffects": card_effects,
+            "eventUuid": f.get('eventUuid'),
+            "clock": clock,
+            "visibility": visibility,
+        })
+    return out
 
 
 def _visited_locations_payload(match, match_uuid, lang='en'):

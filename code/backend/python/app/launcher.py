@@ -30,6 +30,7 @@ from app.core.services.story.story_crud_service import StoryCrudService
 from app.adapters.rest.story.story_crud_admin_controller import StoryCrudAdminController
 
 # Step 19 — single-player match creation
+from app.adapters.persistence.match.location_entry_store_adapter import LocationEntryStoreAdapter
 from app.adapters.persistence.match.match_persistence_adapter import MatchPersistenceAdapter
 from app.adapters.persistence.match.story_match_read_adapter import StoryMatchReadAdapter
 from app.adapters.persistence.match.user_access_adapter import UserAccessAdapter
@@ -174,6 +175,10 @@ weather_controller = WeatherController(weather_selection_service, content_query_
 # Step 28 — movement system service (shared by player and admin controllers).
 # story_match_read_adapter resolves the location cards on GET /locations;
 # movement_store_adapter was created above (reused here).
+# Step 33 — the location engine's store, shared by the movement hook and the event engine.
+location_entry_store_adapter = LocationEntryStoreAdapter(SessionLocal)
+# The MovementService is built AFTER the event service below, because the arrival hook is
+# the event service itself; a placeholder here keeps the admin controller wiring readable.
 movement_service = MovementService(movement_store_adapter, story_match_read_adapter)
 
 match_admin_controller = MatchAdminController(match_command_service, match_query_service,
@@ -206,8 +211,17 @@ movement_controller = MovementController(movement_service)
 event_service = EventService(event_store_adapter,
                              edge_store=edge_state_store_adapter,
                              content_read_port=story_match_read_adapter,
-                             time_service=time_advancement_service)
+                             time_service=time_advancement_service,
+                             location_store=location_entry_store_adapter)
 event_controller = EventController(event_service)
+
+# Step 33 — one service, two roles. EventService implements the location engine as well,
+# because a forced-movement effect is an arrival and splitting the two apart would only
+# produce a dependency cycle. These two lines close the one cycle in the graph: the event
+# engine needs the time engine for flag_end_time, and the time engine needs the event
+# engine to run what a time-start set off.
+movement_service.location_entry = event_service
+time_advancement_service.set_automatic_event_runner(event_service)
 
 dev_controller = DevController(test_data_cleanup_service, settings.dev_test_endpoints_enabled)
 

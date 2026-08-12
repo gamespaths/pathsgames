@@ -8,13 +8,16 @@ modifier (different for safe vs unsafe locations):
     weather_modifier = safe ? weather.cost_safe : weather.cost_not_safe
     total_energy_cost = edge.energy_cost + target.cost_energy_enter + weather_modifier
 
-Scope (Step 28): only the move + energy. Automatic location-entry events are
-Step 32; group/follow movement and concurrent locking are Step 67; the full
-weight/capacity formula is Step 34 (carried weight is 0 until inventory lands).
+Scope (Step 28): the move + energy. **Step 33** hung the automatic location-entry
+events off the end of it — the destination's ``id_event_*`` columns, resolved once the
+move is committed and returned in ``automatic_events``. Group/follow movement and
+concurrent locking are Step 67; the full weight/capacity formula is Step 34 (carried
+weight is 0 until inventory lands).
 """
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match import match_statuses
+from app.core.models.match.location_entry_models import ArrivalContext
 from app.core.models.match.movement_models import (
     MovementError,
     MovementResult,
@@ -65,11 +68,15 @@ def _reason_message(code: str) -> str:
 
 
 class MovementService(MovementPort):
-    def __init__(self, store: MovementStorePort, story_read_port=None) -> None:
+    def __init__(self, store: MovementStorePort, story_read_port=None,
+                 location_entry=None) -> None:
         # ``story_read_port`` (StoryMatchReadPort) resolves the location cards;
         # optional so legacy wiring keeps working (cards stay None without it).
         self.store = store
         self.story_read_port = story_read_port
+        # Step 33 — the location engine. None keeps the pre-33 behaviour: a move fires
+        # nothing.
+        self.location_entry = location_entry
 
     # ── public API ──────────────────────────────────────────────────────────
 
@@ -124,9 +131,23 @@ class MovementService(MovementPort):
         self.store.insert_movement_log(
             match["id"], caller["id"], caller["id_location"], target["id"], total_cost)
 
+        # Step 33 — the move is committed, so the arrival is real: ask the destination what
+        # it does about somebody walking in. Deliberately after both writes, because the
+        # trigger resolution reads the character's new position back.
+        automatic_events = []
+        if self.location_entry is not None:
+            automatic_events = self.location_entry.on_arrival(ArrivalContext(
+                id_match=match["id"],
+                id_story=match["id_story"],
+                id_character=caller["id"],
+                id_location=target["id"],
+                current_clock=match["current_clock"],
+                lang=None,
+            ))
+
         return MovementResult(match_uuid, caller["uuid"], caller["id_location"], None,
                               target["id"], target.get("uuid"), total_cost, new_energy,
-                              match["current_clock"])
+                              match["current_clock"], automatic_events)
 
     def list_locations(self, match_uuid: str, user_uuid: str,
                        lang: str = "en") -> List[VisitedLocation]:

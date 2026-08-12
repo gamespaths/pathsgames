@@ -126,6 +126,58 @@ def test_r8_crud_local_rejects_a_location():
     assert any(e["rule"] == "R8_CHOICE_EVENT" and e["field"] == "idLocation" for e in errors)
 
 
+# ── R9 automatic location events (Step 33) ───────────────────────────────────
+# Both rules are about events a list_locations.id_event_* column names. The engine fires
+# those without a player: nobody pays, nobody is asked anything, and the response they
+# would answer does not exist.
+
+def test_r9_trigger_pointing_at_a_choice_owning_event_fails():
+    s = valid_story()
+    # Event 1 owns choice 1 in the fixture; location 2 tries to fire it on entry.
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 1}]
+    errors = sv.validate_story_dict(s)
+    assert any(e["rule"] == "R9_AUTOMATIC_EVENT_CHOICES"
+               and e["field"] == "idEventIfFirstTime" for e in errors)
+
+
+def test_r9_trigger_pointing_at_a_player_executable_event_fails():
+    s = valid_story()
+    s["events"] = [{"id": 1}, {"id": 2, "type": "NORMAL"}]
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventNotFirstTime": 2}]
+    errors = sv.validate_story_dict(s)
+    assert any(e["rule"] == "R9_AUTOMATIC_EVENT_TYPE"
+               and e["field"] == "idEventNotFirstTime" for e in errors)
+
+
+def test_r9_an_automatic_event_without_choices_is_valid():
+    s = valid_story()
+    s["events"] = [{"id": 1}, {"id": 2, "type": "AUTOMATIC"}]
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 2,
+                                  "idEventNotFirstTime": 2,
+                                  "idEventIfCharacterEnterFirstTime": 2,
+                                  "idEventIfCounterZero": 2,
+                                  "idEventIfCharacterStartTime": 2}]
+    assert sv.validate_story_dict(s) == []
+
+
+def test_r9_a_dangling_trigger_is_a_broken_reference():
+    s = valid_story()
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfCounterZero": 999}]
+    errors = sv.validate_story_dict(s)
+    assert errors
+    assert any(e["field"] == "idEventIfCounterZero" for e in errors)
+
+
+def test_r9_a_non_positive_trigger_is_no_trigger():
+    s = valid_story()
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 0,
+                                  "idEventNotFirstTime": 0}]
+    assert sv.validate_story_dict(s) == []
+
+
 def test_item_refers_missing_class():
     s = valid_story()
     s["items"] = [{"id": 1, "idClassPermitted": 9}]

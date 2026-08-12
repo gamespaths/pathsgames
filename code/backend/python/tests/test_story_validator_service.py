@@ -227,6 +227,60 @@ def test_r8_crud_local_rejects_a_location():
                for e in report.errors)
 
 
+# ----- R9 automatic location events (Step 33) -----
+# Both rules are about events a list_locations.id_event_* column names. The engine fires
+# those without a player: nobody pays for them, nobody is asked anything, and the response
+# they would answer does not exist.
+
+def test_r9_trigger_pointing_at_a_choice_owning_event_fails():
+    s = valid_story()
+    # Event 1 owns choice 1 in the fixture; location 2 tries to fire it on entry.
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 1}]
+    report = validator().validate_import_data(s)
+    assert any(e.rule == "R9_AUTOMATIC_EVENT_CHOICES" and e.field_name == "idEventIfFirstTime"
+               for e in report.errors), \
+        "an automatic event has no one to ask and no response to ask in"
+
+
+def test_r9_trigger_pointing_at_a_player_executable_event_fails():
+    s = valid_story()
+    s["events"] = [{"id": 1}, {"id": 2, "type": "NORMAL"}]
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventNotFirstTime": 2}]
+    report = validator().validate_import_data(s)
+    assert any(e.rule == "R9_AUTOMATIC_EVENT_TYPE" and e.field_name == "idEventNotFirstTime"
+               for e in report.errors), \
+        "the event would be offered as an action AND fire by itself"
+
+
+def test_r9_an_automatic_event_without_choices_is_valid():
+    s = valid_story()
+    s["events"] = [{"id": 1}, {"id": 2, "type": "AUTOMATIC"}]
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 2,
+                                  "idEventNotFirstTime": 2,
+                                  "idEventIfCharacterEnterFirstTime": 2,
+                                  "idEventIfCounterZero": 2,
+                                  "idEventIfCharacterStartTime": 2}]
+    assert validator().validate_import_data(s).is_valid()
+
+
+def test_r9_a_dangling_trigger_is_a_broken_reference():
+    s = valid_story()
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfCounterZero": 999}]
+    report = validator().validate_import_data(s)
+    assert not report.is_valid()
+    assert any(e.field_name == "idEventIfCounterZero" for e in report.errors)
+
+
+def test_r9_a_non_positive_trigger_is_no_trigger():
+    s = valid_story()
+    s["choices"] = []
+    s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 0,
+                                  "idEventNotFirstTime": 0}]
+    assert validator().validate_import_data(s).is_valid()
+
+
 def test_validate_story_null_id():
     assert not validator().validate_story(None).is_valid()
 

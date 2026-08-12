@@ -118,6 +118,9 @@ final class CharacterMapper {
 
     /** Total carried weight = Σ (item.weight × amount) over the resolved items. */
     private static int totalWeight(List<ItemInstanceInfo> items) {
+        if (items == null) {
+            return 0;
+        }
         int total = 0;
         for (ItemInstanceInfo i : items) {
             int w = i.getWeight() != null ? i.getWeight() : 0;
@@ -153,7 +156,8 @@ final class CharacterMapper {
         info.setWeightMax(c.getWeightMax());
         List<ItemInstanceInfo> resolvedItems = items != null ? items : new ArrayList<>();
         info.setItems(resolvedItems);
-        info.setWeight(totalWeight(resolvedItems));
+        // pass the raw list: totalWeight owns the null case (a null list weighs 0)
+        info.setWeight(totalWeight(items));
         info.setIdLocation(c.getIdLocation());
         info.setIsSleeping(c.getIsSleeping());
         info.setIsComa(c.getIsComa());

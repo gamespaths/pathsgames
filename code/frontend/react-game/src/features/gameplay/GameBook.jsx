@@ -24,6 +24,7 @@ import WeatherCard from './cards/WeatherCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
 import PendingChoicesList from './cards/PendingChoicesList'
+import AutomaticEvents from './cards/AutomaticEvents'
 import EndGameCard from './cards/EndGameCard'
 import PlayerCards from './cards/PlayerCards'
 import MapCard from './cards/MapCard'
@@ -32,6 +33,7 @@ import MapPage from '@/components/layout/Map'
 import LoadingCard from '@/components/layout/LoadingCard'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { buildCardToSleep } from '@/utils/loadoutCards'
+import { statChangeItems } from '@/utils/statBadges'
 
 // Mobile is a single stacked column (left on top, right below) that scrolls as a
 // whole inside `.book-overlay`. These helpers move a card into view there; on
@@ -67,45 +69,10 @@ export function lastEffectCard(result) {
   return null
 }
 
-// The engine names the statistics as the story authors them; the badges (and their
-// translations) use the longer in-game names. Anything not listed has no badge.
-const STAT_CHANGE_KEYS = {
-  life: 'life',
-  energy: 'energy',
-  sad: 'sadness',
-  exp: 'experience',
-  dex: 'dexterity',
-  int: 'intelligence',
-  cos: 'constitution',
-  food: 'food',
-  magic: 'magic',
-  coin: 'coins',
-}
-
-/**
- * The badges an executed event earned the player: its `statChanges`, which carry the delta
- * ACTUALLY applied (after the clamp — a -10 life on a character with 3 left is a -3), one row
- * per character and per statistic. Rows of the other characters standing in the location are
- * dropped, and a chain that touches the same statistic twice is summed into one badge.
- * A net delta of 0 earns no badge.
- */
-export function statChangeItems(result, characterUuid, t = (k) => k) {
-  const totals = new Map()
-  for (const change of result?.statChanges ?? []) {
-    if (characterUuid && change?.characterUuid && change.characterUuid !== characterUuid) continue
-    const key = STAT_CHANGE_KEYS[String(change?.statistic ?? '').toLowerCase()]
-    const delta = Number(change?.delta)
-    if (!key || !Number.isFinite(delta)) continue
-    totals.set(key, (totals.get(key) ?? 0) + delta)
-  }
-  return [...totals.entries()]
-    .filter(([, delta]) => delta !== 0)
-    .map(([key, delta]) => ({
-      key,
-      label: t(`game.stats.${key}`),
-      value: delta > 0 ? `+${delta}` : String(delta),
-    }))
-}
+// Moved to @/utils/statBadges so AutomaticEvents can read the same badges off its own
+// payload without importing the board back. Re-exported: it was part of this module's
+// surface before, and its suite still reads it here.
+export { statChangeItems }
 
 export default function GameBook({ gameData, matchUuid, story, storyDetail, onReload, onClose, onError }) {//info=
   const LOADING_TIMEOUT_MS = 1000; //TODO change into constant env vars!
@@ -139,6 +106,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // same option twice (the second call would answer CHOICE_NOT_OPEN anyway, but the board
   // should not have to learn that from an error).
   const [choiceInFlight, setChoiceInFlight] = useState(false)
+  // Step 33 — the wake-up list: the location counters that ran out while the party slept,
+  // as this player is allowed to hear them. A LIST, because several can expire on one
+  // time-start. Kept apart from previewRight so an (i) preview of one entry can overlay the
+  // page and closing it returns to the list, exactly like the Step 31 options.
+  const [counterZero, setCounterZero] = useState(null) // CounterZeroItem[] | null
   const [statisticsCards, setStatisticsCards] = useState(false)
   // Step 0.28.5 — the world map view: MapPage on the LEFT page, the current
   // location on the RIGHT page. Opened by MapCard in the statistics list.
@@ -164,6 +136,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // [weather] effect and can't see the latest state) knows a choice-event owns the right
   // page and must not cover its options with the weather card.
   const pendingChoicesRef = useRef(null)
+  // Step 33 — the same mirror for the wake-up list: the weather of the new time unit
+  // arrives from the same reload that produced the list, and must not cover it.
+  const counterZeroRef = useRef(null)
   const [activeAction, setActiveAction] = useState(null)//used into endGame overlay and in future: action overlay
   // Set right before a sleep/movement reload so the effect below scrolls the
   // freshly-loaded board (the new card) back to the top on mobile.
@@ -209,6 +184,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
 
   // Step 31 — keep the ref the weather effect reads in sync with the state.
   useEffect(() => { pendingChoicesRef.current = pendingChoices }, [pendingChoices])
+  // Step 33 — the same for the wake-up list.
+  useEffect(() => { counterZeroRef.current = counterZero }, [counterZero])
 
   // Show the new weather as a right-page reading page (WeatherCard with a back
   // arrow) when the weather UUID changes (skips the initial load where
@@ -228,6 +205,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     // options. The weather is still reachable from the stats view; the board (with the
     // current weather) returns when the choices are closed.
     if (pendingChoicesRef.current) return
+    // Step 33 — so does the wake-up list, and it comes from the very same reload: the
+    // weather of the new time unit and the counters that ran out arrive together. What
+    // happened in the world while the party slept is the news, not the sky.
+    if (counterZeroRef.current?.length) return
     setPreviewRight(prev => {
       if (duringEvent && prev && prev.kind === 'preview') {
         return { ...prev, additionalProps: { ...prev.additionalProps,
@@ -352,6 +333,61 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       document.querySelector('.book-page-left .page-inner')?.scrollTo?.({ top: 0, behavior: 'smooth' })
     }
   }
+  // Step 33 — the automatic events an ARRIVAL fired. The board already has the new location
+  // for its left page (the reload puts it there); these belong on the right.
+  //
+  // Several can fire on one arrival — the history trigger (first OR subsequent entry) and,
+  // independently, "you found the place empty" — so they are chained with the same forward
+  // arrow the weather uses: the player reads one, presses →, reads the next. The reload runs
+  // FIRST, because it nulls previewRight; the cards go on afterwards.
+  function showAutomaticEvents(fired) {
+    const cards = (fired ?? [])
+      .map(f => ({ narrative: f?.card ?? lastEffectCard(f), fired: f }))
+      .filter(entry => entry.narrative)
+    if (cards.length === 0) return false
+
+    // Built back to front, so each card's forward arrow already knows its successor.
+    let onForward
+    for (let i = cards.length - 1; i >= 0; i -= 1) {
+      const { narrative, fired: f } = cards[i]
+      const next = onForward
+      onForward = () => {
+        setPreviewRight({
+          kind: 'preview',
+          card: narrative,
+          type: 'event',
+          lockedReason: null,
+          statItemsToPageContent: statChangeItems(f, playerUuid, t),
+          additionalProps: next ? { onClose: undefined, onForward: next } : {},
+        })
+      }
+    }
+    // Arm the effect flag: a weather change from the same time unit must attach a forward
+    // arrow to the first card rather than cover it.
+    eventEffectActiveRef.current = true
+    onForward()
+    return true
+  }
+
+  // Step 33 — a movement answers with what the destination did about the arrival. Until now
+  // this response was dropped on the floor (the board learned the new position from the
+  // reload alone), which is exactly why the handler took no argument.
+  function handleMovementDone(result) {
+    handleReloadClockWeatherAndMatchData()
+    setLoading(true)
+    showAutomaticEvents(result?.automaticEvents)
+    setLoading(false)
+  }
+
+  // Step 33 — a sleep answers with the location counters that ran out while the party slept,
+  // already filtered for this player (a place they have never seen comes back unnamed). Empty
+  // is the normal case and renders nothing.
+  function handleSlept(result) {
+    handleReloadClockWeatherAndMatchData()
+    const fired = result?.counterZero ?? []
+    setCounterZero(fired.length ? fired : null)
+  }
+
   // Step 29 — an executed event answers with one entry per applied effect, each carrying its
   // OWN card: that card is the narrative. A chain (idEventNext) applies several in order, and
   // the story reads as the last one — so that is the one shown, on the reading page.
@@ -539,7 +575,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             onBack={closeRight} onForward={previewRight.onForward} />
 //      : previewRight?.kind === 'sleep'
 //        ? <GoToSleepCard story={story} playerStats={playerStats} t={t} 
-//            onPreview={handleSelectionPreviewFull} onSlept={handleReloadClockWeatherAndMatchData} />
+//            onPreview={handleSelectionPreviewFull} onSlept={handleSlept} />
       : previewRight?.kind === 'preview'
         ? <Card variant="page"
             card={previewRight.card}
@@ -602,7 +638,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   const cardCharacteristicsRight = buildCardCharacteristicsRight(story, playerStats, clock, weather, {
     matchUuid,
     accessToken: user?.accessToken,
-    onSlept: handleReloadClockWeatherAndMatchData,
+    // handleSlept, not the bare reload: this path used to drop the sleep response, so a
+    // counter that ran out while sleeping from the info card was never shown.
+    onSlept: handleSlept,
   })
   // The loaded detail (with content lists) when available, otherwise the summary prop.
   const storyFull = storyDetail ?? story
@@ -641,6 +679,13 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : pendingChoices ? <PendingChoicesList story={story} choices={pendingChoices.choices}
         onPreview={handleSelectionPreviewFull} onSelect={handleSelectChoice}
         busy={choiceInFlight} onDoNothing={closeChoices} />
+    // Step 33 — the wake-up list: what happened in the world while the party slept. Below
+    // the choices, which are a decision and outrank news; above the weather and the board,
+    // which are the state the player returns to once they have read it. A counter-zero card
+    // can never open choices, so the first two never actually contend for the same beat.
+    : counterZero?.length ? <AutomaticEvents story={story} items={counterZero}
+        playerUuid={playerUuid}
+        onPreview={handleSelectionPreviewFull} onDismiss={() => setCounterZero(null)} />
     // Step 0.28.5 — while the map fills the left page, the right page shows
     // the location selected on the map, else the current location.
     : mapView ? (mapSelected
@@ -649,7 +694,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
             totalEnergyCost={mapSelectedLocation.uuid != null ? locationCosts[mapSelectedLocation.uuid] : undefined}
             playerStats={playerStats} story={story}
             matchUuid={matchUuid} accessToken={user?.accessToken}
-            onMoved={handleReloadClockWeatherAndMatchData} onError={onError} 
+            onMoved={handleMovementDone} onError={onError} 
             />
         : <LocationCard locationsActive={gameData?.info?.locationsActive}
             location={actualLocationCard} card={actualLocationCard} story={story}
@@ -658,7 +703,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         <div className="config-cards-area selection-list">
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-            previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
+            previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept}/>
           <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
             gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right"
@@ -692,7 +737,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
               available movement and action costs more energy than they have. */}
           {(checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) || (showGoToSleepCard)) &&
             <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
-              previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleReloadClockWeatherAndMatchData}/>
+              previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept}/>
           }
           {/* Step 27 — current weather card (in both render points). }
           <WeatherCard weather={weather} story={story} onPreview={handleSelectionPreviewFull} /> {  
@@ -703,7 +748,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
               totalEnergyCost={loc.uuid != null ? locationCosts[loc.uuid] : undefined}
               playerStats={playerStats} story={story} onPreview={handleSelectionPreviewFull}
               previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken}
-              onMoved={handleReloadClockWeatherAndMatchData} onError={onError} />
+              onMoved={handleMovementDone} onError={onError} />
           )) }
 
           { /* for every action in location — end-game events expose an "end game" button */  }

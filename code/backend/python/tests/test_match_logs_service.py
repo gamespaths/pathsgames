@@ -158,15 +158,40 @@ def test_sleep_and_recovery_entries_carry_their_detail_fields(session_factory):
     assert recovery["message"].startswith("recovery")
 
 
-def test_counter_zero_event_is_reported_as_recovery(session_factory):
+def test_counter_zero_event_is_its_own_type(session_factory):
+    """Step 33 — a counter running out and a character healing are unrelated events, so
+    COUNTER_ZERO was split out of RECOVERY. The row also carries the clock (it used to be
+    NULL, so it sorted outside the timeline) and the location as a column."""
     _seed_match(session_factory)
     with session_factory() as s:
         s.add(LogEventsEntity(id=9, id_match=MATCH_ID, uuid="e9", timestamp=_NOW,
-                              log_message="counter reached zero at location 3",
+                              clock=4, id_event=777, id_location=3,
+                              log_message="counter reached zero at location 3;"
+                                          " pending event 777",
                               ts_insert=_NOW, ts_update=_NOW))
         s.commit()
     logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
-    assert [e["type"] for e in logs] == ["RECOVERY"]
+    assert [e["type"] for e in logs] == ["COUNTER_ZERO"]
+    assert logs[0]["clock"] == 4
+    assert logs[0]["idLocationTo"] == 3
+    assert logs[0]["idEvent"] == 777
+
+
+def test_automatic_event_is_its_own_type(session_factory):
+    """Step 33 — log_events drops any message it does not recognise, so the automatic-event
+    audit rows needed their own branch or they would never reach the timeline."""
+    _seed_match(session_factory)
+    with session_factory() as s:
+        s.add(LogEventsEntity(id=10, id_match=MATCH_ID, uuid="e10", id_character_match=10,
+                              clock=3, timestamp=_NOW, id_event=90040, id_location=90002,
+                              log_message="automatic event 90040 (FIRST_ENTRY) at"
+                                          " location 90002",
+                              ts_insert=_NOW, ts_update=_NOW))
+        s.commit()
+    logs = MatchLogsService(session_factory).get_match_logs_for_admin(MATCH_UUID)["logs"]
+    assert [e["type"] for e in logs] == ["AUTOMATIC_EVENT"]
+    assert logs[0]["idEvent"] == 90040
+    assert logs[0]["idLocationTo"] == 90002
 
 
 def test_executed_event_is_reported_as_event(session_factory):

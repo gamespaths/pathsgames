@@ -392,6 +392,7 @@ public class MatchQueryService implements MatchQueryPort {
             m.setIdLocation(sl.getIdLocation());
             m.setUuid(sl.getUuid());
             m.setFlagAlreadyActived(sl.getFlagAlreadyActived());
+            m.setFlagVisited(sl.getFlagVisited());
             m.setClockCounter(sl.getClockCounter());
             stateModels.add(m);
         }

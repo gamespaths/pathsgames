@@ -33,6 +33,12 @@ public interface MovementPort {
     /** Visited locations of the match (admin-scoped: only MATCH_NOT_FOUND is thrown). */
     List<VisitedLocation> listLocationsForAdmin(String matchUuid, String lang);
 
+    /**
+     * Step 33 — {@code automaticEvents} is what the destination did about the arrival: its
+     * {@code id_event_if_first_time} / {@code id_event_not_first_time} /
+     * {@code id_event_if_character_enter_first_time}, already executed. The book shows the
+     * new location on its left page and these on its right. Empty in the ordinary case.
+     */
     record MovementResult(String matchUuid,
                           String characterUuid,
                           Long fromLocationId,
@@ -41,7 +47,8 @@ public interface MovementPort {
                           String toLocationUuid,
                           int energySpent,
                           int newEnergy,
-                          int currentClock) {
+                          int currentClock,
+                          List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
     }
 
     /** A visited location with its current character count and move-cost neighbors. */

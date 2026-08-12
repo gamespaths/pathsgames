@@ -434,7 +434,7 @@ def test_flag_end_time_on_a_linked_event_ends_the_time_unit():
          patch('match.handler.db_utils.get_item', side_effect=_get_side), \
          patch('match.handler.db_utils.query_by_pk', return_value=[dict(CHARACTER)]), \
          patch('match.handler.db_utils.put_item'), \
-         patch('match.handler._advance_time', return_value=(2, [])) as advance:
+         patch('match.handler._advance_time', return_value=(2, [], [])) as advance:
         result = _call(_event('ch-ender'))
 
     body = _body(result)

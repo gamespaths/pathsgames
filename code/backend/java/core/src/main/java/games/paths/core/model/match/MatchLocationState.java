@@ -15,6 +15,8 @@ public class MatchLocationState {
     private Long idLocation;
     private String uuid;
     private Integer flagAlreadyActived;
+    /** Step 33 — the party has entered this location at least once. */
+    private Integer flagVisited;
     private Integer clockCounter;
 
     public MatchLocationState() {
@@ -28,6 +30,9 @@ public class MatchLocationState {
 
     public Integer getFlagAlreadyActived() { return flagAlreadyActived; }
     public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
+
+    public Integer getFlagVisited() { return flagVisited; }
+    public void setFlagVisited(Integer flagVisited) { this.flagVisited = flagVisited; }
 
     public Integer getClockCounter() { return clockCounter; }
     public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }

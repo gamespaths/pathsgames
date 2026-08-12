@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.LocationEntryStorePort;
 import games.paths.core.port.match.MatchLogsPort;
 import games.paths.core.port.match.MatchLogsStorePort;
 import games.paths.core.port.match.MatchLogsStorePort.CharacterLogView;
@@ -32,8 +33,11 @@ import java.util.Map;
  *   <li>MOVEMENT — from log_movements</li>
  *   <li>SLEEP — from log_events WHERE log_message='ACTION_SLEEP'</li>
  *   <li>CLOCK_ADVANCE — from log_clock_history</li>
- *   <li>RECOVERY — from log_events WHERE log_message LIKE 'recovery%' or 'counter%'</li>
+ *   <li>RECOVERY — from log_events WHERE log_message LIKE 'recovery%'</li>
  *   <li>EVENT — from log_events WHERE log_message LIKE 'EVENT_EXECUTED%' (Step 29)</li>
+ *   <li>COUNTER_ZERO — from log_events WHERE log_message LIKE 'counter%' (Step 33; until
+ *       then these rows were folded into RECOVERY, which they never were)</li>
+ *   <li>AUTOMATIC_EVENT — from log_events WHERE log_message LIKE 'automatic event%' (Step 33)</li>
  * </ul>
  * </p>
  *
@@ -56,7 +60,12 @@ public class MatchLogsService implements MatchLogsPort {
     private static final String TYPE_RECOVERY = "RECOVERY";
     /** Step 29 — an event the player triggered. */
     private static final String TYPE_EVENT = "EVENT";
+    /** Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was. */
+    private static final String TYPE_COUNTER_ZERO = "COUNTER_ZERO";
+    /** Step 33 — an event the engine fired: an arrival, a counter, a time-start. */
+    private static final String TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT";
     private static final String MSG_SLEEP = "ACTION_SLEEP";
+    private static final String MSG_COUNTER = "counter";
     private static final String DEFAULT_LANG = "en";
     private static final String CURSOR_PREFIX = "offset:";
 
@@ -155,7 +164,18 @@ public class MatchLogsService implements MatchLogsPort {
                 entries.add(new LogEntry(TYPE_EVENT, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, null, null, msg, null, null,
                         e.idEvent()));
-            } else if (msg.startsWith("recovery") || msg.startsWith("counter")) {
+            } else if (msg.startsWith(MSG_COUNTER)) {
+                // Step 33 split this out of RECOVERY: a counter running out and a character
+                // healing are unrelated events, and the frontend has to tell them apart.
+                // The location rides in idLocationTo so it enriches like a MOVEMENT does.
+                entries.add(new LogEntry(TYPE_COUNTER_ZERO, e.clock(), e.timestamp(), null,
+                        e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
+                        null, e.idEvent()));
+            } else if (msg.startsWith(LocationEntryStorePort.MSG_AUTOMATIC_EVENT)) {
+                entries.add(new LogEntry(TYPE_AUTOMATIC_EVENT, e.clock(), e.timestamp(), null,
+                        e.idCharacterMatch(), null, null, null, e.idLocation(), null, msg, null,
+                        null, e.idEvent()));
+            } else if (msg.startsWith("recovery")) {
                 entries.add(new LogEntry(TYPE_RECOVERY, e.clock(), e.timestamp(), null,
                         e.idCharacterMatch(), null, null, null, null, null, msg, null, null, null));
             }
@@ -191,6 +211,12 @@ public class MatchLogsService implements MatchLogsPort {
                 idCard = locationCards.get(e.idLocationTo());
             } else if (TYPE_EVENT.equals(e.type()) && e.idEvent() != null) {
                 idCard = eventCards.get(e.idEvent());
+            } else if (TYPE_AUTOMATIC_EVENT.equals(e.type()) && e.idEvent() != null) {
+                // Step 33 — the event's own card, like a player-triggered one.
+                idCard = eventCards.get(e.idEvent());
+            } else if (TYPE_COUNTER_ZERO.equals(e.type()) && e.idLocationTo() != null) {
+                // Step 33 — a counter belongs to a place, so the place's card names it.
+                idCard = locationCards.get(e.idLocationTo());
             }
             CardInfo card = resolveCard(match.idStory(), idCard, lang);
 

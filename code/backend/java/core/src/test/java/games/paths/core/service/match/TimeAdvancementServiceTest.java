@@ -4,6 +4,7 @@ import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.match.TurnStatuses;
 import games.paths.core.model.match.event.TimeAdvanced;
 import games.paths.core.port.event.DomainEventPublisher;
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.TurnCyclePort.TurnCycleException;
 import games.paths.core.port.match.TurnCycleStorePort;
@@ -49,7 +50,8 @@ class TimeAdvancementServiceTest {
         userAccessPort = mock(UserAccessPort.class);
         publisher = mock(DomainEventPublisher.class);
         recoveryService = mock(TimeStartRecoveryService.class);
-        when(recoveryService.applyAtTimeStart(anyLong())).thenReturn(List.of());
+        when(recoveryService.applyAtTimeStart(anyLong()))
+                .thenReturn(TimeStartRecoveryService.TimeStartOutcome.none());
         service = new TimeAdvancementService(store, userAccessPort, publisher, recoveryService);
         when(userAccessPort.findByUuid(USER)).thenReturn(
                 Optional.of(new UserAccessPort.UserView(USER_ID, USER, "u", "PLAYER", 2)));
@@ -125,6 +127,57 @@ class TimeAdvancementServiceTest {
             verify(store).wakeAllCharacters(MATCH_ID);
             verify(store).replaceQueue(eq(MATCH_ID), anyList());
             verify(publisher, times(1)).publish(any(TimeAdvanced.class));
+        }
+
+        @Test
+        @DisplayName("Step 33: the events the time-start collected are run, and told to the sleeper")
+        void sleepRunsAndReportsTheAutomaticEvents() {
+            LocationEntryPort runner = mock(LocationEntryPort.class);
+            LocationEntryPort.PendingAutomaticEvent pending =
+                    new LocationEntryPort.PendingAutomaticEvent(
+                            LocationEntryPort.TRIGGER_COUNTER_ZERO, 12L, 340L, CHAR_ID, 0);
+            LocationEntryPort.AutomaticEventFired fired =
+                    new LocationEntryPort.AutomaticEventFired(
+                            LocationEntryPort.TRIGGER_COUNTER_ZERO, 12L, "evt-fuse", null,
+                            List.of(), List.of(), List.of(), false);
+            when(recoveryService.applyAtTimeStart(MATCH_ID)).thenReturn(
+                    new TimeStartRecoveryService.TimeStartOutcome(List.of(), List.of(pending)));
+            when(runner.runPendingAutomaticEvents(eq(MATCH_ID), eq(4), anyList(), any()))
+                    .thenReturn(List.of(fired));
+            when(runner.describeForRecipient(eq(MATCH_ID), eq(CHAR_ID), eq(4), anyList(), any()))
+                    .thenReturn(List.<TimeAdvancementPort.CounterZeroItem>of(
+                            new TimeAdvancementPort.CounterZeroItem(
+                                    LocationEntryPort.TRIGGER_COUNTER_ZERO, 12L, null, null,
+                                    List.of(), "evt-fuse", 4,
+                                    TimeAdvancementPort.CounterZeroItem.VISIBILITY_NAMED)));
+            service.setAutomaticEventRunner(runner);
+
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+
+            TimeAdvancementPort.SleepResult r = service.sleep(MATCH, USER);
+
+            assertEquals(1, r.counterZero().size());
+            assertEquals("evt-fuse", r.counterZero().get(0).eventUuid());
+            assertEquals(TimeAdvancementPort.CounterZeroItem.VISIBILITY_NAMED,
+                    r.counterZero().get(0).visibility());
+        }
+
+        @Test
+        @DisplayName("Step 33: no runner wired means no automatic events, exactly as before")
+        void noRunnerMeansNoCounterZero() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match(MatchStatuses.RUNNING, 3)));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(character(CHAR_ID, CHAR_UUID, 50, false)));
+            when(store.findCharactersByMatchId(MATCH_ID))
+                    .thenReturn(List.of(character(CHAR_ID, CHAR_UUID, 50, true)));
+            when(store.incrementMatchClock(MATCH_ID)).thenReturn(4);
+
+            assertTrue(service.sleep(MATCH, USER).counterZero().isEmpty());
         }
 
         @Test

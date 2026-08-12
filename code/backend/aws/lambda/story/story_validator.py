@@ -19,6 +19,20 @@ _REF_RULES = {
     _CHOICE: "R_CHOICE_REF", _CLASS: "R_CLASS_REF", _MISSION: "R_MISSION_REF",
 }
 
+# Step 33 — the list_locations columns that name an engine-fired event. Kept in one place
+# because both the graph collection and the R9 rules walk exactly this set.
+_LOCATION_TRIGGER_FIELDS = (
+    "idEventIfFirstTime",
+    "idEventNotFirstTime",
+    "idEventIfCharacterEnterFirstTime",
+    "idEventIfCharacterStartTime",
+    "idEventIfCounterZero",
+)
+
+# The two types a player can execute. Mirrors events.EXECUTABLE_TYPES, duplicated rather
+# than imported because the validator lives in the story lambda.
+_EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+
 
 def _camel_to_snake(name):
     out = []
@@ -108,6 +122,10 @@ def validate_story_dict(data):
     choices_with_option = set()
     # Step 31 — (cid, idEvent, idLocation) per choice, for the R8 binding rule.
     choice_data = []
+    # Step 33 — every event id a list_locations.id_event_* column names, mapped to the
+    # column that names it (for the message), plus each event's raw type.
+    location_trigger_events = {}
+    event_types = {}
 
     def ref(etype, eid, field, target, value):
         v = _as_int(value)
@@ -128,6 +146,17 @@ def validate_story_dict(data):
     ref("story", None, "idEventAllPlayerComa", _EVENT, data.get("idEventAllPlayerComa"))
     ref("story", None, "idEventEndGame", _EVENT, data.get("idEventEndGame"))
 
+    # Step 33 — the five location-side trigger columns. They have existed since the first
+    # schema and were never referenced here, so a location could point at an event that
+    # does not exist and nothing would say so.
+    for l in _arr(data, "locations"):
+        lid = _field(l, "id")
+        for field in _LOCATION_TRIGGER_FIELDS:
+            id_event = _as_int(_field(l, field))
+            ref("locations", str(lid), field, _EVENT, _field(l, field))
+            if id_event is not None and id_event > 0:
+                location_trigger_events[id_event] = field
+
     for e in _arr(data, "events"):
         eid = _field(e, "id")
         ref("events", str(eid), "idSpecificLocation", _LOCATION, _field(e, "idSpecificLocation"))
@@ -136,6 +165,9 @@ def validate_story_dict(data):
         my, nxt = _as_int(_field(e, "id")), _as_int(_field(e, "idEventNext"))
         if my is not None and nxt is not None:
             event_next[my] = nxt
+        etype = _field(e, "type")
+        if my is not None and etype:
+            event_types[my] = str(etype)
     for c in _arr(data, "choices"):
         cid = _field(c, "id")
         ref("choices", str(cid), "idEvent", _EVENT, _field(c, "idEvent"))
@@ -232,6 +264,27 @@ def validate_story_dict(data):
         if id_location is not None and id_location > 0:
             errors.append(_err("R8_CHOICE_EVENT", "choices", cid, "idLocation",
                                "idLocation={} is deprecated — a choice binds to an event (idEvent), never to a location (step 31)".format(id_location)))
+
+    # Step 33 (R9): the two rules that keep an engine-fired location event runnable. Both
+    # are about events a list_locations.id_event_* column names. The engine fires those
+    # without a player: nobody pays, nobody is asked anything, and the response they would
+    # answer does not exist.
+    if location_trigger_events:
+        owning = {ev for (_cid, ev, _loc) in choice_data if ev is not None and ev > 0}
+        for id_event, field in location_trigger_events.items():
+            if id_event in owning:
+                errors.append(_err(
+                    "R9_AUTOMATIC_EVENT_CHOICES", "locations", None, field,
+                    "event {} is fired automatically by {} but owns choices — an automatic"
+                    " event has no one to ask and no response to ask in (step 33)".format(
+                        id_event, field)))
+            etype = str(event_types.get(id_event) or "").strip().upper()
+            if etype in _EXECUTABLE_EVENT_TYPES:
+                errors.append(_err(
+                    "R9_AUTOMATIC_EVENT_TYPE", "locations", None, field,
+                    "event {} is fired automatically by {} but its type is {}, which is"
+                    " player-executable — use AUTOMATIC (step 33)".format(
+                        id_event, field, etype)))
 
     for eid, ctype, key in key_refs:
         # Only KEYS conditions read the registry. On every other type `key` means

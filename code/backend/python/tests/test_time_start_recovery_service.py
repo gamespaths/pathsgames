@@ -1,4 +1,5 @@
 """Step 26 — unit tests for the time-start recovery service."""
+from app.core.models.match import location_entry_models as lem
 from app.core.services.match.time_start_recovery_service import (
     TimeStartRecoveryService,
     compute_recovery,
@@ -99,8 +100,10 @@ class FakeRecoveryStore:
     def log_recovery(self, id_match, id_character, message):
         self.recovery_logs.append((id_character, message))
 
-    def log_counter_zero(self, id_match, id_location, id_event_if_counter_zero, message):
-        self.counter_zero_logs.append((id_location, id_event_if_counter_zero))
+    def log_counter_zero(self, id_match, id_location, id_event_if_counter_zero, clock,
+                         message):
+        # Step 33 — the clock is stamped now; the row used to sort outside the timeline.
+        self.counter_zero_logs.append((id_location, id_event_if_counter_zero, clock))
 
     def mark_state_location_activated(self, id_match, id_location):
         self.activated.append(id_location)
@@ -120,7 +123,7 @@ def test_full_flow_seeds_recovers_and_decrements():
         bonuses=[{"id_class": 5, "statistic": "energy", "value": 1}],
         state_locations=[],
     )
-    recaps = TimeStartRecoveryService(store).apply_at_time_start(1)
+    recaps = TimeStartRecoveryService(store).apply_at_time_start(1).recovery
 
     # p = 1 + 2 = 3, secureParam=1, safe.
     # energy = 10 + dex3 + p3 + bonus1 = 17 (+7)
@@ -148,10 +151,18 @@ def test_counter_zero_logs_pending_event():
         bonuses=[],
         state_locations=[{"id_location": 100, "clock_counter": 1, "flag_already_actived": 0}],
     )
-    TimeStartRecoveryService(store).apply_at_time_start(1)
+    outcome = TimeStartRecoveryService(store).apply_at_time_start(1)
     assert store.counter_updates == [(100, 0)]
-    assert store.counter_zero_logs == [(100, 777)]
+    assert store.counter_zero_logs == [(100, 777, 0)]
     assert store.activated == [100]
+
+    # Step 33 — the event is handed UP rather than merely logged, with the character
+    # standing there as the nominal actor.
+    assert len(outcome.pending) == 1
+    assert outcome.pending[0].trigger == lem.TRIGGER_COUNTER_ZERO
+    assert outcome.pending[0].id_event == 777
+    assert outcome.pending[0].id_location == 100
+    assert outcome.pending[0].id_actor_character == 10
 
 
 def test_reseeds_zero_counter_for_occupied_location():
@@ -199,7 +210,9 @@ def test_no_reseed_when_already_activated():
 
 def test_returns_empty_without_context():
     store = FakeRecoveryStore(None, [], [], [], [])
-    assert TimeStartRecoveryService(store).apply_at_time_start(1) == []
+    outcome = TimeStartRecoveryService(store).apply_at_time_start(1)
+    assert outcome.recovery == []
+    assert outcome.pending == []
 
 
 # ── v0.30.1 — wake from coma by resting in a safe location ────────────────────

@@ -159,6 +159,42 @@ def test_sleep_triggers_time_end_and_advances_clock():
     assert publisher.events[0].new_clock == 4
 
 
+def test_step33_the_events_a_time_start_collected_are_run_and_told_to_the_sleeper():
+    """The caller is the only recipient with an open request; the rest learn about it over
+    the WebSocket once Steps 49-54 land, through this very path called once per player."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+    from app.core.models.match.time_models import TimeStartOutcome
+
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50)])
+    pending = lem.PendingAutomaticEvent(lem.TRIGGER_COUNTER_ZERO, 12, 340, 10, 0)
+    fired = lem.AutomaticEventFired(lem.TRIGGER_COUNTER_ZERO, 12, "evt-fuse")
+    recovery = MagicMock()
+    recovery.apply_at_time_start.return_value = TimeStartOutcome([], [pending])
+    runner = MagicMock()
+    runner.run_pending_automatic_events.return_value = [fired]
+    runner.describe_for_recipient.return_value = [
+        lem.CounterZeroItem(lem.TRIGGER_COUNTER_ZERO, 12, None, None, [], "evt-fuse", 4,
+                            lem.VISIBILITY_NAMED)]
+
+    service = TimeAdvancementService(store, RecordingPublisher(),
+                                     recovery_service=recovery)
+    service.set_automatic_event_runner(runner)
+
+    result = service.sleep(MATCH_UUID, "user-uuid")
+
+    assert [i.event_uuid for i in result.counter_zero] == ["evt-fuse"]
+    assert result.counter_zero[0].visibility == lem.VISIBILITY_NAMED
+    runner.run_pending_automatic_events.assert_called_once()
+
+
+def test_step33_no_runner_means_no_counter_zero():
+    store = FakeTimeStore(match=_match(current_clock=3),
+                          characters=[_char(10, "char-a", energy=50)])
+    assert _service(store).sleep(MATCH_UUID, "user-uuid").counter_zero == []
+
+
 def test_sleep_without_trigger_keeps_clock():
     store = FakeTimeStore(
         match=_match(current_clock=3),

@@ -188,6 +188,8 @@ def _detail_to_camel(detail):
                 "idLocation": l.id_location,
                 "uuid": l.uuid,
                 "flagAlreadyActived": l.flag_already_actived,
+                # Step 33 — the party has entered this location; not the counter flag.
+                "flagVisited": l.flag_visited,
                 "clockCounter": l.clock_counter,
             }
             for l in detail.locations

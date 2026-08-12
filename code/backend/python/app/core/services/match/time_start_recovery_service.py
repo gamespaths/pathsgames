@@ -3,9 +3,14 @@
 Mirrors the Java ``TimeStartRecoveryService``. On every time-start the engine
 recovers each character's stats based on their location safety, applies the
 class bonuses, clamps to the caps, and decrements location time counters
-(seeding missing rows for occupied counter-locations). When a counter reaches
-zero the location's ``id_event_if_counter_zero`` is logged as pending; the
-actual event execution is wired in Step 29.
+(seeding missing rows for occupied counter-locations).
+
+Step 33: when a counter reaches zero the location's ``id_event_if_counter_zero`` is
+handed **up** rather than merely logged, together with the
+``id_event_if_character_start_time`` of every occupied location. This service collects
+those events; it does not run them. The event engine sits *above* it in the wiring (an
+event can force a time end, which comes back here), so executing them from inside would
+close a dependency cycle — ``TimeAdvancementService`` runs the list once this returns.
 
 Recovery rules (P = location.secure_param + difficulty.energy; safe when
 secure_param > 0):
@@ -14,7 +19,9 @@ secure_param > 0):
 """
 from typing import Any, Dict, List
 
-from app.core.models.match.time_models import RecoveryItem
+from app.core.models.match import location_entry_models as lem
+from app.core.models.match.location_entry_models import PendingAutomaticEvent
+from app.core.models.match.time_models import RecoveryItem, TimeStartOutcome
 from app.core.ports.match.edge_state_ports import EdgeStateStorePort
 from app.core.ports.match.time_ports import TimeStorePort
 from app.core.services.match import edge_state_evaluator
@@ -25,13 +32,13 @@ class TimeStartRecoveryService:
         self.store = store
         self.edge_store = edge_store
 
-    def apply_at_time_start(self, id_match: int) -> List[RecoveryItem]:
+    def apply_at_time_start(self, id_match: int) -> TimeStartOutcome:
         ctx = self.store.load_recovery_context(id_match)
         if ctx is None:
-            return []
+            return TimeStartOutcome([], [])
         characters = self.store.find_recovery_characters(id_match) or []
         if not characters:
-            return []
+            return TimeStartOutcome([], [])
 
         id_story = ctx["id_story"]
         difficulty_energy = _nz(ctx.get("difficulty_energy"))
@@ -130,7 +137,11 @@ class TimeStartRecoveryService:
             edge_state_evaluator.log_all_player_coma(self.edge_store, id_match, None,
                                                      current_clock)
 
-        # 3. Decrement counters; flag zeros (event execution deferred to Step 29).
+        # 3. Decrement counters; flag zeros and collect the events they owe.
+        #    A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one and
+        #    mark_state_location_activated latches it, so the event fires exactly once per
+        #    match and the counter never restarts.
+        pending_events: List[PendingAutomaticEvent] = []
         for id_location, current in counter_by_location.items():
             current = _nz(current)
             if current <= 0:
@@ -143,10 +154,52 @@ class TimeStartRecoveryService:
                 msg = f"counter reached zero at location {id_location}"
                 if pending is not None:
                     msg += f"; pending event {pending}"
-                self.store.log_counter_zero(id_match, id_location, pending, msg)
+                self.store.log_counter_zero(id_match, id_location, pending,
+                                            current_clock, msg)
                 self.store.mark_state_location_activated(id_match, id_location)
+                _add_pending(pending_events, lem.TRIGGER_COUNTER_ZERO, id_location,
+                             pending, _nominal_actor(characters, id_location), s)
 
-        return recaps
+        # 4. Step 33 — a time unit BEGINNING where a character stands is its own trigger,
+        #    independent of any counter. One entry per occupied location, not per
+        #    character: the event describes the place, and the nominal actor is who it
+        #    happens to.
+        for id_location in occupied:
+            s = safety_by_location.get(id_location)
+            if not s:
+                continue
+            _add_pending(pending_events, lem.TRIGGER_CHARACTER_START_TIME, id_location,
+                         s.get("id_event_if_character_start_time"),
+                         _nominal_actor(characters, id_location), s)
+
+        # Deterministic across locations: priority_automatic_event first, then location id.
+        pending_events.sort(key=lambda p: (p.priority, p.id_location))
+
+        return TimeStartOutcome(recaps, pending_events)
+
+
+def _add_pending(out: List[PendingAutomaticEvent], trigger: str, id_location: int,
+                 id_event, id_actor_character, safety) -> None:
+    """Skips a null or non-positive event id — an unauthored trigger is not a trigger."""
+    if not id_event or id_event <= 0:
+        return
+    priority = _nz(safety.get("priority_automatic_event")) if safety else 0
+    out.append(PendingAutomaticEvent(trigger, id_location, int(id_event),
+                                     id_actor_character, priority))
+
+
+def _nominal_actor(characters: List[Dict[str, Any]], id_location: int):
+    """The lowest-id character standing in a location, or None when nobody is.
+
+    An automatic location event belongs to the place, not to a player, but its effects
+    still have to resolve ``target = ONLY_ONE`` against somebody and ``target = ALL``
+    against everyone *there*. Picking the lowest id makes that choice deterministic;
+    picking nobody, when the place is empty, is equally correct — the world still changes,
+    it just changes around no one.
+    """
+    ids = [c["id"] for c in characters
+           if c.get("id_location") == id_location and c.get("id") is not None]
+    return min(ids) if ids else None
 
 
 def compute_recovery(dexterity: int, intelligence: int, constitution: int,

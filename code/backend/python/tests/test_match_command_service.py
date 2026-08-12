@@ -236,6 +236,8 @@ def test_happy_path_creates_match_and_seeds_state():
     assert len(save_locations) == 2
     assert save_locations[0]["clock_counter"] == 5
     assert save_locations[1]["clock_counter"] == 0
+    # Step 33 — the fixture story authors no id_location_start, so nothing is pre-visited.
+    assert [r["flag_visited"] for r in save_locations] == [0, 0]
 
     save_registry = mocks["persistence"].save_registry.call_args[0][0]
     assert len(save_registry) == 4
@@ -514,3 +516,24 @@ def test_create_positive_budget_exceeded():
     with pytest.raises(MatchCreationError) as exc:
         service.create_match(_loadout_cmd(["t1", "t2"]))
     assert exc.value.code == MatchCreationError.TRAIT_COST_EXCEEDED
+
+
+def test_step33_the_starting_location_is_seeded_as_already_visited():
+    """The party starts IN the start; it never enters it. Without this, walking BACK there
+    would fire id_event_if_first_time and announce as a discovery the place the story
+    opened in."""
+    service, mocks = _build_service(
+        user=_user(),
+        story={"id": 2, "uuid": "story-uuid", "id_location_start": 11},
+        difficulty=_difficulty(),
+        locations=[{"id": 10, "uuid": "loc-1", "counter_time": 5},
+                   {"id": 11, "uuid": "loc-2", "counter_time": None}],
+        keys=[],
+        saved_match=_saved(),
+    )
+
+    service.create_match(MatchCreateCommand("u", "s", "d", "n", "ct"))
+
+    rows = mocks["persistence"].save_locations.call_args[0][0]
+    by_location = {r["id_location"]: r["flag_visited"] for r in rows}
+    assert by_location == {10: 0, 11: 1}

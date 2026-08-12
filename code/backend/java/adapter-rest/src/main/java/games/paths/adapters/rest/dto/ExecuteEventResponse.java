@@ -60,6 +60,11 @@ public class ExecuteEventResponse {
     private List<AppliedEffectDto> effects;
     private List<PendingChoiceDto> pendingChoices;
     private EdgeStateOutcomeDto edgeState;
+    /**
+     * Step 33 — the automatic location events this execution set off by pushing somebody
+     * somewhere. A forced-movement effect is an arrival, and arriving is a trigger.
+     */
+    private List<AutomaticEventResponse> automaticEvents = new ArrayList<>();
 
     public static ExecuteEventResponse fromModel(EventExecutionResult m) {
         ExecuteEventResponse d = new ExecuteEventResponse();
@@ -118,6 +123,7 @@ public class ExecuteEventResponse {
             d.pendingChoices.add(PendingChoiceDto.fromModel(c));
         }
         d.edgeState = EdgeStateOutcomeDto.fromModel(m.edgeState());
+        d.automaticEvents = AutomaticEventResponse.fromModels(m.automaticEvents());
         return d;
     }
 
@@ -360,6 +366,11 @@ public class ExecuteEventResponse {
 
     public EdgeStateOutcomeDto getEdgeState() { return edgeState; }
     public void setEdgeState(EdgeStateOutcomeDto edgeState) { this.edgeState = edgeState; }
+
+    public List<AutomaticEventResponse> getAutomaticEvents() { return automaticEvents; }
+    public void setAutomaticEvents(List<AutomaticEventResponse> automaticEvents) {
+        this.automaticEvents = automaticEvents;
+    }
 
     /**
      * Step 30 edge states: who overflowed on sadness, who fell into a coma, and — when the

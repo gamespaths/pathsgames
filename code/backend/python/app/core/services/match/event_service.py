@@ -24,6 +24,7 @@ Rules worth stating, because they are easy to get wrong:
 """
 from typing import Any, Dict, List, Optional
 
+from app.core.models.match import location_entry_models as lem
 from app.core.models.match.event_models import (
     STATUS_APPLIED, STATUS_CHOICES_PENDING, AppliedEffect, ChoiceCheckContext,
     ChoiceResolutionResult, EdgeStateOutcome, EntityChange, EventCheckContext, EventError,
@@ -110,9 +111,12 @@ class _Live:
 class EventService(EventPort):
 
     def __init__(self, store: EventStorePort, edge_store: EdgeStateStorePort = None,
-                 content_read_port=None, time_service=None) -> None:
+                 content_read_port=None, time_service=None, location_store=None) -> None:
         self.store = store
         self.edge_store = edge_store
+        # Step 33 — the location engine's own store. None keeps the pre-33 behaviour:
+        # no automatic events at all.
+        self.location_store = location_store
         # Resolves the localized cards (nullable: the cards are then left None).
         self.content_read_port = content_read_port
         # TimeAdvancementService, for an event carrying flag_end_time (nullable: time then
@@ -164,6 +168,8 @@ class EventService(EventPort):
         self._resolve_all_player_coma(x)
         if x.end_time and not x.coma_triggered:
             self._force_time_end(x)
+        # Step 33 — an effect may have pushed somebody somewhere, and arriving is a trigger.
+        self._drain_arrivals(x, x.automatic_events)
         return self._build_result(x)
 
     # ── choices (Step 31) ───────────────────────────────────────────────────
@@ -276,6 +282,9 @@ class EventService(EventPort):
             self._force_time_end(x)
 
         self._write_resolution_markers(x, choice, event_id, choice_id)
+
+        # Step 33 — a forced move inside an option's effects is an arrival like any other.
+        self._drain_arrivals(x, x.automatic_events)
 
         return ChoiceResolutionResult(
             execution=self._build_result(x),
@@ -622,7 +631,7 @@ class EventService(EventPort):
         x.game_over = x.game_over or (end_game_id is not None and end_game_id == event_id)
 
         self._check_edge_states(x, event_id)
-        self.store.log_event_executed(x.match["id"], x.actor["id"], event_id,
+        self.store.log_event_executed(x.match["id"], x.actor_id(), event_id,
                                       x.current_clock, f"{MSG_EVENT_EXECUTED} {event_id}")
 
     # ── effects ─────────────────────────────────────────────────────────────
@@ -637,6 +646,12 @@ class EventService(EventPort):
             self.store.set_current_weather(x.match["id"], id_weather)
             x.weather_applied = True
 
+        # Step 33 — the registry is match-scoped too, so it moved out of the per-recipient
+        # loop where it used to sit behind an "== actor" guard. Identical when an actor
+        # exists, and it now also happens when there is none: an automatic event firing in
+        # an empty location still changes the world, it just has nobody to change.
+        self._apply_registry(x, effect, event)
+
         touched: List[str] = []
         for recipient in recipients:
             touched.append(recipient.get("uuid"))
@@ -644,7 +659,6 @@ class EventService(EventPort):
             self._apply_item(x, recipient, effect)
             self._apply_traits(x, recipient, effect, event)
             self._apply_characteristics(x, recipient, effect)
-            self._apply_registry(x, recipient, effect, event)
             self._apply_movement(x, recipient, effect)
 
         x.effects.append(AppliedEffect(
@@ -663,6 +677,11 @@ class EventService(EventPort):
         character of the match. target_class then narrows that set; matching nobody is legal
         and simply applies nothing."""
         target = (effect.get("target") or "ALL").strip().upper()
+        # Step 33 — an automatic event may have no actor at all (a counter reaching zero in
+        # a location nobody stands in). There is then nobody to be a recipient: the row's
+        # match-scoped halves (weather, registry) have already been applied by the caller.
+        if x.actor is None:
+            return []
         # Locations come from the tracked map, not the raw views: a forced movement earlier
         # in the chain must be seen by the effects that follow it.
         actor_location = x.location_of(x.actor)
@@ -711,12 +730,12 @@ class EventService(EventPort):
             self.store.add_item(x.match["id"], recipient["id"], id_item)
             x.item_added = True
             x.item_changes.append(EntityChange(recipient.get("uuid"), item_uuid, ADD))
-            if recipient["id"] == x.actor["id"]:
+            if x.is_actor(recipient["id"]):
                 x.ctx.owned_item_ids.add(id_item)
         elif action == REMOVE and self.store.remove_item(x.match["id"], recipient["id"], id_item):
             x.item_removed = True
             x.item_changes.append(EntityChange(recipient.get("uuid"), item_uuid, REMOVE))
-            if recipient["id"] == x.actor["id"]:
+            if x.is_actor(recipient["id"]):
                 x.ctx.owned_item_ids.discard(id_item)
 
     def _apply_traits(self, x: "_Exec", recipient: Dict[str, Any], effect: Dict[str, Any],
@@ -748,17 +767,18 @@ class EventService(EventPort):
                 live.characteristics_dirty = True
                 x.characteristic_changes.append(EntityChange(recipient.get("uuid"), value, REMOVE))
 
-    def _apply_registry(self, x: "_Exec", recipient: Dict[str, Any], effect: Dict[str, Any],
+    def _apply_registry(self, x: "_Exec", effect: Dict[str, Any],
                         event: Dict[str, Any]) -> None:
-        """The registry is match-scoped, so it is written once per effect row (by the actor),
-        not once per recipient. The in-memory context is updated too, so a later event in the
-        same chain sees the value its predecessor just wrote."""
+        """The registry is match-scoped, so it is written once per effect row — never once
+        per recipient, and never at all when the row names no key. The in-memory context is
+        updated too, so a later event in the same chain sees the value its predecessor just
+        wrote."""
         key = effect.get("key_to_add")
-        if not key or recipient["id"] != x.actor["id"]:
+        if not key:
             return
         value = effect.get("key_value_to_add")
         old = x.ctx.registry.get(key)
-        self.store.upsert_registry(x.match["id"], key, value, x.actor["id"],
+        self.store.upsert_registry(x.match["id"], key, value, x.actor_id(),
                                    event.get("id"), x.current_clock)
         x.ctx.registry[key] = value
         x.registry_changes.append(RegistryChange(key, old, value))
@@ -784,6 +804,9 @@ class EventService(EventPort):
         self.store.insert_movement_log(x.match["id"], recipient["id"], origin, id_location, 0)
         x.set_location(recipient["id"], id_location)
         x.movement_applied = True
+        # Step 33 — a forced move is an arrival like any other, so it can fire the
+        # destination's entry triggers. Queued, not resolved here.
+        x.pending_arrivals.append((recipient["id"], id_location))
         x.location_changes.append(LocationChange(
             character_uuid=recipient.get("uuid"),
             from_location_uuid=x.location_uuids().get(origin) if origin else None,
@@ -817,9 +840,9 @@ class EventService(EventPort):
             if v.coma_triggered:
                 live.coma_set = True
                 x.coma_uuids.append(live.uuid)
-                if live.id == x.actor["id"]:
+                if x.is_actor(live.id):
                     x.coma_triggered = True
-            if v.forced_sleep and live.id == x.actor["id"]:
+            if v.forced_sleep and x.is_actor(live.id):
                 x.forced_sleep = True
             edge_state_evaluator.persist(self.edge_store, x.match["id"], v, x.current_clock,
                                          id_event)
@@ -852,7 +875,7 @@ class EventService(EventPort):
 
         x.all_players_in_coma = True
         edge_state_evaluator.log_all_player_coma(
-            self.edge_store, x.match["id"], x.actor["id"], x.current_clock)
+            self.edge_store, x.match["id"], x.actor_id(), x.current_clock)
 
         coma_event_id = self.store.find_id_event_all_player_coma(x.match["id_story"])
         if coma_event_id is None:
@@ -893,6 +916,207 @@ class EventService(EventPort):
             live.life = fresh.get("life") or 0
             live.sad = fresh.get("sad") or 0
 
+    # ── Step 33: automatic location events ──────────────────────────────────
+
+    def on_arrival(self, arrival) -> List[Any]:
+        """Resolve and run every trigger a successful arrival fires, then mark the location
+        visited.
+
+        Never raises for authoring mistakes: a null column is no trigger, a dangling event
+        id is skipped, and an event owning choices is refused and logged (an automatic event
+        has nobody to ask).
+        """
+        fired: List[Any] = []
+        self._resolve_arrival(arrival.id_match, arrival.id_story, arrival.id_character,
+                              arrival.id_location, arrival.current_clock, arrival.lang,
+                              0, fired)
+        return fired
+
+    def run_pending_automatic_events(self, id_match: int, current_clock: int,
+                                     pending: List[Any], lang: str = "en") -> List[Any]:
+        """Run the events a time-start collected — counter-zero fuses and
+        ``id_event_if_character_start_time`` — in the order the recovery pass produced."""
+        fired: List[Any] = []
+        if self.location_store is None or not pending:
+            return fired
+        for p in pending:
+            # allow_time_end = False: these run INSIDE the time-start pass, and a
+            # flag_end_time here would advance the clock the pass is still working on.
+            self._run_automatic_event(id_match, p.id_actor_character, p.id_event,
+                                      p.id_location, p.trigger, current_clock, lang,
+                                      False, 0, fired)
+        return fired
+
+    def describe_for_recipient(self, id_match: int, id_recipient_character,
+                               clock: int, fired: List[Any], lang: str = "en") -> List[Any]:
+        """Describe an already-run list of automatic events **to one recipient**, applying
+        the fog-of-war rule.
+
+        Deliberately separate from running them: the engine produces the list once and
+        unfiltered, and the telling is per person, because every player has their own
+        visited set. Single-player is simply the one-recipient case — filtering while the
+        list is assembled would bake it in and force a rewrite when the WebSocket broadcast
+        lands.
+        """
+        out: List[Any] = []
+        if self.location_store is None or not fired:
+            return out
+        match = self.store.find_match_by_id(id_match)
+        if not match:
+            return out
+        id_story = match["id_story"]
+        here = (self.location_store.find_character_location(id_match, id_recipient_character)
+                if id_recipient_character is not None else None)
+        visited = set(self.location_store.find_visited_location_ids(id_match)) \
+            if id_recipient_character is not None else set()
+
+        for f in fired:
+            if here is not None and here == f.id_location:
+                visibility = lem.VISIBILITY_FULL
+            elif f.id_location in visited:
+                visibility = lem.VISIBILITY_NAMED
+            else:
+                visibility = lem.VISIBILITY_ANONYMOUS
+            # The cards are resolved only when the recipient may see them: a name that never
+            # leaves the server cannot leak. The event's card and its effect rows already
+            # ride on the fired event — only the location card costs a lookup.
+            card = None
+            card_location = None
+            card_effects: List[Any] = []
+            if visibility != lem.VISIBILITY_ANONYMOUS:
+                triggers = self.location_store.find_location_triggers(id_story, f.id_location)
+                id_card = triggers.get("id_card") if triggers else None
+                card_location = self._resolve_card_for(id_story, id_card, lang)
+                card = f.card
+                card_effects = list(f.effects or [])
+            out.append(lem.CounterZeroItem(f.trigger, f.id_location, card, card_location,
+                                           card_effects, f.event_uuid, clock, visibility))
+        return out
+
+    def _resolve_arrival(self, id_match: int, id_story: int, id_character: int,
+                         id_location: int, current_clock: int, lang, depth: int,
+                         out: List[Any]) -> None:
+        """The dispatch table of an arrival.
+
+        The order is fixed rather than authored: the history trigger (first or subsequent —
+        never both) comes before the occupancy one, which is orthogonal to it and may fire
+        alongside either.
+
+        ``flag_visited`` is latched **after** the triggers have been read, so the first
+        arrival still evaluates as a first arrival; and it is latched even when the location
+        authors no trigger at all, because the flag describes the party's history, not what
+        happened to fire.
+        """
+        if self.location_store is None:
+            return
+        if depth >= lem.MAX_ENTRY_DEPTH:
+            self.location_store.log_automatic_event(
+                id_match, id_character, id_location, None, current_clock,
+                f"{lem.MSG_AUTOMATIC_EVENT} aborted: entry depth {lem.MAX_ENTRY_DEPTH} "
+                f"exceeded at location {id_location} — the story loops a forced movement "
+                f"back on itself")
+            return
+        triggers = self.location_store.find_location_triggers(id_story, id_location)
+        visited = self.location_store.find_flag_visited(id_match, id_location) == 1
+        if triggers:
+            history_event = (triggers.get("id_event_not_first_time") if visited
+                             else triggers.get("id_event_if_first_time"))
+            history_trigger = (lem.TRIGGER_SUBSEQUENT_ENTRY if visited
+                               else lem.TRIGGER_FIRST_ENTRY)
+            self._run_automatic_event_if_set(id_match, id_character, history_event,
+                                             id_location, history_trigger, current_clock,
+                                             lang, True, depth, out)
+            if self.location_store.count_other_characters_at_location(
+                    id_match, id_location, id_character) == 0:
+                self._run_automatic_event_if_set(
+                    id_match, id_character,
+                    triggers.get("id_event_if_character_enter_first_time"), id_location,
+                    lem.TRIGGER_FIRST_IN_LOCATION, current_clock, lang, True, depth, out)
+        self.location_store.mark_state_location_visited(id_match, id_location)
+
+    def _run_automatic_event_if_set(self, id_match, id_actor_character, id_event, id_location,
+                                    trigger, current_clock, lang, allow_time_end, depth,
+                                    out) -> None:
+        """A null or non-positive column is simply not a trigger."""
+        if not id_event or id_event <= 0:
+            return
+        self._run_automatic_event(id_match, id_actor_character, int(id_event), id_location,
+                                  trigger, current_clock, lang, allow_time_end, depth, out)
+
+    def _run_automatic_event(self, id_match, id_actor_character, id_event, id_location,
+                             trigger, current_clock, lang, allow_time_end, depth,
+                             out) -> None:
+        """Run one automatic event and its whole ``id_event_next`` chain.
+
+        What makes it different from ``execute_event``, and why it cannot simply call it:
+
+        * **Nobody pays.** No energy, no coins — the player did not ask for this.
+        * **No availability verdict.** The type gate would refuse it outright (AUTOMATIC is
+          not in EXECUTABLE_TYPES), and the sleep/coma guards would refuse it on behalf of
+          a character that never volunteered.
+        * **The actor may be absent.** A counter-zero fuse belongs to a location, and the
+          location may be empty. Effects that need a recipient are then skipped while
+          registry, weather and the chain still run.
+        * **It may not own choices.** There is no response to carry the options and no
+          select-choice could ever close the cycle, so the event is refused and logged
+          instead of wedging the match with a decision nobody can answer.
+        """
+        if self.location_store is None:
+            return
+        match = self.store.find_match_by_id(id_match)
+        if not match or match.get("status") != "RUNNING":
+            return
+        event = self.store.find_events_by_id(match["id_story"]).get(id_event)
+        if not event:
+            return  # dangling id: authored noise, not an error
+        if self.store.find_choices_by_event_id(match["id_story"], id_event):
+            self.location_store.log_automatic_event(
+                id_match, id_actor_character, id_location, id_event, current_clock,
+                f"{lem.MSG_AUTOMATIC_EVENT} skipped {id_event} ({trigger}): "
+                f"an automatic event may not own choices")
+            return
+
+        actor = (self.store.find_character_by_match_and_id(id_match, id_actor_character)
+                 if id_actor_character is not None else None)
+        ctx = self.store.load_check_context(id_match, actor["id"] if actor else None)
+
+        x = _Exec(self, match, actor, ctx, lang or "en", event)
+        x.entry_depth = depth
+        self._run_chain(x, event)
+        self._resolve_all_player_coma(x)
+        if x.end_time and not x.coma_triggered and allow_time_end:
+            self._force_time_end(x)
+        self._flush(x)
+        self.location_store.log_automatic_event(
+            id_match, id_actor_character, id_location, id_event, x.current_clock,
+            f"{lem.MSG_AUTOMATIC_EVENT} {id_event} ({trigger}) at location {id_location}")
+        out.append(lem.AutomaticEventFired(
+            trigger, id_location, event.get("uuid"), x.resolve_card(event.get("id_card")),
+            list(x.effects), list(x.stat_changes), list(x.location_changes), x.game_over))
+
+        # The events this one caused by pushing somebody somewhere.
+        self._drain_arrivals(x, out)
+
+    def _drain_arrivals(self, x: "_Exec", out: List[Any]) -> None:
+        """Resolve the arrivals a chain queued. Called after the chain has finished and been
+        flushed, so the next _Exec reads what this one actually wrote."""
+        if self.location_store is None or not x.pending_arrivals:
+            return
+        arrivals = list(x.pending_arrivals)
+        x.pending_arrivals.clear()
+        self._flush(x)
+        for id_character, id_location in arrivals:
+            self._resolve_arrival(x.match["id"], x.match["id_story"], id_character,
+                                  id_location, x.current_clock, x.lang,
+                                  x.entry_depth + 1, out)
+
+    def _resolve_card_for(self, id_story: int, id_card, lang: str):
+        # The Python card reader takes no lang yet (unlike the Java one) — same as
+        # _Exec.resolve_card and GET /locations on this backend.
+        if id_card is None or self.content_read_port is None:
+            return None
+        return self.content_read_port.find_card_by_story_id_and_card_id(id_story, id_card)
+
     # ── persistence & result ────────────────────────────────────────────────
 
     def _flush(self, x: "_Exec") -> None:
@@ -923,6 +1147,7 @@ class EventService(EventPort):
             x.movement_applied, x.forced_sleep,
             x.coma_triggered, x.game_over, x.stat_changes, x.registry_changes,
             x.trait_changes, x.characteristic_changes, edge_state.anything(),
+            x.automatic_events,
         ])
         return EventExecutionResult(
             match_uuid=x.match["uuid"],
@@ -955,6 +1180,7 @@ class EventService(EventPort):
             effects=self._chain_effects(x),
             pending_choices=x.pending_choices,
             edge_state=edge_state,
+            automatic_events=list(x.automatic_events),
         )
 
     @staticmethod
@@ -1025,6 +1251,16 @@ class _Exec:
         self.characteristic_changes: List[EntityChange] = []
         self.location_changes: List[LocationChange] = []
         self.effects: List[AppliedEffect] = []
+
+        # ── Step 33 automatic location events ──
+        # (character_id, location_id) pairs a forced move produced, resolved after the
+        # chain: the rest of this event's effects must land (and be flushed) before
+        # another _Exec reads the character rows back, or the second event would work
+        # from stale stats.
+        self.pending_arrivals: List[tuple] = []
+        self.automatic_events: List[Any] = []
+        #: How many arrivals deep this execution already is — the runaway-loop guard.
+        self.entry_depth: int = 0
 
         self.current_clock = match.get("current_clock") or 0
         self.energy_spent = 0
@@ -1114,6 +1350,16 @@ class _Exec:
             self._location_uuids = self._service.store.find_location_uuids_by_id(
                 self.match["id_story"])
         return self._location_uuids
+
+    def actor_id(self):
+        """The actor's id, or None when there is no actor — a Step 33 automatic event
+        whose location holds nobody. Every ``id_character`` parameter downstream already
+        accepts None and means "the match, not a character" by it."""
+        return self.actor["id"] if self.actor else None
+
+    def is_actor(self, id_character) -> bool:
+        """False for every character when there is no actor."""
+        return self.actor is not None and self.actor["id"] == id_character
 
     def location_of(self, view: Dict[str, Any]) -> Optional[int]:
         """The tracked position wins over the (possibly stale) view."""

@@ -56,7 +56,8 @@ class SelectChoiceResponseTest {
                         List.of("char-1"), card("A wound"))),
                 List.of(new PendingChoice("ch-next", 1, "Go on", "…", card("Onward"), true, null)),
                 new EdgeStateOutcome(List.of("char-1"), List.of("char-1"), true,
-                        "evt-coma", card("Everyone is down"), List.of("evt-coma"), List.of()));
+                        "evt-coma", card("Everyone is down"), List.of("evt-coma"), List.of()),
+                List.of());
     }
 
     private static ChoiceResolutionResult resolution(String status) {

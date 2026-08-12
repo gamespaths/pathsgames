@@ -55,8 +55,20 @@ public interface EventExecutionStorePort {
 
     Optional<MatchEventView> findMatchByUuid(String uuid);
 
+    /**
+     * Step 33 — the same view by primary key. The location engine is triggered by the
+     * engine itself (an arrival, a counter reaching zero) and never holds a uuid.
+     */
+    Optional<MatchEventView> findMatchById(long idMatch);
+
     /** The character instance owned by {@code idUser} in {@code idMatch}, if any. */
     Optional<EventActorView> findCharacterByMatchAndUser(long idMatch, long idUser);
+
+    /**
+     * Step 33 — a character by its own id, for the nominal actor of an automatic
+     * event: no user asked for it, so there is no user to look it up by.
+     */
+    Optional<EventActorView> findCharacterByMatchAndId(long idMatch, long idCharacter);
 
     /** Every character instance of the match — recipient resolution for {@code target=ALL}. */
     List<EventActorView> findCharactersByMatchId(long idMatch);

@@ -786,7 +786,7 @@ class EventExecutionServiceSelectChoiceTest {
         ender.setFlagEndTime(1);
         when(store.findEventsById(STORY_ID)).thenReturn(Map.of(EVENT_ID, event(), 4L, ender));
         when(timeAdvancementService.forceTimeEnd(MATCH_UUID))
-                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of()));
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(CLOCK + 1, List.of(), List.of()));
         ChoiceEntity c = choice();
         c.setIdEventTorun(4);
         when(store.findChoiceByStoryAndUuid(STORY_ID, CHOICE_UUID)).thenReturn(Optional.of(c));

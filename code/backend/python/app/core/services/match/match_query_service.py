@@ -219,6 +219,7 @@ class MatchQueryService(MatchQueryPort):
                 id_location=r["id_location"],
                 uuid=r["uuid"],
                 flag_already_actived=r["flag_already_actived"],
+                flag_visited=r.get("flag_visited") or 0,
                 clock_counter=r["clock_counter"],
             )
             for r in state_rows

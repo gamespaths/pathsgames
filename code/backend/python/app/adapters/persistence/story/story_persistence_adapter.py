@@ -247,7 +247,15 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_event_on_enter=item.get("idEventOnEnter"),
                     id_event_if_counter_zero=item.get("idEventIfCounterZero"),
                     counter_time=item.get("counterTime"),
-                    id_card=item.get("idCard")
+                    id_card=item.get("idCard"),
+                    # Step 33 — the location-side trigger columns. A null column is not a
+                    # trigger, so an authored story that names none behaves exactly as before.
+                    id_event_if_first_time=item.get("idEventIfFirstTime"),
+                    id_event_not_first_time=item.get("idEventNotFirstTime"),
+                    id_event_if_character_enter_first_time=item.get(
+                        "idEventIfCharacterEnterFirstTime"),
+                    id_event_if_character_start_time=item.get("idEventIfCharacterStartTime"),
+                    priority_automatic_event=item.get("priorityAutomaticEvent"),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_loc_id()
@@ -269,7 +277,13 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                         condition_key=n.get("conditionKey"),
                         condition_value=n.get("conditionValue"),
                         id_card=n.get("idCard"),
-                        id_card_back=n.get("idCardBack")
+                        id_card_back=n.get("idCardBack"),
+                        # `flag_back` decides whether the edge can be walked BACKWARDS.
+                        # The column and the movement engine have always honoured it
+                        # (movement_service._traversable_from), but the import never mapped
+                        # it, so every imported story silently became one-way: the column
+                        # defaults to 0 and no authored value could ever reach it.
+                        flag_back=n.get("flagBack", 0),
                     )
                     session.add(ne)
             session.commit()

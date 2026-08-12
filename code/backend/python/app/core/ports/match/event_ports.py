@@ -56,9 +56,20 @@ class EventStorePort(ABC):
         """{id, uuid, status, current_clock, id_story, id_user_creator, id_current_weather}."""
 
     @abstractmethod
+    def find_match_by_id(self, id_match: int) -> Optional[Dict[str, Any]]:
+        """Step 33 — the same view by primary key. The location engine is triggered by the
+        engine itself (an arrival, a counter reaching zero) and never holds a uuid."""
+
+    @abstractmethod
     def find_character_by_match_and_user(self, id_match: int,
                                          id_user: int) -> Optional[Dict[str, Any]]:
         """The actor: {id, uuid, id_user, id_class, id_location, dexterity, …, characteristics}."""
+
+    @abstractmethod
+    def find_character_by_match_and_id(self, id_match: int,
+                                       id_character: int) -> Optional[Dict[str, Any]]:
+        """Step 33 — a character by its own id, for the nominal actor of an automatic
+        event: no user asked for it, so there is no user to look it up by."""
 
     @abstractmethod
     def find_characters_for_event(self, id_match: int) -> List[Dict[str, Any]]:

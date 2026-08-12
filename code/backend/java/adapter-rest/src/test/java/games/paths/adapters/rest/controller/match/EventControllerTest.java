@@ -66,7 +66,8 @@ class EventControllerTest {
                 new EventExecutionPort.EdgeStateOutcome(
                         List.of("char-1"), List.of("char-1"), true,
                         "evt-coma", card("Everyone is down"),
-                        List.of("evt-coma"), List.of()));
+                        List.of("evt-coma"), List.of()),
+                List.of());
     }
 
     @Test
@@ -119,7 +120,7 @@ class EventControllerTest {
                                 "The shiny one.", card("Gold"), true, null),
                         new EventExecutionPort.PendingChoice("choice-2", 2, "Runes",
                                 "For prodigies.", null, false, "CONDITION_STATISTICS_NOT_MET")),
-                EventExecutionPort.EdgeStateOutcome.none());
+                EventExecutionPort.EdgeStateOutcome.none(), List.of());
         when(eventExecutionPort.executeEvent("m1", "user-uuid", "evt-1", null)).thenReturn(pending);
 
         mockMvc.perform(authed(post(URL)).contentType(APPLICATION_JSON).content(BODY))

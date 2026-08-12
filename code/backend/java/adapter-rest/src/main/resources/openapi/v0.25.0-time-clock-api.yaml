@@ -79,6 +79,37 @@ components:
         isSleeping: { type: boolean }
         timeEndTriggered: { type: boolean }
         currentClock: { type: integer }
+        counterZero:
+          type: array
+          description: |
+            v0.33.0 (Step 33) — what happened in the world while the party slept: the
+            location counters that ran out, and the events they set off. A **list**, since
+            several counters can expire on the same time-start, and empty in the ordinary
+            case. Already filtered for this caller: `visibility` is decided per recipient,
+            and all three cards are **omitted** entirely when it is `ANONYMOUS`, because a
+            counter runs down even where nobody has ever been.
+
+            v0.33.1 widened each entry from one card to three: `card` is the **event's**
+            (it used to be the location's), `cardEffects` the effect rows it applied — each
+            with its own card, the narrative the board renders — and `cardLocation` the
+            place. Full shape in `v0.33.0-location-entry-events-api.yaml`.
+          items:
+            type: object
+            properties:
+              trigger:
+                type: string
+                enum: [COUNTER_ZERO, CHARACTER_START_TIME]
+              idLocation: { type: integer }
+              card: { type: object, nullable: true }
+              cardLocation: { type: object, nullable: true }
+              cardEffects:
+                type: array
+                items: { type: object }
+              eventUuid: { type: string }
+              clock: { type: integer }
+              visibility:
+                type: string
+                enum: [FULL, NAMED, ANONYMOUS]
     ClockCharacterResponse:
       type: object
       properties:

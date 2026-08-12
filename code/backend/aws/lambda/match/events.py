@@ -24,6 +24,37 @@ MSG_EVENT_EXECUTED = "EVENT_EXECUTED"
 
 MAX_CHAIN = 32
 
+# ── Step 33 — location entry events: the events nobody asks for ──────────────
+# The event is named by the LOCATION, through columns list_locations has always carried:
+# idEventIfFirstTime, idEventNotFirstTime, idEventIfCharacterEnterFirstTime,
+# idEventIfCharacterStartTime and idEventIfCounterZero. A referenced event keeps
+# type='AUTOMATIC', which EXECUTABLE_TYPES already refuses to players.
+
+#: First arrival of the party at this location.
+TRIGGER_FIRST_ENTRY = "FIRST_ENTRY"
+#: Any later arrival — the world has already been discovered here.
+TRIGGER_SUBSEQUENT_ENTRY = "SUBSEQUENT_ENTRY"
+#: The arriving character found nobody else here. Orthogonal to the two above.
+TRIGGER_FIRST_IN_LOCATION = "FIRST_IN_LOCATION"
+#: The location's counter reached zero. One-shot for the whole match.
+TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
+#: A time unit began with a character standing here.
+TRIGGER_CHARACTER_START_TIME = "CHARACTER_START_TIME"
+
+#: Message prefix of the audit row an automatic event writes to the match eventLog.
+MSG_AUTOMATIC_EVENT = "automatic event"
+
+#: How many arrivals one request may cascade through before the engine gives up. An
+#: automatic event may move a character, and that move is itself an arrival, so
+#: A -> move to B -> move back to A is a loop an author can write in two form fields.
+#: Not creating it stays the author's responsibility; this turns a hung request into a
+#: logged abort.
+MAX_ENTRY_DEPTH = 8
+
+VISIBILITY_FULL = "FULL"
+VISIBILITY_NAMED = "NAMED"
+VISIBILITY_ANONYMOUS = "ANONYMOUS"
+
 ADD = "ADD"
 REMOVE = "REMOVE"
 
@@ -58,16 +89,20 @@ def event_location(event):
 # ── the check procedure ─────────────────────────────────────────────────────
 
 def build_context(match, story, caller):
-    """Everything the check procedure needs, built once. ``caller`` may be None."""
-    if not caller:
-        return {"idCharacter": None}
+    """Everything the check procedure needs, built once. ``caller`` may be None.
 
+    Step 33 — a caller-less context is no longer only "the check refuses everything": an
+    automatic event whose location holds nobody runs against one, so the match-scoped
+    halves (registry, consumed events, weather) have to be real. Only the per-character
+    fields are empty.
+    """
     class_id = None
-    class_uuid = caller.get("classUuid")
-    if class_uuid:
-        cls = next((c for c in (story.get("classes") or [])
-                    if c.get("uuid") == class_uuid), None)
-        class_id = cls.get("id") if cls else None
+    if caller:
+        class_uuid = caller.get("classUuid")
+        if class_uuid:
+            cls = next((c for c in (story.get("classes") or [])
+                        if c.get("uuid") == class_uuid), None)
+            class_id = cls.get("id") if cls else None
 
     registry = {}
     for r in (match.get("registry") or []):
@@ -82,14 +117,14 @@ def build_context(match, story, caller):
             registry[key] = None
 
     return {
-        "idCharacter": caller.get("id") or caller.get("uuid"),
-        "idLocation": caller.get("idLocation"),
-        "sleeping": _nz(caller.get("isSleeping")) == 1,
-        "coma": _nz(caller.get("isComa")) == 1,
-        "energy": _nz(caller.get("energy")),
-        "coin": _nz(caller.get("coin")),
+        "idCharacter": (caller.get("id") or caller.get("uuid")) if caller else None,
+        "idLocation": caller.get("idLocation") if caller else None,
+        "sleeping": bool(caller) and _nz(caller.get("isSleeping")) == 1,
+        "coma": bool(caller) and _nz(caller.get("isComa")) == 1,
+        "energy": _nz(caller.get("energy")) if caller else 0,
+        "coin": _nz(caller.get("coin")) if caller else 0,
         "idClass": class_id,
-        "ownedItemIds": {_nz(i.get("idItem")) for i in (caller.get("items") or [])
+        "ownedItemIds": {_nz(i.get("idItem")) for i in ((caller or {}).get("items") or [])
                          if _nz(i.get("amount")) > 0},
         "currentWeatherId": match.get("currentWeatherId"),
         "consumedEventIds": consumed_event_ids(match),
@@ -185,6 +220,11 @@ def resolve_recipients(effect, actor, characters):
     """INV-27: ALL means every character in the ACTOR's location, not every character of the
     match. target_class then narrows that set; matching nobody is legal."""
     target = str(effect.get("target") or "ALL").strip().upper()
+    # Step 33 — an automatic event may have no actor at all (a counter reaching zero in a
+    # location nobody stands in). There is then nobody to be a recipient: the row's
+    # match-scoped halves (weather, registry) are applied by the caller regardless.
+    if actor is None:
+        return []
     if target == "ONLY_ONE" or actor.get("idLocation") is None:
         base = [actor]
     else:

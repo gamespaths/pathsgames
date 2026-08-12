@@ -1,6 +1,6 @@
 """Step 25 — time advancement & clock cycle domain models."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
@@ -20,6 +20,22 @@ class RecoveryItem:
 
 
 @dataclass
+class TimeStartOutcome:
+    """Step 33 — what one time-start produced: the stat deltas, and the automatic events
+    it owes, already ordered by ``priority_automatic_event`` then location id."""
+    recovery: List["RecoveryItem"] = field(default_factory=list)
+    pending: List[Any] = field(default_factory=list)
+
+
+@dataclass
+class TimeEndOutcome:
+    """Step 33 — the outcome of a forced time end (an event carrying ``flag_end_time``)."""
+    new_clock: int
+    recovery: List["RecoveryItem"] = field(default_factory=list)
+    counter_zero: List[Any] = field(default_factory=list)
+
+
+@dataclass
 class SleepResult:
     match_uuid: str
     character_uuid: Optional[str]
@@ -27,6 +43,10 @@ class SleepResult:
     time_end_triggered: bool
     current_clock: int
     recovery: List["RecoveryItem"] = field(default_factory=list)
+    #: Step 33 — what happened in the world while the party slept: the location counters
+    #: that ran out, and the events they set off. A LIST: several counters can expire on
+    #: one time-start. Already filtered for the recipient (fog of war).
+    counter_zero: List[Any] = field(default_factory=list)
 
 
 @dataclass

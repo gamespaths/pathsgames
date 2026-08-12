@@ -2,6 +2,7 @@ package games.paths.core.service.match;
 
 import games.paths.core.model.match.MatchStatuses;
 import games.paths.core.model.story.CardInfo;
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort;
 import games.paths.core.port.match.MovementPort.MovementAvailability;
 import games.paths.core.port.match.MovementStorePort;
@@ -39,11 +40,14 @@ import java.util.Set;
  * On success the character position and energy are persisted and a
  * {@code log_movements} row is appended.</p>
  *
- * <p>Scope (Step 28): only the move + energy. Automatic location-entry events are
- * Step 32; group/follow movement and concurrent locking are Step 67; the full
- * weight/capacity formula is Step 34 (carried weight is 0 until inventory lands).</p>
+ * <p>Scope (Step 28): the move + energy. <b>Step 33</b> hung the automatic location-entry
+ * events off the end of it — the destination's {@code id_event_*} columns, resolved once the
+ * move is committed and returned in {@code automaticEvents}. Group/follow movement and
+ * concurrent locking are Step 67; the full weight/capacity formula is Step 34 (carried weight
+ * is 0 until inventory lands).</p>
  *
- * <p>See {@code documentation_v0/Step28_MovementSystem.md}.</p>
+ * <p>See {@code documentation_v0/Step28_MovementSystem.md} and
+ * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
 public class MovementService implements MovementPort {
 
@@ -52,17 +56,27 @@ public class MovementService implements MovementPort {
     private final MovementStorePort store;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
+    /** Step 33. Null keeps the pre-33 behaviour: a move fires nothing. */
+    private final LocationEntryPort locationEntryPort;
 
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort) {
-        this(store, userAccessPort, null);
+        this(store, userAccessPort, null, null);
     }
 
-    /** Full constructor: {@code contentQueryPort} resolves the location cards (nullable). */
+    /** {@code contentQueryPort} resolves the location cards (nullable). */
     public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
                            ContentQueryPort contentQueryPort) {
+        this(store, userAccessPort, contentQueryPort, null);
+    }
+
+    /** Full constructor: {@code locationEntryPort} runs the Step 33 arrival triggers. */
+    public MovementService(MovementStorePort store, UserAccessPort userAccessPort,
+                           ContentQueryPort contentQueryPort,
+                           LocationEntryPort locationEntryPort) {
         this.store = store;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
+        this.locationEntryPort = locationEntryPort;
     }
 
     @Override
@@ -115,10 +129,19 @@ public class MovementService implements MovementPort {
         store.updateCharacterLocationAndEnergy(match.id(), caller.id(), target.id(), newEnergy);
         store.insertMovementLog(match.id(), caller.id(), caller.idLocation(), target.id(), totalCost);
 
+        // Step 33 — the move is committed, so the arrival is real: ask the destination what
+        // it does about somebody walking in. Deliberately after both writes, because the
+        // trigger resolution reads the character's new position back.
+        List<LocationEntryPort.AutomaticEventFired> automaticEvents = locationEntryPort == null
+                ? List.of()
+                : locationEntryPort.onArrival(new LocationEntryPort.ArrivalContext(
+                        match.id(), match.idStory(), caller.id(), target.id(),
+                        match.currentClock(), null));
+
         return new MovementResult(matchUuid, caller.uuid(),
                 caller.idLocation(), null,
                 target.id(), target.uuid(),
-                totalCost, newEnergy, match.currentClock());
+                totalCost, newEnergy, match.currentClock(), automaticEvents);
     }
 
     @Override

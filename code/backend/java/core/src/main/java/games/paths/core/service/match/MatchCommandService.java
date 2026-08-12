@@ -146,6 +146,14 @@ public class MatchCommandService implements MatchCommandPort {
             sl.setIdMatch(saved.getId());
             sl.setIdLocation(loc.getId());
             sl.setFlagAlreadyActived(0);
+            // Step 33 — the party starts IN the starting location, it never "enters" it.
+            // Seeding it as already visited is what makes walking BACK there fire
+            // id_event_not_first_time instead of announcing as a discovery the place the
+            // story opened in. id_location_start is story-level, so this is deterministic
+            // however many players join, in whatever order.
+            sl.setFlagVisited(loc.getId() != null
+                    && story.getIdLocationStart() != null
+                    && loc.getId().longValue() == story.getIdLocationStart().longValue() ? 1 : 0);
             sl.setClockCounter(loc.getCounterTime() != null ? loc.getCounterTime() : 0);
             stateLocations.add(sl);
         }

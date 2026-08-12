@@ -46,6 +46,14 @@ public class LogEventsEntity {
     @Column(name = "clock")
     private Integer clock;
 
+    /**
+     * Step 33 (V0.33.0) — the location this row is about, for the rows the
+     * location engine writes (counter-zero, automatic events). Structured, so the
+     * frontend never has to parse it back out of {@code log_message}.
+     */
+    @Column(name = "id_location")
+    private Long idLocation;
+
     @Column(name = "ts_insert", nullable = false, updatable = false)
     private String tsInsert;
 
@@ -92,6 +100,9 @@ public class LogEventsEntity {
 
     public Integer getClock() { return clock; }
     public void setClock(Integer clock) { this.clock = clock; }
+
+    public Long getIdLocation() { return idLocation; }
+    public void setIdLocation(Long idLocation) { this.idLocation = idLocation; }
 
     public String getTsInsert() { return tsInsert; }
     public void setTsInsert(String tsInsert) { this.tsInsert = tsInsert; }

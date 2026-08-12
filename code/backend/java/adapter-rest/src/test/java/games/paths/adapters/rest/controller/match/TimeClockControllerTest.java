@@ -43,7 +43,7 @@ class TimeClockControllerTest {
     @Test
     void sleep_returns200WithoutTimeEnd() throws Exception {
         when(timeAdvancementPort.sleep("m1", "user-uuid")).thenReturn(
-                new TimeAdvancementPort.SleepResult("m1", "char-a", true, false, 2, List.of()));
+                new TimeAdvancementPort.SleepResult("m1", "char-a", true, false, 2, List.of(), List.of()));
 
         mockMvc.perform(authed(post("/api/gameplay/m1/action/sleep")))
                 .andExpect(status().isOk())
@@ -59,7 +59,8 @@ class TimeClockControllerTest {
     void sleep_returns200WithTheRecoveryDeltasWhenTimeEndTriggers() throws Exception {
         when(timeAdvancementPort.sleep("m1", "user-uuid")).thenReturn(
                 new TimeAdvancementPort.SleepResult("m1", "char-a", true, true, 3,
-                        List.of(new TimeAdvancementPort.RecoveryItem("char-a", 20, 5, -2))));
+                        List.of(new TimeAdvancementPort.RecoveryItem("char-a", 20, 5, -2)),
+                        List.of()));
 
         mockMvc.perform(authed(post("/api/gameplay/m1/action/sleep")))
                 .andExpect(status().isOk())

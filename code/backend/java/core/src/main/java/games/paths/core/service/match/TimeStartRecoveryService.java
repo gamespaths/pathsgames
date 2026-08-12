@@ -1,6 +1,8 @@
 package games.paths.core.service.match;
 
 import games.paths.core.port.match.EdgeStateStorePort;
+import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.LocationEntryPort.PendingAutomaticEvent;
 import games.paths.core.port.match.RecoveryStorePort;
 import games.paths.core.port.match.RecoveryStorePort.ClassBonusView;
 import games.paths.core.port.match.RecoveryStorePort.LocationSafety;
@@ -9,6 +11,7 @@ import games.paths.core.port.match.RecoveryStorePort.RecoveryMatchContext;
 import games.paths.core.port.match.RecoveryStorePort.StateLocationView;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,19 +57,27 @@ public class TimeStartRecoveryService {
     }
 
     /**
-     * Run the full time-start recovery sequence for a match and return the
-     * per-character recap (deltas applied). Returns an empty list when the match
-     * has no resolvable story context or no characters.
+     * Run the full time-start recovery sequence for a match: the per-character recap
+     * (deltas applied) and, since Step 33, the automatic events this time-start owes —
+     * the counters that reached zero and the {@code id_event_if_character_start_time}
+     * of every occupied location.
+     *
+     * <p>It collects those events rather than running them. The event engine sits
+     * <em>above</em> this service in the wiring (an event can force a time end, which
+     * comes back here), so executing them from inside would close a dependency cycle.
+     * {@code TimeAdvancementService} runs the list once this returns.</p>
+     *
+     * <p>Empty when the match has no resolvable story context or no characters.</p>
      */
-    public List<RecoveryRecap> applyAtTimeStart(long idMatch) {
+    public TimeStartOutcome applyAtTimeStart(long idMatch) {
         Optional<RecoveryMatchContext> ctxOpt = store.loadContext(idMatch);
         if (ctxOpt.isEmpty()) {
-            return List.of();
+            return TimeStartOutcome.none();
         }
         RecoveryMatchContext ctx = ctxOpt.get();
         List<RecoveryCharacter> characters = store.findCharacters(idMatch);
         if (characters.isEmpty()) {
-            return List.of();
+            return TimeStartOutcome.none();
         }
 
         Map<Long, LocationSafety> safetyByLocation = new HashMap<>();
@@ -173,7 +184,11 @@ public class TimeStartRecoveryService {
                     EdgeStateStorePort.MSG_ALL_PLAYER_COMA + " " + idMatch);
         }
 
-        // 3. Decrement location counters; flag zeros (event execution deferred to Step 29).
+        // 3. Decrement location counters; flag zeros and collect the events they owe.
+        //    A counter is a ONE-SHOT FUSE: `current <= 0` skips an exhausted one and
+        //    markStateLocationActivated latches it, so the event fires exactly once per
+        //    match and the counter never restarts.
+        List<PendingAutomaticEvent> pending = new ArrayList<>();
         for (Map.Entry<Long, Integer> e : counterByLocation.entrySet()) {
             long idLocation = e.getKey();
             int current = nz(e.getValue());
@@ -183,14 +198,65 @@ public class TimeStartRecoveryService {
             if (next == 0) {
                 LocationSafety s = safetyByLocation.get(idLocation);
                 Integer pendingEvent = s == null ? null : s.idEventIfCounterZero();
-                store.logCounterZero(idMatch, idLocation, pendingEvent,
+                store.logCounterZero(idMatch, idLocation, pendingEvent, ctx.currentClock(),
                         "counter reached zero at location " + idLocation
                                 + (pendingEvent != null ? "; pending event " + pendingEvent : ""));
                 store.markStateLocationActivated(idMatch, idLocation);
+                addPending(pending, LocationEntryPort.TRIGGER_COUNTER_ZERO, idLocation,
+                        pendingEvent, nominalActor(characters, idLocation), s);
             }
         }
 
-        return recaps;
+        // 4. Step 33 — a time unit BEGINNING where a character stands is its own trigger,
+        //    independent of any counter. One entry per occupied location, not per character:
+        //    the event describes the place, and the nominal actor is who it happens to.
+        for (Long idLocation : occupied) {
+            LocationSafety s = safetyByLocation.get(idLocation);
+            if (s == null) continue;
+            addPending(pending, LocationEntryPort.TRIGGER_CHARACTER_START_TIME, idLocation,
+                    s.idEventIfCharacterStartTime(), nominalActor(characters, idLocation), s);
+        }
+
+        // Deterministic across locations: priority_automatic_event first, then location id.
+        pending.sort(Comparator.comparingInt(PendingAutomaticEvent::priority)
+                .thenComparingLong(PendingAutomaticEvent::idLocation));
+
+        return new TimeStartOutcome(recaps, pending);
+    }
+
+    /** Skips a null or non-positive event id — an unauthored trigger is not a trigger. */
+    private static void addPending(List<PendingAutomaticEvent> out, String trigger, long idLocation,
+                                   Integer idEvent, Long idActorCharacter, LocationSafety safety) {
+        if (idEvent == null || idEvent <= 0) {
+            return;
+        }
+        int priority = safety == null || safety.priorityAutomaticEvent() == null
+                ? 0
+                : safety.priorityAutomaticEvent();
+        out.add(new PendingAutomaticEvent(trigger, idLocation, idEvent.longValue(),
+                idActorCharacter, priority));
+    }
+
+    /**
+     * The lowest-id character standing in a location, or null when nobody is.
+     *
+     * <p>An automatic location event belongs to the place, not to a player, but its effects
+     * still have to resolve {@code target = ONLY_ONE} against somebody and {@code target =
+     * ALL} against everyone <em>there</em>. Picking the lowest id makes that choice
+     * deterministic; picking nobody, when the place is empty, is equally correct — the world
+     * still changes, it just changes around no one.</p>
+     */
+    private static Long nominalActor(List<RecoveryCharacter> characters, long idLocation) {
+        Long lowest = null;
+        for (RecoveryCharacter c : characters) {
+            if (c.idLocation() == null || c.idLocation() != idLocation) {
+                continue;
+            }
+            if (lowest == null || c.id() < lowest) {
+                lowest = c.id();
+            }
+        }
+        return lowest;
     }
 
     // ── pure recovery math (unit-tested directly) ────────────────────────────
@@ -266,5 +332,17 @@ public class TimeStartRecoveryService {
 
     /** Per-character recovery summary surfaced in the time-advance response. */
     public record RecoveryRecap(String characterUuid, int energyDelta, int lifeDelta, int sadDelta) {
+    }
+
+    /**
+     * What one time-start produced: the stat deltas, and the automatic events it owes,
+     * already ordered by {@code priority_automatic_event} then location id.
+     */
+    public record TimeStartOutcome(List<RecoveryRecap> recovery,
+                                   List<PendingAutomaticEvent> pending) {
+
+        public static TimeStartOutcome none() {
+            return new TimeStartOutcome(List.of(), List.of());
+        }
     }
 }

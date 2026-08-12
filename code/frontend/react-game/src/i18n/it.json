@@ -98,7 +98,9 @@
         "exp": "EXP"
       }
     },
-    "map": "Mappa"
+    "map": "Mappa",
+    "automatic-event": "Evento",
+    "automatic-event-done": "Continua"
   },
   "startMatch": {
     "starting": "Avvio della partita…",
@@ -144,7 +146,9 @@
       "SLEEP": "Riposo",
       "CLOCK_ADVANCE": "Scorre il tempo",
       "RECOVERY": "Recupero",
-      "EVENT": "Evento"
+      "EVENT": "Evento",
+      "COUNTER_ZERO": "Tempo scaduto",
+      "AUTOMATIC_EVENT": "È successo qualcosa"
     }
   },
   "card": {
@@ -353,7 +357,12 @@
     "moveToDirection": "Vai verso",
     "from": "Da",
     "to": "A",
-    "backTo": "Torna a"
+    "backTo": "Torna a",
+    "automaticEvents": {
+      "title": "Tempo scaduto",
+      "anonymous": "Da qualche parte, lontano, è scaduto un tempo.",
+      "dismiss": "Prosegui"
+    }
   },
   "footer": {
     "alpha": "⚠ Versione alpha — i server potrebbero non essere disponibili o essere reimpostati in qualsiasi momento.",

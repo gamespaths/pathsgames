@@ -60,7 +60,7 @@ class ExecuteEventResponseTest {
                         List.of("char-1"), card("A blade in the dark"))),
                 List.of(new PendingChoice("choice-1", 9, "Left door", "The safe one.",
                         card("Left or right?"), false, "LIMIT_DEX_NOT_MET")),
-                EdgeStateOutcome.none());
+                EdgeStateOutcome.none(), List.of());
     }
 
     @Test
@@ -130,7 +130,7 @@ class ExecuteEventResponseTest {
                 0, 0, 0, 0, 0,
                 false, false, false, false, false, false, false, false, false, false,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), null);
+                List.of(), List.of(), null, List.of());
 
         ExecuteEventResponse d = ExecuteEventResponse.fromModel(quiet);
 

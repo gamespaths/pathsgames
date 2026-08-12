@@ -43,7 +43,13 @@ _TYPE_SLEEP = "SLEEP"
 _TYPE_CLOCK_ADVANCE = "CLOCK_ADVANCE"
 _TYPE_RECOVERY = "RECOVERY"
 _TYPE_EVENT = "EVENT"
+# Step 33 — a location's counter ran out. Split out of RECOVERY, which it never was.
+_TYPE_COUNTER_ZERO = "COUNTER_ZERO"
+# Step 33 — an event the engine fired: an arrival, a counter, a time-start.
+_TYPE_AUTOMATIC_EVENT = "AUTOMATIC_EVENT"
 _MSG_SLEEP = "ACTION_SLEEP"
+_MSG_COUNTER = "counter"
+_MSG_AUTOMATIC_EVENT = "automatic event"
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 200
@@ -205,7 +211,30 @@ class MatchLogsService:
                     "message": msg,
                     "idEvent": e.id_event,
                 })
-            elif msg.startswith("recovery") or msg.startswith("counter"):
+            elif msg.startswith(_MSG_COUNTER):
+                # Step 33 split this out of RECOVERY: a counter running out and a character
+                # healing are unrelated events, and the frontend has to tell them apart.
+                # The location rides in idLocationTo so it enriches like a MOVEMENT does.
+                entries.append({
+                    "type": _TYPE_COUNTER_ZERO,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "idCharacterMatch": e.id_character_match,
+                    "idLocationTo": e.id_location,
+                    "message": msg,
+                    "idEvent": e.id_event,
+                })
+            elif msg.startswith(_MSG_AUTOMATIC_EVENT):
+                entries.append({
+                    "type": _TYPE_AUTOMATIC_EVENT,
+                    "clock": e.clock,
+                    "timestamp": e.timestamp,
+                    "idCharacterMatch": e.id_character_match,
+                    "idLocationTo": e.id_location,
+                    "message": msg,
+                    "idEvent": e.id_event,
+                })
+            elif msg.startswith("recovery"):
                 entries.append({
                     "type": _TYPE_RECOVERY,
                     "clock": e.clock,
@@ -248,6 +277,12 @@ class MatchLogsService:
                 id_card = location_cards.get(entry["idLocationTo"])
             elif entry["type"] == _TYPE_EVENT and entry.get("idEvent") is not None:
                 id_card = event_cards.get(entry["idEvent"])
+            elif entry["type"] == _TYPE_AUTOMATIC_EVENT and entry.get("idEvent") is not None:
+                # Step 33 — the event's own card, like a player-triggered one.
+                id_card = event_cards.get(entry["idEvent"])
+            elif entry["type"] == _TYPE_COUNTER_ZERO and entry.get("idLocationTo") is not None:
+                # Step 33 — a counter belongs to a place, so the place's card names it.
+                id_card = location_cards.get(entry["idLocationTo"])
             entry["idCard"] = id_card
             entry["card"] = self._resolve_card(match.id_story, id_card, lang)
 

@@ -420,6 +420,48 @@ class MatchCommandServiceTest {
         }
 
         @Test
+        @DisplayName("Step 33: the story's starting location is seeded as already visited")
+        void startingLocationIsSeededVisited() {
+            StoryEntity s = story(2L, "story-uuid");
+            s.setIdLocationStart(11);
+            when(storyReadPort.findStoryByUuid("story-uuid")).thenReturn(Optional.of(s));
+            when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of(
+                    location(10L, "loc-1", 5),
+                    location(11L, "loc-2", null)
+            ));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+
+            service.createMatch(cmd("user-uuid", "story-uuid", "diff-uuid"));
+
+            // The party starts IN the start; it never "enters" it. Without this, walking BACK
+            // there would fire id_event_if_first_time and announce as a discovery the place
+            // the story opened in.
+            verify(persistencePort).saveLocations(argThat(list ->
+                    list != null && list.size() == 2
+                            && flagVisitedOf(list, 10L) == 0
+                            && flagVisitedOf(list, 11L) == 1
+            ));
+        }
+
+        @Test
+        @DisplayName("Step 33: a story with no starting location leaves every row unvisited")
+        void noStartingLocationLeavesAllUnvisited() {
+            when(storyReadPort.findLocationsByStoryId(2L)).thenReturn(List.of(
+                    location(10L, "loc-1", 5),
+                    location(11L, "loc-2", null)
+            ));
+            when(storyReadPort.findKeysByStoryId(2L)).thenReturn(List.of());
+
+            service.createMatch(cmd("user-uuid", "story-uuid", "diff-uuid"));
+
+            verify(persistencePort).saveLocations(argThat(list ->
+                    list != null
+                            && flagVisitedOf(list, 10L) == 0
+                            && flagVisitedOf(list, 11L) == 0
+            ));
+        }
+
+        @Test
         @DisplayName("persists the creator loadout (class, traits, single-player flag)")
         void createsWithLoadout() {
             when(storyReadPort.findLocationsByStoryId(2L))
@@ -494,6 +536,15 @@ class MatchCommandServiceTest {
 
     private static GamingStateLocationsEntity firstLocation(List<GamingStateLocationsEntity> list) {
         return list.get(0);
+    }
+
+    /** Step 33 — {@code flag_visited} of one seeded row, or -1 when the row is missing. */
+    private static int flagVisitedOf(List<GamingStateLocationsEntity> list, long idLocation) {
+        return list.stream()
+                .filter(l -> l.getIdLocation() != null && l.getIdLocation() == idLocation)
+                .findFirst()
+                .map(l -> l.getFlagVisited() == null ? 0 : l.getFlagVisited())
+                .orElse(-1);
     }
 
     @Nested

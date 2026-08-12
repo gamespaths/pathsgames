@@ -217,6 +217,10 @@ class EventExecutionResult:
     pending_choices: List[Dict[str, Any]] = field(default_factory=list)
     # Step 30. Never None in practice; see EdgeStateOutcome.none().
     edge_state: "EdgeStateOutcome" = field(default_factory=lambda: EdgeStateOutcome())
+    # Step 33 — the automatic location events this execution set off by pushing somebody
+    # somewhere: a forced-movement effect is an arrival, and arriving is a trigger. Empty
+    # in the ordinary case.
+    automatic_events: List[Any] = field(default_factory=list)
 
 
 @dataclass

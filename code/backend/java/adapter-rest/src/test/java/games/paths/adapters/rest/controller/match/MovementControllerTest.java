@@ -40,7 +40,7 @@ class MovementControllerTest {
     @Test
     void startMovement_returns200() throws Exception {
         when(movementPort.startMovement("m1", "user-uuid", "loc-2")).thenReturn(
-                new MovementResult("m1", "char-1", 1L, null, 2L, "loc-2", 6, 4, 3));
+                new MovementResult("m1", "char-1", 1L, null, 2L, "loc-2", 6, 4, 3, List.of()));
         mockMvc.perform(authed(post("/api/gameplay/m1/movements/start"))
                         .contentType(APPLICATION_JSON)
                         .content("{\"targetLocationUuid\":\"loc-2\"}"))

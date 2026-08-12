@@ -1,5 +1,6 @@
 package games.paths.core.service.match;
 
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.MovementPort.MovementException;
 import games.paths.core.port.match.MovementPort.MovementResult;
 import games.paths.core.port.match.MovementPort.NeighborCost;
@@ -18,12 +19,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -103,6 +107,57 @@ class MovementServiceTest {
             assertEquals(1L, r.fromLocationId());
             verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
             verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6);
+        }
+
+        @Test
+        @DisplayName("Step 33: the destination's arrival triggers run once the move is committed")
+        void arrivalTriggersRunAfterTheMoveIsCommitted() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            LocationEntryPort.AutomaticEventFired fired = new LocationEntryPort.AutomaticEventFired(
+                    LocationEntryPort.TRIGGER_FIRST_ENTRY, 2L, "evt-welcome", null,
+                    List.of(), List.of(), List.of(), false);
+            when(entry.onArrival(any())).thenReturn(List.of(fired));
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = withEntry.startMovement(MATCH, USER, "loc-2");
+
+            assertEquals(1, r.automaticEvents().size());
+            assertEquals("evt-welcome", r.automaticEvents().get(0).eventUuid());
+
+            // The order matters: the trigger resolution reads the character's NEW position,
+            // so it must run after both writes, never between them.
+            InOrder order = inOrder(store, entry);
+            order.verify(store).updateCharacterLocationAndEnergy(MATCH_ID, 50L, 2L, 4);
+            order.verify(store).insertMovementLog(MATCH_ID, 50L, 1L, 2L, 6);
+            order.verify(entry).onArrival(argThat(a ->
+                    a.idMatch() == MATCH_ID && a.idStory() == STORY_ID
+                            && a.idCharacter() == 50L && a.idLocation() == 2L));
+        }
+
+        @Test
+        @DisplayName("Step 33: without the location engine a move behaves exactly as before")
+        void noLocationEngineIsAPreStep33Move() {
+            wireHappyPath(10, 2, 1, 1, 3, 99, 100, 0);
+
+            MovementResult r = service.startMovement(MATCH, USER, "loc-2");
+
+            assertTrue(r.automaticEvents().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a refused move fires no arrival trigger — nobody arrived")
+        void refusedMoveFiresNothing() {
+            LocationEntryPort entry = mock(LocationEntryPort.class);
+            MovementService withEntry =
+                    new MovementService(store, userAccessPort, contentQueryPort, entry);
+            // energy 1 against a cost of 6.
+            wireHappyPath(1, 2, 1, 1, 3, 99, 100, 0);
+
+            assertThrows(MovementException.class,
+                    () -> withEntry.startMovement(MATCH, USER, "loc-2"));
+            verify(entry, never()).onArrival(any());
         }
 
         @Test

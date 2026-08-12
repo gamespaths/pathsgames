@@ -176,6 +176,14 @@ class LocationEntity(Base):
     id_event_if_counter_zero = Column(Integer)
     counter_time = Column(Integer)
     id_card = Column(Integer)
+    # Step 33 — the location-side trigger columns. They have existed in the Java schema
+    # since V0.10.3; Python never carried them because nothing read them. The engine does
+    # now. A null column is not a trigger.
+    id_event_if_first_time = Column(Integer)
+    id_event_not_first_time = Column(Integer)
+    id_event_if_character_enter_first_time = Column(Integer)
+    id_event_if_character_start_time = Column(Integer)
+    priority_automatic_event = Column(Integer, default=0)
 
 
 class LocationNeighborEntity(Base):

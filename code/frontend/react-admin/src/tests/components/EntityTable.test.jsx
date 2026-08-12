@@ -29,6 +29,71 @@ describe('EntityTable', () => {
     expect(screen.queryByText('Beta')).toBeNull()
   })
 
+  // The search must cover what the row SHOWS, not only what the entity carries. A relation
+  // column renders "12 - The Welcome Hall" while the entity holds just `12`, so searching
+  // the raw values matched the number and never the title — which is the half a person
+  // actually remembers.
+  it('searches the resolved relation label, not only the raw id', async () => {
+    const cols = [{ key: 'idLocationFrom', label: 'From' }]
+    const ents = [
+      { uuid: '1', idLocationFrom: 12 },
+      { uuid: '2', idLocationFrom: 13 },
+    ]
+    const relationOptionsByField = {
+      idLocationFrom: {
+        options: [
+          { value: 12, label: '12 - The Welcome Hall' },
+          { value: 13, label: '13 - The Choice Arena' },
+        ],
+      },
+    }
+    render(<EntityTable columns={cols} entities={ents}
+      relationOptionsByField={relationOptionsByField} onEdit={()=>{}} onDelete={()=>{}} />)
+
+    const input = screen.getByPlaceholderText(/Search in table/i)
+    await userEvent.type(input, 'Welcome')
+
+    expect(screen.getByText(/The Welcome Hall/i)).toBeInTheDocument()
+    expect(screen.queryByText(/The Choice Arena/i)).toBeNull()
+  })
+
+  it('still searches the raw id', async () => {
+    const cols = [{ key: 'idLocationFrom', label: 'From' }]
+    const ents = [
+      { uuid: '1', idLocationFrom: 12 },
+      { uuid: '2', idLocationFrom: 13 },
+    ]
+    const relationOptionsByField = {
+      idLocationFrom: {
+        options: [
+          { value: 12, label: '12 - The Welcome Hall' },
+          { value: 13, label: '13 - The Choice Arena' },
+        ],
+      },
+    }
+    render(<EntityTable columns={cols} entities={ents}
+      relationOptionsByField={relationOptionsByField} onEdit={()=>{}} onDelete={()=>{}} />)
+
+    await userEvent.type(screen.getByPlaceholderText(/Search in table/i), '13')
+    expect(screen.getByText(/The Choice Arena/i)).toBeInTheDocument()
+    expect(screen.queryByText(/The Welcome Hall/i)).toBeNull()
+  })
+
+  it('searches the resolved short text of an idText field', async () => {
+    const cols = [{ key: 'idTextName', label: 'Name', type: 'idTextName' }]
+    const ents = [{ uuid: '1', idTextName: 501 }, { uuid: '2', idTextName: 502 }]
+    const texts = [
+      { idText: 501, lang: 'en', shortText: 'The Monk Testimony' },
+      { idText: 502, lang: 'en', shortText: 'The Graduation' },
+    ]
+    render(<EntityTable columns={cols} entities={ents} texts={texts}
+      onEdit={()=>{}} onDelete={()=>{}} />)
+
+    await userEvent.type(screen.getByPlaceholderText(/Search in table/i), 'Monk')
+    expect(screen.getByText(/The Monk Testimony/i)).toBeInTheDocument()
+    expect(screen.queryByText(/The Graduation/i)).toBeNull()
+  })
+
   it('resolves idTextName correctly', () => {
     const cols = [{ key: 'idName', label: 'Name', type: 'idTextName' }]
     const ents = [{ uuid: '1', idName: 501 }]

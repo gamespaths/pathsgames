@@ -9,6 +9,7 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from app.core.models.match import location_entry_models as lem
 from app.core.models.match.movement_models import MovementError, MovementResult, VisitedLocation
 from app.core.ports.match.movement_ports import MovementPort
 
@@ -44,6 +45,10 @@ def _movement_to_camel(r: MovementResult) -> dict:
         "energySpent": r.energy_spent,
         "newEnergy": r.new_energy,
         "currentClock": r.current_clock,
+        # Step 33 — what the destination did about the arrival. The board already has the
+        # new location for its left page; these belong on the right.
+        "automaticEvents": [lem.to_camel_automatic_event(f)
+                            for f in (r.automatic_events or [])],
     }
 
 

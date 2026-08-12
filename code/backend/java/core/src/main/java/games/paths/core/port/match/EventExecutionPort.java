@@ -123,7 +123,13 @@ public interface EventExecutionPort {
                                 /** The options of a choice-event; empty when {@code status} is APPLIED. */
                                 List<PendingChoice> pendingChoices,
                                 /** Step 30. Never null; see {@link EdgeStateOutcome#none()}. */
-                                EdgeStateOutcome edgeState) {
+                                EdgeStateOutcome edgeState,
+                                /**
+                                 * Step 33. The automatic location events this execution set off
+                                 * by pushing somebody somewhere — a forced-movement effect is an
+                                 * arrival, and arriving is a trigger. Empty in the ordinary case.
+                                 */
+                                List<LocationEntryPort.AutomaticEventFired> automaticEvents) {
     }
 
     /**

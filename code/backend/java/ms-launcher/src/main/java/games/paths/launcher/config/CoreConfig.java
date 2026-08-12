@@ -244,26 +244,53 @@ public class CoreConfig {
     public games.paths.core.port.match.MovementPort movementPort(
             games.paths.core.port.match.MovementStorePort movementStorePort,
             UserAccessPort userAccessPort,
-            ContentQueryPort contentQueryPort) {
+            ContentQueryPort contentQueryPort,
+            games.paths.core.port.match.LocationEntryPort locationEntryPort) {
         return new games.paths.core.service.match.MovementService(
-                movementStorePort, userAccessPort, contentQueryPort);
+                movementStorePort, userAccessPort, contentQueryPort, locationEntryPort);
     }
 
     // ───── Step 29: Normal events (player-triggered actions) ─────
     // ───── Step 30: Edge states (sadness overflow, coma) ─────
+    // ───── Step 33: Automatic location events ─────
     // EdgeStateStoreAdapter itself is @Repository and component-scanned, like every other
     // store adapter; only the port→service beans are declared here.
 
+    /**
+     * Step 33 — one service, two inbound ports. {@code EventExecutionService} implements the
+     * location engine as well, because a forced-movement effect is an arrival and splitting
+     * the two apart would only produce a dependency cycle.
+     */
     @Bean
-    public games.paths.core.port.match.EventExecutionPort eventExecutionPort(
+    public games.paths.core.service.match.EventExecutionService eventExecutionService(
             games.paths.core.port.match.EventExecutionStorePort eventExecutionStorePort,
             games.paths.core.port.match.EdgeStateStorePort edgeStateStorePort,
             UserAccessPort userAccessPort,
             ContentQueryPort contentQueryPort,
-            games.paths.core.service.match.TimeAdvancementService timeAdvancementService) {
-        return new games.paths.core.service.match.EventExecutionService(
-                eventExecutionStorePort, edgeStateStorePort, userAccessPort, contentQueryPort,
-                timeAdvancementService);
+            games.paths.core.service.match.TimeAdvancementService timeAdvancementService,
+            games.paths.core.port.match.LocationEntryStorePort locationEntryStorePort) {
+        games.paths.core.service.match.EventExecutionService service =
+                new games.paths.core.service.match.EventExecutionService(
+                        eventExecutionStorePort, edgeStateStorePort, userAccessPort,
+                        contentQueryPort, timeAdvancementService, locationEntryStorePort);
+        // Closes the one cycle in the graph: the event engine needs the time engine for
+        // flag_end_time, and the time engine needs the event engine to run what a time-start
+        // set off. Constructor injection either way is impossible; this setter is called once,
+        // here, and never again.
+        timeAdvancementService.setAutomaticEventRunner(service);
+        return service;
+    }
+
+    @Bean
+    public games.paths.core.port.match.EventExecutionPort eventExecutionPort(
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return eventExecutionService;
+    }
+
+    @Bean
+    public games.paths.core.port.match.LocationEntryPort locationEntryPort(
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return eventExecutionService;
     }
 
     // ───── Step 21: Character template & class selection ─────

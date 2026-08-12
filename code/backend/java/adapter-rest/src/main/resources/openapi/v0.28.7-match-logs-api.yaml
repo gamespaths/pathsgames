@@ -14,7 +14,17 @@ info:
       written when `POST /api/gameplay/{uuid}/action/sleep` is called)
     - **CLOCK_ADVANCE**: clock increments / time-end triggers (from `log_clock_history`)
     - **RECOVERY**: per-character stat recovery at time-start (from `log_events`
-      where `log_message` starts with `recovery` or `counter`)
+      where `log_message` starts with `recovery`)
+    - **COUNTER_ZERO** (v0.33.0, Step 33): a location's counter ran out (from `log_events`
+      where `log_message` starts with `counter`). Until v0.33.0 these rows were folded into
+      RECOVERY — which they never were — and written **without a clock**, so they were
+      visible but unsortable, landing outside the clock-ordered timeline. They now carry
+      the clock, the location in `idLocationTo` (which is what resolves the location card,
+      exactly as for MOVEMENT), and `idEvent` when the location authored one.
+    - **AUTOMATIC_EVENT** (v0.33.0, Step 33): an event the engine fired by itself — an
+      arrival, a counter reaching zero, a time unit beginning where somebody stood (from
+      `log_events` where `log_message` starts with `automatic event`). Carries `idEvent`,
+      its card, and `idLocationTo`.
     - **EVENT** (Step 29): a player-triggered event execution (from `log_events` where
       `log_message` starts with `EVENT_EXECUTED`). v0.30.3 — carries `idEvent` and the
       triggered event's own `idCard`/`card`. Rows the service does not recognise (e.g.
@@ -183,7 +193,7 @@ components:
       properties:
         type:
           type: string
-          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT]
+          enum: [WEATHER, MOVEMENT, SLEEP, CLOCK_ADVANCE, RECOVERY, EVENT, COUNTER_ZERO, AUTOMATIC_EVENT]
           description: Log entry type
         clock:
           type: integer

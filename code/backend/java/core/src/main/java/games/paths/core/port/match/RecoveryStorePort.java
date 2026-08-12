@@ -44,8 +44,14 @@ public interface RecoveryStorePort {
     /** Audit a per-character recovery summary into log_events. */
     void logRecovery(long idMatch, long idCharacter, String message);
 
-    /** Audit a counter-zero event (pending execution; wired in Step 29). */
-    void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero, String message);
+    /**
+     * Audit a counter-zero event. Step 33 fixed two omissions here: the row left
+     * {@code clock} NULL — unlike {@code logSleep} — so it landed outside the
+     * clock-ordered timeline, and the location id existed only inside the message
+     * string. Both are now columns.
+     */
+    void logCounterZero(long idMatch, long idLocation, Integer idEventIfCounterZero,
+                        Integer clock, String message);
 
     /** {@code currentClock} is what a Step 30 coma stamps into {@code clock_in_coma}. */
     record RecoveryMatchContext(long idStory, int difficultyEnergy, int currentClock) {
@@ -72,10 +78,19 @@ public interface RecoveryStorePort {
                              boolean isComa) {
     }
 
+    /**
+     * Step 33 added the two remaining time-start trigger columns of
+     * {@code list_locations}: {@code idEventIfCharacterStartTime} fires for each
+     * character standing here when a time unit begins, and
+     * {@code priorityAutomaticEvent} orders the events of one time-start across
+     * locations (lower first, ties broken by location id).
+     */
     record LocationSafety(long idLocation,
                           int secureParam,
                           Integer counterTime,
-                          Integer idEventIfCounterZero) {
+                          Integer idEventIfCounterZero,
+                          Integer idEventIfCharacterStartTime,
+                          Integer priorityAutomaticEvent) {
     }
 
     record ClassBonusView(long idClass, String statistic, int value) {

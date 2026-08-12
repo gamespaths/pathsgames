@@ -21,6 +21,25 @@ import java.util.*;
  */
 public class StoryValidatorService implements StoryValidatorPort {
 
+    /**
+     * Step 33 — the {@code list_locations} columns that name an engine-fired event. Kept in
+     * one place because both graph builders and the R9 rules walk exactly this set.
+     */
+    private static final List<String> LOCATION_TRIGGER_FIELDS = List.of(
+            "idEventIfFirstTime",
+            "idEventNotFirstTime",
+            "idEventIfCharacterEnterFirstTime",
+            "idEventIfCharacterStartTime",
+            "idEventIfCounterZero");
+
+    /**
+     * The two types a player can execute. Mirrors
+     * {@code EventAvailabilityChecker.EXECUTABLE_TYPES}, duplicated rather than imported
+     * because the validator lives in the story package and must not depend on the match
+     * engine. Kept in sync by {@code StoryValidatorServiceTest}.
+     */
+    private static final Set<String> EXECUTABLE_EVENT_TYPES = Set.of("NORMAL", "ONCE");
+
     private final StoryReadPort readPort;
 
     public StoryValidatorService(StoryReadPort readPort) {
@@ -135,6 +154,64 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
     }
 
+    /**
+     * Step 33 — the two rules that keep an automatic location event runnable.
+     *
+     * <p>Both are about events a {@code list_locations.id_event_*} column names. The engine
+     * fires those without a player: nobody pays for them, nobody is asked anything, and the
+     * response they would answer does not exist.</p>
+     *
+     * <ul>
+     *   <li><b>R9_AUTOMATIC_EVENT_CHOICES</b> — such an event may not own choices. There is
+     *       no response to carry the options and no {@code select-choice} call could ever
+     *       close the cycle, so the match would carry a decision nobody can answer for ever.
+     *       The engine refuses it at runtime too; this catches it while it is still text.</li>
+     *   <li><b>R9_AUTOMATIC_EVENT_TYPE</b> — such an event may not be {@code NORMAL} or
+     *       {@code ONCE}. Those are exactly the two types a player can execute, so the event
+     *       would be offered as an action <em>and</em> fire by itself. {@code AUTOMATIC} is
+     *       the type to use.</li>
+     * </ul>
+     */
+    private void validateLocationTriggers(StoryGraph g, StoryValidationReport report) {
+        if (g.locationTriggerEvents.isEmpty()) {
+            return;
+        }
+        Set<Integer> eventsOwningChoices = new HashSet<>();
+        for (Map<String, Object> c : g.choiceData.values()) {
+            Integer idEvent = asInt(c.get("idEvent"));
+            if (idEvent != null) {
+                eventsOwningChoices.add(idEvent);
+            }
+        }
+        for (Map.Entry<Integer, String> t : g.locationTriggerEvents.entrySet()) {
+            int idEvent = t.getKey();
+            String field = t.getValue();
+            if (eventsOwningChoices.contains(idEvent)) {
+                report.add("R9_AUTOMATIC_EVENT_CHOICES", "locations", null, field,
+                        "event " + idEvent + " is fired automatically by " + field
+                                + " but owns choices — an automatic event has no one to ask"
+                                + " and no response to ask in (step 33)");
+            }
+            Map<String, Object> event = g.eventData.get(String.valueOf(idEvent));
+            String type = event == null ? null : str(event.get("type"));
+            if (type != null && EXECUTABLE_EVENT_TYPES.contains(type.trim().toUpperCase())) {
+                report.add("R9_AUTOMATIC_EVENT_TYPE", "locations", null, field,
+                        "event " + idEvent + " is fired automatically by " + field
+                                + " but its type is " + type + ", which is player-executable"
+                                + " — use AUTOMATIC (step 33)");
+            }
+        }
+    }
+
+    /** Records one location trigger column: the R1 reference and the R9 candidate set. */
+    private void recordLocationTrigger(StoryGraph g, String idLocation, String field,
+                                       Integer idEvent) {
+        ref(g, "locations", idLocation, field, Target.EVENT, idEvent);
+        if (idEvent != null && idEvent > 0) {
+            g.locationTriggerEvents.put(idEvent, field);
+        }
+    }
+
     // ===== Rule engine =====
 
     private void runRules(StoryGraph g, StoryValidationReport report) {
@@ -147,6 +224,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         validateClassRestrictions(g, report); // R6 permitted != prohibited
         validateEvents(g, report);        // R7 event conditions (Step 29)
         validateChoices(g, report);       // R8 choice-event binding (Step 31)
+        validateLocationTriggers(g, report); // R9 automatic location events (Step 33)
     }
 
     private void validateReferences(StoryGraph g, StoryValidationReport report) {
@@ -354,6 +432,20 @@ public class StoryValidatorService implements StoryValidatorPort {
         ref(g, "story", null, "idEventAllPlayerComa", Target.EVENT, asInt(data.get("idEventAllPlayerComa")));
         ref(g, "story", null, "idEventEndGame", Target.EVENT, asInt(data.get("idEventEndGame")));
 
+        // Step 33 — the five location-side trigger columns. They have existed since V0.10.3
+        // and were never referenced here, so a location could point at an event that does not
+        // exist and nothing would say so.
+        for (Map<String, Object> l : list(data, "locations")) {
+            String id = str(l.get("id"));
+            for (String field : LOCATION_TRIGGER_FIELDS) {
+                Integer idEvent = asInt(l.get(field));
+                ref(g, "locations", id, field, Target.EVENT, idEvent);
+                if (idEvent != null && idEvent > 0) {
+                    g.locationTriggerEvents.put(idEvent, field);
+                }
+            }
+        }
+
         for (Map<String, Object> e : list(data, "events")) {
             String id = str(e.get("id"));
             ref(g, "events", id, "idSpecificLocation", Target.LOCATION, asInt(e.get("idSpecificLocation")));
@@ -480,6 +572,18 @@ public class StoryValidatorService implements StoryValidatorPort {
             }
         }
 
+        // Step 33 — the five location-side trigger columns (see buildFromMap).
+        for (LocationEntity l : locations) {
+            String id = str(l.getId());
+            recordLocationTrigger(g, id, "idEventIfFirstTime", l.getIdEventIfFirstTime());
+            recordLocationTrigger(g, id, "idEventNotFirstTime", l.getIdEventNotFirstTime());
+            recordLocationTrigger(g, id, "idEventIfCharacterEnterFirstTime",
+                    l.getIdEventIfCharacterEnterFirstTime());
+            recordLocationTrigger(g, id, "idEventIfCharacterStartTime",
+                    l.getIdEventIfCharacterStartTime());
+            recordLocationTrigger(g, id, "idEventIfCounterZero", l.getIdEventIfCounterZero());
+        }
+
         for (EventEntity e : events) {
             String id = str(e.getId());
             ref(g, "events", id, "idSpecificLocation", Target.LOCATION, e.getIdSpecificLocation());
@@ -491,6 +595,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             Map<String, Object> row = new HashMap<>();
             row.put("registryKeyCondition", e.getRegistryKeyCondition());
             row.put("registryValueCondition", e.getRegistryValueCondition());
+            row.put("type", e.getType());
             g.eventData.put(id, row);
             if (e.getId() != null && e.getIdEventNext() != null) {
                 g.eventNext.put(e.getId().intValue(), e.getIdEventNext());
@@ -693,5 +798,11 @@ public class StoryValidatorService implements StoryValidatorPort {
         final Map<String, Map<String, Object>> eventData = new HashMap<>();
         /** Step 31 — choice id to its authored idEvent/idLocation, for the R8 binding rule. */
         final Map<String, Map<String, Object>> choiceData = new HashMap<>();
+        /**
+         * Step 33 — every event id a {@code list_locations.id_event_*} column names, mapped to
+         * the column that names it (for the message). An event reachable from two columns is
+         * reported against the last one; the rule is about the event, not the column.
+         */
+        final Map<Integer, String> locationTriggerEvents = new HashMap<>();
     }
 }

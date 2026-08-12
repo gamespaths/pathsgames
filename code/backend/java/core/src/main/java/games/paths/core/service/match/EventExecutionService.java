@@ -10,6 +10,10 @@ import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.EdgeStateStorePort;
 import games.paths.core.port.match.EventExecutionPort;
 import games.paths.core.port.match.EventExecutionStorePort;
+import games.paths.core.port.match.LocationEntryPort;
+import games.paths.core.port.match.LocationEntryStorePort;
+import games.paths.core.port.match.LocationEntryStorePort.LocationTriggerView;
+import games.paths.core.port.match.TimeAdvancementPort;
 import games.paths.core.port.match.EventExecutionStorePort.BackpackStats;
 import games.paths.core.port.match.EventExecutionStorePort.CharacterStats;
 import games.paths.core.port.match.EventExecutionStorePort.EventActorView;
@@ -53,9 +57,17 @@ import java.util.Set;
  *       movement log row is written per moved character.</li>
  * </ul>
  *
- * <p>See {@code documentation_v0/Step29_NormalEvents.md}.</p>
+ * <p><b>Step 33</b> adds the other half of the engine: the events nobody asks for. This class
+ * also implements {@link LocationEntryPort}, because the trigger resolution has to live next
+ * to the chain runner — a forced move <em>is</em> an arrival, so applying an effect can fire
+ * another automatic event, and splitting the two across services would only produce a
+ * dependency cycle. Automatic events pay no cost, are never checked against the player-facing
+ * availability verdict, and may never own choices.</p>
+ *
+ * <p>See {@code documentation_v0/Step29_NormalEvents.md} and
+ * {@code documentation_v0/Step33_LocationEntryEvents.md}.</p>
  */
-public class EventExecutionService implements EventExecutionPort {
+public class EventExecutionService implements EventExecutionPort, LocationEntryPort {
 
     private static final String DEFAULT_LANG = "en";
     private static final String ADD = "ADD";
@@ -71,22 +83,50 @@ public class EventExecutionService implements EventExecutionPort {
      */
     private static final int MAX_CHAIN = 32;
 
+    /**
+     * How many arrivals one request may cascade through before the engine gives up
+     * (Step 33).
+     *
+     * <p>An automatic event may move a character, and that move is itself an arrival, so
+     * {@code A → move to B → move back to A} is a loop an author can write in two admin
+     * form fields. Nothing else stops it: the {@link #MAX_CHAIN} visited set is per
+     * {@code Exec} and a fresh arrival gets a fresh one. Without this cap such a story
+     * would not merely misbehave — the request that triggered it would never return.</p>
+     *
+     * <p>Not creating the loop remains the author's responsibility; this only converts a
+     * hung request into a logged abort.</p>
+     */
+    private static final int MAX_ENTRY_DEPTH = 8;
+
     private final EventExecutionStorePort store;
     private final EdgeStateStorePort edgeStore;
     private final UserAccessPort userAccessPort;
     private final ContentQueryPort contentQueryPort;
     private final TimeAdvancementService timeAdvancementService;
+    /** Step 33. Null on the legacy constructor: no location store, no automatic events. */
+    private final LocationEntryStorePort locationStore;
 
+    /** Legacy constructor (pre-Step 33): automatic location events are disabled. */
     public EventExecutionService(EventExecutionStorePort store,
                                  EdgeStateStorePort edgeStore,
                                  UserAccessPort userAccessPort,
                                  ContentQueryPort contentQueryPort,
                                  TimeAdvancementService timeAdvancementService) {
+        this(store, edgeStore, userAccessPort, contentQueryPort, timeAdvancementService, null);
+    }
+
+    public EventExecutionService(EventExecutionStorePort store,
+                                 EdgeStateStorePort edgeStore,
+                                 UserAccessPort userAccessPort,
+                                 ContentQueryPort contentQueryPort,
+                                 TimeAdvancementService timeAdvancementService,
+                                 LocationEntryStorePort locationStore) {
         this.store = store;
         this.edgeStore = edgeStore;
         this.userAccessPort = userAccessPort;
         this.contentQueryPort = contentQueryPort;
         this.timeAdvancementService = timeAdvancementService;
+        this.locationStore = locationStore;
     }
 
     @Override
@@ -135,6 +175,8 @@ public class EventExecutionService implements EventExecutionPort {
         if (x.endTime && !x.comaTriggered) {
             forceTimeEnd(x);
         }
+        // Step 33 — an effect may have pushed somebody somewhere, and arriving is a trigger.
+        drainArrivals(x, x.automaticEvents);
         return buildResult(x);
     }
 
@@ -413,6 +455,9 @@ public class EventExecutionService implements EventExecutionPort {
 
         writeResolutionMarkers(x, choice, eventId, choiceId);
 
+        // Step 33 — a forced move inside an option's effects is an arrival like any other.
+        drainArrivals(x, x.automaticEvents);
+
         return new ChoiceResolutionResult(buildResult(x), choice.getUuid(), event.getUuid(),
                 store.resolveShortText(match.idStory(), choice.getIdTextNarrative(), x.lang),
                 resolveCard(x, choice.getIdCard()),
@@ -665,7 +710,7 @@ public class EventExecutionService implements EventExecutionPort {
         x.gameOver = x.gameOver || (endGameId != null && endGameId == eventId);
 
         checkEdgeStates(x, eventId);
-        store.logEventExecuted(x.match.id(), x.actor.id(), eventId, x.currentClock,
+        store.logEventExecuted(x.match.id(), x.actorId(), eventId, x.currentClock,
                 EventExecutionStorePort.MSG_EVENT_EXECUTED + " " + eventId);
     }
 
@@ -674,12 +719,15 @@ public class EventExecutionService implements EventExecutionPort {
     private void applyEffect(Exec x, EventEntity event, EventEffectEntity effect) {
         List<EventActorView> recipients = resolveRecipients(x, effect);
 
-        // Weather is a property of the MATCH, not of a character: it applies once per effect
-        // row no matter how many (or how few) characters that row targets.
+        // Weather and the registry are properties of the MATCH, not of a character: each
+        // applies once per effect row no matter how many (or how few) characters that row
+        // targets — including none at all, which is what a counter-zero fuse in an empty
+        // location resolves to (Step 33).
         if (effect.getIdWeather() != null && effect.getIdWeather() > 0) {
             store.setCurrentWeather(x.match.id(), effect.getIdWeather().longValue());
             x.weatherApplied = true;
         }
+        applyRegistryEffect(x, effect, event);
 
         List<String> touched = new ArrayList<>();
         for (EventActorView recipient : recipients) {
@@ -688,7 +736,6 @@ public class EventExecutionService implements EventExecutionPort {
             applyItem(x, recipient, effect.getIdItemTarget(), effect.getItemAction());
             applyTraitEffects(x, recipient, effect, event);
             applyCharacteristicEffects(x, recipient, effect);
-            applyRegistryEffect(x, recipient, effect, event);
             applyMove(x, recipient, effect.getIdLocation());
         }
 
@@ -708,6 +755,12 @@ public class EventExecutionService implements EventExecutionPort {
         List<EventActorView> base = new ArrayList<>();
         // Locations come from the tracked map, not the views: a forced movement earlier in
         // the chain must be seen by the effects that follow it.
+        // Step 33 — an automatic event may have no actor at all (a counter reaching zero in a
+        // location nobody stands in). There is then nobody to be a recipient: the row's
+        // match-scoped halves (weather, registry) have already been applied by the caller.
+        if (x.actor == null) {
+            return List.of();
+        }
         Long actorLocation = x.locationOf(x.actor);
         if (TARGET_ONLY_ONE.equals(target) || actorLocation == null) {
             base.add(x.actor);
@@ -818,14 +871,14 @@ public class EventExecutionService implements EventExecutionPort {
             store.addItem(x.match.id(), recipient.id(), itemId);
             x.itemAdded = true;
             x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, ADD));
-            if (recipient.id() == x.actor.id()) {
+            if (x.isActor(recipient.id())) {
                 x.ctx.ownedItemIds().add(itemId);
             }
         } else if (REMOVE.equalsIgnoreCase(action.trim())
                 && store.removeItem(x.match.id(), recipient.id(), itemId)) {
             x.itemRemoved = true;
             x.itemChanges.add(new ItemChange(recipient.uuid(), itemUuid, REMOVE));
-            if (recipient.id() == x.actor.id()) {
+            if (x.isActor(recipient.id())) {
                 x.ctx.ownedItemIds().remove(itemId);
             }
         }
@@ -868,19 +921,23 @@ public class EventExecutionService implements EventExecutionPort {
     }
 
     /**
-     * The registry is match-scoped, so it is written once per effect row (by the actor),
-     * not once per recipient. The in-memory context is updated too, so a later event in the
-     * same chain sees the value its predecessor just wrote.
+     * The registry is match-scoped, so it is written once per effect row — never once per
+     * recipient, and never at all when the row names no key. The in-memory context is updated
+     * too, so a later event in the same chain sees the value its predecessor just wrote.
+     *
+     * <p>Step 33 hoisted this out of the per-recipient loop where it used to sit behind an
+     * {@code == actor} guard. The write is identical when an actor exists, and it now also
+     * happens when there is none — an automatic event firing in an empty location still
+     * changes the world, it just has nobody to change.</p>
      */
-    private void applyRegistryEffect(Exec x, EventActorView recipient, EventEffectEntity effect,
-                                     EventEntity event) {
+    private void applyRegistryEffect(Exec x, EventEffectEntity effect, EventEntity event) {
         String key = effect.getKeyToAdd();
-        if (blank(key) || recipient.id() != x.actor.id()) {
+        if (blank(key)) {
             return;
         }
         String value = effect.getKeyValueToAdd();
         String old = x.ctx.registry().get(key);
-        store.upsertRegistry(x.match.id(), key, value, x.actor.id(), event.getId(), x.currentClock);
+        store.upsertRegistry(x.match.id(), key, value, x.actorId(), event.getId(), x.currentClock);
         x.ctx.registry().put(key, value);
         x.registryChanges.add(new RegistryChange(key, old, value));
     }
@@ -915,6 +972,11 @@ public class EventExecutionService implements EventExecutionPort {
         x.movementApplied = true;
         x.locationChanges.add(new LocationChange(recipient.uuid(),
                 from == null ? null : x.locationUuids().get(from), targetUuid));
+        // Step 33 — a forced move is an arrival like any other, so it can fire the
+        // destination's entry triggers. It is queued rather than resolved here: the rest of
+        // this event's effects must land (and be flushed) before another Exec reads the
+        // character rows back, or the second event would work from stale stats.
+        x.pendingArrivals.add(new long[]{recipient.id(), target});
     }
 
     // ── edge states & time-end ──────────────────────────────────────────────
@@ -946,11 +1008,11 @@ public class EventExecutionService implements EventExecutionPort {
             if (v.comaTriggered()) {
                 c.comaSet = true;
                 x.comaUuids.add(c.uuid);
-                if (c.id == x.actor.id()) {
+                if (x.isActor(c.id)) {
                     x.comaTriggered = true;
                 }
             }
-            if (v.forcedSleep() && c.id == x.actor.id()) {
+            if (v.forcedSleep() && x.isActor(c.id)) {
                 x.forcedSleep = true;
             }
             EdgeStateEvaluator.persist(edgeStore, x.match.id(), v, x.currentClock, idEvent);
@@ -987,7 +1049,7 @@ public class EventExecutionService implements EventExecutionPort {
             return;
         }
         x.allPlayersInComa = true;
-        edgeStore.logEdgeState(x.match.id(), x.actor.id(), null, x.currentClock,
+        edgeStore.logEdgeState(x.match.id(), x.actorId(), null, x.currentClock,
                 EdgeStateStorePort.MSG_ALL_PLAYER_COMA + " " + x.match.id());
 
         Long comaEventId = store.findIdEventAllPlayerComa(x.match.idStory()).orElse(null);
@@ -1031,6 +1093,222 @@ public class EventExecutionService implements EventExecutionPort {
         x.refreshActorAfterTimeEnd();
     }
 
+    // ── Step 33: automatic location events ──────────────────────────────────
+
+    @Override
+    public List<AutomaticEventFired> onArrival(ArrivalContext arrival) {
+        List<AutomaticEventFired> fired = new ArrayList<>();
+        resolveArrival(arrival.idMatch(), arrival.idStory(), arrival.idCharacter(),
+                arrival.idLocation(), arrival.currentClock(), arrival.lang(), 0, fired);
+        return fired;
+    }
+
+    @Override
+    public List<AutomaticEventFired> runPendingAutomaticEvents(long idMatch, int currentClock,
+                                                               List<PendingAutomaticEvent> pending,
+                                                               String lang) {
+        List<AutomaticEventFired> fired = new ArrayList<>();
+        if (locationStore == null || pending == null || pending.isEmpty()) {
+            return fired;
+        }
+        for (PendingAutomaticEvent p : pending) {
+            // allowTimeEnd = false: these run INSIDE the time-start pass, and a
+            // flag_end_time here would advance the clock the pass is still working on.
+            runAutomaticEvent(idMatch, p.idActorCharacter(), p.idEvent(), p.idLocation(),
+                    p.trigger(), currentClock, lang, false, 0, fired);
+        }
+        return fired;
+    }
+
+    @Override
+    public List<TimeAdvancementPort.CounterZeroItem> describeForRecipient(
+            long idMatch, Long idRecipientCharacter, int clock,
+            List<AutomaticEventFired> fired, String lang) {
+        List<TimeAdvancementPort.CounterZeroItem> out = new ArrayList<>();
+        if (locationStore == null || fired == null || fired.isEmpty()) {
+            return out;
+        }
+        MatchEventView match = store.findMatchById(idMatch).orElse(null);
+        if (match == null) {
+            return out;
+        }
+        long idStory = match.idStory();
+        Long here = idRecipientCharacter == null
+                ? null
+                : locationStore.findCharacterLocation(idMatch, idRecipientCharacter).orElse(null);
+        Set<Long> visited = idRecipientCharacter == null
+                ? Set.of()
+                : new HashSet<>(locationStore.findVisitedLocationIds(idMatch));
+
+        for (AutomaticEventFired f : fired) {
+            String visibility;
+            if (here != null && here == f.idLocation()) {
+                visibility = TimeAdvancementPort.CounterZeroItem.VISIBILITY_FULL;
+            } else if (visited.contains(f.idLocation())) {
+                visibility = TimeAdvancementPort.CounterZeroItem.VISIBILITY_NAMED;
+            } else {
+                visibility = TimeAdvancementPort.CounterZeroItem.VISIBILITY_ANONYMOUS;
+            }
+            // The cards are resolved only when the recipient may see them: a name that never
+            // leaves the server cannot leak. The event's card and its effect rows are already
+            // on the fired event — no extra query, only the location card costs a lookup.
+            CardInfo card = null;
+            CardInfo cardLocation = null;
+            List<AppliedEffect> cardEffects = List.of();
+            if (!TimeAdvancementPort.CounterZeroItem.VISIBILITY_ANONYMOUS.equals(visibility)) {
+                Integer idCard = locationStore.findLocationTriggers(idStory, f.idLocation())
+                        .map(LocationTriggerView::idCard)
+                        .orElse(null);
+                cardLocation = idCard == null || contentQueryPort == null
+                        ? null
+                        : contentQueryPort.getCardByStoryIdAndCardId(idStory, idCard, resolveLang(lang));
+                card = f.card();
+                cardEffects = f.effects() == null ? List.of() : List.copyOf(f.effects());
+            }
+            out.add(new TimeAdvancementPort.CounterZeroItem(
+                    f.trigger(), f.idLocation(), card, cardLocation, cardEffects,
+                    f.eventUuid(), clock, visibility));
+        }
+        return out;
+    }
+
+    /**
+     * The dispatch table of an arrival. The order is fixed rather than authored: the
+     * history trigger (first or subsequent — never both) comes before the occupancy one,
+     * which is orthogonal to it and may fire alongside either.
+     *
+     * <p>{@code flag_visited} is latched <b>after</b> the triggers have been read, so the
+     * first arrival still evaluates as a first arrival; and it is latched even when the
+     * location authors no trigger at all, because the flag describes the party's history,
+     * not what happened to fire.</p>
+     */
+    private void resolveArrival(long idMatch, long idStory, long idCharacter, long idLocation,
+                                int currentClock, String lang, int depth,
+                                List<AutomaticEventFired> out) {
+        if (locationStore == null) {
+            return;
+        }
+        if (depth >= MAX_ENTRY_DEPTH) {
+            locationStore.logAutomaticEvent(idMatch, idCharacter, idLocation, null, currentClock,
+                    LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " aborted: entry depth "
+                            + MAX_ENTRY_DEPTH + " exceeded at location " + idLocation
+                            + " — the story loops a forced movement back on itself");
+            return;
+        }
+        LocationTriggerView triggers = locationStore.findLocationTriggers(idStory, idLocation)
+                .orElse(null);
+        boolean visited = locationStore.findFlagVisited(idMatch, idLocation) == 1;
+        if (triggers != null) {
+            Integer historyEvent = visited
+                    ? triggers.idEventNotFirstTime()
+                    : triggers.idEventIfFirstTime();
+            String historyTrigger = visited ? TRIGGER_SUBSEQUENT_ENTRY : TRIGGER_FIRST_ENTRY;
+            runAutomaticEventIfSet(idMatch, idCharacter, historyEvent, idLocation, historyTrigger,
+                    currentClock, lang, true, depth, out);
+
+            if (locationStore.countOtherCharactersAtLocation(idMatch, idLocation, idCharacter) == 0) {
+                runAutomaticEventIfSet(idMatch, idCharacter,
+                        triggers.idEventIfCharacterEnterFirstTime(), idLocation,
+                        TRIGGER_FIRST_IN_LOCATION, currentClock, lang, true, depth, out);
+            }
+        }
+        locationStore.markStateLocationVisited(idMatch, idLocation);
+    }
+
+    /** Null-tolerant entry: a null or non-positive column is simply not a trigger. */
+    private void runAutomaticEventIfSet(long idMatch, Long idActorCharacter, Integer idEvent,
+                                        long idLocation, String trigger, int currentClock,
+                                        String lang, boolean allowTimeEnd, int depth,
+                                        List<AutomaticEventFired> out) {
+        if (idEvent == null || idEvent <= 0) {
+            return;
+        }
+        runAutomaticEvent(idMatch, idActorCharacter, idEvent.longValue(), idLocation, trigger,
+                currentClock, lang, allowTimeEnd, depth, out);
+    }
+
+    /**
+     * Run one automatic event and its whole {@code id_event_next} chain.
+     *
+     * <p>What makes it different from {@link #executeEvent}, and why it cannot simply call
+     * it:</p>
+     * <ul>
+     *   <li><b>Nobody pays.</b> No energy, no coins — the player did not ask for this.</li>
+     *   <li><b>No availability verdict.</b> The type gate would refuse it outright
+     *       ({@code AUTOMATIC} is not in {@code EXECUTABLE_TYPES}), and the sleep/coma
+     *       guards would refuse it on behalf of a character that never volunteered.</li>
+     *   <li><b>The actor may be absent.</b> A counter-zero fuse belongs to a location, and
+     *       the location may be empty. Effects that need a recipient are then skipped while
+     *       registry, weather and the chain still run.</li>
+     *   <li><b>It may not own choices.</b> There is no response to carry the options and no
+     *       {@code select-choice} could ever close the cycle, so the event is refused and
+     *       logged instead of wedging the match with a decision nobody can answer.</li>
+     * </ul>
+     */
+    private void runAutomaticEvent(long idMatch, Long idActorCharacter, long idEvent,
+                                   long idLocation, String trigger, int currentClock, String lang,
+                                   boolean allowTimeEnd, int depth, List<AutomaticEventFired> out) {
+        if (locationStore == null) {
+            return;
+        }
+        MatchEventView match = store.findMatchById(idMatch).orElse(null);
+        if (match == null || !MatchStatuses.RUNNING.equals(match.status())) {
+            return;
+        }
+        EventEntity event = store.findEventsById(match.idStory()).get(idEvent);
+        if (event == null) {
+            return; // dangling id: authored noise, not an error
+        }
+        if (!store.findChoicesByEventId(match.idStory(), idEvent).isEmpty()) {
+            locationStore.logAutomaticEvent(idMatch, idActorCharacter, idLocation, idEvent,
+                    currentClock, LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " skipped " + idEvent
+                            + " (" + trigger + "): an automatic event may not own choices");
+            return;
+        }
+
+        EventActorView actor = idActorCharacter == null
+                ? null
+                : store.findCharacterByMatchAndId(idMatch, idActorCharacter).orElse(null);
+        EventCheckContext ctx = store.loadCheckContext(idMatch,
+                actor == null ? null : actor.id());
+
+        Exec x = new Exec(match, actor, ctx, resolveLang(lang), event);
+        x.entryDepth = depth;
+        runChain(x, event);
+        resolveAllPlayerComa(x);
+        if (x.endTime && !x.comaTriggered && allowTimeEnd) {
+            forceTimeEnd(x);
+        }
+        flush(x);
+        locationStore.logAutomaticEvent(idMatch, idActorCharacter, idLocation, idEvent,
+                x.currentClock, LocationEntryStorePort.MSG_AUTOMATIC_EVENT + " " + idEvent
+                        + " (" + trigger + ") at location " + idLocation);
+        out.add(new AutomaticEventFired(trigger, idLocation, event.getUuid(),
+                resolveCard(x, event.getIdCard()),
+                new ArrayList<>(x.effects), new ArrayList<>(x.statChanges),
+                new ArrayList<>(x.locationChanges), x.gameOver));
+
+        // The events this one caused by pushing somebody somewhere.
+        drainArrivals(x, out);
+    }
+
+    /**
+     * Resolve the arrivals a chain queued. Called after the chain has finished and been
+     * flushed, so the next {@code Exec} reads what this one actually wrote.
+     */
+    private void drainArrivals(Exec x, List<AutomaticEventFired> out) {
+        if (locationStore == null || x.pendingArrivals.isEmpty()) {
+            return;
+        }
+        List<long[]> arrivals = new ArrayList<>(x.pendingArrivals);
+        x.pendingArrivals.clear();
+        flush(x);
+        for (long[] a : arrivals) {
+            resolveArrival(x.match.id(), x.match.idStory(), a[0], a[1],
+                    x.currentClock, x.lang, x.entryDepth + 1, out);
+        }
+    }
+
     // ── persistence & result ────────────────────────────────────────────────
 
     /** Write back every character the event touched. Called once, at the end. */
@@ -1060,7 +1338,8 @@ public class EventExecutionService implements EventExecutionPort {
                 || x.movementApplied || x.forcedSleep || x.comaTriggered || x.gameOver
                 || edgeState.anything()
                 || !x.statChanges.isEmpty() || !x.registryChanges.isEmpty()
-                || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty();
+                || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty()
+                || !x.automaticEvents.isEmpty();
 
         return new EventExecutionResult(
                 x.match.uuid(), x.event.getUuid(), x.event.getType(), x.status,
@@ -1072,7 +1351,7 @@ public class EventExecutionService implements EventExecutionPort {
                 x.forcedSleep, x.comaTriggered, x.gameOver, changed,
                 x.statChanges, x.registryChanges, x.traitChanges, x.itemChanges,
                 x.characteristicChanges, x.locationChanges, chainEffects(x), x.pendingChoices,
-                edgeState);
+                edgeState, new ArrayList<>(x.automaticEvents));
     }
 
     /** The events the player's own chain ran — the epilogue's are sliced off the tail. */
@@ -1194,6 +1473,14 @@ public class EventExecutionService implements EventExecutionPort {
         /** Current location per character: seeded from the views, rewritten by forced movement. */
         final Map<Long, Long> locationByCharacter = new HashMap<>();
 
+        // ── Step 33 automatic location events ──
+        /** {characterId, locationId} pairs a forced move produced, resolved after the chain. */
+        final List<long[]> pendingArrivals = new ArrayList<>();
+        /** What the automatic events this execution fired did, for the response payload. */
+        final List<AutomaticEventFired> automaticEvents = new ArrayList<>();
+        /** How many arrivals deep this execution already is — the runaway-loop guard. */
+        int entryDepth;
+
         int currentClock;
         int energySpent;
         int coinSpent;
@@ -1304,6 +1591,20 @@ public class EventExecutionService implements EventExecutionPort {
                 locationUuids = store.findLocationUuidsById(match.idStory());
             }
             return locationUuids;
+        }
+
+        /**
+         * The actor's id, or null when there is no actor — a Step 33 automatic event whose
+         * location holds nobody. Every {@code Long idCharacter} parameter downstream already
+         * accepts null and means "the match, not a character" by it.
+         */
+        Long actorId() {
+            return actor == null ? null : actor.id();
+        }
+
+        /** False for every character when there is no actor. */
+        boolean isActor(long idCharacter) {
+            return actor != null && actor.id() == idCharacter;
         }
 
         /** The tracked position wins over the (possibly stale) view. */

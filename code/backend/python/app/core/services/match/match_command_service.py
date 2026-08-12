@@ -143,6 +143,13 @@ class MatchCommandService(MatchCommandPort):
                 "id_match": saved["id"],
                 "id_location": loc["id"],
                 "flag_already_actived": 0,
+                # Step 33 — the party starts IN the starting location, it never "enters"
+                # it. Seeding it as already visited is what makes walking BACK there fire
+                # id_event_not_first_time instead of announcing as a discovery the place
+                # the story opened in. id_location_start is story-level, so this is
+                # deterministic however many players join, in whatever order.
+                "flag_visited": 1 if (story.get("id_location_start") is not None
+                                      and loc["id"] == story["id_location_start"]) else 0,
                 "clock_counter": loc.get("counter_time") or 0,
             })
         self.match_persistence_port.save_locations(location_rows)

@@ -354,6 +354,85 @@ class StoryValidatorServiceTest {
         }
     }
 
+    /**
+     * Step 33 — the rules that keep an engine-fired location event runnable. Both are about
+     * events a {@code list_locations.id_event_*} column names: the engine runs those without
+     * a player, so an event that needs one is an authoring mistake, not a runtime problem.
+     */
+    @Nested
+    @DisplayName("R9 automatic location events (Step 33)")
+    class AutomaticLocationEvents {
+
+        @Test
+        @DisplayName("a location trigger that names a choice-owning event fails the import")
+        void triggerPointingAtAChoiceEventFails() {
+            Map<String, Object> s = validStory();
+            // Event 1 owns choice 1 in the fixture; location 2 tries to fire it on entry.
+            s.put("locations", rows(entity("id", 1), entity("id", 2, "idEventIfFirstTime", 1)));
+
+            StoryValidationReport r = validator().validateImportData(s);
+
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                            "R9_AUTOMATIC_EVENT_CHOICES".equals(e.rule())
+                                    && "idEventIfFirstTime".equals(e.field())),
+                    "an automatic event has no one to ask and no response to ask in");
+        }
+
+        @Test
+        @DisplayName("a location trigger naming a player-executable event fails the import")
+        void triggerPointingAtANormalEventFails() {
+            Map<String, Object> s = validStory();
+            s.put("events", rows(entity("id", 1), entity("id", 2, "type", "NORMAL")));
+            s.put("choices", rows());
+            s.put("locations", rows(entity("id", 1), entity("id", 2, "idEventNotFirstTime", 2)));
+
+            StoryValidationReport r = validator().validateImportData(s);
+
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                            "R9_AUTOMATIC_EVENT_TYPE".equals(e.rule())
+                                    && "idEventNotFirstTime".equals(e.field())),
+                    "the event would be offered as an action AND fire by itself");
+        }
+
+        @Test
+        @DisplayName("an AUTOMATIC event with no choices is exactly what a trigger wants")
+        void automaticEventWithoutChoicesIsValid() {
+            Map<String, Object> s = validStory();
+            s.put("events", rows(entity("id", 1), entity("id", 2, "type", "AUTOMATIC")));
+            s.put("choices", rows());
+            s.put("locations", rows(entity("id", 1),
+                    entity("id", 2, "idEventIfFirstTime", 2, "idEventNotFirstTime", 2,
+                            "idEventIfCharacterEnterFirstTime", 2, "idEventIfCounterZero", 2,
+                            "idEventIfCharacterStartTime", 2)));
+
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+
+        @Test
+        @DisplayName("a trigger pointing at an event that does not exist is a broken reference")
+        void danglingTriggerIsReported() {
+            Map<String, Object> s = validStory();
+            s.put("locations", rows(entity("id", 1), entity("id", 2, "idEventIfCounterZero", 999)));
+
+            StoryValidationReport r = validator().validateImportData(s);
+
+            assertFalse(r.isValid());
+            assertTrue(r.getErrors().stream().anyMatch(e ->
+                    "idEventIfCounterZero".equals(e.field())));
+        }
+
+        @Test
+        @DisplayName("a non-positive trigger column reads as 'no trigger', not as a broken one")
+        void nonPositiveTriggerIsNoTrigger() {
+            Map<String, Object> s = validStory();
+            s.put("choices", rows());
+            s.put("locations", rows(entity("id", 1),
+                    entity("id", 2, "idEventIfFirstTime", 0, "idEventNotFirstTime", 0)));
+
+            assertTrue(validator().validateImportData(s).isValid());
+        }
+    }
+
     @Nested
     @DisplayName("R5/R6 items, templates, classes")
     class TemplatesAndClasses {

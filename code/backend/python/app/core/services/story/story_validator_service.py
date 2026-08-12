@@ -27,6 +27,21 @@ _REF_RULES = {
     _MISSION: "R_MISSION_REF",
 }
 
+#: Step 33 — the list_locations columns that name an engine-fired event. Kept in one place
+#: because both graph builders and the R9 rules walk exactly this set.
+_LOCATION_TRIGGER_FIELDS = (
+    "idEventIfFirstTime",
+    "idEventNotFirstTime",
+    "idEventIfCharacterEnterFirstTime",
+    "idEventIfCharacterStartTime",
+    "idEventIfCounterZero",
+)
+
+#: The two types a player can execute. Mirrors ``event_availability.EXECUTABLE_TYPES``,
+#: duplicated rather than imported because the validator lives in the story package and
+#: must not depend on the match engine.
+_EXECUTABLE_EVENT_TYPES = {"NORMAL", "ONCE"}
+
 
 def _camel_to_snake(name: str) -> str:
     out = []
@@ -87,6 +102,11 @@ class _Graph:
         self.event_next: Dict[int, int] = {}
         self.choice_otherwise: Dict[int, bool] = {}
         self.choices_with_option: Set[int] = set()
+        # Step 33 — every event id a list_locations.id_event_* column names, mapped to the
+        # column that names it (for the message), plus each event's raw type.
+        self.location_trigger_events: Dict[int, str] = {}
+        self.event_types: Dict[int, str] = {}
+        self.events_owning_choices: Set[int] = set()
 
 
 class StoryValidatorService(StoryValidatorPort):
@@ -160,6 +180,7 @@ class StoryValidatorService(StoryValidatorPort):
         self._validate_templates(g, report)
         self._validate_restrictions(g, report)
         self._validate_choices(g, report)  # R8 choice-event binding (Step 31)
+        self._validate_location_triggers(g, report)  # R9 automatic events (Step 33)
 
     def _validate_choices(self, g: _Graph, report: StoryValidationReport) -> None:
         """Step 31 — story-wide: every choice belongs to an event, and only to an event."""
@@ -172,6 +193,37 @@ class StoryValidatorService(StoryValidatorPort):
                 report.add("R8_CHOICE_EVENT", "choices", cid, "idLocation",
                            f"idLocation={id_location} is deprecated — a choice binds to"
                            " an event (idEvent), never to a location (step 31)")
+
+    def _validate_location_triggers(self, g: _Graph, report: StoryValidationReport) -> None:
+        """Step 33 — the two rules that keep an engine-fired location event runnable.
+
+        Both are about events a ``list_locations.id_event_*`` column names. The engine fires
+        those without a player: nobody pays for them, nobody is asked anything, and the
+        response they would answer does not exist.
+
+        * **R9_AUTOMATIC_EVENT_CHOICES** — such an event may not own choices. There is no
+          response to carry the options and no select-choice call could ever close the
+          cycle, so the match would carry a decision nobody can answer for ever.
+        * **R9_AUTOMATIC_EVENT_TYPE** — such an event may not be NORMAL or ONCE. Those are
+          exactly the two types a player can execute, so the event would be offered as an
+          action *and* fire by itself. AUTOMATIC is the type to use.
+        """
+        if not g.location_trigger_events:
+            return
+        owning = {id_event for (id_event, _loc) in g.choice_data.values()
+                  if id_event is not None and id_event > 0}
+        for id_event, field in g.location_trigger_events.items():
+            if id_event in owning:
+                report.add("R9_AUTOMATIC_EVENT_CHOICES", "locations", None, field,
+                           f"event {id_event} is fired automatically by {field} but owns"
+                           " choices — an automatic event has no one to ask and no"
+                           " response to ask in (step 33)")
+            etype = (g.event_types.get(id_event) or "").strip().upper()
+            if etype in _EXECUTABLE_EVENT_TYPES:
+                report.add("R9_AUTOMATIC_EVENT_TYPE", "locations", None, field,
+                           f"event {id_event} is fired automatically by {field} but its"
+                           f" type is {etype}, which is player-executable — use AUTOMATIC"
+                           " (step 33)")
 
     def _validate_refs(self, g: _Graph, report: StoryValidationReport) -> None:
         universe = {
@@ -321,6 +373,8 @@ class StoryValidatorService(StoryValidatorPort):
         self._ref(g, "story", None, "idEventAllPlayerComa", _EVENT, _as_int(data.get("idEventAllPlayerComa")))
         self._ref(g, "story", None, "idEventEndGame", _EVENT, _as_int(data.get("idEventEndGame")))
 
+        for l in data.get("locations") or []:
+            self._collect_location(g, l)
         for e in data.get("events") or []:
             self._collect_event(g, e)
         for c in data.get("choices") or []:
@@ -382,6 +436,8 @@ class StoryValidatorService(StoryValidatorPort):
             if name:
                 g.key_names.add(str(name).strip().lower())
 
+        for l in locations:
+            self._collect_location(g, l)
         for e in events:
             self._collect_event(g, e)
         for c in choices:
@@ -428,6 +484,20 @@ class StoryValidatorService(StoryValidatorPort):
         nxt = _as_int(_get(e, "idEventNext"))
         if my is not None and nxt is not None:
             g.event_next[my] = nxt
+        etype = _get(e, "type")
+        if my is not None and etype:
+            g.event_types[my] = str(etype)
+
+    def _collect_location(self, g, l):
+        """Step 33 — the five location-side trigger columns. They have existed since the
+        first schema and were never referenced here, so a location could point at an event
+        that does not exist and nothing would say so."""
+        lid = self._str(_get(l, "id"))
+        for field in _LOCATION_TRIGGER_FIELDS:
+            id_event = _as_int(_get(l, field))
+            self._ref(g, "locations", lid, field, _EVENT, id_event)
+            if id_event is not None and id_event > 0:
+                g.location_trigger_events[id_event] = field
 
     def _collect_choice(self, g, c):
         cid = self._str(_get(c, "id"))

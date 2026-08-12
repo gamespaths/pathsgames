@@ -1,6 +1,6 @@
 """Step 28 — movement system domain models (mirrors the Java reference)."""
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 @dataclass
@@ -44,6 +44,9 @@ class MovementResult:
     energy_spent: int
     new_energy: int
     current_clock: int
+    #: Step 33 — what the destination did about the arrival: its id_event_if_first_time /
+    #: id_event_not_first_time / id_event_if_character_enter_first_time, already executed.
+    automatic_events: List[Any] = field(default_factory=list)
 
 
 @dataclass

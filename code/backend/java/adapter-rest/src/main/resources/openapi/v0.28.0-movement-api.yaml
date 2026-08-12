@@ -135,6 +135,27 @@ components:
         energySpent: { type: integer }
         newEnergy: { type: integer }
         currentClock: { type: integer }
+        automaticEvents:
+          type: array
+          description: |
+            v0.33.0 (Step 33) — what the destination did about the arrival: its
+            `id_event_if_first_time` / `id_event_not_first_time` /
+            `id_event_if_character_enter_first_time`, already executed. The book shows the
+            new location on its left page and these on its right. Empty in the ordinary
+            case. Full shape in `v0.33.0-location-entry-events-api.yaml`.
+          items:
+            type: object
+            properties:
+              trigger:
+                type: string
+                enum: [FIRST_ENTRY, SUBSEQUENT_ENTRY, FIRST_IN_LOCATION]
+              idLocation: { type: integer }
+              eventUuid: { type: string }
+              card: { type: object, nullable: true }
+              effects: { type: array, items: { type: object } }
+              statChanges: { type: array, items: { type: object } }
+              locationChanges: { type: array, items: { type: object } }
+              gameOver: { type: boolean }
     MatchLocationsResponse:
       type: object
       properties:

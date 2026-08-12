@@ -53,8 +53,9 @@ public interface MatchLogsStorePort {
 
     /** {@code idEvent} is the list_events row the message refers to — null on rows the
      * service does not classify as EVENT (SLEEP, RECOVERY, ...). */
+    /** {@code idLocation} is the Step 33 column: set on counter-zero and automatic-event rows. */
     record EventLogEntry(long id, Long idCharacterMatch, Integer clock,
-                         String timestamp, String logMessage, Long idEvent) {}
+                         String timestamp, String logMessage, Long idEvent, Long idLocation) {}
 
     /** The character that performed a logged action. */
     record CharacterLogView(long id, String uuid, Long idCharacterTemplate) {}

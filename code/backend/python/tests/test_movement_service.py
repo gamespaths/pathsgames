@@ -105,6 +105,46 @@ def test_move_happy_path_safe(service, store):
     assert store.logged == (50, 1, 2, 6)
 
 
+def test_step33_arrival_triggers_run_after_the_move_is_committed(store):
+    """Step 33 — the destination's entry triggers run once the move is committed, and what
+    they did comes back on the movement response."""
+    from unittest.mock import MagicMock
+    from app.core.models.match import location_entry_models as lem
+
+    entry = MagicMock()
+    fired = lem.AutomaticEventFired(lem.TRIGGER_FIRST_ENTRY, 2, "evt-welcome")
+    entry.on_arrival.return_value = [fired]
+    service = MovementService(store, location_entry=entry)
+
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+
+    assert [f.event_uuid for f in r.automatic_events] == ["evt-welcome"]
+    # The trigger resolution reads the character's NEW position, so it must run after both
+    # writes, never between them.
+    assert store.updated == (50, 2, 4)
+    assert store.logged == (50, 1, 2, 6)
+    arrival = entry.on_arrival.call_args[0][0]
+    assert (arrival.id_character, arrival.id_location) == (50, 2)
+
+
+def test_step33_without_the_location_engine_a_move_behaves_as_before(service):
+    r = service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    assert r.automatic_events == []
+
+
+def test_step33_a_refused_move_fires_no_arrival_trigger(store):
+    """Nobody arrived, so nothing may fire."""
+    from unittest.mock import MagicMock
+
+    entry = MagicMock()
+    service = MovementService(store, location_entry=entry)
+    store.character["energy"] = 1  # against a cost of 6
+
+    with pytest.raises(MovementError):
+        service.start_movement(MATCH_UUID, "user-uuid", "loc-2")
+    entry.on_arrival.assert_not_called()
+
+
 def test_move_unsafe_weather(service, store):
     store.locations[2]["secure_param"] = 0  # unsafe -> weather 9
     store.character["energy"] = 20

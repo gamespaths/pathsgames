@@ -89,6 +89,8 @@ public class MatchInfoResponse {
         private Long idLocation;
         private String uuid;
         private Integer flagAlreadyActived;
+        /** Step 33 — the party has entered this location; not the same as the counter flag. */
+        private Integer flagVisited;
         private Integer clockCounter;
 
         public static LocationStateDto fromModel(MatchLocationState m) {
@@ -96,6 +98,7 @@ public class MatchInfoResponse {
             d.idLocation = m.getIdLocation();
             d.uuid = m.getUuid();
             d.flagAlreadyActived = m.getFlagAlreadyActived();
+            d.flagVisited = m.getFlagVisited();
             d.clockCounter = m.getClockCounter();
             return d;
         }
@@ -106,6 +109,8 @@ public class MatchInfoResponse {
         public void setUuid(String uuid) { this.uuid = uuid; }
         public Integer getFlagAlreadyActived() { return flagAlreadyActived; }
         public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
+        public Integer getFlagVisited() { return flagVisited; }
+        public void setFlagVisited(Integer flagVisited) { this.flagVisited = flagVisited; }
         public Integer getClockCounter() { return clockCounter; }
         public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }
     }

@@ -1,6 +1,7 @@
 package games.paths.core.service.match;
 
 import games.paths.core.port.match.EdgeStateStorePort;
+import games.paths.core.port.match.LocationEntryPort;
 import games.paths.core.port.match.RecoveryStorePort;
 import games.paths.core.port.match.RecoveryStorePort.ClassBonusView;
 import games.paths.core.port.match.RecoveryStorePort.LocationSafety;
@@ -100,10 +101,10 @@ class TimeStartRecoveryServiceTest {
             edgeStore = mock(EdgeStateStorePort.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
             when(store.findCharacters(1L)).thenReturn(List.of(c));
-            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null)));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null, null, null)));
             when(store.findClassBonuses(9L)).thenReturn(List.of(new ClassBonusView(5L, "sad", 60)));
             when(store.findStateLocations(1L)).thenReturn(List.of());
-            return new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L);
+            return new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L).recovery();
         }
 
         /** cos 10, sad 0/50, at an UNSAFE location so nothing heals. */
@@ -118,7 +119,7 @@ class TimeStartRecoveryServiceTest {
             edgeStore = mock(EdgeStateStorePort.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
             when(store.findCharacters(1L)).thenReturn(List.of(roster));
-            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 2, null, null)));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 2, null, null, null, null)));
             when(store.findClassBonuses(9L)).thenReturn(List.of());
             when(store.findStateLocations(1L)).thenReturn(List.of());
             new TimeStartRecoveryService(store, edgeStore).applyAtTimeStart(1L);
@@ -206,7 +207,7 @@ class TimeStartRecoveryServiceTest {
             edgeStore = mock(EdgeStateStorePort.class);
             when(store.loadContext(1L)).thenReturn(Optional.of(new RecoveryMatchContext(9L, 0, 4)));
             when(store.findCharacters(1L)).thenReturn(List.of(frail(30, false)));
-            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null)));
+            when(store.findLocationSafety(9L)).thenReturn(List.of(new LocationSafety(100L, 0, null, null, null, null)));
             when(store.findClassBonuses(9L)).thenReturn(List.of());
             when(store.findStateLocations(1L)).thenReturn(List.of());
 
@@ -235,13 +236,13 @@ class TimeStartRecoveryServiceTest {
                     10L, "char-a", 5L, idLocation,
                     3, 2, 4, 10, 20, 8, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
-                    new LocationSafety(idLocation, 1, 3, 777))); // secure_param=1 -> safe, counterTime=3
+                    new LocationSafety(idLocation, 1, 3, 777, null, null))); // secure_param=1 -> safe, counterTime=3
             when(store.findClassBonuses(idStory)).thenReturn(List.of(
                     new ClassBonusView(5L, "energy", 1)));
             // No existing state-location row → must be seeded (1b path).
             when(store.findStateLocations(idMatch)).thenReturn(List.of());
 
-            List<RecoveryRecap> recaps = service(store).applyAtTimeStart(idMatch);
+            List<RecoveryRecap> recaps = service(store).applyAtTimeStart(idMatch).recovery();
 
             // p = secure_param(1) + difficultyEnergy(2) = 3 ; secureParam=1 ; safe.
             // energy = 10 + dex(3) + p(3) + bonus(1)        = 17 -> delta +7
@@ -251,7 +252,7 @@ class TimeStartRecoveryServiceTest {
             verify(store).updateCharacterStats(idMatch, 10L, 17, 25, 5);
             // counter decremented from 3 -> 2
             verify(store).updateStateLocationCounter(idMatch, idLocation, 2);
-            verify(store, never()).logCounterZero(anyLong(), anyLong(), any(), anyString());
+            verify(store, never()).logCounterZero(anyLong(), anyLong(), any(), any(), anyString());
             assertEquals(1, recaps.size());
             assertEquals(7, recaps.get(0).energyDelta());
             assertEquals(5, recaps.get(0).lifeDelta());
@@ -270,7 +271,7 @@ class TimeStartRecoveryServiceTest {
                     10L, "char-a", null, idLocation,
                     1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
-                    new LocationSafety(idLocation, 0, 1, 777))); // unsafe, counter already at 1
+                    new LocationSafety(idLocation, 0, 1, 777, null, null))); // unsafe, counter already at 1
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
             when(store.findStateLocations(idMatch)).thenReturn(List.of(
                     new StateLocationView(idLocation, 1, 0)));
@@ -278,8 +279,142 @@ class TimeStartRecoveryServiceTest {
             service(store).applyAtTimeStart(idMatch);
 
             verify(store).updateStateLocationCounter(idMatch, idLocation, 0);
-            verify(store).logCounterZero(eq(idMatch), eq(idLocation), eq(777), anyString());
+            verify(store).logCounterZero(eq(idMatch), eq(idLocation), eq(777), any(), anyString());
             verify(store).markStateLocationActivated(idMatch, idLocation);
+        }
+
+        @Test
+        @DisplayName("Step 33: a counter reaching zero hands the event up, with a nominal actor")
+        void counterZeroProducesAPendingEvent() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            long idLocation = 100L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 6)));
+            // Two characters standing there: the lower id is the nominal actor.
+            when(store.findCharacters(idMatch)).thenReturn(List.of(
+                    new RecoveryCharacter(20L, "char-b", null, idLocation,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false),
+                    new RecoveryCharacter(10L, "char-a", null, idLocation,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(idLocation, 0, 1, 777, null, null)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(idLocation, 1, 0)));
+
+            List<LocationEntryPort.PendingAutomaticEvent> pending =
+                    service(store).applyAtTimeStart(idMatch).pending();
+
+            assertEquals(1, pending.size());
+            assertEquals(LocationEntryPort.TRIGGER_COUNTER_ZERO, pending.get(0).trigger());
+            assertEquals(777L, pending.get(0).idEvent());
+            assertEquals(idLocation, pending.get(0).idLocation());
+            assertEquals(10L, pending.get(0).idActorCharacter());
+        }
+
+        @Test
+        @DisplayName("Step 33: a counter in a location nobody stands in has no actor at all")
+        void counterZeroInAnEmptyLocationHasNoActor() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 6)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(
+                    new RecoveryCharacter(10L, "char-a", null, 100L,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
+            // The fuse is in 200, where nobody is. It still runs down: state rows are seeded
+            // for EVERY location at match creation, not only the ones anyone has seen.
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(100L, 0, null, null, null, null),
+                    new LocationSafety(200L, 0, 1, 888, null, null)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(200L, 1, 0)));
+
+            List<LocationEntryPort.PendingAutomaticEvent> pending =
+                    service(store).applyAtTimeStart(idMatch).pending();
+
+            assertEquals(1, pending.size());
+            assertEquals(888L, pending.get(0).idEvent());
+            assertNull(pending.get(0).idActorCharacter());
+        }
+
+        @Test
+        @DisplayName("Step 33: a time unit beginning where somebody stands fires its own trigger")
+        void characterStartTimeTrigger() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 6)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(
+                    new RecoveryCharacter(10L, "char-a", null, 100L,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(100L, 0, null, null, 555, null)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            when(store.findStateLocations(idMatch)).thenReturn(List.of());
+
+            List<LocationEntryPort.PendingAutomaticEvent> pending =
+                    service(store).applyAtTimeStart(idMatch).pending();
+
+            assertEquals(1, pending.size());
+            assertEquals(LocationEntryPort.TRIGGER_CHARACTER_START_TIME, pending.get(0).trigger());
+            assertEquals(555L, pending.get(0).idEvent());
+            assertEquals(10L, pending.get(0).idActorCharacter());
+        }
+
+        @Test
+        @DisplayName("Step 33: priority_automatic_event orders the list, location id breaks ties")
+        void pendingEventsAreOrderedByPriority() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 6)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(
+                    new RecoveryCharacter(10L, "char-a", null, 100L,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(100L, 0, 1, 700, null, 5),
+                    new LocationSafety(200L, 0, 1, 800, null, 1),
+                    new LocationSafety(300L, 0, 1, 900, null, 1)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(100L, 1, 0),
+                    new StateLocationView(200L, 1, 0),
+                    new StateLocationView(300L, 1, 0)));
+
+            List<LocationEntryPort.PendingAutomaticEvent> pending =
+                    service(store).applyAtTimeStart(idMatch).pending();
+
+            assertEquals(List.of(800L, 900L, 700L),
+                    pending.stream().map(LocationEntryPort.PendingAutomaticEvent::idEvent).toList());
+        }
+
+        @Test
+        @DisplayName("Step 33: an exhausted counter stays exhausted — the fuse is one-shot")
+        void anExhaustedCounterNeverRestarts() {
+            RecoveryStorePort store = mock(RecoveryStorePort.class);
+            long idMatch = 1L;
+            long idStory = 9L;
+            long idLocation = 100L;
+            when(store.loadContext(idMatch)).thenReturn(Optional.of(new RecoveryMatchContext(idStory, 0, 6)));
+            when(store.findCharacters(idMatch)).thenReturn(List.of(
+                    new RecoveryCharacter(10L, "char-a", null, idLocation,
+                            1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
+            when(store.findLocationSafety(idStory)).thenReturn(List.of(
+                    new LocationSafety(idLocation, 0, 3, 777, null, null)));
+            when(store.findClassBonuses(idStory)).thenReturn(List.of());
+            // Already consumed: counter 0 AND flag_already_actived 1.
+            when(store.findStateLocations(idMatch)).thenReturn(List.of(
+                    new StateLocationView(idLocation, 0, 1)));
+
+            List<LocationEntryPort.PendingAutomaticEvent> pending =
+                    service(store).applyAtTimeStart(idMatch).pending();
+
+            assertTrue(pending.isEmpty());
+            verify(store, never()).updateStateLocationCounter(anyLong(), anyLong(), anyInt());
+            verify(store, never()).logCounterZero(anyLong(), anyLong(), any(), any(), anyString());
         }
 
         @Test
@@ -294,7 +429,7 @@ class TimeStartRecoveryServiceTest {
                     10L, "char-a", null, idLocation,
                     1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
-                    new LocationSafety(idLocation, 0, 5, null))); // counterTime=5
+                    new LocationSafety(idLocation, 0, 5, null, null, null))); // counterTime=5
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
             // Row exists with clockCounter=0 and flagAlreadyActived=0 (pre-seeded before counter was added)
             when(store.findStateLocations(idMatch)).thenReturn(List.of(
@@ -320,7 +455,7 @@ class TimeStartRecoveryServiceTest {
                     10L, "char-a", null, idLocation,
                     1, 1, 1, 10, 10, 10, 100, 100, 100, false)));
             when(store.findLocationSafety(idStory)).thenReturn(List.of(
-                    new LocationSafety(idLocation, 0, 5, null)));
+                    new LocationSafety(idLocation, 0, 5, null, null, null)));
             when(store.findClassBonuses(idStory)).thenReturn(List.of());
             // Row has clockCounter=0 but flagAlreadyActived=1 (counter already fired)
             when(store.findStateLocations(idMatch)).thenReturn(List.of(
@@ -338,7 +473,7 @@ class TimeStartRecoveryServiceTest {
         void noContext() {
             RecoveryStorePort store = mock(RecoveryStorePort.class);
             when(store.loadContext(1L)).thenReturn(Optional.empty());
-            assertTrue(service(store).applyAtTimeStart(1L).isEmpty());
+            assertTrue(service(store).applyAtTimeStart(1L).recovery().isEmpty());
         }
     }
 

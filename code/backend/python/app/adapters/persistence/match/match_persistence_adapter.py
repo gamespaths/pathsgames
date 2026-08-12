@@ -158,6 +158,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     id_location=r["id_location"],
                     uuid=_new_uuid(),
                     flag_already_actived=r.get("flag_already_actived", 0),
+                    flag_visited=r.get("flag_visited", 0),
                     clock_counter=r.get("clock_counter", 0),
                     ts_insert=now,
                     ts_update=now,
@@ -197,6 +198,7 @@ class MatchPersistenceAdapter(MatchPersistencePort):
                     "id_location": r.id_location,
                     "uuid": r.uuid,
                     "flag_already_actived": r.flag_already_actived,
+                    "flag_visited": r.flag_visited or 0,
                     "clock_counter": r.clock_counter or 0,
                 }
                 for r in rows

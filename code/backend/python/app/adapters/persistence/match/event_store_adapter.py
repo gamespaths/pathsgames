@@ -52,14 +52,13 @@ class EventStoreAdapter(EventStorePort):
         with self.session_factory() as session:
             m = session.query(GamingMatchEntity).filter(
                 GamingMatchEntity.uuid == match_uuid).first()
-            if not m:
-                return None
-            return {
-                "id": m.id, "uuid": m.uuid, "status": m.status,
-                "current_clock": m.current_clock or 0, "id_story": m.id_story,
-                "id_user_creator": m.id_user_creator,
-                "id_current_weather": m.id_current_weather,
-            }
+            return _match_dict(m)
+
+    def find_match_by_id(self, id_match: int) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            m = session.query(GamingMatchEntity).filter(
+                GamingMatchEntity.id == id_match).first()
+            return _match_dict(m)
 
     def find_character_by_match_and_user(self, id_match: int,
                                          id_user: int) -> Optional[Dict[str, Any]]:
@@ -67,6 +66,14 @@ class EventStoreAdapter(EventStorePort):
             c = session.query(GamingCharacterInstanceEntity).filter(
                 GamingCharacterInstanceEntity.id_match == id_match,
                 GamingCharacterInstanceEntity.id_user == id_user).first()
+            return _character_dict(c) if c else None
+
+    def find_character_by_match_and_id(self, id_match: int,
+                                       id_character: int) -> Optional[Dict[str, Any]]:
+        with self.session_factory() as session:
+            c = session.query(GamingCharacterInstanceEntity).filter(
+                GamingCharacterInstanceEntity.id_match == id_match,
+                GamingCharacterInstanceEntity.id == id_character).first()
             return _character_dict(c) if c else None
 
     def find_characters_for_event(self, id_match: int) -> List[Dict[str, Any]]:
@@ -485,6 +492,18 @@ class EventStoreAdapter(EventStorePort):
 
 
 # ── mappers ─────────────────────────────────────────────────────────────────
+
+def _match_dict(m):
+    """Shared by find_match_for_event (by uuid) and find_match_by_id (Step 33)."""
+    if not m:
+        return None
+    return {
+        "id": m.id, "uuid": m.uuid, "status": m.status,
+        "current_clock": m.current_clock or 0, "id_story": m.id_story,
+        "id_user_creator": m.id_user_creator,
+        "id_current_weather": m.id_current_weather,
+    }
+
 
 def _character_dict(c: GamingCharacterInstanceEntity) -> Dict[str, Any]:
     return {

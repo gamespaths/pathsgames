@@ -46,6 +46,11 @@ class GamingStateLocationEntity(Base):
     id_location = Column(Integer, primary_key=True)
     uuid = Column(String(36), unique=True, nullable=False)
     flag_already_actived = Column(Integer, default=0, nullable=False)
+    # Step 33 (V0.33.0) — the PARTY has entered this location at least once. Decides
+    # id_event_if_first_time vs id_event_not_first_time. Deliberately NOT
+    # flag_already_actived, which means "this location's counter has been consumed" and
+    # latches the counter re-seed: overloading it would break both at once.
+    flag_visited = Column(Integer, default=0, nullable=False)
     clock_counter = Column(Integer, default=0)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
@@ -212,6 +217,9 @@ class LogEventsEntity(Base):
     log_message = Column(String(2000))
     # Step 28.7 — clock at time of event; None for pre-28.7 rows.
     clock = Column(Integer)
+    # Step 33 (V0.33.0) — the location a row is about (counter-zero, automatic events),
+    # structured instead of buried in log_message.
+    id_location = Column(Integer)
     ts_insert = Column(String(50), nullable=False)
     ts_update = Column(String(50), nullable=False)
 

@@ -113,8 +113,24 @@ public class EventExecutionStoreAdapter implements EventExecutionStorePort {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<MatchEventView> findMatchById(long idMatch) {
+        return matchRepository.findById(idMatch).map(m -> new MatchEventView(
+                m.getId(), m.getUuid(), m.getStatus(), nz(m.getCurrentClock()),
+                m.getIdStory() == null ? 0L : m.getIdStory(), m.getIdUserCreator(),
+                m.getIdCurrentWeather()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<EventActorView> findCharacterByMatchAndUser(long idMatch, long idUser) {
         return characterRepository.findByIdMatchAndIdUser(idMatch, idUser)
+                .map(EventExecutionStoreAdapter::toActor);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<EventActorView> findCharacterByMatchAndId(long idMatch, long idCharacter) {
+        return characterRepository.findByIdMatchAndId(idMatch, idCharacter)
                 .map(EventExecutionStoreAdapter::toActor);
     }
 

@@ -102,7 +102,9 @@
         "exp": "XP"
       }
     },
-    "map": "Map"
+    "map": "Map",
+    "automatic-event": "Event",
+    "automatic-event-done": "Continue"
   },
   "startMatch": {
     "starting": "Starting match…",
@@ -148,7 +150,9 @@
       "SLEEP": "Sleep",
       "CLOCK_ADVANCE": "Time passes",
       "RECOVERY": "Recovery",
-      "EVENT": "Event"
+      "EVENT": "Event",
+      "COUNTER_ZERO": "Time ran out",
+      "AUTOMATIC_EVENT": "Something happened"
     }
   },
   "card": {
@@ -367,7 +371,12 @@
     "moveToDirection": "Move to",
     "from": "From",
     "to": "To",
-    "backTo": "Back to"
+    "backTo": "Back to",
+    "automaticEvents": {
+      "title": "Time ran out",
+      "anonymous": "Somewhere far away, a time ran out.",
+      "dismiss": "Go on"
+    }
   },
   "footer": {
     "alpha": "This is only an Alpha version. Servers may be unavailable or reset at any time. ",

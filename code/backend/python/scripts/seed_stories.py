@@ -104,17 +104,26 @@ def seed():
             # Step 26: safe location (isSafe=1 -> secure recovery) carrying a time
             # counter so the location-counter decrement/zero path is exercised.
             # Step 28: neighbor edge (cost 2) to location 2 so movement is testable.
+            # Step 33 — the fuse now points at an AUTOMATIC event that actually does
+            # something: Step 26 only ever logged it as pending.
             {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1,
-             "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 1,
+             "idCard": 1, "counterTime": 2, "idEventIfCounterZero": 43,
+             "priorityAutomaticEvent": 1,
+             # flagBack 1 — a two-way door. Without it the edge is one-way and the party
+             # can never walk back, which makes every re-entry behaviour untestable.
              "neighbors": [{"idLocationTo": 2, "direction": "NORTH", "energyCost": 2,
-                            "idCardBack": 1}]},
+                            "idCardBack": 1, "flagBack": 1}]},
             # Step 28: a second location to move into.
             # Step 0.28.5: both locations carry idCard so GET /locations resolves
             # a full `card` for each location and neighbor (as Java/AWS seeds do).
-            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1},
+            # Step 33 — the first arrival here and every later one fire different events.
+            {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect (event 28)
             # can bring a character here, proving the forced movement skips every Step 28 check.
-            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1}
+            # Step 33 — fires only when the arriving character finds it empty.
+            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "idEventIfCharacterEnterFirstTime": 42}
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -215,6 +224,30 @@ def seed():
             {"id": 33, "idTextName": 617, "idTextDescription": 617, "type": "NORMAL",
              "costEnery": 9, "idCard": 1,
              "effects": [{"idCard": 1, "statistics": "exp", "value": 7, "target": "ONLY_ONE"}]},
+            # Step 33 — the events nobody asks for. Named BY the location, through
+            # list_locations.id_event_*, so idSpecificLocation stays absent and /info never
+            # offers them as actions. type='AUTOMATIC' is what the {NORMAL, ONCE} allowlist
+            # already refuses to players. None owns a choice — an automatic event has nobody
+            # to ask and no response to ask in. One recognisable effect each, so a Robot test
+            # can tell which trigger fired.
+            {"id": 40, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 11, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP33_FIRST", "keyValueToAdd": "YES"}]},
+            {"id": 41, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 12, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP33_SUBSEQUENT", "keyValueToAdd": "YES"}]},
+            {"id": 42, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 13, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP33_ALONE", "keyValueToAdd": "YES"}]},
+            # The counter-zero fuse writes a registry key and nothing else: it must still
+            # change the world when it fires in a location nobody is standing in.
+            {"id": 43, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP33_COUNTER", "keyValueToAdd": "YES"}]},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99

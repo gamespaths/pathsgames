@@ -72,7 +72,7 @@ class EventExecutionServiceChainTest {
         when(store.findTraitUuidsById(STORY_ID)).thenReturn(Map.of());
         when(store.loadCheckContext(MATCH_ID, CHAR_ID)).thenReturn(ctx);
         when(timeAdvancementService.forceTimeEnd(MATCH_UUID))
-                .thenReturn(new TimeAdvancementService.TimeEndOutcome(8, List.<TimeAdvancementPort.RecoveryItem>of()));
+                .thenReturn(new TimeAdvancementService.TimeEndOutcome(8, List.<TimeAdvancementPort.RecoveryItem>of(), List.of()));
     }
 
     // ── fixtures ────────────────────────────────────────────────────────────

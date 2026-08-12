@@ -79,6 +79,9 @@ class MatchLocationState:
     uuid: str
     flag_already_actived: int
     clock_counter: int
+    #: Step 33 — the party has entered this location at least once. Not the same as
+    #: flag_already_actived, which means "this location's counter has been consumed".
+    flag_visited: int = 0
 
 
 @dataclass

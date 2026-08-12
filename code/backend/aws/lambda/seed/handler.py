@@ -152,13 +152,20 @@ SEED_STORIES = [
             # appears in the story's card list instead of being an orphan literal.
             {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterTime": 0,
              "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
+            # Step 33 — the fuse now points at an AUTOMATIC event that actually does
+            # something (Step 26 only ever flagged it as pending), and the first arrival
+            # here differs from every later one.
             {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 2,
-             "secureParam": 0, "idEventIfCounterZero": 1, "idCard": 3},
+             "secureParam": 0, "idEventIfCounterZero": 43, "idCard": 3,
+             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41,
+             "priorityAutomaticEvent": 1},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect
             # (event 28) can bring a character here, proving the forced movement
             # skips every Step 28 check.
+            # Step 33 — fires only when the arriving character finds it empty.
             {"id": 3, "uuid": "loc-tutorial-3", "name": "Hidden Grove", "counterTime": 0,
-             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2,
+             "idEventIfCharacterEnterFirstTime": 42},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
         "neighbors": [
@@ -254,6 +261,22 @@ SEED_STORIES = [
             {"id": 28, "uuid": "evt-step29-teleport", "name": "Secret Passage",
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "costEnery": 2, "coinCost": 0, "flagEndTime": 0},
+            # Step 33 — the events nobody asks for. Named BY the location, through its
+            # idEvent* columns, so idSpecificLocation stays absent and /info never offers
+            # them as actions. type AUTOMATIC is what the {NORMAL, ONCE} allowlist already
+            # refuses to players, and none of them owns a choice.
+            {"id": 40, "uuid": "evt-step33-first", "name": "A Door Left Open",
+             "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 41, "uuid": "evt-step33-subsequent", "name": "The Same Door",
+             "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 42, "uuid": "evt-step33-alone", "name": "Nobody Here",
+             "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 43, "uuid": "evt-step33-counter", "name": "The Fuse Burns Out",
+             "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
             # Step 31 — the choice-engine test-bed: executing these answers
             # CHOICES_PENDING (cost paid, marker written, effects withheld). Event 30
             # even carries an effect row that must NEVER run in Step 31; 31 is ONCE.
@@ -369,6 +392,17 @@ SEED_STORIES = [
             {"id": 14, "idEvent": 28, "idCard": 1, "target": "ONLY_ONE", "idLocation": 3},
             # Step 31 — withheld on CHOICES_PENDING: must never apply while pending.
             {"id": 15, "idEvent": 30, "idCard": 1, "statistics": "exp", "value": 99, "target": "ONLY_ONE"},
+            # Step 33 — one recognisable effect per trigger, so a Robot test can tell which
+            # one fired. The counter-zero fuse writes a registry key and nothing else: it
+            # must still change the world when it fires where nobody is standing.
+            {"id": 20, "idEvent": 40, "idCard": 1, "statistics": "exp", "value": 11,
+             "target": "ONLY_ONE", "keyToAdd": "STEP33_FIRST", "keyValueToAdd": "YES"},
+            {"id": 21, "idEvent": 41, "idCard": 1, "statistics": "exp", "value": 12,
+             "target": "ONLY_ONE", "keyToAdd": "STEP33_SUBSEQUENT", "keyValueToAdd": "YES"},
+            {"id": 22, "idEvent": 42, "idCard": 1, "statistics": "exp", "value": 13,
+             "target": "ONLY_ONE", "keyToAdd": "STEP33_ALONE", "keyValueToAdd": "YES"},
+            {"id": 23, "idEvent": 43, "idCard": 1, "target": "ONLY_ONE",
+             "keyToAdd": "STEP33_COUNTER", "keyValueToAdd": "YES"},
         ],
         # Step 15 fields
         "characterTemplates": [

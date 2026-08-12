@@ -221,6 +221,9 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 "secure_param": l.is_safe or 0,
                 "counter_time": l.counter_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
+                # Step 33 — the other time-start trigger, and the ordering column.
+                "id_event_if_character_start_time": l.id_event_if_character_start_time,
+                "priority_automatic_event": l.priority_automatic_event,
             } for l in rows]
 
     def find_class_bonuses(self, id_story: int) -> List[dict]:
@@ -317,9 +320,12 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                                id_event=None, message=message)
 
     def log_counter_zero(self, id_match: int, id_location: int,
-                         id_event_if_counter_zero, message: str) -> None:
+                         id_event_if_counter_zero, clock, message: str) -> None:
+        # Step 33 — without the clock this row sorted outside the timeline, and the
+        # location existed only inside the message string.
         self._insert_log_event(id_match, id_character_match=None,
-                               id_event=id_event_if_counter_zero, message=message)
+                               id_event=id_event_if_counter_zero, message=message,
+                               clock=clock, id_location=id_location)
 
     def log_sleep(self, id_match: int, id_character: int, clock: int) -> None:
         """Write ACTION_SLEEP to log_events with the current clock (Step 28.7)."""
@@ -327,7 +333,7 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                                id_event=None, message="ACTION_SLEEP", clock=clock)
 
     def _insert_log_event(self, id_match: int, id_character_match, id_event,
-                          message: str, clock: int = None) -> None:
+                          message: str, clock: int = None, id_location=None) -> None:
         with self.session_factory() as session:
             max_id = session.query(func.max(LogEventsEntity.id)).scalar() or 0
             now = _now_iso()
@@ -339,6 +345,7 @@ class TimeStoreAdapter(TurnCycleStoreAdapter, TimeStorePort):
                 timestamp=now,
                 id_event=id_event,
                 clock=clock,
+                id_location=id_location,
                 log_message=message,
                 ts_insert=now,
                 ts_update=now,

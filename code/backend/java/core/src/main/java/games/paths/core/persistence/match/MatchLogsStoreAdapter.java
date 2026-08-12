@@ -117,7 +117,8 @@ public class MatchLogsStoreAdapter implements MatchLogsStorePort {
         List<EventLogEntry> out = new ArrayList<>();
         for (LogEventsEntity l : logEventsRepository.findByIdMatchOrderByIdAsc(idMatch)) {
             out.add(new EventLogEntry(l.getId(), l.getIdCharacterMatch(),
-                    l.getClock(), l.getTimestamp(), l.getLogMessage(), l.getIdEvent()));
+                    l.getClock(), l.getTimestamp(), l.getLogMessage(), l.getIdEvent(),
+                    l.getIdLocation()));
         }
         return out;
     }

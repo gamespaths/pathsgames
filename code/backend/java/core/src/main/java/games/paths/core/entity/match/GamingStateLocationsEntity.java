@@ -7,9 +7,20 @@ import jakarta.persistence.*;
  * Schema defined by Flyway migration V0.10.7.
  *
  * <p>Step 19: One row per location of the story is created when the match
- * starts. Tracks whether automatic events at the location have already
- * fired (flag_already_actived) and the residual time counter copied from
+ * starts. Tracks the residual time counter copied from
  * {@code list_locations.counter_time}.</p>
+ *
+ * <p>The two flags mean different things and must not be confused:</p>
+ * <ul>
+ *   <li>{@code flagAlreadyActived} (Step 26) — <b>this location's counter has been
+ *       consumed</b>. It is the latch that makes the counter a one-shot fuse and
+ *       stops an exhausted counter from being re-seeded.</li>
+ *   <li>{@code flagVisited} (Step 33, V0.33.0) — <b>the party has entered this
+ *       location at least once</b>. Decides {@code id_event_if_first_time} versus
+ *       {@code id_event_not_first_time}. Match-scoped, so first entry belongs to
+ *       the match and not to the character; the story's {@code id_location_start}
+ *       is seeded to 1 at match creation.</li>
+ * </ul>
  */
 @Entity
 @Table(name = "gaming_state_locations")
@@ -30,6 +41,10 @@ public class GamingStateLocationsEntity {
     @Column(name = "flag_already_actived", nullable = false)
     private Integer flagAlreadyActived;
 
+    /** Step 33 (V0.33.0) — the party has entered this location at least once. */
+    @Column(name = "flag_visited", nullable = false)
+    private Integer flagVisited;
+
     @Column(name = "clock_counter")
     private Integer clockCounter;
 
@@ -44,6 +59,7 @@ public class GamingStateLocationsEntity {
         String now = java.time.Instant.now().toString();
         if (uuid == null) uuid = java.util.UUID.randomUUID().toString();
         if (flagAlreadyActived == null) flagAlreadyActived = 0;
+        if (flagVisited == null) flagVisited = 0;
         if (clockCounter == null) clockCounter = 0;
         if (tsInsert == null) tsInsert = now;
         if (tsUpdate == null) tsUpdate = now;
@@ -65,6 +81,9 @@ public class GamingStateLocationsEntity {
 
     public Integer getFlagAlreadyActived() { return flagAlreadyActived; }
     public void setFlagAlreadyActived(Integer flagAlreadyActived) { this.flagAlreadyActived = flagAlreadyActived; }
+
+    public Integer getFlagVisited() { return flagVisited; }
+    public void setFlagVisited(Integer flagVisited) { this.flagVisited = flagVisited; }
 
     public Integer getClockCounter() { return clockCounter; }
     public void setClockCounter(Integer clockCounter) { this.clockCounter = clockCounter; }

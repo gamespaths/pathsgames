@@ -64,7 +64,8 @@ class TimeStorePort(TurnCycleStorePort):
     @abstractmethod
     def find_location_safety(self, id_story: int) -> List[Dict[str, Any]]:
         """Per-location {"id_location", "secure_param", "counter_time",
-        "id_event_if_counter_zero"} for the story."""
+        "id_event_if_counter_zero", "id_event_if_character_start_time",
+        "priority_automatic_event"} for the story (the last two are Step 33)."""
 
     @abstractmethod
     def find_class_bonuses(self, id_story: int) -> List[Dict[str, Any]]:
@@ -94,8 +95,13 @@ class TimeStorePort(TurnCycleStorePort):
 
     @abstractmethod
     def log_counter_zero(self, id_match: int, id_location: int,
-                         id_event_if_counter_zero: Optional[int], message: str) -> None:
-        """Audit a counter-zero event (pending execution; wired in Step 29)."""
+                         id_event_if_counter_zero: Optional[int], clock: Optional[int],
+                         message: str) -> None:
+        """Audit a counter-zero event.
+
+        Step 33 fixed two omissions: the row left ``clock`` NULL — unlike ``log_sleep`` —
+        so it landed outside the clock-ordered timeline, and the location id existed only
+        inside the message string. Both are columns now."""
 
     @abstractmethod
     def mark_state_location_activated(self, id_match: int, id_location: int) -> None:
