@@ -370,7 +370,39 @@ visitedLocationIds = { character.id_location for all characters in the match }
 ```
 
 No changes are made to `gaming_state_locations` in Step 28. The full location-entry
-state machine (including `flag_already_actived` for entry events) belongs to Step 32.
+state machine belongs to **[Step 33](./Step33_LocationEntryEvents.md)**, not Step 32 as an
+earlier revision of this section stated, and it does **not** use `flag_already_actived`.
+
+#### Two different notions of "visited" (v0.33.0 clarification)
+
+Step 33 introduces a *stored* visited flag alongside the *derived* set defined above. They
+are not the same thing and must not be conflated:
+
+| | Derived set (this section) | `gaming_state_locations.flag_visited` (Step 33) |
+|---|---|---|
+| Computed | at query time, per request | stored, written on arrival |
+| Keyed by | nothing — rebuilt each call | `(id_match, id_location)` |
+| Serves | fog of war: which nodes the map and `/locations` may reveal | the trigger state machine: `FIRST_ENTRY` vs `SUBSEQUENT_ENTRY` |
+| Scope | the match (union over all characters) | the match — first entry is the **party's**, not the character's |
+
+Step 33 deliberately does **not** reuse `flag_already_actived` for this. That column already
+means *"this location's counter has been consumed"* (Step 26): it is the latch that stops an
+exhausted counter from being re-seeded, so overloading it would break the counters and the
+entry triggers at the same time. `flag_visited` is a separate, additive column, added together
+with `log_events.id_location` by `V0.33.0__location_entry_events.sql`.
+
+**The starting location — settled.** The derived set above includes `character.id_location`,
+so a character's starting location counts as visited from match creation, with no movement
+logged. `flag_visited` is written by the entry resolution, which only runs on an *arrival*,
+so left alone the two would disagree from the first turn — and walking **back** to the
+starting location would fire `FIRST_ENTRY`, announcing as a discovery the place the
+story opened in.
+
+Step 33 resolves this by seeding `flag_visited = 1` on the story's `id_location_start` row at
+match creation, inside the loop that already writes every location's state row. The two
+notions of "visited" then agree everywhere, and returning home correctly fires
+`SUBSEQUENT_ENTRY`. See
+[Step33 §5](./Step33_LocationEntryEvents.md).
 
 ### 6.4 `list_locations_neighbors` — columns read by Step 28
 
@@ -2107,7 +2139,7 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
 
 # Version Control
 
-- **Document Version**: 0.30.3
+- **Document Version**: 0.33.0
 
   | Version | Description | Date |
   |---------|-------------|------|
@@ -2123,9 +2155,10 @@ Full rules, engine files and Robot coverage: [Step29_NormalEvents.md — "Forced
   | 0.29.1 | Movement availability verdict on `GET /api/match/{uuid}/info`: `locationsActive[].neighbors[]` gains `available`/`reason`, mirroring the event verdict pattern (Step 29 §4). New pure checker (`MovementAvailabilityChecker.java` / `movement_availability.py` / AWS `lambda/match/movements.py`) shared by `/info` and `POST movements/start`, so the two can never diverge; same 8 codes and same check order as §3. `MatchQueryService` (and Python/AWS counterparts) load the check context once per request, no query per neighbor. OpenAPI `v0.19.0-match-creation-api.yaml` `LocationNeighborInfo` schema updated. No schema change. | July 13, 2026 |
   | 0.29.3 | Cross-reference only (full documentation in Step29): forced movement via `list_events_effects.id_location` bypasses this entire document's check procedure (§3 adjacency, §4 energy cost, the 0.29.1 availability verdict, location-capacity) and writes a cost-0 `log_movements` row per move, keeping the §6.2 timeline and §14/§15 fog-of-war visited set consistent. See [Step29_NormalEvents.md — "Forced movement (v0.29.3)"](./Step29_NormalEvents.md). | July 17, 2026 |
   | 0.30.3 | Match Logs API gains an `order` query param (`asc`/`desc`, default `asc`, retro-compatible) on both `GET /api/matches/{uuid}/logs` and `GET /api/admin/matches/{uuid}/logs`; case-insensitive/trimmed, unknown values fall back to `asc`. The timeline is reversed with a list `reverse()` (not a descending sort) **before** pagination, so same-timestamp entries are genuinely inverted and the `desc` cursor keeps walking towards older events. Response gains an `order` field reporting the effective order used to cut the page. Java: `MatchLogsPort` (`ORDER_ASC`/`ORDER_DESC`, `order` param, `MatchLogsResult.order`), `MatchLogsService.normalizeOrder()` + `Collections.reverse()`, `MatchLogsController`/`MatchAdminController` `@RequestParam order`, `MatchLogsResponse.order`; OpenAPI `v0.28.7-match-logs-api.yaml` updated. Python: `match_logs_service.py` `normalize_order()` + reverse in `_build_result`, both controllers forward `order`. AWS: `handler.py` `_normalize_logs_order()` + reverse in `_build_match_logs`, both routes read `qs.get('order')`. Frontend clients now request `desc` by default (most-recent-first): `react-game/src/api/matches.js` `getMatchLogs(..., { order = 'desc' })`, `react-admin/src/api/matchApi.js` `getMatchLogs` merges `{ order: 'desc', ...params }`; the server-side default for callers that omit the param stays `asc`. Test status: Java `MatchLogsServiceTest` +7 (`order=asc|desc` nested group) plus controller tests, Python +6 (978 pass), AWS +6 (`tests/test_match_handler_logs.py`, 603 pass), react-game new tests in `src/test/matches.test.js`, react-admin updated `src/tests/api/matchApi.test.js`. | July 21, 2026 |
+  | 0.33.0 | Documentation-only clarification to §6.3, no code change. Corrected the forward reference for the location-entry state machine: it belongs to **Step 33**, not Step 32, and it does **not** use `flag_already_actived` (which means "this location's counter has been consumed", Step 26) but a new additive column `gaming_state_locations.flag_visited` (`V0.33.0__location_entry_events.sql`, which also adds `log_events.id_location`). Added a comparison table separating the two notions of "visited" now in play — the query-time derived set defined in §6.3, which serves fog of war, versus the stored `flag_visited`, which is keyed `(id_match, id_location)` so first entry is the party's and not the character's. Recorded the starting-location rule: the derived set counts a character's starting location as visited from match creation while `flag_visited` is only written on an arrival, so Step 33 seeds `flag_visited = 1` on the story's `id_location_start` at match creation — otherwise walking back to the start would fire `FIRST_ENTRY`. See [Step33_LocationEntryEvents.md](./Step33_LocationEntryEvents.md). | August 12, 2026 |
 
-- **Last Updated**: July 21, 2026
-- **Status**: Complete
+- **Last Updated**: August 12, 2026
+- **Status**: Complete (Step 28 implementation). Step 33 has since shipped and is Complete; §6.3's forward reference to it is no longer a reference to a design-only document.
 
 # < Paths Games />
 All source code and informations in this repository are the result of careful and patient development work by developer team, who has made every effort to verify their correctness to the greatest extent possible. If part of the code or any content has been taken from external sources, the original provenance is always cited, in respect of transparency and intellectual property.

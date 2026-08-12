@@ -1,0 +1,325 @@
+openapi: 3.0.3
+
+info:
+  title: Paths Games - Location entry events (Step 33)
+  description: |
+    # Location entry events — the story acting on its own
+
+    Every gameplay step so far answered a player. Step 33 is the first that does not: the
+    engine fires an event because a character **arrived somewhere**, or because a location's
+    clock **ran out**. There is **no new endpoint and no new player action** here — only new
+    fields on the responses of things that already existed.
+
+    ## What triggers what
+
+    The event is named by the **location**, through columns `list_locations` has carried
+    since `V0.10.3` and nothing had ever read:
+
+    | Column | Fires when |
+    |---|---|
+    | `id_event_if_first_time` | the party arrives here for the **first time in the match** |
+    | `id_event_not_first_time` | any later arrival |
+    | `id_event_if_character_enter_first_time` | the arriving character found **nobody else** here |
+    | `id_event_if_counter_zero` | the location's `counter_time` reached zero (Step 26) |
+    | `id_event_if_character_start_time` | a time unit **began** with somebody standing here |
+    | `priority_automatic_event` | orders the events of one time-start across locations |
+
+    A null column is not a trigger. The referenced event keeps `type = 'AUTOMATIC'`: the
+    executability allowlist is `{NORMAL, ONCE}`, so an engine-driven event is already
+    refused to players and no new type value was needed.
+
+    ## First entry belongs to the party, not to the character
+
+    `gaming_state_locations.flag_visited` (new in `V0.33.0`) is keyed `(id_match,
+    id_location)`. In multiplayer the second arrival therefore gets
+    `SUBSEQUENT_ENTRY`, never `FIRST_ENTRY`: an automatic location event is **ambient** —
+    a door found open, a body discovered, a fire still warm — and the world only does it
+    once. It is not a per-witness cutscene.
+
+    It is deliberately **not** `flag_already_actived`, which means "this location's counter
+    has been consumed" and is the latch that stops an exhausted counter from being
+    re-seeded. Overloading it would break the counters and the entry triggers at once.
+
+    The story's `id_location_start` is seeded `flag_visited = 1` at match creation: the
+    party starts *in* the start, it never enters it, so walking **back** there correctly
+    fires `id_event_not_first_time`.
+
+    ## An automatic event carries effects, never choices
+
+    A choice-owning event does not resolve when executed — [Step 31](./v0.31.0-choices-api.yaml)
+    hands the options back in the HTTP response and [Step 32](./v0.32.0-choice-resolution-api.yaml)
+    resolves them through a second call. An automatic event has neither half: a counter
+    reaching zero answers no one, and an arrival's response is a movement result. Writing
+    `EVENT_EXECUTED` for it would open a cycle no `select-choice` could ever close.
+
+    So it is forbidden at authoring time (`R9_AUTOMATIC_EVENT_CHOICES`, hard-fails the
+    import) and refused at runtime (logged and skipped). Branching narrative stays where a
+    player exists to choose it. An automatic event that needs to lead somewhere uses
+    `id_event_next`, which the chain runner already honours.
+
+    ## Nobody pays, and there may be nobody at all
+
+    No energy, no coins, no availability verdict — the player did not ask for this. A
+    counter-zero fuse belongs to a **location**, and the location may be empty: the engine
+    then runs the event with **no actor**. Registry writes, weather changes and the
+    `id_event_next` chain still apply; the effects that need a recipient are skipped. When
+    characters *are* present, the lowest-id one is the nominal actor and `target: ALL`
+    resolves to everyone standing **there** — never the whole match.
+
+    ## Forced movement is an arrival too
+
+    An effect's `id_location` moves a character, and that move re-enters the trigger
+    resolution — which is why `execute-event` and `select-choice` carry `automaticEvents[]`
+    as well. A story can therefore close a loop (A moves you to B, B moves you back to A).
+    **Not writing one is the author's responsibility**; the engine bounds the cascade at 8
+    arrivals and logs an abort rather than hanging the request.
+
+    ## Fog of war on the wake-up list
+
+    A counter runs down whether or not anyone has ever been to that location — state rows
+    are seeded for **every** location at match creation. Naming a place the player has never
+    seen would hand them the map, so each `counterZero[]` entry carries a `visibility`
+    decided **per recipient**:
+
+    | Recipient's relation to the location | `visibility` | `card` / `cardLocation` / `cardEffects` |
+    |---|---|---|
+    | is standing there | `FULL` | present |
+    | has been there before | `NAMED` | present |
+    | has never been there | `ANONYMOUS` | **omitted** |
+
+    Since v0.33.1 an entry carries three cards rather than one — the event's (`card`), the
+    effect rows it applied (`cardEffects`, each with its own card), and the place
+    (`cardLocation`) — and all three follow the same rule: `FULL` and `NAMED` hear
+    everything, `ANONYMOUS` hears only that *something* happened *somewhere*.
+
+    The cards are not merely hidden by the client — they never leave the server. Note the
+    asymmetry, because it is the whole design in one line: *whether the event fires* is a
+    property of the match, while *what each player is told about it* is a property of the
+    recipient.
+
+    ## Multiplayer
+
+    Time advances **once per match**, when every character is asleep or out of energy, so
+    only the player who closes the cycle has an open request at that instant. `counterZero[]`
+    is therefore complete for single-player and a fast path in multiplayer; the full
+    delivery arrives with the WebSocket broker of Steps 49-54, broadcasting the same payload
+    on `/topic/match/{matchId}`. The engine builds the list **unfiltered** and the delivery
+    layer applies `visibility` once per recipient, precisely so that step is a wiring job
+    rather than a rewrite.
+
+    ## Endpoints touched (no new ones)
+
+    | Endpoint | New field |
+    |---|---|
+    | `POST /api/gameplay/{uuidMatch}/movements/start` | `automaticEvents[]` |
+    | `POST /api/gameplay/{uuidMatch}/action/execute-event` | `automaticEvents[]` |
+    | `POST /api/gameplay/{uuidMatch}/action/select-choice` | `automaticEvents[]` |
+    | `POST /api/gameplay/{uuidMatch}/action/sleep` | `counterZero[]` |
+    | `GET /api/match/{uuidMatch}/info` | `locations[].flagVisited` |
+    | `GET /api/matches/{uuid}/logs` | `COUNTER_ZERO` and `AUTOMATIC_EVENT` types |
+
+    ## Log timeline fix
+
+    `logCounterZero` used to leave `log_events.clock` NULL — unlike `logSleep` — so the row
+    was visible but **unsortable**, landing outside the clock-ordered timeline. It also
+    buried the location id inside the message string. Both are columns now
+    (`log_events.id_location` is new in `V0.33.0`), and the row is typed `COUNTER_ZERO`
+    instead of being folded into `RECOVERY`, which it never was.
+  version: 0.33.0
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0
+
+servers:
+  - url: http://localhost:8042
+    description: Local development (public port)
+
+tags:
+  - name: Gameplay
+    description: Automatic location events (Step 33) — no new endpoints
+
+components:
+  schemas:
+
+    AutomaticEvent:
+      type: object
+      description: |
+        One automatic location event the engine fired. Rides on every response that can
+        cause an arrival.
+      properties:
+        trigger:
+          type: string
+          enum: [FIRST_ENTRY, SUBSEQUENT_ENTRY, FIRST_IN_LOCATION, COUNTER_ZERO, CHARACTER_START_TIME]
+          description: Why it fired.
+          example: FIRST_ENTRY
+        idLocation:
+          type: integer
+          format: int64
+          description: The location whose column named this event.
+          example: 90002
+        eventUuid:
+          type: string
+          description: The event that ran; index 0 of its own chain.
+          example: 6b1f7a2c-6f3e-4a5d-9c11-0b2d3e4f5a60
+        card:
+          $ref: '#/components/schemas/CardInfo'
+        effects:
+          type: array
+          description: The effect rows applied, in chain order.
+          items:
+            $ref: '#/components/schemas/AppliedEffect'
+        statChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatChange'
+        locationChanges:
+          type: array
+          description: Characters this event moved. Each move is itself an arrival.
+          items:
+            $ref: '#/components/schemas/LocationChange'
+        gameOver:
+          type: boolean
+          description: The event was the story's `id_event_end_game`.
+
+    CounterZeroItem:
+      type: object
+      description: |
+        One automatic event a time-start fired, **as told to this caller**. A list, because
+        several counters can run out on the same time-start.
+      properties:
+        trigger:
+          type: string
+          enum: [COUNTER_ZERO, CHARACTER_START_TIME]
+        idLocation:
+          type: integer
+          format: int64
+          example: 90001
+        card:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+          description: |
+            The **event's** card — what happened. **Absent** when `visibility` is
+            `ANONYMOUS`, together with the other two: a name that never leaves the server
+            cannot leak, and neither can what happened in a place the player cannot know.
+
+            Until v0.33.1 this field carried the *location's* card, so the player woke to
+            the name of a place instead of the news; the place moved to `cardLocation`.
+        cardLocation:
+          allOf:
+            - $ref: '#/components/schemas/CardInfo'
+          nullable: true
+          description: |
+            The location's card — `list_locations.id_card`, which is how a place has been
+            named since v0.28.5. Null when `ANONYMOUS`, and null when the location authors
+            no card of its own.
+        cardEffects:
+          type: array
+          description: |
+            The effect rows the event applied, in chain order — same shape
+            `execute-event` returns. Each row's **own** card is the narrative the board
+            renders. Empty when `ANONYMOUS`, and empty when the event applied nothing.
+          items:
+            $ref: '#/components/schemas/AppliedEffect'
+        eventUuid:
+          type: string
+        clock:
+          type: integer
+          description: The new clock the time-start advanced to.
+          example: 7
+        visibility:
+          type: string
+          enum: [FULL, NAMED, ANONYMOUS]
+          description: |
+            `FULL` the recipient is standing there, `NAMED` they have been there before,
+            `ANONYMOUS` they never have.
+
+    LocationTriggerColumns:
+      type: object
+      description: |
+        The `list_locations` columns the engine reads. Authored through admin CRUD and story
+        import; all nullable, and a null column is simply not a trigger. Validated by
+        `R9_AUTOMATIC_EVENT_CHOICES` and `R9_AUTOMATIC_EVENT_TYPE`.
+      properties:
+        idEventIfFirstTime:
+          type: integer
+          nullable: true
+        idEventNotFirstTime:
+          type: integer
+          nullable: true
+        idEventIfCharacterEnterFirstTime:
+          type: integer
+          nullable: true
+        idEventIfCharacterStartTime:
+          type: integer
+          nullable: true
+        idEventIfCounterZero:
+          type: integer
+          nullable: true
+        priorityAutomaticEvent:
+          type: integer
+          nullable: true
+          description: Lower runs first; ties broken by location id.
+
+    LocationStateFlags:
+      type: object
+      description: |
+        The two flags of `gaming_state_locations`, which mean different things and must not
+        be confused.
+      properties:
+        flagAlreadyActived:
+          type: integer
+          description: Step 26 — this location's **counter has been consumed**. One-shot latch.
+          example: 0
+        flagVisited:
+          type: integer
+          description: |
+            Step 33 — the **party** has entered this location at least once. Match-scoped,
+            so first entry is the match's and not the character's. Seeded to 1 on the story's
+            `id_location_start` at match creation.
+          example: 1
+        clockCounter:
+          type: integer
+
+    # ── referenced shapes, defined in full in the specs that own them ──
+
+    CardInfo:
+      type: object
+      description: See `v0.16.0-content-detail-api.yaml`.
+      properties:
+        idCard: { type: integer }
+        title: { type: string }
+        description: { type: string }
+
+    AppliedEffect:
+      type: object
+      description: See `v0.29.0-events-api.yaml`.
+      properties:
+        eventUuid: { type: string }
+        effectUuid: { type: string }
+        statistic: { type: string }
+        value: { type: integer }
+        target: { type: string }
+        characterUuids:
+          type: array
+          items: { type: string }
+        card:
+          $ref: '#/components/schemas/CardInfo'
+
+    StatChange:
+      type: object
+      description: See `v0.29.0-events-api.yaml`.
+      properties:
+        characterUuid: { type: string }
+        statistic: { type: string }
+        before: { type: integer }
+        after: { type: integer }
+        delta: { type: integer }
+
+    LocationChange:
+      type: object
+      description: See `v0.29.0-events-api.yaml`.
+      properties:
+        characterUuid: { type: string }
+        fromLocationUuid: { type: string, nullable: true }
+        toLocationUuid: { type: string }

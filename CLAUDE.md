@@ -9,6 +9,8 @@ narratives. The repo holds several backends (Java is the reference implementatio
 and AWS track it), a React admin frontend, a React game frontend, and Robot Framework E2E
 tests — all sharing one REST API contract.
 
+Every time you run, always use `caveman` subagent, ALWAYS!
+
 ## Read on demand (do NOT preload)
 
 | Need | File |

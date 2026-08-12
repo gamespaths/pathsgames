@@ -36,7 +36,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 21 | [Character selection](./Step21_CharacterSelection.md) | ✅ | Character template & class selection (join, players, character detail) |
 | 22 | [Story validation](./Step22_StoryValidation.md) | ✅ | Story integrity validator — import hard-fail, lenient CRUD, validate endpoint |
 | 23 | [Character stats initialization](./Step23_CharacterStatsInitialization.md) | ✅ | Trait listing by class, trait cost budgets, strict trait validation on match create/join |
-| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, WAITING/ACTIVE/COMPLETED state machine, pass action, turn-sequence query |
+| 24 | [Turn cycle engine](./Step24_TurnCycleEngine.md) | ✅ | Priority formula, queue init on match start, pass action, turn-sequence query |
 | 25 | [Time clock cycle](./Step25_TimeAdvancementClockCycle.md) | ✅ | Time Advancement & Clock Cycle: sleep action, time-end trigger, clock increment |
 | 26 | [Time-start recovery](./Step26_TimeStartRecovery.md) | ✅ | Per-character stat recovery at time-start, class bonuses, location counter decrements; counter re-seed bugfix |
 | 27 | [Weather System](./Step27_WeatherSystem.md) | ✅ | Weather System with random selection & effects | 
@@ -45,10 +45,10 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 30 | [Edge states](./Step30_EdgeStates.md) | ✅ | Sadness overflow & coma rules, `clock_in_coma` stamp, all-players-in-coma story event |
 | 31 | [Choice engine](./Step31_ChoiceEngine.md) | ✅ | Choice-owning events branch `execute-event` to `CHOICES_PENDING` & `ChoiceAvailabilityChecker`
 | 32 | [Choice resolution](./Step32_ChoiceResolution.md) | ✅ | Select choice engine applies choices effects |
+| 33 | [Location entry events](./Step33_LocationEntryEvents.md) | ✅ | Automatic triggers bind on columns; counter-zero finally executed; `flag_visited`  |
 
 | Steps | Phase |
 | -- | -- |
-| 28-33 | Game mechanics — movement, events, choices & Edge states |
 | 34-38 | Game mechanics — inventory, resources, registry, missions, experience |
 | 40 | Logging & snapshots |
 | 41 | Frontend: single-player game board and gameplay UI |
@@ -72,17 +72,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-33. Location entry events — automatic triggers
-    - Implement event trigger evaluation on location entry: AUTOMATIC_FIRST_ENTRY for first visit (backend)
-    - Implement AUTOMATIC_SUBSEQUENT_ENTRY trigger for repeat visits using gaming_state_locations.flag_already_actived (backend)
-    - Implement AUTOMATIC_FIRST_IN_LOCATION trigger when character enters empty location (no other characters present) (backend)
-    - Execute event effects: modify stats, add/remove items, update registry, change character location (backend)
-    - Handle event chaining via id_event_next with interrupt flag to stop subsequent events (backend)
-    - Implements/execute events runned from zero-counter developed on 26 step and execute event. 
-    - Update gaming_state_locations to mark location as visited and log event execution in log_events (backend)
-    - Write backend unit tests for all automatic trigger types, event effects, chaining, interrupts, and state updates (backend tests)
-
-34. Inventory and item management
+34. Inventory and item management (check if componets already exists)
     - Implement GET /gameplay/{uuid_match}/inventory endpoint listing active character items with weight and effects (backend)
     - Implement POST /gameplay/{uuid_match}/inventory/use-item endpoint to use a consumable item (backend)
     - Implement POST /gameplay/{uuid_match}/inventory/drop-item endpoint to discard or send an item (backend)
@@ -91,7 +81,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Create log_item_usage record with character, item, effects, and timestamp (backend)
     - Write backend unit tests for inventory listing, item usage, discard, class restrictions, effect application, and weight calculation (backend tests)
     - manage effect (event and coices) add/remove items!
-35. Resource management — food, magic, coins, weight
+35. Resource management — food, magic, coins, weight (check if componets already exists)
     - Implement GET /matches/{uuid}/characters/{uuid}/resources endpoint returning food, magic, coins, total weight (backend)
     - Implement resource modification through events and choices: add/subtract food, magic, coins respecting minimums (backend)
     - Calculate total weight: food + magic + sum(item_weights); validate coins have zero weight (backend)
@@ -99,7 +89,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
     - Block movement when total weight exceeds maximum capacity (integrate with movement validation) (backend)
     - Build frontend resource display component showing food, magic, coins, weight bar, and capacity limit (frontend)
     - Write backend unit tests for resource modification, weight calculation, capacity formula, and movement blocking (backend tests)
-36. Registry system — key-value game state tracking
+36. Registry system — key-value game state tracking (check if componets already exists)
     - Implement GET /matches/{uuid}/registry endpoint returning all visible registry entries grouped by category (backend)
     - Implement registry update service used by events, choices, and game engine to set/modify key-value pairs (backend)
     - Support registry value types: boolean (YES/NO) and numeric (integer values) (backend)

@@ -1,0 +1,50 @@
+-- =============================================
+-- Paths Games - Database Schema V0.33.0 (SQLite)
+-- Step 33 - Location entry events (automatic triggers).
+--
+-- Two additive columns, no backfill, no behaviour change until a story
+-- actually authors a trigger.
+--
+--   gaming_state_locations.flag_visited
+--       "the party has entered this location at least once", keyed
+--       (id_match, id_location) like the rest of the table. It decides
+--       list_locations.id_event_if_first_time versus id_event_not_first_time.
+--
+--       It is DELIBERATELY NOT flag_already_actived. That column means "this
+--       location's counter has been consumed" (Step 26) and is the latch that
+--       stops an exhausted counter from being re-seeded
+--       (TimeStartRecoveryService block 1a). Overloading it would break the
+--       counters and the entry triggers at the same time, in opposite
+--       directions: entering a location would strand a counter that was never
+--       consumed, and a counter reaching zero would make a location the party
+--       has never seen look already visited.
+--
+--       First entry is therefore the PARTY's, not the character's: in
+--       multiplayer the second arrival gets id_event_not_first_time, because an
+--       automatic location event is ambient - the world does it once. A
+--       per-character reading would need a table keyed on three columns and is
+--       a deliberate non-goal.
+--
+--       Match creation seeds 1 on the story's id_location_start, so walking
+--       BACK to where the story opened never announces it as a discovery.
+--
+--   log_events.id_location
+--       the location a log row is about, structured instead of buried in
+--       log_message. Written by the counter-zero row (which until now also
+--       left clock NULL, so it landed outside the clock-ordered timeline) and
+--       by the automatic-event rows.
+--
+-- No migration is needed for list_events.type: the executability gate is an
+-- allowlist ({NORMAL, ONCE}), so an engine-driven event keeps type='AUTOMATIC'
+-- and is already refused to players. The five trigger columns on list_locations
+-- (id_event_if_counter_zero, id_event_if_character_start_time,
+-- id_event_if_character_enter_first_time, id_event_if_first_time,
+-- id_event_not_first_time) and priority_automatic_event have existed since
+-- V0.10.3 and are finally read by the engine in this step.
+-- =============================================
+-- (C) Paths Games 2042 - All rights reserved - See https://github.com/gamespaths/pathsgames
+-- =============================================
+
+ALTER TABLE gaming_state_locations ADD COLUMN flag_visited INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE log_events ADD COLUMN id_location INTEGER;

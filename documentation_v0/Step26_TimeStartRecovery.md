@@ -12,8 +12,10 @@ characters and rebuilding the turn queue (the "time-start" moment), the backend 
 3. Seeds a `gaming_state_locations` row for any occupied location that carries a
    `counter_time > 0` but has no row yet, then decrements every existing
    `clock_counter > 0`; when a counter reaches zero it logs the location's
-   `id_event_if_counter_zero` as a PENDING event (actual event execution is wired
-   in Step 29).
+   `id_event_if_counter_zero` as a PENDING event. **Update (v0.33.0):** this stayed
+   a dead end through Step 29 as well — the pending event was executed only starting
+   with [Step 33](./Step33_LocationEntryEvents.md), which also adds the
+   `id_event_if_character_start_time` trigger for the same time-start pass.
 4. Surfaces a per-character recovery recap (`energyDelta`, `lifeDelta`, `sadDelta`)
    on the `POST /api/gameplay/{uuidMatch}/action/sleep` response under a new
    `recovery` array.
@@ -42,7 +44,8 @@ Step 26 covers the following items from the Roadmap:
   (`V0.26.0`) so the recovery engine can look up bonuses at time-start.
 - Seeding and decrementing `gaming_state_locations.clock_counter`. When a counter
   reaches zero, the location's `id_event_if_counter_zero` is logged in `log_events`
-  as a pending entry (stub; event execution deferred to Step 29).
+  as a pending entry (stub; event execution deferred — actually executed starting
+  with [Step 33](./Step33_LocationEntryEvents.md), see §6.5).
 - Per-character recovery recap on the sleep response (`recovery[]` array).
 - Frontend `LocationCard` showing `clockCounter` as a statistic badge when `> 0`.
 - Frontend react-admin `MatchDetailPage` showing the `gaming_state_locations` table
@@ -347,9 +350,16 @@ now expose `flagAlreadyActived` so the service can perform this check.
 ### 6.5 Pending counter-zero events (stub)
 
 When `clock_counter` reaches `0`, `logCounterZero` writes a row to `log_events` with
-type PENDING and the `id_event_if_counter_zero` as a reference. The actual execution of
-the event (trigger evaluation, effect application, chaining) is deferred to Step 29.
-Step 26 guarantees only that the event id is recorded.
+type PENDING and the `id_event_if_counter_zero` as a reference. Step 26 guarantees only
+that the event id is recorded; no trigger evaluation, effect application, or chaining
+happens here.
+
+**Update (v0.33.0):** this dead end is closed. [Step 33](./Step33_LocationEntryEvents.md)
+executes the pending event through the same chain runner used for its (new)
+arrival-triggered events, fixes `logCounterZero` to also stamp `clock` and a structured
+`idLocation` (both were missing, which left the row unsortable in the match-logs
+timeline — see Step33 §7), and types the row `COUNTER_ZERO` instead of the generic
+`RECOVERY` label `MatchLogsService` used to give it.
 
 ---
 
@@ -525,9 +535,11 @@ No new endpoints. No status codes removed or added.
    Subsequent calls to `applyAtTimeStart` skip that location in step 6a, so the counter
    is never re-seeded after it has fired.
 
-4. **Counter-zero event execution is deferred to Step 29.** Step 26 only writes the
+4. **Counter-zero event execution is deferred.** Step 26 only writes the
    pending audit row to `log_events`. No event handler, stat change, or choice
-   presentation is triggered in this step.
+   presentation is triggered in this step. **Update (v0.33.0):** closed by
+   [Step 33](./Step33_LocationEntryEvents.md), which finally executes the pending
+   event — this limitation applied through Step 29 as well, not only to Step 26.
 
 5. **Python column name difference.** Python's `list_locations` model uses `is_safe`
    (treated as numeric `secure_param`). The counter column is now unified as

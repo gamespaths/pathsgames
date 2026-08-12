@@ -314,6 +314,38 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 -- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
 
+-- ── Step 33 Events — the ones nobody asks for ───────────────────
+-- Named BY the location through list_locations.id_event_*, so id_specific_location stays
+-- NULL and /info never offers them as actions. type='AUTOMATIC' is what the {NORMAL, ONCE}
+-- allowlist already refuses to players. None of them owns a choice — an automatic event has
+-- nobody to ask and no response to ask in.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES (90040, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES (90041, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES (90042, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES (90043, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next) VALUES (90044, 9001, 90001, 503, 503, NULL, 'AUTOMATIC', 0, 0, 0, NULL);
+
+-- One recognisable effect each, so a Robot test can tell which trigger fired (the effect
+-- ids mirror their event ids: the 900xx range below 90030 is already spoken for). The
+-- counter-zero fuse writes a registry key and nothing else: it must still change the world
+-- when it fires in a location nobody is standing in.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, key_to_add, key_value_to_add) VALUES (90040, 9001, 90040, 90001, 'exp', 11, 'ONLY_ONE', 'STEP33_FIRST', 'YES');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, key_to_add, key_value_to_add) VALUES (90041, 9001, 90041, 90001, 'exp', 12, 'ONLY_ONE', 'STEP33_SUBSEQUENT', 'YES');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, key_to_add, key_value_to_add) VALUES (90042, 9001, 90042, 90001, 'exp', 13, 'ONLY_ONE', 'STEP33_ALONE', 'YES');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, key_to_add, key_value_to_add) VALUES (90043, 9001, 90043, 90001, NULL, 0, 'ONLY_ONE', 'STEP33_COUNTER', 'YES');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, key_to_add, key_value_to_add) VALUES (90044, 9001, 90044, 90001, 'exp', 14, 'ONLY_ONE', 'STEP33_STARTTIME', 'YES');
+
+-- ── Step 33 location triggers ───────────────────────────────────
+-- 90002 Movement Training Room: the first arrival and every later one differ.
+-- 90003 Energy & Life Classroom: fires only when the arriving character finds it empty.
+-- 90001 Welcome Hall: the start, which already carries counter_time = 2, so its fuse burns
+--       down over two time-starts and finally executes something (Step 26 only logged it).
+-- 90004 Item Workshop: a time unit BEGINNING with somebody standing there.
+UPDATE list_locations SET id_event_if_first_time = 90040, id_event_not_first_time = 90041 WHERE id = 90002 AND id_story = 9001;
+UPDATE list_locations SET id_event_if_character_enter_first_time = 90042 WHERE id = 90003 AND id_story = 9001;
+UPDATE list_locations SET id_event_if_counter_zero = 90043, priority_automatic_event = 1 WHERE id = 90001 AND id_story = 9001;
+UPDATE list_locations SET id_event_if_character_start_time = 90044, priority_automatic_event = 2 WHERE id = 90004 AND id_story = 9001;
+
 -- ── Story 1 Choices ─────────────────────────────────────────────
 INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90001, 9001, 90004, 1, 600, 600, 0, 1);
 INSERT INTO list_choices (id, id_story, id_event, priority, id_text_name, id_text_description, otherwise_flag, is_progress) VALUES (90002, 9001, 90004, 2, 601, 601, 0, 1);

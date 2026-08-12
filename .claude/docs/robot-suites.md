@@ -29,6 +29,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `30_edge_states` | Step 30 sadness overflow / coma edge states |
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
+| `33_location_events` | Step 33 automatic location events (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -100,6 +101,37 @@ The test-bed (seeded NORMAL `90032` cost 3, outcome event `90033` cost 9) is add
 **behaviour** (the location-bound choice-event whose options carry a narrative), never by
 uuid; every case runs on its **own match** (`Fresh Resolution Match`), since opening latches
 the `EVENT_EXECUTED` marker and resolving latches the `CHOICE_SELECTED` one.
+
+### `33_location_events` breakdown
+
+`location_events.robot` (12 tests) — the events nobody asks for. No new endpoint: only new
+fields on responses that already existed. First entry vs subsequent entry on the same
+location (`flagVisited` latches on arrival, so the ambient event happens **once**); the
+start location never firing a first entry when the party walks back (match creation seeds
+it visited); `flagVisited` surfacing on `/info` `locations[]`; an `AUTOMATIC` event never
+appearing among the actions `/info` offers; the `AUTOMATIC_EVENT` log entry; and the
+counter-zero half — the fuse Step 26 only ever *logged* now executing, reported in
+`counterZero[]` with a fog-of-war `visibility` (`ANONYMOUS` carries **none of the three
+cards**), typed `COUNTER_ZERO` in the timeline **with a clock** (it used to be NULL, so the
+row sorted outside it), and never restarting once consumed. Both new list fields are asserted
+present even when empty, so the board never has to tell "nothing fired" from "old backend".
+
+`counter_zero_cards.robot` (v0.33.1, 6 tests) — the three cards of a counter-zero notice.
+Step 33 sent one card per entry, the **location's**; the event's own card and its applied
+effects were computed and then discarded, so the player woke to the name of a place instead
+of the news. Now `card` is the **event's**, `cardEffects[]` carries one `AppliedEffect` per
+effect row — each with its own card, the narrative the board renders, same shape
+`execute-event` returns — and `cardLocation` holds what `card` used to. The suite asserts all
+three keys are present, that each card resolves against the content API, that the effect rows
+belong to the event the notice names, and that an ordinary sleep still returns an empty list.
+Fog of war is not re-tested here — `location_events.robot` owns it. The dev seed points the
+event, its effect row and the location at the **same** authored card, so the three cannot be
+told apart by identity; presence and resolution are what regressed and what is checked.
+
+Triggers are addressed by **behaviour** (the trigger name the response reports), never by
+seeded event uuid, so the suite runs unchanged against backends whose seed ids differ. Each
+case mints its own guest and its own match — `flagVisited` and the counter are both
+per-match latches.
 
 ## Seed data and reports per backend
 
