@@ -123,7 +123,7 @@ describe('GameBook — Step 33 arrivals', () => {
     globalThis.__moveResult = {
       automaticEvents: [
         automaticEvent('FIRST_ENTRY', 'A door left open'),
-        automaticEvent('FIRST_IN_LOCATION', 'Nobody else is here'),
+        automaticEvent('MOVE_INTO_EMPTY_LOCATION', 'Nobody else is here'),
       ],
     }
     render(<GameBook gameData={GAME_DATA} matchUuid="m1" story={STORY}

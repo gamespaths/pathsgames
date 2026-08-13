@@ -150,24 +150,40 @@ SEED_STORIES = [
             # Step 27.x — locations reference a real card via idCard; the card is
             # resolved from raw_cards at seed time (see _seed_stories), so it also
             # appears in the story's card list instead of being an orphan literal.
-            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterTime": 0,
-             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
             # Step 33 — the fuse now points at an AUTOMATIC event that actually does
-            # something (Step 26 only ever flagged it as pending), and the first arrival
-            # here differs from every later one.
-            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 2,
-             "secureParam": 0, "idEventIfCounterZero": 43, "idCard": 3,
-             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41,
+            # something (Step 26 only ever flagged it as pending).
+            # v0.33.2 — the fuse sits on the START location, as it does in the Java and
+            # Python seeds. A notice about a place the recipient has never seen is
+            # ANONYMOUS and travels stripped of every card — correct fog of war, but then
+            # no seed anywhere exercises the FULL branch that carries the three cards.
+            {"id": 1, "uuid": "loc-tutorial-1", "name": "Welcome Hall", "counterTime": 2,
+             "secureParam": 1, "idEventIfCounterZero": 43, "idCard": 2,
              "priorityAutomaticEvent": 1},
+            # Step 33 — the first arrival here differs from every later one.
+            {"id": 2, "uuid": "loc-tutorial-2", "name": "Practice Yard", "counterTime": 0,
+             "secureParam": 0, "idEventIfCounterZero": None, "idCard": 3,
+             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect
             # (event 28) can bring a character here, proving the forced movement
-            # skips every Step 28 check.
-            # Step 33 — fires only when the arriving character finds it empty.
+            # skips every Step 28 check. Which is also why it can host no entry
+            # trigger: a trigger nobody can walk into is one no end-to-end test reads.
             {"id": 3, "uuid": "loc-tutorial-3", "name": "Hidden Grove", "counterTime": 0,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2},
+            # v0.33.2 — the two triggers that are not history-based, each on a walkable
+            # location. 4 fires when the arriving character finds the room empty
+            # (OCCUPANCY — in single-player, every arrival).
+            {"id": 4, "uuid": "loc-tutorial-4", "name": "Empty Cellar", "counterTime": 0,
              "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2,
-             "idEventIfCharacterEnterFirstTime": 42},
+             "idEventIfCharacterEnterEmptyLocation": 42},
+            # 5 fires when a time unit BEGINS with somebody standing here, so it is
+            # reported on the sleep that advanced the clock, not on a movement.
+            {"id": 5, "uuid": "loc-tutorial-5", "name": "Sundial Court", "counterTime": 0,
+             "secureParam": 1, "idEventIfCounterZero": None, "idCard": 2,
+             "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
         ],
         # Step 27.x — neighbor links between locations (bidirectional 1<->2)
+        # v0.33.2 — extended into a walkable chain 1 <-> 2 <-> 4 <-> 5 so the entry
+        # triggers of 4 and 5 are reachable on foot.
         "neighbors": [
             {"id": 1, "uuid": "nb-tutorial-1", "idLocationFrom": 1, "idLocationTo": 2,
              "direction": "N", "flagBack": 1, "energyCost": 1, "idCard": None,
@@ -175,6 +191,16 @@ SEED_STORIES = [
              # locationTo (2); resolves to catalog card 2 (Welcome Hall).
              "idCardBack": 2,
              "card": {"title": "To the Practice Yard", "description": "A short walk north.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
+            {"id": 2, "uuid": "nb-tutorial-2", "idLocationFrom": 2, "idLocationTo": 4,
+             "direction": "E", "flagBack": 1, "energyCost": 0, "idCard": None,
+             "idCardBack": 3,
+             "card": {"title": "Down to the Cellar", "description": "Nobody has been here in a while.",
+                      "urlImage": None, "awesomeIcon": "fas fa-arrow-right"}},
+            {"id": 3, "uuid": "nb-tutorial-3", "idLocationFrom": 4, "idLocationTo": 5,
+             "direction": "N", "flagBack": 1, "energyCost": 0, "idCard": None,
+             "idCardBack": 2,
+             "card": {"title": "Out to the Sundial", "description": "The hours are marked in stone.",
                       "urlImage": None, "awesomeIcon": "fas fa-arrow-up"}},
         ],
         "keys": [
@@ -275,6 +301,10 @@ SEED_STORIES = [
              "type": "AUTOMATIC", "idCard": 1,
              "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
             {"id": 43, "uuid": "evt-step33-counter", "name": "The Fuse Burns Out",
+             "type": "AUTOMATIC", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            # v0.33.2 — the time-start trigger of location 5.
+            {"id": 44, "uuid": "evt-step33-starttime", "name": "The Hour Turns",
              "type": "AUTOMATIC", "idCard": 1,
              "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
             # Step 31 — the choice-engine test-bed: executing these answers
@@ -384,7 +414,9 @@ SEED_STORIES = [
             {"id": 13, "idEvent": 26, "idCard": 1, "statistics": "coin",  "value": 9, "target": "ONLY_ONE"},
             # Step 32 — the outcome event (33) an option runs: proves the linked chain
             # really applies, and that its own cost was never charged.
-            {"id": 20, "idEvent": 33, "idCard": 1, "statistics": "exp", "value": 7,
+            # v0.33.2 — was id 20, which the Step 33 block below reused: a collision nothing
+            # noticed while no effect row was ever addressed by its own identity.
+            {"id": 16, "idEvent": 33, "idCard": 1, "statistics": "exp", "value": 7,
              "target": "ONLY_ONE"},
             # v0.29.3 — forced movement: sends the actor to the Hidden Grove (3), a location
             # with no neighbor edge at all — no checks, no movement cost, only the event's
@@ -403,6 +435,8 @@ SEED_STORIES = [
              "target": "ONLY_ONE", "keyToAdd": "STEP33_ALONE", "keyValueToAdd": "YES"},
             {"id": 23, "idEvent": 43, "idCard": 1, "target": "ONLY_ONE",
              "keyToAdd": "STEP33_COUNTER", "keyValueToAdd": "YES"},
+            {"id": 24, "idEvent": 44, "idCard": 1, "statistics": "exp", "value": 14,
+             "target": "ONLY_ONE", "keyToAdd": "STEP33_STARTTIME", "keyValueToAdd": "YES"},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -958,6 +992,27 @@ def _enrich_locations_with_cards(locations, raw_cards, raw_texts):
     return enriched
 
 
+def _ensure_effect_uuids(effects, prefix):
+    """Give every effect row a stable uuid, derived from its id.
+
+    An effect row is addressed by uuid on the way OUT: every AppliedEffect the engine
+    reports — from execute-event, from a resolved choice, from an automatic event —
+    carries `effectUuid`, read straight off the row. The SQL backends get that uuid from
+    a column; here the seed IS the schema, and no row ever declared one, so every
+    AppliedEffect AWS has ever returned named a null effect.
+
+    Derived from the id rather than random so a reseed does not rename rows that
+    already travelled to a client.
+    """
+    out = []
+    for effect in effects:
+        effect = dict(effect)
+        if not effect.get("uuid"):
+            effect["uuid"] = f"{prefix}-{effect.get('id')}"
+        out.append(effect)
+    return out
+
+
 def _seed_stories():
     """Insert / replace the seed stories into DynamoDB."""
     seeded = []
@@ -1006,11 +1061,14 @@ def _seed_stories():
             "idEventEndGame":           s.get("idEventEndGame"),
             "events":                   s.get("events", []),
             # Step 29 — the effect side of an event (the event side lives in "events").
-            "eventEffects":             s.get("eventEffects", []),
+            # v0.33.2 — each row gets its uuid here, so every AppliedEffect can name it.
+            "eventEffects":             _ensure_effect_uuids(
+                                            s.get("eventEffects", []), f"eff-{story_uuid}"),
             # Step 31 — the choice engine reads these off the story item.
             "choices":                  s.get("choices", []),
             "choiceConditions":         s.get("choiceConditions", []),
-            "choiceEffects":            s.get("choiceEffects", []),
+            "choiceEffects":            _ensure_effect_uuids(
+                                            s.get("choiceEffects", []), f"cheff-{story_uuid}"),
             # Step 15 fields
             "characterTemplates":       s.get("characterTemplates", []),
             "classes":                  s.get("classes", []),

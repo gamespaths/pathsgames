@@ -35,7 +35,7 @@ class LocationEntryStoreAdapter(LocationEntryStorePort):
                 "id_card": l.id_card,
                 "id_event_if_first_time": l.id_event_if_first_time,
                 "id_event_not_first_time": l.id_event_not_first_time,
-                "id_event_if_character_enter_first_time": l.id_event_if_character_enter_first_time,
+                "id_event_if_character_enter_empty_location": l.id_event_if_character_enter_empty_location,
                 "id_event_if_character_start_time": l.id_event_if_character_start_time,
                 "id_event_if_counter_zero": l.id_event_if_counter_zero,
                 "priority_automatic_event": l.priority_automatic_event,

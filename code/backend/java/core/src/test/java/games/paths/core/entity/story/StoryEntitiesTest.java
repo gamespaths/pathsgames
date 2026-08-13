@@ -864,13 +864,13 @@ class StoryEntitiesTest {
         void eventFieldGetters() {
             LocationEntity e = new LocationEntity();
             e.setIdEventIfCharacterStartTime(10);
-            e.setIdEventIfCharacterEnterFirstTime(11);
+            e.setIdEventIfCharacterEnterEmptyLocation(11);
             e.setIdEventIfFirstTime(12);
             e.setIdEventNotFirstTime(13);
 
             assertAll(
                 () -> assertEquals(10, e.getIdEventIfCharacterStartTime()),
-                () -> assertEquals(11, e.getIdEventIfCharacterEnterFirstTime()),
+                () -> assertEquals(11, e.getIdEventIfCharacterEnterEmptyLocation()),
                 () -> assertEquals(12, e.getIdEventIfFirstTime()),
                 () -> assertEquals(13, e.getIdEventNotFirstTime())
             );

@@ -52,7 +52,7 @@ def _triggers(first=None, not_first=None, alone=None, id_location=LOCATION):
         "id_card": 500,
         "id_event_if_first_time": first,
         "id_event_not_first_time": not_first,
-        "id_event_if_character_enter_first_time": alone,
+        "id_event_if_character_enter_empty_location": alone,
         "id_event_if_character_start_time": None,
         "id_event_if_counter_zero": None,
         "priority_automatic_event": 0,
@@ -145,7 +145,7 @@ def test_an_empty_destination_also_fires_first_in_location(service, store, locat
     fired = service.on_arrival(_arrival())
 
     assert [f.trigger for f in fired] == [lem.TRIGGER_FIRST_ENTRY,
-                                          lem.TRIGGER_FIRST_IN_LOCATION]
+                                          lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION]
 
 
 def test_somebody_else_here_suppresses_first_in_location(service, store, location_store):

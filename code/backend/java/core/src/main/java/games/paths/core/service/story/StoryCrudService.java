@@ -823,7 +823,7 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idEventIfCounterZero", l.getIdEventIfCounterZero());
             m.put("secureParam", l.getSecureParam());
             m.put("idEventIfCharacterStartTime", l.getIdEventIfCharacterStartTime());
-            m.put("idEventIfCharacterEnterFirstTime", l.getIdEventIfCharacterEnterFirstTime());
+            m.put("idEventIfCharacterEnterEmptyLocation", l.getIdEventIfCharacterEnterEmptyLocation());
             m.put("idEventIfFirstTime", l.getIdEventIfFirstTime());
             m.put("idEventNotFirstTime", l.getIdEventNotFirstTime());
             m.put("priorityAutomaticEvent", l.getPriorityAutomaticEvent());
@@ -1166,8 +1166,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setSecureParam(intVal(d, "secureParam"));
         if (d.containsKey("idEventIfCharacterStartTime"))
             e.setIdEventIfCharacterStartTime(intVal(d, "idEventIfCharacterStartTime"));
-        if (d.containsKey("idEventIfCharacterEnterFirstTime"))
-            e.setIdEventIfCharacterEnterFirstTime(intVal(d, "idEventIfCharacterEnterFirstTime"));
+        if (d.containsKey("idEventIfCharacterEnterEmptyLocation"))
+            e.setIdEventIfCharacterEnterEmptyLocation(intVal(d, "idEventIfCharacterEnterEmptyLocation"));
         if (d.containsKey("idEventIfFirstTime"))
             e.setIdEventIfFirstTime(intVal(d, "idEventIfFirstTime"));
         if (d.containsKey("idEventNotFirstTime"))

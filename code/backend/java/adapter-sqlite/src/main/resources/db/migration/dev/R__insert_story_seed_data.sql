@@ -390,7 +390,7 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 -- 90004 Item Workshop: a time unit BEGINNING with somebody standing there.
 UPDATE list_locations SET id_event_if_first_time = 90040, id_event_not_first_time = 90041
  WHERE id = 90002 AND id_story = 9001;
-UPDATE list_locations SET id_event_if_character_enter_first_time = 90042
+UPDATE list_locations SET id_event_if_character_enter_empty_location = 90042
  WHERE id = 90003 AND id_story = 9001;
 UPDATE list_locations SET id_event_if_counter_zero = 90043, priority_automatic_event = 1
  WHERE id = 90001 AND id_story = 9001;

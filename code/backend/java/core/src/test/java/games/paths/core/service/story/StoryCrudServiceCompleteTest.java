@@ -580,7 +580,7 @@ class StoryCrudServiceCompleteTest {
         data.put("idEventIfCounterZero", 0);
         data.put("secureParam", 0);
         data.put("idEventIfCharacterStartTime", 0);
-        data.put("idEventIfCharacterEnterFirstTime", 0);
+        data.put("idEventIfCharacterEnterEmptyLocation", 0);
         data.put("idEventIfFirstTime", 0);
         data.put("idEventNotFirstTime", 0);
         data.put("priorityAutomaticEvent", 1);
@@ -983,7 +983,7 @@ class StoryCrudServiceCompleteTest {
         data.put("idEventIfCounterZero", 0);
         data.put("secureParam", 0);
         data.put("idEventIfCharacterStartTime", 0);
-        data.put("idEventIfCharacterEnterFirstTime", 0);
+        data.put("idEventIfCharacterEnterEmptyLocation", 0);
         data.put("idEventIfFirstTime", 0);
         data.put("idEventNotFirstTime", 0);
         data.put("priorityAutomaticEvent", 1);

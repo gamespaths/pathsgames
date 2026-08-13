@@ -45,7 +45,7 @@ class MovementResult:
     new_energy: int
     current_clock: int
     #: Step 33 — what the destination did about the arrival: its id_event_if_first_time /
-    #: id_event_not_first_time / id_event_if_character_enter_first_time, already executed.
+    #: id_event_not_first_time / id_event_if_character_enter_empty_location, already executed.
     automatic_events: List[Any] = field(default_factory=list)
 
 

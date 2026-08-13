@@ -165,16 +165,16 @@ def test_the_two_history_triggers_are_exclusive():
 
 
 def test_an_empty_destination_also_fires_first_in_location():
-    story = _locations_with(idEventIfFirstTime=40, idEventIfCharacterEnterFirstTime=42)
+    story = _locations_with(idEventIfFirstTime=40, idEventIfCharacterEnterEmptyLocation=42)
     story['events'] = [_event(40, 'evt-first'), _event(42, 'evt-alone')]
     with _env([PLAYER, story, _match(), _char()]):
         fired = _body(h.lambda_handler(_move_event(), None))['automaticEvents']
     assert [f['trigger'] for f in fired] == [_events.TRIGGER_FIRST_ENTRY,
-                                             _events.TRIGGER_FIRST_IN_LOCATION]
+                                             _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION]
 
 
 def test_somebody_else_there_suppresses_first_in_location():
-    story = _locations_with(idEventIfCharacterEnterFirstTime=42)
+    story = _locations_with(idEventIfCharacterEnterEmptyLocation=42)
     story['events'] = [_event(42, 'evt-alone')]
     items = [PLAYER, story, _match(), _char(),
              _char(uuid='c2', cid=2, id_location=LOC_B, owner='other-uuid')]

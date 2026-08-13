@@ -128,7 +128,7 @@ This is a functional specification document. Technical implementation details (d
 - Event types:
   - AUTOMATIC_FIRST_ENTRY: Triggers when character enters location for first time
   - AUTOMATIC_SUBSEQUENT_ENTRY: Triggers from second entry onward
-  - AUTOMATIC_FIRST_IN_LOCATION: Triggers when character enters empty location
+  - AUTOMATIC_MOVE_INTO_EMPTY_LOCATION: Triggers when character enters empty location
   - TIME_START: Triggers when character starts time in this location
   - OPTIONAL: Player chooses to trigger (costs energy)
 - Events execute in order; can interrupt subsequent events

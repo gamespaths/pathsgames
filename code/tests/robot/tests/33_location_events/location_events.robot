@@ -16,7 +16,7 @@
 #     GET  matches/{uuid}/logs -> COUNTER_ZERO and AUTOMATIC_EVENT entries
 #
 # The event is named BY THE LOCATION, through columns list_locations has always
-# carried (idEventIfFirstTime, idEventNotFirstTime, idEventIfCharacterEnterFirstTime,
+# carried (idEventIfFirstTime, idEventNotFirstTime, idEventIfCharacterEnterEmptyLocation,
 # idEventIfCharacterStartTime, idEventIfCounterZero). The referenced events keep
 # type='AUTOMATIC', which the {NORMAL, ONCE} allowlist already refuses to players —
 # which is why /info must never offer them as actions.

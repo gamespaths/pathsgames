@@ -28,7 +28,7 @@ public class StoryValidatorService implements StoryValidatorPort {
     private static final List<String> LOCATION_TRIGGER_FIELDS = List.of(
             "idEventIfFirstTime",
             "idEventNotFirstTime",
-            "idEventIfCharacterEnterFirstTime",
+            "idEventIfCharacterEnterEmptyLocation",
             "idEventIfCharacterStartTime",
             "idEventIfCounterZero");
 
@@ -577,8 +577,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             String id = str(l.getId());
             recordLocationTrigger(g, id, "idEventIfFirstTime", l.getIdEventIfFirstTime());
             recordLocationTrigger(g, id, "idEventNotFirstTime", l.getIdEventNotFirstTime());
-            recordLocationTrigger(g, id, "idEventIfCharacterEnterFirstTime",
-                    l.getIdEventIfCharacterEnterFirstTime());
+            recordLocationTrigger(g, id, "idEventIfCharacterEnterEmptyLocation",
+                    l.getIdEventIfCharacterEnterEmptyLocation());
             recordLocationTrigger(g, id, "idEventIfCharacterStartTime",
                     l.getIdEventIfCharacterStartTime());
             recordLocationTrigger(g, id, "idEventIfCounterZero", l.getIdEventIfCounterZero());

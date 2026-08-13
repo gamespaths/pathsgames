@@ -32,7 +32,7 @@ _REF_RULES = {
 _LOCATION_TRIGGER_FIELDS = (
     "idEventIfFirstTime",
     "idEventNotFirstTime",
-    "idEventIfCharacterEnterFirstTime",
+    "idEventIfCharacterEnterEmptyLocation",
     "idEventIfCharacterStartTime",
     "idEventIfCounterZero",
 )

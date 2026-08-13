@@ -36,7 +36,7 @@ public interface MovementPort {
     /**
      * Step 33 — {@code automaticEvents} is what the destination did about the arrival: its
      * {@code id_event_if_first_time} / {@code id_event_not_first_time} /
-     * {@code id_event_if_character_enter_first_time}, already executed. The book shows the
+     * {@code id_event_if_character_enter_empty_location}, already executed. The book shows the
      * new location on its left page and these on its right. Empty in the ordinary case.
      */
     record MovementResult(String matchUuid,

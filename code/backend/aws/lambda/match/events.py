@@ -26,7 +26,7 @@ MAX_CHAIN = 32
 
 # ── Step 33 — location entry events: the events nobody asks for ──────────────
 # The event is named by the LOCATION, through columns list_locations has always carried:
-# idEventIfFirstTime, idEventNotFirstTime, idEventIfCharacterEnterFirstTime,
+# idEventIfFirstTime, idEventNotFirstTime, idEventIfCharacterEnterEmptyLocation,
 # idEventIfCharacterStartTime and idEventIfCounterZero. A referenced event keeps
 # type='AUTOMATIC', which EXECUTABLE_TYPES already refuses to players.
 
@@ -35,7 +35,7 @@ TRIGGER_FIRST_ENTRY = "FIRST_ENTRY"
 #: Any later arrival — the world has already been discovered here.
 TRIGGER_SUBSEQUENT_ENTRY = "SUBSEQUENT_ENTRY"
 #: The arriving character found nobody else here. Orthogonal to the two above.
-TRIGGER_FIRST_IN_LOCATION = "FIRST_IN_LOCATION"
+TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION"
 #: The location's counter reached zero. One-shot for the whole match.
 TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
 #: A time unit began with a character standing here.

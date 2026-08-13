@@ -17,7 +17,7 @@ class LocationEntryStorePort(ABC):
         """The trigger columns of one story location, or None when it is unknown.
 
         ``{id_location, id_card, id_event_if_first_time, id_event_not_first_time,
-        id_event_if_character_enter_first_time, id_event_if_character_start_time,
+        id_event_if_character_enter_empty_location, id_event_if_character_start_time,
         id_event_if_counter_zero, priority_automatic_event}``. All nullable: a null column
         is simply not a trigger.
         """
@@ -37,7 +37,7 @@ class LocationEntryStorePort(ABC):
                                            except_id_character: int) -> int:
         """How many characters stand here other than ``except_id_character``.
 
-        Zero is what makes an arrival FIRST_IN_LOCATION."""
+        Zero is what makes an arrival MOVE_INTO_EMPTY_LOCATION."""
 
     @abstractmethod
     def find_nominal_actor_at_location(self, id_match: int,

@@ -663,7 +663,7 @@ export default function StoryEditorPage() {
       idEventIfCharacterStartTime: {
         options: eventOptions,
       },
-      idEventIfCharacterEnterFirstTime: {
+      idEventIfCharacterEnterEmptyLocation: {
         options: eventOptions,
       },
       idEventIfFirstTime: {

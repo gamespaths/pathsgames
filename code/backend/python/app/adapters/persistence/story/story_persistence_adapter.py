@@ -252,8 +252,8 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     # trigger, so an authored story that names none behaves exactly as before.
                     id_event_if_first_time=item.get("idEventIfFirstTime"),
                     id_event_not_first_time=item.get("idEventNotFirstTime"),
-                    id_event_if_character_enter_first_time=item.get(
-                        "idEventIfCharacterEnterFirstTime"),
+                    id_event_if_character_enter_empty_location=item.get(
+                        "idEventIfCharacterEnterEmptyLocation"),
                     id_event_if_character_start_time=item.get("idEventIfCharacterStartTime"),
                     priority_automatic_event=item.get("priorityAutomaticEvent"),
                 )

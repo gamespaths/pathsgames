@@ -1030,8 +1030,8 @@ class EventService(EventPort):
                     id_match, id_location, id_character) == 0:
                 self._run_automatic_event_if_set(
                     id_match, id_character,
-                    triggers.get("id_event_if_character_enter_first_time"), id_location,
-                    lem.TRIGGER_FIRST_IN_LOCATION, current_clock, lang, True, depth, out)
+                    triggers.get("id_event_if_character_enter_empty_location"), id_location,
+                    lem.TRIGGER_MOVE_INTO_EMPTY_LOCATION, current_clock, lang, True, depth, out)
         self.location_store.mark_state_location_visited(id_match, id_location)
 
     def _run_automatic_event_if_set(self, id_match, id_actor_character, id_event, id_location,

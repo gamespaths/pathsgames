@@ -72,7 +72,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **ClassBonus** | `list_classes_bonus` | Per-class recurring bonus applied at each time start: `id_card`, `id_story`, `id_class`, `statistic`, `value`, `id_text_name`, `id_text_description`. |
 | **Trait** | `list_traits` | Selectable character traits: `id_card`, `id_story`, `id_class_permitted`, `id_class_prohibited`, `id_text_name`, `id_text_description`, `cost_positive`, `cost_negative`, `life`, `energy`, `sad`, `dexterity`, `intelligence`, `constitution`, `weight` (all `INTEGER NOT NULL DEFAULT 0`, added v0.19.6 — signed deltas applied to the matching character statistic when the trait is selected; negative values are maluses). |
 | **CharacterTemplate** | `list_character_templates` | Pre-built character archetypes: PK is `id_tipo`, plus `id_card`, `id_story`, `id_text_name`, `id_text_description`, `life_max`, `energy_max`, `sad_max`, `dexterity_start`, `intelligence_start`, `constitution_start`, `id_class_permitted` (nullable FK → `list_classes`), `id_class_prohibited` (nullable FK → `list_classes`). |
-| **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
+| **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
 | **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
 | **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. |
 | **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (e.g., LIFE), `effect_value` (e.g., 2). |
@@ -427,7 +427,7 @@ As defined in `list_events.type`:
 
 | Type | Value | When triggered | Energy cost |
 |------|-------|----------------|-------------|
-| **AUTOMATIC** | `AUTOMATIC` | System-triggered events (first entry, subsequent entry, first in location, time start). The specific trigger is determined by the location columns (`id_event_if_character_enter_first_time`, `id_event_if_first_time`, `id_event_not_first_time`, `id_event_if_character_start_time`). | Zero |
+| **AUTOMATIC** | `AUTOMATIC` | System-triggered events (first entry, subsequent entry, first in location, time start). The specific trigger is determined by the location columns (`id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `id_event_if_character_start_time`). | Zero |
 | **FIRST** | `FIRST` | First player entering triggers this | Zero |
 | **NORMAL** | `NORMAL` | Character voluntarily triggers the event (optional interaction) | Defined per event (`cost_enery`) |
 | **ONCE** | `ONCE` | *(v0.29.0)* Same as NORMAL, but executable **at most once per MATCH** — not per clock, not per location. Once triggered it stays spent for the rest of that match. | Defined per event (`cost_enery`) |
@@ -667,7 +667,7 @@ To validate the data model, we walk through complete gameplay scenarios and veri
 | 2 | Alice interacts with event "Pick the lock" (type=NORMAL) → sets key_to_add="DoorOpen", key_value_to_add="YES" in registry (cost_enery=1) | energy=4. Registry updated. WebSocket REGISTRY_UPDATED |
 | 3 | Alice moves Corridor → Bedroom (cost_energy_enter + weather cost = 2) | energy=2. Movement succeeds (INV-22 now satisfied). INSERT `gaming_movement_invites` (state=PENDING) for Bob |
 | 4 | Bob receives MovementInvite via WebSocket TURN_UPDATE. Clicks "Follow" within `TimeoutMovementFollow` | Bob moves to Bedroom for FREE via `spaceMoveFollow()` (INV-25). No energy cost. UPDATE `gaming_movement_invites` state=ACCEPTED |
-| 5 | Bedroom has automatic first entry event for Alice (via `id_event_if_character_enter_first_time`) | Event fires for Alice (first visit). Bob entered via follow, separate event handling |
+| 5 | Bedroom has automatic first entry event for Alice (via `id_event_if_character_enter_empty_location`) | Event fires for Alice (first visit). Bob entered via follow, separate event handling |
 
 **Validation**: Registry-gated movement works. Group follow is free. Events fire correctly for first entry.
 

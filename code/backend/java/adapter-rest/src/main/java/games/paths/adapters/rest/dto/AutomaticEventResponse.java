@@ -11,7 +11,7 @@ import java.util.List;
  * <p>Rides on every response that can cause an arrival: the movement result, and the
  * event/choice results whose effects can push a character somewhere. {@code trigger} says
  * <em>why</em> it fired — {@code FIRST_ENTRY}, {@code SUBSEQUENT_ENTRY},
- * {@code FIRST_IN_LOCATION}, {@code COUNTER_ZERO} or {@code CHARACTER_START_TIME} — and
+ * {@code MOVE_INTO_EMPTY_LOCATION}, {@code COUNTER_ZERO} or {@code CHARACTER_START_TIME} — and
  * {@code card} is the narrative the book shows on its right page.</p>
  */
 public class AutomaticEventResponse {

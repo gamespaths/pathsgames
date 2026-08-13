@@ -56,7 +56,7 @@ public class LocationEntryStoreAdapter implements LocationEntryStorePort {
                         l.getIdCard(),
                         l.getIdEventIfFirstTime(),
                         l.getIdEventNotFirstTime(),
-                        l.getIdEventIfCharacterEnterFirstTime(),
+                        l.getIdEventIfCharacterEnterEmptyLocation(),
                         l.getIdEventIfCharacterStartTime(),
                         l.getIdEventIfCounterZero(),
                         l.getPriorityAutomaticEvent()));

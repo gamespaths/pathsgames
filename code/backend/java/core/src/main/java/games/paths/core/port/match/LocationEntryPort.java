@@ -18,7 +18,7 @@ import java.util.List;
  *
  * <p>The event is named by the location, not by a query over the events table:
  * {@code list_locations} has carried {@code id_event_if_first_time},
- * {@code id_event_not_first_time}, {@code id_event_if_character_enter_first_time},
+ * {@code id_event_not_first_time}, {@code id_event_if_character_enter_empty_location},
  * {@code id_event_if_character_start_time} and {@code id_event_if_counter_zero}
  * since V0.10.3. A referenced event keeps {@code type = 'AUTOMATIC'}, which the
  * {@code EXECUTABLE_TYPES = {NORMAL, ONCE}} allowlist already refuses to players.</p>
@@ -34,7 +34,7 @@ public interface LocationEntryPort {
     /** Any later arrival — the world has already been discovered here. */
     String TRIGGER_SUBSEQUENT_ENTRY = "SUBSEQUENT_ENTRY";
     /** The arriving character found nobody else here. Orthogonal to the two above. */
-    String TRIGGER_FIRST_IN_LOCATION = "FIRST_IN_LOCATION";
+    String TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION";
     /** The location's counter reached zero. One-shot for the whole match. */
     String TRIGGER_COUNTER_ZERO = "COUNTER_ZERO";
     /** A time unit began with a character standing here. */

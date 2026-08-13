@@ -31,7 +31,7 @@ public interface LocationEntryStorePort {
     /**
      * How many characters stand in {@code idLocation} other than
      * {@code exceptIdCharacter}. Zero is what makes an arrival
-     * {@code FIRST_IN_LOCATION}.
+     * {@code MOVE_INTO_EMPTY_LOCATION}.
      */
     int countOtherCharactersAtLocation(long idMatch, long idLocation, long exceptIdCharacter);
 
@@ -66,7 +66,7 @@ public interface LocationEntryStorePort {
                                Integer idCard,
                                Integer idEventIfFirstTime,
                                Integer idEventNotFirstTime,
-                               Integer idEventIfCharacterEnterFirstTime,
+                               Integer idEventIfCharacterEnterEmptyLocation,
                                Integer idEventIfCharacterStartTime,
                                Integer idEventIfCounterZero,
                                Integer priorityAutomaticEvent) {

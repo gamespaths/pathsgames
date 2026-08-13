@@ -7,7 +7,7 @@ where a character stands.
 
 The event is named by the location, not found by a query over the events table:
 ``list_locations`` has carried ``id_event_if_first_time``, ``id_event_not_first_time``,
-``id_event_if_character_enter_first_time``, ``id_event_if_character_start_time`` and
+``id_event_if_character_enter_empty_location``, ``id_event_if_character_start_time`` and
 ``id_event_if_counter_zero`` since the first schema. A referenced event keeps
 ``type = 'AUTOMATIC'``, which the ``{NORMAL, ONCE}`` allowlist already refuses to players.
 """
@@ -19,7 +19,7 @@ TRIGGER_FIRST_ENTRY = "FIRST_ENTRY"
 #: Any later arrival — the world has already been discovered here.
 TRIGGER_SUBSEQUENT_ENTRY = "SUBSEQUENT_ENTRY"
 #: The arriving character found nobody else here. Orthogonal to the two above.
-TRIGGER_FIRST_IN_LOCATION = "FIRST_IN_LOCATION"
+TRIGGER_MOVE_INTO_EMPTY_LOCATION = "MOVE_INTO_EMPTY_LOCATION"
 #: The location's counter reached zero. One-shot for the whole match.
 TRIGGER_COUNTER_ZERO = "COUNTER_ZERO"
 #: A time unit began with a character standing here.

@@ -402,7 +402,7 @@ class StoryValidatorServiceTest {
             s.put("choices", rows());
             s.put("locations", rows(entity("id", 1),
                     entity("id", 2, "idEventIfFirstTime", 2, "idEventNotFirstTime", 2,
-                            "idEventIfCharacterEnterFirstTime", 2, "idEventIfCounterZero", 2,
+                            "idEventIfCharacterEnterEmptyLocation", 2, "idEventIfCounterZero", 2,
                             "idEventIfCharacterStartTime", 2)));
 
             assertTrue(validator().validateImportData(s).isValid());

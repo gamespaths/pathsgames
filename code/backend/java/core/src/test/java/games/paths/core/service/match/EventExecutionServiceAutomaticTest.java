@@ -147,7 +147,7 @@ class EventExecutionServiceAutomaticTest {
         }
 
         @Test
-        @DisplayName("an empty destination also fires id_event_if_character_enter_first_time")
+        @DisplayName("an empty destination also fires id_event_if_character_enter_empty_location")
         void firstInLocationIsOrthogonal() {
             when(store.findEventsById(STORY_ID)).thenReturn(Map.of(
                     40L, event(40L, "evt-first"), 42L, event(42L, "evt-alone")));
@@ -161,11 +161,11 @@ class EventExecutionServiceAutomaticTest {
 
             assertEquals(2, fired.size());
             assertEquals(LocationEntryPort.TRIGGER_FIRST_ENTRY, fired.get(0).trigger());
-            assertEquals(LocationEntryPort.TRIGGER_FIRST_IN_LOCATION, fired.get(1).trigger());
+            assertEquals(LocationEntryPort.TRIGGER_MOVE_INTO_EMPTY_LOCATION, fired.get(1).trigger());
         }
 
         @Test
-        @DisplayName("somebody else is already there, so FIRST_IN_LOCATION does not fire")
+        @DisplayName("somebody else is already there, so MOVE_INTO_EMPTY_LOCATION does not fire")
         void notAloneSuppressesFirstInLocation() {
             when(store.findEventsById(STORY_ID)).thenReturn(Map.of(42L, event(42L, "evt-alone")));
             when(locationStore.findLocationTriggers(STORY_ID, LOCATION))

@@ -19,7 +19,7 @@ info:
     |---|---|
     | `id_event_if_first_time` | the party arrives here for the **first time in the match** |
     | `id_event_not_first_time` | any later arrival |
-    | `id_event_if_character_enter_first_time` | the arriving character found **nobody else** here |
+    | `id_event_if_character_enter_empty_location` | the arriving character found **nobody else** here |
     | `id_event_if_counter_zero` | the location's `counter_time` reached zero (Step 26) |
     | `id_event_if_character_start_time` | a time unit **began** with somebody standing here |
     | `priority_automatic_event` | orders the events of one time-start across locations |
@@ -149,7 +149,7 @@ components:
       properties:
         trigger:
           type: string
-          enum: [FIRST_ENTRY, SUBSEQUENT_ENTRY, FIRST_IN_LOCATION, COUNTER_ZERO, CHARACTER_START_TIME]
+          enum: [FIRST_ENTRY, SUBSEQUENT_ENTRY, MOVE_INTO_EMPTY_LOCATION, COUNTER_ZERO, CHARACTER_START_TIME]
           description: Why it fired.
           example: FIRST_ENTRY
         idLocation:
@@ -247,7 +247,7 @@ components:
         idEventNotFirstTime:
           type: integer
           nullable: true
-        idEventIfCharacterEnterFirstTime:
+        idEventIfCharacterEnterEmptyLocation:
           type: integer
           nullable: true
         idEventIfCharacterStartTime:

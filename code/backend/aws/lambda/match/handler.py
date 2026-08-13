@@ -3270,8 +3270,8 @@ def _resolve_arrival(match, match_uuid, story, actor_uuid, id_location, lang, de
                   and c.get('uuid') != actor_uuid]
         if not others:
             _run_automatic_event(match, match_uuid, story, actor_uuid,
-                                 triggers.get('idEventIfCharacterEnterFirstTime'),
-                                 id_location, _events.TRIGGER_FIRST_IN_LOCATION, lang,
+                                 triggers.get('idEventIfCharacterEnterEmptyLocation'),
+                                 id_location, _events.TRIGGER_MOVE_INTO_EMPTY_LOCATION, lang,
                                  depth, out)
     _mark_location_visited(match, id_location)
 

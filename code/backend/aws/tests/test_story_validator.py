@@ -156,7 +156,7 @@ def test_r9_an_automatic_event_without_choices_is_valid():
     s["choices"] = []
     s["locations"] = [{"id": 1}, {"id": 2, "idEventIfFirstTime": 2,
                                   "idEventNotFirstTime": 2,
-                                  "idEventIfCharacterEnterFirstTime": 2,
+                                  "idEventIfCharacterEnterEmptyLocation": 2,
                                   "idEventIfCounterZero": 2,
                                   "idEventIfCharacterStartTime": 2}]
     assert sv.validate_story_dict(s) == []

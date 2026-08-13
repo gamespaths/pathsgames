@@ -40,7 +40,7 @@ def adapter(session_factory):
                                 ts_insert=_NOW, ts_update=_NOW))
         s.add(LocationEntity(id=LOC_A, id_story=STORY_ID, uuid="loc-a", id_card=500,
                              id_event_if_first_time=40, id_event_not_first_time=41,
-                             id_event_if_character_enter_first_time=42,
+                             id_event_if_character_enter_empty_location=42,
                              id_event_if_character_start_time=43,
                              id_event_if_counter_zero=44, priority_automatic_event=3))
         s.add(GamingStateLocationEntity(id_match=MATCH_ID, id_location=LOC_A, uuid="sl-a",
@@ -61,7 +61,7 @@ def test_find_location_triggers_maps_every_column(adapter):
     assert t["id_card"] == 500
     assert t["id_event_if_first_time"] == 40
     assert t["id_event_not_first_time"] == 41
-    assert t["id_event_if_character_enter_first_time"] == 42
+    assert t["id_event_if_character_enter_empty_location"] == 42
     assert t["id_event_if_character_start_time"] == 43
     assert t["id_event_if_counter_zero"] == 44
     assert t["priority_automatic_event"] == 3

@@ -75,6 +75,50 @@ def test_seed_step29_events_cover_every_check_branch():
     assert resources == {'food': 3, 'magic': 2, 'coin': 9}
 
 
+def test_seed_gives_every_effect_row_a_uuid():
+    """v0.33.2: an AppliedEffect names its row through `effectUuid`, read straight off the
+    effect. No seeded row ever declared a uuid, so every AppliedEffect AWS returned — from
+    execute-event, from a resolved choice, from an automatic event — named a null effect."""
+    put_items = []
+    from seed.handler import lambda_handler
+    with patch('seed.handler.db_utils.put_item', side_effect=lambda item: put_items.append(item)), \
+         patch('seed.handler.db_utils.delete_all_by_pk', return_value=0), \
+         patch.dict(os.environ, {'ENV': 'dev'}):
+        lambda_handler(make_event('POST', '/api/dev/seed'), {})
+
+    stories = [i for i in put_items if i['PK'].startswith('STORY#')]
+    assert stories
+    seen = set()
+    total = 0
+    for story in stories:
+        # Not every seeded story authors effects — the second one seeds no event at all.
+        rows = (story.get('eventEffects') or []) + (story.get('choiceEffects') or [])
+        total += len(rows)
+        for row in rows:
+            assert row.get('uuid'), f"effect {row.get('id')} has no uuid"
+            # Unique across stories: the prefix carries the story uuid precisely so two
+            # stories numbering their effects from 1 cannot collide.
+            assert row['uuid'] not in seen, f"duplicate effect uuid {row['uuid']}"
+            seen.add(row['uuid'])
+    assert total, 'no seeded story authors an effect row at all'
+
+
+def test_seed_effect_uuids_are_stable_and_respect_authored_ones():
+    """Derived from the id, not random: a reseed must not rename a row that already
+    travelled to a client. An authored uuid wins over the derived one."""
+    from seed.handler import _ensure_effect_uuids
+
+    rows = [{"id": 1, "statistics": "exp"}, {"id": 2, "uuid": "eff-authored"}]
+    first = _ensure_effect_uuids(rows, "eff-story")
+    second = _ensure_effect_uuids(rows, "eff-story")
+
+    assert first[0]['uuid'] == 'eff-story-1'
+    assert first == second
+    assert first[1]['uuid'] == 'eff-authored'
+    # The caller's rows are left alone: the seed literal is module-level and reused.
+    assert 'uuid' not in rows[0]
+
+
 def test_seed_route_blocked_outside_dev():
     from seed.handler import lambda_handler
     with patch.dict(os.environ, {'ENV': 'prod'}):

@@ -1208,8 +1208,8 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
             if (locationStore.countOtherCharactersAtLocation(idMatch, idLocation, idCharacter) == 0) {
                 runAutomaticEventIfSet(idMatch, idCharacter,
-                        triggers.idEventIfCharacterEnterFirstTime(), idLocation,
-                        TRIGGER_FIRST_IN_LOCATION, currentClock, lang, true, depth, out);
+                        triggers.idEventIfCharacterEnterEmptyLocation(), idLocation,
+                        TRIGGER_MOVE_INTO_EMPTY_LOCATION, currentClock, lang, true, depth, out);
             }
         }
         locationStore.markStateLocationVisited(idMatch, idLocation);

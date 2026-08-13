@@ -88,7 +88,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 		- Automatic Event Triggers (Zero Energy):
 			- AUTOMATIC_FIRST_ENTRY: Triggers when a character enters the location for the very first time.
 			- AUTOMATIC_SUBSEQUENT_ENTRY: Triggers on every entry from the second time onward.
-			- AUTOMATIC_FIRST_IN_LOCATION: Triggers only if the character enters and find the location empty (no other characters present).
+			- AUTOMATIC_MOVE_INTO_EMPTY_LOCATION: Triggers only if the character enters and find the location empty (no other characters present).
 			- TIME_START_IN_LOCATION: Triggers automatically at the beginning of a new Time Unit if the character is already there.
 			- Optional Interactions: A list of events or encounters that the player can choose to trigger, potentially requiring a specific energy or resource cost.
 		- Time-Limited Locations: Some locations feature a initial_time_counter. The counter decrements each Time Unit.
@@ -201,7 +201,7 @@ This document defines the **start project steps** to build a **Paths Games**, a 
 	8. `list_classes_bonus` (id, id_card, id_story, id_class, statistic, value, id_text_name, id_text_description)
 	9. `list_traits` (id, id_card, id_story, id_class_permitted, id_class_prohibited, id_text_name, id_text_description, cost_positive, cost_negative, life, energy, sad, dexterity, intelligence, constitution, weight)
 	10. `list_character_templates` (id_tipo, id_card, id_story, id_text_name, id_text_description, life_max, energy_max, sad_max, dexterity_start, intelligence_start, constitution_start, id_class_permitted, id_class_prohibited), 
-	11. `list_locations` (id, id_card, id_story, id_text_name, id_text_description, id_text_narrative, id_image, is_safe,  (boolean), cost_energy_enter, counter_time, id_event_if_counter_zero, secure_param, id_event_if_character_start_time, id_event_if_character_enter_first_time, id_event_if_first_time, id_event_not_first_time, priority_automatic_event, id_audio, max_characters)
+	11. `list_locations` (id, id_card, id_story, id_text_name, id_text_description, id_text_narrative, id_image, is_safe,  (boolean), cost_energy_enter, counter_time, id_event_if_counter_zero, secure_param, id_event_if_character_start_time, id_event_if_character_enter_empty_location, id_event_if_first_time, id_event_not_first_time, priority_automatic_event, id_audio, max_characters)
 	12. `list_locations_neighbors` (id, id_story, id_location_from, id_location_to, direction=NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY , flag_back (boolean), condition_registry_key, condition_registry_value, energy_cost, id_text_go, id_text_back
 	13. `list_items` (id, id_card, id_story, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited)
 	14. `list_items_effects` (id, id_story, id_item, id_text_name, id_text_description, effect_code=LIFE, effect_value=2)

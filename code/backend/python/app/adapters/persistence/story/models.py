@@ -181,7 +181,7 @@ class LocationEntity(Base):
     # now. A null column is not a trigger.
     id_event_if_first_time = Column(Integer)
     id_event_not_first_time = Column(Integer)
-    id_event_if_character_enter_first_time = Column(Integer)
+    id_event_if_character_enter_empty_location = Column(Integer)
     id_event_if_character_start_time = Column(Integer)
     priority_automatic_event = Column(Integer, default=0)
 

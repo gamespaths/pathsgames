@@ -118,12 +118,25 @@ def seed():
             # a full `card` for each location and neighbor (as Java/AWS seeds do).
             # Step 33 — the first arrival here and every later one fire different events.
             {"id": 2, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
-             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41},
+             "idEventIfFirstTime": 40, "idEventNotFirstTime": 41,
+             "neighbors": [{"idLocationTo": 4, "direction": "EAST", "energyCost": 0,
+                            "idCardBack": 1, "flagBack": 1}]},
             # v0.29.3 — deliberately has NO neighbor edge: only the teleport effect (event 28)
             # can bring a character here, proving the forced movement skips every Step 28 check.
-            # Step 33 — fires only when the arriving character finds it empty.
-            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
-             "idEventIfCharacterEnterFirstTime": 42}
+            {"id": 3, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1},
+            # v0.33.2 — the two triggers that are NOT history-based, each on a location the
+            # party can actually walk to. Location 3 cannot host them: no edge reaches it,
+            # and a trigger nobody can walk into is a trigger no end-to-end test can read.
+            #   4 — fires when the arriving character finds the room empty (OCCUPANCY, which
+            #       in single-player is every arrival).
+            {"id": 4, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "idEventIfCharacterEnterEmptyLocation": 42,
+             "neighbors": [{"idLocationTo": 5, "direction": "NORTH", "energyCost": 0,
+                            "idCardBack": 1, "flagBack": 1}]},
+            #   5 — fires when a time unit BEGINS with somebody standing here, so it is
+            #       reported on the sleep that advanced the clock, not on a movement.
+            {"id": 5, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "idEventIfCharacterStartTime": 44, "priorityAutomaticEvent": 2},
         ],
         "events": [
             {"id": 1, "idTextName": 500, "idTextDescription": 500, "type": "FIRST",
@@ -248,6 +261,11 @@ def seed():
              "idCard": 1,
              "effects": [{"idCard": 1, "target": "ONLY_ONE",
                           "keyToAdd": "STEP33_COUNTER", "keyValueToAdd": "YES"}]},
+            # v0.33.2 — the time-start trigger of location 5.
+            {"id": 44, "idTextName": 500, "idTextDescription": 500, "type": "AUTOMATIC",
+             "idCard": 1,
+             "effects": [{"idCard": 1, "statistics": "exp", "value": 14, "target": "ONLY_ONE",
+                          "keyToAdd": "STEP33_STARTTIME", "keyValueToAdd": "YES"}]},
         ],
         # Step 31 — the options of the two choice-events above (canonical top-level arrays
         # keyed by idChoices). Event 30: one always-available option, one gated on INT > 99
@@ -376,6 +394,9 @@ def seed():
         "idTextDescription": 2,
         "idTextClockSingular": 10,
         "idTextClockPlural": 11,
+        # No story-level idCard on purpose: this story's summary card stays null, which is
+        # exactly what the Step 15 "card field present (even if null)" case documents.
+        "idLocationStart": 1,
         "texts": [
             {"idText": 1, "lang": "en", "shortText": "The Valvassor of the March"},
             {"idText": 1, "lang": "it", "shortText": "Il Valvassore di Marca"},
@@ -387,7 +408,11 @@ def seed():
             {"idText": 11, "lang": "it", "shortText": "ore"},
             {"idText": 300, "lang": "en", "shortText": "Merciful Judge"},
             {"idText": 301, "lang": "en", "shortText": "Just Trial"},
-            {"idText": 302, "lang": "en", "shortText": "Iron Inquisition"}
+            {"idText": 302, "lang": "en", "shortText": "Iron Inquisition"},
+            {"idText": 100, "lang": "en", "shortText": "Castelfranco"},
+            {"idText": 100, "lang": "it", "shortText": "Castelfranco"},
+            {"idText": 101, "lang": "en", "shortText": "Treviso"},
+            {"idText": 101, "lang": "it", "shortText": "Treviso"},
         ],
         "difficulties": [
             {"uuid": "demo2-diff-1", "idTextDescription": 300, "expCost": 3, "maxWeight": 20,
@@ -397,9 +422,24 @@ def seed():
             {"uuid": "demo2-diff-3", "idTextDescription": 302, "expCost": 8, "maxWeight": 8,
              "life": 80,  "energy": 90,  "sad": 20, "dexterity": 8,  "intelligence": 8,  "constitution": 8,  "weight": 8}
         ],
-        "locations": [],
+        # A story with no location cannot host a match at all: POST /api/matches refuses
+        # it with STORY_HAS_NO_LOCATIONS, and the Step 19 duplicate-match guard case that
+        # needs a SECOND story to create a match on could only skip itself. The Java and
+        # AWS seeds ship a real map here; two walkable places are enough to make the same
+        # case runnable without transcribing the whole Veneto.
+        "locations": [
+            {"id": 1, "idTextName": 100, "idTextDescription": 100, "isSafe": 1, "idCard": 1,
+             "neighbors": [{"idLocationTo": 2, "direction": "EAST", "energyCost": 1,
+                            "idCardBack": 1, "flagBack": 1}]},
+            {"id": 2, "idTextName": 101, "idTextDescription": 101, "isSafe": 0, "idCard": 1},
+        ],
         "events": [],
         "items": [],
+        "cards": [
+            {"id": 1, "uuid": "card-demo2-001", "idTextTitle": 100, "idTextDescription": 100,
+             "urlImage": "https://paths.games/assets/cards/demo2-castelfranco.jpg",
+             "awesomeIcon": "fa-chess-rook", "styleMain": "card-demo2"},
+        ],
         "classes": [
             {
                 "idTextName": 200, "idTextDescription": 200,
