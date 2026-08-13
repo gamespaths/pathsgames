@@ -162,7 +162,12 @@ export function matchInfoToGameData(info, story = null,t) {
     // `n.direction` is the AUTHORED edge direction (from→to). On a return move the
     // character travels the other way, so the card must show the opposite.
     const travelDirection = traversalDirection(n.direction, playerAtTo)
-    const genericNeighborCard = buildNeighborCard(tr, travelDirection, fromName, toName, playerAtTo)
+    // "Back to" is only honest when the party has ALREADY been to the destination:
+    // walking an edge against its authored direction into a never-visited location
+    // is still a plain "Move to".
+    const destinationExplored = n.idLocation != null && visitedIds.has(n.idLocation)
+    const isBackMove = playerAtTo && destinationExplored
+    const genericNeighborCard = buildNeighborCard(tr, travelDirection, fromName, toName, isBackMove)
 
     // Precedence: the return LINK card when moving back, then the forward LINK
     // card, then the destination's own LOCATION card, then the generic fallback.
