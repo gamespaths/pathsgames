@@ -209,11 +209,27 @@ class ChoiceAvailabilityCheckerTest {
         }
 
         @Test
+        @DisplayName("int exactly at the limit passes (>=, not >)")
+        void intBoundary() {
+            ChoiceEntity c = choice();
+            c.setLimitInt(3);
+            assertTrue(check(c, ctx()).available());
+        }
+
+        @Test
         @DisplayName("limit_cos is a minimum")
         void cosNotMet() {
             ChoiceEntity c = choice();
             c.setLimitCos(4);
             assertBlocked(check(c, ctx()), LIMIT_COS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("cos exactly at the limit passes (>=, not >)")
+        void cosBoundary() {
+            ChoiceEntity c = choice();
+            c.setLimitCos(3);
+            assertTrue(check(c, ctx()).available());
         }
 
         @Test
@@ -289,6 +305,37 @@ class ChoiceAvailabilityCheckerTest {
         void numericAgainstText() {
             assertBlocked(check(choice(), ctx(b -> b.registry.put("day", "many")),
                     cond("KEYS", "day", "3", ">")), CONDITION_KEYS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("!= with the very same value blocks")
+        void notEqualsWithTheSameValue() {
+            assertBlocked(check(choice(), ctx(b -> b.registry.put("gate", "OPEN")),
+                    cond("KEYS", "gate", "OPEN", "!=")), CONDITION_KEYS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("> and < are never met when the expected side is not numeric either")
+        void nonNumericExpected() {
+            ChoiceCheckContext ctx = ctx(b -> b.registry.put("day", "5"));
+            assertBlocked(check(choice(), ctx, cond("KEYS", "day", "soon", ">")),
+                    CONDITION_KEYS_NOT_MET);
+            assertBlocked(check(choice(), ctx, cond("KEYS", "day", "soon", "<")),
+                    CONDITION_KEYS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("< with a non-numeric registry value is never met")
+        void lessThanAgainstText() {
+            assertBlocked(check(choice(), ctx(b -> b.registry.put("day", "many")),
+                    cond("KEYS", "day", "3", "<")), CONDITION_KEYS_NOT_MET);
+        }
+
+        @Test
+        @DisplayName("< blocks when the registry value is not below the expected one")
+        void lessThanNotMet() {
+            assertBlocked(check(choice(), ctx(b -> b.registry.put("day", "5")),
+                    cond("KEYS", "day", "5", "<")), CONDITION_KEYS_NOT_MET);
         }
 
         @Test

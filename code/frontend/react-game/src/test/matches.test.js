@@ -6,6 +6,7 @@ import {
   startMatch, passTurn, getTurnSequence,
   getMatchClock, sleepCharacter,
   startMovement, getMatchLocations, getMatchLogs,
+  executeEvent, selectChoice,
 } from '../api/matches'
 
 vi.mock('../api/client', () => ({ apiClient: vi.fn() }))
@@ -211,6 +212,68 @@ describe('matches api', () => {
       await getMatchLogs('m1', 'tok', { order: 'asc' })
       expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
         expect.objectContaining({ params: { order: 'asc' } }))
+    })
+
+    it('getMatchLogs sends no params at all when every option is left out', async () => {
+      get.mockResolvedValue({ data: { logs: [] } })
+      await getMatchLogs('m1', 'tok', { order: null })
+      expect(get).toHaveBeenCalledWith('/api/matches/m1/logs',
+        expect.not.objectContaining({ params: expect.anything() }))
+    })
+
+    it('getMatchLocations asks in the requested language, and without one by default', async () => {
+      get.mockResolvedValue({ data: { locations: [] } })
+      await getMatchLocations('m1', 'tok', 'it')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/locations',
+        expect.objectContaining({ params: { lang: 'it' } }))
+
+      get.mockClear()
+      await getMatchLocations('m1', 'tok')
+      expect(get).toHaveBeenCalledWith('/api/match/m1/locations',
+        expect.not.objectContaining({ params: expect.anything() }))
+    })
+
+    it('executeEvent posts the event uuid, carrying the language when asked', async () => {
+      post.mockResolvedValue({ data: { status: 'APPLIED' } })
+      const res = await executeEvent('m1', 'ev-1', 'tok', 'it')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/execute-event',
+        { eventUuid: 'ev-1' },
+        expect.objectContaining({ params: { lang: 'it' } }),
+      )
+      expect(res).toEqual({ status: 'APPLIED' })
+    })
+
+    it('executeEvent omits the language parameter when none is given', async () => {
+      post.mockResolvedValue({ data: {} })
+      await executeEvent('m1', 'ev-1', 'tok')
+      expect(post.mock.calls[0][2].params).toBeUndefined()
+    })
+
+    it('executeEvent propagates a 409 ONCE_ALREADY_CONSUMED error', async () => {
+      post.mockRejectedValue({ response: { status: 409, data: { error: 'ONCE_ALREADY_CONSUMED' } } })
+      await expect(executeEvent('m1', 'ev-1', 'tok')).rejects.toMatchObject({
+        response: { status: 409 },
+      })
+    })
+
+    it('selectChoice posts the choice uuid, carrying the language when asked', async () => {
+      post.mockResolvedValue({ data: { status: 'APPLIED', narrative: 'You chose well' } })
+      const res = await selectChoice('m1', 'ch-1', 'tok', 'en')
+
+      expect(post).toHaveBeenCalledWith(
+        '/api/gameplay/m1/action/select-choice',
+        { choiceUuid: 'ch-1' },
+        expect.objectContaining({ params: { lang: 'en' } }),
+      )
+      expect(res.narrative).toBe('You chose well')
+    })
+
+    it('selectChoice omits the language parameter when none is given', async () => {
+      post.mockResolvedValue({ data: {} })
+      await selectChoice('m1', 'ch-1', 'tok')
+      expect(post.mock.calls[0][2].params).toBeUndefined()
     })
   })
 })

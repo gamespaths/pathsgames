@@ -222,6 +222,21 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("comatose character → COMA, with the rescue-worded message")
+        void comatose() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findCharacterByMatchAndUser(MATCH_ID, USER_ID))
+                    .thenReturn(Optional.of(new MoveCharacterView(
+                            50L, "char-uuid", USER_ID, 1L, 10, 100, 0, 30, true, true)));
+
+            MovementException ex = assertThrows(MovementException.class,
+                    () -> service.startMovement(MATCH, USER, "loc-2"));
+
+            assertEquals(MovementException.Code.COMA, ex.getCode());
+            assertEquals("Character cannot move while in coma", ex.getMessage());
+        }
+
+        @Test
         @DisplayName("character with no location → NOT_A_NEIGHBOR")
         void noLocation() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
@@ -563,6 +578,43 @@ class MovementServiceTest {
 
             assertEquals(1, result.size());
             assertTrue(result.get(0).neighbors().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a neighbor whose far endpoint is gone is skipped")
+        void skipsNeighborWithoutALocationRow() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of(character(10, 1L)));
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(1, 9));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 0, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 2)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L)).thenReturn(Optional.empty());
+
+            VisitedLocation loc = service.listLocations(MATCH, USER, null).get(0);
+
+            assertEquals(1, loc.characterCount());
+            assertTrue(loc.neighbors().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a safe destination is priced with the safe weather modifier")
+        void safeDestinationUsesTheSafeWeatherCost() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(1L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(1, 9));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 0, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 1L)).thenReturn(List.of(edge(1L, 2L, 2)));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 1, 100)));
+
+            NeighborCost n = service.listLocations(MATCH, USER, null).get(0).neighbors().get(0);
+
+            assertEquals(1, n.weatherEnergyCost());
+            assertEquals(2 + 1 + 1, n.totalEnergyCost());
         }
 
         @Test

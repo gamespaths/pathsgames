@@ -240,4 +240,96 @@ class TurnCycleStoreAdapterTest {
         assertNull(none.singular());
         assertNull(none.plural());
     }
+
+    @Test
+    void findStoryClockLabels_returnsNullsWhenTheStoryRowIsGone() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
+        when(storyRepository.findById(5L)).thenReturn(Optional.empty());
+
+        ClockLabels none = adapter.findStoryClockLabels(1L, "en");
+
+        assertNull(none.singular());
+        assertNull(none.plural());
+    }
+
+    @Test
+    void findStoryClockLabels_blankLangFallsBackToEnglishAndUnsetTextsStayNull() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
+        StoryEntity story = new StoryEntity();
+        story.setId(5L);
+        story.setIdTextClockSingular(10);
+        story.setIdTextClockPlural(null); // no plural authored
+        when(storyRepository.findById(5L)).thenReturn(Optional.of(story));
+        TextEntity en = new TextEntity();
+        en.setShortText("hour");
+        when(textRepository.findByIdStoryAndIdTextAndLang(5L, 10, "en")).thenReturn(List.of(en));
+
+        ClockLabels labels = adapter.findStoryClockLabels(1L, "  ");
+
+        assertEquals("hour", labels.singular());
+        assertNull(labels.plural());
+    }
+
+    @Test
+    void findMatchByUuid_nullClockCountsAsZero() {
+        GamingMatchEntity m = match();
+        m.setCurrentClock(null);
+        when(matchRepository.findByUuid("match-uuid")).thenReturn(Optional.of(m));
+
+        assertEquals(0, adapter.findMatchByUuid("match-uuid").orElseThrow().currentClock());
+    }
+
+    @Test
+    void findQueueByMatchId_nullPriorityAndClockCountAsZero() {
+        GamingTurnQueueEntity e = new GamingTurnQueueEntity();
+        e.setIdMatch(1L);
+        e.setIdCharacterMatch(10L);
+        e.setUuid("q-1");
+        e.setStatus("WAITING");
+        when(turnQueueRepository.findByIdMatchOrderByPriorityDesc(1L)).thenReturn(List.of(e));
+
+        QueueRow row = adapter.findQueueByMatchId(1L).get(0);
+
+        assertEquals(0L, row.priority());
+        assertEquals(0, row.clock());
+        assertEquals(0, row.passCounter());
+    }
+
+    @Test
+    void updateMatchStatusAndTurn_keepsTheStatusWhenNoneIsGiven() {
+        GamingMatchEntity m = match();
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(m));
+
+        adapter.updateMatchStatusAndTurn(1L, null, 10L);
+
+        assertEquals("RUNNING", m.getStatus());
+        assertEquals(10L, m.getIdCharacterCurrentTurn());
+        verify(matchRepository).save(m);
+    }
+
+    @Test
+    void wakeAllCharacters_leavesAnAlreadyAwakeCharacterAlone() {
+        GamingCharacterInstanceEntity awake = character();
+        awake.setIsSleeping(false);
+        when(characterRepository.findByIdMatch(1L)).thenReturn(List.of(awake));
+
+        adapter.wakeAllCharacters(1L);
+
+        assertFalse(awake.getIsSleeping());
+        verify(characterRepository).saveAll(List.of(awake));
+    }
+
+    @Test
+    void setAllCharactersSleeping_putsTheWholePartyToSleep() {
+        GamingCharacterInstanceEntity awake = character();
+        awake.setIsSleeping(false);
+        GamingCharacterInstanceEntity asleep = character();
+        when(characterRepository.findByIdMatch(1L)).thenReturn(List.of(awake, asleep));
+
+        adapter.setAllCharactersSleeping(1L);
+
+        assertTrue(awake.getIsSleeping());
+        assertTrue(asleep.getIsSleeping());
+        verify(characterRepository).saveAll(List.of(awake, asleep));
+    }
 }

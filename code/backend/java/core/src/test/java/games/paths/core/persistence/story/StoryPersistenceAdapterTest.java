@@ -589,4 +589,75 @@ class StoryPersistenceAdapterTest {
             assertDoesNotThrow(() -> adapter.syncStorySequences());
         }
     }
+
+    @Nested
+    @DisplayName("Updating an entity that already has an id")
+    class SaveKeepsExistingId {
+
+        /** An update must reuse the row's id, never draw a fresh one from the id sequence. */
+        private <T extends BaseStoryScopedEntity> T withId(T e) {
+            e.setId(9L);
+            e.setIdStory(1L);
+            return e;
+        }
+
+        @Test
+        @DisplayName("every CRUD save reuses the id it was given")
+        void saveReusesTheGivenId() {
+            adapter.saveLocation(withId(new LocationEntity()));
+            adapter.saveEvent(withId(new EventEntity()));
+            adapter.saveItem(withId(new ItemEntity()));
+            adapter.saveDifficulty(withId(new StoryDifficultyEntity()));
+            adapter.saveClass(withId(new ClassEntity()));
+            adapter.saveTrait(withId(new TraitEntity()));
+            adapter.saveText(withId(new TextEntity()));
+            adapter.saveCard(withId(new CardEntity()));
+            adapter.saveCreator(withId(new CreatorEntity()));
+            adapter.saveLocationNeighbor(withId(new LocationNeighborEntity()));
+            adapter.saveKey(withId(new KeyEntity()));
+            adapter.saveEventEffect(withId(new EventEffectEntity()));
+            adapter.saveChoice(withId(new ChoiceEntity()));
+            adapter.saveChoiceCondition(withId(new ChoiceConditionEntity()));
+            adapter.saveChoiceEffect(withId(new ChoiceEffectEntity()));
+            adapter.saveItemEffect(withId(new ItemEffectEntity()));
+            adapter.saveWeatherRule(withId(new WeatherRuleEntity()));
+            adapter.saveGlobalRandomEvent(withId(new GlobalRandomEventEntity()));
+            adapter.saveClassBonus(withId(new ClassBonusEntity()));
+            adapter.saveMission(withId(new MissionEntity()));
+            adapter.saveMissionStep(withId(new MissionStepEntity()));
+
+            CharacterTemplateEntity template = new CharacterTemplateEntity();
+            template.setIdTipo(9L);
+            template.setIdStory(1L);
+            adapter.saveCharacterTemplate(template);
+
+            // No id was generated: the sequence query never ran.
+            verify(jdbcTemplate, never()).queryForObject(anyString(), eq(Long.class), any());
+            verify(locationRepository).save(any());
+            verify(characterTemplateRepository).save(template);
+        }
+
+        @Test
+        @DisplayName("persistAll leaves a null or empty batch alone")
+        void persistAllShortCircuits() {
+            assertNull(adapter.saveTexts(null));
+            assertTrue(adapter.saveMissionSteps(List.of()).isEmpty());
+            verify(entityManager, never()).persist(any());
+            verify(entityManager, never()).flush();
+        }
+
+        @Test
+        @DisplayName("existsStoryId is false for a null id, without hitting the repository")
+        void existsStoryIdNull() {
+            assertFalse(adapter.existsStoryId(null));
+            verify(storyRepository, never()).existsById(any());
+        }
+
+        @Test
+        @DisplayName("a story-scoped existence check is false when the count comes back null")
+        void existsByStoryScopeNullCount() {
+            when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any(), any())).thenReturn(null);
+            assertFalse(adapter.existsTextId(1L, 2L));
+        }
+    }
 }

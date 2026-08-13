@@ -33,7 +33,7 @@ Never read `documentation_v0/website_concepts_v0/` (450 MB of images).
 
 ## Permissions
 
-- **Allowed without asking:** reading anything in the workspace (`cat`, `find`, `grep`, `sed`, `awk`, …); `source .venv/bin/activate`; builds and unit tests (`mvn`, `pytest`, `npx vitest`, `run_robots*.sh`).
+- **Allowed without asking:** reading anything in the workspace (`cat`, `find`, `grep`, `sed`, `awk`, `for`, `do`,`echo`, …); `source .venv/bin/activate`; builds and unit tests (`mvn`, `pytest`, `npx`,`npx vitest`, `run_robots*.sh`, `python3`,`python`).
 - **Always ask first:** starting servers, any cloud/AWS CLI command, anything writing outside the workspace.
 
 ## When you change code

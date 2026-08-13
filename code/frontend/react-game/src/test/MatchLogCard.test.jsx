@@ -210,6 +210,41 @@ describe('MatchLogCard', () => {
     fireEvent.click(screen.getAllByRole('button')[0])
     expect(onBack).toHaveBeenCalled()
   })
+
+  it('asks for nothing at all without a match uuid', async () => {
+    render(<MatchLogCard accessToken="tok" />)
+    expect(getMatchLogs).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the generic error text when the failure carries no message', async () => {
+    getMatchLogs.mockRejectedValue({})
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    expect(await screen.findByText('matchLog.error')).toBeInTheDocument()
+  })
+
+  it('treats a page with neither logs nor cursor as an empty history', async () => {
+    getMatchLogs.mockResolvedValue({})
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    expect(await screen.findByText('matchLog.empty')).toBeInTheDocument()
+  })
+
+  it('gives an unknown entry type the neutral icon', async () => {
+    getMatchLogs.mockResolvedValue({ ...PAGE, logs: [{ type: 'SOMETHING_NEW', clock: 1, timestamp: null }] })
+    const { container } = render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+    expect(container.querySelector('.fa-circle')).toBeTruthy()
+  })
+
+  it('reports a failure of the load-more call and stops asking once the cursor is spent', async () => {
+    getMatchLogs
+      .mockResolvedValueOnce({ ...PAGE, nextCursor: 'c1' })
+      .mockRejectedValueOnce(new Error('page 2 is gone'))
+    render(<MatchLogCard matchUuid="m1" accessToken="tok" />)
+    await screen.findByTestId('match-log-card')
+
+    fireEvent.click(document.querySelector('.match-log-more'))
+    expect(await screen.findByText('page 2 is gone')).toBeInTheDocument()
+  })
 })
 
 describe('formatLogDate', () => {
