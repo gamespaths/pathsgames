@@ -55,6 +55,7 @@ Adjacency validation, energy cost formula, visited locations, admin locations. P
 - `location_fog_of_war.robot` (v0.28.6) — fog-of-war hides neighbor `card`/`idCard` for never-visited destinations on `/locations` and `/info`
 - `match_info_visited_locations.robot` (v0.28.6) — `/info` `locations[]` visited-only (admin keeps all); no synthetic `name`/`currentLocationName`/`locationName`; neighbor `cardLocationFrom`/`cardLocationTo` gated per endpoint
 - `neighbor_card_back.robot` — neighbor return card `idCardBack`
+- `neighbor_edge_orientation.robot` (v0.33.3, 5 tests) — `idLocationFrom`/`idLocationTo` on the `/locations` neighbor entries. A two-way edge is listed from both endpoints with the SAME authored `(from, to, direction)` triple; the return entry must NOT swap A and B into the traversal order, and `/locations`, its admin view and `/info` must all agree. Without the endpoints a map guesses an edge's orientation from the payload's listing order and mirrors half of them
 - `event_location.robot` — event-to-location binding `idSpecificLocation`; guards the AWS stale-alias and Python column-name bugs
 - `match_logs.robot` — consolidated match log timeline (`GET /api/matches/{uuid}/logs`): WEATHER / MOVEMENT / SLEEP / CLOCK_ADVANCE / RECOVERY / EVENT entries, cursor pagination, card enrichment
 - `match_logs_order.robot` (v0.30.3) — `?order=asc|desc` on both logs endpoints: asc default, desc as the exact reverse of asc, case-insensitive, junk values fall back to asc, desc cursor walking towards the older entries

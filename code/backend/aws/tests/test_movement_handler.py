@@ -259,6 +259,10 @@ def test_locations_lists_visited_with_total_cost():
     assert nb['weatherEnergyCost'] == 5
     assert nb['totalEnergyCost'] == 7
     assert nb['uuid'] == 'loc-2'
+    # the authored orientation travels with the entry: location 1 is the edge's
+    # `from`, so this is a forward traversal and `direction` needs no flip
+    assert nb['idLocationFrom'] == 1
+    assert nb['idLocationTo'] == 2
 
 
 def _match_visited_2():

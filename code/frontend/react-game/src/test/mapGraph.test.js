@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMapGraph, edgeVisibility, MAP_PAD, MAP_CELL } from '@/utils/mapGraph'
+import { buildMapGraph, edgeVisibility, traversalDirection, MAP_PAD, MAP_CELL } from '@/utils/mapGraph'
 
 /* /info fixture: player on location 1; 1 is active with neighbors to 3 (NORTH,
    two-way) and to 5 (one-way INTO 1, authored 5→1); 3 is visited but not active;
@@ -302,6 +302,79 @@ describe('buildMapGraph', () => {
     // geometric check: 3 sits NORTH of 1 (smaller y)
     const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
     expect(byId[3].y).toBeLessThan(byId[1].y)
+  })
+
+  it('orients an edge the player is not standing on from the payload endpoints', () => {
+    // 2↔3 touches no active location, so /info says nothing about it and only the
+    // endpoints shipped by /locations can orient it. The payload lists the
+    // back-traversal side (3, the edge's `to`) FIRST: without the endpoints the
+    // edge would survive as 3→2 SOUTH and the map would mirror the two.
+    const info = {
+      players: [{ idLocation: 1 }],
+      locations: [{ idLocation: 1 }, { idLocation: 2 }, { idLocation: 3 }],
+      locationsActive: [
+        { idLocation: 1, card: { title: 'Start' }, neighbors: [
+          { idLocationFrom: 1, idLocationTo: 2, direction: 'EAST', flagBack: 1, energyCost: 1 }] },
+      ],
+    }
+    const matchLocations = {
+      locations: [
+        { idLocation: 1, neighbors: [
+          { idLocation: 2, direction: 'EAST', idLocationFrom: 1, idLocationTo: 2, totalEnergyCost: 1 }] },
+        { idLocation: 3, neighbors: [
+          { idLocation: 2, direction: 'SOUTH', idLocationFrom: 2, idLocationTo: 3, totalEnergyCost: 1 }] },
+        { idLocation: 2, neighbors: [
+          { idLocation: 1, direction: 'EAST', idLocationFrom: 1, idLocationTo: 2, totalEnergyCost: 1 },
+          { idLocation: 3, direction: 'SOUTH', idLocationFrom: 2, idLocationTo: 3, totalEnergyCost: 1 }] },
+      ],
+    }
+    const g = buildMapGraph(info, matchLocations)
+    expect(g.edges).toContainEqual(
+      expect.objectContaining({ from: 2, to: 3, dir: 'SOUTH', back: true }))
+    // geometric check: 3 sits SOUTH of 2 (bigger y), on the same column
+    const byId = Object.fromEntries(g.nodes.map(n => [n.id, n]))
+    expect(byId[3].y).toBeGreaterThan(byId[2].y)
+    expect(byId[3].x).toBe(byId[2].x)
+  })
+
+  it('falls back to the raw payload direction when the endpoints are absent (old backend)', () => {
+    // Same graph without idLocationFrom/idLocationTo: the orientation is then only
+    // as good as the listing order, but the edge must still be built.
+    const matchLocations = {
+      locations: [
+        { idLocation: 2, neighbors: [{ idLocation: 3, direction: 'SOUTH', totalEnergyCost: 1 }] },
+        { idLocation: 3, neighbors: [{ idLocation: 2, direction: 'SOUTH', totalEnergyCost: 1 }] },
+      ],
+    }
+    const g = buildMapGraph({ players: [{ idLocation: 2 }] }, matchLocations)
+    expect(g.edges).toHaveLength(1)
+    expect(g.edges[0]).toMatchObject({ from: 2, to: 3, dir: 'SOUTH', back: true })
+  })
+})
+
+describe('traversalDirection', () => {
+  it('leaves a forward move on the authored direction', () => {
+    expect(traversalDirection('NORTH', false)).toBe('NORTH')
+    expect(traversalDirection('ABOVE')).toBe('ABOVE')
+  })
+
+  it('flips every direction that has an opposite on a return move', () => {
+    expect(traversalDirection('NORTH', true)).toBe('SOUTH')
+    expect(traversalDirection('SOUTH', true)).toBe('NORTH')
+    expect(traversalDirection('EAST', true)).toBe('WEST')
+    expect(traversalDirection('WEST', true)).toBe('EAST')
+    expect(traversalDirection('ABOVE', true)).toBe('BELOW')
+    expect(traversalDirection('BELOW', true)).toBe('ABOVE')
+    // case-insensitive on the way in, canonical on the way out
+    expect(traversalDirection('north', true)).toBe('SOUTH')
+  })
+
+  it('returns null rather than a wrong direction when there is no opposite', () => {
+    expect(traversalDirection('SKY', true)).toBeNull()
+    expect(traversalDirection('WHATEVER', true)).toBeNull()
+    expect(traversalDirection(null, true)).toBeNull()
+    expect(traversalDirection(undefined)).toBeNull()
+    expect(traversalDirection(42, true)).toBeNull()
   })
 })
 

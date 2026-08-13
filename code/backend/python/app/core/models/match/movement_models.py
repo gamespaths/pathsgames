@@ -7,7 +7,13 @@ from typing import Any, List, Optional
 class NeighborCost:
     """A neighbor edge with the resolved energy-cost breakdown for the current weather:
     base_energy_cost (edge) + entry_energy_cost (target entry) + weather_energy_cost = total.
-    ``id_card``/``card`` are the neighbor LOCATION's card (camelCase dict, may be None)."""
+    ``id_card``/``card`` are the neighbor LOCATION's card (camelCase dict, may be None).
+
+    ``direction`` is the AUTHORED story-edge direction, from ``id_location_from`` to
+    ``id_location_to`` — NOT the way the character walks: a two-way edge is listed from
+    both endpoints with the same direction. The two endpoint ids let a client tell the
+    two traversals apart and flip the direction when the listing location is
+    ``id_location_to``."""
     id_location: int
     uuid: Optional[str]
     direction: Optional[str]
@@ -18,6 +24,8 @@ class NeighborCost:
     condition_met: bool
     id_card: Optional[int] = None
     card: Optional[dict] = None
+    id_location_from: Optional[int] = None
+    id_location_to: Optional[int] = None
 
 
 @dataclass

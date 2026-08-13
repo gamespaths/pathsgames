@@ -3514,7 +3514,12 @@ def _visited_locations_payload(match, match_uuid, lang='en'):
             neighbor_costs.append({
                 "idLocation": other_id,
                 "uuid": other.get('uuid'),
+                # AUTHORED direction (idLocationFrom → idLocationTo): a two-way edge is
+                # listed from both endpoints with the SAME value, so the endpoints travel
+                # with it and let the client tell a return traversal apart.
                 "direction": n.get('direction'),
+                "idLocationFrom": a,
+                "idLocationTo": b,
                 "idCard": neighbor_id_card,
                 "card": _resolve_card_from_raw(raw_cards, raw_texts, neighbor_id_card, lang),
                 "baseEnergyCost": base,

@@ -110,6 +110,26 @@ describe('GameBook — locations payload', () => {
     expect(screen.getByTestId('book')).toBeInTheDocument()
   })
 
+  // The payload names a neighbor by the uuid of the location at the far end, so every
+  // path into the same place shares it while costing something different. The board
+  // must quote the cost of the move IT offers — the one leaving the player's location.
+  it('quotes the cost of the move leaving the player location, not another origin', async () => {
+    getMatchLocations.mockResolvedValue({
+      matchUuid: 'm1',
+      locations: [
+        // the player stands on 1; this is the move the board renders
+        { idLocation: 1, neighbors: [{ uuid: 'l1', totalEnergyCost: 3 }] },
+        // another visited location bordering the same destination, listed later
+        { idLocation: 9, neighbors: [{ uuid: 'l1', totalEnergyCost: 7 }] },
+      ],
+    })
+    renderBook()
+    await waitFor(() => expect(getMatchLocations).toHaveBeenCalled())
+    const card = await screen.findByTestId('cc-movement')
+    await waitFor(() => expect(card).toHaveTextContent('3'))
+    expect(card).not.toHaveTextContent('7')
+  })
+
   // The move costs are non-critical chrome: a failing refresh must keep the board
   // alive with the previous map (refreshLocations' catch).
   it('survives a failing locations refresh after a sleep reload', async () => {

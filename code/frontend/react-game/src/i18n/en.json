@@ -111,7 +111,7 @@
     "creating": "Creating the match…",
     "joining": "Joining your character…",
     "running": "Bringing the match to life…",
-    "created": "Match created, the story book is loading…",
+    "created": "Match created, book is loading…",
     "error": "The match could not be created.",
     "errorActiveMatch": "You already have a match in progress for this story. Resume it from your matches.",
     "retry": "Try again",

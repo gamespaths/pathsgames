@@ -201,6 +201,7 @@ public class MovementService implements MovementPort {
                 boolean otherVisited = visitedSet.contains(other.id());
                 Integer neighborIdCard = otherVisited ? other.idCard() : null;
                 neighborCosts.add(new NeighborCost(other.id(), other.uuid(), edge.direction(),
+                        edge.idLocationFrom(), edge.idLocationTo(),
                         neighborIdCard, resolveCard(match.idStory(), neighborIdCard, lang),
                         base, entry, weatherMod, base + entry + weatherMod,
                         conditionMet(match.id(), edge)));

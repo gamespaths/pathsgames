@@ -77,7 +77,7 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'secureParam', label: 'Secure Param', type: 'number' },
       { key: 'idEventIfCharacterStartTime', label: 'Event if Start Time, sleeping', type: 'number' },
       { key: 'idEventNotFirstTime', label: 'Event if Not First Time', type: 'number' },
-      { key: 'idEventIfCharacterEnterEmptyLocation', label: 'Event if enters an empty location (nobody else there)', type: 'number' },
+      { key: 'idEventIfCharacterEnterEmptyLocation', label: 'Event if enters an empty location', type: 'number' },
       { key: 'idEventIfFirstTime', label: 'Event if First Time, no trigger back', type: 'number' },
       { key: 'priorityAutomaticEvent', label: 'Auto Event Priority', type: 'number' },
       { key: 'idAudio', label: 'Audio ID', type: 'number' },

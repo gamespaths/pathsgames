@@ -202,7 +202,9 @@ class MovementService(MovementPort):
                                               self._condition_met(match["id"], edge),
                                               id_card=neighbor_id_card,
                                               card=self._resolve_card(match["id_story"],
-                                                                      neighbor_id_card, lang)))
+                                                                      neighbor_id_card, lang),
+                                              id_location_from=edge.get("id_from"),
+                                              id_location_to=edge.get("id_to")))
             result.append(VisitedLocation(loc["id"], loc.get("uuid"), loc.get("id_card"),
                                           (loc.get("secure_param") or 0) > 0, count, neighbors,
                                           card=self._resolve_card(match["id_story"],

@@ -87,7 +87,8 @@ def test_locations_success(env):
     port.list_locations.return_value = [
         VisitedLocation(1, "loc-1", 7, True, 1,
                         [NeighborCost(2, "loc-2", "NORTH", 1, 1, 2, 4, True,
-                                      id_card=8, card=nb_card)],
+                                      id_card=8, card=nb_card,
+                                      id_location_from=2, id_location_to=1)],
                         card=loc_card)
     ]
     r = client.get("/api/match/m1/locations", headers=AUTH)
@@ -105,6 +106,9 @@ def test_locations_success(env):
     assert nb["totalEnergyCost"] == 4
     assert nb["idCard"] == 8
     assert nb["card"]["title"] == "Center"
+    # authored orientation: location 1 is the edge's `to`, so this entry is a return
+    assert nb["idLocationFrom"] == 2
+    assert nb["idLocationTo"] == 1
 
 
 def test_locations_forwards_lang_param(env):

@@ -90,14 +90,19 @@ export function buildErrorCard(t) {
  * from data/images.json.
  *
  * @param {Function} t - i18n translate function
- * @param {string|null} direction - the neighbor direction (e.g. "NORTH"); the
- *   title reads "Move to North" (forward) or "Back to North" (return).
- * @param {string|null} fromName - the "From" location name.
- * @param {string|null} toName - the "To" location name; falls back to
- *   "Unexplored location" when null (destination not yet visited).
- * @param {boolean} isBack - true when the character stands on the destination
- *   and the move is a return: the title uses "Back to" and the caller has
- *   already swapped From/To.
+ * @param {string|null} direction - the TRAVERSAL direction (e.g. "NORTH"), i.e.
+ *   the way the character actually moves — the caller flips the authored edge
+ *   direction on a return move. The title reads "Move to North" (forward) or
+ *   "Back to North" (return); null drops the direction entirely.
+ * @param {string|null} fromName - the "From" location name: where the character
+ *   stands right now.
+ * @param {string|null} toName - the "To" location name: the move destination;
+ *   falls back to "Unexplored location" when null (not yet visited).
+ * @param {boolean} isBack - true when the move is a RETURN the player can recognise
+ *   as one: the edge is walked against its authored way AND the destination has
+ *   already been explored. Only then does the title read "Back to" — walking an
+ *   edge backwards into an unexplored place is still a "Move to". From/To keep
+ *   their meaning either way — they are never swapped.
  */
 export function buildNeighborCard(t, direction = null, fromName = null, toName = null, isBack = false) {
   const dir = direction && typeof direction === 'string'

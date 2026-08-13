@@ -419,6 +419,28 @@ class MovementServiceTest {
         }
 
         @Test
+        @DisplayName("carries the authored edge endpoints, so a client can tell a return traversal")
+        void carriesAuthoredEndpoints() {
+            when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));
+            // Standing on 2, which is the edge's `to` endpoint: the entry describes a
+            // RETURN traversal even though `direction` stays the authored NORTH.
+            when(store.findVisitedLocationIds(MATCH_ID)).thenReturn(List.of(2L));
+            when(store.findCharactersByMatchId(MATCH_ID)).thenReturn(List.of());
+            when(store.findCurrentWeatherMoveCost(MATCH_ID)).thenReturn(new WeatherMoveCost(0, 0));
+            when(store.findLocationByStoryAndId(STORY_ID, 2L))
+                    .thenReturn(Optional.of(location(2L, "loc-2", 1, 0, 100)));
+            when(store.findNeighborsOfLocation(STORY_ID, 2L)).thenReturn(List.of(edge(1L, 2L, 0)));
+            when(store.findLocationByStoryAndId(STORY_ID, 1L))
+                    .thenReturn(Optional.of(location(1L, "loc-1", 1, 0, 100)));
+
+            NeighborCost nb = service.listLocations(MATCH, USER, null).get(0).neighbors().get(0);
+
+            assertEquals(1L, nb.idLocationFrom());
+            assertEquals(2L, nb.idLocationTo());
+            assertEquals("NORTH", nb.direction());
+        }
+
+        @Test
         @DisplayName("resolves the location card and the neighbor's LOCATION card (visited)")
         void resolvesCards() {
             when(store.findMatchByUuid(MATCH)).thenReturn(Optional.of(match("RUNNING")));

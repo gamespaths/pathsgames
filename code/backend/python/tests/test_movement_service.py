@@ -301,6 +301,18 @@ def test_list_locations(service, store):
     assert loc.neighbors[0].uuid == "loc-2"
 
 
+def test_list_locations_carries_authored_endpoints(service, store):
+    """`direction` is the authored from→to one, so the endpoints must travel with it:
+    without them a client cannot tell a forward traversal from a return one."""
+    store.visited = [2]
+    store.neighbors = {2: [{"id_from": 1, "id_to": 2, "direction": "NORTH",
+                            "energy_cost": 2, "flag_back": 1}]}
+    nb = service.list_locations(MATCH_UUID, "user-uuid")[0].neighbors[0]
+    assert nb.direction == "NORTH"
+    assert nb.id_location_from == 1
+    assert nb.id_location_to == 2
+
+
 def test_list_locations_skips_missing(service, store):
     store.visited = [99]
     assert service.list_locations(MATCH_UUID, "user-uuid") == []

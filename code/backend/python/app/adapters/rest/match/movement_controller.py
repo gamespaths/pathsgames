@@ -65,6 +65,8 @@ def _location_to_camel(loc: VisitedLocation) -> dict:
                 "idLocation": n.id_location,
                 "uuid": n.uuid,
                 "direction": n.direction,
+                "idLocationFrom": n.id_location_from,
+                "idLocationTo": n.id_location_to,
                 "idCard": n.id_card,
                 "card": n.card,
                 "baseEnergyCost": n.base_energy_cost,

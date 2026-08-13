@@ -186,10 +186,23 @@ components:
         location entry) + weatherEnergyCost (weather modifier) = totalEnergyCost.
         Fog of war (v0.28.6): idCard and card are null when the neighbor's
         destination location has never been visited by the match.
+        Orientation: `direction` is the AUTHORED story-edge direction, from
+        `idLocationFrom` to `idLocationTo` — a two-way edge is listed from both
+        endpoints carrying the SAME direction. Clients that need the direction the
+        character actually walks in must flip it when the listing location is
+        `idLocationTo`.
       properties:
         idLocation: { type: integer }
         uuid: { type: string }
         direction: { type: string }
+        idLocationFrom:
+          type: integer
+          format: int64
+          description: The `from` endpoint of the authored edge (raw orientation).
+        idLocationTo:
+          type: integer
+          format: int64
+          description: The `to` endpoint of the authored edge (raw orientation).
         idCard: { type: integer, nullable: true }
         card:
           allOf:

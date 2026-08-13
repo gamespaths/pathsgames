@@ -15,6 +15,8 @@ import {
   storySelectionCount,
   selectedTraitCount,
   checkShowToSleepCard,
+  buildLocationCosts,
+  movementCostKey,
 } from '@/utils/gamebook'
 import CloseGameCard from './cards/CloseGameCard'
 import GoToSleepCard from './cards/GoToSleepCard'
@@ -243,15 +245,8 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
 
   // Step 28 — load the per-neighbor total energy cost; the weather can change it,
   // so it is refreshed together with the clock/weather after a board reload.
-  function buildLocationCosts(payload) {
-    const map = {}
-    for (const loc of payload?.locations ?? []) {
-      for (const n of loc.neighbors ?? []) {
-        if (n.uuid != null) map[n.uuid] = n.totalEnergyCost
-      }
-    }
-    return map
-  }
+  // Built by `buildLocationCosts` (utils/gamebook), keyed on BOTH endpoints — see
+  // `movementCostKey` for why the destination alone is not an identity.
   async function refreshLocations() {
     if (!matchUuid) return
     try {
@@ -691,7 +686,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : mapView ? (mapSelected
         ? <MovementCard variant="page" location={mapSelectedLocation} viewFromMap={true}
             isNeighbor={mapSelectedNeighbor != null || (mapSelected.isNeighbor ?? false)}
-            totalEnergyCost={mapSelectedLocation.uuid != null ? locationCosts[mapSelectedLocation.uuid] : undefined}
+            totalEnergyCost={mapSelectedLocation.uuid != null && hereLocationId != null
+              ? locationCosts[movementCostKey(hereLocationId, mapSelectedLocation.uuid)]
+              : undefined}
             playerStats={playerStats} story={story}
             matchUuid={matchUuid} accessToken={user?.accessToken}
             onMoved={handleMovementDone} onError={onError} 
@@ -735,7 +732,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
 
           {/* Show the sleep card only when the player is energy-stuck: every
               available movement and action costs more energy than they have. */}
-          {(checkShowToSleepCard({ playerStats, locations, actions, locationCosts }) || (showGoToSleepCard)) &&
+          {(checkShowToSleepCard({ playerStats, locations, actions, locationCosts, hereLocationId }) || (showGoToSleepCard)) &&
             <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
               previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept}/>
           }
@@ -745,7 +742,9 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           { /* Step 28 — for every neighbor-location render a move-target card */ }
           { (locations ?? []).map(loc => (
             <MovementCard key={loc.uuid ?? loc.idLocation} location={loc}
-              totalEnergyCost={loc.uuid != null ? locationCosts[loc.uuid] : undefined}
+              totalEnergyCost={loc.uuid != null && hereLocationId != null
+                ? locationCosts[movementCostKey(hereLocationId, loc.uuid)]
+                : undefined}
               playerStats={playerStats} story={story} onPreview={handleSelectionPreviewFull}
               previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken}
               onMoved={handleMovementDone} onError={onError} />

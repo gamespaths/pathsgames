@@ -63,7 +63,7 @@ class MatchAdminControllerTest {
                 "card-uuid", "location", "http://img/a.jpg", null, null,
                 null, null, null, null, null, "Hall", "desc", null, null, null);
         MovementPort.NeighborCost n = new MovementPort.NeighborCost(
-                2L, "loc-2", "NORTH", 9, card, 1, 1, 2, 4, true);
+                2L, "loc-2", "NORTH", 1L, 2L, 9, card, 1, 1, 2, 4, true);
         MovementPort.VisitedLocation loc = new MovementPort.VisitedLocation(
                 1L, "loc-1", 10, card, true, 2, List.of(n));
         when(movementPort.listLocationsForAdmin("match-uuid", null)).thenReturn(List.of(loc));

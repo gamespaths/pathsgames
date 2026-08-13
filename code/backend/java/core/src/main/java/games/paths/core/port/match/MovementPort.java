@@ -65,10 +65,19 @@ public interface MovementPort {
      * A neighbor edge with the resolved energy-cost breakdown for the current weather:
      * {@code baseEnergyCost} (edge) + {@code entryEnergyCost} (target location entry) +
      * {@code weatherEnergyCost} (weather modifier) = {@code totalEnergyCost}.
+     *
+     * <p>{@code direction} is the AUTHORED story-edge direction, i.e. the one from
+     * {@code idLocationFrom} to {@code idLocationTo} — NOT the way the character walks:
+     * a two-way edge is reported from both endpoints with the same direction. The two
+     * endpoint ids let a client tell the two traversals apart (same contract as
+     * {@code LocationNeighborInfo} on {@code /info}) and flip the direction when the
+     * listing location is {@code idLocationTo}.</p>
      */
     record NeighborCost(long idLocation,
                         String uuid,
                         String direction,
+                        long idLocationFrom,
+                        long idLocationTo,
                         Integer idCard,
                         CardInfo card,
                         int baseEnergyCost,

@@ -1312,6 +1312,18 @@
       "linkCopyright": "https://unsplash.com/photos/wooden-picnic-table-and-bench-by-a-forest-lake-F4DRFnQqHpc",
       "urlImage": "https://images.unsplash.com/photo-1785867428023-eb618071575e?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "6c8af6fe-cd7c-4906-aa8f-9819282293e5"
+    },
+    {
+      "id": 110,
+      "idCard": 110,
+      "idCreator": 1,
+      "idTextCopyright": 318,
+      "idTextDescription": 317,
+      "idTextName": 316,
+      "idTextTitle": 316,
+      "linkCopyright": "https://unsplash.com/photos/calm-blue-water-during-daytime-e2ytz-Zj29I",
+      "urlImage": "https://images.unsplash.com/photo-1548323886-de9ef217070a?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "71345e28-d4de-4336-b25d-4182697435e4"
     }
   ],
   "category": "adventure",
@@ -2003,7 +2015,7 @@
       "idCard": 81,
       "idEvent": 6,
       "idLocation": 16,
-      "idTextDescription": 227,
+      "idTextDescription": 231,
       "idTextName": 227,
       "idWeather": 1,
       "id_card": 81,
@@ -2082,6 +2094,16 @@
       "target": "ALL",
       "uuid": "34f1c0b4-fa1d-48e0-a234-ecffb7a6496b",
       "value": 1
+    },
+    {
+      "id": 11,
+      "idCard": 110,
+      "idEvent": 15,
+      "idTextDescription": 317,
+      "idTextName": 316,
+      "idWeather": 1,
+      "id_card": 110,
+      "uuid": "498eb10d-ed66-4e44-830e-d11a1ec2b2f2"
     }
   ],
   "events": [
@@ -2171,7 +2193,7 @@
     {
       "id": 6,
       "idCard": 81,
-      "idTextDescription": 226,
+      "idTextDescription": 231,
       "idTextName": 226,
       "id_card": 81,
       "uuid": "6c124bec-625b-4522-a1b0-539c49c7c5da"
@@ -2257,6 +2279,16 @@
       "id_card": 109,
       "type": "AUTOMATIC",
       "uuid": "bf903b7c-8ed7-4380-a1bc-18cb9ea82687"
+    },
+    {
+      "id": 15,
+      "idCard": 110,
+      "idSpecificLocation": 14,
+      "idTextDescription": 317,
+      "idTextName": 316,
+      "id_card": 110,
+      "type": "AUTOMATIC",
+      "uuid": "519faa45-6745-415e-a933-7abf41b09957"
     }
   ],
   "globalRandomEvents": [],
@@ -2489,7 +2521,7 @@
       "id": 1,
       "idAudio": null,
       "idCard": 44,
-      "idEventIfCharacterEnterEmptyLocation": null,
+      "idEventIfCharacterEnterFirstTime": null,
       "idEventIfCharacterStartTime": null,
       "idEventIfCounterZero": null,
       "idEventIfFirstTime": null,
@@ -2527,7 +2559,7 @@
       "id": 2,
       "idAudio": null,
       "idCard": 46,
-      "idEventIfCharacterEnterEmptyLocation": null,
+      "idEventIfCharacterEnterFirstTime": null,
       "idEventIfCharacterStartTime": null,
       "idEventIfCounterZero": null,
       "idEventIfFirstTime": null,
@@ -2677,6 +2709,7 @@
       "id": 13,
       "idCard": 71,
       "idEventIfCharacterEnterEmptyLocation": 12,
+      "idEventIfCharacterEnterFirstTime": 12,
       "idTextDescription": 195,
       "idTextName": 195,
       "id_card": 71,
@@ -2686,6 +2719,7 @@
       "costEnergyEnter": 0,
       "id": 14,
       "idCard": 72,
+      "idEventIfCharacterStartTime": 15,
       "idTextDescription": 279,
       "idTextName": 198,
       "id_card": 72,
@@ -2697,7 +2731,7 @@
       "costEnergyEnter": 1,
       "id": 15,
       "idCard": 73,
-      "idEventIfCharacterEnterEmptyLocation": "",
+      "idEventIfCharacterEnterFirstTime": "",
       "idEventIfFirstTime": 11,
       "idTextDescription": 199,
       "idTextName": 199,
@@ -5218,8 +5252,8 @@
       "idText": 140,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Go to the finish",
-      "shortText": "Go to the finish",
+      "longText": "Go to ending",
+      "shortText": "Go to ending",
       "uuid": "343f1afc-6bb5-4496-99e6-6b13403111a4"
     },
     {
@@ -5628,8 +5662,8 @@
       "idText": 165,
       "idTextCopyright": 3,
       "lang": "en",
-      "longText": "Go to the finish",
-      "shortText": "Go to the finish",
+      "longText": "Go to ending",
+      "shortText": "Go to ending",
       "uuid": "59705bf6-5960-41b4-ba47-3391f7355f49"
     },
     {
@@ -8171,6 +8205,56 @@
       "longText": "Colazione",
       "shortText": "Colazione",
       "uuid": "6cd14a43-7865-4d1a-8fc1-8dd6cf569cb2"
+    },
+    {
+      "id": 316,
+      "idCreator": 1,
+      "idText": 316,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Beautiful day",
+      "shortText": "Beautiful day",
+      "uuid": "91d8f930-b6ba-4735-a3b3-8a6e3a535972"
+    },
+    {
+      "id": 317,
+      "idCreator": 1,
+      "idText": 317,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "This event occurs every time a player sleeps and sets the weather to wonderful weather.",
+      "shortText": "This event occurs every time a player sleeps and sets the weather to wonderful weather.",
+      "uuid": "9bc6f129-d62e-4c83-b570-798a1853b034"
+    },
+    {
+      "id": 317,
+      "idCreator": 1,
+      "idText": 317,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Questo evento avviene ogni volta che un giocatore dorme e imposta il tempo a tempo meraviglioso",
+      "shortText": "Questo evento avviene ogni volta che un giocatore dorme e imposta il tempo a tempo meraviglioso",
+      "uuid": "24400686-81b6-4f27-b2c1-263803ef987d"
+    },
+    {
+      "id": 318,
+      "idCreator": 1,
+      "idText": 318,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Krys Amon",
+      "shortText": "Krys Amon",
+      "uuid": "b01e41cc-d6d4-4e72-8098-7a3c428d813b"
+    },
+    {
+      "id": 318,
+      "idCreator": 1,
+      "idText": 318,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "0fbdbe7b-dea1-428e-893c-69cbd0501cdd"
     }
   ],
   "title": "Paths Tutorial",

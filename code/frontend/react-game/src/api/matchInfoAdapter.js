@@ -37,6 +37,7 @@
  */
 
 import { buildEndGameCard, buildNeighborCard } from "@/utils/loadoutCards"
+import { traversalDirection } from "@/utils/mapGraph"
 
 const EMPTY_STATS = {
   life: 0, energy: 0, sadness: 0, experience: 0, food: 0, magic: 0, coins: 0, weight: 0,
@@ -122,6 +123,13 @@ export function matchInfoToGameData(info, story = null,t) {
   // Step 26 — the residual location time counter (gaming_state_locations.clock_counter)
   // for the location the player currently stands on, surfaced on the location card so
   // LocationCard can render it as a statistic when > 0.
+  // v0.28.6 — /info locations[] is the VISITED set of the match, the same one the
+  // backend gates the fog of war on, so a destination is "already explored" here
+  // exactly when its location card resolves.
+  const visitedIds = new Set((info.locations ?? [])
+    .map(l => l.idLocation)
+    .filter(id => id != null))
+
   const stateLoc = (info.locations ?? []).find(l => l.idLocation === playerLoc) ?? null
   const actualLocationCounter = stateLoc?.clockCounter ?? null
   const actualLocationCardWithCounter = actualLocationCard
@@ -133,7 +141,8 @@ export function matchInfoToGameData(info, story = null,t) {
   // optional return card (cardBack); otherwise show the forward card.
   const locations = (active?.neighbors ?? []).map(n => {
     // When the character stands on the edge's `to` endpoint, the neighbor is a
-    // RETURN move: the destination is the `from` endpoint, and From/To swap.
+    // RETURN move: the destination is the `from` endpoint and the travel
+    // direction is the opposite of the authored one.
     const playerAtTo = active?.idLocation != null && active.idLocation === n.idLocationTo
     // Step 0.28.6 — the LOCATION cards of the two endpoints, each null while that
     // endpoint is unvisited. The active location is always visited, so the origin
@@ -145,11 +154,15 @@ export function matchInfoToGameData(info, story = null,t) {
     // "neighbor" card from data/images.json, titled by the move direction and
     // described with the current + destination location names. The destination
     // name stays null (→ "Unexplored location") until it has been visited.
-    const currentTitle = actualLocationCard?.title ?? originLocationCard?.title ?? null
-    const destName = destLocationCard?.title ?? null
-    const fromName = playerAtTo ? destName : currentTitle
-    const toName = playerAtTo ? currentTitle : destName
-    const genericNeighborCard = buildNeighborCard(tr, n.direction, fromName, toName, playerAtTo)
+    // From = where the character stands now, To = where the move lands: the
+    // origin/destination swap already happened above, so these two must NOT be
+    // swapped again.
+    const fromName = actualLocationCard?.title ?? originLocationCard?.title ?? null
+    const toName = destLocationCard?.title ?? null
+    // `n.direction` is the AUTHORED edge direction (from→to). On a return move the
+    // character travels the other way, so the card must show the opposite.
+    const travelDirection = traversalDirection(n.direction, playerAtTo)
+    const genericNeighborCard = buildNeighborCard(tr, travelDirection, fromName, toName, playerAtTo)
 
     // Precedence: the return LINK card when moving back, then the forward LINK
     // card, then the destination's own LOCATION card, then the generic fallback.
@@ -164,7 +177,7 @@ export function matchInfoToGameData(info, story = null,t) {
       description: displayCard?.description ?? '',
       urlImage: displayCard?.urlImage ?? null,
       awesomeIcon: displayCard?.awesomeIcon ?? 'fas fa-location-arrow',
-      direction: n.direction ?? null,
+      direction: travelDirection,
       energyCost: n.energyCost ?? null,
       card: displayCard ?? null,
       // The backend's own move verdict: `available` is what action/move would answer, and
