@@ -51,7 +51,7 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | -- | -- |
 | 34-38 | Game mechanics — inventory, resources, registry, missions, experience |
 | 40 | Logging & snapshots |
-| 41 | Frontend: single-player game board and gameplay UI |
+| 41 | Frontend & security: single-player game board and gameplay UI |
 | 42 | **Launch beta version with guest and single-player game** |
 | 43-48 | User registration, Google SSO, profile management, guest linking |
 | 49-54 | WebSocket server, authentication, message types, real-time sync, reconnect |
@@ -69,26 +69,198 @@ The file lists a **101-step development roadmap** (each with seven substeps cove
 | 100-101 | Documentation and V1 Launch |
 
 
+
+
 # Next steps
 
 ## PHASE 1 — Single-Player Game with Guest Login (Steps 14-42)
-34. Inventory and item management (check if componets already exists)
-    - Implement GET /gameplay/{uuid_match}/inventory endpoint listing active character items with weight and effects (backend)
-    - Implement POST /gameplay/{uuid_match}/inventory/use-item endpoint to use a consumable item (backend)
-    - Implement POST /gameplay/{uuid_match}/inventory/drop-item endpoint to discard or send an item (backend)
-    - Validate item usage: character not sleeping/comatose, item exists in inventory, class restrictions met (backend)
-    - Apply item effects from list_items_effects: modify life, energy, sadness, stats, add/remove traits (backend)
-    - Create log_item_usage record with character, item, effects, and timestamp (backend)
-    - Write backend unit tests for inventory listing, item usage, discard, class restrictions, effect application, and weight calculation (backend tests)
-    - manage effect (event and coices) add/remove items!
-35. Resource management — food, magic, coins, weight (check if componets already exists)
-    - Implement GET /matches/{uuid}/characters/{uuid}/resources endpoint returning food, magic, coins, total weight (backend)
-    - Implement resource modification through events and choices: add/subtract food, magic, coins respecting minimums (backend)
-    - Calculate total weight: food + magic + sum(item_weights); validate coins have zero weight (backend)
-    - Calculate maximum capacity: constitution + difficulty_parameter(max_weight) + default_backpack_capacity (backend)
-    - Block movement when total weight exceeds maximum capacity (integrate with movement validation) (backend)
-    - Build frontend resource display component showing food, magic, coins, weight bar, and capacity limit (frontend)
-    - Write backend unit tests for resource modification, weight calculation, capacity formula, and movement blocking (backend tests)
+34. Inventory and item management — use-item, drop-item, item cards
+    **Steps 34 and 35 are implemented and released together**: the carried-weight formula of
+    step 35 is what gives the inventory of step 34 its consequence. Every design question was
+    settled before implementation started — nothing below is open. Read "Already in place"
+    first: most of the engine exists and must be REUSED, not rebuilt.
+
+    **Already in place — reuse, do not rebuild**
+    - Schema complete since V0.10.x, no table to create: `list_items` (weight, is_consumabile,
+      id_class_permitted, id_class_prohibited), `list_items_effects` (effect_code, effect_value),
+      `gaming_inventory_items` (amount, state), `gaming_backpack_resources` (food, magic, coin),
+      `log_item_usage` (effects_json).
+    - Events and choices ALREADY add and remove items: `applyItem()` in
+      `core/service/match/EventExecutionService.java` and `_apply_item()` in
+      `app/core/services/match/event_service.py`. Columns `id_item_target` / `item_action` are
+      live on both `list_events_effects` and `list_choices_effects`. The old roadmap bullet
+      "manage effect (event and choices) add/remove items" is therefore DONE (steps 29/32).
+    - Events and choices ALREADY write food/magic/coin (`backpackDirty` → `updateBackpack`).
+    - `CharacterMapper.buildItems()` already resolves the inventory into `ItemInstanceInfo`
+      (uuid, itemUuid, name, weight, amount, state) and already computes
+      `totalWeight = Σ (item.weight × amount)`. `buildAll()` already loads the backpack row of
+      every character and already receives `requesterUserId`.
+    - `GET /api/match/{uuid}/info` already returns `items[]`, `weight` and `weightMax` for every
+      player (`CharacterSummaryResponse` extends `AbstractCharacterStatsResponse`). Only
+      food/magic/coin are missing there — they already exist on `CharacterInstanceResponse`.
+    - `MovementAvailabilityChecker` already refuses a move with `OVERWEIGHT`; the check is dead
+      only because `MovementStoreAdapter` passes a hardcoded `0` as carried weight.
+    - `weight_max` is already computed once at character creation (`CharacterCommandService`).
+    - `ItemEntity.getIdCard()` already works (inherited from `BaseStoryEntity`).
+    - react-admin already has CRUD for `items` and `itemEffects`.
+    - AWS is NOT greenfield either: `lambda/match/events.py` already has `apply_item()` (ADD/REMOVE,
+      called from both the event and the choice effect paths), `lambda/match/handler.py` already
+      computes `weight_max` with the identical formula, and `lambda/match/movements.py` already
+      hardcodes `carriedWeight: 0` against a live `OVERWEIGHT` refusal — the same dead check as the
+      java adapter.    - react-game `matchInfoAdapter.toPlayerStats()` already maps `items`, `weight`, `weightMax`;
+      `food` / `magic` / `coins` are hardcoded to `0` there, and `PlayerStats` already lists them
+      among its `PLAIN_KEYS`.
+
+    **Decisions (frozen)**
+    - `use-item` REMOVES the inventory row; `amount` is not decremented. Seed items therefore
+      carry `amount: 1`.
+    - Only items with `is_consumabile = 1` can be used (this follows the original roadmap
+      wording "use a consumable item"). Non-consumable items are carried — they add weight and
+      can satisfy item conditions on events and choices — but `use-item` refuses them.
+    - `drop-item` discards only. Transferring an item to another character is multiplayer
+      (steps 71-76) and is out of scope: no recipient field, no transfer endpoint.
+    - `number_max_free_action` stays unused: using an item costs neither the turn nor a
+      free-action slot. That column remains unenforced across the whole project.
+    - `list_items_effects` gains `traits_to_add` and `traits_to_remove`, with exactly the same
+      column names and CSV-of-ids format already used by `list_events_effects` — do not invent a
+      third format. New migration `V0.34.0__add_item_effect_traits.sql` on BOTH adapter-sqlite
+      and adapter-postgres. The migration number does NOT imply a version bump: leave pom.xml alone.
+    - `use-item` answers with the SAME response shape as `execute-event` (`ExecuteEventResponse`):
+      applied effects, narrative card, `edgeState`. Reason: an item carrying a SADNESS effect can
+      trigger the overflow/coma of step 30, and the frontend then reuses `handleEventExecuted`
+      almost unchanged. The `CHOICES_PENDING` and `endGame` branches do not apply to items.
+    - Item cards: every item in a response carries `idCard` AND the resolved `card` object,
+      localised through `?lang=`. `idCard` alone is not enough — react-game never resolves a card
+      by id, it consumes the embedded object (see `MovementCard` reading `location?.card`).
+      There is no `cardUuid` / `uuidCard` anywhere in the project: the convention is `idCard`.
+    - `/info` keeps the `items` key on EVERY player, but populates it ONLY for the character of
+      the calling user (empty array for the others). Rationale: no leak of other players'
+      inventories, DTO shape unchanged, and `tests/21_character_selection/character_selection.robot`
+      keeps passing — it asserts the `items` key on the player it reads (that suite joins a single
+      character, so the guard is weaker than it looks, but it still breaks if the key vanishes).
+      The filter is trivial:
+      `CharacterMapper.buildAll()` already knows `requesterUserId`.
+
+    **API contract (frozen)**
+    ```
+    GET  /api/match/{uuid_match}/info?lang=xx
+         players[].items[] → uuid, itemUuid, name, weight, amount, state, idCard, card
+                             key present on every player, populated only for the caller
+         players[].food, players[].magic, players[].coin          (new fields)
+    GET  /api/gameplay/{uuid_match}/inventory
+         items[] with the same fields, idCard and resolved card included
+    POST /api/gameplay/{uuid_match}/inventory/use-item    → ExecuteEventResponse shape
+    POST /api/gameplay/{uuid_match}/inventory/drop-item   → discard only
+    GET  /api/gameplay/{uuid_match}/resources
+         food, magic, coin, weight, weightMax — plain numbers, NO card: resources are not story
+         entities and have no id_card
+    ```
+
+    **Work**
+    - Migration `V0.34.0__add_item_effect_traits.sql` (sqlite + postgres), then wire the two new
+      columns through `ItemEffectEntity`, `StoryImportService`, `StoryCrudService`,
+      `StoryValidatorService` (referential check on trait ids) and the react-admin itemEffects form (backend + frontend)
+    - Item service: list inventory, use item, drop item; applies `list_items_effects`
+      (LIFE, ENERGY, SADNESS, DEX, INT, COS, FOOD, MAGIC, COIN + the new traits columns) (backend)
+    - Validate item usage: match RUNNING, character not sleeping and not in coma, row belongs to
+      the calling character, `is_consumabile = 1`, `id_class_permitted` / `id_class_prohibited`
+      honoured against the character's class (backend)
+    - Write `log_item_usage` on every use: character, item, effects_json, timestamp (backend)
+    - Add `idCard` + resolved `card` to `ItemInstanceInfo` / `ItemInstanceResponse`; the story
+      `ItemEntity` is already in hand inside `CharacterMapper.buildItems()` (backend)
+    - Add `food` / `magic` / `coin` to `CharacterSummaryResponse` — the backpack is already loaded
+      by `buildAll()`, so this costs no extra query (backend)
+    - Expose the four endpoints and update the OpenAPI specs in
+      `adapter-rest/src/main/resources/openapi/` (backend)
+    - Mirror everything in the python backend (backend)
+    - AWS backend — read the AWS note below before starting: it is NOT a plain copy of the
+      java/python work (backend)
+    - Seed: extend BOTH `story_demo_3.json` and `story_demo_4.json` with item `id`, `idCard`,
+      `itemEffects`, at least one item restricted by class, and an event carrying
+      `itemAction: ADD` so a character can actually own something. Both stories, because
+      `Pick Story Loadout` in `code/tests/robot/resources/matches.resource` picks the FIRST usable
+      public story — binding the suite to one story would make it depend on `/api/stories` ordering.
+      `idCard` is checked by `StoryValidatorService`, so the referenced card must exist or the
+      import hard-fails (step 22). Adding an explicit `id` to seed items follows the convention
+      the seed files already use for `events` and `choiceConditions` (backend)
+    - react-game: new `features/gameplay/cards/ItemCard.jsx`, prop contract copied from
+      `ActionCard` / `MovementCard` (`item`, `story`, `onPreview`, `previewSide="right"`,
+      `playerStats`, `matchUuid`, `accessToken`, `onDone`, `onError`). Small cards that open the
+      card preview page, plus a use-item button. Rendered in `GameBook.jsx` right after the
+      actions `.map()` and before `<div className="sleep-action-row">`. `GameBookMobile` reuses
+      the same `leftContent`, so mobile needs nothing extra. No `label` prop on `Card` /
+      `CardButtons` — use `lockInfo`, per project convention (frontend)
+    - react-game: the use-item handler is modelled on `handleEventExecuted` — reload, then the
+      narrative card, then the edge state (frontend)
+    - Not in scope: the commented-out `fa-clipboard-list` icon slot in `GameBook.jsx` (the block
+      marked NEVER REMOVE THIS COMMENT) stays as it is (frontend)
+    - Write backend unit tests for inventory listing, item usage, discard, class restrictions,
+      consumable check, effect application including the new traits columns, row removal, and
+      log writing; coverage of new code > 95% on every backend (backend tests)
+    - Write react-game unit tests for `ItemCard` and for the adapter mapping (frontend tests)
+    - New robot suite `34_inventory`, including a dedicated test proving the inventory row
+      disappears after `use-item` and that the item can no longer satisfy an item condition (tests)
+
+    **AWS note — read before touching the AWS backend**
+    The AWS backend is not a layer-for-layer copy of java/python, so "mirror the change" is
+    misleading there:
+    - There is no inventory table. `apply_item()` stores items as an embedded list attribute on
+      the character's DynamoDB item (`char.setdefault("items", [])` in `lambda/match/events.py`).
+      So `use-item` / `drop-item` mutate a list, they do not delete a row.
+    - `_character_summary()` and `_character_full()` in `lambda/match/handler.py` currently
+      hardcode `"weight": 0, "items": []` with a comment saying the schema has no inventory table
+      — so AWS already computes real item data and then throws it away at the response layer.
+      Un-hardcoding those two functions IS the bulk of the AWS work. `_character_full()` already
+      carries food/magic/coin.
+    - There is no `log_item_usage` table on DynamoDB: an equivalent write must be designed.
+    - There is no service/adapter split: match logic is inlined across `handler.py`, `events.py`
+      and `movements.py`.
+    - Naming trap: at the lambda layer the effect dict uses camelCase (`idItem`, `itemAction`),
+      not the snake_case (`id_item_target`, `item_action`) of the SQL-facing python code. Copying
+      python's `_apply_item` verbatim raises `KeyError`.
+
+35. Resource management — food, magic, coins, carried weight
+    Released together with step 34. See step 34 for the shared decisions and API contract.
+
+    **Decisions (frozen)**
+    - Carrying capacity keeps the formula the CODE already implements, in
+      `CharacterCommandService`: `class.weight_max + difficulty.weight + Σ traits.weight +
+      Σ class-bonus.weight`, stored once in `gaming_character_instance.weight_max` at character
+      creation. The older roadmap formula (constitution + difficulty `max_weight` +
+      `DefaultInventoryCapacity`) is DROPPED — the roadmap is adapted to the code, not the
+      reverse, because that formula is the one steps 23 and 27 already built and tested.
+    - The seed parameter `DefaultInventoryCapacity` (V0.10.12) is genuinely dead: nothing reads
+      it. It is deliberately LEFT IN PLACE — do not wire it, do not remove it, do not "fix" it.
+    - `list_stories_difficulty.max_weight` is NOT dead and must not be treated as such: it is a
+      live, tested field of the difficulty CRUD / import / public API pipeline (`DifficultyInfo`,
+      `DifficultyResponse`, `StoryQueryService`, `StoryCrudService`, `StoryImportService`, and the
+      python twins). It is simply not the column the carry-capacity formula uses — that is the
+      separate `weight` column added in V0.19.7. Leave both exactly as they are.
+    - Carried weight = `Σ (item.weight × amount)`, which is exactly what
+      `CharacterMapper.totalWeight()` already computes. Food, magic and coins weigh NOTHING.
+    - Resource modification through events and choices is already implemented (steps 29/32) and
+      must not be rewritten.
+
+    **Work**
+    - `GET /api/gameplay/{uuid_match}/resources` returning food, magic, coin, weight, weightMax
+      for the calling character (backend)
+    - Feed the REAL carried weight into movement: `MovementStoreAdapter` currently passes a
+      hardcoded `0` into `MoveCharacterView.carriedWeight`. Replacing it switches on the
+      `OVERWEIGHT` refusal that `MovementAvailabilityChecker` already implements — no new
+      validation logic is needed (backend)
+    - Mirror in the python and AWS backends (see the AWS note in step 34) (backend)
+    - react-game: replace the hardcoded `food: 0, magic: 0, coins: 0` in
+      `matchInfoAdapter.toPlayerStats()` with the values from `/info`. Mind the naming: the
+      backend field is `coin` (singular), the frontend key is `coins` (plural). `PlayerStats`
+      already renders all three, so no new component is needed for the numbers (frontend)
+    - Write backend unit tests for the resources endpoint, weight computation, capacity, and
+      movement blocked when overweight; coverage > 95% (backend tests)
+    - Regression watch: the `28_movement` robot suites currently run with `carriedWeight = 0`.
+      Turning on the real weight can change their outcome — re-run the whole suite after the
+      change (tests)
+    - Known limitation, NOT to be fixed here: react-game reads `info.players?.[0]` rather than
+      the calling user's player. Correct in single-player, wrong once multiplayer lands — fix it
+      in the multiplayer frontend steps (81-84), not in this step (frontend)
 36. Registry system — key-value game state tracking (check if componets already exists)
     - Implement GET /matches/{uuid}/registry endpoint returning all visible registry entries grouped by category (backend)
     - Implement registry update service used by events, choices, and game engine to set/modify key-value pairs (backend)
