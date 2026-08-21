@@ -9,7 +9,10 @@
  * to render every item regardless of value (used by live PlayerStats so that
  * a player can see when a stat drops to 0).
  *
- * @param {Array}   items      - [{ key, label, value }]
+ * @param {Array}   items      - [{ key, label, value, prefix }]; `prefix` is written
+ *                               straight before the value (e.g. 'x' for a carried
+ *                               amount) and, unlike the value itself, is never parsed —
+ *                               so the zero-filter below keeps working on a number.
  * @param {string}  className  - optional extra class on the wrapper
  * @param {boolean} showZeros  - keep items with value 0/missing (default false)
  */
@@ -24,6 +27,11 @@ const STAT_VISUAL = {
   constitution: { icon: 'fas fa-shield-alt',    color: '#8e44ad' },
   weight:       { icon: 'fas fa-weight-hanging',color: '#95a5a6' },
   exp:          { icon: 'fas fa-star',          color: '#9b59b6' },
+
+  // Step 34 — a carried amount needs no glyph: the x in front of the number already
+  // says "how many", and an icon next to it would only repeat it. `icon: null` is what
+  // opts out; every other key keeps falling back to DEFAULT_VISUAL.
+  amount:       { icon: null,                   color: null },
 
   // Step 26 — location time counter (clock_counter) shown as a statistic
   clockCounter: { icon: 'fas fa-hourglass-half', color: '#d4af37' },
@@ -98,9 +106,9 @@ export default function BonusBadgeList({ items, className = '', showZeros = fals
         const visual = STAT_VISUAL[item.key] ?? DEFAULT_VISUAL
         return (
           <span key={item.key} className={ "stat-badge bonus-badge" + (littleVersion ? " bonus-badge-little-version" : "") } title={item.label} aria-label={item.label}>
-            <i className={visual.icon} style={{ color: visual.color }} />
+            {visual.icon && <i className={visual.icon} style={{ color: visual.color }} />}
             {!littleVersion && <span>{item.label}{item.label ? ':' : ''}</span>} 
-            <strong>{item.value}</strong>
+            <strong>{item.prefix ?? ''}{item.value}</strong>
           </span>
         )
       })}

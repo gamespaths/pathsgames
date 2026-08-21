@@ -1153,7 +1153,9 @@ class EventService(EventPort):
             match_uuid=x.match["uuid"],
             event_uuid=x.event.get("uuid"),
             event_type=x.event.get("type"),
-            card=x.resolve_card(x.event.get("id_card")),
+            # Step 34 — an item usage has no owning event: uuid and type stay None and
+            # the narrative card is the item's own.
+            card=x.resolve_card(x.event.get("id_card")) if x.event else x.standalone_card,
             executed_event_uuids=self._chain_event_uuids(x),
             energy_spent=x.energy_spent,
             coin_spent=x.coin_spent,
@@ -1196,6 +1198,56 @@ class EventService(EventPort):
             return x.effects
         return x.effects[:x.coma_effect_mark]
 
+    # ── Step 34: effects that come from something other than an event ───────
+
+    def apply_standalone_effects(self, id_match: int, id_character: int,
+                                 effects: Optional[List[Dict[str, Any]]],
+                                 card: Optional[Dict[str, Any]],
+                                 lang: str,
+                                 source_consumed: bool = False) -> EventExecutionResult:
+        """Apply effect rows that do NOT come from list_events_effects, to one character.
+
+        Answers the very same payload execute-event answers. Step 34 item usage goes
+        through here so that `_Live`'s clamping, the single-write `_flush`, the step-30
+        verdict and the all-players-in-coma epilogue are the SAME code an event effect
+        runs — `_Live.set_sad` exists precisely so no future effect type can bypass the
+        overflow check, and a second engine would be exactly that effect type.
+
+        Each entry is a plain dict with the keys `_apply_stat` and `_apply_traits`
+        already read: `statistics` (already normalised), `value`, `traits_to_add`,
+        `traits_to_remove`, plus `effect_uuid` and `id_card` for the payload.
+
+        `source_consumed` says the caller already removed what produced these effects
+        (step 34 deletes the inventory row before they run), so the result reports
+        `item_removed` and recommends a refresh even when the item carried no effect at
+        all — the bag changed regardless.
+        """
+        match = self.store.find_match_by_id(id_match)
+        actor = self.store.find_character_by_match_and_id(id_match, id_character)
+        if match is None or actor is None:
+            raise self._not_found()
+        ctx = self.store.load_check_context(id_match, id_character)
+
+        x = _Exec(self, match, actor, ctx, lang or "en", {})
+        x.standalone_card = card
+        x.item_removed = source_consumed
+        for effect in (effects or []):
+            self._apply_stat(x, actor, effect)
+            self._apply_traits(x, actor, effect, {})
+            x.effects.append(AppliedEffect(
+                event_uuid=None,
+                effect_uuid=effect.get("effect_uuid"),
+                statistic=effect.get("statistics"),
+                value=effect.get("value"),
+                target=TARGET_ONLY_ONE,
+                target_class=None,
+                character_uuids=[actor.get("uuid")],
+                card=x.resolve_card(effect.get("id_card")),
+            ))
+        self._check_edge_states(x, None)
+        self._resolve_all_player_coma(x)
+        return self._build_result(x)
+
     @staticmethod
     def _build_edge_state(x: "_Exec") -> EdgeStateOutcome:
         if not x.sadness_overflow_uuids and not x.coma_uuids and not x.all_players_in_coma:
@@ -1231,7 +1283,10 @@ class _Exec:
         self.actor = actor
         self.ctx = ctx
         self.lang = lang
+        # Empty when the effects come from something that is not an event — step 34 items.
         self.event = event
+        # The card an event-less execution narrates with: the item's own card.
+        self.standalone_card: Optional[Dict[str, Any]] = None
 
         self.living: Dict[int, _Live] = {}
         self.visited: set = set()

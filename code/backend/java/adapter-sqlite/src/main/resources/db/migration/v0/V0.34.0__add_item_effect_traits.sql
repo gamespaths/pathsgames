@@ -1,0 +1,32 @@
+-- =============================================
+-- Paths Games - Database Schema V0.34.0 (SQLite)
+-- Steps 34 + 35 - Inventory and resources: what using an item can do.
+--
+-- Until this version list_items_effects could only move a statistic
+-- (effect_code/effect_value). Using an item now speaks the same vocabulary the
+-- event effects already speak (V0.10.4), so the two columns below are named and
+-- typed exactly like their list_events_effects twins - CSV of story-scoped
+-- list_traits ids, no new third format:
+--
+--   traits_to_add    EFFECT - traits granted to the user of the item.
+--   traits_to_remove EFFECT - traits taken away from the user of the item.
+--
+-- Recipient: an item effect always applies to the character who used it, and to
+-- nobody else. There is no target/target_class column here on purpose - handing
+-- an item to another character is multiplayer (steps 71-76) and out of scope.
+--
+-- effect_code stays case-insensitive. The engine lowercases it and speaks the
+-- list_events_effects.statistics vocabulary (life, energy, exp, sad, dex, int,
+-- cos, food, magic, coin), with the single documented alias SADNESS -> sad.
+--
+-- No FK, deliberately: same as every other effect column. The reference is
+-- story-scoped and the Step 22 validator owns the existence check. An id
+-- matching no trait of the story is authored noise: the engine skips that part
+-- of the effect silently rather than failing the whole item usage.
+-- =============================================
+-- (C) Paths Games 2042 - All rights reserved - See https://github.com/gamespaths/pathsgames
+-- The software is distributed under the terms of the GNU General Public License v3.0
+-- =============================================
+
+ALTER TABLE list_items_effects ADD COLUMN traits_to_add    TEXT;
+ALTER TABLE list_items_effects ADD COLUMN traits_to_remove TEXT;

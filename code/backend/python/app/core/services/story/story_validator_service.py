@@ -17,11 +17,14 @@ from app.core.ports.story.story_validator_port import (
 
 # target universe codes
 _LOCATION, _EVENT, _ITEM, _CHOICE, _CLASS, _MISSION = "location", "event", "item", "choice", "class", "mission"
+# v0.34.0 — the effect tables reference traits as a CSV of ids.
+_TRAIT = "trait"
 
 _REF_RULES = {
     _LOCATION: "R_LOCATION_REF",
     _EVENT: "R_EVENT_REF",
     _ITEM: "R_ITEM_REF",
+    _TRAIT: "R_TRAIT_REF",
     _CHOICE: "R_CHOICE_REF",
     _CLASS: "R_CLASS_REF",
     _MISSION: "R_MISSION_REF",
@@ -91,6 +94,8 @@ class _Graph:
         self.choices: Set[int] = set()
         self.classes: Set[int] = set()
         self.missions: Set[int] = set()
+        # v0.34.0 — the trait universe the effect CSVs are checked against.
+        self.traits: Set[int] = set()
         self.key_names: Set[str] = set()
         self.refs: List[tuple] = []          # (rule, entity_type, entity_id, field, target, value)
         self.neighbors: List[tuple] = []     # (entity_id, frm, to, direction)
@@ -229,6 +234,7 @@ class StoryValidatorService(StoryValidatorPort):
         universe = {
             _LOCATION: g.locations, _EVENT: g.events, _ITEM: g.items,
             _CHOICE: g.choices, _CLASS: g.classes, _MISSION: g.missions,
+            _TRAIT: g.traits,
         }
         for rule, etype, eid, fld, target, value in g.refs:
             if value is not None and value > 0 and value not in universe[target]:
@@ -391,7 +397,11 @@ class StoryValidatorService(StoryValidatorPort):
         for ee in data.get("eventEffects") or []:
             self._collect_event_effect(g, ee)
         for ie in data.get("itemEffects") or []:
-            self._ref(g, "item-effects", self._str(_get(ie, "id")), "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            ieid = self._str(_get(ie, "id"))
+            self._ref(g, "item-effects", ieid, "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            # v0.34.0 — CSV of trait ids, same format as the event effects.
+            self._ref_csv(g, "item-effects", ieid, "traitsToAdd", _get(ie, "traitsToAdd"))
+            self._ref_csv(g, "item-effects", ieid, "traitsToRemove", _get(ie, "traitsToRemove"))
         for cb in data.get("classBonuses") or []:
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in data.get("missionSteps") or []:
@@ -405,6 +415,8 @@ class StoryValidatorService(StoryValidatorPort):
         for it in data.get("items") or []:
             self._restriction(g, "items", self._str(_get(it, "id")), _get(it, "idClassPermitted"), _get(it, "idClassProhibited"))
         for tr in data.get("traits") or []:
+            # v0.34.0 — also the trait universe the effect CSVs are checked against.
+            self._add_id(g.traits, _get(tr, "id"))
             self._restriction(g, "traits", self._str(_get(tr, "id")), _get(tr, "idClassPermitted"), _get(tr, "idClassProhibited"))
         for ct in data.get("characterTemplates") or []:
             self._collect_template(g, ct)
@@ -454,7 +466,11 @@ class StoryValidatorService(StoryValidatorPort):
         for ee in rp.find_entities_for_story(story_id, "list_events_effects"):
             self._collect_event_effect(g, ee)
         for ie in rp.find_entities_for_story(story_id, "list_items_effects"):
-            self._ref(g, "item-effects", self._str(_get(ie, "id")), "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            ieid = self._str(_get(ie, "id"))
+            self._ref(g, "item-effects", ieid, "idItem", _ITEM, _as_int(_get(ie, "idItem")))
+            # v0.34.0 — CSV of trait ids, same format as the event effects.
+            self._ref_csv(g, "item-effects", ieid, "traitsToAdd", _get(ie, "traitsToAdd"))
+            self._ref_csv(g, "item-effects", ieid, "traitsToRemove", _get(ie, "traitsToRemove"))
         for cb in rp.find_class_bonuses_for_story(story_id):
             self._ref(g, "class-bonuses", self._str(_get(cb, "id")), "idClass", _CLASS, _as_int(_get(cb, "idClass")))
         for ms in rp.find_entities_for_story(story_id, "list_missions_steps"):
@@ -468,6 +484,8 @@ class StoryValidatorService(StoryValidatorPort):
         for it in items:
             self._restriction(g, "items", self._str(_get(it, "id")), _get(it, "idClassPermitted"), _get(it, "idClassProhibited"))
         for tr in rp.find_traits_for_story(story_id):
+            # v0.34.0 — also the trait universe the effect CSVs are checked against.
+            self._add_id(g.traits, _get(tr, "id"))
             self._restriction(g, "traits", self._str(_get(tr, "id")), _get(tr, "idClassPermitted"), _get(tr, "idClassProhibited"))
         for ct in rp.find_character_templates_for_story(story_id):
             self._collect_template(g, ct, id_key="idTipo")
@@ -552,6 +570,24 @@ class StoryValidatorService(StoryValidatorPort):
         v = _as_int(value)
         if v is not None and v > 0:
             g.refs.append((_REF_RULES[target], etype, eid, fld, target, v))
+
+    def _ref_csv(self, g, etype, eid, fld, csv):
+        """One reference per id of a comma-separated list.
+
+        Non-numeric parts are skipped in silence, exactly as the execution engine's
+        `_csv_ids` skips them: the validator must not report what the engine will
+        never try to apply.
+        """
+        if csv is None or not str(csv).strip():
+            return
+        for part in str(csv).split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                self._ref(g, etype, eid, fld, _TRAIT, int(part))
+            except (ValueError, TypeError):
+                continue
 
     def _restriction(self, g, etype, eid, permitted, prohibited):
         p = _as_int(permitted)

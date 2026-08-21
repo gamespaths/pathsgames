@@ -4,7 +4,7 @@ import LocationCard from './cards/LocationCard'
 import PlayerStats from './cards/PlayerStats'
 import EndGameBook from './EndGameBook'
 import GameBookMobile from './GameBookMobile'
-import { endMatch, getMatchClock, getMatchWeather, getMatchLocations, selectChoice } from '../../api/matches'
+import { endMatch, getMatchClock, getMatchWeather, getMatchLocations, getInventory, selectChoice } from '../../api/matches'
 import { useGuestUser } from '@/features/guest-user/GuestUserContext'
 import Book from '../../components/book/Book'
 import CardPreviewModal from '@/components/modals/CardPreviewModal'
@@ -22,6 +22,8 @@ import CloseGameCard from './cards/CloseGameCard'
 import GoToSleepCard from './cards/GoToSleepCard'
 import MovementCard from './cards/MovementCard'
 import ActionCard from './cards/ActionCard'
+import ItemsCard from './cards/ItemsCard'
+import ItemsCards from './cards/ItemsCards'
 import WeatherCard from './cards/WeatherCard'
 import ComaCard from './cards/ComaCard'
 import SadnessCard from './cards/SadnessCard'
@@ -63,6 +65,25 @@ function scrollBookToTop() {
  * as the one that landed last. Effects without a card are skipped — they change stats, they
  * do not tell anything.
  */
+/**
+ * Step 34 — the uuids of the STORY items an execution handed over.
+ *
+ * `itemChanges` names the story item (`itemUuid`), not the inventory row: the row is
+ * created by the same write and its uuid never travels in this payload.
+ */
+export function grantedItemUuids(result) {
+  return (result?.itemChanges ?? [])
+    .filter(c => c?.action === 'ADD' && c?.itemUuid)
+    .map(c => c.itemUuid)
+}
+
+/** The resolved card of a carried item, looked up by its STORY uuid. */
+export function itemCardForUuid(items, itemUuid) {
+  if (!itemUuid) return null
+  const row = (items ?? []).find(i => i?.itemUuid === itemUuid && i?.card)
+  return row?.card ?? null
+}
+
 export function lastEffectCard(result) {
   const effects = result?.effects ?? []
   for (let i = effects.length - 1; i >= 0; i -= 1) {
@@ -117,6 +138,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // Step 0.28.5 — the world map view: MapPage on the LEFT page, the current
   // location on the RIGHT page. Opened by MapCard in the statistics list.
   const [mapView, setMapView] = useState(false)
+  // Step 34 — the backpack view: the RIGHT page lists one ItemCard per inventory row.
+  // Two ways in, one state: the flask button on the characteristics card, and ItemsCard
+  // in the statistics list.
+  const [itemsView, setItemsView] = useState(false)
   // The explored location clicked on the map: its card fills the right page
   // (null → the current location) and the map marks it as selected.
   const [mapSelected, setMapSelected] = useState(null)
@@ -401,12 +426,31 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
       setLoading(false)
       return
     }
-    const narrative = lastEffectCard(result)
+    // Step 34 — when an event hands over an item, THAT is the news: the player wants to
+    // see what they just got, not the card of the effect row that gave it. The item card
+    // therefore outranks the effect narrative whenever an item was added.
+    const grantedUuid = grantedItemUuids(result)[0] ?? null
+    // Already carried one? Then match-info has already resolved its card and there is
+    // nothing to fetch. A brand-new row is only in the inventory, hence the fallback below.
+    const grantedCard = itemCardForUuid(playerStats?.items, grantedUuid)
+    const narrative = grantedCard ?? (grantedUuid ? null : lastEffectCard(result))
+    const stats = statChangeItems(result, playerUuid, t)
     // Arm the weather effect: if this event also changes the weather, the async
-    // reload will attach a forward arrow to this card instead of covering it.
-    eventEffectActiveRef.current = !!narrative
+    // reload will attach a forward arrow to this card instead of covering it. An item is
+    // on its way even when its card is not resolved yet, so it arms the flag too.
+    eventEffectActiveRef.current = !!narrative || !!grantedUuid
     if (narrative) {
-      handleSelectionPreviewFull(narrative, 'effect', null, statChangeItems(result, playerUuid, t), true, {}, 'right')
+      handleSelectionPreviewFull(narrative, grantedCard ? 'item' : 'effect', null, stats, true, {}, 'right')
+    } else if (grantedUuid) {
+      // The row was just created, so its card lives only in the inventory. Fetching it is
+      // the one way to show the item rather than the effect that produced it; a failure is
+      // swallowed on purpose — the board is reloading anyway and the bag will show it.
+      getInventory(matchUuid, user?.accessToken, lang)
+        .then(inventory => {
+          const card = itemCardForUuid(inventory?.items, grantedUuid)
+          if (card) handleSelectionPreviewFull(card, 'item', null, stats, true, {}, 'right')
+        })
+        .catch(() => {})
     }
     // Step 30 — an edge state outranks the effect narrative: falling into a coma or being
     // crushed by sadness is the news, not whatever the effect said on the way there. The
@@ -426,6 +470,31 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     }
     setLoading(false);
   }
+  // Step 34 — dropping applies nothing and narrates nothing: there is no effect card and
+  // no edge state to show, only an inventory and a carried weight that just changed.
+  function handleItemDropped() {
+    handleReloadClockWeatherAndMatchData()
+  }
+
+  // The backpack takes over the right page, so whatever was showing there has to go —
+  // otherwise a stale preview would sit on top of the list it replaced.
+  function openItemsView() {
+    setPreviewRight(null)
+    setStatisticsCards(false)
+    setItemsView(true)
+    scrollMobileIntoView('.book-mobile-right')
+  }
+
+  // Back to the board itself: the location on the left, the main screen on the right —
+  // where the map's back arrow lands too. Deliberately NOT the statistics list, even when
+  // the bag was opened from there: closing a page returns to the game, not to the menu
+  // that happened to lead to it.
+  function closeItemsView() {
+    setItemsView(false)
+    setStatisticsCards(false)
+    scrollMobileIntoView('.book-mobile-left')
+  }
+
   function handleEndGamePreviewFull(card, action, lockReason, statistics , showModal=true , additionalProps={}) {
     //setEndGameCard(card);
     //setActiveAction(action);
@@ -606,6 +675,14 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : previewLeft?.kind === 'sad'
         ? <SadnessCard story={story} lifeLost={playerStats?.constitution ?? null}
             onBack={closeLeft} onForward={previewLeft.onForward} />
+    // Step 34 — the bag owns the left page while it is open, exactly as the map does:
+    // the title, the capacity and the way back live here, and the right page is left free
+    // for the rows themselves.
+    : itemsView ? (
+      <ItemsCard variant="page" story={story} onClose={closeItemsView}
+        count={playerStats?.items?.length ?? 0}
+        weight={playerStats?.weight} weightMax={playerStats?.weightMax} />
+    )
     : mapView ? (
       // Step 0.28.5 — the world map takes over the left page; its back arrow
       // returns to the previous view (previewLeft/statistics stay untouched).
@@ -696,12 +773,22 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
         : <LocationCard locationsActive={gameData?.info?.locationsActive}
             location={actualLocationCard} card={actualLocationCard} story={story}
             onEnterLocation={enterCurrentLocationView} />)
+    // Step 34 — the backpack. Above the statistics list because it is opened FROM it:
+    // it replaces that list rather than living under it. Below the map, which owns the
+    // left page and dictates what the right one may show while it is open.
+    : itemsView ? <ItemsCards playerStats={playerStats} story={story}
+        onPreview={handleSelectionPreviewFull} previewSide="right"
+        matchUuid={matchUuid} accessToken={user?.accessToken}
+        onDone={handleEventExecuted} onDropped={handleItemDropped} onError={onError} />
     : statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />
           <GoToSleepCard story={story} storyFull={storyFull} gameData={gameData} playerStats={playerStats} onPreview={handleSelectionPreviewFull}
             previewSide="right" matchUuid={matchUuid} accessToken={user?.accessToken} onSlept={handleSlept}/>
           <MapCard onOpen={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} />
+          <ItemsCard onOpen={openItemsView}
+            count={playerStats?.items?.length ?? 0}
+            weight={playerStats?.weight} weightMax={playerStats?.weightMax} />
           <PlayerCards storyFull={storyFull} story={story} playerStats={playerStats}
             gameData={gameData} onPreview={handleSelectionPreviewFull} previewSide="right"
             onPreviewMatchLog={() => setPreviewRight({ kind: 'matchlog' })} />
@@ -713,19 +800,18 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
           <Card card={cardCharacteristics} entityType="information"  story={story} flagInformationCard={true} previewSide="right"
             infoLabel={''/*t('card.gameStatus')*/} infoIconClassName="fas fa-info-circle font-size-medium m-1" 
             infoLabelClassName="font-size-medium display-none"
-    
-            actionLabel={''}    actionIcon= 'fa-map m-1'   onAction={() => {setMapView(true);scrollMobileIntoView('.book-mobile-left')}} 
-            actionsList={[{ label: '', icon: 'fa-bed m-1', onAction: () => { setSleepCardFromInfoCard();}},              
-              /* NEVER REMOVE THIS COMMENT
+            actionLabel={''}    actionIcon= 'fa-bed m-1'   onAction={() => {setSleepCardFromInfoCard();}} 
+            actionsList={[{ label: '', icon: 'fa-map m-1', onAction: () => { setMapView(true);scrollMobileIntoView('.book-mobile-left')} },              
               { label: '', icon: 'fa-clipboard-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
               { label: '', icon: 'fa-list m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
-              { label: '', icon: 'fa-flask m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
-              { label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
-               */
+              { label: '', icon: 'fa-flask m-1', onAction: () => { openItemsView() } },
+              //NEVER REMOVE THIS COMMENTS!
+              //{ label: '', icon: 'fa-people-arrows m-1', onAction: () => { alert('Items, missions and registry coming soon!') } },
             ]}
 
             onPreview={() => { handleSelectionPreviewFull(cardCharacteristicsRight, 'information', null, [], false); setStatisticsCards(true) } }
             childrenIntoImage={<PlayerStats stats={playerStats} plainFlag={false} showLabel={false} showGrid2={true}
+                                  showItems={false}
                                   className="m-1 display-inline-grid flex-direction-column display-grid2" />}
           />
           {playerStats?.isComa && <ComaCard story={story} onPreview={handleSelectionPreviewFull} previewSide="right"/>}
@@ -762,6 +848,10 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
                 onDone={handleEventExecuted} onError={onError} />
             }
           }) }
+          { /* Step 34 — the inventory used to be listed here, next to the actions. It has
+               its own page now (ItemsCards on the right, opened by the flask button or by
+               ItemsCard in the statistics list), so keeping the list here too would show
+               every item twice. */ }
           <div className="sleep-action-row">
           </div>
         </div>

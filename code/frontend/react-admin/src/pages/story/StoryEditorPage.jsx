@@ -713,6 +713,12 @@ export default function StoryEditorPage() {
       idItemToAdd: {
         options: itemsOptions,
       },
+      // The item the character must be CARRYING for the event to be available. Same picker
+      // as idItemToAdd — an author naming a condition has exactly the same items to choose
+      // from as one naming a reward, and typing a bare id was the only way until v0.34.0.
+      idItemCondition: {
+        options: itemsOptions,
+      },
       idWeather: {
         options: weatherRulesOptions,
       },

@@ -7,6 +7,7 @@ import games.paths.core.port.match.CharacterQueryPort;
 import games.paths.core.port.match.CharacterReadPort;
 import games.paths.core.port.match.MatchReadPort;
 import games.paths.core.port.match.UserAccessPort;
+import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.List;
@@ -24,15 +25,26 @@ public class CharacterQueryService implements CharacterQueryPort {
     private final CharacterReadPort characterReadPort;
     private final StoryReadPort storyReadPort;
     private final UserAccessPort userAccessPort;
+    /** Step 34 — resolves the item cards; null keeps the endpoints working without them. */
+    private final ContentQueryPort contentQueryPort;
 
     public CharacterQueryService(MatchReadPort matchReadPort,
                                  CharacterReadPort characterReadPort,
                                  StoryReadPort storyReadPort,
                                  UserAccessPort userAccessPort) {
+        this(matchReadPort, characterReadPort, storyReadPort, userAccessPort, null);
+    }
+
+    public CharacterQueryService(MatchReadPort matchReadPort,
+                                 CharacterReadPort characterReadPort,
+                                 StoryReadPort storyReadPort,
+                                 UserAccessPort userAccessPort,
+                                 ContentQueryPort contentQueryPort) {
         this.matchReadPort = matchReadPort;
         this.characterReadPort = characterReadPort;
         this.storyReadPort = storyReadPort;
         this.userAccessPort = userAccessPort;
+        this.contentQueryPort = contentQueryPort;
     }
 
     @Override
@@ -100,8 +112,11 @@ public class CharacterQueryService implements CharacterQueryPort {
                                                    UserAccessPort.UserView requester) {
         String requesterUuid = requester != null ? requester.uuid() : null;
         Long requesterId = requester != null ? requester.id() : null;
-        return CharacterMapper.buildAll(characters, match, storyReadPort, characterReadPort,
-                requesterUuid, requesterId);
+        // These two endpoints carry no ?lang=, so English is what preserves today's
+        // behaviour exactly; adding lang to the port is a follow-up, not this step.
+        return CharacterMapper.buildAll(characters, match,
+                new CharacterMapper.MapperContext(storyReadPort, characterReadPort, contentQueryPort,
+                        requesterUuid, requesterId, ItemInstanceMapper.DEFAULT_LANG, true));
     }
 
     private static boolean isBlank(String s) {

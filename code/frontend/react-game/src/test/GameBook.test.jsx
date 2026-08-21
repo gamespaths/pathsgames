@@ -32,13 +32,19 @@ vi.mock('../features/gameplay/cards/PlayerStats', () => ({ default: () => <div d
 // the close overlay / story page Card has no entityType → game-card. The book
 // overlay (weather change / close) exposes `onClose` as the top-left back button.
 vi.mock('../components/layout/Card', () => ({
-  default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose, onForward, actionLabel }) => (
+  default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose,
+              onForward, actionLabel, actionsList }) => (
     <div data-testid={entityType ? 'config-card' : 'game-card'}>
       {card?.title}{card?.description && <span>{card.description}</span>}{children}{childrenIntoImage}
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
       {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
       {onAction && <button data-testid={entityType ? `action-${entityType}` : 'game-card-action'} onClick={onAction}>{actionLabel}</button>}
+      {/* The secondary footer buttons: the characteristics card reaches the map and the
+          backpack through these, so a test cannot get at them without this. */}
+      {(actionsList ?? []).map((a, i) => (
+        <button key={i} data-testid={`extra-action-${i}`} onClick={a.onAction}>{a.icon}</button>
+      ))}
     </div>
   ),
 }))
@@ -55,7 +61,7 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
   ),
 }))
 
-import GameBook, { lastEffectCard, statChangeItems } from '../features/gameplay/GameBook'
+import GameBook, { lastEffectCard, statChangeItems, grantedItemUuids, itemCardForUuid } from '../features/gameplay/GameBook'
 import { endMatch, sleepCharacter, startMovement, executeEvent, getMatchWeather } from '../api/matches'
 
 const GAME_DATA = {
@@ -237,7 +243,7 @@ describe('GameBook', () => {
     }
     startMovement.mockResolvedValue({})
     render(<GameBook gameData={mapGameData} matchUuid="m1" story={STORY} onClose={vi.fn()} />)
-    fireEvent.click(screen.getByTestId('action-information'))  // the fa-map action opens the map
+    fireEvent.click(screen.getByTestId('extra-action-0'))  // the fa-map action opens the map
     // a visited node keeps its own location card on the right page
     fireEvent.click(screen.getByTestId('map-node-1'))
     expect(screen.getByText('Start location')).toBeInTheDocument()
@@ -423,6 +429,55 @@ describe('lastEffectCard', () => {
     expect(lastEffectCard({ effects: [{ statistic: 'exp' }] })).toBeNull()
     expect(lastEffectCard({ effects: [] })).toBeNull()
     expect(lastEffectCard(undefined)).toBeNull()
+  })
+})
+
+// Step 34 — an event that hands over an item narrates itself with the ITEM's card, not
+// with the card of the effect row that produced it: what the player wants to see is the
+// thing they just got.
+describe('grantedItemUuids', () => {
+  it('names the story items an execution added', () => {
+    const result = { itemChanges: [
+      { characterUuid: 'c1', itemUuid: 'item-900', action: 'ADD' },
+      { characterUuid: 'c1', itemUuid: 'item-901', action: 'ADD' },
+    ] }
+    expect(grantedItemUuids(result)).toEqual(['item-900', 'item-901'])
+  })
+
+  it('ignores a removal — nothing was gained to show', () => {
+    const result = { itemChanges: [{ characterUuid: 'c1', itemUuid: 'item-900', action: 'REMOVE' }] }
+    expect(grantedItemUuids(result)).toEqual([])
+  })
+
+  it('is empty when the event touched no item', () => {
+    expect(grantedItemUuids({ itemChanges: [] })).toEqual([])
+    expect(grantedItemUuids({})).toEqual([])
+    expect(grantedItemUuids(undefined)).toEqual([])
+  })
+})
+
+describe('itemCardForUuid', () => {
+  const carried = [
+    { uuid: 'row-1', itemUuid: 'item-900', card: { title: 'Healing Potion' } },
+    { uuid: 'row-2', itemUuid: 'item-901' },
+  ]
+
+  it('finds the resolved card of a carried item by its STORY uuid', () => {
+    expect(itemCardForUuid(carried, 'item-900')).toEqual({ title: 'Healing Potion' })
+  })
+
+  it('does not match on the inventory ROW uuid — the two are different things', () => {
+    expect(itemCardForUuid(carried, 'row-1')).toBeNull()
+  })
+
+  it('returns null when the row carries no card, so the caller can fetch it', () => {
+    expect(itemCardForUuid(carried, 'item-901')).toBeNull()
+  })
+
+  it('returns null for an item that is not carried, or no item at all', () => {
+    expect(itemCardForUuid(carried, 'item-999')).toBeNull()
+    expect(itemCardForUuid(carried, null)).toBeNull()
+    expect(itemCardForUuid(undefined, 'item-900')).toBeNull()
   })
 })
 

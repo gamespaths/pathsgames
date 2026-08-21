@@ -107,6 +107,9 @@ class StoryImportService(StoryImportPort):
                 ("eventEffects", "list_events_effects", "id",
                  self.persistence_port.save_event_effects),
                 ("items", "list_items", "id", self.persistence_port.save_items),
+                # v0.34.0 — must run AFTER items: an effect points at its owning item.
+                ("itemEffects", "list_items_effects", "id",
+                 self.persistence_port.save_item_effects),
                 ("classes", "list_classes", "id", self.persistence_port.save_classes),
                 ("choices", "list_choices", "id", self.persistence_port.save_choices),
                 # Step 31 — must run AFTER choices: a row points at its owning choice.

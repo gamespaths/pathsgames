@@ -14,6 +14,11 @@ public class ItemInstanceResponse {
     private Integer weight;
     private Integer amount;
     private String state;
+    /** Step 34 — the item's story card, and the card object resolved with it. */
+    private Integer idCard;
+    private CardInfoResponse card;
+    /** Step 34 — false means the item is carried only; use-item refuses it. */
+    private Boolean isConsumabile;
 
     public static ItemInstanceResponse fromModel(ItemInstanceInfo m) {
         ItemInstanceResponse r = new ItemInstanceResponse();
@@ -23,6 +28,9 @@ public class ItemInstanceResponse {
         r.weight = m.getWeight();
         r.amount = m.getAmount();
         r.state = m.getState();
+        r.idCard = m.getIdCard();
+        r.card = CardInfoResponse.fromModel(m.getCard());
+        r.isConsumabile = m.getIsConsumabile();
         return r;
     }
 
@@ -38,4 +46,10 @@ public class ItemInstanceResponse {
     public void setAmount(Integer amount) { this.amount = amount; }
     public String getState() { return state; }
     public void setState(String state) { this.state = state; }
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+    public CardInfoResponse getCard() { return card; }
+    public void setCard(CardInfoResponse card) { this.card = card; }
+    public Boolean getIsConsumabile() { return isConsumabile; }
+    public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
 }

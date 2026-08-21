@@ -1,5 +1,7 @@
 package games.paths.core.model.match;
 
+import games.paths.core.model.story.CardInfo;
+
 /**
  * ItemInstanceInfo - Domain model describing a single item carried by a
  * character inside a match (one row of {@code gaming_inventory_items} joined
@@ -16,6 +18,17 @@ public class ItemInstanceInfo {
     private Integer weight;    // unit weight from the story item
     private Integer amount;    // quantity carried
     private String state;      // ACTIVE, ...
+
+    /**
+     * Step 34 — the story card of the item, and the card object resolved with it.
+     * The id alone is not enough: react-game never resolves a card by id, it
+     * consumes the embedded object (see MovementCard reading {@code location.card}).
+     */
+    private Integer idCard;
+    private CardInfo card;
+
+    /** Step 34 — only a consumable item can be used; a non-consumable one is merely carried. */
+    private Boolean isConsumabile;
 
     public ItemInstanceInfo() {
     }
@@ -37,4 +50,13 @@ public class ItemInstanceInfo {
 
     public String getState() { return state; }
     public void setState(String state) { this.state = state; }
+
+    public Integer getIdCard() { return idCard; }
+    public void setIdCard(Integer idCard) { this.idCard = idCard; }
+
+    public CardInfo getCard() { return card; }
+    public void setCard(CardInfo card) { this.card = card; }
+
+    public Boolean getIsConsumabile() { return isConsumabile; }
+    public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
 }

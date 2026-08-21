@@ -319,6 +319,38 @@ describe('StoryEditorPage', () => {
       expect.objectContaining({ idWeather: 1 }))
   })
 
+  it('the event item condition is picked from the item selector, not typed as an id', async () => {
+    // v0.34.0 — "Item Owned (condition)" was a bare number input, so an author had to know
+    // the item's story id by heart. It now uses the very same picker idItemToAdd does.
+    createEntity.mockResolvedValue({ uuid: 'new-evt' })
+    listEntities.mockImplementation((uuid, type) => {
+      if (type === 'texts') return Promise.resolve(MOCK_TEXTS)
+      if (type === 'items') return Promise.resolve([
+        { uuid: 'it-1', id: 7, idTextName: 1 },
+      ])
+      return Promise.resolve([])
+    })
+    renderPage()
+    await screen.findByDisplayValue('Author')
+    await userEvent.click(screen.getByRole('button', { name: /^Events$/i }))
+    await userEvent.click(await screen.findByRole('button', { name: /Add Eve/i }))
+
+    // The trigger exists at all — that is what a bare number field would not have.
+    await userEvent.click(screen.getByTitle('Select Item Owned (condition)'))
+    const selectBtn = await waitFor(() => {
+      const found = screen.getAllByRole('button', { name: /^Select$/ })[0]
+      if (!found) throw new Error('no option row yet')
+      return found
+    })
+    await userEvent.click(selectBtn)
+
+    await userEvent.click(screen.getByText('Save'))
+    // The stored value is the ITEM's own story id: that is what the check procedure
+    // compares against what the character carries.
+    expect(createEntity).toHaveBeenCalledWith('story-123', 'events',
+      expect.objectContaining({ idItemCondition: 7 }))
+  })
+
   it('an event effect picks its move-to location from the location selector (v0.29.3)', async () => {
     // The forced-movement location is a picker, like events.idSpecificLocation: choosing a
     // location must store its own id (not its card) in effect.idLocation.

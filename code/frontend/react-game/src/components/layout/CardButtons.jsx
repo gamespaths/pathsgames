@@ -14,7 +14,7 @@ export default function CardButtons({
   onPreview, onPreviewClick, previewOpened, hidePreview,
   // Secondary footer buttons, rendered after the main action one, in order:
   // [{ label, icon, onAction }]. The main action keeps its own props above.
-  actionsList=[],
+  actionsList=[],actionListClass=null,
   flagInformationCard,
   // Optional overrides for the (i) preview button. `infoLabel` replaces the
   // default `card.info` text; `infoIconClassName` replaces the default
@@ -43,8 +43,8 @@ export default function CardButtons({
         {!flagShowLabel && !alone && <span className="gc-footer__btn-label">&nbsp;</span>}
     </button>
   }
-  const gcActionClass="gc-actions " + (actionsList.length===0 ? null:
-    (actionsList.length+2) % 3 ==0 ? "display-grid3" : "display-grid2")
+  const gcActionClass= "gc-actions " + (actionListClass ?? (actionsList.length===0 ? null:
+    (actionsList.length+2) % 3 ==0 ? "display-grid3" : "display-grid2"))
 
   if (locked) {
     //console.log("locked",locked,lockedReason,lockInfo);

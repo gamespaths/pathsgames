@@ -124,3 +124,73 @@ def test_seed_route_blocked_outside_dev():
     with patch.dict(os.environ, {'ENV': 'prod'}):
         result = lambda_handler(make_event('POST', '/api/dev/seed'), {})
     assert result['statusCode'] == 403
+
+
+def _seeded_stories():
+    """Run the seed route and return the STORY items it wrote to DynamoDB."""
+    put_items = []
+    from seed.handler import lambda_handler
+    with patch('seed.handler.db_utils.put_item', side_effect=lambda item: put_items.append(item)), \
+         patch('seed.handler.db_utils.delete_all_by_pk', return_value=0), \
+         patch.dict(os.environ, {'ENV': 'dev'}):
+        lambda_handler(make_event('POST', '/api/dev/seed'), {})
+    return [i for i in put_items if i['PK'].startswith('STORY#')]
+
+
+def test_seed_projects_items_and_item_effects_onto_the_story():
+    """v0.34.0 — `_seed_stories` builds the story item from an EXPLICIT field list, so a
+    section declared in SEED_STORIES but missing from that list is dropped in silence.
+
+    That is exactly what happened to `items`/`itemEffects`: the inventory engine reads them
+    off the story item, and without them every carried row resolves to no story item —
+    weight 0, a null isConsumabile, and use-item refusing everything as ITEM_NOT_FOUND.
+    """
+    from seed.handler import SEED_STORIES
+
+    declared = {s['uuid']: s for s in SEED_STORIES}
+    tutorial = next(st for st in _seeded_stories()
+                    if declared.get(st['uuid'], {}).get('items'))
+
+    assert tutorial['items'], 'the declared items never reached the story item'
+    assert len(tutorial['items']) == len(declared[tutorial['uuid']]['items'])
+    # The two gates step 34 acts on must survive the projection.
+    by_id = {i['id']: i for i in tutorial['items']}
+    assert any(i.get('isConsumabile') == 1 for i in by_id.values())
+    assert any(i.get('isConsumabile') == 0 for i in by_id.values()), \
+        'the carried-only rule needs a non-consumable item to bite on'
+    assert any(i.get('idClassPermitted') for i in by_id.values())
+    assert all(i.get('weight') is not None for i in by_id.values())
+
+
+def test_seed_gives_every_item_effect_row_a_uuid():
+    """The use-item response addresses each applied effect by uuid, exactly as the event
+    effects do — so the item rows go through the same _ensure_effect_uuids helper."""
+    from seed.handler import SEED_STORIES
+
+    declared = {s['uuid']: s for s in SEED_STORIES}
+    for story in _seeded_stories():
+        for effect in story.get('itemEffects', []):
+            assert effect.get('uuid'), f"item effect without a uuid in {story['uuid']}"
+            assert effect.get('idItem'), 'an item effect must name its owning item'
+        # every declared row survived
+        assert len(story.get('itemEffects', [])) == \
+            len(declared.get(story['uuid'], {}).get('itemEffects', []))
+
+
+def test_seeded_items_are_reachable_by_the_inventory_engine():
+    """End to end over the seed: the engine must find a weight and a consumable flag for
+    every item an event effect hands out — that is what the robot suite depends on."""
+    from match import inventory
+    from seed.handler import SEED_STORIES
+
+    for story in _seeded_stories():
+        granted = {e['idItemTarget'] for e in story.get('eventEffects', [])
+                   if e.get('itemAction') == 'ADD' and e.get('idItemTarget')}
+        if not granted:
+            continue
+        by_id = inventory.items_by_id(story)
+        missing = granted - set(by_id)
+        assert not missing, f"story {story['uuid']} grants undeclared items {missing}"
+        # A bag holding one of each granted item must weigh something.
+        char = {'items': [{'uuid': f'r{i}', 'idItem': i, 'amount': 1} for i in granted]}
+        assert inventory.carried_weight(char, story) > 0

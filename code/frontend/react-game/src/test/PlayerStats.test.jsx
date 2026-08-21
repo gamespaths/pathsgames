@@ -58,4 +58,20 @@ describe('PlayerStats', () => {
     expect(screen.getByText('Potion')).toBeInTheDocument()
     expect(screen.getByText('×2')).toBeInTheDocument()
   })
+
+  it('hides the items list when the caller opts out (Step 34)', () => {
+    // The compact characteristics card has room for the gauges only; the backpack has a
+    // page of its own, so listing them there too would be a second, smaller copy.
+    render(<PlayerStats showItems={false}
+      stats={{ life: 10, lifeMax: 12, items: [{ uuid: 'inv-1', name: 'Potion', amount: 2 }] }} />)
+
+    expect(screen.queryByText('Potion')).not.toBeInTheDocument()
+    // The gauges it does have room for are untouched.
+    expect(screen.getByText('life:10/12')).toBeInTheDocument()
+  })
+
+  it('still lists them by default, so no existing caller changes behaviour', () => {
+    render(<PlayerStats stats={{ items: [{ uuid: 'inv-1', name: 'Potion', amount: 2 }] }} />)
+    expect(screen.getByText('Potion')).toBeInTheDocument()
+  })
 })

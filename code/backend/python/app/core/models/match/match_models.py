@@ -109,6 +109,12 @@ class ItemInstanceInfo:
     weight: int = 0
     amount: int = 1
     state: Optional[str] = None
+    # Step 34 — the item's story card and the card object resolved with it. The id alone
+    # is not enough: react-game never resolves a card by id, it consumes the object.
+    id_card: Optional[int] = None
+    card: Optional[Dict[str, Any]] = None
+    # Step 34 — False means the item is carried only; use-item refuses it.
+    is_consumabile: Optional[bool] = None
 
 
 @dataclass

@@ -275,7 +275,21 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                 .filter(ItemEntity.id_story == story_id)
                 .all()
             )
-            return [{"id": r.id, "uuid": r.uuid, "weight": r.weight} for r in rows]
+            # v0.34.0 — the card, the name text and the two gates use-item needs. The
+            # match /info items[] and the inventory endpoint both read this one shape.
+            return [
+                {
+                    "id": r.id,
+                    "uuid": r.uuid,
+                    "weight": r.weight,
+                    "id_card": r.id_card,
+                    "id_text_name": r.id_text_name,
+                    "is_consumabile": r.is_consumabile,
+                    "id_class_permitted": r.id_class_permitted,
+                    "id_class_prohibited": r.id_class_prohibited,
+                }
+                for r in rows
+            ]
 
     @staticmethod
     def _template_to_dict(entity: CharacterTemplateEntity) -> Dict[str, Any]:

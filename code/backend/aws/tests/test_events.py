@@ -249,7 +249,13 @@ def test_items_are_added_and_removed():
 
     added, removed = events.apply_item(c, {"idItemTarget": 42, "itemAction": "ADD"},
                                        uuids, changes)
-    assert added and c["items"] == [{"idItem": 42, "amount": 1}]
+    assert added
+    # Step 34 — the row carries its OWN uuid: use-item and drop-item name the row.
+    assert len(c["items"]) == 1
+    assert c["items"][0]["idItem"] == 42
+    assert c["items"][0]["amount"] == 1
+    assert c["items"][0]["uuid"]
+    assert c["items"][0]["state"] == "ACTIVE"
     assert changes[0]["itemUuid"] == "item-42"
 
     added, removed = events.apply_item(c, {"idItemTarget": 42, "itemAction": "REMOVE"},

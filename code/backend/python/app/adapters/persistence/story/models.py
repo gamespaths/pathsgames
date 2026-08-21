@@ -206,6 +206,14 @@ class LocationNeighborEntity(Base):
 
 
 class ItemEntity(Base):
+    """v0.34.0 — realigned onto the Java column set.
+
+    `is_consumabile` and the two class-restriction columns were missing, so the step 34
+    rules (only a consumable can be used; the character's class must be allowed) were not
+    expressible here at all. The old lone `id_class` was disjoint from the Java schema and
+    nothing read it. Same realignment `EventEffectEntity` already went through.
+    """
+
     __tablename__ = "list_items"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
@@ -215,18 +223,32 @@ class ItemEntity(Base):
     id_text_name = Column(Integer)
     id_text_description = Column(Integer)
     weight = Column(Integer, default=0)
-    id_class = Column(Integer)
+    # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
+    is_consumabile = Column(Integer, default=1)
+    id_class_permitted = Column(Integer)
+    id_class_prohibited = Column(Integer)
 
 
 class ItemEffectEntity(Base):
+    """v0.34.0 — the EFFECT side of an item, one row per effect.
+
+    `effect_type` was renamed to `effect_code` to match the Java column, and the trait CSVs
+    were added: same names, same comma-separated-ids format as `list_events_effects`.
+    The code is case-insensitive and speaks the engine vocabulary, with the single alias
+    SADNESS -> sad.
+    """
+
     __tablename__ = "list_items_effects"
 
     id = Column(Integer, primary_key=True, autoincrement=False)
     id_story = Column(Integer, ForeignKey("list_stories.id"), primary_key=True, nullable=False)
+    uuid = Column(String(36))
     id_card = Column(Integer)
     id_item = Column(Integer)
-    effect_type = Column(String(50))
+    effect_code = Column(String(50))
     effect_value = Column(Integer)
+    traits_to_add = Column(String(200))
+    traits_to_remove = Column(String(200))
 
 
 class WeatherRuleEntity(Base):

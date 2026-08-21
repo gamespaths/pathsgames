@@ -224,6 +224,28 @@ class LogEventsEntity(Base):
     ts_update = Column(String(50), nullable=False)
 
 
+class LogItemUsageEntity(Base):
+    """Step 34 — append-only log of every successful use-item.
+
+    ``id`` is part of the composite PK ``(id, id_match)`` but the table also carries a
+    ``UNIQUE (id)`` constraint, so ids are GLOBALLY unique and are allocated from the
+    table-wide maximum — never per match, the way ``gaming_inventory_items`` does it."""
+
+    __tablename__ = "log_item_usage"
+
+    id = Column(Integer, primary_key=True, autoincrement=False)
+    id_match = Column(Integer, ForeignKey("gaming_match.id"), primary_key=True)
+    uuid = Column(String(36), unique=True, nullable=False)
+    id_character_match = Column(Integer, nullable=False)
+    id_item = Column(Integer, nullable=False)
+    counter = Column(Integer, default=1)
+    # Plain text in both dialects since V0.34.0 — see the migration header.
+    effects_json = Column(String(4000))
+    timestamp = Column(String(50))
+    ts_insert = Column(String(50), nullable=False)
+    ts_update = Column(String(50), nullable=False)
+
+
 class LogWeatherEntity(Base):
     """Step 27 — append-only log of weather selections. One row per time-start.
 

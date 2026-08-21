@@ -237,6 +237,7 @@ public class StoryValidatorService implements StoryValidatorPort {
                 case CLASS -> g.classes;
                 case MISSION -> g.missions;
                 case WEATHER -> g.weathers;
+                case TRAIT -> g.traits;
             };
             if (r.value != null && r.value > 0 && !universe.contains(r.value)) {
                 report.add(r.rule, r.entityType, r.entityId, r.field,
@@ -419,6 +420,7 @@ public class StoryValidatorService implements StoryValidatorPort {
         collectIds(g.classes, list(data, "classes"), "id");
         collectIds(g.missions, list(data, "missions"), "id");
         collectIds(g.weathers, list(data, "weatherRules"), "id");
+        collectIds(g.traits, list(data, "traits"), "id");
         for (Map<String, Object> k : list(data, "keys")) {
             String name = str(k.get("name"));
             if (name != null) {
@@ -501,7 +503,11 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "idLocation", Target.LOCATION, asInt(ee.get("idLocation")));
         }
         for (Map<String, Object> ie : list(data, "itemEffects")) {
-            ref(g, "item-effects", str(ie.get("id")), "idItem", Target.ITEM, asInt(ie.get("idItem")));
+            String id = str(ie.get("id"));
+            ref(g, "item-effects", id, "idItem", Target.ITEM, asInt(ie.get("idItem")));
+            // v0.34.0 — CSV of trait ids, same format as the event effects.
+            refCsv(g, "item-effects", id, "traitsToAdd", str(ie.get("traitsToAdd")));
+            refCsv(g, "item-effects", id, "traitsToRemove", str(ie.get("traitsToRemove")));
         }
         for (Map<String, Object> cb : list(data, "classBonuses")) {
             ref(g, "class-bonuses", str(cb.get("id")), "idClass", Target.CLASS, asInt(cb.get("idClass")));
@@ -642,7 +648,11 @@ public class StoryValidatorService implements StoryValidatorPort {
             ref(g, "event-effects", id, "idLocation", Target.LOCATION, ee.getIdLocation());
         }
         for (ItemEffectEntity ie : readPort.findItemEffectsByStoryId(storyId)) {
-            ref(g, "item-effects", str(ie.getId()), "idItem", Target.ITEM, ie.getIdItem());
+            String id = str(ie.getId());
+            ref(g, "item-effects", id, "idItem", Target.ITEM, ie.getIdItem());
+            // v0.34.0 — CSV of trait ids, same format as the event effects.
+            refCsv(g, "item-effects", id, "traitsToAdd", ie.getTraitsToAdd());
+            refCsv(g, "item-effects", id, "traitsToRemove", ie.getTraitsToRemove());
         }
         for (ClassBonusEntity cb : readPort.findClassBonusesByStoryId(storyId)) {
             ref(g, "class-bonuses", str(cb.getId()), "idClass", Target.CLASS, cb.getIdClass());
@@ -667,6 +677,8 @@ public class StoryValidatorService implements StoryValidatorPort {
             restriction(g, "items", str(it.getId()), it.getIdClassPermitted(), it.getIdClassProhibited());
         }
         for (TraitEntity tr : readPort.findTraitsByStoryId(storyId)) {
+            // v0.34.0 — also the trait universe the effect CSVs are checked against.
+            addId(g.traits, tr.getId());
             restriction(g, "traits", str(tr.getId()), tr.getIdClassPermitted(), tr.getIdClassProhibited());
         }
         for (CharacterTemplateEntity ct : readPort.findCharacterTemplatesByStoryId(storyId)) {
@@ -696,6 +708,28 @@ public class StoryValidatorService implements StoryValidatorPort {
         }
     }
 
+    /**
+     * Records one reference per id of a comma-separated list. Non-numeric parts are
+     * skipped in silence, exactly as the execution engine's {@code csvIds} skips them:
+     * the validator must not report what the engine will never try to apply.
+     */
+    private void refCsv(StoryGraph g, String entityType, String entityId, String field, String csv) {
+        if (csv == null || csv.isBlank()) {
+            return;
+        }
+        for (String part : csv.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                ref(g, entityType, entityId, field, Target.TRAIT, Integer.valueOf(trimmed));
+            } catch (NumberFormatException ignored) {
+                // authored noise, not a broken reference
+            }
+        }
+    }
+
     private String refRule(Target t) {
         return switch (t) {
             case LOCATION -> "R_LOCATION_REF";
@@ -705,6 +739,7 @@ public class StoryValidatorService implements StoryValidatorPort {
             case CLASS -> "R_CLASS_REF";
             case MISSION -> "R_MISSION_REF";
             case WEATHER -> "R_WEATHER_REF";
+            case TRAIT -> "R_TRAIT_REF";
         };
     }
 
@@ -764,7 +799,7 @@ public class StoryValidatorService implements StoryValidatorPort {
 
     // ===== Internal normalised model =====
 
-    private enum Target { LOCATION, EVENT, ITEM, CHOICE, CLASS, MISSION, WEATHER }
+    private enum Target { LOCATION, EVENT, ITEM, CHOICE, CLASS, MISSION, WEATHER, TRAIT }
 
     private record Ref(String rule, String entityType, String entityId, String field, Target target, Integer value) {}
 
@@ -785,6 +820,8 @@ public class StoryValidatorService implements StoryValidatorPort {
         final Set<Integer> classes = new HashSet<>();
         final Set<Integer> missions = new HashSet<>();
         final Set<Integer> weathers = new HashSet<>();
+        /** v0.34.0 — the story's traits, referenced as a CSV of ids by the effect tables. */
+        final Set<Integer> traits = new HashSet<>();
         final Set<String> keyNames = new HashSet<>();
         final List<Ref> refs = new ArrayList<>();
         final List<Neighbor> neighbors = new ArrayList<>();

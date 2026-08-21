@@ -110,6 +110,11 @@ INSERT INTO list_texts (id, id_story, id_text, lang, short_text, long_text) VALU
 (90046, 9001, 402, 'it', 'Pergamena Guida', 'Una pergamena che spiega i concetti del gioco. Leggerla conferisce punti esperienza come ricompensa del tutorial.'),
 (90047, 9001, 403, 'en', 'Energy Snack', 'A quick bite that restores energy. Demonstrates consumable items that affect energy instead of life.'),
 (90048, 9001, 403, 'it', 'Spuntino Energetico', 'Uno spuntino rapido che ripristina energia. Dimostra gli oggetti consumabili che influenzano l''energia invece della vita.'),
+-- v0.34.0 item texts: the class-restricted tonic and the weight that overloads a mover.
+(90049, 9001, 404, 'en', 'Scholar''s Tonic', 'A bitter draught only a Scholar knows how to swallow. Anyone else simply cannot use it.'),
+(90050, 9001, 404, 'it', 'Tonico dello Studioso', 'Un intruglio amaro che solo uno Studioso sa mandare giù. Chiunque altro non riesce proprio a usarlo.'),
+(91108, 9001, 405, 'en', 'Lead Ingot', 'A brick of dull grey lead. It does nothing at all, except weigh on you.'),
+(91109, 9001, 405, 'it', 'Lingotto di Piombo', 'Un mattone di piombo grigio e opaco. Non fa assolutamente nulla, se non pesarti addosso.'),
 -- Event texts
 (90051, 9001, 500, 'en', 'Welcome Event', 'The tutorial guide approaches you with a warm smile. "Welcome! I will teach you how to play Paths Games. Follow me through each room to learn all the mechanics."'),
 (90052, 9001, 500, 'it', 'Evento di Benvenuto', 'La guida del tutorial si avvicina con un sorriso caloroso. "Benvenuto! Ti insegnerò come giocare a Paths Games. Seguimi in ogni stanza per imparare tutte le meccaniche."'),
@@ -254,17 +259,25 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
 -- ── Items ───────────────────────────────────────────────────────
-INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight, is_consumabile) VALUES
-(90001, 9001, 400, 400, 1, 1),  -- Training Potion
-(90002, 9001, 401, 401, 2, 0),  -- Practice Sword
-(90003, 9001, 402, 402, 1, 1),  -- Guide Scroll
-(90004, 9001, 403, 403, 1, 1);  -- Energy Snack
+-- v0.34.0: every item carries a card (the board renders the object, never an id), and the
+-- two class columns are finally exercised — 90005 can be used only by class 90002.
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES
+(90001, 9001, 90001, 400, 400, 1, 1, NULL,  NULL),   -- Training Potion: consumable, LIFE +3
+(90002, 9001, 90001, 401, 401, 2, 0, NULL,  NULL),   -- Practice Sword: CARRIED ONLY, gates event 90015
+(90003, 9001, 90001, 402, 402, 1, 1, NULL,  NULL),   -- Guide Scroll: consumable, EXP +5, gates 90029
+(90004, 9001, 90001, 403, 403, 1, 1, NULL,  NULL),   -- Energy Snack: consumable, ENERGY +3
+(90005, 9001, 90001, 404, 404, 1, 1, 90002, NULL),   -- Scholar's Tonic: only class 90002 may use it
+(90006, 9001, 90001, 405, 405, 9, 1, NULL,  NULL);   -- Lead Ingot: heavy enough to overload a mover
 
 -- ── Item Effects ────────────────────────────────────────────────
-INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES
-(90001, 9001, 90001, 'LIFE',   3),
-(90002, 9001, 90003, 'EXP',    5),
-(90003, 9001, 90004, 'ENERGY', 3);
+-- v0.34.0 adds traits_to_add / traits_to_remove: same CSV-of-ids format as the event
+-- effects. SADNESS is the documented alias of the `sad` statistic.
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES
+(90001, 9001, 90001, 90001, 'LIFE',    3, NULL,    NULL),
+(90002, 9001, 90001, 90003, 'EXP',     5, '90001', NULL),   -- also grants trait 90001
+(90003, 9001, 90001, 90004, 'ENERGY',  3, NULL,    NULL),
+(90004, 9001, 90001, 90005, 'SADNESS', 1, NULL,    NULL),   -- the SADNESS -> sad alias
+(90005, 9001, 90001, 90006, 'LIFE',    1, NULL,    NULL);
 
 -- ── Weather Rules ───────────────────────────────────────────────
 INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, id_text_description, probability, cost_move_safe_location, cost_move_not_safe_location, active, priority, delta_energy) VALUES
@@ -310,7 +323,12 @@ INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_descriptio
 (90025, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- traits + characteristics
 (90026, 9001, 90001, 503, 503, 90001, 'NORMAL', 0,   0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- resources: food/magic/coin
 (90027, 9001, 90001, 503, 503, 90001, 'AUTOMATIC', 0, 0, 0, NULL, NULL, NULL,           NULL,   NULL,  NULL),   -- EVENT_NOT_EXECUTABLE_TYPE
-(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);   -- v0.29.3 teleporter: its effect moves the actor to 90006
+(90028, 9001, 90001, 503, 503, 90001, 'NORMAL',    2, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- v0.29.3 teleporter: its effect moves the actor to 90006
+-- v0.34.0 inventory pair: 90029 is gated by item 90003, which 90030 grants. Because 90003
+-- is CONSUMABLE, using it must close 90029 again — that is the step-34 acceptance test.
+(90050, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,  90003,  NULL),   -- ITEM_CONDITION_NOT_MET until 90051 grants item 90003
+(90051, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL),   -- grants the consumables 90003 and 90005
+(90052, 9001, 90001, 503, 503, 90001, 'NORMAL',    0, 0, 0, NULL,  NULL, NULL,           NULL,   NULL,  NULL);   -- grants the heavy 90006, to reach OVERWEIGHT
 
 -- ── Event Effects ───────────────────────────────────────────────
 INSERT INTO list_events_effects (id, id_story, id_event, statistics, value, target) VALUES
@@ -350,6 +368,15 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 (90020, 9001, 90026, 90001, 'food',   3, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (90021, 9001, 90026, 90001, 'magic',  2, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (90022, 9001, 90026, 90001, 'coin',   9, 'ONLY_ONE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- v0.34.0 inventory granters. 90051 hands over the two CONSUMABLE items step 34 needs — the
+-- Guide Scroll that gates event 90050, and the class-restricted Scholar's Tonic. 90052 hands
+-- over the Lead Ingot, whose weight is what makes the step-35 OVERWEIGHT refusal reachable.
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target,
+                                 id_item_target, item_action) VALUES
+(90050, 9001, 90051, 90001, NULL, 0, 'ONLY_ONE', 90003, 'ADD'),
+(90051, 9001, 90051, 90001, NULL, 0, 'ONLY_ONE', 90005, 'ADD'),
+(90052, 9001, 90052, 90001, NULL, 0, 'ONLY_ONE', 90006, 'ADD');
 
 -- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
 -- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.

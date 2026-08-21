@@ -415,9 +415,13 @@ public class MatchQueryService implements MatchQueryPort {
         List<CharacterInstanceInfo> players = new ArrayList<>();
         if (characterReadPort != null) {
             Long requesterId = userCreatorUuid != null ? match.getIdUserCreator() : null;
+            // Step 34 — the player view masks the other players' inventories; the admin
+            // view (allLocations) must NOT, because it has no requester at all and masking
+            // there would blank every player's items in the console.
             players = CharacterMapper.buildAll(
-                    characterReadPort.findCharactersByMatchId(match.getId()),
-                    match, storyReadPort, characterReadPort, userCreatorUuid, requesterId);
+                    characterReadPort.findCharactersByMatchId(match.getId()), match,
+                    new CharacterMapper.MapperContext(storyReadPort, characterReadPort, contentQueryPort,
+                            userCreatorUuid, requesterId, lang, !allLocations));
         }
         detail.setPlayers(players);
 

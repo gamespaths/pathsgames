@@ -11,6 +11,7 @@ from app.core.models.match.match_models import (
     MatchCreateCommand,
     MatchCreationError,
 )
+from app.adapters.rest.match.inventory_controller import item_to_camel
 from app.core.ports.match.match_ports import MatchCommandPort, MatchQueryPort
 
 
@@ -72,15 +73,12 @@ def _summary_to_camel(summary):
 
 
 def _item_to_camel(it):
-    """Step 27 — a single inventory item carried by a character."""
-    return {
-        "uuid": it.uuid,
-        "itemUuid": it.item_uuid,
-        "name": it.name,
-        "weight": it.weight,
-        "amount": it.amount,
-        "state": it.state,
-    }
+    """Step 27 — a single inventory item carried by a character.
+
+    Delegates to the inventory controller's projection so the match /info items[] and the
+    GET /inventory items[] are guaranteed identical field for field (step 34).
+    """
+    return item_to_camel(it)
 
 
 def _character_summary_to_camel(p):
@@ -102,6 +100,11 @@ def _character_summary_to_camel(p):
         "weightMax": p.weight_max,
         "weight": p.weight,
         "items": [_item_to_camel(it) for it in p.items],
+        # Step 35 — the backpack resources, so /info players[] finally reports them.
+        # The row is already loaded, so this costs no extra query.
+        "food": p.food,
+        "magic": p.magic,
+        "coin": p.coin,
         "idLocation": p.id_location,
         "isSleeping": p.is_sleeping,
         "isComa": p.is_coma,

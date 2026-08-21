@@ -342,6 +342,40 @@
         "CLASS_CONDITION_NOT_MET": "La tua classe non può compiere questa azione."
       }
     },
+    "item": {
+      "use": "Usa",
+      "drop": "Getta",
+      "amount": "Quantità",
+      "weight": "Peso",
+      "carriedOnly": "Trasportato",
+      "blocked": "Bloccato",
+      "blockedFull": "Questo oggetto non si può usare adesso.",
+      "reason": {
+        "ITEM_NOT_CONSUMABLE": "Trasporto",
+        "ITEM_CLASS_NOT_PERMITTED": "Classe",
+        "ITEM_CLASS_PROHIBITED": "Classe",
+        "SLEEPING": "Dormi",
+        "COMA": "Coma",
+        "MATCH_NOT_RUNNING": "In pausa"
+      },
+      "reasonFull": {
+        "ITEM_NOT_CONSUMABLE": "Questo oggetto non si può usare: puoi solo portarlo con te.",
+        "ITEM_CLASS_NOT_PERMITTED": "La tua classe non può usare questo oggetto.",
+        "ITEM_CLASS_PROHIBITED": "Alla tua classe è vietato usare questo oggetto.",
+        "SLEEPING": "Stai dormendo, non puoi usare nulla.",
+        "COMA": "Sei in coma: non puoi usare nulla.",
+        "MATCH_NOT_RUNNING": "La partita non è in corso."
+      }
+    },
+    "items": {
+      "title": "Zaino",
+      "description": "Tenere in ordine l'equipaggiamento ti permetterà di viaggiare pronto e preparato. In questa pagina del libro puoi vedere tutti i tuoi oggetti e usarli.",
+      "open": "Zaino",
+      "empty": "Non stai portando nulla.",
+      "back": "Indietro",
+      "count": "trasportati",
+      "capacity": "Capacità"
+    },
     "map": {
       "title": "Mappa",
       "here": "Selezionata",

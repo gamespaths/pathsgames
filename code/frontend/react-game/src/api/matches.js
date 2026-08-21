@@ -306,3 +306,75 @@ export async function selectChoice(uuidMatch, choiceUuid, accessToken, lang) {
   )
   return res.data
 }
+
+/* ── Steps 34 & 35 — inventory and resources ──────────────────────────────── */
+
+/**
+ * The calling character's inventory (GET /api/gameplay/{uuid}/inventory).
+ *
+ * Readable in any match status — only use-item and drop-item need a RUNNING match.
+ * Each row carries `uuid` (the INVENTORY ROW), `itemUuid` (the story item), `name`,
+ * `weight`, `amount`, `state`, `idCard`, the resolved `card` object and `isConsumabile`.
+ * The same objects ride on `players[].items` of match-info: the backend builds both with
+ * one mapper, so the two cannot drift.
+ */
+export async function getInventory(uuidMatch, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().get(`/api/gameplay/${uuidMatch}/inventory`, config)
+  return res.data
+}
+
+/**
+ * Consume one item (POST /api/gameplay/{uuid}/inventory/use-item).
+ *
+ * `itemInstanceUuid` is the INVENTORY ROW's uuid — `items[].uuid`, never
+ * `items[].itemUuid`. Using removes the row; `amount` is not decremented.
+ *
+ * Resolves to the execute-event payload, so `handleEventExecuted` handles it almost
+ * unchanged: an item carrying a SADNESS effect can trip the Step 30 overflow or coma and
+ * the response has to be able to say so. On an item usage `eventUuid` and `eventType` are
+ * null, `card` is the item's own card, and `pendingChoices` is always empty.
+ *
+ * Throws on a backend error: 409 `ITEM_NOT_CONSUMABLE` / `ITEM_CLASS_NOT_PERMITTED` /
+ * `ITEM_CLASS_PROHIBITED` / `SLEEPING` / `COMA` / `MATCH_NOT_RUNNING`, or 404
+ * `ITEM_NOT_FOUND` / `MATCH_NOT_FOUND`.
+ */
+export async function useItem(uuidMatch, itemInstanceUuid, accessToken, lang) {
+  const config = authConfig(accessToken)
+  if (lang) config.params = { lang }
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/inventory/use-item`,
+    { itemInstanceUuid },
+    config,
+  )
+  return res.data
+}
+
+/**
+ * Discard one item (POST /api/gameplay/{uuid}/inventory/drop-item).
+ *
+ * Applies neither the consumable gate nor the class gate: a non-consumable item must be
+ * droppable, that is the point of carrying one. Discards the WHOLE row, so
+ * `amountDropped` is the row's amount. Handing an item to another character is
+ * multiplayer and has no endpoint here.
+ */
+export async function dropItem(uuidMatch, itemInstanceUuid, accessToken) {
+  const res = await apiClient().post(
+    `/api/gameplay/${uuidMatch}/inventory/drop-item`,
+    { itemInstanceUuid },
+    authConfig(accessToken),
+  )
+  return res.data
+}
+
+/**
+ * Food, magic, coin and the carried weight (GET /api/gameplay/{uuid}/resources).
+ *
+ * Plain numbers with no card: resources are not story entities. Mind the naming — the
+ * backend field is `coin` (singular) while the frontend stat key is `coins` (plural).
+ */
+export async function getResources(uuidMatch, accessToken) {
+  const res = await apiClient().get(`/api/gameplay/${uuidMatch}/resources`, authConfig(accessToken))
+  return res.data
+}

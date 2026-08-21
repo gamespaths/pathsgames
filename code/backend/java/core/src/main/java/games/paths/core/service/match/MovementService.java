@@ -235,7 +235,7 @@ public class MovementService implements MovementPort {
                 caller.isComa(),
                 caller.isSleeping(),
                 caller.energy(),
-                // Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
+                // Step 35 — the real Sigma (item.weight x amount), computed by the store adapter.
                 caller.carriedWeight(),
                 caller.weightMax());
     }

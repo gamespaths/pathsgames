@@ -74,6 +74,11 @@ export function buildMapCard(t) {
   return metaCard('map', t('game.map.title'), null)
 }
 
+/** Step 34 — backpack card (ItemsCard), the map card's twin in the statistics list. */
+export function buildItemsCard(t) {
+  return metaCard('backpack', t('game.items.title'), null)
+}
+
 /** "Loading…" card shown on the book page while the board reloads (LoadingCard). */
 export function buildLoadingCard(t) {
   return metaCard('loading', t('game.loadingCard.title'), t('game.loadingCard.description'))

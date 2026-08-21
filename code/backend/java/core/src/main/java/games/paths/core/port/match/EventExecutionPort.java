@@ -212,6 +212,27 @@ public interface EventExecutionPort {
     }
 
     /**
+     * Step 34 — one effect row of a table that is NOT {@code list_events_effects},
+     * reduced to what the engine actually consumes.
+     *
+     * <p>It lets an item move a statistic and flip traits through exactly the code an
+     * event effect uses, and therefore trip exactly the same Step 30 edge states: an
+     * item carrying a SADNESS effect must be able to push its user into overflow or
+     * coma, and it must do so identically to an event that does the same thing.</p>
+     *
+     * <p>{@code statistic} is already normalised to the engine vocabulary — see
+     * {@code EffectStatCodec}. The recipient is always the acting character: there is
+     * no target column here, because handing an item to somebody else is multiplayer.</p>
+     */
+    record StandaloneEffect(String effectUuid,
+                            String statistic,
+                            Integer value,
+                            String traitsToAdd,
+                            String traitsToRemove,
+                            Integer idCard) {
+    }
+
+    /**
      * One {@code list_events_effects} row that was applied. {@code card} is the row's own
      * card: that — not the event's card — is the narrative the board renders.
      * {@code characterUuids} may be empty when a class-targeted effect matches nobody.

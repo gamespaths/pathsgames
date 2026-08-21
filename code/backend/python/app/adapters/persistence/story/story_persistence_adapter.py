@@ -33,6 +33,22 @@ _ADMIN_KEY_ALIASES = {
 }
 
 
+def _normalize_optional_fk(value):
+    """0 means "no restriction" on an optional story reference; so does None.
+
+    The CRUD writes a raw 0 where an import writes None, and both have to read as unset.
+    """
+    number = value if isinstance(value, int) else None
+    if number is None and isinstance(value, str):
+        try:
+            number = int(value)
+        except (ValueError, TypeError):
+            return None
+    if number is None or number <= 0:
+        return None
+    return number
+
+
 def _get_long(data, *keys):
     """Try multiple keys to extract an integer value from data dict."""
     if data is None:
@@ -378,24 +394,47 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     id_text_name=item.get("idTextName"),
                     id_text_description=item.get("idTextDescription"),
                     weight=item.get("weight", 0),
-                    id_class=item.get("idClass")
+                    # v0.34.0 — step 34 gates use-item on these three.
+                    is_consumabile=item.get("isConsumabile", 1),
+                    id_class_permitted=_normalize_optional_fk(item.get("idClassPermitted")),
+                    id_class_prohibited=_normalize_optional_fk(item.get("idClassProhibited")),
                 )
                 explicit_id = _get_long(item, "id")
                 kwargs["id"] = explicit_id if explicit_id is not None else next_it_id()
                 it = ItemEntity(**self._coerce_kwargs(ItemEntity, kwargs))
                 session.add(it)
                 session.flush()
-                
+
+                # Legacy shape: effects nested under the item. The canonical TOP-LEVEL
+                # `itemEffects` array (same as Java and AWS) is imported by save_item_effects.
                 for ef in item.get("effects", []):
-                    ie = ItemEffectEntity(
-                        id=next_ie_id(),
-                        id_story=story_id,
-                        id_item=it.id,
-                        effect_type=ef.get("effectType", ef.get("type")),
-                        effect_value=ef.get("effectValue", ef.get("value"))
-                    )
-                    session.add(ie)
+                    session.add(self._item_effect(story_id, next_ie_id(), ef, it.id))
             session.commit()
+
+    def save_item_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.34.0 — the canonical top-level `itemEffects` array, keyed by idItem."""
+        with self.session_factory() as session:
+            next_id = self._make_id_counter(session, "list_items_effects", "id", story_id)
+            for ef in items:
+                explicit_id = _get_long(ef, "id")
+                new_id = explicit_id if explicit_id is not None else next_id()
+                session.add(self._item_effect(story_id, new_id, ef, ef.get("idItem")))
+            session.commit()
+
+    def _item_effect(self, story_id: int, new_id: int, ef: Dict[str, Any],
+                     id_item: Any) -> ItemEffectEntity:
+        return ItemEffectEntity(
+            id=new_id,
+            id_story=story_id,
+            uuid=ef.get("uuid") or str(__import__('uuid').uuid4()),
+            id_card=ef.get("idCard"),
+            id_item=id_item,
+            # effectType/type stay readable so older story files still import.
+            effect_code=ef.get("effectCode", ef.get("effectType", ef.get("type"))),
+            effect_value=ef.get("effectValue", ef.get("value", 0)),
+            traits_to_add=ef.get("traitsToAdd"),
+            traits_to_remove=ef.get("traitsToRemove"),
+        )
 
     def save_classes(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         with self.session_factory() as session:

@@ -886,13 +886,23 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
 
     private void applyTraitEffects(Exec x, EventActorView recipient, EventEffectEntity effect,
                                    EventEntity event) {
-        Long idEvent = event.getId();
-        for (long idTrait : csvIds(effect.getTraitsToAdd())) {
+        applyTraits(x, recipient, effect.getTraitsToAdd(), effect.getTraitsToRemove(), event.getId());
+    }
+
+    /**
+     * Takes the two CSVs rather than an effect row, so a table that is not
+     * {@code list_events_effects} — {@code list_items_effects} since Step 34 — flips
+     * traits through exactly this code and cannot drift from it. Same rationale as
+     * {@link #applyStat}.
+     */
+    private void applyTraits(Exec x, EventActorView recipient, String traitsToAdd,
+                             String traitsToRemove, Long idEvent) {
+        for (long idTrait : csvIds(traitsToAdd)) {
             if (store.addTrait(x.match.id(), recipient.id(), idTrait, idEvent)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), ADD));
             }
         }
-        for (long idTrait : csvIds(effect.getTraitsToRemove())) {
+        for (long idTrait : csvIds(traitsToRemove)) {
             if (store.removeTrait(x.match.id(), recipient.id(), idTrait)) {
                 x.traitChanges.add(new TraitChange(recipient.uuid(), x.traitUuids().get(idTrait), REMOVE));
             }
@@ -1341,9 +1351,15 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 || !x.traitChanges.isEmpty() || !x.characteristicChanges.isEmpty()
                 || !x.automaticEvents.isEmpty();
 
+        // Step 34 — an item usage has no owning event: uuid and type stay null and the
+        // narrative card is the item's own, not an event's.
+        String eventUuid = x.event == null ? null : x.event.getUuid();
+        String eventType = x.event == null ? null : x.event.getType();
+        CardInfo card = x.event == null ? x.standaloneCard : resolveCard(x, x.event.getIdCard());
+
         return new EventExecutionResult(
-                x.match.uuid(), x.event.getUuid(), x.event.getType(), x.status,
-                resolveCard(x, x.event.getIdCard()),
+                x.match.uuid(), eventUuid, eventType, x.status,
+                card,
                 chainEventUuids(x),
                 x.energySpent, x.coinSpent, actor.energy, actor.coin, x.currentClock,
                 false, // turnConsumed — v0.29.0 never touches the turn queue
@@ -1385,6 +1401,50 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
                 x.comaEventCard,
                 comaEvents,
                 comaEffects);
+    }
+
+    // ── Step 34: effects that come from something other than an event ───────
+
+    /**
+     * Applies a list of {@link StandaloneEffect} rows to one character and returns the
+     * very same payload {@code execute-event} returns.
+     *
+     * <p>Package-private on purpose: {@code InventoryService} lives in this package, so
+     * item usage reuses the engine — {@code Live}'s clamping, the single-UPDATE
+     * {@link #flush}, the Step 30 verdict and the all-players-in-coma epilogue — without
+     * a second engine growing beside it. {@code Live.setSad} exists precisely so that no
+     * future effect type can bypass the overflow check; a duplicated engine would be
+     * exactly that effect type.</p>
+     *
+     * <p>{@code CHOICES_PENDING} and the end-game branch never apply here: an item owns
+     * no choices and cannot be the story's end-game event.</p>
+     *
+     * @param sourceConsumed the caller already removed what produced these effects (Step 34
+     *                       deletes the inventory row before the effects run), so the result
+     *                       must report {@code itemRemoved} and recommend a refresh even when
+     *                       the item carried no effect at all — the bag changed regardless.
+     */
+    EventExecutionResult applyStandaloneEffects(long idMatch, long idCharacter,
+                                                List<StandaloneEffect> effects,
+                                                CardInfo card, String lang,
+                                                boolean sourceConsumed) {
+        MatchEventView match = store.findMatchById(idMatch).orElseThrow(EventExecutionService::notFound);
+        EventActorView actor = store.findCharacterByMatchAndId(idMatch, idCharacter)
+                .orElseThrow(EventExecutionService::notFound);
+        EventCheckContext ctx = store.loadCheckContext(idMatch, idCharacter);
+
+        Exec x = new Exec(match, actor, ctx, resolveLang(lang), null);
+        x.standaloneCard = card;
+        x.itemRemoved = sourceConsumed;
+        for (StandaloneEffect e : (effects == null ? List.<StandaloneEffect>of() : effects)) {
+            applyStat(x, actor, e.statistic(), nz(e.value()));
+            applyTraits(x, actor, e.traitsToAdd(), e.traitsToRemove(), null);
+            x.effects.add(new AppliedEffect(null, e.effectUuid(), e.statistic(), e.value(),
+                    TARGET_ONLY_ONE, null, List.of(actor.uuid()), resolveCard(x, e.idCard())));
+        }
+        checkEdgeStates(x, null);
+        resolveAllPlayerComa(x);
+        return buildResult(x);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -1455,7 +1515,10 @@ public class EventExecutionService implements EventExecutionPort, LocationEntryP
         final EventActorView actor;
         final EventCheckContext ctx;
         final String lang;
+        /** Null when the effects come from something that is not an event — Step 34 items. */
         final EventEntity event;
+        /** The card an event-less execution narrates with: the item's own card. */
+        CardInfo standaloneCard;
 
         final Map<Long, Live> living = new HashMap<>();
         final Set<Long> visited = new HashSet<>();

@@ -345,6 +345,10 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setWeight(getInteger(item, "weight"));
             e.setIsConsumabile(getInteger(item, "isConsumabile"));
+            // v0.34.0: step 34 gates use-item on the character's class, so the two
+            // restriction columns finally have to survive an import.
+            e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));
+            e.setIdClassProhibited(normalizeOptionalFk(getInteger(item, "idClassProhibited")));
             entities.add(e);
         }
         return persistencePort.saveItems(entities).size();
@@ -638,6 +642,9 @@ public class StoryImportService implements StoryImportPort {
             e.setIdItem(getInteger(item, "idItem"));
             e.setEffectCode(getString(item, "effectCode"));
             e.setEffectValue(getInteger(item, "effectValue"));
+            // v0.34.0: CSV of trait ids, same field names and same format as eventEffects.
+            e.setTraitsToAdd(getString(item, "traitsToAdd"));
+            e.setTraitsToRemove(getString(item, "traitsToRemove"));
             entities.add(e);
         }
         persistencePort.saveItemEffects(entities);

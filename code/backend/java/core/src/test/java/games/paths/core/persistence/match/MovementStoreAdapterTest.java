@@ -13,7 +13,10 @@ import games.paths.core.port.match.MovementStorePort.WeatherMoveCost;
 import games.paths.core.port.match.WeatherStorePort;
 import games.paths.core.port.match.WeatherStorePort.CurrentWeatherView;
 import games.paths.core.port.story.StoryReadPort;
+import games.paths.core.entity.match.GamingInventoryItemsEntity;
+import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.repository.match.GamingCharacterInstanceRepository;
+import games.paths.core.repository.match.GamingInventoryItemsRepository;
 import games.paths.core.repository.match.GamingMatchRepository;
 import games.paths.core.repository.match.LogMovementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +35,7 @@ class MovementStoreAdapterTest {
     private GamingMatchRepository matchRepository;
     private GamingCharacterInstanceRepository characterRepository;
     private LogMovementRepository logMovementRepository;
+    private GamingInventoryItemsRepository inventoryRepository;
     private StoryReadPort storyReadPort;
     private WeatherStorePort weatherStorePort;
     private MovementStoreAdapter adapter;
@@ -41,10 +45,11 @@ class MovementStoreAdapterTest {
         matchRepository = mock(GamingMatchRepository.class);
         characterRepository = mock(GamingCharacterInstanceRepository.class);
         logMovementRepository = mock(LogMovementRepository.class);
+        inventoryRepository = mock(GamingInventoryItemsRepository.class);
         storyReadPort = mock(StoryReadPort.class);
         weatherStorePort = mock(WeatherStorePort.class);
         adapter = new MovementStoreAdapter(matchRepository, characterRepository,
-                logMovementRepository, storyReadPort, weatherStorePort);
+                logMovementRepository, inventoryRepository, storyReadPort, weatherStorePort);
     }
 
     private static GamingMatchEntity match() {
@@ -94,8 +99,10 @@ class MovementStoreAdapterTest {
         assertEquals(3, v.currentClock());
     }
 
+    /** Step 35 — an empty inventory still weighs nothing, but now because it is empty. */
     @Test
-    void findCharacter_mapsWithZeroCarriedWeight() {
+    void findCharacter_zeroCarriedWeightWhenInventoryEmpty() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
         when(characterRepository.findByIdMatchAndIdUser(1L, 100L))
                 .thenReturn(Optional.of(character(50L, 2L)));
         MoveCharacterView v = adapter.findCharacterByMatchAndUser(1L, 100L).orElseThrow();
@@ -103,6 +110,85 @@ class MovementStoreAdapterTest {
         assertEquals(2L, v.idLocation());
         assertEquals(0, v.carriedWeight());
         assertEquals(30, v.weightMax());
+    }
+
+    /** Step 35 — Sigma (item.weight x amount), the same formula the /info endpoint reports. */
+    @Test
+    void findCharacter_mapsRealCarriedWeight() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
+        when(storyReadPort.findItemsByStoryId(9001L))
+                .thenReturn(List.of(storyItem(900L, 3), storyItem(901L, 5)));
+        when(inventoryRepository.findByIdMatch(1L)).thenReturn(List.of(
+                inventoryRow(50L, 900L, 2),   // 3 x 2 = 6
+                inventoryRow(50L, 901L, 1),   // 5 x 1 = 5
+                inventoryRow(51L, 901L, 4))); // another character, must not leak in
+        when(characterRepository.findByIdMatchAndIdUser(1L, 100L))
+                .thenReturn(Optional.of(character(50L, 2L)));
+
+        MoveCharacterView v = adapter.findCharacterByMatchAndUser(1L, 100L).orElseThrow();
+
+        assertEquals(11, v.carriedWeight());
+    }
+
+    /** A null amount counts as one and an item the story does not define weighs nothing. */
+    @Test
+    void findCharacter_carriedWeightNullAmountAndUnknownItem() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
+        when(storyReadPort.findItemsByStoryId(9001L)).thenReturn(List.of(storyItem(900L, 7)));
+        when(inventoryRepository.findByIdMatch(1L)).thenReturn(List.of(
+                inventoryRow(50L, 900L, null),  // 7 x 1
+                inventoryRow(50L, 999L, 3)));   // unknown item -> 0
+        when(characterRepository.findByIdMatchAndIdUser(1L, 100L))
+                .thenReturn(Optional.of(character(50L, 2L)));
+
+        assertEquals(7, adapter.findCharacterByMatchAndUser(1L, 100L).orElseThrow().carriedWeight());
+    }
+
+    /** Three queries for the whole match, however many characters it holds: no N+1. */
+    @Test
+    void findCharactersByMatchId_readsInventoryOnceForEveryCharacter() {
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(match()));
+        when(storyReadPort.findItemsByStoryId(9001L)).thenReturn(List.of(storyItem(900L, 2)));
+        when(inventoryRepository.findByIdMatch(1L)).thenReturn(List.of(
+                inventoryRow(50L, 900L, 1),
+                inventoryRow(51L, 900L, 3)));
+        when(characterRepository.findByIdMatch(1L)).thenReturn(List.of(
+                character(50L, 2L), character(51L, 2L), character(52L, 2L)));
+
+        List<MoveCharacterView> views = adapter.findCharactersByMatchId(1L);
+
+        assertEquals(2, views.get(0).carriedWeight());
+        assertEquals(6, views.get(1).carriedWeight());
+        assertEquals(0, views.get(2).carriedWeight());
+        verify(inventoryRepository, times(1)).findByIdMatch(1L);
+    }
+
+    /** No story on the match: nothing can be weighed, and no inventory query is made. */
+    @Test
+    void findCharacter_carriedWeightZeroWhenMatchHasNoStory() {
+        GamingMatchEntity storyless = match();
+        storyless.setIdStory(null);
+        when(matchRepository.findById(1L)).thenReturn(Optional.of(storyless));
+        when(characterRepository.findByIdMatchAndIdUser(1L, 100L))
+                .thenReturn(Optional.of(character(50L, 2L)));
+
+        assertEquals(0, adapter.findCharacterByMatchAndUser(1L, 100L).orElseThrow().carriedWeight());
+        verify(inventoryRepository, never()).findByIdMatch(anyLong());
+    }
+
+    private static ItemEntity storyItem(long id, int weight) {
+        ItemEntity i = new ItemEntity();
+        i.setId(id);
+        i.setWeight(weight);
+        return i;
+    }
+
+    private static GamingInventoryItemsEntity inventoryRow(long idCharacter, long idItem, Integer amount) {
+        GamingInventoryItemsEntity r = new GamingInventoryItemsEntity();
+        r.setIdCharacterMatch(idCharacter);
+        r.setIdItem(idItem);
+        r.setAmount(amount);
+        return r;
     }
 
     @Test

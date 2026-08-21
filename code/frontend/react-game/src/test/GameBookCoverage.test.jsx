@@ -13,6 +13,9 @@ vi.mock('@/features/guest-user/GuestUserContext', () => ({
 }))
 vi.mock('../api/matches', () => ({
   endMatch: vi.fn(),
+  useItem: vi.fn(),
+  dropItem: vi.fn(),
+  getInventory: vi.fn(() => Promise.resolve({ items: [] })),
   getMatchClock: vi.fn(() => Promise.resolve(null)),
   getMatchWeather: vi.fn(() => Promise.resolve(null)),
   getMatchLocations: vi.fn(() => Promise.resolve({ matchUuid: 'm1', locations: [] })),
@@ -66,7 +69,7 @@ vi.mock('../components/layout/Card', () => ({
 }))
 
 import GameBook from '../features/gameplay/GameBook'
-import { executeEvent, getMatchLocations, getMatchWeather, selectChoice } from '../api/matches'
+import { executeEvent, getInventory, getMatchLocations, getMatchWeather, selectChoice } from '../api/matches'
 
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }
 
@@ -415,7 +418,7 @@ describe('GameBook — map and statistics view', () => {
   // current location with the "enter" arrow: it drops back into the play view.
   it('enters the play view from the map\'s current-location arrow', () => {
     renderBook()
-    fireEvent.click(screen.getByTestId('action-information'))         // fa-map opens the map
+    fireEvent.click(screen.getByTestId('extra-action-0'))             // fa-map opens the map
     expect(screen.getByTestId('game-map-canvas')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('page-forward'))               // the enter-location arrow
     expect(screen.queryByTestId('game-map-canvas')).not.toBeInTheDocument()
@@ -425,7 +428,7 @@ describe('GameBook — map and statistics view', () => {
   // The map's own back arrow closes it without touching the rest of the view.
   it('closes the map with its back arrow', () => {
     renderBook()
-    fireEvent.click(screen.getByTestId('action-information'))
+    fireEvent.click(screen.getByTestId('extra-action-0'))
     fireEvent.click(screen.getByLabelText('card.back'))
     expect(screen.queryByTestId('game-map-canvas')).not.toBeInTheDocument()
   })
@@ -448,12 +451,13 @@ describe('GameBook — map and statistics view', () => {
   })
 
   // The (i) characteristics card carries a fa-bed shortcut: it reveals the sleep
-  // card on the board and auto-clicks its Sleep button.
+  // card on the board and auto-clicks its Sleep button. It is the card's MAIN action —
+  // fa-map, which used to be, now sits first in actionsList.
   it('reveals and fires the sleep card from the characteristics fa-bed shortcut', async () => {
     const onReload = vi.fn()
     renderBook({}, { onReload })
     expect(screen.queryByTestId('go-to-sleep-card')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByTestId('extra-action-0'))
+    fireEvent.click(screen.getByTestId('action-information'))
     expect(screen.getByTestId('go-to-sleep-card')).toBeInTheDocument()
     await waitFor(() => expect(onReload).toHaveBeenCalled(), { timeout: 2000 })
   })
@@ -466,3 +470,194 @@ describe('GameBook — map and statistics view', () => {
 })
 
 afterEach(() => { delete window.matchMedia })
+
+describe('GameBook — inventory (Step 34)', () => {
+  it('renders one ItemCard per inventory row of the calling player', () => {
+    renderBook({
+      playerStats: {
+        life: 10, energy: 10, constitution: 3,
+        items: [
+          { uuid: 'row-1', itemUuid: 'item-900', name: 'Potion', weight: 3, amount: 1,
+            isConsumabile: true, card: { title: 'Healing Potion' } },
+          { uuid: 'row-2', itemUuid: 'item-901', name: 'Sword', weight: 5, amount: 1,
+            isConsumabile: false },
+        ],
+      },
+    })
+    // The bag lives on its own page now: the flask button is the way in.
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+
+    expect(screen.getAllByTestId('cc-item')).toHaveLength(2)
+    // The non-consumable one renders locked — carried, not usable.
+    expect(screen.getByTestId('locked-item')).toBeTruthy()
+  })
+
+  it('renders no ItemCard when the player carries nothing', () => {
+    renderBook({ playerStats: { life: 10, energy: 10, constitution: 3, items: [] } })
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    expect(screen.queryByTestId('cc-item')).toBeNull()
+  })
+
+  it('survives a player stats block with no items key at all', () => {
+    renderBook()
+    expect(screen.queryByTestId('cc-item')).toBeNull()
+  })
+
+  it('a dropped item reloads the board: nothing to narrate, only a weight that changed', async () => {
+    const onReload = vi.fn()
+    renderBook({
+      playerStats: {
+        life: 10, energy: 10, constitution: 3,
+        items: [{ uuid: 'row-1', itemUuid: 'item-900', name: 'Potion', weight: 3,
+                  amount: 1, isConsumabile: true }],
+      },
+    }, { onReload })
+
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getByTestId('preview-item'))
+    fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
+
+    await waitFor(() => expect(onReload).toHaveBeenCalled())
+  })
+})
+
+describe('GameBook — the backpack page (Step 34)', () => {
+  // getInventory is a module-level mock shared with the tests above: without this the
+  // "not called" assertions would read another test's call.
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getInventory.mockResolvedValue({ items: [] })
+  })
+
+  const BAG = {
+    life: 10, energy: 10, constitution: 3, weight: 4, weightMax: 30,
+    items: [
+      { uuid: 'row-1', itemUuid: 'item-900', name: 'Potion', weight: 2, amount: 2,
+        isConsumabile: true, card: { title: 'Healing Potion' } },
+    ],
+  }
+
+  it('the flask button opens the backpack on the right page', () => {
+    renderBook({ playerStats: BAG })
+
+    // Before: the characteristics card, no item cards.
+    expect(screen.queryByTestId('cc-item')).toBeNull()
+    // The flask is the 4th secondary action of the characteristics card (index 3).
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+
+    expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
+  })
+
+  it('the backpack lists one card per row, and the left page closes it again', () => {
+    renderBook({ playerStats: BAG })
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+
+    // Right page: the rows. Left page: the bag card, which owns the way back.
+    expect(screen.getAllByTestId('cc-item')).toHaveLength(1)
+    expect(screen.getByTestId('cc-items')).toBeTruthy()
+
+    fireEvent.click(screen.getByTestId('page-back'))
+
+    // Back on the board: the rows and the bag page are gone, the location and the
+    // characteristics card are what the player sees again.
+    expect(screen.queryByTestId('cc-item')).toBeNull()
+    expect(screen.queryByTestId('cc-items')).toBeNull()
+    expect(screen.getByTestId('cc-location')).toBeTruthy()
+    expect(screen.getByTestId('cc-information')).toBeTruthy()
+  })
+
+  it('closing the bag returns to the board even when it was opened from the statistics list', () => {
+    renderBook({ playerStats: BAG })
+    // In through the statistics view, where ItemsCard sits next to the map card.
+    fireEvent.click(screen.getByTestId('preview-information'))
+    fireEvent.click(screen.getAllByTestId('action-items')[0])
+    expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
+
+    fireEvent.click(screen.getByTestId('page-back'))
+
+    // Not back to the menu that led here — back to the game. (The characteristics card
+    // matches more than once: the board's copy plus the preview modal opened above.)
+    expect(screen.queryByTestId('cc-item')).toBeNull()
+    expect(screen.queryByTestId('cc-map')).toBeNull()
+    expect(screen.getAllByTestId('cc-information').length).toBeGreaterThan(0)
+  })
+
+  it('the small backpack card in the statistics view opens the same page', () => {
+    renderBook({ playerStats: BAG })
+    // Open the statistics view first: that is where ItemsCard lives, next to the map.
+    fireEvent.click(screen.getByTestId('preview-information'))
+
+    const openers = screen.getAllByTestId('action-items')
+    expect(openers.length).toBeGreaterThan(0)
+    fireEvent.click(openers[0])
+
+    expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
+  })
+
+  it('an event that grants a carried item narrates with the ITEM card, not the effect one', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'exp', card: { title: 'The effect card' } }],
+      itemChanges: [{ characterUuid: 'me', itemUuid: 'item-900', action: 'ADD' }],
+    })
+    renderBook({ playerStats: BAG })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    // The item is already carried, so its card was resolved by match-info: no fetch.
+    await waitFor(() => expect(screen.getAllByText('Healing Potion').length).toBeGreaterThan(0))
+    expect(screen.queryByText('The effect card')).toBeNull()
+    expect(getInventory).not.toHaveBeenCalled()
+  })
+
+  it('fetches the inventory when the granted item is brand new', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'exp', card: { title: 'The effect card' } }],
+      itemChanges: [{ characterUuid: 'me', itemUuid: 'item-999', action: 'ADD' }],
+    })
+    getInventory.mockResolvedValue({
+      items: [{ uuid: 'row-9', itemUuid: 'item-999', card: { title: 'A brand new thing' } }],
+    })
+    renderBook({ playerStats: BAG })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(getInventory).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getAllByText('A brand new thing').length).toBeGreaterThan(0))
+    expect(screen.queryByText('The effect card')).toBeNull()
+  })
+
+  it('a failed inventory fetch leaves the board alone rather than crashing it', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'exp', card: { title: 'The effect card' } }],
+      itemChanges: [{ characterUuid: 'me', itemUuid: 'item-999', action: 'ADD' }],
+    })
+    getInventory.mockRejectedValue(new Error('offline'))
+    renderBook({ playerStats: BAG })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(getInventory).toHaveBeenCalled())
+    expect(screen.getByTestId('book')).toBeTruthy()
+  })
+
+  it('an event that grants nothing still narrates with the effect card', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'exp', card: { title: 'The effect card' } }],
+      itemChanges: [],
+    })
+    renderBook({ playerStats: BAG })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('The effect card').length).toBeGreaterThan(0))
+    expect(getInventory).not.toHaveBeenCalled()
+  })
+})

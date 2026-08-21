@@ -776,7 +776,7 @@
       "idCard": 64,
       "idCreator": 1,
       "idTextCopyright": 179,
-      "idTextDescription": 177,
+      "idTextDescription": 325,
       "idTextName": 177,
       "idTextTitle": 177,
       "linkCopyright": "https://unsplash.com/photos/landscape-around-the-mirador-solar-de-tristaina-ordino-arcalis-andorra-T0lM3c_VDsw",
@@ -1324,6 +1324,30 @@
       "linkCopyright": "https://unsplash.com/photos/calm-blue-water-during-daytime-e2ytz-Zj29I",
       "urlImage": "https://images.unsplash.com/photo-1548323886-de9ef217070a?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "71345e28-d4de-4336-b25d-4182697435e4"
+    },
+    {
+      "id": 111,
+      "idCard": 111,
+      "idCreator": 1,
+      "idTextCopyright": 322,
+      "idTextDescription": 321,
+      "idTextName": 319,
+      "idTextTitle": 319,
+      "linkCopyright": "https://unsplash.com/photos/wanderlust-and-explore-concept-old-compass-lying-on-map-top-view-space-for-text-vintage-toned-image-8_B6VHqOkIE",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1661311943117-c515634ea81d?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "78293b97-8d6c-4006-a139-a7b05c114867"
+    },
+    {
+      "id": 112,
+      "idCard": 112,
+      "idCreator": 1,
+      "idTextCopyright": 323,
+      "idTextDescription": 324,
+      "idTextName": 320,
+      "idTextTitle": 320,
+      "linkCopyright": "https://unsplash.com/photos/detailed-topographic-map-of-a-mountainous-region-with-a-lake-Gfo7CyXkx3g",
+      "urlImage": "https://images.unsplash.com/photo-1730314736977-c8bee79d479c?q=80&w=795&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "22cefecc-4368-471e-b7c6-9731f401df12"
     }
   ],
   "category": "adventure",
@@ -2104,6 +2128,15 @@
       "idWeather": 1,
       "id_card": 110,
       "uuid": "498eb10d-ed66-4e44-830e-d11a1ec2b2f2"
+    },
+    {
+      "id": 12,
+      "idCard": 111,
+      "idEvent": 16,
+      "idItemTarget": 1,
+      "id_card": 111,
+      "itemAction": "ADD",
+      "uuid": "116ebaac-d84a-4c8f-8742-bc7220dcc07e"
     }
   ],
   "events": [
@@ -2289,6 +2322,17 @@
       "id_card": 110,
       "type": "AUTOMATIC",
       "uuid": "519faa45-6745-415e-a933-7abf41b09957"
+    },
+    {
+      "costEnery": 1,
+      "id": 16,
+      "idCard": 111,
+      "idSpecificLocation": 7,
+      "idTextDescription": 319,
+      "idTextName": 319,
+      "id_card": 111,
+      "type": "NORMAL",
+      "uuid": "b5acc9a0-3c5e-48bf-8aba-57389e5a91cd"
     }
   ],
   "globalRandomEvents": [],
@@ -2308,7 +2352,17 @@
   "idTextTitle": 1,
   "itemCount": 0,
   "itemEffects": [],
-  "items": [],
+  "items": [
+    {
+      "id": 1,
+      "idCard": 112,
+      "idTextDescription": 324,
+      "idTextName": 320,
+      "id_card": 112,
+      "uuid": "36813571-a540-47e6-94fa-25d18a1c0fd7",
+      "weight": 1
+    }
+  ],
   "keys": [],
   "linkCopyright": "https://unsplash.com/photos/gray-and-white-pathway-between-green-plants-on-vast-valley-lu15z1m_KfM",
   "locationCount": 4,
@@ -8255,6 +8309,146 @@
       "longText": "",
       "shortText": "",
       "uuid": "0fbdbe7b-dea1-428e-893c-69cbd0501cdd"
+    },
+    {
+      "id": 319,
+      "idCreator": 1,
+      "idText": 319,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Draw the Map",
+      "shortText": "Draw the Map",
+      "uuid": "643919b1-ed58-4d54-977a-ec7cf7c8487b"
+    },
+    {
+      "id": 320,
+      "idCreator": 1,
+      "idText": 320,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mountain Map",
+      "shortText": "Mountain Map",
+      "uuid": "0cd3267a-30af-445a-9936-92b56a230132"
+    },
+    {
+      "id": 321,
+      "idCreator": 1,
+      "idText": 321,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.",
+      "shortText": "Atop the watchtower sits an oak table with a pristine scroll resting upon it. Charting the borders of these unknown lands will help you navigate your journey. <br />\n<br />\nSome events may add items to your inventory.",
+      "uuid": "03300eac-5aa7-4bd5-ac95-e721aa4682b7"
+    },
+    {
+      "id": 321,
+      "idCreator": 1,
+      "idText": 321,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.",
+      "shortText": "In cima alla torre d'avvistamento si trova un tavolo di quercia con una pergamena ancora intonsa. Tracciare i confini di queste terre sconosciute ti permetterà di orientarti meglio durante il viaggio. <br />\n<br />\nAlcuni eventi possono aggiungere oggetti al tuo inventario.",
+      "uuid": "d2a008b7-6183-4706-b92e-c8f8dd9cd56b"
+    },
+    {
+      "id": 319,
+      "idCreator": 1,
+      "idText": 319,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Disegna la Mappa",
+      "shortText": "Disegna la Mappa",
+      "uuid": "41db0b2e-327f-49e0-81be-24004114eed1"
+    },
+    {
+      "id": 322,
+      "idCreator": 1,
+      "idText": 322,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Getty Images",
+      "shortText": "Getty Images",
+      "uuid": "b203a3f9-bf5b-44a1-aa4c-d596abfea5f0"
+    },
+    {
+      "id": 322,
+      "idCreator": 1,
+      "idText": 322,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "ba4b473a-9737-4d9e-ab38-6a7d4b3b515f"
+    },
+    {
+      "id": 323,
+      "idCreator": 1,
+      "idText": 323,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The New York Public Library",
+      "shortText": "The New York Public Library",
+      "uuid": "c4870862-d10c-4d2c-b4d0-049c1e083c24"
+    },
+    {
+      "id": 323,
+      "idCreator": 1,
+      "idText": 323,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "092b9be1-edb8-4f24-a525-c231e618cce0"
+    },
+    {
+      "id": 324,
+      "idCreator": 1,
+      "idText": 324,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The jagged peaks conceal secret passages that only a trained eye could spot on the parchment. Marking these ridges on your chart will keep you from blundering blindly through the cliffs. <br />\n<br />\nWith this map you will be able to take faster routes or make choices that you couldn't take without it.",
+      "shortText": "The jagged peaks conceal secret passages that only a trained eye could spot on the parchment. Marking these ridges on your chart will keep you from blundering blindly through the cliffs. <br />\n<br />\nWith this map you will be able to take faster routes or make choices that you couldn't take without it.",
+      "uuid": "3121922c-b406-466d-a010-c83a923d96c4"
+    },
+    {
+      "id": 324,
+      "idCreator": 1,
+      "idText": 324,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le vette frastagliate nascondono passaggi segreti che solo un occhio esperto saprebbe individuare sul papiro. Segnare questi rilievi sulla tua carta ti eviterà di brancolare nel buio tra i dirupi. <br />\n<br />\nCon questa mappa potrai intraprendere percorsi più rapidi o fare scelte che senza mappa non potresti prendere.",
+      "shortText": "Le vette frastagliate nascondono passaggi segreti che solo un occhio esperto saprebbe individuare sul papiro. Segnare questi rilievi sulla tua carta ti eviterà di brancolare nel buio tra i dirupi. <br />\n<br />\nCon questa mappa potrai intraprendere percorsi più rapidi o fare scelte che senza mappa non potresti prendere.",
+      "uuid": "ed6f07c0-cc36-4e09-bfa2-6077535e80d9"
+    },
+    {
+      "id": 320,
+      "idCreator": 1,
+      "idText": 320,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Mappa dei sentieri",
+      "shortText": "Mappa dei sentieri",
+      "uuid": "00f5da9e-8190-4391-bd34-92bc1e218c62"
+    },
+    {
+      "id": 325,
+      "idCreator": 1,
+      "idText": 325,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The towering rocky peaks rise against the sky, shrouded in a cold and perpetual mist. Following the steep paths will lead you toward unexplored summits and hidden dangers. <br />\n<br />\nIn this location there are various actions you can perform.",
+      "shortText": "The towering rocky peaks rise against the sky, shrouded in a cold and perpetual mist. Following the steep paths will lead you toward unexplored summits and hidden dangers. <br />\n<br />\nIn this location there are various actions you can perform.",
+      "uuid": "fb491e2e-a66b-4b0c-ac94-e3c6337efc4d"
+    },
+    {
+      "id": 325,
+      "idCreator": 1,
+      "idText": 325,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Le imponenti cime rocciose si erigono contro il cielo, avvolte da una nebbia perenne e gelida. Seguire i passi scoscesi ti condurrà verso vette inesplorate e pericoli nascosti. <br />\n<br />\nIn questo luogo ci sono varie azioni che puoi eseguire.",
+      "shortText": "Le imponenti cime rocciose si erigono contro il cielo, avvolte da una nebbia perenne e gelida. Seguire i passi scoscesi ti condurrà verso vette inesplorate e pericoli nascosti. <br />\n<br />\nIn questo luogo ci sono varie azioni che puoi eseguire.",
+      "uuid": "295c34e2-9a47-4848-a39f-b71cae1f803d"
     }
   ],
   "title": "Paths Tutorial",

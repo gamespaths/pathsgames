@@ -478,3 +478,55 @@ Execute Event
     ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/action/execute-event
     ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
     RETURN    ${response}
+
+Get Inventory
+    [Documentation]    GET /api/gameplay/{uuidMatch}/inventory — the calling character's items
+    ...                (Step 34). Readable in any match status; only use-item and drop-item
+    ...                need a RUNNING match. Every row carries `uuid` (the INVENTORY ROW),
+    ...                `itemUuid` (the story item), the resolved `card` and `isConsumabile`.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    GET On Session    public_session    /api/gameplay/${match_uuid}/inventory
+    ...    headers=${headers}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Use Item
+    [Documentation]    POST /api/gameplay/{uuidMatch}/inventory/use-item — consume one item
+    ...                (Step 34). ${item_instance_uuid} is the INVENTORY ROW's uuid
+    ...                (items[].uuid), NEVER the story item's items[].itemUuid.
+    ...                Answers the execute-event payload, with a null eventUuid.
+    [Arguments]    ${token}    ${match_uuid}    ${item_instance_uuid}    ${expected_status}=any    ${lang}=${EMPTY}
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    itemInstanceUuid=${item_instance_uuid}
+    ${params}=    Create Dictionary
+    IF    '${lang}' != '${EMPTY}'
+        Set To Dictionary    ${params}    lang=${lang}
+    END
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/use-item
+    ...    headers=${headers}    json=${body}    params=${params}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Drop Item
+    [Documentation]    POST /api/gameplay/{uuidMatch}/inventory/drop-item — discard one item
+    ...                (Step 34). Applies neither the consumable gate nor the class gate, and
+    ...                discards the WHOLE row.
+    [Arguments]    ${token}    ${match_uuid}    ${item_instance_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    &{body}=    Create Dictionary    itemInstanceUuid=${item_instance_uuid}
+    ${response}=    POST On Session    public_session    /api/gameplay/${match_uuid}/inventory/drop-item
+    ...    headers=${headers}    json=${body}    expected_status=${expected_status}
+    RETURN    ${response}
+
+Get Resources
+    [Documentation]    GET /api/gameplay/{uuidMatch}/resources — food, magic, coin and the
+    ...                carried weight (Step 35). Plain numbers, no card: resources are not
+    ...                story entities. The field is `coin`, singular.
+    [Arguments]    ${token}    ${match_uuid}    ${expected_status}=any
+    ${headers}=    Get Auth Headers    ${token}
+    ${response}=    GET On Session    public_session    /api/gameplay/${match_uuid}/resources
+    ...    headers=${headers}    expected_status=${expected_status}
+    RETURN    ${response}

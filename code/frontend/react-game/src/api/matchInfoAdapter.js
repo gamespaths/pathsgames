@@ -71,11 +71,13 @@ function toPlayerStats(player) {
     classUuid: player.classUuid ?? null,
     traitUuids: Array.isArray(player.traitUuids) ? player.traitUuids : [],
     difficultyUuid: player.difficultyUuid ?? null,
-    // Not yet projected by /info — defaulted until a richer endpoint exists.
+    // Step 35 — the backpack resources, now projected by /info on every player.
+    // Mind the naming: the backend field is `coin` (singular), the stat key is `coins`.
+    food: player.food ?? 0,
+    magic: player.magic ?? 0,
+    coins: player.coin ?? 0,
+    // Not yet projected by /info — defaulted until step 38 wires experience.
     experience: 0,
-    food: 0,
-    magic: 0,
-    coins: 0,
 
     intelligence: player.intelligence ?? 0,
     dexterity: player.dexterity ?? 0,

@@ -276,6 +276,18 @@ SEED_STORIES = [
             {"id": 25, "uuid": "evt-step29-grant-item", "name": "Find the Key",
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            # v0.34.0 inventory pair: 50 is gated by item 2, which 51 grants. Because item 2
+            # is CONSUMABLE, using it must close 50 again — the step-34 acceptance test.
+            {"id": 50, "uuid": "evt-step34-item-gate", "name": "The Scholar's Door",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0,
+             "idItemCondition": 2},
+            {"id": 51, "uuid": "evt-step34-grant", "name": "Open the Satchel",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
+            {"id": 52, "uuid": "evt-step35-grant-heavy", "name": "Lift the Ingot",
+             "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
+             "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
             {"id": 26, "uuid": "evt-step29-resources", "name": "Raid the Pantry",
              "idSpecificLocation": 1, "type": "NORMAL", "idCard": 1,
              "costEnery": 0, "coinCost": 0, "flagEndTime": 0},
@@ -408,6 +420,13 @@ SEED_STORIES = [
             # Unlocks event 24 (the item gate).
             {"id": 10, "idEvent": 25, "idCard": 1, "target": "ONLY_ONE",
              "idItemTarget": 1, "itemAction": "ADD"},
+            # v0.34.0 — event 51 hands over the two consumables, 52 the heavy ingot.
+            {"id": 50, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",
+             "idItemTarget": 2, "itemAction": "ADD"},
+            {"id": 51, "idEvent": 51, "idCard": 1, "target": "ONLY_ONE",
+             "idItemTarget": 3, "itemAction": "ADD"},
+            {"id": 52, "idEvent": 52, "idCard": 1, "target": "ONLY_ONE",
+             "idItemTarget": 4, "itemAction": "ADD"},
             # Backpack resources: the three land on one event, and the untouched ones stay put.
             {"id": 11, "idEvent": 26, "idCard": 1, "statistics": "food",  "value": 3, "target": "ONLY_ONE"},
             {"id": 12, "idEvent": 26, "idCard": 1, "statistics": "magic", "value": 2, "target": "ONLY_ONE"},
@@ -437,6 +456,30 @@ SEED_STORIES = [
              "keyToAdd": "STEP33_COUNTER", "keyValueToAdd": "YES"},
             {"id": 24, "idEvent": 44, "idCard": 1, "statistics": "exp", "value": 14,
              "target": "ONLY_ONE", "keyToAdd": "STEP33_STARTTIME", "keyValueToAdd": "YES"},
+        ],
+        # Steps 34 & 35 — the inventory test-bed. Until v0.34.0 the seed named items on the
+        # event effects (idItemTarget) without ever declaring them, so nothing had a weight
+        # and no card could be resolved. Item 1 is CARRIED ONLY (it gates event 24 and must
+        # stay in the bag), item 2 is the consumable that gates event 50, item 3 is
+        # restricted to class 1, item 4 is heavy enough to reach OVERWEIGHT.
+        "items": [
+            {"id": 1, "uuid": "item-tut-sword",  "idCard": 1, "idTextName": 400,
+             "idTextDescription": 400, "weight": 1, "isConsumabile": 0},
+            {"id": 2, "uuid": "item-tut-scroll", "idCard": 1, "idTextName": 400,
+             "idTextDescription": 400, "weight": 1, "isConsumabile": 1},
+            {"id": 3, "uuid": "item-tut-tonic",  "idCard": 1, "idTextName": 400,
+             "idTextDescription": 400, "weight": 1, "isConsumabile": 1,
+             "idClassPermitted": 1},
+            {"id": 4, "uuid": "item-tut-ingot",  "idCard": 1, "idTextName": 400,
+             "idTextDescription": 400, "weight": 9, "isConsumabile": 1},
+        ],
+        # SADNESS is the documented alias of the `sad` statistic; traitsToAdd is the same
+        # CSV-of-ids format the event effects use.
+        "itemEffects": [
+            {"id": 1, "idCard": 1, "idItem": 2, "effectCode": "EXP", "effectValue": 5,
+             "traitsToAdd": "1"},
+            {"id": 2, "idCard": 1, "idItem": 3, "effectCode": "SADNESS", "effectValue": 1},
+            {"id": 3, "idCard": 1, "idItem": 4, "effectCode": "LIFE", "effectValue": 1},
         ],
         # Step 15 fields
         "characterTemplates": [
@@ -1064,6 +1107,12 @@ def _seed_stories():
             # v0.33.2 — each row gets its uuid here, so every AppliedEffect can name it.
             "eventEffects":             _ensure_effect_uuids(
                                             s.get("eventEffects", []), f"eff-{story_uuid}"),
+            # Steps 34 & 35 — the inventory engine reads these off the story item. Without
+            # them every carried row resolves to no story item: weight 0, a null
+            # isConsumabile, and use-item refusing everything as ITEM_NOT_FOUND.
+            "items":                    s.get("items", []),
+            "itemEffects":              _ensure_effect_uuids(
+                                            s.get("itemEffects", []), f"ieff-{story_uuid}"),
             # Step 31 — the choice engine reads these off the story item.
             "choices":                  s.get("choices", []),
             "choiceConditions":         s.get("choiceConditions", []),
@@ -1100,18 +1149,42 @@ def _handle_cleanup():
     Framework) test runs: guests whose username starts with the ``robottest``
     marker, matches whose name starts with it, and the seed stories inserted by
     ``_seed_stories`` (the same SEED_STORIES list). Every other item is kept.
+
+    Everything is removed by PARTITION, never row by row. A match is not one item: its
+    ``CHARACTER#…`` rows live under the same PK, and deleting only ``METADATA`` — as this
+    did until v0.34.0 — left them orphaned under a partition whose name was gone, so no
+    later run could recognise them either. The residue that fix cannot reach is reported
+    as ``orphanMatches``; ``code/scripts/dev/aws/purge_robot_test_data.py --orphans``
+    sweeps it.
     """
     deleted_guests = 0
     for user in db_utils.scan_filter("is_guest", True):
         if str(user.get("username", "")).startswith(ROBOT_TEST_MARKER):
-            db_utils.delete_item(user["PK"], user.get("SK", "METADATA"))
+            db_utils.delete_all_by_pk(user["PK"])
             deleted_guests += 1
 
+    # One pass over the MATCH# space: the scan returns EVERY row of every match, so the
+    # partitions are collected first and deleted once each. Only the METADATA row carries
+    # the name — the character rows come along because the partition goes, not because
+    # they match a rule.
+    robot_match_pks, match_pks, match_pks_with_metadata = [], set(), set()
+    for row in db_utils.scan_pk_prefix("MATCH#"):
+        pk = row.get("PK")
+        match_pks.add(pk)
+        if str(row.get("SK") or "") == "METADATA":
+            match_pks_with_metadata.add(pk)
+            if str(row.get("name") or "").startswith(ROBOT_TEST_MARKER):
+                robot_match_pks.append(pk)
+
     deleted_matches = 0
-    for match in db_utils.scan_pk_prefix("MATCH#"):
-        if str(match.get("name") or "").startswith(ROBOT_TEST_MARKER):
-            db_utils.delete_item(match["PK"], match.get("SK", "METADATA"))
-            deleted_matches += 1
+    for pk in robot_match_pks:
+        db_utils.delete_all_by_pk(pk)
+        deleted_matches += 1
+
+    # A partition with no METADATA row cannot be identified: its name is in the row that
+    # is already gone. Counted, never deleted — this endpoint runs unattended after every
+    # test run, and deleting what it cannot identify is not a thing to do unattended.
+    orphan_matches = len(match_pks - match_pks_with_metadata)
 
     # Remove the seed stories (cascading delete of every item under STORY#{uuid}).
     deleted_stories = 0
@@ -1126,6 +1199,8 @@ def _handle_cleanup():
             "deletedGuests":  deleted_guests,
             "deletedMatches": deleted_matches,
             "deletedStories": deleted_stories,
+            # Left behind on purpose; see above.
+            "orphanMatches":  orphan_matches,
         })
     }
 

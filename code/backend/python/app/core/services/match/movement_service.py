@@ -44,7 +44,7 @@ def move_check_context(match: Dict[str, Any],
         coma=bool(caller.get("is_coma")),
         sleeping=bool(caller.get("is_sleeping")),
         energy=caller.get("energy") or 0,
-        # Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
+        # Step 35 — the real Sigma (item.weight x amount), computed by the store adapter.
         carried_weight=caller.get("carried_weight") or 0,
         weight_max=caller.get("weight_max") or 0,
     )

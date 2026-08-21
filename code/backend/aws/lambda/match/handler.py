@@ -208,7 +208,8 @@ def _summary_from_item(item):
     }
 
 
-def _detail_from_item(item, players=None, lang='en', all_locations=False):
+def _detail_from_item(item, players=None, lang='en', all_locations=False,
+                      requester_uuid=None):
     """Build the match-info payload.
 
     ``all_locations`` keeps EVERY story location in ``locations`` instead of only
@@ -264,7 +265,16 @@ def _detail_from_item(item, players=None, lang='en', all_locations=False):
         "events": [],
         "choices": [],
         # Step 21 — the players/characters of the match (summary rows).
-        "players": [_character_summary(c) for c in players],
+        # Step 34 — the player view masks the other players' inventories; the admin view
+        # must NOT, because it has no requester at all.
+        "players": [
+            _character_summary(
+                c, story, *_story_cards_texts(story), lang=lang,
+                mask_inventory=(not all_locations
+                                and requester_uuid is not None
+                                and c.get("userUuid") != requester_uuid))
+            for c in players
+        ],
         # Step 27.x — enriched, player-occupied locations with card/neighbors/events.
         # Step 29 — ONE context for every event of the payload: the checker is a pure
         # function over it, so a story with many events costs no more than one with few.
@@ -289,7 +299,7 @@ def _move_judge(match, story, players):
         if c.get('idLocation') is not None:
             counts[c['idLocation']] = counts.get(c['idLocation'], 0) + 1
     return {
-        'ctx': _movements.move_check_context(match, caller),
+        'ctx': _movements.move_check_context(match, caller, story),
         'weatherRule': _current_weather_rule(match, story),
         'countsByLocation': counts,
         'registry': (match or {}).get('registry'),
@@ -320,6 +330,7 @@ def _judge_neighbor(judge, edge, target):
 
 
 from common.data_utils import resolve_card_from_raw as _resolve_card_from_raw
+from match import inventory as _inventory
 from match import choices as _choices
 from match import events as _events
 from match import movements as _movements
@@ -475,8 +486,15 @@ def _build_locations_active(story, active_loc_ids, lang='en', visited_loc_ids=No
 
 # ─── Step 21 — character presenters & helpers ────────────────────────────────
 
-def _character_summary(item):
-    """Lightweight character row (players list / MatchInfo.players)."""
+def _character_summary(item, story=None, raw_cards=None, raw_texts=None, lang="en",
+                       mask_inventory=False):
+    """Lightweight character row (players list / MatchInfo.players).
+
+    Step 34 — `items` is present on EVERY player but populated only for the caller when
+    `mask_inventory` is set. The admin view passes False: it has no requester at all, and
+    masking there would blank every player's items in the console. `weight` is deliberately
+    NOT masked — a scalar total says a rival is heavy, the array says what they carry.
+    """
     return {
         "uuid": item.get("uuid"),
         "userUuid": item.get("userUuid"),
@@ -487,14 +505,18 @@ def _character_summary(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
-        # Step 27 — max statistics, carried weight and items list. The DynamoDB
-        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        # Step 27 — max statistics; Step 34/35 — the REAL carried weight and items.
         "lifeMax": int(item.get("lifeMax", 0)),
         "energyMax": int(item.get("energyMax", 0)),
         "sadMax": int(item.get("sadMax", 0)),
         "weightMax": int(item.get("weightMax", 0)),
-        "weight": 0,
-        "items": [],
+        "weight": _inventory.carried_weight(item, story or {}),
+        "items": [] if mask_inventory
+                 else _item_rows(item, story or {}, raw_cards, raw_texts, lang),
+        # Step 35 — the backpack resources, so /info players[] finally reports them.
+        "food": int(item.get("food", 0)),
+        "magic": int(item.get("magic", 0)),
+        "coin": int(item.get("coin", 0)),
         "idLocation": item.get("idLocation"),
         "isSleeping": int(item.get("isSleeping", 0)),
         "isComa": int(item.get("isComa", 0)),
@@ -505,7 +527,52 @@ def _character_summary(item):
     }
 
 
-def _character_full(item):
+def _story_cards_texts(story):
+    """The story's card and text ROWS, always as lists.
+
+    They live under `raw_cards` / `raw_texts`, and only there. `story["texts"]` is a
+    different shape entirely — a per-language dict of the story's own title and
+    description — so falling back to it hands `resolve_raw_text` a dict, which it walks as
+    a list of rows and dies on the first key with
+    `AttributeError: 'str' object has no attribute 'get'`. Anything that is not a list is
+    therefore discarded rather than passed on.
+    """
+    story = story or {}
+    cards = story.get("raw_cards")
+    texts = story.get("raw_texts")
+    return (cards if isinstance(cards, list) else [],
+            texts if isinstance(texts, list) else [])
+
+
+def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
+    """One inventory row, joined with its story item. The shape is shared with the
+    inventory endpoint, so /info items[] and GET /inventory items[] cannot drift."""
+    by_id = _inventory.items_by_id(story)
+    fallback_cards, fallback_texts = _story_cards_texts(story)
+    cards = raw_cards if raw_cards else fallback_cards
+    texts = raw_texts if raw_texts else fallback_texts
+    out = []
+    for row in (char.get("items") or []):
+        item = by_id.get(_nz(row.get("idItem")))
+        entry = {
+            "uuid": row.get("uuid"),
+            "itemUuid": item.get("uuid") if item else None,
+            "name": None,
+            "weight": _nz(item.get("weight")) if item else 0,
+            "amount": _inventory.unit_amount(row.get("amount")),
+            "state": row.get("state") or "ACTIVE",
+            "idCard": item.get("idCard") if item else None,
+            "card": None,
+            "isConsumabile": (_nz(item.get("isConsumabile")) == 1) if item else None,
+        }
+        if item:
+            entry["card"] = _resolve_card_from_raw(cards, texts, item.get("idCard"), lang)
+            entry["name"] = _resolve_raw_text(texts, item.get("idTextName"), lang)
+        out.append(entry)
+    return out
+
+
+def _character_full(item, story=None, raw_cards=None, raw_texts=None, lang="en"):
     """Full character detail (join / character endpoint)."""
     return {
         "uuid": item.get("uuid"),
@@ -519,14 +586,13 @@ def _character_full(item):
         "energy": int(item.get("energy", 0)),
         "life": int(item.get("life", 0)),
         "sad": int(item.get("sad", 0)),
-        # Step 27 — max statistics, carried weight and items list. The DynamoDB
-        # schema has no inventory table yet, so weight=0 / items=[] for parity.
+        # Step 27 — max statistics; Step 34/35 — the REAL carried weight and items.
         "lifeMax": int(item.get("lifeMax", 0)),
         "energyMax": int(item.get("energyMax", 0)),
         "sadMax": int(item.get("sadMax", 0)),
         "weightMax": int(item.get("weightMax", 0)),
-        "weight": 0,
-        "items": [],
+        "weight": _inventory.carried_weight(item, story or {}),
+        "items": _item_rows(item, story or {}, raw_cards, raw_texts, lang),
         "idLocation": item.get("idLocation"),
         "locationUuid": item.get("locationUuid"),
         "isSleeping": int(item.get("isSleeping", 0)),
@@ -838,7 +904,8 @@ def _get_match_info(user, match_uuid, lang='en'):
     item = db_utils.get_item(f'MATCH#{match_uuid}')
     if item is None or item.get('userCreatorUuid') != user['uuid']:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
-    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang))
+    return _ok(_detail_from_item(item, _match_characters(match_uuid), lang,
+                                requester_uuid=(user or {}).get('uuid')))
 
 
 def _end_match(user, match_uuid, event_uuid):
@@ -997,16 +1064,29 @@ def _join_match(user, match_uuid, body):
         "coin": 0,
     }
     db_utils.put_item(char)
-    return _ok(_character_full(char), status=201)
+    return _ok(_character_full(char, story, *_story_cards_texts(story), lang='en'),
+               status=201)
 
 
 def _list_players(user, match_uuid):
     if not match_uuid:
         return _err(400, 'INVALID_INPUT', 'Match uuid is required')
-    _match, err = _resolve_match_access(user, match_uuid)
+    match, err = _resolve_match_access(user, match_uuid)
     if err:
         return err
-    return _ok([_character_summary(c) for c in _match_characters(match_uuid)])
+    story = _story_of(match)
+    # No ?lang= on this endpoint: English preserves the pre-step-34 behaviour exactly.
+    cards, texts = _story_cards_texts(story)
+    return _ok([
+        _character_summary(c, story, cards, texts, 'en',
+                           mask_inventory=c.get('userUuid') != user.get('uuid'))
+        for c in _match_characters(match_uuid)
+    ])
+
+
+def _story_of(match):
+    """The STORY item behind a match; an empty dict when it cannot be resolved."""
+    return db_utils.get_item(f'STORY#{(match or {}).get("storyUuid")}') or {}
 
 
 def _get_character(user, match_uuid, char_uuid):
@@ -1018,7 +1098,8 @@ def _get_character(user, match_uuid, char_uuid):
     item = db_utils.get_item(f'MATCH#{match_uuid}', f'CHARACTER#{char_uuid}')
     if item is None:
         return _err(404, 'CHARACTER_NOT_FOUND', 'Character not found or not accessible')
-    return _ok(_character_full(item))
+    story = _story_of(_match)
+    return _ok(_character_full(item, story, *_story_cards_texts(story), lang='en'))
 
 
 # ─── admin character statistics change ───────────────────────────────────────
@@ -2148,18 +2229,21 @@ def _start_movement(user, match_uuid, body):
     if caller is None:
         return _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
 
+    # Step 35 — the story is read before the check now: the carried weight the OVERWEIGHT
+    # gate acts on is computed from its item weights.
+    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
+
     # The mover's own state (match RUNNING, coma, sleep) is judged before the target is even
     # resolved, so an asleep player is told they are asleep rather than that their destination
     # is not a neighbor. Passing no edge asks the checker for exactly that prefix of the
     # verdict; NOT_A_NEIGHBOR is its way of saying "so far so good, now give me an edge".
-    ctx = _movements.move_check_context(match, caller)
+    ctx = _movements.move_check_context(match, caller, story)
     available, reason = _movements.check(ctx, None)
     if not available and reason != 'NOT_A_NEIGHBOR':
         return _err(409, reason, _MOVE_REASON_MESSAGES.get(reason, 'Movement refused'))
     if caller.get('idLocation') is None:
         return _err(409, 'NOT_A_NEIGHBOR', 'Character has no current location')
 
-    story = db_utils.get_item(f'STORY#{match.get("storyUuid")}') or {}
     locations = story.get('locations') or []
     target = next((l for l in locations if l.get('uuid') == target_uuid), None)
     if target is None:
@@ -2595,6 +2679,231 @@ def _execute_event(user, match_uuid, body, lang='en'):
             "comaEventCard": edge_state['comaEventCard'],
             "comaExecutedEventUuids": coma_event_uuids,
             "comaEffects": coma_effects,
+        },
+    })
+
+
+# ─── Steps 34 & 35: inventory and resources ──────────────────────────────────
+
+_ITEM_REFUSAL_MESSAGES = {
+    'MATCH_NOT_RUNNING': 'The match is not running',
+    'COMA': 'The character is in a coma',
+    'SLEEPING': 'The character is sleeping',
+    'ITEM_NOT_FOUND': 'Item not found in the inventory',
+    'ITEM_NOT_CONSUMABLE': 'This item cannot be used, only carried',
+    'ITEM_CLASS_NOT_PERMITTED': "The character's class cannot use this item",
+    'ITEM_CLASS_PROHIBITED': "The character's class is forbidden from using this item",
+}
+
+
+def _gameplay_match_uuid(event, path):
+    """/api/gameplay/{uuidMatch}/... — the path parameter, or segment 3 as a fallback."""
+    params = event.get('pathParameters') or {}
+    match_uuid = params.get('uuidMatch') or ''
+    if not match_uuid:
+        segments = path.split('/')
+        match_uuid = segments[3] if len(segments) > 3 else ''
+    return match_uuid
+
+
+def _resolve_inventory_caller(user, match_uuid):
+    """(match, story, caller, error). An unknown match and a caller who is not in it are
+    deliberately indistinguishable."""
+    match = db_utils.get_item(f'MATCH#{match_uuid}')
+    if match is None:
+        return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    caller = next((c for c in _match_characters(match_uuid)
+                   if c.get('userUuid') == user.get('uuid')), None)
+    if caller is None:
+        return None, None, None, _err(404, 'MATCH_NOT_FOUND', 'Match not found or not accessible')
+    return match, _story_of(match), caller, None
+
+
+def _item_refusal(code):
+    status = 404 if code in ('MATCH_NOT_FOUND', 'ITEM_NOT_FOUND') else 409
+    return _err(status, code, _ITEM_REFUSAL_MESSAGES.get(code, 'Item action refused'))
+
+
+def _get_inventory(user, match_uuid, lang='en'):
+    """GET /api/gameplay/{uuidMatch}/inventory — readable in any match status."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "items": _item_rows(caller, story, *_story_cards_texts(story), lang=lang),
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+    })
+
+
+def _get_resources(user, match_uuid):
+    """GET /api/gameplay/{uuidMatch}/resources — plain numbers, no card."""
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "food": _nz(caller.get('food')),
+        "magic": _nz(caller.get('magic')),
+        "coin": _nz(caller.get('coin')),
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+    })
+
+
+def _drop_item(user, match_uuid, body):
+    """POST /api/gameplay/{uuidMatch}/inventory/drop-item — discard only.
+
+    Neither the consumable gate nor the class gate applies: a non-consumable item must be
+    droppable, that is the whole point of carrying one.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item_instance_uuid = (body or {}).get('itemInstanceUuid')
+    if not item_instance_uuid or not str(item_instance_uuid).strip():
+        return _err(400, 'MISSING_ITEM', 'itemInstanceUuid is required')
+
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+
+    row = _inventory.find_own_row(caller, item_instance_uuid)
+    if row is None:
+        return _item_refusal('ITEM_NOT_FOUND')
+    # A dangling row (its story item is gone) is still droppable — see inventory.check.
+    item = _inventory.items_by_id(story).get(_nz(row.get('idItem')))
+    code = _inventory.check(match, caller, item, require_consumable=False)
+    if code:
+        return _item_refusal(code)
+
+    amount = _inventory.unit_amount(row.get('amount'))
+    _inventory.remove_row(caller, row)
+    db_utils.put_item(caller)
+
+    return _ok({
+        "matchUuid": match_uuid,
+        "characterUuid": caller.get('uuid'),
+        "itemInstanceUuid": row.get('uuid'),
+        "itemUuid": item.get('uuid') if item else None,
+        "amountDropped": amount,
+        "weight": _inventory.carried_weight(caller, story),
+        "weightMax": _nz(caller.get('weightMax')),
+        # Always true — the inventory and the carried weight both changed.
+        "refreshRecommended": True,
+    })
+
+
+def _use_item(user, match_uuid, body, lang='en'):
+    """POST /api/gameplay/{uuidMatch}/inventory/use-item.
+
+    Answers the execute-event payload: an item carrying a SADNESS effect can trip the
+    step-30 overflow or coma, so the effects go through the very same apply_stat /
+    apply_traits / _apply_edge_states the event chain uses. On an item usage `eventUuid`
+    and `eventType` are null and `card` is the item's own card.
+    """
+    if not match_uuid:
+        return _err(400, 'INVALID_INPUT', 'Match uuid is required')
+    item_instance_uuid = (body or {}).get('itemInstanceUuid')
+    if not item_instance_uuid or not str(item_instance_uuid).strip():
+        return _err(400, 'MISSING_ITEM', 'itemInstanceUuid is required')
+
+    match, story, caller, err = _resolve_inventory_caller(user, match_uuid)
+    if err:
+        return err
+
+    row = _inventory.find_own_row(caller, item_instance_uuid)
+    if row is None:
+        return _item_refusal('ITEM_NOT_FOUND')
+    item = _inventory.items_by_id(story).get(_nz(row.get('idItem')))
+    code = _inventory.check(match, caller, item, require_consumable=True)
+    if code:
+        return _item_refusal(code)
+
+    raw_cards, raw_texts = _story_cards_texts(story)
+    trait_uuids = {_events._nz(t.get('id')): t.get('uuid') for t in (story.get('traits') or [])}
+
+    acc = {
+        'statChanges': [], 'traitChanges': [], 'touched': {caller.get('uuid'): caller},
+        'flags': {'forcedSleep': False, 'comaTriggered': False},
+        'edgeState': {'sadnessOverflowUuids': [], 'comaUuids': []},
+    }
+    applied_effects = []
+
+    # The row goes first: an item whose effects grant the same item back cannot be spent
+    # twice, and the row is gone even if the effect chain ends in a coma.
+    _inventory.remove_row(caller, row)
+
+    for effect in _inventory.standalone_effects(story, item):
+        _events.apply_stat(caller, effect, acc['statChanges'])
+        _events.apply_traits(caller, effect, trait_uuids, acc['traitChanges'])
+        applied_effects.append({
+            "eventUuid": None,
+            "effectUuid": effect.get('uuid'),
+            "statistic": effect.get('statistics'),
+            "value": effect.get('value'),
+            "target": "ONLY_ONE",
+            "targetClass": None,
+            "characterUuids": [caller.get('uuid')],
+            "card": _resolve_card_from_raw(raw_cards, raw_texts, effect.get('idCard'), lang),
+        })
+
+    _apply_edge_states(match, caller, acc, None)
+    _inventory.log_item_usage(match, caller, item.get('id'),
+                              _nz(match.get('currentClock')), acc['statChanges'])
+    db_utils.put_item(caller)
+    db_utils.put_item(match)
+
+    changed = bool(acc['statChanges'] or acc['traitChanges']
+                   or acc['edgeState']['sadnessOverflowUuids']
+                   or acc['edgeState']['comaUuids'])
+
+    return _ok({
+        "matchUuid": match_uuid,
+        # An item owns no event: these two stay null, and the card is the item's own.
+        "eventUuid": None,
+        "eventType": None,
+        "status": "APPLIED",
+        "card": _resolve_card_from_raw(raw_cards, raw_texts, item.get('idCard'), lang),
+        "executedEventUuids": [],
+        "energySpent": 0,
+        "coinSpent": 0,
+        "newEnergy": _nz(caller.get('energy')),
+        "newCoin": _nz(caller.get('coin')),
+        "currentClock": _nz(match.get('currentClock')),
+        "turnConsumed": False,
+        "timeEnded": False,
+        "itemAdded": False,
+        "itemRemoved": True,
+        "weatherApplied": False,
+        "movementApplied": False,
+        "forcedSleep": acc['flags']['forcedSleep'] or acc['flags']['comaTriggered'],
+        "comaTriggered": acc['flags']['comaTriggered'],
+        "gameOver": False,
+        "refreshRecommended": changed,
+        "statChanges": acc['statChanges'],
+        "registryChanges": [],
+        "traitChanges": acc['traitChanges'],
+        "itemChanges": [],
+        "characteristicChanges": [],
+        "locationChanges": [],
+        "effects": applied_effects,
+        # An item owns no choices and cannot be the story's end-game event.
+        "pendingChoices": [],
+        "edgeState": {
+            "sadnessOverflowUuids": acc['edgeState']['sadnessOverflowUuids'],
+            "comaUuids": acc['edgeState']['comaUuids'],
+            "allPlayersInComa": False,
+            "comaEventUuid": None,
+            "comaEventCard": None,
+            "comaExecutedEventUuids": [],
+            "comaEffects": [],
         },
     })
 
@@ -3733,6 +4042,36 @@ def lambda_handler(event, context):
             segments = path.split('/')  # /api/matches/{uuidMatch}/start
             match_uuid = segments[3] if len(segments) > 4 else ''
         return _start_match(user, match_uuid)
+
+    # ── Steps 34 & 35 — inventory and resources ──
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory')
+            and method == 'GET'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _get_inventory(user, match_uuid, lang)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory/use-item')
+            and method == 'POST'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        lang = (event.get('queryStringParameters') or {}).get('lang') or 'en'
+        return _use_item(user, match_uuid, body, lang)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/inventory/drop-item')
+            and method == 'POST'):
+        match_uuid = _gameplay_match_uuid(event, path)
+        try:
+            body = json.loads(event.get('body') or '{}')
+        except (TypeError, ValueError):
+            return _err(400, 'INVALID_INPUT', 'Body must be valid JSON')
+        return _drop_item(user, match_uuid, body)
+
+    if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/resources')
+            and method == 'GET'):
+        return _get_resources(user, _gameplay_match_uuid(event, path))
 
     if (path.startswith(_API_GAMEPLAY_PATH) and path.endswith('/action/pass') and method == 'POST'):
         params = event.get('pathParameters') or {}

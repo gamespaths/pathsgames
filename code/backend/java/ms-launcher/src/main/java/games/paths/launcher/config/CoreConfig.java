@@ -293,6 +293,24 @@ public class CoreConfig {
         return eventExecutionService;
     }
 
+    // ───── Steps 34 & 35: Inventory and resources ─────
+
+    /**
+     * Depends on the concrete {@code EventExecutionService}, not on its port: item usage
+     * reuses the engine's package-private {@code applyStandaloneEffects} so that an item
+     * effect and an event effect cannot drift apart.
+     */
+    @Bean
+    public games.paths.core.port.match.InventoryPort inventoryPort(
+            games.paths.core.port.match.InventoryStorePort inventoryStorePort,
+            UserAccessPort userAccessPort,
+            ContentQueryPort contentQueryPort,
+            StoryReadPort storyReadPort,
+            games.paths.core.service.match.EventExecutionService eventExecutionService) {
+        return new games.paths.core.service.match.InventoryService(
+                inventoryStorePort, userAccessPort, contentQueryPort, storyReadPort, eventExecutionService);
+    }
+
     // ───── Step 21: Character template & class selection ─────
 
     @Bean
@@ -309,9 +327,10 @@ public class CoreConfig {
     public CharacterQueryPort characterQueryPort(MatchReadPort matchReadPort,
                                                  CharacterReadPort characterReadPort,
                                                  StoryReadPort storyReadPort,
-                                                 UserAccessPort userAccessPort) {
+                                                 UserAccessPort userAccessPort,
+                                                 ContentQueryPort contentQueryPort) {
         return new CharacterQueryService(matchReadPort, characterReadPort,
-                storyReadPort, userAccessPort);
+                storyReadPort, userAccessPort, contentQueryPort);
     }
 
     // ───── Step 28.7: Match logs API ─────

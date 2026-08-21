@@ -205,6 +205,7 @@ def test_various_saves(adapter):
         assert nb.id_card == 7
         assert nb.id_card_back == 9
     adapter.save_events(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
+    # v0.34.0 — the legacy nested shape still imports, mapped onto effect_code.
     adapter.save_items(story_id, [{"idTextName": 1, "effects": [{"effectType": "HP", "effectValue": 10}]}])
     adapter.save_classes(story_id, [{"idTextName": 1, "bonuses": [{"bonusType": "STR", "bonusValue": 10}]}])
     # Step 31 — the canonical TOP-LEVEL choice shape (keyed by idChoices), Java field names.
@@ -248,3 +249,43 @@ def test_various_saves(adapter):
     adapter.save_global_random_events(story_id, [{"idEvent": 1}])
     adapter.save_missions(story_id, [{"idTextName": 1, "steps": [{"conditionKey": "key"}]}])
     adapter.save_creators(story_id, [{"creatorName": "test"}])
+
+
+def test_save_items_imports_the_step34_gates(adapter):
+    """v0.34.0 — is_consumabile and the two class gates finally survive an import."""
+    from app.adapters.persistence.story.models import ItemEntity
+
+    story_id = adapter.save_story({"uuid": "test-item-gates"})
+    adapter.save_items(story_id, [{
+        "id": 900, "idTextName": 400, "weight": 3, "isConsumabile": 0,
+        "idClassPermitted": 8, "idClassProhibited": 0,
+    }])
+
+    with adapter.session_factory() as session:
+        it = session.query(ItemEntity).filter_by(id_story=story_id, id=900).one()
+    assert it.is_consumabile == 0
+    assert it.id_class_permitted == 8
+    # 0 means "no restriction" and is normalised to None, as the importer does elsewhere.
+    assert it.id_class_prohibited is None
+
+
+def test_save_item_effects_imports_the_canonical_top_level_array(adapter):
+    """v0.34.0 — same shape as Java and AWS: top-level itemEffects keyed by idItem."""
+    from app.adapters.persistence.story.models import ItemEffectEntity
+
+    story_id = adapter.save_story({"uuid": "test-item-effects"})
+    adapter.save_items(story_id, [{"id": 900, "idTextName": 400, "weight": 1}])
+    adapter.save_item_effects(story_id, [{
+        "id": 1, "idItem": 900, "effectCode": "SADNESS", "effectValue": -2,
+        "traitsToAdd": "90001,90002", "traitsToRemove": "90004", "idCard": 77,
+    }])
+
+    with adapter.session_factory() as session:
+        ef = session.query(ItemEffectEntity).filter_by(id_story=story_id, id=1).one()
+    assert ef.id_item == 900
+    assert ef.effect_code == "SADNESS"
+    assert ef.effect_value == -2
+    assert ef.traits_to_add == "90001,90002"
+    assert ef.traits_to_remove == "90004"
+    assert ef.id_card == 77
+    assert ef.uuid is not None

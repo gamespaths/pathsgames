@@ -84,9 +84,15 @@ def test_apply_item_add_creates_then_stacks():
     effect = {'idItemTarget': 5, 'itemAction': events.ADD}
     added, removed = events.apply_item(char, effect, {5: 'item-5'}, changes)
     assert (added, removed) == (True, False)
-    assert char['items'] == [{'idItem': 5, 'amount': 1}]
+    assert len(char['items']) == 1
+    assert char['items'][0]['idItem'] == 5
+    assert char['items'][0]['amount'] == 1
+    # Step 34 — the row gets its own uuid at creation.
+    first_uuid = char['items'][0]['uuid']
+    assert first_uuid
     events.apply_item(char, effect, {5: 'item-5'}, changes)
     assert char['items'][0]['amount'] == 2
+    assert char['items'][0]['uuid'] == first_uuid, "stacking must not re-issue the uuid"
 
 
 def test_apply_item_remove_decrements_then_drops_the_row():

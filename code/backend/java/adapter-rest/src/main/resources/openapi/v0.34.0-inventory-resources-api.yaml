@@ -1,0 +1,525 @@
+openapi: 3.0.3
+
+info:
+  title: Paths Games - Inventory and resources (Steps 34 & 35)
+  description: |
+    # Inventory and resources — what a character carries, and what it costs
+
+    Steps 34 and 35 ship **together**, because the carried-weight formula of step 35 is what
+    gives the inventory of step 34 its consequence. Most of the engine already existed and is
+    reused, not rebuilt: events and choices have added and removed items since step 29, and
+    have written `food`/`magic`/`coin` for just as long. What was missing was a way for the
+    **player** to act on the inventory, and a weight that actually blocks a move.
+
+    ## The four endpoints
+
+    | Method | Path | Answers |
+    |---|---|---|
+    | GET  | `/api/gameplay/{uuidMatch}/inventory` | the caller's items, carried weight and capacity |
+    | POST | `/api/gameplay/{uuidMatch}/inventory/use-item` | the **execute-event payload** |
+    | POST | `/api/gameplay/{uuidMatch}/inventory/drop-item` | what left the inventory |
+    | GET  | `/api/gameplay/{uuidMatch}/resources` | food, magic, coin, weight, capacity |
+
+    ## `itemInstanceUuid` is the ROW, not the item
+
+    Both request bodies name **`itemInstanceUuid`**: the uuid of the `gaming_inventory_items`
+    row, i.e. `items[].uuid` — **never** `items[].itemUuid`, which identifies the story
+    definition in `list_items`. Use-item removes the row, so the row is what the request has
+    to name, and a character may hold two rows of the same item in different states. This is
+    the single most likely integration mistake in this step.
+
+    ## use-item answers execute-event
+
+    `use-item` returns the **same body** `POST /action/execute-event` returns, so the frontend
+    reuses its event handler almost unchanged. The reason is not convenience: an item carrying
+    a `SADNESS` effect can trip the step-30 sadness overflow or coma, and the response has to
+    be able to say so. On an item usage:
+
+    - `eventUuid` and `eventType` are **null** — an item owns no event;
+    - `card` is the **item's own** card;
+    - `executedEventUuids` is empty, `energySpent` and `coinSpent` are `0`;
+    - `effects[]` carries one entry per `list_items_effects` row, each with its own card;
+    - `edgeState` is filled by the very same evaluator an event effect goes through;
+    - `pendingChoices` is always empty and `gameOver` is only ever set by the coma epilogue:
+      the `CHOICES_PENDING` and end-game branches do not apply to items.
+
+    ## Rules of use
+
+    - **Only consumables can be used.** `list_items.is_consumabile = 1`. A non-consumable item
+      is carried: it adds weight and can satisfy an item condition on an event or a choice,
+      but `use-item` refuses it with `ITEM_NOT_CONSUMABLE`.
+    - **Class restrictions are honoured**: `id_class_permitted` and `id_class_prohibited` are
+      checked against the character's class. A value of `0` or `null` means "no restriction".
+    - **Using consumes the whole row.** `amount` is not decremented — the row is deleted. Seed
+      items therefore carry `amount: 1`.
+    - **Dropping discards only.** `drop-item` applies **neither** the consumable gate **nor**
+      the class gate: a non-consumable item must be droppable, that is the point of carrying
+      one. Handing an item to another character is multiplayer (steps 71-76) and out of scope
+      — there is no recipient field and no transfer endpoint.
+    - **Using costs nothing.** `number_max_free_action` stays unenforced across the project:
+      using an item costs neither the turn nor a free-action slot.
+    - Every successful usage appends a row to `log_item_usage`, with the applied effects.
+
+    ## Effect codes
+
+    `list_items_effects.effect_code` is **case-insensitive** and speaks the same vocabulary as
+    `list_events_effects.statistics`: `life`, `energy`, `exp`, `sad`, `dex`, `int`, `cos`,
+    `food`, `magic`, `coin`. The one documented alias is **`SADNESS` → `sad`**. An unknown
+    code is authored noise: the engine skips that part of the effect rather than failing the
+    whole usage.
+
+    `V0.34.0` adds `traits_to_add` and `traits_to_remove` to `list_items_effects` — the same
+    column names and the same CSV-of-ids format `list_events_effects` already uses. No third
+    format was invented.
+
+    ## Item cards
+
+    Every item in every response carries **both** `idCard` and the resolved `card` object,
+    localised through `?lang=`. The id alone is not enough: react-game never resolves a card
+    by id, it consumes the embedded object. The project convention is `idCard`; there is no
+    `cardUuid` anywhere.
+
+    ## items[] on the match info endpoint
+
+    `GET /api/match/{uuid}/info` keeps the `items` key on **every** player, but populates it
+    **only for the character of the calling user** — an empty array for the others. No leak of
+    another player's inventory, and the DTO shape is unchanged. `weight` is deliberately NOT
+    masked: a scalar total says a rival is heavy, the array says what they carry.
+
+    The admin view (`GET /api/admin/match/{uuid}`) is exempt: it has no requester at all, so
+    masking there would blank every player's items in the console.
+
+    Step 35 also promotes `food`, `magic` and `coin` onto the shared character stats block, so
+    `players[]` on `/info` finally reports them. The backpack row is already loaded, so this
+    costs no extra query.
+
+    ## Carried weight and movement (Step 35)
+
+    - Capacity is `weight_max`, computed **once at character creation**:
+      `class.weight_max + difficulty.weight + Σ traits.weight + Σ class-bonus.weight`.
+    - Carried weight is `Σ (item.weight × amount)`. A null weight counts as `0`, a null amount
+      as `1`, and an item the story no longer defines weighs nothing.
+    - **Food, magic and coins weigh nothing.** Only items do.
+    - Movement now receives the real carried weight, which switches on the `OVERWEIGHT`
+      refusal `MovementAvailabilityChecker` has always implemented and
+      `POST /movements/start` has always mapped to `409`. No new validation logic was added.
+    - `list_stories_difficulty.max_weight` is a live field of the difficulty pipeline, but it
+      is **not** the column the capacity formula uses — that is the separate `weight` column
+      added in `V0.19.7`. The seed parameter `DefaultInventoryCapacity` is genuinely dead and
+      is deliberately left in place.
+
+    See `documentation_v0/Roadmap.md`, steps 34 and 35.
+  version: 0.34.0
+
+servers:
+  - url: http://localhost:8042
+    description: Dev (public connector)
+
+tags:
+  - name: Inventory
+    description: The items the calling character carries (Step 34)
+  - name: Resources
+    description: Food, magic, coin and carried weight (Step 35)
+
+paths:
+
+  /api/gameplay/{uuidMatch}/inventory:
+    get:
+      tags: [Inventory]
+      summary: The calling character's inventory
+      description: |
+        Readable in any match status — only the two actions require `RUNNING`.
+        The `items[]` are produced by the same mapper the match `/info` endpoint uses, so the
+        two payloads carry identical item objects.
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: The inventory of the calling character
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/gameplay/{uuidMatch}/inventory/use-item:
+    post:
+      tags: [Inventory]
+      summary: Consume one item
+      description: |
+        Applies every `list_items_effects` row of the item to the calling character, deletes
+        the inventory row and appends a `log_item_usage` entry. Answers with the
+        **execute-event payload** — see the API description above for what an item usage puts
+        in it.
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+        - $ref: '#/components/parameters/Lang'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemInstanceRequest'
+      responses:
+        '200':
+          description: The effects that were applied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteEventResponse'
+        '400':
+          $ref: '#/components/responses/MissingItem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/inventory/drop-item:
+    post:
+      tags: [Inventory]
+      summary: Discard one item
+      description: |
+        Deletes the inventory row without applying anything and without writing a usage log.
+        `amountDropped` is the whole row: dropping discards, it does not decrement.
+        Neither the consumable gate nor the class gate applies here.
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemInstanceRequest'
+      responses:
+        '200':
+          description: What left the inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DropItemResponse'
+        '400':
+          $ref: '#/components/responses/MissingItem'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/gameplay/{uuidMatch}/resources:
+    get:
+      tags: [Resources]
+      summary: Food, magic, coin and carried weight
+      description: |
+        Plain numbers, deliberately with **no card**: resources are not story entities and
+        have no `id_card`. There is no `?lang=` for the same reason.
+      parameters:
+        - $ref: '#/components/parameters/UuidMatch'
+      responses:
+        '200':
+          description: The resources of the calling character
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  parameters:
+    UuidMatch:
+      name: uuidMatch
+      in: path
+      required: true
+      description: The match uuid.
+      schema:
+        type: string
+        format: uuid
+    Lang:
+      name: lang
+      in: query
+      required: false
+      description: Language code for the resolved texts and cards. Defaults to `en`.
+      schema:
+        type: string
+        example: it
+
+  schemas:
+
+    ItemInstanceRequest:
+      type: object
+      required: [itemInstanceUuid]
+      properties:
+        itemInstanceUuid:
+          type: string
+          format: uuid
+          description: |
+            The uuid of the INVENTORY ROW — `items[].uuid`. **Not** `items[].itemUuid`, which
+            identifies the story item. See the API description.
+          example: 9f1c2d3e-4a5b-6c7d-8e9f-0a1b2c3d4e5f
+
+    ItemInstance:
+      type: object
+      description: One row of `gaming_inventory_items`, joined with its `list_items` definition.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: The inventory row — this is what use-item and drop-item name.
+        itemUuid:
+          type: string
+          format: uuid
+          description: The story item in `list_items`.
+        name:
+          type: string
+          nullable: true
+          description: The localised item name; null when the story authors no text for it.
+        weight:
+          type: integer
+          description: Unit weight. An item the story no longer defines reports 0.
+        amount:
+          type: integer
+          description: How many units the row holds. Null counts as one.
+        state:
+          type: string
+          example: ACTIVE
+        idCard:
+          type: integer
+          nullable: true
+        card:
+          allOf:
+            - $ref: '#/components/schemas/Card'
+          nullable: true
+          description: The resolved item card. Null when the item authors none.
+        isConsumabile:
+          type: boolean
+          description: False means the item is carried only; use-item refuses it.
+
+    InventoryResponse:
+      type: object
+      properties:
+        matchUuid:
+          type: string
+          format: uuid
+        characterUuid:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemInstance'
+        weight:
+          type: integer
+          description: Σ (item.weight × amount).
+        weightMax:
+          type: integer
+          description: Capacity, fixed at character creation.
+
+    DropItemResponse:
+      type: object
+      properties:
+        matchUuid:
+          type: string
+          format: uuid
+        characterUuid:
+          type: string
+          format: uuid
+        itemInstanceUuid:
+          type: string
+          format: uuid
+        itemUuid:
+          type: string
+          format: uuid
+          nullable: true
+        amountDropped:
+          type: integer
+          description: The whole row. Dropping discards, it does not decrement.
+        weight:
+          type: integer
+          description: The carried weight AFTER the drop.
+        weightMax:
+          type: integer
+        refreshRecommended:
+          type: boolean
+          description: Always true — the inventory and the carried weight both changed.
+
+    ResourcesResponse:
+      type: object
+      properties:
+        matchUuid:
+          type: string
+          format: uuid
+        characterUuid:
+          type: string
+          format: uuid
+        food:
+          type: integer
+        magic:
+          type: integer
+        coin:
+          type: integer
+          description: Singular, as everywhere in the API. react-game maps it to `coins`.
+        weight:
+          type: integer
+        weightMax:
+          type: integer
+
+    ExecuteEventResponse:
+      type: object
+      description: |
+        The step-29 execute-event payload, reused verbatim. Only the fields an item usage
+        fills differently are documented here; the full schema is in
+        `v0.29.0-events-api.yaml`.
+      properties:
+        matchUuid:
+          type: string
+          format: uuid
+        eventUuid:
+          type: string
+          nullable: true
+          description: Always null on an item usage — an item owns no event.
+        eventType:
+          type: string
+          nullable: true
+          description: Always null on an item usage.
+        status:
+          type: string
+          enum: [APPLIED]
+          description: Never CHOICES_PENDING here — an item owns no choices.
+        card:
+          allOf:
+            - $ref: '#/components/schemas/Card'
+          nullable: true
+          description: The item's own card.
+        statChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatChange'
+        traitChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraitChange'
+        effects:
+          type: array
+          description: One entry per `list_items_effects` row, each with its own card.
+          items:
+            type: object
+        edgeState:
+          type: object
+          description: |
+            Step 30. Filled by the same evaluator an event effect goes through, so a SADNESS
+            item can push its user into overflow or coma.
+        refreshRecommended:
+          type: boolean
+
+    StatChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        statistic:
+          type: string
+          example: life
+        before:
+          type: integer
+        after:
+          type: integer
+        delta:
+          type: integer
+
+    TraitChange:
+      type: object
+      properties:
+        characterUuid:
+          type: string
+        traitUuid:
+          type: string
+        action:
+          type: string
+          enum: [ADD, REMOVE]
+
+    Card:
+      type: object
+      description: A resolved story card. Full schema in `v0.16.0-content-detail-api.yaml`.
+      properties:
+        uuid:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        urlImage:
+          type: string
+          nullable: true
+        awesomeIcon:
+          type: string
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+
+  responses:
+
+    Unauthenticated:
+      description: No user identity on the request (`UNAUTHENTICATED`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    MissingItem:
+      description: The body carries no `itemInstanceUuid` (`MISSING_ITEM`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: |
+        A missing entity.
+
+        | Code | Meaning |
+        |---|---|
+        | `MATCH_NOT_FOUND` | unknown match, unknown user, or the caller owns no character in it |
+        | `ITEM_NOT_FOUND` | unknown row uuid — **or** a row belonging to another character |
+
+        The second case is deliberate: the lookup only ever searches the caller's own rows, so
+        another player's item is indistinguishable from one that does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: |
+        A state the player can act on and retry.
+
+        | Code | Meaning |
+        |---|---|
+        | `MATCH_NOT_RUNNING` | the match is not `RUNNING` |
+        | `COMA` | the character is in a coma |
+        | `SLEEPING` | the character is asleep |
+        | `ITEM_NOT_CONSUMABLE` | `is_consumabile != 1` — use-item only |
+        | `ITEM_CLASS_NOT_PERMITTED` | `id_class_permitted` names another class |
+        | `ITEM_CLASS_PROHIBITED` | `id_class_prohibited` names the character's class |
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

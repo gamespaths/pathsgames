@@ -75,7 +75,7 @@ These tables are populated by a story importer and are **read-only** during game
 | **Location** | `list_locations` | A place on the game board: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `id_text_narrative`, `id_image`, `is_safe`, `cost_energy_enter`, `counter_time`, `id_event_if_counter_zero`, `secure_param`, `id_event_if_character_start_time`, `id_event_if_character_enter_empty_location`, `id_event_if_first_time`, `id_event_not_first_time`, `priority_automatic_event`, `id_audio`, `max_characters`. |
 | **LocationNeighbor** | `list_locations_neighbors` | Directed edge between two locations: `id_story`, `id_location_from`, `id_location_to`, `direction` (NORTH/SOUTH/EAST/WEST/ABOVE/BELOW/SKY), `flag_back`, `condition_registry_key`, `condition_registry_value`, `energy_cost`, `id_text_go`, `id_text_back`. |
 | **Item** | `list_items` | Item catalog: `id_card`, `id_story`, `id_text_name`, `id_text_description`, `weight`, `is_consumabile`, `id_class_permitted`, `id_class_prohibited`. |
-| **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (e.g., LIFE), `effect_value` (e.g., 2). |
+| **ItemEffect** | `list_items_effects` | Effects applied when an item is used: `id_story`, `id_item`, `id_text_name`, `id_text_description`, `effect_code` (life/energy/exp/sad/dex/int/cos/food/magic/coin, case-insensitive; `SADNESS` is an alias for `sad`), `effect_value` (e.g., 2). **New in v0.34.0**: `traits_to_add`, `traits_to_remove` (CSV of `list_traits` ids, same format as `list_events_effects`) — see [Step34_InventoryAndResources.md](./Step34_InventoryAndResources.md). |
 | **WeatherRule** | `list_weather_rules` | Weather types with `id_card`, `id_story`, `id_text_name`, `id_text_description`, `probability`, `cost_move_safe_location`, `cost_move_not_safe_location`, `condition_key`, `condition_key_value`, `time_from`, `time_to`, `id_text`, `active`, `priority`, `delta_energy`, `id_event`. |
 | **Event** | `list_events` | *(v0.29.0 — the CONDITION side of an event; everything it DOES lives on `list_events_effects`.)* `id_card`, `id_story`, `id_text_name`, `id_text_description`, `type` (AUTOMATIC/FIRST/NORMAL/**ONCE**), `cost_enery`, `coin_cost`, `flag_end_time`, `id_event_next`, plus the conditions — all combined in **AND** — `id_specific_location`, `id_weather` (**condition**: the current weather must match), `registry_key_condition`, `registry_value_condition`, `id_item_condition`, `id_class_condition`. `id_item_to_add` is **deprecated** (kept only for a FK clause; grant items via effects). The four columns `characteristic_to_add`, `characteristic_to_remove`, `key_to_add`, `key_value_to_add` were **dropped** and moved to `list_events_effects`. |
 | **EventEffect** | `list_events_effects` | *(v0.29.0 — the EFFECT side; each row's `id_card` is the **narrative** the board renders.)* `id_card`, `id_story`, `id_event`, `statistics` (life/energy/sad/exp/dex/int/cos/food/magic/coin), `value`, `target` (ALL/ONLY_ONE), `target_class`, `traits_to_add`, `traits_to_remove`, `id_item_target`, `item_action` (REMOVE/ADD), and new in v0.29.0: `id_weather` (**effect**: *sets* the match weather — the opposite meaning of the identically-named column on `list_events`), `key_to_add`, `key_value_to_add`, `characteristic_to_add`, `characteristic_to_remove`. **New in v0.29.3**: `id_location` (nullable) — when valued, every recipient of that row (per `target`/`target_class`, INV-27) is MOVED to that location, bypassing the entire Step 28 movement procedure (no adjacency, no energy cost, no availability check); each actual move writes a cost-0 `log_movements` row. See [Step29_NormalEvents.md §1](./Step29_NormalEvents.md) and [Step28_MovementSystem.md](./Step28_MovementSystem.md). |
@@ -870,7 +870,7 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     > Read all documentation_v0 content and create Step09 — Design the core data model: Identify main entities, Define relationships between entities, Identify persistent vs transient data, List valid game states, Define rules that must never be broken, Validate models with real cases  
     
     > Reload Step01 file and update the document with new tables
-- **Document Version**: 0.19.3
+- **Document Version**: 0.34.0
     | Version | Description | Date |
     | --- | --- | --- |
     | 0.9.0 | first version of document | March 9, 2026 |
@@ -882,7 +882,8 @@ Total tables: **52** (2 system + 2 user + 23 reference + 25 runtime/log)
     | 0.19.6 | Added seven stat-delta columns (`life`, `energy`, ...) to `list_traits`| May 19, 2026 |
     | 0.19.7 | Added seven stat columns (`life`, `energy`,...) to `list_stories_difficulty` | May 19, 2026 |
     | 0.29.0 | Normal events (player-triggered actions) | July 13, 2026 |
-- **Last Updated**: July 13, 2026
+    | 0.34.0 | Inventory and resources, implemented. | August 20, 2026 |
+- **Last Updated**: August 20, 2026
 - **Status**: Complete ✅
 
 

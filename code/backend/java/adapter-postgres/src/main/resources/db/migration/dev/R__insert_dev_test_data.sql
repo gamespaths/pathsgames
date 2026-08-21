@@ -237,15 +237,25 @@ INSERT INTO list_locations_neighbors (id, id_story, id_location_from, id_locatio
 UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id_story = 9001;
 
 -- ── Story 1 Items ───────────────────────────────────────────────
-INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90001, 9001, 400, 400, 1);
-INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90002, 9001, 401, 401, 2);
-INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90003, 9001, 402, 402, 1);
-INSERT INTO list_items (id, id_story, id_text_name, id_text_description, weight) VALUES (90004, 9001, 403, 403, 1);
+-- v0.34.0: every item carries a card (the board renders the object, never an id), and the
+-- two class columns are finally exercised — 90005 can be used only by class 90002.
+-- is_consumabile is spelled out: it used to be left to the column default, so EVERY item
+-- read as consumable and the carried-only rule had nothing to bite on.
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90001, 9001, 90001, 400, 400, 1, 1, NULL,  NULL);   -- Training Potion: consumable, LIFE +3
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90002, 9001, 90001, 401, 401, 2, 0, NULL,  NULL);   -- Practice Sword: CARRIED ONLY, gates event 90015
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90003, 9001, 90001, 402, 402, 1, 1, NULL,  NULL);   -- Guide Scroll: consumable, EXP +5, gates 90050
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90004, 9001, 90001, 403, 403, 1, 1, NULL,  NULL);   -- Energy Snack: consumable, ENERGY +3
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90005, 9001, 90001, 404, 404, 1, 1, 90002, NULL);   -- Scholar's Tonic: only class 90002 may use it
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES (90006, 9001, 90001, 405, 405, 9, 1, NULL,  NULL);   -- Lead Ingot: heavy enough to overload a mover
 
 -- ── Story 1 Item Effects ────────────────────────────────────────
-INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90001, 9001, 90001, 'LIFE', 3);
-INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90002, 9001, 90003, 'EXP', 5);
-INSERT INTO list_items_effects (id, id_story, id_item, effect_code, effect_value) VALUES (90003, 9001, 90004, 'ENERGY', 3);
+-- v0.34.0 adds traits_to_add / traits_to_remove: same CSV-of-ids format as the event
+-- effects. SADNESS is the documented alias of the `sad` statistic.
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90001, 9001, 90001, 90001, 'LIFE', 3, NULL, NULL);
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90002, 9001, 90001, 90003, 'EXP', 5, '90001', NULL);
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90003, 9001, 90001, 90004, 'ENERGY', 3, NULL, NULL);
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90004, 9001, 90001, 90005, 'SADNESS', 1, NULL, NULL);
+INSERT INTO list_items_effects (id, id_story, id_card, id_item, effect_code, effect_value, traits_to_add, traits_to_remove) VALUES (90005, 9001, 90001, 90006, 'LIFE', 1, NULL, NULL);
 
 -- ── Story 1 Weather Rules ───────────────────────────────────────
 INSERT INTO list_weather_rules (id, id_story, id_card, id_text_name, probability, active) VALUES (90001, 9001, 90010, 800, 50, 1);
@@ -313,6 +323,16 @@ INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, va
 -- 90028 teleporter (v0.29.3): moves the actor to the Weather Observatory (90006), which is NOT
 -- a neighbor of the start location — no checks, no movement cost, only the event's energy cost.
 INSERT INTO list_events_effects (id, id_story, id_event, id_card, value, target, id_location) VALUES (90023, 9001, 90028, 90001, 0, 'ONLY_ONE', 90006);
+
+-- v0.34.0 inventory pair: 90050 is gated by item 90003, which 90051 grants. Because 90003
+-- is CONSUMABLE, using it must close 90050 again — the step-34 acceptance test. 90052 hands
+-- over the Lead Ingot, whose weight is what makes the step-35 OVERWEIGHT refusal reachable.
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90050, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, 90003, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90051, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events (id, id_story, id_card, id_text_name, id_text_description, id_specific_location, type, cost_enery, coin_cost, flag_end_time, id_event_next, id_weather, registry_key_condition, registry_value_condition, id_item_condition, id_class_condition) VALUES (90052, 9001, 90001, 503, 503, 90001, 'NORMAL', 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, id_item_target, item_action) VALUES (90050, 9001, 90051, 90001, NULL, 0, 'ONLY_ONE', 90003, 'ADD');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, id_item_target, item_action) VALUES (90051, 9001, 90051, 90001, NULL, 0, 'ONLY_ONE', 90005, 'ADD');
+INSERT INTO list_events_effects (id, id_story, id_event, id_card, statistics, value, target, id_item_target, item_action) VALUES (90052, 9001, 90052, 90001, NULL, 0, 'ONLY_ONE', 90006, 'ADD');
 
 -- ── Step 33 Events — the ones nobody asks for ───────────────────
 -- Named BY the location through list_locations.id_event_*, so id_specific_location stays

@@ -883,7 +883,9 @@ def import_story(event):
         # v0.29.0 — effects need a uuid: the execute-event response addresses each applied
         # effect by it, and its own idCard is the narrative card the board renders.
         'eventEffects':           _assign_uuids(_assign_ids(data.get('eventEffects', []), 'id')),
-        'itemEffects':            _assign_ids(data.get('itemEffects', []), 'id'),
+        # v0.34.0 — same reason as the event effects above: the use-item response
+        # addresses each applied effect by uuid.
+        'itemEffects':            _assign_uuids(_assign_ids(data.get('itemEffects', []), 'id')),
         'choiceConditions':       _assign_ids(data.get('choiceConditions', []), 'id'),
         'choiceEffects':          _assign_ids(data.get('choiceEffects', []), 'id'),
         'classBonuses':           _assign_ids(data.get('classBonuses', []), 'id'),

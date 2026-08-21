@@ -11,6 +11,8 @@ Storage note: on this backend a story is a single DynamoDB item, with ``events``
 carries ``registry`` / ``eventLog`` / ``currentWeatherId``.
 """
 
+import uuid as _uuid
+
 # Only these two types are player-executable; AUTOMATIC and FIRST are engine-driven, and
 # authored stories also use END / END_GAME for the end-game event (identified by
 # story.idEventEndGame, not by its type). Anything unknown is simply not executable.
@@ -279,7 +281,10 @@ def apply_item(char, effect, item_uuids, changes):
         if row:
             row["amount"] = _nz(row.get("amount")) + 1
         else:
-            items.append({"idItem": item_id, "amount": 1})
+            # Step 34 — the row needs its own uuid: use-item and drop-item name the ROW,
+            # not the story item, and a character can hold two rows of the same item.
+            items.append({"uuid": str(_uuid.uuid4()), "idItem": item_id, "amount": 1,
+                          "state": "ACTIVE"})
         changes.append({"characterUuid": char.get("uuid"),
                         "itemUuid": item_uuids.get(item_id), "action": ADD})
         return True, False

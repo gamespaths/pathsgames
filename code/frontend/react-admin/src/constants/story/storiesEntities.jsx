@@ -153,6 +153,9 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idItem', label: 'Item ID', type: 'number' },
       { key: 'effectCode', label: 'Effect Code', type: 'text' },
       { key: 'effectValue', label: 'Effect Value', type: 'number' },
+      // v0.34.0 — same CSV-of-ids format as the event effects above.
+      { key: 'traitsToAdd', label: 'Traits to Add (csv of ids)', type: 'text' },
+      { key: 'traitsToRemove', label: 'Traits to Remove (csv of ids)', type: 'text' },
     ],
     'character-templates': [
       { key: 'idCard', label: 'Card ID', type: 'number' },
@@ -390,6 +393,8 @@ export const STORIES_ENTITIES_COLUMNS = {
       { key: 'idItem', label: 'Item ID' },
       { key: 'effectCode', label: 'Effect Code' },
       { key: 'effectValue', label: 'Value' },
+      { key: 'traitsToAdd', label: 'Traits +' },
+      { key: 'traitsToRemove', label: 'Traits -' },
     ],
     'character-templates': [
       { key: 'idTextName', label: 'Name', type: 'idTextName' },

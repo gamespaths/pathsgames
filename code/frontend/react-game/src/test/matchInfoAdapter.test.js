@@ -20,8 +20,19 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.life).toBe(100)
     expect(gd.playerStats.energy).toBe(80)
     expect(gd.playerStats.sadness).toBe(20)
-    // fields not projected by /info default to 0
+    // Step 35 — the backpack resources are projected by /info now. Mind the naming:
+    // the backend field is `coin` (singular), the stat key is `coins` (plural).
+    expect(gd.playerStats.food).toBe(4)
+    expect(gd.playerStats.magic).toBe(2)
+    expect(gd.playerStats.coins).toBe(9)
+    // Still not projected: experience lands with step 38.
+    expect(gd.playerStats.experience).toBe(0)
+  })
+
+  it('defaults the resources to 0 when /info does not project them', () => {
+    const gd = matchInfoToGameData({ players: [{ life: 1 }], locations: [] })
     expect(gd.playerStats.food).toBe(0)
+    expect(gd.playerStats.magic).toBe(0)
     expect(gd.playerStats.coins).toBe(0)
   })
 
@@ -34,6 +45,10 @@ describe('matchInfoToGameData', () => {
     expect(gd.playerStats.weight).toBe(4)
     expect(gd.playerStats.items).toHaveLength(1)
     expect(gd.playerStats.items[0]).toMatchObject({ itemUuid: 'item-1', amount: 2 })
+    // Step 34 — the item card rides on the row: ItemCard consumes the object, never the id.
+    expect(gd.playerStats.items[0].idCard).toBe(77)
+    expect(gd.playerStats.items[0].card).toMatchObject({ uuid: 'card-77' })
+    expect(gd.playerStats.items[0].isConsumabile).toBe(true)
   })
 
   it('defaults max stats and items to empty when no player', () => {

@@ -13,7 +13,7 @@ const GAUGE_KEYS = [
 const PLAIN_KEYS = ['experience', 'food', 'magic', 'coins' , 'dexterity', 'intelligence', 'constitution']
 
 export default function PlayerStats({ stats , className 
-    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true}) {
+    , plainFlag=false , showZeros=true , specificKeys=null , showLabel=true , showItems=true}) {
 
   const { t } = useTranslation()
 
@@ -35,7 +35,9 @@ export default function PlayerStats({ stats , className
     value: stats?.[key] ?? 0,
   }))
 
-  const items = Array.isArray(stats?.items) ? stats.items : []
+  // Step 34 — the backpack has a page of its own now, so the compact card that only has
+  // room for the gauges opts out with showItems={false} instead of listing them twice.
+  const items = showItems && Array.isArray(stats?.items) ? stats.items : []
 
   let clockStat=[]
   if (plainFlag && stats.clock!=null){ 

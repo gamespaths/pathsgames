@@ -43,6 +43,12 @@ class StoryPersistencePort(ABC):
     @abstractmethod
     def save_items(self, story_id: int, items: List[Dict[str, Any]]) -> None:
         pass
+
+    @abstractmethod
+    def save_item_effects(self, story_id: int, items: List[Dict[str, Any]]) -> None:
+        """v0.34.0 — the canonical top-level `itemEffects` array, keyed by idItem."""
+        pass
+
         
     @abstractmethod
     def save_classes(self, story_id: int, classes: List[Dict[str, Any]]) -> None:

@@ -356,6 +356,40 @@
         "CLASS_CONDITION_NOT_MET": "Your class cannot take this action."
       }
     },
+    "item": {
+      "use": "Use",
+      "drop": "Drop",
+      "amount": "Amount",
+      "weight": "Weight",
+      "carriedOnly": "Carried",
+      "blocked": "Locked",
+      "blockedFull": "This item cannot be used right now.",
+      "reason": {
+        "ITEM_NOT_CONSUMABLE": "Carried",
+        "ITEM_CLASS_NOT_PERMITTED": "Class",
+        "ITEM_CLASS_PROHIBITED": "Class",
+        "SLEEPING": "Sleeping",
+        "COMA": "Coma",
+        "MATCH_NOT_RUNNING": "Paused"
+      },
+      "reasonFull": {
+        "ITEM_NOT_CONSUMABLE": "This item cannot be used.",
+        "ITEM_CLASS_NOT_PERMITTED": "Your class cannot use this item.",
+        "ITEM_CLASS_PROHIBITED": "Your class is forbidden this item.",
+        "SLEEPING": "You are asleep and cannot use anything.",
+        "COMA": "You are in a coma: you cannot use anything.",
+        "MATCH_NOT_RUNNING": "The match is not running."
+      }
+    },
+    "items": {
+      "title": "Backpack",
+      "description": "Organizing your gear will allow you to travel with readiness and order. On this book page you can see all your items and use them.",
+      "open": "Backpack",
+      "empty": "You are carrying nothing.",
+      "back": "Back",
+      "count": "carried",
+      "capacity": "Capacity"
+    },
     "map": {
       "title": "Map",
       "here": "Selected",

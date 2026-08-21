@@ -13,6 +13,7 @@ from sqlalchemy import func
 
 from app.adapters.persistence.match.models import (
     GamingCharacterInstanceEntity,
+    GamingInventoryItemsEntity,
     GamingMatchEntity,
     GamingStateRegistryEntity,
     LogMovementEntity,
@@ -23,6 +24,7 @@ from app.adapters.persistence.match.turn_cycle_store_adapter import (
     _now_iso,
 )
 from app.adapters.persistence.story.models import (
+    ItemEntity,
     LocationEntity,
     LocationNeighborEntity,
     WeatherRuleEntity,
@@ -56,7 +58,7 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
                  .first())
             if c is None:
                 return None
-            return self._character_dict(c)
+            return self._character_dict(c, self._carried_weight_by_character(id_match).get(c.id, 0))
 
     def find_characters_for_movement(self, id_match: int) -> List[Dict[str, Any]]:
         with self.session_factory() as session:
@@ -185,16 +187,42 @@ class MovementStoreAdapter(TurnCycleStoreAdapter, MovementStorePort):
 
     # ── mappers ───────────────────────────────────────────────────────────────
 
+    def _carried_weight_by_character(self, id_match: int) -> Dict[int, int]:
+        """Step 35 — carried weight per character, in a constant number of queries.
+
+        The formula is the one the match /info endpoint reports: Sigma (weight x amount),
+        an unknown item weighing 0, a null weight 0 and a null amount 1. The two MUST
+        agree, or /info would show a weight the movement gate does not act on.
+        """
+        with self.session_factory() as session:
+            m = (session.query(GamingMatchEntity)
+                 .filter(GamingMatchEntity.id == id_match).first())
+            if m is None or m.id_story is None:
+                return {}
+            unit_weight = {
+                i.id: (i.weight or 0)
+                for i in session.query(ItemEntity).filter(ItemEntity.id_story == m.id_story).all()
+            }
+            out: Dict[int, int] = {}
+            rows = (session.query(GamingInventoryItemsEntity)
+                    .filter(GamingInventoryItemsEntity.id_match == id_match).all())
+            for r in rows:
+                w = unit_weight.get(r.id_item, 0) if r.id_item is not None else 0
+                a = r.amount if r.amount is not None else 1
+                out[r.id_character_match] = out.get(r.id_character_match, 0) + w * a
+            return out
+
     @staticmethod
-    def _character_dict(c: GamingCharacterInstanceEntity) -> Dict[str, Any]:
+    def _character_dict(c: GamingCharacterInstanceEntity,
+                        carried_weight: int = 0) -> Dict[str, Any]:
         return {
             "id": c.id,
             "uuid": c.uuid,
             "id_location": c.id_location,
             "energy": c.energy or 0,
             "energy_max": c.energy_max or 0,
-            # Step 34 owns the weight formula; carried weight is 0 until inventory exists.
-            "carried_weight": 0,
+            # Step 35 — the real Sigma (item.weight x amount).
+            "carried_weight": carried_weight,
             "weight_max": c.weight_max or 0,
             "is_sleeping": bool(c.is_sleeping),
             "is_coma": bool(c.is_coma),

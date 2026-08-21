@@ -80,6 +80,7 @@ def test_find_character_by_match_and_user(session_factory, adapter):
     assert c["id_location"] == 100
     assert c["energy"] == 6
     assert c["energy_max"] == 12
+    # Step 35 — an empty inventory still weighs nothing, but now because it is empty.
     assert c["carried_weight"] == 0
     assert c["weight_max"] == 20
     assert c["is_sleeping"] is True
@@ -227,3 +228,33 @@ def test_find_visited_location_ids_dedupes_and_keeps_order(session_factory, adap
 
     assert adapter.find_visited_location_ids(1) == [200, 100, 300]
     assert adapter.find_visited_location_ids(2) == []
+
+
+def test_carried_weight_is_the_real_sum(session_factory, adapter):
+    """Step 35 — Sigma (item.weight x amount), the formula /info reports."""
+    from app.adapters.persistence.match.models import GamingInventoryItemsEntity
+    from app.adapters.persistence.story.models import ItemEntity
+
+    _seed_match(session_factory)
+    _seed_character(session_factory)
+    with session_factory() as s:
+        s.add(ItemEntity(id=900, id_story=9001, uuid="i-900", weight=3))
+        s.add(ItemEntity(id=901, id_story=9001, uuid="i-901", weight=5))
+        s.add(GamingInventoryItemsEntity(
+            id=1, id_match=1, uuid="r1", id_character_match=3, id_item=900, amount=2,
+            ts_insert="2024-01-01T00:00:00", ts_update="2024-01-01T00:00:00"))
+        s.add(GamingInventoryItemsEntity(
+            id=2, id_match=1, uuid="r2", id_character_match=3, id_item=901, amount=None,
+            ts_insert="2024-01-01T00:00:00", ts_update="2024-01-01T00:00:00"))
+        # An item the story does not define weighs nothing.
+        s.add(GamingInventoryItemsEntity(
+            id=3, id_match=1, uuid="r3", id_character_match=3, id_item=999, amount=4,
+            ts_insert="2024-01-01T00:00:00", ts_update="2024-01-01T00:00:00"))
+        # Another character's rows must not leak in.
+        s.add(GamingInventoryItemsEntity(
+            id=4, id_match=1, uuid="r4", id_character_match=4, id_item=901, amount=9,
+            ts_insert="2024-01-01T00:00:00", ts_update="2024-01-01T00:00:00"))
+        s.commit()
+
+    # 3 x 2 = 6, plus 5 x 1 (a null amount counts as one) = 11.
+    assert adapter.find_character_by_match_and_user(1, 7)["carried_weight"] == 11

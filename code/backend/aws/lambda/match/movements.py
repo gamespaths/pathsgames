@@ -12,6 +12,8 @@ are short on energy). ``MATCH_NOT_FOUND`` and ``NOT_A_NEIGHBOR`` are not decided
 are about *finding* the match/edge, not about judging one the caller already holds.
 """
 
+from match import inventory as _inventory
+
 
 def _nz(v):
     try:
@@ -20,11 +22,12 @@ def _nz(v):
         return 0
 
 
-def move_check_context(match, caller):
+def move_check_context(match, caller, story=None):
     """The mover's edge-independent state — loaded once, then reused for every neighbor.
 
     ``caller`` is None when the user owns no character in the match, in which case no move is
-    ever possible.
+    ever possible. ``story`` carries the item weights (step 35); without it the carried
+    weight is 0 and the OVERWEIGHT gate cannot fire.
     """
     if not caller:
         return {"hasCharacter": False}
@@ -34,8 +37,8 @@ def move_check_context(match, caller):
         "coma": _nz(caller.get("isComa")) == 1,
         "sleeping": _nz(caller.get("isSleeping")) == 1,
         "energy": _nz(caller.get("energy")),
-        # Step 34 owns the full weight formula; carried weight is 0 until inventory exists.
-        "carriedWeight": 0,
+        # Step 35 — the real Sigma (item.weight x amount), the same formula /info reports.
+        "carriedWeight": _inventory.carried_weight(caller, story or {}),
         "weightMax": _nz(caller.get("weightMax")),
     }
 

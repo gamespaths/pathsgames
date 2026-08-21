@@ -908,6 +908,8 @@ public class StoryCrudService implements StoryCrudPort {
             m.put("idItem", ie.getIdItem());
             m.put("effectCode", ie.getEffectCode());
             m.put("effectValue", ie.getEffectValue());
+            m.put("traitsToAdd", ie.getTraitsToAdd());
+            m.put("traitsToRemove", ie.getTraitsToRemove());
         } else if (e instanceof ItemEntity) {
             ItemEntity i = (ItemEntity) e;
             m.put("weight", i.getWeight());
@@ -1517,6 +1519,10 @@ public class StoryCrudService implements StoryCrudPort {
             e.setEffectCode(str(d, "effectCode"));
         if (d.containsKey("effectValue"))
             e.setEffectValue(intVal(d, "effectValue"));
+        if (d.containsKey("traitsToAdd"))
+            e.setTraitsToAdd(str(d, "traitsToAdd"));
+        if (d.containsKey("traitsToRemove"))
+            e.setTraitsToRemove(str(d, "traitsToRemove"));
     }
 
     private void applyWeatherRuleFields(WeatherRuleEntity e, Map<String, Object> d) {

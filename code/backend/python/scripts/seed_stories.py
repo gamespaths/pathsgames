@@ -189,6 +189,18 @@ def seed():
              "idSpecificLocation": 1, "idCard": 1,
              "effects": [{"idCard": 1, "target": "ONLY_ONE",
                           "idItemTarget": 1, "itemAction": "ADD"}]},
+            # v0.34.0 inventory pair: 50 is gated by item 2, which 51 grants. Because item 2
+            # is CONSUMABLE, using it must close 50 again — the step-34 acceptance test.
+            # 52 grants the heavy item 4, which is what makes OVERWEIGHT reachable.
+            {"id": 50, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1, "idItemCondition": 2},
+            {"id": 51, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idItemTarget": 2, "itemAction": "ADD"},
+                         {"idCard": 1, "target": "ONLY_ONE", "idItemTarget": 3, "itemAction": "ADD"}]},
+            {"id": 52, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
+             "idSpecificLocation": 1, "idCard": 1,
+             "effects": [{"idCard": 1, "target": "ONLY_ONE", "idItemTarget": 4, "itemAction": "ADD"}]},
             # Here idWeather is an EFFECT — it SETS the weather; on event 17 it is a CONDITION.
             {"id": 22, "idTextName": 500, "idTextDescription": 500, "type": "NORMAL",
              "idSpecificLocation": 1, "idCard": 1,
@@ -318,8 +330,27 @@ def seed():
              "valueToAdd": "OPEN", "idItemTarget": 1, "itemAction": "ADD",
              "idLocation": 3, "idWeather": 3},
         ],
+        # v0.34.0 — the inventory test-bed. Item 1 is CARRIED ONLY (it gates event 15 and
+        # must stay in the bag), item 2 is the consumable that gates event 50, item 3 is
+        # restricted to class 1, item 4 is heavy enough to reach OVERWEIGHT.
         "items": [
-            {"idTextName": 400, "idTextDescription": 400, "weight": 1}
+            {"id": 1, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
+             "weight": 1, "isConsumabile": 0},
+            {"id": 2, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
+             "weight": 1, "isConsumabile": 1},
+            {"id": 3, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
+             "weight": 1, "isConsumabile": 1, "idClassPermitted": 1},
+            {"id": 4, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
+             "weight": 9, "isConsumabile": 1},
+        ],
+        # v0.34.0 — the canonical TOP-LEVEL array, keyed by idItem, same shape as Java and
+        # AWS. SADNESS is the documented alias of the `sad` statistic; traitsToAdd is the
+        # same CSV-of-ids format the event effects use.
+        "itemEffects": [
+            {"id": 1, "idCard": 1, "idItem": 2, "effectCode": "EXP", "effectValue": 5,
+             "traitsToAdd": "1"},
+            {"id": 2, "idCard": 1, "idItem": 3, "effectCode": "SADNESS", "effectValue": 1},
+            {"id": 3, "idCard": 1, "idItem": 4, "effectCode": "LIFE", "effectValue": 1},
         ],
         "classes": [
             {

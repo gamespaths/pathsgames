@@ -250,10 +250,13 @@ class MatchQueryService(MatchQueryPort):
         players = []
         if self.character_read_port is not None:
             requester_id = match.get("id_user_creator") if user_creator_uuid else None
+            # Step 34 — the player view masks the other players' inventories; the admin
+            # view (all_locations) must NOT, because it has no requester at all.
             players = build_character_infos(
                 self.character_read_port.find_characters_by_match_id(match["id"]),
                 match, self.story_read_port, self.character_read_port,
                 user_creator_uuid, requester_id,
+                lang=lang, mask_other_inventories=not all_locations,
             )
 
         # Locations currently occupied by one or more players (insertion-ordered).

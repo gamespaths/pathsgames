@@ -101,7 +101,7 @@ Admin Locations Carry The Same Endpoints
     [Documentation]    The admin view is the same payload without the ownership check, so it must
     ...                carry the endpoints too — an admin map is drawn from it.
     [Tags]    locations    admin    edge-orientation    step28    regression
-    ${locs}=    Admin Get Locations    ${TOKEN}    ${MATCH_UUID}    200
+    ${locs}=    Admin Get Locations    ${ADMIN_TOKEN}    ${MATCH_UUID}    200
     ${forward}=    Neighbor Entry    ${locs.json()}    ${A_ID}    ${B_ID}
     Endpoints Should Be Authored    ${forward}    admin view, listed by A
     ${back}=       Neighbor Entry    ${locs.json()}    ${B_ID}    ${A_ID}
