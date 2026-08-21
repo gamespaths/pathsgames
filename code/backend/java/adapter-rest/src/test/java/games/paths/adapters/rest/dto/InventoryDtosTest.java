@@ -1,5 +1,6 @@
 package games.paths.adapters.rest.dto;
 
+import games.paths.core.model.match.ItemEffectPreview;
 import games.paths.core.model.match.ItemInstanceInfo;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.match.InventoryPort.DropItemResult;
@@ -9,6 +10,7 @@ import games.paths.core.port.match.InventoryPort.ResourcesView;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,6 +64,49 @@ class InventoryDtosTest {
     }
 
     @Test
+    @DisplayName("Step 35 — the effect promise is projected row by row")
+    void itemInstanceResponse_projectsTheEffectPromise() {
+        ItemInstanceInfo info = itemInfo(card());
+        info.setEffects(List.of(new ItemEffectPreview("life", 3),
+                                new ItemEffectPreview("sad", -1)));
+
+        ItemInstanceResponse r = ItemInstanceResponse.fromModel(info);
+
+        assertEquals(2, r.getEffects().size());
+        assertEquals("life", r.getEffects().get(0).getStatistic());
+        assertEquals(3, r.getEffects().get(0).getValue());
+        assertEquals(-1, r.getEffects().get(1).getValue());
+    }
+
+    @Test
+    @DisplayName("Step 35 — an item with no effect projects an empty array, never null")
+    void itemInstanceResponse_emptyEffectPromise() {
+        assertNotNull(ItemInstanceResponse.fromModel(itemInfo(null)).getEffects());
+        assertTrue(ItemInstanceResponse.fromModel(itemInfo(null)).getEffects().isEmpty());
+        // A null list in, an empty list out — and a null row is skipped, not projected.
+        assertTrue(ItemEffectPreviewResponse.fromModels(null).isEmpty());
+        List<ItemEffectPreview> withHole = new ArrayList<>();
+        withHole.add(null);
+        withHole.add(new ItemEffectPreview("energy", -2));
+        assertEquals(1, ItemEffectPreviewResponse.fromModels(withHole).size());
+    }
+
+    @Test
+    void itemEffectPreviewResponse_setters() {
+        ItemEffectPreviewResponse r = new ItemEffectPreviewResponse();
+        r.setStatistic("coin");
+        r.setValue(5);
+
+        assertEquals("coin", r.getStatistic());
+        assertEquals(5, r.getValue());
+
+        ItemEffectPreview m = new ItemEffectPreview();
+        m.setStatistic("magic");
+        m.setValue(1);
+        assertEquals("magic", ItemEffectPreviewResponse.fromModel(m).getStatistic());
+    }
+
+    @Test
     void itemInstanceResponse_setters() {
         ItemInstanceResponse r = new ItemInstanceResponse();
         r.setUuid("u");
@@ -73,6 +118,7 @@ class InventoryDtosTest {
         r.setIdCard(9);
         r.setCard(CardInfoResponse.fromModel(card()));
         r.setIsConsumabile(Boolean.FALSE);
+        r.setEffects(List.of(ItemEffectPreviewResponse.fromModel(new ItemEffectPreview("exp", 5))));
 
         assertEquals("u", r.getUuid());
         assertEquals("iu", r.getItemUuid());
@@ -83,6 +129,7 @@ class InventoryDtosTest {
         assertEquals(9, r.getIdCard());
         assertNotNull(r.getCard());
         assertEquals(Boolean.FALSE, r.getIsConsumabile());
+        assertEquals("exp", r.getEffects().get(0).getStatistic());
     }
 
     @Test

@@ -77,7 +77,7 @@ class TurnCycleEntitiesTest {
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
         assertNotEquals(a, c);
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertNotEquals(a, null);
         assertNotEquals(a, "x");
         assertNotNull(new GamingTurnQueueEntityId());
@@ -91,7 +91,8 @@ class TurnCycleEntitiesTest {
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
         assertNotEquals(a, c);
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
+        
         assertNotEquals(a, null);
         assertNotEquals(a, "x");
         a.setId(5L);

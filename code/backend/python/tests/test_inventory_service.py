@@ -112,6 +112,86 @@ def test_list_reports_items_weight_and_capacity(service, store):
     assert view["weight_max"] == 30
 
 
+def test_list_promises_the_effects_using_the_item_would_apply(service, store):
+    """Step 35 — the promise is read off the very rows use-item applies."""
+    _given_potion(store)
+    store.find_item_effects_by_item_id.return_value = {900: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3},
+        {"id": 2, "effect_code": "SADNESS", "effect_value": -1},
+    ]}
+
+    effects = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"][0].effects
+
+    assert [(e.statistic, e.value) for e in effects] == [("life", 3), ("sad", -1)]
+
+
+def test_list_hides_an_effect_code_the_engine_would_drop(service, store):
+    _given_potion(store)
+    store.find_item_effects_by_item_id.return_value = {900: [
+        {"id": 1, "effect_code": "WISDOM", "effect_value": 5},
+        {"id": 2, "effect_code": "energy", "effect_value": None},
+    ]}
+
+    effects = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"][0].effects
+
+    # A null value reads as 0; an unknown code is not promised at all.
+    assert [(e.statistic, e.value) for e in effects] == [("energy", 0)]
+
+
+def test_a_secret_item_promises_nothing_step35(service, store):
+    """flag_show_effects = 0: the promise is hidden, the effects are NOT."""
+    secret = _item()
+    secret["flag_show_effects"] = 0
+    store.find_inventory.return_value = [_row(1, "row-1", 900)]
+    store.find_items_by_id.return_value = {900: secret}
+    store.find_item_effects_by_item_id.return_value = {900: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3}]}
+
+    items = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"]
+
+    # Empty, never absent: an empty promise must not read as "this item does nothing".
+    assert items[0].effects == []
+
+
+def test_an_unset_flag_still_promises(service, store):
+    """A story authored before the column existed already shipped the promise."""
+    _given_potion(store)
+    store.find_item_effects_by_item_id.return_value = {900: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3}]}
+
+    items = service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"]
+
+    assert [(e.statistic, e.value) for e in items[0].effects] == [("life", 3)]
+
+
+def test_using_a_secret_item_still_applies_its_effects(service, store, engine):
+    secret = _item()
+    secret["flag_show_effects"] = 0
+    store.find_inventory.return_value = [_row(1, "row-1", 900)]
+    store.find_items_by_id.return_value = {900: secret}
+    store.find_item_effects_by_item_id.return_value = {900: [
+        {"id": 1, "uuid": "e1", "effect_code": "LIFE", "effect_value": 3}]}
+
+    service.use_item(MATCH_UUID, USER_UUID, "row-1", "en")
+
+    effects = engine.apply_standalone_effects.call_args[0][2]
+    assert [(e["statistics"], e["value"]) for e in effects] == [("life", 3)]
+
+
+def test_the_effect_rows_are_read_once_per_request(service, store):
+    _given_potion(store)
+
+    service.drop_item(MATCH_UUID, USER_UUID, "row-1")
+
+    assert store.find_item_effects_by_item_id.call_count == 1
+
+
+def test_an_item_with_no_effect_promises_an_empty_list(service, store):
+    _given_potion(store)
+
+    assert service.list_inventory(MATCH_UUID, USER_UUID, "en")["items"][0].effects == []
+
+
 def test_list_empty_inventory_is_a_list_never_none(service, store):
     store.find_inventory.return_value = []
     store.find_items_by_id.return_value = {}

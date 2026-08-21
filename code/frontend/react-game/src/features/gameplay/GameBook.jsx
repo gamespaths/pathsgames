@@ -37,7 +37,7 @@ import MapPage from '@/components/layout/Map'
 import LoadingCard from '@/components/layout/LoadingCard'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
 import { buildCardToSleep } from '@/utils/loadoutCards'
-import { statChangeItems } from '@/utils/statBadges'
+import { itemPromiseBadges, statChangeItems } from '@/utils/statBadges'
 
 // Mobile is a single stacked column (left on top, right below) that scrolls as a
 // whole inside `.book-overlay`. These helpers move a card into view there; on
@@ -77,11 +77,16 @@ export function grantedItemUuids(result) {
     .map(c => c.itemUuid)
 }
 
+/** The carried inventory ROW, looked up by its STORY uuid. Step 35: the card alone is not
+ *  enough any more — the row also carries the effects[] promise the board wants to show. */
+export function itemRowForUuid(items, itemUuid) {
+  if (!itemUuid) return null
+  return (items ?? []).find(i => i?.itemUuid === itemUuid && i?.card) ?? null
+}
+
 /** The resolved card of a carried item, looked up by its STORY uuid. */
 export function itemCardForUuid(items, itemUuid) {
-  if (!itemUuid) return null
-  const row = (items ?? []).find(i => i?.itemUuid === itemUuid && i?.card)
-  return row?.card ?? null
+  return itemRowForUuid(items, itemUuid)?.card ?? null
 }
 
 export function lastEffectCard(result) {
@@ -412,7 +417,11 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   // OWN card: that card is the narrative. A chain (idEventNext) applies several in order, and
   // the story reads as the last one — so that is the one shown, on the reading page.
   // handleBackOrClose() inside the reload would close it again, hence the preview comes after.
-  function handleEventExecuted(result) {
+  // `fallbackCard` — Step 35, the item path only: a use-item answer carries the ITEM's own
+  // card in `result.card`, and an author who wrote no per-effect card still deserves a
+  // narrative rather than a board that silently reloads. Left null for events on purpose:
+  // there `result.card` is the EVENT card, which the board already handled its own way.
+  function handleEventExecuted(result, fallbackCard = null) {
     handleReloadClockWeatherAndMatchData()
     setLoading(true);
     // Step 31 — a choice-event answers CHOICES_PENDING: cost paid, effects withheld. The
@@ -432,23 +441,45 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     const grantedUuid = grantedItemUuids(result)[0] ?? null
     // Already carried one? Then match-info has already resolved its card and there is
     // nothing to fetch. A brand-new row is only in the inventory, hence the fallback below.
-    const grantedCard = itemCardForUuid(playerStats?.items, grantedUuid)
-    const narrative = grantedCard ?? (grantedUuid ? null : lastEffectCard(result))
-    const stats = statChangeItems(result, playerUuid, t)
+    const grantedRow = itemRowForUuid(playerStats?.items, grantedUuid)
+    const grantedCard = grantedRow?.card ?? null
+    const effectCard = grantedUuid ? null : (lastEffectCard(result) ?? fallbackCard)
+    const narrative = grantedCard ?? effectCard
+    // The fallback IS an item card (the one that was just used), so it is styled as one —
+    // only a real list_*_effects row reads as an effect.
+    const narrativeType = (grantedCard || (effectCard && effectCard === fallbackCard))
+      ? 'item' : 'effect'
+    // Step 35 — the card of an item just RECEIVED describes the ITEM: what it weighs and
+    // what using it promises. Not the statChanges of the event that handed it over — the
+    // badges under a card have to be about the thing on it. What the event did to the
+    // player is already told by the effect card, and mixing "+2 exp you just earned" with
+    // "+3 life if you drink this" under one picture makes both unreadable.
+    //
+    // No count here (that is the bag's reading, in ItemCard): this card is about the object
+    // that just arrived, not about the stack it joined. An item whose story hides its
+    // effects (flagShowEffects = 0) promises nothing and is left with its weight alone.
+    const stats = grantedCard
+      ? itemPromiseBadges(grantedRow, t)
+      : statChangeItems(result, playerUuid, t)
     // Arm the weather effect: if this event also changes the weather, the async
     // reload will attach a forward arrow to this card instead of covering it. An item is
     // on its way even when its card is not resolved yet, so it arms the flag too.
     eventEffectActiveRef.current = !!narrative || !!grantedUuid
     if (narrative) {
-      handleSelectionPreviewFull(narrative, grantedCard ? 'item' : 'effect', null, stats, true, {}, 'right')
+      handleSelectionPreviewFull(narrative, narrativeType, null, stats, true, {}, 'right')
     } else if (grantedUuid) {
       // The row was just created, so its card lives only in the inventory. Fetching it is
       // the one way to show the item rather than the effect that produced it; a failure is
       // swallowed on purpose — the board is reloading anyway and the bag will show it.
       getInventory(matchUuid, user?.accessToken, lang)
         .then(inventory => {
-          const card = itemCardForUuid(inventory?.items, grantedUuid)
-          if (card) handleSelectionPreviewFull(card, 'item', null, stats, true, {}, 'right')
+          // The freshly fetched row carries the promise too, so a brand-new item is
+          // described exactly like one already in the bag.
+          const row = itemRowForUuid(inventory?.items, grantedUuid)
+          if (row?.card) {
+            handleSelectionPreviewFull(row.card, 'item', null,
+              itemPromiseBadges(row, t), true, {}, 'right')
+          }
         })
         .catch(() => {})
     }
@@ -472,8 +503,21 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
   }
   // Step 34 — dropping applies nothing and narrates nothing: there is no effect card and
   // no edge state to show, only an inventory and a carried weight that just changed.
+  // The bag stays open on purpose: dropping is a tidying gesture and usually comes in a
+  // run of several, so the list the player is working through must not vanish under them.
   function handleItemDropped() {
     handleReloadClockWeatherAndMatchData()
+  }
+
+  // Step 35 — using an item closes the bag. The row is consumed, so the list the player
+  // came from no longer holds what they clicked; what matters now is the effect it applied,
+  // and that narrates on the RIGHT page — the very page the item list was covering.
+  // Closing before handing over to handleEventExecuted also means an edge state (coma,
+  // sadness overflow) takes the LEFT page instead of fighting the open bag for it.
+  function handleItemUsed(result) {
+    setItemsView(false)
+    setStatisticsCards(false)
+    handleEventExecuted(result, result?.card ?? null)
   }
 
   // The backpack takes over the right page, so whatever was showing there has to go —
@@ -779,7 +823,7 @@ export default function GameBook({ gameData, matchUuid, story, storyDetail, onRe
     : itemsView ? <ItemsCards playerStats={playerStats} story={story}
         onPreview={handleSelectionPreviewFull} previewSide="right"
         matchUuid={matchUuid} accessToken={user?.accessToken}
-        onDone={handleEventExecuted} onDropped={handleItemDropped} onError={onError} />
+        onDone={handleItemUsed} onDropped={handleItemDropped} onError={onError} />
     : statisticsCards ? <div className="config-view-wrap config-view--config">
         <div className="config-cards-area selection-list">
           <WeatherCard weather={weather} story={storyFull} onPreview={handleSelectionPreviewFull} previewSide="right" />

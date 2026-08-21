@@ -100,6 +100,21 @@ class MatchEventOption:
 
 
 @dataclass
+class ItemEffectPreview:
+    """Step 35 — one list_items_effects row, as the board may read it BEFORE the item is
+    used. Until this version an item's effects reached the client only in the answer of
+    use-item, once the row was already spent: a healing potion and a poison looked the same.
+
+    Statistic and value only. The trait CSVs would need a second lookup to become names,
+    and the effect's narrative card is the story of what happened — it belongs to the
+    answer, not to the promise. The statistic arrives already normalised (``sad``, never
+    ``SADNESS``); the value is the AUTHORED one, before the engine clamps it."""
+
+    statistic: Optional[str] = None
+    value: int = 0
+
+
+@dataclass
 class ItemInstanceInfo:
     """Step 27 — a single item carried by a character inside a match."""
 
@@ -115,6 +130,9 @@ class ItemInstanceInfo:
     card: Optional[Dict[str, Any]] = None
     # Step 34 — False means the item is carried only; use-item refuses it.
     is_consumabile: Optional[bool] = None
+    # Step 35 — what using it promises. Empty (never None) for an item with no effect and
+    # on the masked inventories of the other players.
+    effects: List[ItemEffectPreview] = field(default_factory=list)
 
 
 @dataclass

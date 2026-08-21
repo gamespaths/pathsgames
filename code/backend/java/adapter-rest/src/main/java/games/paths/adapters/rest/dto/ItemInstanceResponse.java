@@ -2,6 +2,8 @@ package games.paths.adapters.rest.dto;
 
 import games.paths.core.model.match.ItemInstanceInfo;
 
+import java.util.List;
+
 /**
  * JSON projection of {@link ItemInstanceInfo}: a single item carried by a
  * character inside a match. Step 27.
@@ -19,6 +21,8 @@ public class ItemInstanceResponse {
     private CardInfoResponse card;
     /** Step 34 — false means the item is carried only; use-item refuses it. */
     private Boolean isConsumabile;
+    /** Step 35 — what using it promises: statistic/value, before the engine clamps them. */
+    private List<ItemEffectPreviewResponse> effects;
 
     public static ItemInstanceResponse fromModel(ItemInstanceInfo m) {
         ItemInstanceResponse r = new ItemInstanceResponse();
@@ -31,6 +35,7 @@ public class ItemInstanceResponse {
         r.idCard = m.getIdCard();
         r.card = CardInfoResponse.fromModel(m.getCard());
         r.isConsumabile = m.getIsConsumabile();
+        r.effects = ItemEffectPreviewResponse.fromModels(m.getEffects());
         return r;
     }
 
@@ -52,4 +57,6 @@ public class ItemInstanceResponse {
     public void setCard(CardInfoResponse card) { this.card = card; }
     public Boolean getIsConsumabile() { return isConsumabile; }
     public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
+    public List<ItemEffectPreviewResponse> getEffects() { return effects; }
+    public void setEffects(List<ItemEffectPreviewResponse> effects) { this.effects = effects; }
 }

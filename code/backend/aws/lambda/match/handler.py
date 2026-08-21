@@ -564,10 +564,14 @@ def _item_rows(char, story, raw_cards=None, raw_texts=None, lang="en"):
             "idCard": item.get("idCard") if item else None,
             "card": None,
             "isConsumabile": (_nz(item.get("isConsumabile")) == 1) if item else None,
+            # Step 35 — what using it promises. Always an array: an item with no effect,
+            # and a row whose story item is gone, both answer [].
+            "effects": [],
         }
         if item:
             entry["card"] = _resolve_card_from_raw(cards, texts, item.get("idCard"), lang)
             entry["name"] = _resolve_raw_text(texts, item.get("idTextName"), lang)
+            entry["effects"] = _inventory.preview_effects(story, item)
         out.append(entry)
     return out
 

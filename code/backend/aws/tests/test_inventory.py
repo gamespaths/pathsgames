@@ -203,6 +203,56 @@ def test_standalone_effects_of_an_item_with_none():
     assert inventory.standalone_effects(_story([_item()]), _item()) == []
 
 
+def test_preview_effects_promises_statistic_and_value_step35():
+    story = _story([_item()], [
+        {'id': 1, 'uuid': 'e1', 'idItem': 900, 'effectCode': 'LIFE', 'effectValue': 3},
+        {'id': 2, 'uuid': 'e2', 'idItem': 900, 'effectCode': 'SADNESS', 'effectValue': -1},
+    ])
+
+    assert inventory.preview_effects(story, _item()) == [
+        {'statistic': 'life', 'value': 3},
+        {'statistic': 'sad', 'value': -1},
+    ]
+
+
+def test_preview_effects_hides_a_code_the_engine_would_drop():
+    """apply_stat discards it in silence, so promising it would keep nothing."""
+    story = _story([_item()], [
+        {'id': 1, 'uuid': 'e1', 'idItem': 900, 'effectCode': 'WISDOM', 'effectValue': 5},
+        {'id': 2, 'uuid': 'e2', 'idItem': 900, 'effectCode': 'energy', 'effectValue': None},
+    ])
+
+    # A null value reads as 0, exactly as the usage would apply it.
+    assert inventory.preview_effects(story, _item()) == [{'statistic': 'energy', 'value': 0}]
+
+
+def test_preview_effects_are_hidden_when_the_item_keeps_its_secret():
+    """v0.35.0 flagShowEffects = 0: no promise, and the effects still run on use."""
+    secret = dict(_item(), flagShowEffects=0)
+    story = _story([secret], [
+        {'id': 1, 'uuid': 'e1', 'idItem': 900, 'effectCode': 'LIFE', 'effectValue': 3},
+    ])
+
+    assert inventory.preview_effects(story, secret) == []
+    # The usage is untouched: hiding the numbers must not author a different item.
+    assert len(inventory.standalone_effects(story, secret)) == 1
+
+
+def test_preview_effects_read_a_missing_flag_as_shown():
+    """A story authored before the field existed already shipped the promise."""
+    story = _story([_item()], [
+        {'id': 1, 'uuid': 'e1', 'idItem': 900, 'effectCode': 'LIFE', 'effectValue': 3},
+    ])
+
+    assert 'flagShowEffects' not in _item()
+    assert inventory.preview_effects(story, _item()) == [{'statistic': 'life', 'value': 3}]
+    assert inventory.shows_effects(None) is True
+
+
+def test_preview_effects_of_an_item_with_none():
+    assert inventory.preview_effects(_story([_item()]), _item()) == []
+
+
 # ── the usage log ───────────────────────────────────────────────────────────
 
 def test_log_item_usage_appends_to_the_match_item():

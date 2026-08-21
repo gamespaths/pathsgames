@@ -161,6 +161,36 @@ class InventoryServiceTest {
         }
 
         @Test
+        @DisplayName("Step 35 — a listed item promises the effects using it would apply")
+        void listsTheEffectPromise() {
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 1)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, item(900L, 3, 1)));
+            when(store.findItemEffectsByItemId(STORY_ID)).thenReturn(Map.of(900L, List.of(
+                    effect(1L, "LIFE", 3, null, null),
+                    effect(2L, "SADNESS", -1, null, null))));
+
+            var effects = service.listInventory(MATCH, USER, "en").items().get(0).getEffects();
+
+            assertEquals(2, effects.size());
+            assertEquals("life", effects.get(0).getStatistic());
+            assertEquals(3, effects.get(0).getValue());
+            // The client never sees the SADNESS spelling — the codec runs server-side.
+            assertEquals("sad", effects.get(1).getStatistic());
+        }
+
+        @Test
+        @DisplayName("Step 35 — the effect rows are read once per request, not once per mapping")
+        void effectRowsAreReadOnce() {
+            when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of(row(1L, "row-1", 900L, 1)));
+            when(store.findItemsById(STORY_ID)).thenReturn(Map.of(900L, item(900L, 3, 1)));
+
+            // dropItem maps the remaining items after removing the row: one Ctx, one query.
+            service.dropItem(MATCH, USER, "row-1");
+
+            verify(store, times(1)).findItemEffectsByItemId(STORY_ID);
+        }
+
+        @Test
         @DisplayName("an empty inventory is an empty list, never null")
         void emptyInventory() {
             when(store.findInventory(MATCH_ID, CHAR_ID)).thenReturn(List.of());

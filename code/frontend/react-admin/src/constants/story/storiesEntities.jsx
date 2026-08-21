@@ -11,6 +11,7 @@ import {
   EVENT_TYPE_OPTIONS,
   EVENT_EFFECT_STATISTICS_OPTIONS,
   ITEM_ACTION_OPTIONS,
+  ITEM_EFFECT_CODE_OPTIONS,
   LOGIC_OPERATOR_OPTIONS,
   POSSIBLE_STATISTICS_OPTIONS,
 } from './storyFieldOptions'
@@ -146,13 +147,29 @@ export const STORIES_ENTITIES_FIELDS = {
       { key: 'idTextDescription', label: 'Desc Text ID', type: 'number' },
       { key: 'weight', label: 'Weight', type: 'number' },
       { key: 'isConsumabile', label: 'Consumable', type: 'checkbox' },
+      // v0.35.0 — ticked (the default for a new item), the bag shows what using this item
+      // would do: one badge per Item Effect row. Unticked, the item keeps its secret and
+      // the player only finds out by using it — the unlabelled bottle found in the dark.
+      // It hides the PROMISE, never the effect: using it applies exactly the same rows.
+      { key: 'flagShowEffects', label: 'Show Effects In Preview', type: 'checkbox' },
       { key: 'idClassPermitted', label: 'Class Permitted ID', type: 'number' },
       { key: 'idClassProhibited', label: 'Class Prohibited ID', type: 'number' },
     ],
+    // Step 34 — what an item DOES when it is used. One row per effect, all of them applied
+    // to the character who used it and to nobody else (there is no target column here on
+    // purpose: handing an item over is multiplayer, out of scope).
     'item-effects': [
+      // v0.35.0 — the narrative card of THIS effect, exactly like event-effects.idCard: the
+      // engine resolves it per row (InventoryService.standaloneEffects) and the board shows
+      // the last effect that carries one. The column has existed since V0.14.1; until now
+      // the form did not offer it, so it could only be authored by importing a JSON story.
+      { key: 'idCard', label: 'Card ID (narrative)', type: 'number' },
       { key: 'idItem', label: 'Item ID', type: 'number' },
-      { key: 'effectCode', label: 'Effect Code', type: 'text' },
-      { key: 'effectValue', label: 'Effect Value', type: 'number' },
+      // v0.35.0 — a select, not free text: an effect code outside this vocabulary is
+      // dropped in silence by the engine, so a typo used to author an effect that could
+      // never fire and said nothing about it.
+      { key: 'effectCode', label: 'Effect Code', type: 'select', options: ITEM_EFFECT_CODE_OPTIONS },
+      { key: 'effectValue', label: 'Effect Value (signed delta)', type: 'number' },
       // v0.34.0 — same CSV-of-ids format as the event effects above.
       { key: 'traitsToAdd', label: 'Traits to Add (csv of ids)', type: 'text' },
       { key: 'traitsToRemove', label: 'Traits to Remove (csv of ids)', type: 'text' },

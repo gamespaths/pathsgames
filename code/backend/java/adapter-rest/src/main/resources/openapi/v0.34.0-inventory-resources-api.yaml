@@ -303,6 +303,43 @@ components:
         isConsumabile:
           type: boolean
           description: False means the item is carried only; use-item refuses it.
+        effects:
+          type: array
+          description: >
+            v0.35.0 (Step 35) - what using this item promises: its list_items_effects rows,
+            reduced to statistic and value. Empty when the item carries no effect, and empty
+            on the masked inventories of the other players. Rows whose effect_code falls
+            outside the engine vocabulary are omitted: the engine would drop them in silence,
+            so promising one would be a promise nothing keeps. The same array is reported by
+            the items[] of GET /api/game/{uuid}/info - one mapper serves both.
+
+            v0.35.0 - an item whose list_items.flag_show_effects is 0 answers [] here even
+            when it carries effect rows: the author chose to keep it secret. The flag gates
+            the PROMISE only - using the item applies exactly the same rows either way, so
+            an empty effects[] never means "this item does nothing".
+          items:
+            $ref: '#/components/schemas/ItemEffectPreview'
+
+    ItemEffectPreview:
+      type: object
+      description: >
+        v0.35.0 (Step 35) - one effect an item will apply to whoever uses it. Field names
+        match the AppliedEffect pair of the execute-event answer, so a client reads the
+        promise and the result with the same code.
+      properties:
+        statistic:
+          type: string
+          description: >
+            Already normalised to the engine vocabulary - life, energy, sad, exp, dex, int,
+            cos, food, magic, coin. The SADNESS/COINS spellings never reach the client.
+          example: life
+        value:
+          type: integer
+          description: >
+            The AUTHORED delta, before the engine clamps it: a -10 life on a character with
+            3 left promises -10 and delivers -3. Signed; 0 is possible and means nothing
+            happens.
+          example: 3
 
     InventoryResponse:
       type: object

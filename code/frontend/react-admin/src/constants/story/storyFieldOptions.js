@@ -69,6 +69,34 @@ export const EVENT_EFFECT_STATISTICS_OPTIONS = mapOptions([
   'COIN',
 ])
 
+// v0.35.0 — the vocabulary of list_items_effects.effect_code. Same ten tokens the event
+// engine acts on (EffectStatCodec.KNOWN), because item usage runs through the SAME
+// applyStat: an unknown code is dropped in silence, so a free-text field could only
+// produce effects that never fire. LIFE/ENERGY are clamped to their max, SAD goes through
+// the Step 30 overflow check, FOOD/MAGIC/COIN live on the backpack, the rest never go
+// below zero.
+//
+// The two aliases are listed LAST and labelled as such: EffectStatCodec still translates
+// SADNESS -> sad and COINS -> coin, and stories authored before v0.34.0 (the seeds among
+// them) hold those spellings — without the option the select would render blank on a row
+// that works perfectly well.
+export const ITEM_EFFECT_CODE_OPTIONS = [
+  ...mapOptions([
+    'LIFE',
+    'ENERGY',
+    'SAD',
+    'EXP',
+    'DEX',
+    'INT',
+    'COS',
+    'FOOD',
+    'MAGIC',
+    'COIN',
+  ]),
+  { value: 'SADNESS', label: 'SADNESS (alias of SAD)' },
+  { value: 'COINS', label: 'COINS (alias of COIN)' },
+]
+
 export const ITEM_ACTION_OPTIONS = mapOptions([
   'REMOVE',
   'ADD',

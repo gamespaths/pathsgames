@@ -16,6 +16,17 @@ public class ItemEntity extends BaseStoryScopedEntity {
     @Column(name = "is_consumabile", nullable = false)
     private Integer isConsumabile;
 
+    /**
+     * v0.35.0 - may the board show what this item does BEFORE it is used?
+     *
+     * <p>1 or null report the {@code effects[]} promise, 0 keeps the secret. Nullable on
+     * purpose: the column lands on stories authored before it existed, and those already
+     * ship the promise - defaulting to hidden would take a feature away from all of them.
+     * It gates the promise only; using the item applies exactly the same effects.</p>
+     */
+    @Column(name = "flag_show_effects")
+    private Integer flagShowEffects;
+
     @Column(name = "id_class_permitted")
     private Integer idClassPermitted;
 
@@ -35,6 +46,9 @@ public class ItemEntity extends BaseStoryScopedEntity {
 
     public Integer getIsConsumabile() { return isConsumabile; }
     public void setIsConsumabile(Integer isConsumabile) { this.isConsumabile = isConsumabile; }
+
+    public Integer getFlagShowEffects() { return flagShowEffects; }
+    public void setFlagShowEffects(Integer flagShowEffects) { this.flagShowEffects = flagShowEffects; }
 
     public Integer getIdClassPermitted() { return idClassPermitted; }
     public void setIdClassPermitted(Integer idClassPermitted) { this.idClassPermitted = idClassPermitted; }

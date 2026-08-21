@@ -104,9 +104,55 @@ def test_inventory_lists_the_rows_with_their_cards(_get, _query, _put, _jwt):
     assert first['card']['title'] == 'Pozione curativa'
     assert first['name'] == 'Pozione curativa'
     assert first['isConsumabile'] is True
+    # Step 35 — the listing promises what using it would apply, read off the very rows
+    # use-item runs. The non-consumable one carries no effect row, hence [].
+    assert first['effects'] == [{'statistic': 'life', 'value': 3}]
     # The non-consumable one is listed too — it is carried, just not usable.
     assert body['items'][1]['isConsumabile'] is False
     assert body['items'][1]['card'] is None
+    assert body['items'][1]['effects'] == []
+
+
+def test_inventory_hides_the_promise_of_a_secret_item(_put=None):
+    """v0.35.0 — flagShowEffects = 0: the row is listed like any other and promises
+    nothing, even though its effect row is right there in the story. Its own story and its
+    own character, so the weights the other cases assert stay untouched."""
+    story = {
+        'PK': 'STORY#s1', 'SK': 'METADATA', 'uuid': 's1',
+        'items': [
+            {'id': 900, 'uuid': 'item-900', 'weight': 1, 'isConsumabile': 1,
+             'idCard': None, 'idTextName': None},
+            # The unlabelled bottle: it DOES something, and says nothing about it.
+            {'id': 902, 'uuid': 'item-902', 'weight': 1, 'isConsumabile': 1,
+             'idCard': None, 'idTextName': None, 'flagShowEffects': 0},
+        ],
+        'itemEffects': [
+            {'id': 1, 'uuid': 'ief-1', 'idItem': 900, 'effectCode': 'LIFE', 'effectValue': 3},
+            {'id': 2, 'uuid': 'ief-2', 'idItem': 902, 'effectCode': 'ENERGY', 'effectValue': 2},
+        ],
+    }
+    character = dict(json.loads(json.dumps(CHARACTER)), items=[
+        {'uuid': 'row-1', 'idItem': 900, 'amount': 1, 'state': 'ACTIVE'},
+        {'uuid': 'row-9', 'idItem': 902, 'amount': 1, 'state': 'ACTIVE'},
+    ])
+
+    def _side(pk, sk='METADATA'):
+        return story if pk.startswith('STORY#') else _get_side(pk, sk)
+
+    with patch('match.handler.db_utils.get_item', side_effect=_side), \
+         patch('match.handler.db_utils.query_by_pk', return_value=[character]), \
+         patch('match.handler.db_utils.put_item'), \
+         patch('match.handler.jwt_utils.verify_access_token',
+               return_value={'uuid': 'u1', 'source': 'mock', 'role': 'PLAYER'}):
+        body = json.loads(_call('GET', '/api/gameplay/m1/inventory')['body'])
+
+    ordinary, secret = body['items']
+    assert ordinary['effects'] == [{'statistic': 'life', 'value': 3}]
+    assert secret['itemUuid'] == 'item-902'
+    assert secret['effects'] == []
+    # Listed, weighed and usable like any other row: only the promise is missing.
+    assert secret['isConsumabile'] is True
+    assert body['weight'] == 2
 
 
 # ── GET /resources ──────────────────────────────────────────────────────────

@@ -52,9 +52,14 @@ vi.mock('../features/gameplay/cards/GoToSleepCard', () => ({
 // the branch behind it can be fired from a test.
 vi.mock('../components/layout/Card', () => ({
   default: ({ entityType, card, children, childrenIntoImage, onPreview, onAction, onClose,
-              onForward, actionsList, onSelect, locked, lockInfo }) => (
+              onForward, actionsList, onSelect, locked, lockInfo, statItemsToPageContent }) => (
     <div data-testid={entityType ? `cc-${entityType}` : 'game-card'}>
       <span>{card?.title}</span>{children}{childrenIntoImage}
+      {/* The badges under the card: key:value pairs, so a test can read WHICH numbers a
+          card is describing — the item's own promise or the event's stat changes. */}
+      <span data-testid="cc-stats">
+        {(statItemsToPageContent ?? []).map(s => `${s.key}:${s.value}`).join(',')}
+      </span>
       {onClose && <button data-testid="page-back" onClick={onClose}>back</button>}
       {onForward && <button data-testid="page-forward" onClick={onForward}>forward</button>}
       {onPreview && <button data-testid={`preview-${entityType}`} onClick={onPreview}>preview</button>}
@@ -69,7 +74,7 @@ vi.mock('../components/layout/Card', () => ({
 }))
 
 import GameBook from '../features/gameplay/GameBook'
-import { executeEvent, getInventory, getMatchLocations, getMatchWeather, selectChoice } from '../api/matches'
+import { dropItem, executeEvent, getInventory, getMatchLocations, getMatchWeather, selectChoice, useItem } from '../api/matches'
 
 const STORY = { uuid: 's1', title: 'Test Story', card: { title: 'Test Story' } }
 
@@ -594,6 +599,71 @@ describe('GameBook — the backpack page (Step 34)', () => {
     expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
   })
 
+  it('using an item closes the bag and returns to the board (Step 35)', async () => {
+    useItem.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'life', card: { title: 'You feel better' } }],
+    })
+    renderBook({ playerStats: BAG })
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
+
+    // "use" lives on the item's RIGHT preview, as the primary action.
+    fireEvent.click(screen.getByTestId('preview-item'))
+    fireEvent.click(screen.getAllByTestId('action-item').at(-1))
+
+    // The row is consumed: the list it belonged to must not still be on screen. What
+    // takes the right page is the effect the item applied, and the board is back.
+    await waitFor(() => expect(screen.queryByTestId('cc-item')).toBeNull())
+    expect(screen.queryByTestId('cc-items')).toBeNull()
+    expect(screen.getAllByText('You feel better').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('cc-location')).toBeTruthy()
+  })
+
+  it('narrates with the ITEM card when no effect row carries one (Step 35)', async () => {
+    // The item's own card travels in `result.card` (the engine's standaloneCard). An author
+    // who wrote no per-effect idCard used to get a board that silently reloaded.
+    useItem.mockResolvedValue({
+      status: 'APPLIED',
+      card: { title: 'The empty flask' },
+      effects: [{ statistic: 'life', value: 3 }],
+    })
+    renderBook({ playerStats: BAG })
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getByTestId('preview-item'))
+    fireEvent.click(screen.getAllByTestId('action-item').at(-1))
+
+    await waitFor(() => expect(screen.getAllByText('The empty flask').length).toBeGreaterThan(0))
+    // It IS an item card, so it is styled as one — 'effect' is for a real effect row.
+    expect(screen.getAllByTestId('cc-item').length).toBeGreaterThan(0)
+  })
+
+  it('an executed EVENT does not fall back to its own card: only the item path does', async () => {
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      card: { title: 'The event card' },
+      effects: [{ statistic: 'exp', value: 1 }],
+    })
+    renderBook({ playerStats: BAG })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(executeEvent).toHaveBeenCalled())
+    expect(screen.queryByText('The event card')).toBeNull()
+  })
+
+  it('dropping an item keeps the bag open: the list is what the player is working through', async () => {
+    dropItem.mockResolvedValue({})
+    renderBook({ playerStats: BAG })
+    fireEvent.click(screen.getAllByTestId('extra-action-3')[0])
+    fireEvent.click(screen.getByTestId('preview-item'))
+    fireEvent.click(screen.getAllByTestId('extra-action-0').at(-1))
+
+    await waitFor(() => expect(dropItem).toHaveBeenCalled())
+    expect(screen.getAllByTestId('cc-items').length).toBeGreaterThan(0)
+  })
+
   it('an event that grants a carried item narrates with the ITEM card, not the effect one', async () => {
     executeEvent.mockResolvedValue({
       status: 'APPLIED',
@@ -611,6 +681,53 @@ describe('GameBook — the backpack page (Step 34)', () => {
     expect(getInventory).not.toHaveBeenCalled()
   })
 
+  it('a received item is badged with its OWN promise, not with the event stat changes', async () => {
+    // Step 35 — the badges under a card have to be about the thing on it: "+3 life if you
+    // drink this", never "+2 exp you just earned" for handing it over.
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      effects: [{ statistic: 'exp', card: { title: 'The effect card' } }],
+      statChanges: [{ characterUuid: 'me', statistic: 'exp', before: 0, after: 2, delta: 2 }],
+      itemChanges: [{ characterUuid: 'me', itemUuid: 'item-900', action: 'ADD' }],
+    })
+    const bagWithPromise = { ...BAG, items: [{ ...BAG.items[0],
+      effects: [{ statistic: 'life', value: 3 }] }] }
+    renderBook({ playerStats: bagWithPromise })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('Healing Potion').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).toContain('life:+3')
+    // The UNIT weight: the card is about the object that just arrived, not about the stack
+    // it joined — so it carries no count, and weighing the stack would describe nothing.
+    expect(badges).toContain('weight:2')
+    expect(badges).not.toContain('amount')
+    expect(badges).not.toContain('experience')
+  })
+
+  it('an item whose story hides its effects is received with no badge at all', async () => {
+    // flagShowEffects = 0 empties effects[] server-side, so there is simply nothing to show.
+    executeEvent.mockResolvedValue({
+      status: 'APPLIED',
+      statChanges: [{ characterUuid: 'me', statistic: 'exp', before: 0, after: 2, delta: 2 }],
+      itemChanges: [{ characterUuid: 'me', itemUuid: 'item-900', action: 'ADD' }],
+    })
+    const secretBag = { ...BAG, items: [{ ...BAG.items[0], effects: [] }] }
+    // Its weight is not a secret — only what it would do is.
+    renderBook({ playerStats: secretBag })
+
+    fireEvent.click(screen.getByTestId('preview-action'))
+    fireEvent.click(screen.getByTestId('action-action'))
+
+    await waitFor(() => expect(screen.getAllByText('Healing Potion').length).toBeGreaterThan(0))
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).not.toContain('life')
+    expect(badges).not.toContain('experience')
+    expect(badges).toContain('weight:2')
+  })
+
   it('fetches the inventory when the granted item is brand new', async () => {
     executeEvent.mockResolvedValue({
       status: 'APPLIED',
@@ -618,7 +735,9 @@ describe('GameBook — the backpack page (Step 34)', () => {
       itemChanges: [{ characterUuid: 'me', itemUuid: 'item-999', action: 'ADD' }],
     })
     getInventory.mockResolvedValue({
-      items: [{ uuid: 'row-9', itemUuid: 'item-999', card: { title: 'A brand new thing' } }],
+      items: [{ uuid: 'row-9', itemUuid: 'item-999', card: { title: 'A brand new thing' },
+                weight: 3, amount: 1, isConsumabile: true,
+                effects: [{ statistic: 'energy', value: -2 }] }],
     })
     renderBook({ playerStats: BAG })
 
@@ -628,6 +747,11 @@ describe('GameBook — the backpack page (Step 34)', () => {
     await waitFor(() => expect(getInventory).toHaveBeenCalled())
     await waitFor(() => expect(screen.getAllByText('A brand new thing').length).toBeGreaterThan(0))
     expect(screen.queryByText('The effect card')).toBeNull()
+    // Step 35 — a freshly fetched row is described exactly like one already in the bag:
+    // its weight and its promise, both read off the row the fetch brought back.
+    const badges = screen.getAllByTestId('cc-stats').map(n => n.textContent).join('|')
+    expect(badges).toContain('energy:-2')
+    expect(badges).toContain('weight:3')
   })
 
   it('a failed inventory fetch leaves the board alone rather than crashing it', async () => {

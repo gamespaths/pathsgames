@@ -128,7 +128,7 @@ class MatchEntitiesTest {
         GamingStateLocationsEntityId c = new GamingStateLocationsEntityId(1L, 3L);
         GamingStateLocationsEntityId empty = new GamingStateLocationsEntityId();
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "string");
@@ -245,7 +245,7 @@ class MatchEntitiesTest {
         empty.setId(9L);
         empty.setIdMatch(10L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "x");
@@ -336,7 +336,7 @@ class MatchEntitiesTest {
         empty.setId(11L);
         empty.setIdMatch(12L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, b);
         assertNotEquals(a, c);
         assertNotEquals(a, "x");

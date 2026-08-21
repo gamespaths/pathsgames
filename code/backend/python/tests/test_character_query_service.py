@@ -193,6 +193,7 @@ def _party_ports():
         "id_class_permitted": None, "id_class_prohibited": None}]
     story.find_card_by_story_id_and_card_id.return_value = {"uuid": "card-77"}
     story.find_text_by_story_id_text_and_lang.return_value = {"short_text": "Corda"}
+    story.find_item_effects_by_item_id.return_value = {}
 
     chars = MagicMock()
     chars.find_backpack.return_value = {}
@@ -243,6 +244,44 @@ def test_item_cards_and_names_are_resolved_in_the_requested_language():
     assert item.name == "Corda"
     assert item.is_consumabile is True
     story.find_text_by_story_id_text_and_lang.assert_called_once_with(5, 99, "it")
+
+
+def test_the_info_items_promise_the_effects_of_using_them():
+    """Step 35 — the same promise the inventory endpoint reports, one query for the story."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_item_effects_by_item_id.return_value = {8: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3},
+        {"id": 2, "effect_code": "WISDOM", "effect_value": 9},
+    ]}
+
+    players = build_character_infos(
+        [_party_character(10, 7), _party_character(11, 8)], _party_match(),
+        story, chars, "user-uuid", 7, lang="en", mask_other_inventories=True)
+
+    effects = players[0].items[0].effects
+    # The unknown code is not promised: apply_stat would drop it in silence.
+    assert [(e.statistic, e.value) for e in effects] == [("life", 3)]
+    story.find_item_effects_by_item_id.assert_called_once_with(5)
+
+
+def test_a_secret_item_promises_nothing_on_info():
+    """v0.35.0 — flag_show_effects = 0 hides the promise on /info too, not only on
+    the inventory endpoint: one gate, read by the one shared helper."""
+    from app.core.services.match.character_query_service import build_character_infos
+    story, chars = _party_ports()
+    story.find_items_by_story_id.return_value = [{
+        "id": 8, "uuid": "item-uuid", "weight": 2, "id_card": 77,
+        "id_text_name": 99, "is_consumabile": 1, "flag_show_effects": 0,
+        "id_class_permitted": None, "id_class_prohibited": None}]
+    story.find_item_effects_by_item_id.return_value = {8: [
+        {"id": 1, "effect_code": "LIFE", "effect_value": 3}]}
+
+    players = build_character_infos(
+        [_party_character(10, 7)], _party_match(), story, chars,
+        "user-uuid", 7, lang="en", mask_other_inventories=True)
+
+    assert players[0].items[0].effects == []
 
 
 def test_the_default_call_keeps_the_pre_step34_behaviour():

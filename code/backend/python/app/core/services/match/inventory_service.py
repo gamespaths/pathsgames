@@ -9,7 +9,7 @@ edge states.
 import json
 from typing import Any, Dict, List, Optional
 
-from app.core.models.match.match_models import ItemInstanceInfo
+from app.core.models.match.match_models import ItemEffectPreview, ItemInstanceInfo
 from app.core.ports.match.inventory_ports import InventoryError, InventoryPort, InventoryStorePort
 
 _RUNNING = "RUNNING"
@@ -30,6 +30,42 @@ def normalize_effect_code(effect_code: Optional[str]) -> Optional[str]:
         return None
     key = str(effect_code).strip().lower()
     return _EFFECT_CODE_ALIASES.get(key, key)
+
+
+#: Step 35 — the statistic tokens the engine actually acts on. Anything else is authored
+#: noise: apply_stat drops it in silence, so the promise must not show it either.
+_KNOWN_EFFECT_CODES = {"life", "energy", "sad", "exp", "dex", "int", "cos",
+                       "food", "magic", "coin"}
+
+
+def shows_effects(item: Optional[Dict[str, Any]]) -> bool:
+    """v0.35.0 — flag_show_effects: may the promise be read? Only an explicit 0 hides it.
+
+    None is the reading of every story authored before the column existed, and those
+    already shipped the promise: treating an absence as a refusal would take the feature
+    away from all of them at once. It gates what is REPORTED, never what is applied — a
+    secret item still does exactly what its rows say.
+    """
+    return (item or {}).get("flag_show_effects") != 0
+
+
+def preview_effects(rows: Optional[List[Dict[str, Any]]]) -> List[ItemEffectPreview]:
+    """Step 35 — the list_items_effects rows of ONE item, as the board may read them
+    before the item is used. Shared by the inventory listing and the match /info players[]
+    projection, so the two can never promise different effects.
+
+    Rows whose code lands outside the engine vocabulary are dropped rather than shown:
+    promising an effect apply_stat would discard is a promise nothing keeps.
+    """
+    out: List[ItemEffectPreview] = []
+    for row in rows or []:
+        statistic = normalize_effect_code(row.get("effect_code"))
+        if statistic not in _KNOWN_EFFECT_CODES:
+            continue
+        value = row.get("effect_value")
+        out.append(ItemEffectPreview(statistic=statistic,
+                                     value=value if isinstance(value, int) else 0))
+    return out
 
 
 def _unit_weight(weight) -> int:
@@ -207,6 +243,9 @@ class InventoryService(InventoryPort):
     def _map_items(self, ctx: Dict[str, Any], lang: Optional[str]) -> List[ItemInstanceInfo]:
         story_id = ctx["match"].get("id_story")
         card_cache: Dict[int, Any] = {}
+        # Step 35 — one query for the whole story, cached on the ctx: drop-item maps the
+        # remaining items after removing the row, and use-item reads the same rows again.
+        effects_by_item = self._effects_by_item(ctx)
         out: List[ItemInstanceInfo] = []
         for row in self._inventory(ctx):
             item = self._items_by_id(ctx).get(row.get("id_item")) if row.get("id_item") else None
@@ -223,8 +262,17 @@ class InventoryService(InventoryPort):
                 info.is_consumabile = item.get("is_consumabile") == 1
                 info.card = self._resolve_card(ctx, item.get("id_card"), card_cache)
                 info.name = self._resolve_name(story_id, item.get("id_text_name"), lang)
+                if shows_effects(item):
+                    info.effects = preview_effects(effects_by_item.get(item.get("id")))
             out.append(info)
         return out
+
+    def _effects_by_item(self, ctx: Dict[str, Any]) -> Dict[int, List[Dict[str, Any]]]:
+        if ctx.get("effects_by_item") is None:
+            story_id = ctx["match"].get("id_story")
+            ctx["effects_by_item"] = ({} if story_id is None
+                                      else self.store.find_item_effects_by_item_id(story_id))
+        return ctx["effects_by_item"]
 
     def _resolve_name(self, story_id, id_text_name, lang) -> Optional[str]:
         if story_id is None or id_text_name is None or self.story_read_port is None:
@@ -248,8 +296,7 @@ class InventoryService(InventoryPort):
     def _standalone_effects(self, ctx: Dict[str, Any],
                             item: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Maps list_items_effects rows onto what the engine consumes."""
-        rows = self.store.find_item_effects_by_item_id(
-            ctx["match"]["id_story"]).get(item["id"], [])
+        rows = self._effects_by_item(ctx).get(item["id"], [])
         return [
             {
                 "effect_uuid": e.get("uuid"),

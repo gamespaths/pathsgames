@@ -175,7 +175,7 @@ class StoryCrudServiceFieldMappingTest {
     void createsAnItemWithEveryFieldMapped() {
         assertEveryFieldRoundTrips("items", data(
                 "idTextName", 111, "idTextDescription", 112, "idCard", 113, "weight", 114, "isConsumabile", 115,
-                "idClassPermitted", 116, "idClassProhibited", 117));
+                "flagShowEffects", 1, "idClassPermitted", 116, "idClassProhibited", 117));
     }
 
     @Test
@@ -322,12 +322,25 @@ class StoryCrudServiceFieldMappingTest {
     @Test
     void acceptsNumericStringsAndRejectsEverythingElseAsNull() {
         Map<String, Object> result = service.createEntity("story-uuid", "locations",
-                data("idTextName", "42", "idImage", "not-a-number", "isSafe", true));
+                data("idTextName", "42", "idImage", "not-a-number"));
 
         assertNotNull(result);
         assertEquals(42, result.get("idTextName"));   // parsed
         assertNull(result.get("idImage"));            // unparseable → null
-        assertNull(result.get("isSafe"));             // not a Number nor a String → null
+    }
+
+    @Test
+    void acceptsABooleanForAFlagColumn() {
+        // v0.35.0 — the admin form sends every checkbox as a JSON boolean and every flag
+        // column is an INTEGER. Until this version a ticked box read as null, so the field
+        // was dropped instead of written: isSafe, isConsumabile and flagShowEffects alike.
+        Map<String, Object> on = service.createEntity("story-uuid", "locations",
+                data("idTextName", 1, "isSafe", true));
+        Map<String, Object> off = service.createEntity("story-uuid", "locations",
+                data("idTextName", 1, "isSafe", false));
+
+        assertEquals(1, on.get("isSafe"));
+        assertEquals(0, off.get("isSafe"));
     }
 
     // === Step 22 validator hook ===

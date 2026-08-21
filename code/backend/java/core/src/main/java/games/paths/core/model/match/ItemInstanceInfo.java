@@ -2,6 +2,9 @@ package games.paths.core.model.match;
 
 import games.paths.core.model.story.CardInfo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * ItemInstanceInfo - Domain model describing a single item carried by a
  * character inside a match (one row of {@code gaming_inventory_items} joined
@@ -29,6 +32,14 @@ public class ItemInstanceInfo {
 
     /** Step 34 — only a consumable item can be used; a non-consumable one is merely carried. */
     private Boolean isConsumabile;
+
+    /**
+     * Step 35 — what using this item promises: its {@code list_items_effects} rows, reduced
+     * to statistic and value. Empty when the item carries no effect at all, and empty (not
+     * null) on the masked inventories of the other players — the board reads it without a
+     * null check on every row.
+     */
+    private List<ItemEffectPreview> effects = new ArrayList<>();
 
     public ItemInstanceInfo() {
     }
@@ -59,4 +70,9 @@ public class ItemInstanceInfo {
 
     public Boolean getIsConsumabile() { return isConsumabile; }
     public void setIsConsumabile(Boolean isConsumabile) { this.isConsumabile = isConsumabile; }
+
+    public List<ItemEffectPreview> getEffects() { return effects; }
+    public void setEffects(List<ItemEffectPreview> effects) {
+        this.effects = effects == null ? new ArrayList<>() : effects;
+    }
 }

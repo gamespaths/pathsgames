@@ -1348,6 +1348,54 @@
       "linkCopyright": "https://unsplash.com/photos/detailed-topographic-map-of-a-mountainous-region-with-a-lake-Gfo7CyXkx3g",
       "urlImage": "https://images.unsplash.com/photo-1730314736977-c8bee79d479c?q=80&w=795&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       "uuid": "22cefecc-4368-471e-b7c6-9731f401df12"
+    },
+    {
+      "id": 113,
+      "idCard": 113,
+      "idCreator": 1,
+      "idTextCopyright": 329,
+      "idTextDescription": 328,
+      "idTextName": 327,
+      "idTextTitle": 327,
+      "linkCopyright": "https://unsplash.com/photos/the-sun-is-setting-over-a-grassy-hill-UtBZXP5szPs",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1677347335105-1bd16607a25e?q=80&w=767&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "e772cf46-ce38-4ceb-b9cc-3d4f89f73d85"
+    },
+    {
+      "id": 114,
+      "idCard": 114,
+      "idCreator": 1,
+      "idTextCopyright": 332,
+      "idTextDescription": 331,
+      "idTextName": 330,
+      "idTextTitle": 330,
+      "linkCopyright": "https://unsplash.com/photos/the-sun-is-setting-over-a-grassy-hill-UtBZXP5szPs",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1677347335105-1bd16607a25e?q=80&w=767&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "53210e08-e688-45f5-9d68-fd4e8654ef18"
+    },
+    {
+      "id": 115,
+      "idCard": 115,
+      "idCreator": 1,
+      "idTextCopyright": 335,
+      "idTextDescription": 336,
+      "idTextName": 333,
+      "idTextTitle": 333,
+      "linkCopyright": "https://unsplash.com/photos/two-clear-drinking-glasses-beside-bottle-eDPN4i3pjMQ",
+      "urlImage": "https://images.unsplash.com/photo-1592720951928-7228e0d635af?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "87fafb8b-03ea-4a2a-996e-1963939b64fb"
+    },
+    {
+      "id": 116,
+      "idCard": 116,
+      "idCreator": 1,
+      "idTextCopyright": 338,
+      "idTextDescription": 337,
+      "idTextName": 334,
+      "idTextTitle": 334,
+      "linkCopyright": "https://unsplash.com/photos/a-narrow-river-running-through-a-rocky-canyon-B-EfUEg8yrA",
+      "urlImage": "https://plus.unsplash.com/premium_photo-1692455906215-dff2237582d7?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      "uuid": "0582c6d8-4061-4da5-b461-93dd20b62f1a"
     }
   ],
   "category": "adventure",
@@ -1558,6 +1606,13 @@
       "type": "CLASS",
       "uuid": "7aa41805-a53e-4db1-9732-9b1873586984",
       "value": "3"
+    },
+    {
+      "id": 7,
+      "idChoices": 9,
+      "type": "ITEM",
+      "uuid": "084abd8b-bfac-49bb-a964-8b83b546e04b",
+      "value": "1"
     }
   ],
   "choiceEffects": [
@@ -1646,6 +1701,14 @@
       "statistics": "SAD",
       "uuid": "195b92b0-3d73-43ea-bc63-398829e094af",
       "value": 1
+    },
+    {
+      "id": 9,
+      "idCard": 64,
+      "idChoices": 9,
+      "idLocation": 7,
+      "id_card": 64,
+      "uuid": "c7cf55e4-b67d-4419-962b-88fa40f742dd"
     }
   ],
   "choices": [
@@ -1719,6 +1782,15 @@
       "id_card": 103,
       "logicOperator": "OR",
       "uuid": "8167fa67-288d-4d81-995e-dec756cba8b2"
+    },
+    {
+      "id": 9,
+      "idCard": 113,
+      "idEvent": 8,
+      "idTextName": 327,
+      "id_card": 113,
+      "priority": 4,
+      "uuid": "bbac9d4c-eb6f-4f4b-b047-688e7b4aa3f8"
     }
   ],
   "classBonuses": [
@@ -2137,6 +2209,27 @@
       "id_card": 111,
       "itemAction": "ADD",
       "uuid": "116ebaac-d84a-4c8f-8742-bc7220dcc07e"
+    },
+    {
+      "id": 13,
+      "idCard": 114,
+      "idEvent": 17,
+      "idLocation": 7,
+      "idTextDescription": 330,
+      "idTextName": 330,
+      "id_card": 114,
+      "uuid": "4bf46699-a22b-4488-99bd-4d3bcdaff7de"
+    },
+    {
+      "id": 14,
+      "idCard": 115,
+      "idEvent": 18,
+      "idItemTarget": 2,
+      "idTextDescription": 333,
+      "idTextName": 333,
+      "id_card": 115,
+      "itemAction": "ADD",
+      "uuid": "bca8ea8d-9ccc-4ad9-bed1-81b69bbf7e8d"
     }
   ],
   "events": [
@@ -2333,6 +2426,29 @@
       "id_card": 111,
       "type": "NORMAL",
       "uuid": "b5acc9a0-3c5e-48bf-8aba-57389e5a91cd"
+    },
+    {
+      "costEnery": 0,
+      "id": 17,
+      "idCard": 114,
+      "idItemCondition": 1,
+      "idSpecificLocation": 8,
+      "idTextDescription": 330,
+      "idTextName": 330,
+      "id_card": 114,
+      "type": "NORMAL",
+      "uuid": "ed48e480-c0ac-4121-90a0-196db1e58d33"
+    },
+    {
+      "costEnery": 1,
+      "id": 18,
+      "idCard": 116,
+      "idSpecificLocation": 9,
+      "idTextDescription": 334,
+      "idTextName": 334,
+      "id_card": 116,
+      "type": "NORMAL",
+      "uuid": "1f09c0af-4ebb-4483-adf3-803923148f0d"
     }
   ],
   "globalRandomEvents": [],
@@ -2351,7 +2467,29 @@
   "idTextDescription": 2,
   "idTextTitle": 1,
   "itemCount": 0,
-  "itemEffects": [],
+  "itemEffects": [
+    {
+      "effectCode": "LIFE",
+      "effectValue": 1,
+      "id": 1,
+      "idItem": 2,
+      "uuid": "239acc77-640d-4747-8888-a8e26580458d"
+    },
+    {
+      "effectCode": "ENERGY",
+      "effectValue": 2,
+      "id": 2,
+      "idItem": 2,
+      "uuid": "7879dcde-d6c2-4976-87cc-51f3318ce55a"
+    },
+    {
+      "effectCode": "SAD",
+      "effectValue": -1,
+      "id": 3,
+      "idItem": 2,
+      "uuid": "79fcc6b6-0885-43e8-9d34-d86ceec44a1d"
+    }
+  ],
   "items": [
     {
       "id": 1,
@@ -2360,6 +2498,16 @@
       "idTextName": 320,
       "id_card": 112,
       "uuid": "36813571-a540-47e6-94fa-25d18a1c0fd7",
+      "weight": 0
+    },
+    {
+      "id": 2,
+      "idCard": 115,
+      "idTextDescription": 333,
+      "idTextName": 333,
+      "id_card": 115,
+      "isConsumabile": true,
+      "uuid": "bc1bdd66-ac82-479a-9749-2558eafc0f76",
       "weight": 1
     }
   ],
@@ -8449,6 +8597,236 @@
       "longText": "Le imponenti cime rocciose si erigono contro il cielo, avvolte da una nebbia perenne e gelida. Seguire i passi scoscesi ti condurrà verso vette inesplorate e pericoli nascosti. <br />\n<br />\nIn questo luogo ci sono varie azioni che puoi eseguire.",
       "shortText": "Le imponenti cime rocciose si erigono contro il cielo, avvolte da una nebbia perenne e gelida. Seguire i passi scoscesi ti condurrà verso vette inesplorate e pericoli nascosti. <br />\n<br />\nIn questo luogo ci sono varie azioni che puoi eseguire.",
       "uuid": "295c34e2-9a47-4848-a39f-b71cae1f803d"
+    },
+    {
+      "id": 326,
+      "idCreator": 1,
+      "idText": 326,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Montain",
+      "shortText": "Montain",
+      "uuid": "69d7a2a5-54db-4c7a-ac74-9e29f3e44885"
+    },
+    {
+      "id": 327,
+      "idCreator": 1,
+      "idText": 327,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "To the Mountains",
+      "shortText": "To the Mountains",
+      "uuid": "3f41e011-6c3e-4dd4-b02c-25791c447b24"
+    },
+    {
+      "id": 328,
+      "idCreator": 1,
+      "idText": 328,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The path begins to climb steeply, leaving the valley behind as the high-altitude wind grows sharper. In the distance, you catch sight of the chalky silhouette of the peaks awaiting you. <br />\n<br />\nYou can only choose this option if you have previously obtained the Mountain Map item.",
+      "shortText": "The path begins to climb steeply, leaving the valley behind as the high-altitude wind grows sharper. In the distance, you catch sight of the chalky silhouette of the peaks awaiting you. <br />\n<br />\nYou can only choose this option if you have previously obtained the Mountain Map item.",
+      "uuid": "d920f1b0-0fb2-48f2-9465-92527d9e8a85"
+    },
+    {
+      "id": 328,
+      "idCreator": 1,
+      "idText": 328,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il sentiero comincia a salire ripido, lasciandosi alle spalle la valle mentre il vento d'altitudine si fa più pungente. Scorgi in lontananza la sagoma gessosa delle vette che ti attendono. <br />\n<br />\nPuoi attivare questa scelta solamente se in precedenza hai ottenuto l'oggetto Mappa delle Montagne.",
+      "shortText": "Il sentiero comincia a salire ripido, lasciandosi alle spalle la valle mentre il vento d'altitudine si fa più pungente. Scorgi in lontananza la sagoma gessosa delle vette che ti attendono. <br />\n<br />\nPuoi attivare questa scelta solamente se in precedenza hai ottenuto l'oggetto Mappa delle Montagne.",
+      "uuid": "1dd83cf4-24f5-4ada-b49a-0f58eff1bd7b"
+    },
+    {
+      "id": 327,
+      "idCreator": 1,
+      "idText": 327,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Verso le Montagne",
+      "shortText": "Verso le Montagne",
+      "uuid": "c802b5e7-f1af-40a4-962e-4aa277e13f1d"
+    },
+    {
+      "id": 329,
+      "idCreator": 1,
+      "idText": 329,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ales Krivec",
+      "shortText": "Ales Krivec",
+      "uuid": "d11b2191-8d91-45c7-8d2a-b9f36f40d3ab"
+    },
+    {
+      "id": 329,
+      "idCreator": 1,
+      "idText": 329,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "aa490d18-906d-45d3-a234-dee03e48961c"
+    },
+    {
+      "id": 330,
+      "idCreator": 1,
+      "idText": 330,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Use montain map",
+      "shortText": "Use montain map",
+      "uuid": "ecc7b6c3-cf8f-4a98-bbe9-78293a2a88a0"
+    },
+    {
+      "id": 330,
+      "idCreator": 1,
+      "idText": 330,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "cff86e6b-947f-42b4-a4d0-2a6817d835f8"
+    },
+    {
+      "id": 331,
+      "idCreator": 1,
+      "idText": 331,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The path begins to climb steeply, leaving the valley behind as the high-altitude wind grows sharper. In the distance, you catch sight of the chalky silhouette of the peaks awaiting you. <br />\n<br />\nYou can only choose this action if you have previously obtained the Mountain Map item.",
+      "shortText": "The path begins to climb steeply, leaving the valley behind as the high-altitude wind grows sharper. In the distance, you catch sight of the chalky silhouette of the peaks awaiting you. <br />\n<br />\nYou can only choose this action if you have previously obtained the Mountain Map item.",
+      "uuid": "8a4d97b2-e1c0-4963-baf4-8b61bb08c182"
+    },
+    {
+      "id": 331,
+      "idCreator": 1,
+      "idText": 331,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il sentiero comincia a salire ripido, lasciandosi alle spalle la valle mentre il vento d'altitudine si fa più pungente. Scorgi in lontananza la sagoma gessosa delle vette che ti attendono. <br />\n<br />\nPuoi attivare questa azione solamente se in precedenza hai ottenuto l'oggetto Mappa delle Montagne.",
+      "shortText": "Il sentiero comincia a salire ripido, lasciandosi alle spalle la valle mentre il vento d'altitudine si fa più pungente. Scorgi in lontananza la sagoma gessosa delle vette che ti attendono. <br />\n<br />\nPuoi attivare questa azione solamente se in precedenza hai ottenuto l'oggetto Mappa delle Montagne.",
+      "uuid": "060365f6-d597-4786-88f3-121f4390a631"
+    },
+    {
+      "id": 332,
+      "idCreator": 1,
+      "idText": 332,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Ales Krivec",
+      "shortText": "Ales Krivec",
+      "uuid": "70f7a13b-f820-49fc-a9e1-b0170dab264a"
+    },
+    {
+      "id": 332,
+      "idCreator": 1,
+      "idText": 332,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "c705fa0b-9204-449d-8ca5-5f789c5e3dfb"
+    },
+    {
+      "id": 333,
+      "idCreator": 1,
+      "idText": 333,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Water Bottle",
+      "shortText": "Water Bottle",
+      "uuid": "db6b7b4c-1bc9-4022-a772-17d27e41ef93"
+    },
+    {
+      "id": 334,
+      "idCreator": 1,
+      "idText": 334,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Search for Water",
+      "shortText": "Search for Water",
+      "uuid": "dea925d7-d30f-4c60-bacf-6e968e7332b5"
+    },
+    {
+      "id": 335,
+      "idCreator": 1,
+      "idText": 335,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Andrey Metelev",
+      "shortText": "Andrey Metelev",
+      "uuid": "2c034c24-9df1-4626-866f-e5fad8ceb718"
+    },
+    {
+      "id": 335,
+      "idCreator": 1,
+      "idText": 335,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5ec1aaf5-24bd-4201-99ee-caed8945ba99"
+    },
+    {
+      "id": 336,
+      "idCreator": 1,
+      "idText": 336,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "A clear, sealed container holding a draught of pure, cool freshness. During the scorching hours of the journey, a few drops can mean the difference between collapse and recovery. <br />\n<br />\nThis item is consumable and can restore some health when used; you can collect as many as you want, but watch your weight.",
+      "shortText": "A clear, sealed container holding a draught of pure, cool freshness. During the scorching hours of the journey, a few drops can mean the difference between collapse and recovery. <br />\n<br />\nThis item is consumable and can restore some health when used; you can collect as many as you want, but watch your weight.",
+      "uuid": "f6e18275-cf31-4def-9493-e45e190f58b8"
+    },
+    {
+      "id": 336,
+      "idCreator": 1,
+      "idText": 336,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Un recipiente trasparente e sigillato che racchiude un sorso di limpida freschezza. Nelle ore più torride del cammino, poche gocce possono fare la differenza tra il crollo e la ripresa. <br />\n<br />\nQuesto oggetto è di tipo consumabile e può darti un po' di vita quando usato; puoi collezionarne quanti ne vuoi, ma occhio al peso.",
+      "shortText": "Un recipiente trasparente e sigillato che racchiude un sorso di limpida freschezza. Nelle ore più torride del cammino, poche gocce possono fare la differenza tra il crollo e la ripresa. <br />\n<br />\nQuesto oggetto è di tipo consumabile e può darti un po' di vita quando usato; puoi collezionarne quanti ne vuoi, ma occhio al peso.",
+      "uuid": "ec871a5a-8751-437d-92f6-e334ec440bbf"
+    },
+    {
+      "id": 337,
+      "idCreator": 1,
+      "idText": 337,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "The sound of a stream echoes nearby among the steep rocks and dense foliage. Carefully inspecting the area might reveal clear springs or pools of drinkable water. <br />\n<br />\nSome events may allow you to find very useful consumable items.",
+      "shortText": "The sound of a stream echoes nearby among the steep rocks and dense foliage. Carefully inspecting the area might reveal clear springs or pools of drinkable water. <br />\n<br />\nSome events may allow you to find very useful consumable items.",
+      "uuid": "fb3ac976-4c01-4f03-8696-ffa9cdbd8731"
+    },
+    {
+      "id": 337,
+      "idCreator": 1,
+      "idText": 337,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "Il rumore di un ruscello risuona poco distante tra le rocce scoscese e la vegetazione. Ispezionare attentamente l'area potrebbe rivelare sorgenti limpide o pozze d'acqua potabile. <br />\n<br />\nAlcuni eventi possono permetterti di trovare oggetti consumabili molto utili.",
+      "shortText": "Il rumore di un ruscello risuona poco distante tra le rocce scoscese e la vegetazione. Ispezionare attentamente l'area potrebbe rivelare sorgenti limpide o pozze d'acqua potabile. <br />\n<br />\nAlcuni eventi possono permetterti di trovare oggetti consumabili molto utili.",
+      "uuid": "83a07d9d-974c-41b9-8a56-fd1e399b1511"
+    },
+    {
+      "id": 338,
+      "idCreator": 1,
+      "idText": 338,
+      "idTextCopyright": 3,
+      "lang": "en",
+      "longText": "Mohammad Alizade",
+      "shortText": "Mohammad Alizade",
+      "uuid": "7f0ab7b1-7368-4aed-a336-5295b5e1065c"
+    },
+    {
+      "id": 338,
+      "idCreator": 1,
+      "idText": 338,
+      "idTextCopyright": 3,
+      "lang": "it",
+      "longText": "",
+      "shortText": "",
+      "uuid": "5d2b2cd2-8d42-479a-868f-acc86fda5ddd"
     }
   ],
   "title": "Paths Tutorial",

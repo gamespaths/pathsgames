@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters.rest.match.inventory_controller import InventoryController
 from app.core.models.match.event_models import EdgeStateOutcome, EventExecutionResult, StatChange
-from app.core.models.match.match_models import ItemInstanceInfo
+from app.core.models.match.match_models import ItemEffectPreview, ItemInstanceInfo
 from app.core.ports.match.inventory_ports import InventoryError
 
 INVENTORY = "/api/gameplay/m1/inventory"
@@ -33,10 +33,11 @@ def env():
     return TestClient(app), port
 
 
-def _item():
+def _item(effects=None):
     return ItemInstanceInfo(
         uuid="row-1", item_uuid="item-900", name="Potion", weight=3, amount=2,
-        state="ACTIVE", id_card=77, card={"uuid": "card-77"}, is_consumabile=True)
+        state="ACTIVE", id_card=77, card={"uuid": "card-77"}, is_consumabile=True,
+        effects=effects or [])
 
 
 def _inventory_view():
@@ -74,7 +75,24 @@ def test_inventory_returns_items_weight_and_capacity(env):
     assert body["items"][0]["idCard"] == 77
     assert body["items"][0]["card"] == {"uuid": "card-77"}
     assert body["items"][0]["isConsumabile"] is True
+    # Step 35 — an item with no effect answers an empty array, never null.
+    assert body["items"][0]["effects"] == []
     port.list_inventory.assert_called_once_with("m1", "user-uuid", "it")
+
+
+def test_inventory_projects_the_effect_promise(env):
+    client, port = env
+    port.list_inventory.return_value = {
+        "match_uuid": "m1", "character_uuid": "char-1",
+        "items": [_item([ItemEffectPreview("life", 3), ItemEffectPreview("sad", -1)])],
+        "weight": 6, "weight_max": 30}
+
+    body = client.get(INVENTORY, headers=AUTH).json()
+
+    assert body["items"][0]["effects"] == [
+        {"statistic": "life", "value": 3},
+        {"statistic": "sad", "value": -1},
+    ]
 
 
 def test_use_item_answers_the_execute_event_shape(env):

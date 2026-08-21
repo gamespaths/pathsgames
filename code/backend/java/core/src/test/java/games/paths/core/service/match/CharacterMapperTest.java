@@ -5,6 +5,7 @@ import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.TextEntity;
@@ -280,6 +281,30 @@ class CharacterMapperTest {
         assertEquals("card-77", item.getCard().uuid());
         assertEquals("Corda", item.getName());
         assertEquals(Boolean.TRUE, item.getIsConsumabile());
+    }
+
+    @Test
+    @DisplayName("Step 35 — the /info items promise the same effects the inventory endpoint does")
+    void itemsCarryTheEffectPromise() {
+        StoryReadPort storyReadPort = partyStoryPort();
+        ItemEffectEntity heal = new ItemEffectEntity();
+        heal.setId(1L);
+        heal.setIdItem(8);
+        heal.setEffectCode("LIFE");
+        heal.setEffectValue(3);
+        when(storyReadPort.findItemEffectsByStoryId(5L)).thenReturn(List.of(heal));
+
+        List<CharacterInstanceInfo> players = CharacterMapper.buildAll(
+                List.of(party(10L, 7L), party(11L, 8L)), match(5L),
+                new CharacterMapper.MapperContext(storyReadPort, partyReadPort(), null,
+                        "user-uuid", 7L, "en", true));
+
+        ItemInstanceInfo item = players.get(0).getItems().get(0);
+        assertEquals(1, item.getEffects().size());
+        assertEquals("life", item.getEffects().get(0).getStatistic());
+        assertEquals(3, item.getEffects().get(0).getValue());
+        // One query for the whole story, however many characters are standing in the match.
+        verify(storyReadPort).findItemEffectsByStoryId(5L);
     }
 
     @Test

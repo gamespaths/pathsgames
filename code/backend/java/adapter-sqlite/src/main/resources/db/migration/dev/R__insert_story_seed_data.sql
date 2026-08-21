@@ -261,13 +261,16 @@ UPDATE list_locations_neighbors SET id_card_back = 90003 WHERE id = 90001 AND id
 -- ── Items ───────────────────────────────────────────────────────
 -- v0.34.0: every item carries a card (the board renders the object, never an id), and the
 -- two class columns are finally exercised — 90005 can be used only by class 90002.
-INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, id_class_permitted, id_class_prohibited) VALUES
-(90001, 9001, 90001, 400, 400, 1, 1, NULL,  NULL),   -- Training Potion: consumable, LIFE +3
-(90002, 9001, 90001, 401, 401, 2, 0, NULL,  NULL),   -- Practice Sword: CARRIED ONLY, gates event 90015
-(90003, 9001, 90001, 402, 402, 1, 1, NULL,  NULL),   -- Guide Scroll: consumable, EXP +5, gates 90029
-(90004, 9001, 90001, 403, 403, 1, 1, NULL,  NULL),   -- Energy Snack: consumable, ENERGY +3
-(90005, 9001, 90001, 404, 404, 1, 1, 90002, NULL),   -- Scholar's Tonic: only class 90002 may use it
-(90006, 9001, 90001, 405, 405, 9, 1, NULL,  NULL);   -- Lead Ingot: heavy enough to overload a mover
+-- v0.35.0: flag_show_effects. Every item reports its effects[] promise except 90006, the
+-- unlabelled ingot: it keeps its secret (0) and still applies LIFE +1 when used, which is
+-- exactly the pair the promise must be tested against.
+INSERT INTO list_items (id, id_story, id_card, id_text_name, id_text_description, weight, is_consumabile, flag_show_effects, id_class_permitted, id_class_prohibited) VALUES
+(90001, 9001, 90001, 400, 400, 1, 1, 1,    NULL,  NULL),   -- Training Potion: consumable, LIFE +3
+(90002, 9001, 90001, 401, 401, 2, 0, 1,    NULL,  NULL),   -- Practice Sword: CARRIED ONLY, gates event 90015
+(90003, 9001, 90001, 402, 402, 1, 1, NULL, NULL,  NULL),   -- Guide Scroll: consumable, EXP +5 (flag unset = shown)
+(90004, 9001, 90001, 403, 403, 1, 1, 1,    NULL,  NULL),   -- Energy Snack: consumable, ENERGY +3
+(90005, 9001, 90001, 404, 404, 1, 1, 1,    90002, NULL),   -- Scholar's Tonic: only class 90002 may use it
+(90006, 9001, 90001, 405, 405, 9, 1, 0,    NULL,  NULL);   -- Lead Ingot: heavy, and its effect stays SECRET
 
 -- ── Item Effects ────────────────────────────────────────────────
 -- v0.34.0 adds traits_to_add / traits_to_remove: same CSV-of-ids format as the event

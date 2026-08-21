@@ -30,6 +30,7 @@ Loaded on demand. Read only when working on E2E tests.
 | `31_choices` | Step 31 choice engine (see breakdown below) |
 | `32_choice_resolution` | Step 32 choice resolution (see breakdown below) |
 | `33_location_events` | Step 33 automatic location events (see breakdown below) |
+| `34_inventory` | Steps 34/35 inventory, resources, use/drop, effects preview (see breakdown below) |
 
 ### `19_match` breakdown
 
@@ -133,6 +134,22 @@ Triggers are addressed by **behaviour** (the trigger name the response reports),
 seeded event uuid, so the suite runs unchanged against backends whose seed ids differ. Each
 case mints its own guest and its own match — `flagVisited` and the counter are both
 per-match latches.
+
+### `34_inventory` breakdown
+
+`inventory.robot` + `resources.robot` + `use_item.robot` (Steps 34/35), plus
+`effects_preview.robot` (v0.35.0, 6 tests) — the PROMISE an item makes before it is used.
+Every inventory row carries `effects[]` ({statistic, value} of its `list_items_effects`
+rows): the array is always present, speaks the engine vocabulary already normalised
+(`sad`, never `SADNESS`), rides identically on `/inventory` and on `/info` players[].items
+(one mapper), and every statistic it names shows up among the `statChanges` of the usage —
+values are NOT compared, since the promise is the authored delta and `statChanges` reports
+what survived the clamp. The last case is the `flag_show_effects = 0` half: a consumable
+whose promise is empty still moves a statistic when used and still spends its row — the
+flag hides the promise, never the effect. Rows are found by BEHAVIOUR (fill the bag with
+whatever the start location grants, then read the payload); all four seeds ship exactly
+one consumable with an empty promise — the heavy ingot — which is what the secret case
+looks for.
 
 ## Seed data and reports per backend
 

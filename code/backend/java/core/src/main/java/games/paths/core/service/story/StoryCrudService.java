@@ -914,6 +914,7 @@ public class StoryCrudService implements StoryCrudPort {
             ItemEntity i = (ItemEntity) e;
             m.put("weight", i.getWeight());
             m.put("isConsumabile", i.getIsConsumabile());
+            m.put("flagShowEffects", i.getFlagShowEffects());
             m.put("idClassPermitted", i.getIdClassPermitted());
             m.put("idClassProhibited", i.getIdClassProhibited());
         } else if (e instanceof WeatherRuleEntity) {
@@ -1141,6 +1142,11 @@ public class StoryCrudService implements StoryCrudPort {
         Object v = d.get(k);
         if (v instanceof Number)
             return ((Number) v).intValue();
+        // v0.35.0 — the admin form sends a checkbox as a JSON boolean, and every flag column
+        // of the schema is an INTEGER. Without this a ticked box read as null: the field was
+        // silently dropped instead of written (is_consumabile, flag_show_effects).
+        if (v instanceof Boolean)
+            return Boolean.TRUE.equals(v) ? 1 : 0;
         if (v instanceof String) {
             try {
                 return Integer.parseInt((String) v);
@@ -1212,6 +1218,8 @@ public class StoryCrudService implements StoryCrudPort {
             e.setWeight(intVal(d, "weight"));
         if (d.containsKey("isConsumabile"))
             e.setIsConsumabile(intVal(d, "isConsumabile"));
+        if (d.containsKey("flagShowEffects"))
+            e.setFlagShowEffects(intVal(d, "flagShowEffects"));
         if (d.containsKey("idClassPermitted"))
             e.setIdClassPermitted(intVal(d, "idClassPermitted"));
         if (d.containsKey("idClassProhibited"))

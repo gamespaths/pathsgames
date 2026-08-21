@@ -211,15 +211,16 @@ public class InventoryService implements InventoryPort {
     // ── mapping ─────────────────────────────────────────────────────────────
 
     private List<ItemInstanceInfo> mapItems(Ctx c, String lang) {
+        // Step 35 — the listing now carries what each item promises, read off the very rows
+        // useItem applies. Cached on the Ctx: dropItem maps twice in one call.
         return ItemInstanceMapper.build(c.inventory(), c.itemsById(), storyReadPort,
-                contentQueryPort, c.match.idStory(), lang, new HashMap<>());
+                contentQueryPort, c.match.idStory(), lang, new HashMap<>(), c.effectsByItem());
     }
 
     /** Maps {@code list_items_effects} rows onto what the engine consumes. */
     private List<StandaloneEffect> standaloneEffects(Ctx c, ItemEntity item) {
         List<StandaloneEffect> out = new ArrayList<>();
-        List<ItemEffectEntity> rows = store.findItemEffectsByItemId(c.match.idStory())
-                .getOrDefault(item.getId(), List.of());
+        List<ItemEffectEntity> rows = c.effectsByItem().getOrDefault(item.getId(), List.of());
         for (ItemEffectEntity e : rows) {
             out.add(new StandaloneEffect(
                     e.getUuid(),
@@ -310,6 +311,7 @@ public class InventoryService implements InventoryPort {
         private final InventoryCharacterView actor;
         private List<GamingInventoryItemsEntity> inventory;
         private Map<Long, ItemEntity> itemsById;
+        private Map<Long, List<ItemEffectEntity>> effectsByItem;
 
         private Ctx(MatchInventoryView match, InventoryCharacterView actor) {
             this.match = match;
@@ -332,6 +334,14 @@ public class InventoryService implements InventoryPort {
                 itemsById = match.idStory() == null ? Map.of() : store.findItemsById(match.idStory());
             }
             return itemsById;
+        }
+
+        private Map<Long, List<ItemEffectEntity>> effectsByItem() {
+            if (effectsByItem == null) {
+                effectsByItem = match.idStory() == null
+                        ? Map.of() : store.findItemEffectsByItemId(match.idStory());
+            }
+            return effectsByItem;
         }
     }
 }

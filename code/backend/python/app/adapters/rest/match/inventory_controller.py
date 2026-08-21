@@ -55,6 +55,9 @@ def item_to_camel(i: ItemInstanceInfo) -> Dict[str, Any]:
         "idCard": i.id_card,
         "card": i.card,
         "isConsumabile": i.is_consumabile,
+        # Step 35 — what using it promises, one entry per list_items_effects row. Always an
+        # array: an item with no effect answers [], never null.
+        "effects": [{"statistic": e.statistic, "value": e.value} for e in (i.effects or [])],
     }
 
 

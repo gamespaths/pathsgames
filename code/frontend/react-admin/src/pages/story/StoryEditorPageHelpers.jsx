@@ -148,6 +148,12 @@ export function getNewEntityDefaults(activeTab) {
   if (activeTab === 'location-neighbors') {
     return { direction: LOCATION_NEIGHBOR_DIRECTIONS[0], flagBack: 1 }
   }
+  // v0.35.0 — a new item shows its effects unless the author says otherwise. The backend
+  // reads a missing flag the same way, but an unticked box would be written as an explicit
+  // 0: without this default, every item created from the form would be born secret.
+  if (activeTab === 'items') {
+    return { flagShowEffects: 1 }
+  }
   return null
 }
 

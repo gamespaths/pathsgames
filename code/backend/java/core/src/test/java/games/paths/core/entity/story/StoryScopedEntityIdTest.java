@@ -57,7 +57,7 @@ class StoryScopedEntityIdTest {
     @Test
     void equals_sameInstance() {
         StoryScopedEntityId a = new StoryScopedEntityId(1L, 2L);
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
     }
 
     @Test

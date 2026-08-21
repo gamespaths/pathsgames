@@ -2,6 +2,7 @@
 from typing import Any, Dict, List, Optional
 
 from app.core.models.match.match_models import CharacterInstanceInfo, ItemInstanceInfo
+from app.core.services.match.inventory_service import preview_effects, shows_effects
 from app.core.ports.match.match_ports import (
     CharacterQueryPort,
     CharacterReadPort,
@@ -54,6 +55,7 @@ def build_character_infos(
     item_by_id: Dict[int, Dict[str, Any]] = {}
     # One cache per request, so N items sharing a card cost one lookup.
     card_cache: Dict[int, Any] = {}
+    effects_by_item: Dict[int, Any] = {}
     if story_id is not None:
         for t in story_read_port.find_character_templates_by_story_id(story_id):
             template_uuid_by_id[t["id_tipo"]] = t["uuid"]
@@ -63,6 +65,9 @@ def build_character_infos(
             location_by_id[loc["id"]] = loc
         for item in story_read_port.find_items_by_story_id(story_id):
             item_by_id[item["id"]] = item
+        # Step 35 — one query for the whole story, however many characters stand in the
+        # match: the items[] of /info promise what the inventory endpoint promises.
+        effects_by_item = story_read_port.find_item_effects_by_item_id(story_id)
 
     result: List[CharacterInstanceInfo] = []
     for c in characters:
@@ -94,6 +99,8 @@ def build_character_infos(
                                               item.get("id_card"), card_cache)
                     info.name = _resolve_name(story_read_port, story_id,
                                               item.get("id_text_name"), lang)
+                    if shows_effects(item):
+                        info.effects = preview_effects(effects_by_item.get(item.get("id")))
                 items.append(info)
         weight = sum((i.weight or 0) * (i.amount or 1) for i in items)
         loc = location_by_id.get(c.get("id_location"))

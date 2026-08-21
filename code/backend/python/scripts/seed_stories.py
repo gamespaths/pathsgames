@@ -333,15 +333,18 @@ def seed():
         # v0.34.0 — the inventory test-bed. Item 1 is CARRIED ONLY (it gates event 15 and
         # must stay in the bag), item 2 is the consumable that gates event 50, item 3 is
         # restricted to class 1, item 4 is heavy enough to reach OVERWEIGHT.
+        # v0.35.0 — flagShowEffects: item 4 keeps its secret (0) while still applying
+        # LIFE +1, and item 2 leaves the field unset, which must read as "shown".
         "items": [
             {"id": 1, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
-             "weight": 1, "isConsumabile": 0},
+             "weight": 1, "isConsumabile": 0, "flagShowEffects": 1},
             {"id": 2, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
              "weight": 1, "isConsumabile": 1},
             {"id": 3, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
-             "weight": 1, "isConsumabile": 1, "idClassPermitted": 1},
+             "weight": 1, "isConsumabile": 1, "idClassPermitted": 1,
+             "flagShowEffects": 1},
             {"id": 4, "idCard": 1, "idTextName": 400, "idTextDescription": 400,
-             "weight": 9, "isConsumabile": 1},
+             "weight": 9, "isConsumabile": 1, "flagShowEffects": 0},
         ],
         # v0.34.0 — the canonical TOP-LEVEL array, keyed by idItem, same shape as Java and
         # AWS. SADNESS is the documented alias of the `sad` statistic; traitsToAdd is the

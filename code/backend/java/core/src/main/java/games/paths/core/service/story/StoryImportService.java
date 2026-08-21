@@ -345,6 +345,9 @@ public class StoryImportService implements StoryImportPort {
             e.setIdTextDescription(getInteger(item, "idTextDescription"));
             e.setWeight(getInteger(item, "weight"));
             e.setIsConsumabile(getInteger(item, "isConsumabile"));
+            // v0.35.0: absent stays null, which reads as "show the effects" - an old story
+            // file must keep behaving exactly as it did before the column existed.
+            e.setFlagShowEffects(getInteger(item, "flagShowEffects"));
             // v0.34.0: step 34 gates use-item on the character's class, so the two
             // restriction columns finally have to survive an import.
             e.setIdClassPermitted(normalizeOptionalFk(getInteger(item, "idClassPermitted")));

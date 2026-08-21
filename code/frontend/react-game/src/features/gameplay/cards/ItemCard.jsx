@@ -3,6 +3,7 @@ import { useTranslation } from '@/i18n/context'
 import Card from '@/components/layout/Card'
 import { dropItem, useItem } from '@/api/matches'
 import BonusBadgeList from '@/components/ui/BonusBadgeList'
+import { itemCarryBadges, itemDescriptionBadges } from '@/utils/statBadges'
 
 /**
  * ItemCard — Step 34. One card per row of the calling character's inventory.
@@ -47,26 +48,25 @@ export default function ItemCard({
   // specific: a bottle would stone on a parchment.
   const actionIcon = item?.card?.awesomeIcon ?? 'fas fa-play'
 
-  const amount = item?.amount ?? 1
-  const weight = item?.weight ?? 0
-  const badgeItems = [
-    { key: 'weight', value: `${weight * amount}`, label: t('game.item.weight') },
-  ]
-  // The x IS the quantity symbol — no icon beside it. A plain letter, not the × sign:
-  // that glyph is drawn smaller than the digits it sits next to, so the badge read as a
-  // number with a speck in front of it.
+  // The x IS the quantity symbol — no icon beside it. Both lists come from the shared
+  // helper: the card of an item just RECEIVED renders the same figures (GameBook), and one
+  // copy of a figure cannot disagree with itself.
   // The value stays a bare number so the zero-filter in BonusBadgeList still reads it.
-  if (amount > 1) badgeItems.unshift({ key: 'amount', value: `${amount}`, prefix: 'x',
-                                       label: t('game.item.amount') })
+  const badgeItems = itemCarryBadges(item, t)
   // On the card FACE there is no room for labels, so the x carries the meaning on its own.
   const infoBadge = (
     <BonusBadgeList items={badgeItems.map(b => ({ ...b, label: null }))}
       className="player-stats-bar bonus-badge-list m-1 display-flex flex-direction-column" />
   )
-  // In the DESCRIPTION the label spells it out ("Amount: 2"), so the x would only repeat
-  // it. Card renders these itself, under book-page-desc — hence the raw items, not a
+  // Step 35 — the figures, then what using it promises: the same {statistic, value} rows
+  // use-item will apply, straight off the inventory payload. The value is the AUTHORED
+  // delta, before the clamp — a +5 life on a character one point from full still reads +5.
+  // That is the effect as written, which is what a promise is.
+  //
+  // In the DESCRIPTION the label spells the amount out ("Amount: 2"), so the x would only
+  // repeat it. Card renders these itself, under book-page-desc — hence the raw items, not a
   // ready-made BonusBadgeList.
-  const descriptionBadges = badgeItems.map(({ prefix, ...b }) => b)
+  const descriptionBadges = itemDescriptionBadges(item, t)
 
   async function handleUse() {
     if (running || !matchUuid || !item?.uuid) return

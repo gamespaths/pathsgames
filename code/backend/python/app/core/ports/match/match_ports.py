@@ -239,6 +239,13 @@ class StoryMatchReadPort(ABC):
         resolve a character's inventory items and carried weight."""
         ...
 
+    @abstractmethod
+    def find_item_effects_by_item_id(self, story_id: int) -> Dict[int, List[Dict[str, Any]]]:
+        """Step 35 — every list_items_effects row of the story, grouped by id_item, in id
+        order. Same shape and same name as InventoryStorePort's: the match /info items[]
+        promise exactly what the inventory endpoint promises, and what use-item applies."""
+        ...
+
 
 class CharacterCommandPort(ABC):
     @abstractmethod

@@ -69,3 +69,56 @@ export function effectStatItems(effects, characterUuid, t = (k) => k) {
   }
   return badgesFrom(totals, t)
 }
+
+/**
+ * Step 35 — what an inventory ROW weighs and carries, as badges.
+ *
+ * Two shapes of one list, so the bag and the card of an item just received cannot describe
+ * the same row differently:
+ *
+ *   itemCarryBadges       what the row IS — how many and how heavy. The `x` rides on the
+ *                         amount because the card FACE has no room for a label.
+ *   itemDescriptionBadges the same figures without that prefix (the label spells it out
+ *                         there), followed by what USING it promises.
+ *
+ * The promise is only ever appended for a consumable: a carried-only item never fires its
+ * effect rows, so promising them would be a promise the engine refuses to keep. An item
+ * whose story hides them (flagShowEffects = 0) arrives with an empty `effects` and simply
+ * adds nothing.
+ */
+export function itemCarryBadges(item, t = (k) => k) {
+  const amount = item?.amount ?? 1
+  const weight = item?.weight ?? 0
+  const badges = [{ key: 'weight', value: `${weight * amount}`, label: t('game.item.weight') }]
+  // A plain letter, not the × sign: that glyph is drawn smaller than the digits it sits
+  // next to, so the badge read as a number with a speck in front of it.
+  if (amount > 1) {
+    badges.unshift({ key: 'amount', value: `${amount}`, prefix: 'x', label: t('game.item.amount') })
+  }
+  return badges
+}
+
+export function itemDescriptionBadges(item, t = (k) => k) {
+  return [...itemCarryBadges(item, t).map(({ prefix, ...b }) => b), ...itemPromise(item, t)]
+}
+
+/**
+ * Step 35 — the badges of an item just RECEIVED: what this thing weighs, and what using it
+ * promises. No count, deliberately.
+ *
+ * The card is about the object that just arrived, not about the shelf it landed on. And
+ * since the quantity is not on the card, the weight cannot be the stack's either — "4" next
+ * to a potion nobody said there were two of describes nothing. So this is the UNIT weight,
+ * while the bag (itemDescriptionBadges) shows the count and weighs the whole stack.
+ */
+export function itemPromiseBadges(item, t = (k) => k) {
+  return [
+    { key: 'weight', value: `${item?.weight ?? 0}`, label: t('game.item.weight') },
+    ...itemPromise(item, t),
+  ]
+}
+
+/** What using it would apply — for a consumable only, empty for anything else. */
+function itemPromise(item, t) {
+  return item?.isConsumabile === true ? effectStatItems(item?.effects, null, t) : []
+}

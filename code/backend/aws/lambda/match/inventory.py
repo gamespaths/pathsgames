@@ -144,6 +144,41 @@ def standalone_effects(story, item):
     return out
 
 
+#: Step 35 — the statistic tokens the engine actually acts on. Anything else is authored
+#: noise: apply_stat drops it in silence, so the promise must not show it either.
+_KNOWN_EFFECT_CODES = {"life", "energy", "sad", "exp", "dex", "int", "cos",
+                       "food", "magic", "coin"}
+
+
+def shows_effects(item):
+    """v0.35.0 — flagShowEffects: may the promise be read? Only an explicit 0 hides it.
+
+    A missing key is the reading of every story authored before the field existed, and
+    those already shipped the promise: an absence must not read as a refusal. It gates what
+    is REPORTED, never what is applied — a secret item still does what its rows say.
+    """
+    return (item or {}).get("flagShowEffects") != 0
+
+
+def preview_effects(story, item):
+    """Step 35 — what using this item promises, as the board may read it BEFORE the row is
+    spent: one {statistic, value} per list_items_effects row.
+
+    Read off :func:`standalone_effects`, the very rows the usage applies, so the promise
+    and the result can never describe different effects. An item whose ``flagShowEffects``
+    is 0 promises nothing at all — see :func:`shows_effects`. The value is the AUTHORED one,
+    before the engine clamps it. Rows whose code lands outside the vocabulary are dropped
+    rather than shown: promising an effect apply_stat would discard keeps nothing.
+    """
+    if not shows_effects(item):
+        return []
+    return [
+        {"statistic": e["statistics"], "value": e["value"]}
+        for e in standalone_effects(story, item)
+        if e["statistics"] in _KNOWN_EFFECT_CODES
+    ]
+
+
 def remove_row(char, row):
     """Both use-item and drop-item discard the WHOLE row: amount is never decremented."""
     items = char.get("items") or []

@@ -5,6 +5,7 @@ import games.paths.core.entity.match.GamingCharacterInstanceEntity;
 import games.paths.core.entity.match.GamingCharacterTraitsEntity;
 import games.paths.core.entity.match.GamingMatchEntity;
 import games.paths.core.entity.story.CharacterTemplateEntity;
+import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
 import games.paths.core.entity.story.LocationEntity;
 import games.paths.core.entity.story.TraitEntity;
@@ -89,6 +90,9 @@ final class CharacterMapper {
         Map<Long, String> traitUuidById = new HashMap<>();
         Map<Long, LocationEntity> locationById = new HashMap<>();
         Map<Long, ItemEntity> itemById = new HashMap<>();
+        // Step 35 — one query for the whole story, grouped once for every character: the
+        // items[] of /info promise the same effects the inventory endpoint does.
+        Map<Long, List<ItemEffectEntity>> effectsByItem = new HashMap<>();
         if (storyId != null) {
             for (CharacterTemplateEntity t : storyReadPort.findCharacterTemplatesByStoryId(storyId)) {
                 templateUuidById.put(t.getIdTipo(), t.getUuid());
@@ -102,6 +106,8 @@ final class CharacterMapper {
             for (ItemEntity i : storyReadPort.findItemsByStoryId(storyId)) {
                 itemById.put(i.getId(), i);
             }
+            effectsByItem.putAll(
+                    ItemInstanceMapper.groupEffectsByItem(storyReadPort.findItemEffectsByStoryId(storyId)));
         }
 
         List<CharacterInstanceInfo> result = new ArrayList<>();
@@ -122,7 +128,8 @@ final class CharacterMapper {
                     ? new ArrayList<>()
                     : ItemInstanceMapper.build(
                             characterReadPort.findInventory(match.getId(), c.getId()),
-                            itemById, storyReadPort, ctx.contentQueryPort(), storyId, ctx.lang(), cardCache);
+                            itemById, storyReadPort, ctx.contentQueryPort(), storyId, ctx.lang(),
+                            cardCache, effectsByItem);
             LocationEntity location = c.getIdLocation() != null ? locationById.get(c.getIdLocation()) : null;
             String userUuid = isRequester ? requesterUserUuid : null;
             result.add(build(c, match.getUuid(), userUuid, templateUuidById, backpack, traitUuids, items, location));

@@ -773,6 +773,19 @@ export default function StoryEditorPage() {
       idItem: {
         options: itemsOptions,
       },
+      // v0.35.0 — the same three pickers event-effects has. An item effect speaks exactly
+      // the event-effect vocabulary (one narrative card, two CSVs of trait ids), so an
+      // author naming one has the same lists to choose from — typing bare ids was the only
+      // way until now.
+      idCard: {
+        options: cardsOptions,
+      },
+      traitsToAdd: {
+        options: traitsOptions,
+      },
+      traitsToRemove: {
+        options: traitsOptions,
+      },
     },
     'character-templates': {
       idCard: {

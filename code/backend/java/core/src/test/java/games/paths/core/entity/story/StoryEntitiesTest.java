@@ -729,6 +729,18 @@ class StoryEntitiesTest {
         }
 
         @Test
+        @DisplayName("v0.35.0 — flagShowEffects stays null when nobody sets it")
+        void flagShowEffects_defaultsToUnset() {
+            ItemEntity e = new ItemEntity();
+            e.onCreate();
+            // Unset is the reading of every story authored before the column existed, and
+            // the mapper reads it as "shown" — @PrePersist must not turn it into a 0.
+            assertNull(e.getFlagShowEffects());
+            e.setFlagShowEffects(0);
+            assertEquals(0, e.getFlagShowEffects());
+        }
+
+        @Test
         @DisplayName("@PrePersist does NOT overwrite explicitly set values")
         void prePersist_doesNotOverwrite() {
             ItemEntity e = new ItemEntity();

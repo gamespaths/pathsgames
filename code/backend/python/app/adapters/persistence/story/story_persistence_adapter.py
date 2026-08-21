@@ -396,6 +396,9 @@ class StoryPersistenceAdapter(StoryPersistencePort):
                     weight=item.get("weight", 0),
                     # v0.34.0 — step 34 gates use-item on these three.
                     is_consumabile=item.get("isConsumabile", 1),
+                    # v0.35.0 — absent stays None, which reads as "show the effects": an
+                    # old story file keeps behaving exactly as before the column existed.
+                    flag_show_effects=item.get("flagShowEffects"),
                     id_class_permitted=_normalize_optional_fk(item.get("idClassPermitted")),
                     id_class_prohibited=_normalize_optional_fk(item.get("idClassProhibited")),
                 )

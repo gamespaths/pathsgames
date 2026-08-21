@@ -1,0 +1,32 @@
+-- =============================================
+-- Paths Games - Database Schema V0.35.0 (PostgreSQL)
+-- Step 35 - Items resolution: may the player read what an item does BEFORE using it?
+--
+-- Since v0.35.0 an inventory row carries effects[] - the {statistic, value} of
+-- every list_items_effects row the usage would apply - so the board can show
+-- "+3 life" on the card of a potion the player has not drunk yet. That is the
+-- right default for most items and the wrong one for exactly one kind of story
+-- beat: the unlabelled bottle found in the dark, whose whole point is that
+-- nobody knows what it does until they drink it.
+--
+--   flag_show_effects  1 or NULL -> the promise is reported (the default);
+--                      0         -> the item keeps its secret: effects[] comes
+--                                   back EMPTY, and using it still applies them.
+--
+-- NULL reads as "shown" on purpose. The column lands on stories authored before
+-- it existed, and those stories already ship the promise: defaulting to hidden
+-- would silently take a feature away from every one of them. 0 is therefore an
+-- authored decision, never an absence - the same reading list_items already
+-- gives id_class_permitted (0/NULL = no restriction).
+--
+-- It gates the PROMISE, never the EFFECT. What the item does when used is
+-- unchanged: hiding the numbers must not become a way of authoring an item that
+-- behaves differently, or two truths would exist about the same row.
+-- =============================================
+-- (C) Paths Games 2042 - All rights reserved - See https://github.com/gamespaths/pathsgames
+-- The software is distributed under the terms of the GNU General Public License v3.0
+-- =============================================
+
+ALTER TABLE list_items ADD COLUMN flag_show_effects INTEGER DEFAULT 1;
+
+COMMENT ON COLUMN list_items.flag_show_effects IS '1/NULL = the inventory reports effects[]; 0 = the item keeps its secret';

@@ -462,16 +462,20 @@ SEED_STORIES = [
         # and no card could be resolved. Item 1 is CARRIED ONLY (it gates event 24 and must
         # stay in the bag), item 2 is the consumable that gates event 50, item 3 is
         # restricted to class 1, item 4 is heavy enough to reach OVERWEIGHT.
+        # v0.35.0 — flagShowEffects: item 4 keeps its secret (0) while still applying
+        # LIFE +1, and item 2 leaves the field unset, which must read as "shown".
         "items": [
             {"id": 1, "uuid": "item-tut-sword",  "idCard": 1, "idTextName": 400,
-             "idTextDescription": 400, "weight": 1, "isConsumabile": 0},
+             "idTextDescription": 400, "weight": 1, "isConsumabile": 0,
+             "flagShowEffects": 1},
             {"id": 2, "uuid": "item-tut-scroll", "idCard": 1, "idTextName": 400,
              "idTextDescription": 400, "weight": 1, "isConsumabile": 1},
             {"id": 3, "uuid": "item-tut-tonic",  "idCard": 1, "idTextName": 400,
              "idTextDescription": 400, "weight": 1, "isConsumabile": 1,
-             "idClassPermitted": 1},
+             "idClassPermitted": 1, "flagShowEffects": 1},
             {"id": 4, "uuid": "item-tut-ingot",  "idCard": 1, "idTextName": 400,
-             "idTextDescription": 400, "weight": 9, "isConsumabile": 1},
+             "idTextDescription": 400, "weight": 9, "isConsumabile": 1,
+             "flagShowEffects": 0},
         ],
         # SADNESS is the documented alias of the `sad` statistic; traitsToAdd is the same
         # CSV-of-ids format the event effects use.

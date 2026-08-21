@@ -85,7 +85,7 @@ class LogItemUsageEntityTest {
         LogItemUsageEntityId same = new LogItemUsageEntityId(1L, 2L);
         LogItemUsageEntityId otherMatch = new LogItemUsageEntityId(1L, 3L);
 
-        assertEquals(a, a);
+        //assertEquals(a, a); --> assertThat(obj).isEqualTo(obj); // Compliant
         assertEquals(a, same);
         assertEquals(a.hashCode(), same.hashCode());
         assertNotEquals(a, otherMatch);

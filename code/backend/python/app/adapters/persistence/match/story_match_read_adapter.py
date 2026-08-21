@@ -7,6 +7,7 @@ from app.adapters.persistence.story.models import (
     ClassBonusEntity,
     ClassEntity,
     EventEntity,
+    ItemEffectEntity,
     ItemEntity,
     KeyEntity,
     LocationEntity,
@@ -285,11 +286,33 @@ class StoryMatchReadAdapter(StoryMatchReadPort):
                     "id_card": r.id_card,
                     "id_text_name": r.id_text_name,
                     "is_consumabile": r.is_consumabile,
+                    "flag_show_effects": r.flag_show_effects,
                     "id_class_permitted": r.id_class_permitted,
                     "id_class_prohibited": r.id_class_prohibited,
                 }
                 for r in rows
             ]
+
+    def find_item_effects_by_item_id(self, story_id: int) -> Dict[int, List[Dict[str, Any]]]:
+        # v0.35.0 — one query for the whole story, grouped in memory: an item has a handful
+        # of effect rows, and a per-item query would be an N+1 over the players[] of /info.
+        with self.session_factory() as session:
+            rows = (
+                session.query(ItemEffectEntity)
+                .filter(ItemEffectEntity.id_story == story_id)
+                .order_by(ItemEffectEntity.id.asc())
+                .all()
+            )
+            grouped: Dict[int, List[Dict[str, Any]]] = {}
+            for r in rows:
+                if r.id_item is None:
+                    continue
+                grouped.setdefault(r.id_item, []).append({
+                    "id": r.id,
+                    "effect_code": r.effect_code,
+                    "effect_value": r.effect_value,
+                })
+            return grouped
 
     @staticmethod
     def _template_to_dict(entity: CharacterTemplateEntity) -> Dict[str, Any]:

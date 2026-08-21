@@ -1,14 +1,19 @@
 package games.paths.core.service.match;
 
 import games.paths.core.entity.match.GamingInventoryItemsEntity;
+import games.paths.core.entity.story.ItemEffectEntity;
 import games.paths.core.entity.story.ItemEntity;
+import games.paths.core.model.match.EffectStatCodec;
+import games.paths.core.model.match.ItemEffectPreview;
 import games.paths.core.model.match.ItemInstanceInfo;
 import games.paths.core.model.story.CardInfo;
 import games.paths.core.port.story.ContentQueryPort;
 import games.paths.core.port.story.StoryReadPort;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +44,6 @@ final class ItemInstanceMapper {
      * @param cardCache        one cache per request, so N items sharing a card cost
      *                         one lookup; may be null
      */
-    @SuppressWarnings("java:S107") // a mapper collaborator list, not a behaviour switchboard
     static List<ItemInstanceInfo> build(List<GamingInventoryItemsEntity> inventory,
                                         Map<Long, ItemEntity> itemById,
                                         StoryReadPort storyReadPort,
@@ -47,6 +51,27 @@ final class ItemInstanceMapper {
                                         Long storyId,
                                         String lang,
                                         Map<Integer, CardInfo> cardCache) {
+        return build(inventory, itemById, storyReadPort, contentQueryPort, storyId, lang,
+                cardCache, null);
+    }
+
+    /**
+     * Step 35 — the same mapping, plus the effects each item promises.
+     *
+     * @param effectsByItem {@code list_items_effects} grouped by {@code id_item}, as
+     *                      {@link #groupEffectsByItem} builds it; null leaves every
+     *                      {@code effects[]} empty, which is what the pre-Step-35 overload
+     *                      above does.
+     */
+    @SuppressWarnings("java:S107") // a mapper collaborator list, not a behaviour switchboard
+    static List<ItemInstanceInfo> build(List<GamingInventoryItemsEntity> inventory,
+                                        Map<Long, ItemEntity> itemById,
+                                        StoryReadPort storyReadPort,
+                                        ContentQueryPort contentQueryPort,
+                                        Long storyId,
+                                        String lang,
+                                        Map<Integer, CardInfo> cardCache,
+                                        Map<Long, List<ItemEffectEntity>> effectsByItem) {
         List<ItemInstanceInfo> items = new ArrayList<>();
         if (inventory == null) {
             return items;
@@ -70,12 +95,59 @@ final class ItemInstanceMapper {
                     storyReadPort.findTextByStoryIdTextAndLang(storyId, item.getIdTextName(), resolvedLang)
                             .ifPresent(t -> info.setName(t.getShortText()));
                 }
+                info.setEffects(showsEffects(item)
+                        ? previewEffects(effectsByItem, item.getId())
+                        : new ArrayList<>());
             } else {
                 info.setWeight(0);
             }
             items.add(info);
         }
         return items;
+    }
+
+    /**
+     * Step 35 — the effect rows of one item, as the board may read them before the item is
+     * used. Rows whose code lands outside the engine's vocabulary are dropped rather than
+     * shown: {@code applyStat} discards them in silence, so promising one would be a
+     * promise nothing keeps.
+     */
+    private static List<ItemEffectPreview> previewEffects(
+            Map<Long, List<ItemEffectEntity>> effectsByItem, Long itemId) {
+        List<ItemEffectPreview> out = new ArrayList<>();
+        if (effectsByItem == null || itemId == null) {
+            return out;
+        }
+        for (ItemEffectEntity e : effectsByItem.getOrDefault(itemId, List.of())) {
+            if (!EffectStatCodec.isKnown(e.getEffectCode())) {
+                continue;
+            }
+            out.add(new ItemEffectPreview(EffectStatCodec.normalize(e.getEffectCode()),
+                    e.getEffectValue() != null ? e.getEffectValue() : 0));
+        }
+        return out;
+    }
+
+    /**
+     * Groups a story's {@code list_items_effects} rows by {@code id_item}, in id order —
+     * the same grouping {@code InventoryStoreAdapter.findItemEffectsByItemId} does for the
+     * usage path, so the promise and the application list the effects in one order.
+     */
+    static Map<Long, List<ItemEffectEntity>> groupEffectsByItem(List<ItemEffectEntity> rows) {
+        Map<Long, List<ItemEffectEntity>> byItem = new LinkedHashMap<>();
+        if (rows == null) {
+            return byItem;
+        }
+        List<ItemEffectEntity> sorted = new ArrayList<>(rows);
+        sorted.sort(Comparator.comparing(ItemEffectEntity::getId,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+        for (ItemEffectEntity e : sorted) {
+            if (e.getIdItem() == null) {
+                continue;
+            }
+            byItem.computeIfAbsent(e.getIdItem().longValue(), k -> new ArrayList<>()).add(e);
+        }
+        return byItem;
     }
 
     /** Total carried weight = Σ (item.weight × amount) over the resolved items. */
@@ -97,6 +169,20 @@ final class ItemInstanceMapper {
 
     static int unitAmount(Integer amount) {
         return amount != null ? amount : 1;
+    }
+
+    /**
+     * v0.35.0 — {@code flag_show_effects}: may the promise be read? Only an explicit 0
+     * hides it. Null is the reading of every story authored before the column existed, and
+     * those already shipped the promise — treating an absence as a refusal would take the
+     * feature away from all of them at once.
+     *
+     * <p>It gates what is REPORTED, never what is applied: {@code useItem} does not consult
+     * it, so a secret item still does exactly what its rows say.</p>
+     */
+    private static boolean showsEffects(ItemEntity item) {
+        Integer flag = item.getFlagShowEffects();
+        return flag == null || flag != 0;
     }
 
     /** {@code is_consumabile} is stored as an integer flag; anything but 1 means "carried only". */

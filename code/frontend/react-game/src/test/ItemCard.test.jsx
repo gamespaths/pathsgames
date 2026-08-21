@@ -161,6 +161,35 @@ describe('ItemCard', () => {
       .toBe('x')
   })
 
+  it('promises the effects using it would apply (Step 35)', () => {
+    const onPreview = vi.fn()
+    const potion = { ...ITEM, effects: [
+      { statistic: 'life', value: 3 },
+      { statistic: 'sad', value: -1 },
+    ] }
+    render(<ItemCard item={potion} story={STORY} onPreview={onPreview} />)
+
+    fireEvent.click(screen.getByTestId('preview-btn'))
+
+    const stats = onPreview.mock.calls[0][3]
+    // Weight and amount first — what the row IS — then what using it would do.
+    expect(stats.map(b => b.key)).toEqual(['amount', 'weight', 'life', 'sadness'])
+    expect(stats.find(b => b.key === 'life').value).toBe('+3')
+    expect(stats.find(b => b.key === 'sadness').value).toBe('-1')
+  })
+
+  it('promises nothing for an item that can only be carried', () => {
+    const onPreview = vi.fn()
+    // The engine refuses to use it at all, so its effect rows can never fire.
+    const relic = { ...CARRIED_ONLY, effects: [{ statistic: 'life', value: 3 }] }
+    render(<ItemCard item={relic} story={STORY} onPreview={onPreview} />)
+
+    fireEvent.click(screen.getByTestId('preview-btn'))
+
+    const stats = onPreview.mock.calls[0][3]
+    expect(stats.map(b => b.key).sort()).toEqual(['amount', 'weight'])
+  })
+
   it('a locked item explains itself without repeating the badges', () => {
     const onPreview = vi.fn()
     render(<ItemCard item={CARRIED_ONLY} story={STORY} onPreview={onPreview} />)

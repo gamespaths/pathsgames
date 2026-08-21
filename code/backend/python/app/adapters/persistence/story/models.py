@@ -225,6 +225,10 @@ class ItemEntity(Base):
     weight = Column(Integer, default=0)
     # 1 = can be consumed with use-item; 0 = carried only (weight + item conditions).
     is_consumabile = Column(Integer, default=1)
+    # v0.35.0 — 1/None report the effects[] promise before the item is used, 0 keeps the
+    # secret. Nullable: a story authored before the column existed already shipped the
+    # promise, so an absence must read as "shown", never as a refusal.
+    flag_show_effects = Column(Integer, default=1)
     id_class_permitted = Column(Integer)
     id_class_prohibited = Column(Integer)
 
